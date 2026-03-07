@@ -1,10 +1,16 @@
 import UIKit
+import AVFoundation
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        NSSetUncaughtExceptionHandler { exception in
+            NSLog("CRUCIBLE EXCEPTION: %@ - %@", exception.name.rawValue, exception.reason ?? "no reason")
+        }
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+        application.beginReceivingRemoteControlEvents()
         return true
     }
 
