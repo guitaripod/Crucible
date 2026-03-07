@@ -3,20 +3,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "MediaForge",
+    name: "Crucible",
     platforms: [
         .iOS(.v17),
         .tvOS(.v17),
     ],
     products: [
         .library(
-            name: "MediaForge",
-            targets: ["MediaForge"]
+            name: "Crucible",
+            targets: ["Crucible"]
         ),
     ],
     targets: [
         .target(
-            name: "MediaForge"
+            name: "Crucible"
         ),
     ]
 )
