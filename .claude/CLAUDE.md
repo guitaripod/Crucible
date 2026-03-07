@@ -19,6 +19,7 @@
 - UIHostingConfiguration when embedding SwiftUI views in cells
 - No UITableView — use UICollectionView with list layout instead
 - No #selector, no @objc unless strictly required by a system API with no alternative
+- Prefer UIStackView for all multi-view layouts (horizontal rows, vertical groups, badge rows, button groups). Only use raw constraints when stack views can't express the layout (e.g., aspect ratio constraints, overlay positioning)
 
 ## Build & Deploy
 - `swift build --swift-sdk arm64-apple-ios` — cross-compile check after every change (~0.1s, no device needed)
@@ -37,3 +38,8 @@
 - Programmatic Auto Layout via NSLayoutConstraint or layout anchors
 - async/await and structured concurrency for networking
 - Observation framework over KVO/NotificationCenter where applicable
+
+## Logging
+- Never use `print()` — it does not appear in xtool device logs
+- Use `os.log` (import os) or `NSLog` for all debug/diagnostic output
+- os.log is preferred: `import os; Logger(subsystem: "com.guitaripod.crucible", category: "networking").info("message")`
