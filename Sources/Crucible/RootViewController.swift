@@ -6,7 +6,7 @@ class RootViewController: UIViewController {
         view.backgroundColor = .systemBackground
 
         let label = UILabel()
-        label.text = "MediaForge"
+        label.text = "Crucible"
         label.font = .systemFont(ofSize: 32, weight: .bold)
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false

@@ -22,10 +22,8 @@
 
 ## Build & Deploy
 - `swift build --swift-sdk arm64-apple-ios` — cross-compile check after every change (~0.1s, no device needed)
-- `xtool dev` — build, sign, and install to connected iPhone via USB. Run this at the end of each task to validate on device.
-- `xtool dev -c release` — release build
+- At the end of each task, use the `/deploy` skill to compile-check and install to the connected iPhone
 - Bundle ID: com.guitaripod.crucible
-- Always compile-check first, deploy to device last
 
 ## Backend
 - MediaForge Rust backend at ../rust/mediaforge
