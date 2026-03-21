@@ -32,10 +32,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
 
 final class PosterContentView: UIView, UIContentView {
     var configuration: UIContentConfiguration {
-        didSet {
-            imageTask?.cancel()
-            apply()
-        }
+        didSet { apply() }
     }
 
     private let cardView = UIView()
@@ -180,20 +177,21 @@ final class PosterContentView: UIView, UIContentView {
             progressBar.isHidden = true
         }
 
-        if config.posterPath != currentPosterPath {
-            currentPosterPath = config.posterPath
+        let newPath = config.posterPath
+        if newPath != currentPosterPath {
+            imageTask?.cancel()
+            imageTask = nil
+            currentPosterPath = newPath
             imageView.image = nil
             placeholderView.isHidden = false
             placeholderView.image = UIImage(systemName: config.placeholderIcon)
 
-            if let posterPath = config.posterPath {
+            if let posterPath = newPath {
                 imageTask = Task { [weak self] in
                     let image = await ImageLoader.shared.loadImage(path: posterPath, width: 300)
                     guard !Task.isCancelled, let self else { return }
                     if let image {
-                        UIView.transition(with: self.imageView, duration: 0.2, options: .transitionCrossDissolve) {
-                            self.imageView.image = image
-                        }
+                        self.imageView.image = image
                         self.placeholderView.isHidden = true
                     }
                 }
