@@ -10,28 +10,30 @@ final class MediaDetailViewController: UICollectionViewController {
         case overview(String)
         case genres([String])
         case techInfo(String)
-        case subtitle(Subtitle)
+        case subtitle(PlexStream)
         case subtitleNone
-        case audioTrack(AudioTrack)
+        case audioTrack(PlexStream)
         case action(String)
     }
 
     private let api: APIClient
-    private let mediaId: String
+    private let ratingKey: String
     private let mediaType: String
-    private let showId: String?
+    private let showRatingKey: String?
+    private let seasonRatingKey: String?
     private var loadTask: Task<Void, Never>?
-    private var detail: MediaDetailResponse?
-    private var selectedSubtitleId: String?
-    private var selectedAudioTrackId: String?
+    private var metadata: PlexMetadata?
+    private var selectedSubtitleId: Int?
+    private var selectedAudioTrackId: Int?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var playerCoordinator: PlayerCoordinator?
 
-    init(api: APIClient, mediaId: String, mediaType: String, showId: String? = nil) {
+    init(api: APIClient, ratingKey: String, mediaType: String, showRatingKey: String? = nil, seasonRatingKey: String? = nil) {
         self.api = api
-        self.mediaId = mediaId
+        self.ratingKey = ratingKey
         self.mediaType = mediaType
-        self.showId = showId
+        self.showRatingKey = showRatingKey
+        self.seasonRatingKey = seasonRatingKey
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -83,13 +85,11 @@ final class MediaDetailViewController: UICollectionViewController {
 
     private func configureDataSource() {
         let heroCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, _ in
-            guard let detail = self.detail else { return }
+            guard let metadata = self.metadata else { return }
             cell.contentConfiguration = HeroContentConfiguration(
-                item: detail.item,
-                playback: detail.playback,
-                baseURL: self.api.baseURL,
+                metadata: metadata,
                 onPlay: { [weak self] in self?.play() },
-                onShowTap: detail.item.mediaType == "episode" && self.showId != nil ? { [weak self] in self?.navigateToShow() } : nil
+                onShowTap: metadata.type == "episode" && (self.showRatingKey ?? metadata.grandparentRatingKey) != nil ? { [weak self] in self?.navigateToShow() } : nil
             )
         }
 
@@ -110,23 +110,22 @@ final class MediaDetailViewController: UICollectionViewController {
             cell.contentConfiguration = config
         }
 
-        let subtitleCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, Subtitle> { [unowned self] cell, _, subtitle in
+        let subtitleCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexStream> { [unowned self] cell, _, stream in
             var config = UIListContentConfiguration.subtitleCell()
-            config.text = subtitle.language ?? "Unknown"
+            config.text = stream.displayTitle ?? stream.language ?? "Unknown"
             var details = [String]()
-            if let codec = subtitle.codec { details.append(codec) }
-            if subtitle.isForced { details.append("Forced") }
-            if subtitle.isDefault { details.append("Default") }
-            if subtitle.isExternal { details.append("External") }
-            if subtitle.isBitmap { details.append("Image-based (unsupported)") }
+            if let codec = stream.codec { details.append(codec) }
+            if stream.forced == true { details.append("Forced") }
+            if stream.isDefault == true { details.append("Default") }
+            if stream.isBitmap { details.append("Image-based") }
             config.secondaryText = details.joined(separator: " · ")
-            if subtitle.isBitmap {
+            if stream.isBitmap {
                 config.textProperties.color = .tertiaryLabel
                 config.secondaryTextProperties.color = .tertiaryLabel
             }
             cell.contentConfiguration = config
-            if !subtitle.isBitmap {
-                cell.accessories = self.selectedSubtitleId == subtitle.id ? [.checkmark()] : []
+            if !stream.isBitmap {
+                cell.accessories = self.selectedSubtitleId == stream.id ? [.checkmark()] : []
             } else {
                 cell.accessories = []
             }
@@ -139,16 +138,18 @@ final class MediaDetailViewController: UICollectionViewController {
             cell.accessories = self.selectedSubtitleId == nil ? [.checkmark()] : []
         }
 
-        let audioCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, AudioTrack> { [unowned self] cell, _, track in
+        let audioCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexStream> { [unowned self] cell, _, stream in
             var config = UIListContentConfiguration.subtitleCell()
-            config.text = track.title ?? track.language ?? "Track \(track.streamIndex)"
-            var details = [track.codec.uppercased(), track.channelDescription]
-            if let bitrate = track.bitrate {
-                details.append("\(bitrate / 1000) kbps")
+            config.text = stream.displayTitle ?? stream.language ?? "Track \(stream.id)"
+            var details = [String]()
+            if let codec = stream.codec { details.append(codec.uppercased()) }
+            details.append(stream.channelDescription)
+            if let bitrate = stream.bitrate {
+                details.append("\(bitrate) kbps")
             }
             config.secondaryText = details.joined(separator: " · ")
             cell.contentConfiguration = config
-            cell.accessories = self.selectedAudioTrackId == track.id ? [.checkmark()] : []
+            cell.accessories = self.selectedAudioTrackId == stream.id ? [.checkmark()] : []
         }
 
         let actionCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
@@ -156,8 +157,9 @@ final class MediaDetailViewController: UICollectionViewController {
             buttonConfig.cornerStyle = .medium
             switch action {
             case "watched":
-                buttonConfig.title = self.detail?.playback?.isWatched == true ? "Mark Unwatched" : "Mark Watched"
-                buttonConfig.image = UIImage(systemName: self.detail?.playback?.isWatched == true ? "eye.slash" : "eye")
+                let watched = self.metadata?.isWatched == true
+                buttonConfig.title = watched ? "Mark Unwatched" : "Mark Watched"
+                buttonConfig.image = UIImage(systemName: watched ? "eye.slash" : "eye")
             case "next":
                 buttonConfig.title = "Next Episode"
                 buttonConfig.image = UIImage(systemName: "forward")
@@ -226,15 +228,15 @@ final class MediaDetailViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let endpoint: APIEndpoint = mediaType == "episode" ? .getEpisode(id: mediaId) : .getMovie(id: mediaId)
-                let response: MediaDetailResponse = try await api.request(endpoint)
-                guard !Task.isCancelled else { return }
-                self.detail = response
-                self.title = response.item.title
+                let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
+                guard !Task.isCancelled, let meta = container.Metadata?.first else { return }
+                self.metadata = meta
+                self.title = meta.title
 
-                if let defaultAudio = response.audioTracks.first(where: { $0.isDefault }) {
+                let audioStreams = meta.audioStreams
+                if let defaultAudio = audioStreams.first(where: { $0.isDefault == true }) {
                     selectedAudioTrackId = defaultAudio.id
-                } else if let first = response.audioTracks.first {
+                } else if let first = audioStreams.first {
                     selectedAudioTrackId = first.id
                 }
 
@@ -246,45 +248,47 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func applySnapshot() async {
-        guard let detail else { return }
+        guard let metadata else { return }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
         snapshot.appendSections([.hero])
         snapshot.appendItems([.hero], toSection: .hero)
 
         snapshot.appendSections([.info])
-        if let overview = detail.item.overview, !overview.isEmpty {
+        if let overview = metadata.summary, !overview.isEmpty {
             snapshot.appendItems([.overview(overview)], toSection: .info)
         }
-        if let genres = detail.item.genres, !genres.isEmpty {
+        let genres = metadata.genres
+        if !genres.isEmpty {
             snapshot.appendItems([.genres(genres)], toSection: .info)
         }
         var techParts = [String]()
-        if let vc = detail.item.videoCodec { techParts.append(vc.uppercased()) }
-        if let ac = detail.item.audioCodec { techParts.append(ac.uppercased()) }
-        techParts.append(Formatters.fileSize(detail.item.fileSize))
-        if let channels = detail.item.audioChannels {
+        if let vc = metadata.videoCodec { techParts.append(vc.uppercased()) }
+        if let ac = metadata.audioCodec { techParts.append(ac.uppercased()) }
+        if let size = metadata.fileSize { techParts.append(Formatters.fileSize(size)) }
+        if let channels = metadata.audioChannels {
             techParts.append(Formatters.channelDescription(channels))
         }
         if !techParts.isEmpty {
             snapshot.appendItems([.techInfo(techParts.joined(separator: " · "))], toSection: .info)
         }
 
-        let textSubtitles = detail.subtitles
-        if !textSubtitles.isEmpty {
+        let subtitles = metadata.subtitleStreams
+        if !subtitles.isEmpty {
             snapshot.appendSections([.subtitles])
             snapshot.appendItems([.subtitleNone], toSection: .subtitles)
-            snapshot.appendItems(textSubtitles.map { .subtitle($0) }, toSection: .subtitles)
+            snapshot.appendItems(subtitles.map { .subtitle($0) }, toSection: .subtitles)
         }
 
-        if !detail.audioTracks.isEmpty {
+        let audioTracks = metadata.audioStreams
+        if !audioTracks.isEmpty {
             snapshot.appendSections([.audioTracks])
-            snapshot.appendItems(detail.audioTracks.map { .audioTrack($0) }, toSection: .audioTracks)
+            snapshot.appendItems(audioTracks.map { .audioTrack($0) }, toSection: .audioTracks)
         }
 
         snapshot.appendSections([.actions])
         snapshot.appendItems([.action("watched")], toSection: .actions)
-        if detail.item.mediaType == "episode" {
+        if metadata.type == "episode" {
             snapshot.appendItems([.action("next")], toSection: .actions)
         }
 
@@ -312,23 +316,22 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func play() {
-        guard let detail else { return }
+        guard let metadata else { return }
         let meta = PlayerCoordinator.Metadata(
-            title: detail.item.title,
-            showName: detail.item.showName,
-            seasonNumber: detail.item.seasonNumber,
-            episodeNumber: detail.item.episodeNumber,
-            posterPath: detail.item.posterPath,
-            duration: detail.item.durationSecs
+            title: metadata.title,
+            showName: metadata.grandparentTitle,
+            seasonNumber: metadata.parentIndex,
+            episodeNumber: metadata.index,
+            posterPath: metadata.thumb ?? metadata.grandparentThumb,
+            duration: metadata.durationSecs
         )
         let coordinator = PlayerCoordinator(
             api: api,
-            mediaId: mediaId,
+            ratingKey: ratingKey,
             mediaType: mediaType,
-            showId: detail.item.mediaType == "episode" ? showId : nil,
-            resumePosition: detail.playback?.positionSecs ?? 0,
-            selectedAudioTrackId: selectedAudioTrackId,
-            selectedSubtitleId: selectedSubtitleId,
+            showRatingKey: showRatingKey ?? metadata.grandparentRatingKey,
+            seasonRatingKey: seasonRatingKey ?? metadata.parentRatingKey,
+            resumePosition: metadata.positionSecs,
             metadata: meta
         )
         self.playerCoordinator = coordinator
@@ -336,15 +339,14 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func toggleWatched() {
-        guard let detail else { return }
-        let isWatched = detail.playback?.isWatched == true
+        guard let metadata else { return }
         Task { [weak self] in
             guard let self else { return }
             do {
-                if isWatched {
-                    try await api.requestVoid(.markUnwatched(id: mediaId))
+                if metadata.isWatched {
+                    try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
                 } else {
-                    try await api.requestVoid(.markWatched(id: mediaId))
+                    try await api.requestVoid(.scrobble(ratingKey: ratingKey))
                 }
                 loadData()
             } catch {}
@@ -352,39 +354,48 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func goToNextEpisode() {
-        guard let showId else { return }
+        let parentKey = seasonRatingKey ?? metadata?.parentRatingKey
+        guard let parentKey else { return }
         Task { [weak self] in
             guard let self else { return }
             do {
-                let next: EpisodeSummary? = try await api.request(.nextEpisode(showId: showId))
-                guard let next else { return }
-                let vc = MediaDetailViewController(api: api, mediaId: next.id, mediaType: "episode", showId: showId)
+                let container = try await api.requestContainer(.children(ratingKey: parentKey))
+                let episodes = container.Metadata ?? []
+                guard let currentIndex = episodes.firstIndex(where: { $0.ratingKey == ratingKey }),
+                      currentIndex + 1 < episodes.count else { return }
+                let next = episodes[currentIndex + 1]
+                let vc = MediaDetailViewController(
+                    api: api,
+                    ratingKey: next.ratingKey,
+                    mediaType: "episode",
+                    showRatingKey: showRatingKey ?? metadata?.grandparentRatingKey,
+                    seasonRatingKey: parentKey
+                )
                 navigationController?.pushViewController(vc, animated: true)
             } catch {}
         }
     }
 
     private func navigateToShow() {
-        guard let showId else { return }
-        let vc = ShowDetailViewController(api: api, showId: showId)
+        let key = showRatingKey ?? metadata?.grandparentRatingKey
+        guard let key else { return }
+        let vc = ShowDetailViewController(api: api, showRatingKey: key)
         navigationController?.pushViewController(vc, animated: true)
     }
 }
 
 struct HeroContentConfiguration: UIContentConfiguration, Hashable {
-    let item: MediaItem
-    let playback: PlaybackState?
-    let baseURL: URL
+    let metadata: PlexMetadata
     var onPlay: (() -> Void)?
     var onShowTap: (() -> Void)?
 
     static func == (lhs: HeroContentConfiguration, rhs: HeroContentConfiguration) -> Bool {
-        lhs.item == rhs.item && lhs.playback == rhs.playback
+        lhs.metadata.ratingKey == rhs.metadata.ratingKey && lhs.metadata.viewOffset == rhs.metadata.viewOffset
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(item)
-        hasher.combine(playback)
+        hasher.combine(metadata.ratingKey)
+        hasher.combine(metadata.viewOffset)
     }
 
     func makeContentView() -> UIView & UIContentView {
@@ -462,9 +473,7 @@ final class HeroContentView: UIView, UIContentView {
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             mainStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
-
             backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 9.0 / 16.0),
-
             playButton.heightAnchor.constraint(equalToConstant: 50),
             playButton.widthAnchor.constraint(equalTo: mainStack.widthAnchor),
         ])
@@ -477,7 +486,7 @@ final class HeroContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? HeroContentConfiguration else { return }
-        let item = config.item
+        let item = config.metadata
         onPlay = config.onPlay
         onShowTap = config.onShowTap
 
@@ -491,27 +500,25 @@ final class HeroContentView: UIView, UIContentView {
             label.textColor = .secondaryLabel
             metadataStack.addArrangedSubview(label)
         }
-        if let rating = Formatters.rating(item.rating) {
+        if let rating = Formatters.rating(item.rating ?? item.audienceRating) {
             let label = UILabel()
             label.text = "★ \(rating)"
             label.font = .systemFont(ofSize: 14)
             label.textColor = .systemYellow
             metadataStack.addArrangedSubview(label)
         }
-        if let duration = item.durationSecs {
-            let label = UILabel()
-            label.text = Formatters.duration(duration)
-            label.font = .systemFont(ofSize: 14)
-            label.textColor = .secondaryLabel
-            metadataStack.addArrangedSubview(label)
-        }
+        let durationLabel = UILabel()
+        durationLabel.text = Formatters.duration(item.durationSecs)
+        durationLabel.font = .systemFont(ofSize: 14)
+        durationLabel.textColor = .secondaryLabel
+        metadataStack.addArrangedSubview(durationLabel)
 
         badgeStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if let res = Formatters.resolution(item.videoWidth, item.videoHeight) {
             badgeStack.addArrangedSubview(makeBadge(res))
         }
-        if let hdr = item.hdrFormat {
-            badgeStack.addArrangedSubview(makeBadge(hdr))
+        if let profile = item.Media?.first?.videoProfile, profile.lowercased().contains("10") {
+            badgeStack.addArrangedSubview(makeBadge("HDR"))
         }
         if let codec = item.videoCodec {
             badgeStack.addArrangedSubview(makeBadge(codec.uppercased()))
@@ -521,18 +528,18 @@ final class HeroContentView: UIView, UIContentView {
         playConfig.image = UIImage(systemName: "play.fill")
         playConfig.imagePadding = 8
         playConfig.cornerStyle = .medium
-        if let position = config.playback?.positionSecs, position > 0 {
-            playConfig.title = "Resume from \(Formatters.timestamp(position))"
+        if item.positionSecs > 0 {
+            playConfig.title = "Resume from \(Formatters.timestamp(item.positionSecs))"
         } else {
             playConfig.title = "Play"
         }
         playButton.configuration = playConfig
 
-        if item.mediaType == "episode" {
+        if item.type == "episode" {
             episodeButton.isHidden = false
             var parts = [String]()
-            if let code = Formatters.episodeCode(item.seasonNumber, item.episodeNumber) { parts.append(code) }
-            if let show = item.showName { parts.append(show) }
+            if let code = Formatters.episodeCode(item.parentIndex, item.index) { parts.append(code) }
+            if let show = item.grandparentTitle { parts.append(show) }
             var btnConfig = episodeButton.configuration ?? .plain()
             btnConfig.title = parts.joined(separator: " — ")
             episodeButton.configuration = btnConfig
@@ -541,16 +548,17 @@ final class HeroContentView: UIView, UIContentView {
             episodeButton.isHidden = true
         }
 
-        let imagePath = item.backdropPath ?? item.posterPath
+        let imagePath = item.art ?? item.thumb
         guard let imagePath, !imagePath.isEmpty else { return }
 
-        if let blurhash = item.posterBlurhash, let decoded = BlurhashDecoder.decode(blurhash) {
-            backdropImageView.image = decoded
-        }
-
-        let size = item.backdropPath != nil ? "w780" : "w500"
+        let isBackdrop = item.art != nil
         imageTask = Task { [weak self] in
-            let image = await ImageLoader.shared.loadImage(path: imagePath, size: size, baseURL: config.baseURL)
+            let image: UIImage?
+            if isBackdrop {
+                image = await ImageLoader.shared.loadBackdrop(path: imagePath, width: 780)
+            } else {
+                image = await ImageLoader.shared.loadImage(path: imagePath, width: 500)
+            }
             guard !Task.isCancelled, let self else { return }
             if let image { self.backdropImageView.image = image }
         }

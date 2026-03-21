@@ -1,11 +1,23 @@
 import UIKit
 
+struct HistoryItem: Hashable, Sendable {
+    let ratingKey: String
+    let title: String
+    let type: String?
+    let viewedAt: Int?
+    let thumb: String?
+    let grandparentTitle: String?
+    let parentIndex: Int?
+    let index: Int?
+    let uniqueId: String
+}
+
 final class ActivityHistoryViewController: UICollectionViewController {
     private let api: APIClient
-    private var dataSource: UICollectionViewDiffableDataSource<Int, HistoryEntry>!
+    private var dataSource: UICollectionViewDiffableDataSource<Int, HistoryItem>!
     private var loadTask: Task<Void, Never>?
     private var currentOffset = 0
-    private var total: Int64 = 0
+    private var totalSize = 0
     private var isLoadingMore = false
     private let pageSize = 50
 
@@ -47,29 +59,27 @@ final class ActivityHistoryViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, HistoryEntry> { cell, _, entry in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, HistoryItem> { cell, _, entry in
             var config = UIListContentConfiguration.subtitleCell()
-            config.text = entry.title ?? entry.mediaId
+            var titleParts = [String]()
+            if let show = entry.grandparentTitle { titleParts.append(show) }
+            titleParts.append(entry.title)
+            config.text = titleParts.joined(separator: " — ")
+
             var details = [String]()
-            details.append(entry.eventType.replacingOccurrences(of: "_", with: " ").capitalized)
-            details.append(Formatters.timestamp(entry.positionSecs))
-            if let relative = Formatters.relativeDate(entry.createdAt) {
+            if let code = Formatters.episodeCode(entry.parentIndex, entry.index) {
+                details.append(code)
+            }
+            if let relative = Formatters.unixRelativeDate(entry.viewedAt) {
                 details.append(relative)
             }
-            config.secondaryText = details.joined(separator: " · ")
+            config.secondaryText = details.isEmpty ? nil : details.joined(separator: " · ")
 
-            let iconName: String
-            switch entry.eventType {
-            case "play": iconName = "play.circle"
-            case "pause": iconName = "pause.circle"
-            case "complete": iconName = "checkmark.circle"
-            default: iconName = "clock"
-            }
-            config.image = UIImage(systemName: iconName)
+            config.image = UIImage(systemName: "checkmark.circle")
             config.imageProperties.tintColor = .secondaryLabel
 
             cell.contentConfiguration = config
-            cell.accessories = entry.mediaType != nil ? [.disclosureIndicator()] : []
+            cell.accessories = [.disclosureIndicator()]
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
@@ -79,7 +89,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
 
     private func resetAndLoad() {
         currentOffset = 0
-        total = 0
+        totalSize = 0
         loadPage(offset: 0)
     }
 
@@ -88,22 +98,34 @@ final class ActivityHistoryViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let response: HistoryResponse = try await api.request(
-                    .activityHistory(limit: pageSize, offset: offset)
-                )
+                let container = try await api.requestContainer(.history(start: offset, size: pageSize))
                 guard !Task.isCancelled else { return }
-                total = response.total
-                currentOffset = offset + response.entries.count
+
+                totalSize = container.totalSize ?? 0
+                let items = (container.Metadata ?? []).enumerated().map { idx, m in
+                    HistoryItem(
+                        ratingKey: m.ratingKey,
+                        title: m.title,
+                        type: m.type,
+                        viewedAt: m.lastViewedAt ?? m.addedAt,
+                        thumb: m.thumb,
+                        grandparentTitle: m.grandparentTitle,
+                        parentIndex: m.parentIndex,
+                        index: m.index,
+                        uniqueId: "\(m.ratingKey)-\(offset + idx)"
+                    )
+                }
+                currentOffset = offset + items.count
 
                 var snapshot = dataSource.snapshot()
                 if offset == 0 {
-                    snapshot = NSDiffableDataSourceSnapshot<Int, HistoryEntry>()
+                    snapshot = NSDiffableDataSourceSnapshot<Int, HistoryItem>()
                     snapshot.appendSections([0])
                 }
-                snapshot.appendItems(response.entries, toSection: 0)
+                snapshot.appendItems(items, toSection: 0)
                 await dataSource.apply(snapshot, animatingDifferences: offset > 0)
 
-                if response.entries.isEmpty && offset == 0 {
+                if items.isEmpty && offset == 0 {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "clock")
                     config.text = "No activity yet"
@@ -124,15 +146,17 @@ final class ActivityHistoryViewController: UICollectionViewController {
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard let entry = dataSource.itemIdentifier(for: indexPath),
-              let mediaType = entry.mediaType else { return }
+        guard let entry = dataSource.itemIdentifier(for: indexPath) else { return }
 
-        switch mediaType {
+        switch entry.type {
         case "episode":
-            let vc = MediaDetailViewController(api: api, mediaId: entry.mediaId, mediaType: "episode")
+            let vc = MediaDetailViewController(api: api, ratingKey: entry.ratingKey, mediaType: "episode")
+            navigationController?.pushViewController(vc, animated: true)
+        case "show":
+            let vc = ShowDetailViewController(api: api, showRatingKey: entry.ratingKey)
             navigationController?.pushViewController(vc, animated: true)
         default:
-            let vc = MediaDetailViewController(api: api, mediaId: entry.mediaId, mediaType: "movie")
+            let vc = MediaDetailViewController(api: api, ratingKey: entry.ratingKey, mediaType: "movie")
             navigationController?.pushViewController(vc, animated: true)
         }
     }
@@ -143,7 +167,7 @@ extension ActivityHistoryViewController: UICollectionViewDataSourcePrefetching {
         let itemCount = dataSource.snapshot().numberOfItems
         let threshold = itemCount - 10
         if indexPaths.contains(where: { $0.item >= threshold }),
-           currentOffset < Int(total),
+           currentOffset < totalSize,
            !isLoadingMore
         {
             isLoadingMore = true

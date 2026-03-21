@@ -7,24 +7,24 @@ final class ShowDetailViewController: UICollectionViewController {
 
     enum Item: Hashable {
         case hero
-        case season(SeasonSummary)
-        case episode(EpisodeSummary)
+        case season(PlexMetadata)
+        case episode(PlexMetadata)
         case action(String)
     }
 
     private let api: APIClient
-    private let showId: String
+    private let showRatingKey: String
     private var loadTask: Task<Void, Never>?
     private var seasonTask: Task<Void, Never>?
-    private var show: TvShow?
-    private var seasons: [SeasonSummary] = []
-    private var selectedSeason: Int?
-    private var episodes: [EpisodeSummary] = []
+    private var show: PlexMetadata?
+    private var seasons: [PlexMetadata] = []
+    private var selectedSeasonKey: String?
+    private var episodes: [PlexMetadata] = []
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
 
-    init(api: APIClient, showId: String) {
+    init(api: APIClient, showRatingKey: String) {
         self.api = api
-        self.showId = showId
+        self.showRatingKey = showRatingKey
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -86,15 +86,15 @@ final class ShowDetailViewController: UICollectionViewController {
     private func configureDataSource() {
         let heroCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, _ in
             guard let show = self.show else { return }
-            cell.contentConfiguration = ShowHeroConfiguration(show: show, seasons: self.seasons, baseURL: self.api.baseURL)
+            cell.contentConfiguration = ShowHeroConfiguration(show: show, seasons: self.seasons)
         }
 
-        let seasonReg = UICollectionView.CellRegistration<UICollectionViewCell, SeasonSummary> { [unowned self] cell, _, season in
+        let seasonReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [unowned self] cell, _, season in
             var config = UIButton.Configuration.gray()
-            config.title = "Season \(season.seasonNumber)"
+            config.title = "Season \(season.index ?? 0)"
             config.cornerStyle = .capsule
             config.buttonSize = .small
-            if self.selectedSeason == season.seasonNumber {
+            if self.selectedSeasonKey == season.ratingKey {
                 config.baseBackgroundColor = .systemBlue
                 config.baseForegroundColor = .white
             }
@@ -111,14 +111,14 @@ final class ShowDetailViewController: UICollectionViewController {
             ])
         }
 
-        let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, EpisodeSummary> { cell, _, episode in
+        let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, episode in
             var config = EpisodeContentConfiguration()
-            config.episodeNumber = episode.episodeNumber
-            config.title = episode.episodeTitle ?? "Episode \(episode.episodeNumber ?? 0)"
+            config.episodeNumber = episode.index
+            config.title = episode.title
             config.duration = Formatters.duration(episode.durationSecs)
             config.isWatched = episode.isWatched
-            if !episode.isWatched && episode.positionSecs > 0, let dur = episode.durationSecs, dur > 0 {
-                config.progress = episode.positionSecs / dur
+            if !episode.isWatched && episode.positionSecs > 0 && episode.durationSecs > 0 {
+                config.progress = episode.positionSecs / episode.durationSecs
             }
             cell.contentConfiguration = config
         }
@@ -141,8 +141,8 @@ final class ShowDetailViewController: UICollectionViewController {
                 guard let self else { return }
                 Task {
                     switch action {
-                    case "watchAll": try? await self.api.requestVoid(.markShowWatched(showId: self.showId))
-                    case "unwatchAll": try? await self.api.requestVoid(.markShowUnwatched(showId: self.showId))
+                    case "watchAll": try? await self.api.requestVoid(.scrobble(ratingKey: self.showRatingKey))
+                    case "unwatchAll": try? await self.api.requestVoid(.unscrobble(ratingKey: self.showRatingKey))
                     default: break
                     }
                     self.loadData()
@@ -175,17 +175,24 @@ final class ShowDetailViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let response: ShowDetailResponse = try await api.request(.getShow(id: showId))
+                let showContainer = try await api.requestContainer(.metadata(ratingKey: showRatingKey))
+                guard !Task.isCancelled, let showMeta = showContainer.Metadata?.first else { return }
+                show = showMeta
+                title = showMeta.title
+
+                let seasonsContainer = try await api.requestContainer(.children(ratingKey: showRatingKey))
                 guard !Task.isCancelled else { return }
-                show = response.show
-                seasons = response.seasons
-                title = response.show.name
+                seasons = (seasonsContainer.Metadata ?? []).filter { $0.type == "season" }
 
-                let firstUnwatched = response.seasons.first { $0.watchedCount < $0.episodeCount }
-                selectedSeason = firstUnwatched?.seasonNumber ?? response.seasons.first?.seasonNumber
+                let firstUnwatched = seasons.first {
+                    let watched = $0.viewedLeafCount ?? 0
+                    let total = $0.leafCount ?? 0
+                    return watched < total
+                }
+                selectedSeasonKey = firstUnwatched?.ratingKey ?? seasons.first?.ratingKey
 
-                if let selectedSeason {
-                    await loadSeason(selectedSeason)
+                if let selectedSeasonKey {
+                    await loadSeason(selectedSeasonKey)
                 }
                 await applySnapshot()
             } catch {
@@ -194,11 +201,11 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
-    private func loadSeason(_ seasonNumber: Int) async {
+    private func loadSeason(_ seasonKey: String) async {
         do {
-            let eps: [EpisodeSummary] = try await api.request(.getSeasonEpisodes(showId: showId, season: seasonNumber))
+            let container = try await api.requestContainer(.children(ratingKey: seasonKey))
             guard !Task.isCancelled else { return }
-            episodes = eps
+            episodes = container.Metadata ?? []
         } catch {}
     }
 
@@ -228,16 +235,22 @@ final class ShowDetailViewController: UICollectionViewController {
 
         switch item {
         case .season(let season):
-            selectedSeason = season.seasonNumber
+            selectedSeasonKey = season.ratingKey
             seasonTask?.cancel()
             seasonTask = Task { [weak self] in
                 guard let self else { return }
-                await loadSeason(season.seasonNumber)
+                await loadSeason(season.ratingKey)
                 guard !Task.isCancelled else { return }
                 await applySnapshot()
             }
         case .episode(let episode):
-            let detail = MediaDetailViewController(api: api, mediaId: episode.id, mediaType: "episode", showId: showId)
+            let detail = MediaDetailViewController(
+                api: api,
+                ratingKey: episode.ratingKey,
+                mediaType: "episode",
+                showRatingKey: showRatingKey,
+                seasonRatingKey: selectedSeasonKey
+            )
             navigationController?.pushViewController(detail, animated: true)
         default:
             break
@@ -258,14 +271,14 @@ final class ShowDetailViewController: UICollectionViewController {
                 UIAction(title: "Mark Season Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                     guard let self else { return }
                     Task {
-                        try? await self.api.requestVoid(.markSeasonWatched(showId: self.showId, season: season.seasonNumber))
+                        try? await self.api.requestVoid(.scrobble(ratingKey: season.ratingKey))
                         self.loadData()
                     }
                 },
                 UIAction(title: "Mark Season Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
                     guard let self else { return }
                     Task {
-                        try? await self.api.requestVoid(.markSeasonUnwatched(showId: self.showId, season: season.seasonNumber))
+                        try? await self.api.requestVoid(.unscrobble(ratingKey: season.ratingKey))
                         self.loadData()
                     }
                 },
@@ -275,9 +288,16 @@ final class ShowDetailViewController: UICollectionViewController {
 }
 
 struct ShowHeroConfiguration: UIContentConfiguration, Hashable {
-    let show: TvShow
-    let seasons: [SeasonSummary]
-    let baseURL: URL
+    let show: PlexMetadata
+    let seasons: [PlexMetadata]
+
+    static func == (lhs: ShowHeroConfiguration, rhs: ShowHeroConfiguration) -> Bool {
+        lhs.show.ratingKey == rhs.show.ratingKey
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(show.ratingKey)
+    }
 
     func makeContentView() -> UIView & UIContentView {
         ShowHeroContentView(configuration: self)
@@ -361,32 +381,34 @@ final class ShowHeroContentView: UIView, UIContentView {
         guard let config = configuration as? ShowHeroConfiguration else { return }
         let show = config.show
 
-        titleLabel.text = show.name
+        titleLabel.text = show.title
 
         var meta = [String]()
-        if let rating = Formatters.rating(show.rating) { meta.append("★ \(rating)") }
-        if let date = show.firstAirDate { meta.append(String(date.prefix(4))) }
-        let totalEps = config.seasons.reduce(0) { $0 + $1.episodeCount }
+        if let rating = Formatters.rating(show.rating ?? show.audienceRating) { meta.append("★ \(rating)") }
+        if let year = show.year { meta.append("\(year)") }
+        let totalEps = config.seasons.reduce(0) { $0 + ($1.leafCount ?? 0) }
         meta.append("\(totalEps) episodes")
         metadataLabel.text = meta.joined(separator: " · ")
 
-        overviewLabel.text = show.overview
-        overviewLabel.isHidden = show.overview == nil
+        overviewLabel.text = show.summary
+        overviewLabel.isHidden = show.summary == nil
 
-        let totalWatched = config.seasons.reduce(0) { $0 + $1.watchedCount }
+        let totalWatched = config.seasons.reduce(0) { $0 + ($1.viewedLeafCount ?? 0) }
         progressLabel.text = "\(totalWatched)/\(totalEps) episodes watched"
         if totalEps > 0 {
             progressBar.progress = Double(totalWatched) / Double(totalEps)
         }
 
-        let imagePath = show.backdropPath ?? show.posterPath
+        let imagePath = show.art ?? show.thumb
         guard let imagePath else { return }
-        if let blurhash = show.posterBlurhash, let decoded = BlurhashDecoder.decode(blurhash) {
-            backdropImageView.image = decoded
-        }
-        let size = show.backdropPath != nil ? "w780" : "w500"
+        let isBackdrop = show.art != nil
         imageTask = Task { [weak self] in
-            let image = await ImageLoader.shared.loadImage(path: imagePath, size: size, baseURL: config.baseURL)
+            let image: UIImage?
+            if isBackdrop {
+                image = await ImageLoader.shared.loadBackdrop(path: imagePath, width: 780)
+            } else {
+                image = await ImageLoader.shared.loadImage(path: imagePath, width: 500)
+            }
             guard !Task.isCancelled, let self else { return }
             if let image { self.backdropImageView.image = image }
         }

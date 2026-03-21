@@ -2,17 +2,19 @@
 
 final class MovieGridViewController: UICollectionViewController {
     private let api: APIClient
-    private var dataSource: UICollectionViewDiffableDataSource<Int, MediaSummary>!
+    private let sectionId: String
+    private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
     private var loadTask: Task<Void, Never>?
-    private var currentPage = 1
-    private var totalPages = 1
+    private var currentOffset = 0
+    private var totalSize = 0
     private var isLoadingNextPage = false
-    private var currentSort = "title"
+    private var currentSort = "titleSort:asc"
     private var currentGenre: String?
-    private var allGenres: [String] = []
+    private var allGenres: [(key: String, title: String)] = []
 
-    init(api: APIClient) {
+    init(api: APIClient, sectionId: String) {
         self.api = api
+        self.sectionId = sectionId
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -34,7 +36,7 @@ final class MovieGridViewController: UICollectionViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         if dataSource.snapshot().numberOfItems == 0 {
-            loadPage(1)
+            loadPage(offset: 0)
         }
     }
 
@@ -67,13 +69,11 @@ final class MovieGridViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, MediaSummary> { [unowned self] cell, _, item in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
             var config = PosterContentConfiguration()
-            config.posterPath = item.posterPath
-            config.blurhash = item.posterBlurhash
+            config.posterPath = item.thumb
             config.title = item.title
             if let year = item.year { config.subtitle = "\(year)" }
-            config.baseURL = self.api.baseURL
             cell.contentConfiguration = config
         }
 
@@ -84,10 +84,10 @@ final class MovieGridViewController: UICollectionViewController {
 
     private func setupNavigationBar() {
         let sortMenu = UIMenu(title: "Sort", children: [
-            UIAction(title: "Title", state: currentSort == "title" ? .on : .off) { [weak self] _ in self?.setSort("title") },
-            UIAction(title: "Year", state: currentSort == "year" ? .on : .off) { [weak self] _ in self?.setSort("year") },
-            UIAction(title: "Added", state: currentSort == "added" ? .on : .off) { [weak self] _ in self?.setSort("added") },
-            UIAction(title: "Rating", state: currentSort == "rating" ? .on : .off) { [weak self] _ in self?.setSort("rating") },
+            UIAction(title: "Title", state: currentSort == "titleSort:asc" ? .on : .off) { [weak self] _ in self?.setSort("titleSort:asc") },
+            UIAction(title: "Year", state: currentSort == "year:desc" ? .on : .off) { [weak self] _ in self?.setSort("year:desc") },
+            UIAction(title: "Added", state: currentSort == "addedAt:desc" ? .on : .off) { [weak self] _ in self?.setSort("addedAt:desc") },
+            UIAction(title: "Rating", state: currentSort == "rating:desc" ? .on : .off) { [weak self] _ in self?.setSort("rating:desc") },
         ])
 
         let sortButton = UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu)
@@ -97,8 +97,9 @@ final class MovieGridViewController: UICollectionViewController {
         Task { [weak self] in
             guard let self else { return }
             do {
-                let genres: [String] = try await api.request(.listGenres)
-                self.allGenres = genres
+                let container = try await api.requestContainer(.sectionGenres(sectionId: sectionId))
+                let dirs = container.Directory ?? []
+                self.allGenres = dirs.map { (key: $0.key, title: $0.title) }
                 self.updateFilterMenu()
             } catch {}
         }
@@ -109,7 +110,7 @@ final class MovieGridViewController: UICollectionViewController {
             UIAction(title: "All", state: currentGenre == nil ? .on : .off) { [weak self] _ in self?.setGenre(nil) },
         ]
         for genre in allGenres {
-            actions.append(UIAction(title: genre, state: currentGenre == genre ? .on : .off) { [weak self] _ in self?.setGenre(genre) })
+            actions.append(UIAction(title: genre.title, state: currentGenre == genre.key ? .on : .off) { [weak self] _ in self?.setGenre(genre.key) })
         }
         let menu = UIMenu(title: "Genre", children: actions)
         parent?.navigationItem.rightBarButtonItems?.first?.menu = menu
@@ -128,32 +129,34 @@ final class MovieGridViewController: UICollectionViewController {
     }
 
     private func resetAndLoad() {
-        currentPage = 1
-        totalPages = 1
-        loadPage(1)
+        currentOffset = 0
+        totalSize = 0
+        loadPage(offset: 0)
     }
 
-    private func loadPage(_ page: Int) {
+    private func loadPage(offset: Int) {
         loadTask?.cancel()
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let response: PaginatedResponse<MediaSummary> = try await api.request(
-                    .listMovies(page: page, sort: currentSort, genre: currentGenre)
+                let container = try await api.requestContainer(
+                    .sectionItems(sectionId: sectionId, sort: currentSort, genre: currentGenre, start: offset, size: 50)
                 )
                 guard !Task.isCancelled else { return }
-                totalPages = response.totalPages
-                currentPage = response.page
+
+                totalSize = container.totalSize ?? 0
+                let items = container.Metadata ?? []
 
                 var snapshot = dataSource.snapshot()
-                if page == 1 {
-                    snapshot = NSDiffableDataSourceSnapshot<Int, MediaSummary>()
+                if offset == 0 {
+                    snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
                     snapshot.appendSections([0])
                 }
-                snapshot.appendItems(response.items, toSection: 0)
-                await dataSource.apply(snapshot, animatingDifferences: page > 1)
+                snapshot.appendItems(items, toSection: 0)
+                currentOffset = offset + items.count
+                await dataSource.apply(snapshot, animatingDifferences: offset > 0)
 
-                if response.items.isEmpty && page == 1 {
+                if items.isEmpty && offset == 0 {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "film")
                     config.text = "No movies in library"
@@ -175,7 +178,7 @@ final class MovieGridViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        let detail = MediaDetailViewController(api: api, mediaId: item.id, mediaType: "movie")
+        let detail = MediaDetailViewController(api: api, ratingKey: item.ratingKey, mediaType: "movie")
         navigationController?.pushViewController(detail, animated: true)
     }
 
@@ -191,11 +194,11 @@ final class MovieGridViewController: UICollectionViewController {
             return UIMenu(children: [
                 UIAction(title: "Mark Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.markWatched(id: item.id)) }
+                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.ratingKey)) }
                 },
                 UIAction(title: "Mark Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.markUnwatched(id: item.id)) }
+                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.ratingKey)) }
                 },
             ])
         })
@@ -207,11 +210,11 @@ extension MovieGridViewController: UICollectionViewDataSourcePrefetching {
         let itemCount = dataSource.snapshot().numberOfItems
         let threshold = itemCount - 10
         if indexPaths.contains(where: { $0.item >= threshold }),
-           currentPage < totalPages,
+           currentOffset < totalSize,
            !isLoadingNextPage
         {
             isLoadingNextPage = true
-            loadPage(currentPage + 1)
+            loadPage(offset: currentOffset)
         }
     }
 }

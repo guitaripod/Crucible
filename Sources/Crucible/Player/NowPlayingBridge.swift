@@ -13,8 +13,7 @@ final class NowPlayingBridge {
         duration: Double,
         elapsed: Double,
         rate: Double,
-        posterPath: String?,
-        baseURL: URL
+        posterPath: String?
     ) {
         var info = [String: Any]()
 
@@ -34,7 +33,7 @@ final class NowPlayingBridge {
         if let posterPath {
             artworkTask?.cancel()
             artworkTask = Task {
-                guard let image = await ImageLoader.shared.loadImage(path: posterPath, size: "w342", baseURL: baseURL) else { return }
+                guard let image = await ImageLoader.shared.loadImage(path: posterPath, width: 300) else { return }
                 guard !Task.isCancelled else { return }
                 let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
                 MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] = artwork

@@ -2,11 +2,9 @@
 
 struct SearchResultConfiguration: UIContentConfiguration, Hashable {
     var posterPath: String?
-    var blurhash: String?
     var title: String = ""
     var subtitle: String?
     var mediaType: String = ""
-    var baseURL: URL?
 
     func makeContentView() -> UIView & UIContentView {
         SearchResultContentView(configuration: self)
@@ -113,15 +111,10 @@ final class SearchResultContentView: UIView, UIContentView {
         posterImageView.image = nil
         placeholderView.isHidden = false
 
-        if let blurhash = config.blurhash, let decoded = BlurhashDecoder.decode(blurhash) {
-            posterImageView.image = decoded
-            placeholderView.isHidden = true
-        }
-
-        guard let posterPath = config.posterPath, let baseURL = config.baseURL else { return }
+        guard let posterPath = config.posterPath else { return }
 
         imageTask = Task { [weak self] in
-            let image = await ImageLoader.shared.loadImage(path: posterPath, size: "w185", baseURL: baseURL)
+            let image = await ImageLoader.shared.loadImage(path: posterPath, width: 185)
             guard !Task.isCancelled, let self else { return }
             if let image {
                 self.posterImageView.image = image

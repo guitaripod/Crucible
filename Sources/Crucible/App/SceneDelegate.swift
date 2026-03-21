@@ -13,31 +13,34 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         window.makeKeyAndVisible()
 
-        if let url = ServerBootstrap.savedServerURL() {
-            showMainApp(url: url)
+        if let connection = ServerBootstrap.connection() {
+            showMainApp(connection: connection)
         } else {
             showServerSetup()
         }
     }
 
     func reconfigureRoot() {
-        if let url = ServerBootstrap.savedServerURL() {
-            showMainApp(url: url)
+        if let connection = ServerBootstrap.connection() {
+            showMainApp(connection: connection)
         } else {
             showServerSetup()
         }
     }
 
-    private func showMainApp(url: URL) {
-        let api = APIClient(baseURL: url)
+    private func showMainApp(connection: PlexConnection) {
+        let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
+        Task {
+            await ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
+        }
         let tabBar = TabBarController(api: api)
         window?.rootViewController = tabBar
     }
 
     private func showServerSetup() {
         let setup = ServerSetupViewController()
-        setup.onConnected = { [weak self] url in
-            self?.showMainApp(url: url)
+        setup.onConnected = { [weak self] connection in
+            self?.showMainApp(connection: connection)
         }
         let nav = UINavigationController(rootViewController: setup)
         window?.rootViewController = nav

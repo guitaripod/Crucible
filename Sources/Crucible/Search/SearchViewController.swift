@@ -3,7 +3,7 @@
 final class SearchViewController: UICollectionViewController, UISearchResultsUpdating {
     private let api: APIClient
     private var searchTask: Task<Void, Never>?
-    private var dataSource: UICollectionViewDiffableDataSource<Int, SearchResult>!
+    private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
     private let searchController = UISearchController()
 
     init(api: APIClient) {
@@ -46,21 +46,19 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, SearchResult> { [unowned self] cell, _, result in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, result in
             var config = SearchResultConfiguration()
-            config.posterPath = result.posterPath
-            config.blurhash = result.posterBlurhash
+            config.posterPath = result.thumb ?? result.grandparentThumb
             config.title = result.title
-            config.mediaType = result.mediaType
+            config.mediaType = result.type
 
             var subtitleParts = [String]()
             if let year = result.year { subtitleParts.append("\(year)") }
-            if let code = Formatters.episodeCode(result.seasonNumber, result.episodeNumber) {
+            if let code = Formatters.episodeCode(result.parentIndex, result.index) {
                 subtitleParts.append(code)
             }
-            if let showName = result.showName { subtitleParts.append(showName) }
+            if let showName = result.grandparentTitle { subtitleParts.append(showName) }
             config.subtitle = subtitleParts.isEmpty ? nil : subtitleParts.joined(separator: " · ")
-            config.baseURL = self.api.baseURL
             cell.contentConfiguration = config
         }
 
@@ -74,7 +72,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         guard let query = searchController.searchBar.text, query.count >= 2 else {
             Task { [weak self] in
                 guard let self else { return }
-                var snapshot = NSDiffableDataSourceSnapshot<Int, SearchResult>()
+                var snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
                 snapshot.appendSections([0])
                 await dataSource.apply(snapshot)
                 var config = UIContentUnavailableConfiguration.search()
@@ -88,9 +86,18 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled, let self else { return }
             do {
-                let results: [SearchResult] = try await api.request(.search(query: query))
+                let container = try await api.requestContainer(.search(query: query))
                 guard !Task.isCancelled else { return }
-                var snapshot = NSDiffableDataSourceSnapshot<Int, SearchResult>()
+
+                var results = [PlexMetadata]()
+                for hub in container.Hub ?? [] {
+                    results.append(contentsOf: hub.Metadata ?? [])
+                }
+
+                var seen = Set<String>()
+                results = results.filter { seen.insert($0.ratingKey).inserted }
+
+                var snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
                 snapshot.appendSections([0])
                 snapshot.appendItems(results, toSection: 0)
                 await dataSource.apply(snapshot, animatingDifferences: true)
@@ -112,15 +119,21 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let result = dataSource.itemIdentifier(for: indexPath) else { return }
 
-        switch result.mediaType {
+        switch result.type {
         case "show":
-            let vc = ShowDetailViewController(api: api, showId: result.id)
+            let vc = ShowDetailViewController(api: api, showRatingKey: result.ratingKey)
             navigationController?.pushViewController(vc, animated: true)
         case "episode":
-            let vc = MediaDetailViewController(api: api, mediaId: result.id, mediaType: "episode")
+            let vc = MediaDetailViewController(
+                api: api,
+                ratingKey: result.ratingKey,
+                mediaType: "episode",
+                showRatingKey: result.grandparentRatingKey,
+                seasonRatingKey: result.parentRatingKey
+            )
             navigationController?.pushViewController(vc, animated: true)
         default:
-            let vc = MediaDetailViewController(api: api, mediaId: result.id, mediaType: "movie")
+            let vc = MediaDetailViewController(api: api, ratingKey: result.ratingKey, mediaType: "movie")
             navigationController?.pushViewController(vc, animated: true)
         }
     }

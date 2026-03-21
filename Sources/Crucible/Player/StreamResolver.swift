@@ -3,21 +3,19 @@ import Foundation
 struct ResolvedStream: Sendable {
     let url: URL
     let isDirectPlay: Bool
-    let startedFromOffset: Bool
-    let subtitles: [Subtitle]
-    let audioTracks: [AudioTrack]
-    let spritesVttURL: URL?
-    let spritesImageURL: URL?
+    let sessionId: String
+    let subtitles: [PlexStream]
+    let audioTracks: [PlexStream]
 }
 
 enum StreamResolverError: Error, LocalizedError {
-    case preparationFailed(String)
-    case timeout
+    case noMediaFound
+    case noConnectionURL
 
     var errorDescription: String? {
         switch self {
-        case .preparationFailed(let msg): return "Stream preparation failed: \(msg)"
-        case .timeout: return "Stream preparation timed out"
+        case .noMediaFound: return "No playable media found"
+        case .noConnectionURL: return "Could not build stream URL"
         }
     }
 }
@@ -25,72 +23,55 @@ enum StreamResolverError: Error, LocalizedError {
 enum StreamResolver {
     static func resolve(
         api: APIClient,
-        mediaId: String,
-        audioTrackId: String?,
-        subtitleId: String?,
+        ratingKey: String,
         startSecs: Double?
     ) async throws -> ResolvedStream {
-        let info: StreamInfo = try await api.request(.streamInfo(id: mediaId))
-        let baseURL = api.baseURL
-
-        let textSubtitles = info.subtitles.filter { !$0.isBitmap }
-        let useDirectPlay = info.canDirectPlay && textSubtitles.isEmpty
-
-        let streamURL: URL
-        let isDirect: Bool
-        var didStartFromOffset = false
-
-        if useDirectPlay {
-            streamURL = baseURL.appendingPathComponent("/api/stream/\(mediaId)/direct")
-            isDirect = true
-        } else {
-            let useStartSecs = info.needsTranscode ? startSecs : nil
-            didStartFromOffset = useStartSecs != nil
-            let body = HlsPrepareRequest(audioTrackId: audioTrackId, startSecs: useStartSecs)
-            try await api.requestVoid(.hlsPrepare(id: mediaId, body: body))
-
-            var isReady = false
-            for _ in 0 ..< 240 {
-                try await Task.sleep(for: .milliseconds(500))
-                try Task.checkCancellation()
-
-                do {
-                    let status: HlsStatusResponse = try await api.request(.hlsStatus(id: mediaId))
-                    switch status.status {
-                    case "ready":
-                        isReady = true
-                    case "error":
-                        throw StreamResolverError.preparationFailed(status.error ?? "Unknown error")
-                    default:
-                        continue
-                    }
-                    break
-                } catch let resolved as StreamResolverError {
-                    throw resolved
-                } catch {
-                    continue
-                }
-            }
-
-            guard isReady else {
-                throw StreamResolverError.timeout
-            }
-
-            streamURL = baseURL.appendingPathComponent("/api/stream/\(mediaId)/hls/master.m3u8")
-            isDirect = false
+        let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
+        guard let metadata = container.Metadata?.first,
+              let media = metadata.Media?.first,
+              let part = media.Part?.first else {
+            throw StreamResolverError.noMediaFound
         }
 
-        let spritesVtt = URL(string: info.spritesVtt, relativeTo: baseURL)
-        let spritesImg = baseURL.appendingPathComponent("/api/stream/\(mediaId)/sprites/sprites.jpg")
+        let sessionId = UUID().uuidString
+        let baseURL = api.baseURL
+        let token = api.token
+
+        let subtitles = part.Stream?.filter { $0.streamType == 3 } ?? []
+        let audioTracks = part.Stream?.filter { $0.streamType == 2 } ?? []
+
+        guard let url = transcodeURL(baseURL: baseURL, token: token, ratingKey: ratingKey, session: sessionId, startSecs: startSecs) else {
+            throw StreamResolverError.noConnectionURL
+        }
 
         return ResolvedStream(
-            url: streamURL,
-            isDirectPlay: isDirect,
-            startedFromOffset: didStartFromOffset,
-            subtitles: info.subtitles,
-            audioTracks: info.audioTracks,
-            spritesVttURL: spritesVtt,
-            spritesImageURL: spritesImg
+            url: url,
+            isDirectPlay: false,
+            sessionId: sessionId,
+            subtitles: subtitles,
+            audioTracks: audioTracks
         )
+    }
+
+    private static func transcodeURL(baseURL: URL, token: String, ratingKey: String, session: String, startSecs: Double?) -> URL? {
+        var query = "path=/library/metadata/\(ratingKey)"
+            + "&mediaIndex=0&partIndex=0&protocol=hls"
+            + "&fastSeek=1&directPlay=0&directStream=1"
+            + "&session=\(session)"
+            + "&subtitleSize=100&audioBoost=100"
+            + "&location=lan&autoAdjustQuality=0"
+            + "&X-Plex-Token=\(token)"
+            + "&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"
+            + "&X-Plex-Platform=iOS"
+            + "&X-Plex-Product=Crucible"
+        if let secs = startSecs {
+            query += "&offset=\(Int(secs))"
+        }
+        return plexURL(base: baseURL, path: "/video/:/transcode/universal/start.m3u8", query: query)
+    }
+
+    private static func plexURL(base: URL, path: String, query: String) -> URL? {
+        let urlString = base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + path + "?" + query
+        return URL(string: urlString)
     }
 }

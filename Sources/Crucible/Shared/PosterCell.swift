@@ -2,10 +2,8 @@
 
 struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var posterPath: String?
-    var blurhash: String?
     var title: String = ""
     var subtitle: String?
-    var baseURL: URL?
     var progress: Double?
     var placeholderIcon: String = "film"
 
@@ -115,17 +113,10 @@ final class PosterContentView: UIView, UIContentView {
         placeholderView.isHidden = false
         placeholderView.image = UIImage(systemName: config.placeholderIcon)
 
-        if let blurhash = config.blurhash {
-            if let decoded = BlurhashDecoder.decode(blurhash) {
-                imageView.image = decoded
-                placeholderView.isHidden = true
-            }
-        }
-
-        guard let posterPath = config.posterPath, let baseURL = config.baseURL else { return }
+        guard let posterPath = config.posterPath else { return }
 
         imageTask = Task { [weak self] in
-            let image = await ImageLoader.shared.loadImage(path: posterPath, size: "w342", baseURL: baseURL)
+            let image = await ImageLoader.shared.loadImage(path: posterPath, width: 300)
             guard !Task.isCancelled, let self else { return }
             if let image {
                 self.imageView.image = image

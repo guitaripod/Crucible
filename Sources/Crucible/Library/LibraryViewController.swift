@@ -2,16 +2,13 @@ import UIKit
 
 final class LibraryViewController: UIViewController {
     private let api: APIClient
-    private let segmentedControl: UISegmentedControl
-    private var movieGrid: MovieGridViewController
-    private var showGrid: ShowGridViewController
+    private var segmentedControl: UISegmentedControl!
+    private var sectionVCs: [UIViewController] = []
     private var currentChild: UIViewController?
+    private var loadTask: Task<Void, Never>?
 
     init(api: APIClient) {
         self.api = api
-        self.movieGrid = MovieGridViewController(api: api)
-        self.showGrid = ShowGridViewController(api: api)
-        self.segmentedControl = UISegmentedControl(items: ["Movies", "Shows"])
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -22,18 +19,55 @@ final class LibraryViewController: UIViewController {
         super.viewDidLoad()
         title = "Library"
         view.backgroundColor = .systemBackground
+        loadSections()
+    }
 
-        segmentedControl.selectedSegmentIndex = 0
-        segmentedControl.addAction(UIAction { [unowned self] _ in
-            switchSegment()
-        }, for: .valueChanged)
-        navigationItem.titleView = segmentedControl
+    private func loadSections() {
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let container = try await api.requestContainer(.sections)
+                guard !Task.isCancelled else { return }
+                let dirs = container.Directory ?? []
 
-        showChild(movieGrid)
+                var titles = [String]()
+                var vcs = [UIViewController]()
+
+                for dir in dirs {
+                    switch dir.type {
+                    case "movie":
+                        titles.append(dir.title)
+                        vcs.append(MovieGridViewController(api: api, sectionId: dir.key))
+                    case "show":
+                        titles.append(dir.title)
+                        vcs.append(ShowGridViewController(api: api, sectionId: dir.key))
+                    default:
+                        continue
+                    }
+                }
+
+                sectionVCs = vcs
+
+                if titles.count > 1 {
+                    segmentedControl = UISegmentedControl(items: titles)
+                    segmentedControl.selectedSegmentIndex = 0
+                    segmentedControl.addAction(UIAction { [unowned self] _ in
+                        switchSegment()
+                    }, for: .valueChanged)
+                    navigationItem.titleView = segmentedControl
+                }
+
+                if let first = vcs.first {
+                    showChild(first)
+                }
+            } catch {}
+        }
     }
 
     private func switchSegment() {
-        let target = segmentedControl.selectedSegmentIndex == 0 ? movieGrid : showGrid
+        let idx = segmentedControl.selectedSegmentIndex
+        guard idx >= 0, idx < sectionVCs.count else { return }
+        let target = sectionVCs[idx]
         guard target !== currentChild else { return }
         showChild(target)
     }

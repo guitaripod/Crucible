@@ -1,21 +1,23 @@
 import UIKit
+import WebKit
+import os
 
 final class ServerSetupViewController: UIViewController {
-    private let urlField = UITextField()
-    private let connectButton = UIButton(configuration: .filled())
+    private let signInButton = UIButton(configuration: .filled())
     private let statusLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .medium)
-    var onConnected: ((URL) -> Void)?
-    private var connectTask: Task<Void, Never>?
+    var onConnected: ((PlexConnection) -> Void)?
+    private var authTask: Task<Void, Never>?
+    private let log = Logger(subsystem: "com.guitaripod.crucible", category: "auth")
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        title = "Connect to Server"
+        title = "Sign in to Plex"
         navigationItem.largeTitleDisplayMode = .never
 
-        let iconImage = UIImageView(image: UIImage(systemName: "server.rack"))
-        iconImage.tintColor = .systemBlue
+        let iconImage = UIImageView(image: UIImage(systemName: "play.rectangle.fill"))
+        iconImage.tintColor = .systemOrange
         iconImage.contentMode = .scaleAspectFit
         iconImage.translatesAutoresizingMaskIntoConstraints = false
         iconImage.heightAnchor.constraint(equalToConstant: 60).isActive = true
@@ -26,17 +28,20 @@ final class ServerSetupViewController: UIViewController {
         titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
         titleLabel.textAlignment = .center
 
-        urlField.placeholder = "http://192.168.1.100:8484"
-        urlField.borderStyle = .roundedRect
-        urlField.keyboardType = .URL
-        urlField.autocapitalizationType = .none
-        urlField.autocorrectionType = .no
-        urlField.returnKeyType = .go
-        urlField.clearButtonMode = .whileEditing
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = "A personal Plex client"
+        subtitleLabel.font = .systemFont(ofSize: 15, weight: .regular)
+        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.textAlignment = .center
 
-        connectButton.configuration?.title = "Connect"
-        connectButton.configuration?.cornerStyle = .medium
-        connectButton.addAction(UIAction { [unowned self] _ in connect() }, for: .touchUpInside)
+        var config = UIButton.Configuration.filled()
+        config.title = "Sign in with Plex"
+        config.image = UIImage(systemName: "person.badge.key.fill")
+        config.imagePadding = 8
+        config.cornerStyle = .medium
+        config.baseBackgroundColor = .systemOrange
+        signInButton.configuration = config
+        signInButton.addAction(UIAction { [unowned self] _ in startAuth() }, for: .touchUpInside)
 
         statusLabel.textColor = .systemRed
         statusLabel.font = .systemFont(ofSize: 14)
@@ -46,11 +51,12 @@ final class ServerSetupViewController: UIViewController {
 
         spinner.hidesWhenStopped = true
 
-        let stack = UIStackView(arrangedSubviews: [iconImage, titleLabel, urlField, connectButton, statusLabel, spinner])
+        let stack = UIStackView(arrangedSubviews: [iconImage, titleLabel, subtitleLabel, signInButton, statusLabel, spinner])
         stack.axis = .vertical
         stack.spacing = 16
         stack.alignment = .fill
-        stack.setCustomSpacing(24, after: titleLabel)
+        stack.setCustomSpacing(4, after: titleLabel)
+        stack.setCustomSpacing(32, after: subtitleLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(stack)
@@ -63,62 +69,131 @@ final class ServerSetupViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        connectTask?.cancel()
+        authTask?.cancel()
     }
 
-    private func connect() {
-        var text = urlField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !text.isEmpty else {
-            showError("Enter a server URL")
-            return
-        }
-
-        if !text.contains("://") {
-            text = "http://\(text)"
-        }
-
-        guard let url = URL(string: text) else {
-            showError("Invalid URL format")
-            return
-        }
-
+    private func startAuth() {
         statusLabel.isHidden = true
         spinner.startAnimating()
-        connectButton.isEnabled = false
+        signInButton.isEnabled = false
 
-        connectTask?.cancel()
-        connectTask = Task { [weak self] in
+        authTask?.cancel()
+        authTask = Task { [weak self] in
             guard let self else { return }
-            let client = APIClient(baseURL: url)
             do {
-                let health: HealthResponse = try await client.request(.health)
+                showStatus("Requesting PIN...", color: .secondaryLabel)
+                let pin: PlexPin = try await APIClient.plexTVRequest(.requestPin)
                 guard !Task.isCancelled else { return }
-                statusLabel.textColor = .systemGreen
-                statusLabel.text = "Connected — v\(health.version)"
-                statusLabel.isHidden = false
-                spinner.stopAnimating()
-                ServerBootstrap.save(serverURL: url)
-                try? await Task.sleep(for: .milliseconds(500))
+
+                let clientId = PlexHeaders.clientIdentifier
+                let authURLString = "https://app.plex.tv/auth#?clientID=\(clientId)&code=\(pin.code)&context%5Bdevice%5D%5Bproduct%5D=Crucible"
+                guard let authURL = URL(string: authURLString) else {
+                    showError("Failed to build auth URL")
+                    return
+                }
+
+                let webVC = PlexWebAuthViewController(url: authURL)
+                let nav = UINavigationController(rootViewController: webVC)
+                present(nav, animated: true)
+
+                showStatus("Waiting for authorization...", color: .secondaryLabel)
+                let token = try await pollForToken(pinId: pin.id)
                 guard !Task.isCancelled else { return }
-                onConnected?(url)
+
+                nav.dismiss(animated: true)
+                ServerBootstrap.saveToken(token)
+                showStatus("Signed in! Discovering servers...", color: .systemGreen)
+
+                try await discoverServers(token: token)
             } catch is CancellationError {
                 return
-            } catch let error as URLError where error.code == .cannotConnectToHost || error.code == .cannotFindHost {
-                guard !Task.isCancelled else { return }
-                showError("Cannot connect to server. Check the URL and try again.")
-                spinner.stopAnimating()
-                connectButton.isEnabled = true
-            } catch let error as URLError where error.code == .timedOut {
-                guard !Task.isCancelled else { return }
-                showError("Connection timed out. Check your network.")
-                spinner.stopAnimating()
-                connectButton.isEnabled = true
             } catch {
                 guard !Task.isCancelled else { return }
+                log.error("Auth failed: \(error)")
                 showError(error.localizedDescription)
                 spinner.stopAnimating()
-                connectButton.isEnabled = true
+                signInButton.isEnabled = true
             }
+        }
+    }
+
+    private func pollForToken(pinId: Int) async throws -> String {
+        for i in 0..<150 {
+            try await Task.sleep(for: .seconds(2))
+            try Task.checkCancellation()
+            do {
+                let pin: PlexPin = try await APIClient.plexTVRequest(.checkPin(pinId: pinId))
+                if let token = pin.authToken {
+                    return token
+                }
+            } catch {
+                log.error("Poll \(i) error: \(error)")
+            }
+        }
+        throw APIError.httpError(statusCode: 408, message: "Authentication timed out. Please try again.")
+    }
+
+    private func discoverServers(token: String) async throws {
+        let resources: [PlexResource] = try await APIClient.plexTVRequest(.resources, token: token)
+        let server = resources.first { $0.provides.contains("server") }
+
+        promptServerURL(serverName: server?.name ?? "Plex Server", machineId: server?.clientIdentifier ?? UUID().uuidString, token: token)
+    }
+
+    private func promptServerURL(serverName: String, machineId: String, token: String) {
+        let alert = UIAlertController(title: "Server Address", message: "Enter your Plex server's Tailscale IP", preferredStyle: .alert)
+        alert.addTextField { field in
+            field.placeholder = "100.x.x.x"
+            field.keyboardType = .decimalPad
+            field.text = UserDefaults.standard.string(forKey: "last_server_ip")
+        }
+        alert.addAction(UIAlertAction(title: "Connect", style: .default) { [weak self] _ in
+            guard let self, let ip = alert.textFields?.first?.text, !ip.isEmpty else { return }
+            UserDefaults.standard.set(ip, forKey: "last_server_ip")
+            let uri = "http://\(ip):32400"
+            connectTo(uri: uri, serverName: serverName, machineId: machineId, token: token)
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            self?.spinner.stopAnimating()
+            self?.signInButton.isEnabled = true
+        })
+        present(alert, animated: true)
+    }
+
+    private func connectTo(uri: String, serverName: String, machineId: String, token: String) {
+        guard let url = URL(string: uri) else {
+            showError("Invalid URL")
+            spinner.stopAnimating()
+            signInButton.isEnabled = true
+            return
+        }
+
+        showStatus("Connecting to \(uri)...", color: .secondaryLabel)
+        Task { [weak self] in
+            guard let self else { return }
+            let testClient = APIClient(baseURL: url, token: token)
+            let reachable = await testClient.identityCheck()
+            guard reachable else {
+                showError("Could not reach server at \(uri)")
+                spinner.stopAnimating()
+                signInButton.isEnabled = true
+                return
+            }
+
+            ServerBootstrap.saveServer(uri: url, name: serverName, machineIdentifier: machineId)
+            showStatus("Connected to \(serverName)", color: .systemGreen)
+
+            guard let plexConnection = ServerBootstrap.connection() else {
+                showError("Failed to save connection")
+                spinner.stopAnimating()
+                signInButton.isEnabled = true
+                return
+            }
+
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            spinner.stopAnimating()
+            onConnected?(plexConnection)
         }
     }
 
@@ -126,5 +201,50 @@ final class ServerSetupViewController: UIViewController {
         statusLabel.textColor = .systemRed
         statusLabel.text = message
         statusLabel.isHidden = false
+    }
+
+    private func showStatus(_ message: String, color: UIColor) {
+        statusLabel.textColor = color
+        statusLabel.text = message
+        statusLabel.isHidden = false
+    }
+}
+
+final class PlexWebAuthViewController: UIViewController {
+    private let url: URL
+    private var webView: WKWebView!
+
+    init(url: URL) {
+        self.url = url
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Sign in to Plex"
+
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            systemItem: .done,
+            primaryAction: UIAction { [weak self] _ in
+                self?.dismiss(animated: true)
+            }
+        )
+
+        let config = WKWebViewConfiguration()
+        config.websiteDataStore = .default()
+        webView = WKWebView(frame: .zero, configuration: config)
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        webView.load(URLRequest(url: url))
     }
 }

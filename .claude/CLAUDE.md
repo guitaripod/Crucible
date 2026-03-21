@@ -1,4 +1,4 @@
-# Crucible — iOS/tvOS Client for MediaForge
+# Crucible — iOS/tvOS Plex Client
 
 ## Stack
 - Swift 6, UIKit, programmatic UI only
@@ -27,9 +27,12 @@
 - Bundle ID: com.guitaripod.crucible
 
 ## Backend
-- MediaForge Rust backend at ../rust/mediaforge
-- API base URL will be on the Tailscale network (no auth needed)
-- Swagger docs at /swagger-ui for full API reference
+- Plex Media Server API (https://developer.plex.tv)
+- Auth: OAuth PIN flow via plex.tv, token stored in Keychain
+- Server discovery via plex.tv resources API
+- Direct play + HLS transcoding via universal transcoder
+- Playback reporting via /:/timeline endpoint
+- Images via /photo/:/transcode endpoint
 
 ## Code Style
 - No code comments

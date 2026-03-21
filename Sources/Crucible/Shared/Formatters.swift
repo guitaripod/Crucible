@@ -88,4 +88,31 @@ enum Formatters {
         guard let date else { return nil }
         return relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
+
+    static func unixRelativeDate(_ timestamp: Int?) -> String? {
+        guard let timestamp else { return nil }
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        return relativeFormatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private static let dateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    static func unixDate(_ timestamp: Int?) -> String? {
+        guard let timestamp else { return nil }
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        return dateTimeFormatter.string(from: date)
+    }
+
+    static func plexDate(_ dateString: String?) -> String? {
+        guard let dateString else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        guard let date = f.date(from: dateString) else { return nil }
+        return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+    }
 }

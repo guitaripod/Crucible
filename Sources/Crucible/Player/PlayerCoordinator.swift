@@ -13,12 +13,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private let api: APIClient
-    private let mediaId: String
+    private let ratingKey: String
     private let mediaType: String
-    private let showId: String?
+    private let showRatingKey: String?
+    private let seasonRatingKey: String?
     private let resumePosition: Double
-    private let selectedAudioTrackId: String?
-    private let selectedSubtitleId: String?
     private let metadata: Metadata?
 
     private var player: AVPlayer?
@@ -35,21 +34,19 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     init(
         api: APIClient,
-        mediaId: String,
+        ratingKey: String,
         mediaType: String,
-        showId: String?,
+        showRatingKey: String?,
+        seasonRatingKey: String?,
         resumePosition: Double,
-        selectedAudioTrackId: String?,
-        selectedSubtitleId: String?,
         metadata: Metadata? = nil
     ) {
         self.api = api
-        self.mediaId = mediaId
+        self.ratingKey = ratingKey
         self.mediaType = mediaType
-        self.showId = showId
+        self.showRatingKey = showRatingKey
+        self.seasonRatingKey = seasonRatingKey
         self.resumePosition = resumePosition
-        self.selectedAudioTrackId = selectedAudioTrackId
-        self.selectedSubtitleId = selectedSubtitleId
         self.metadata = metadata
     }
 
@@ -74,9 +71,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             do {
                 let stream = try await StreamResolver.resolve(
                     api: api,
-                    mediaId: mediaId,
-                    audioTrackId: selectedAudioTrackId,
-                    subtitleId: selectedSubtitleId,
+                    ratingKey: ratingKey,
                     startSecs: resumePosition > 0 ? resumePosition : nil
                 )
                 guard !Task.isCancelled else {
@@ -114,7 +109,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC.delegate = self
         self.playerVC = playerVC
 
-        reporter = PlaybackReporter(api: api, mediaId: mediaId, player: player)
+        let durationMs = metadata.map { Int(($0.duration ?? 0) * 1000) } ?? 0
+        reporter = PlaybackReporter(
+            api: api,
+            ratingKey: ratingKey,
+            sessionId: stream.sessionId,
+            durationMs: durationMs,
+            player: player
+        )
         let np = NowPlayingBridge()
         nowPlaying = np
 
@@ -127,15 +129,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 duration: meta.duration ?? 0,
                 elapsed: resumePosition,
                 rate: 1.0,
-                posterPath: meta.posterPath,
-                baseURL: api.baseURL
+                posterPath: meta.posterPath
             )
         }
 
         setupInterruptionHandling()
         setupEndObserver()
 
-        if resumePosition > 0 && !stream.startedFromOffset {
+        if resumePosition > 0 && stream.isDirectPlay {
             let time = CMTime(seconds: resumePosition, preferredTimescale: 600)
             player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
                 Task { @MainActor [weak self] in
@@ -187,22 +188,24 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func handlePlaybackEnded() {
-        guard mediaType == "episode", let showId else { return }
+        guard mediaType == "episode", let seasonRatingKey else { return }
         Task { [weak self] in
             guard let self else { return }
             do {
-                let next: EpisodeSummary? = try await api.request(.nextEpisode(showId: showId))
-                guard let next else {
+                let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
+                let episodes = container.Metadata ?? []
+                guard let currentIndex = episodes.firstIndex(where: { $0.ratingKey == ratingKey }),
+                      currentIndex + 1 < episodes.count else {
                     let pvc = playerVC
                     await cleanup()
                     pvc?.dismiss(animated: true)
                     return
                 }
-                let title = next.episodeTitle ?? "Next Episode"
-                let code = Formatters.episodeCode(next.seasonNumber, next.episodeNumber) ?? ""
+                let next = episodes[currentIndex + 1]
+                let code = Formatters.episodeCode(next.parentIndex, next.index) ?? ""
                 let alert = UIAlertController(
                     title: "Up Next",
-                    message: "\(code) — \(title)",
+                    message: "\(code) — \(next.title)",
                     preferredStyle: .alert
                 )
                 alert.addAction(UIAlertAction(title: "Play", style: .default) { [weak self] _ in
@@ -214,12 +217,19 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                             guard let presenting = self.presentingVC else { return }
                             let coordinator = PlayerCoordinator(
                                 api: self.api,
-                                mediaId: next.id,
+                                ratingKey: next.ratingKey,
                                 mediaType: "episode",
-                                showId: showId,
+                                showRatingKey: self.showRatingKey,
+                                seasonRatingKey: seasonRatingKey,
                                 resumePosition: 0,
-                                selectedAudioTrackId: nil,
-                                selectedSubtitleId: nil
+                                metadata: Metadata(
+                                    title: next.title,
+                                    showName: next.grandparentTitle,
+                                    seasonNumber: next.parentIndex,
+                                    episodeNumber: next.index,
+                                    posterPath: next.grandparentThumb ?? next.thumb,
+                                    duration: next.durationSecs
+                                )
                             )
                             self.nextCoordinator = coordinator
                             coordinator.present(from: presenting)
@@ -275,7 +285,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         interruptionObserver = nil
 
         if let resolvedStream, !resolvedStream.isDirectPlay {
-            try? await api.requestVoid(.hlsCancel(id: mediaId))
+            try? await api.requestVoid(.stopTranscode(session: resolvedStream.sessionId))
         }
 
         player?.replaceCurrentItem(with: nil)

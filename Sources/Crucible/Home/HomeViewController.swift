@@ -3,15 +3,33 @@ import os
 
 final class HomeViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case continueWatching, onDeck, recentlyAdded, recentlyWatched, surpriseMe
+        case continueWatching, onDeck, recentlyAdded, surpriseMe
     }
 
     enum Item: Hashable {
-        case continueWatching(ContinueWatchingItem)
-        case onDeck(OnDeckItem)
-        case recent(MediaSummary)
-        case watched(MediaSummary)
+        case media(PlexMetadata, String)
         case surpriseMe
+
+        static func == (lhs: Item, rhs: Item) -> Bool {
+            switch (lhs, rhs) {
+            case (.media(let a, let sa), .media(let b, let sb)):
+                return a.ratingKey == b.ratingKey && sa == sb
+            case (.surpriseMe, .surpriseMe):
+                return true
+            default:
+                return false
+            }
+        }
+
+        func hash(into hasher: inout Hasher) {
+            switch self {
+            case .media(let m, let section):
+                hasher.combine(m.ratingKey)
+                hasher.combine(section)
+            case .surpriseMe:
+                hasher.combine("surprise")
+            }
+        }
     }
 
     private let api: APIClient
@@ -78,56 +96,23 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let continueReg = UICollectionView.CellRegistration<UICollectionViewCell, ContinueWatchingItem> { [unowned self] cell, _, item in
+        let posterReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
             var config = PosterContentConfiguration()
-            config.posterPath = item.posterPath
-            config.blurhash = item.posterBlurhash
-            if item.mediaType == "episode", let showName = item.showName {
+            config.posterPath = item.thumb ?? item.grandparentThumb
+            if item.type == "episode", let showName = item.grandparentTitle {
                 config.title = showName
                 var sub = [String]()
-                if let code = Formatters.episodeCode(item.seasonNumber, item.episodeNumber) { sub.append(code) }
-                if let epTitle = item.episodeTitle { sub.append(epTitle) }
-                config.subtitle = sub.isEmpty ? nil : sub.joined(separator: " · ")
-                config.placeholderIcon = "tv"
-            } else {
-                config.title = item.title
-                if let year = Formatters.relativeDate(item.lastPlayedAt) { config.subtitle = year }
-            }
-            config.progress = item.progressPercent.map { $0 / 100.0 }
-            config.baseURL = self.api.baseURL
-            cell.contentConfiguration = config
-        }
-
-        let onDeckReg = UICollectionView.CellRegistration<UICollectionViewCell, OnDeckItem> { [unowned self] cell, _, item in
-            var config = PosterContentConfiguration()
-            config.posterPath = item.posterPath
-            config.blurhash = item.posterBlurhash
-            config.title = item.showName
-            config.placeholderIcon = "tv"
-            if let code = Formatters.episodeCode(item.seasonNumber, item.episodeNumber) {
-                let title = item.episodeTitle ?? ""
-                config.subtitle = title.isEmpty ? code : "\(code) — \(title)"
-            }
-            config.baseURL = self.api.baseURL
-            cell.contentConfiguration = config
-        }
-
-        let posterReg = UICollectionView.CellRegistration<UICollectionViewCell, MediaSummary> { [unowned self] cell, _, item in
-            var config = PosterContentConfiguration()
-            config.posterPath = item.posterPath
-            config.blurhash = item.posterBlurhash
-            if item.mediaType == "episode", let showName = item.showName {
-                config.title = showName
-                var sub = [String]()
-                if let code = Formatters.episodeCode(item.seasonNumber, item.episodeNumber) { sub.append(code) }
-                if let epTitle = item.episodeTitle { sub.append(epTitle) }
-                config.subtitle = sub.isEmpty ? nil : sub.joined(separator: " · ")
+                if let code = Formatters.episodeCode(item.parentIndex, item.index) { sub.append(code) }
+                sub.append(item.title)
+                config.subtitle = sub.joined(separator: " · ")
                 config.placeholderIcon = "tv"
             } else {
                 config.title = item.title
                 if let year = item.year { config.subtitle = "\(year)" }
             }
-            config.baseURL = self.api.baseURL
+            if item.viewOffset != nil && item.duration != nil {
+                config.progress = item.progressPercent
+            }
             cell.contentConfiguration = config
         }
 
@@ -153,11 +138,7 @@ final class HomeViewController: UICollectionViewController {
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
             switch item {
-            case .continueWatching(let cw):
-                return collectionView.dequeueConfiguredReusableCell(using: continueReg, for: indexPath, item: cw)
-            case .onDeck(let od):
-                return collectionView.dequeueConfiguredReusableCell(using: onDeckReg, for: indexPath, item: od)
-            case .recent(let m), .watched(let m):
+            case .media(let m, _):
                 return collectionView.dequeueConfiguredReusableCell(using: posterReg, for: indexPath, item: m)
             case .surpriseMe:
                 return collectionView.dequeueConfiguredReusableCell(using: surpriseReg, for: indexPath, item: "surprise")
@@ -171,7 +152,6 @@ final class HomeViewController: UICollectionViewController {
             case .continueWatching: config.title = "Continue Watching"
             case .onDeck: config.title = "On Deck"
             case .recentlyAdded: config.title = "Recently Added"
-            case .recentlyWatched: config.title = "Recently Watched"
             case .surpriseMe: config.title = "Discover"
             }
             cell.contentConfiguration = config
@@ -187,31 +167,38 @@ final class HomeViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                async let cwResponse: ContinueWatchingResponse = api.request(.continueWatching())
-                async let odResponse: [OnDeckItem] = api.request(.onDeck())
-                async let recentResponse: [MediaSummary] = api.request(.recentItems())
-                async let watchedResponse: [MediaSummary] = api.request(.recentlyWatched())
-
-                let (cw, od, recent, watched) = try await (cwResponse, odResponse, recentResponse, watchedResponse)
+                let container = try await api.requestContainer(.hubs())
                 guard !Task.isCancelled else { return }
+
+                var continueItems = [PlexMetadata]()
+                var onDeckItems = [PlexMetadata]()
+                var recentItems = [PlexMetadata]()
+
+                for hub in container.Hub ?? [] {
+                    guard let id = hub.hubIdentifier, let items = hub.Metadata, !items.isEmpty else { continue }
+                    let lowered = id.lowercased()
+                    if lowered.contains("continue") || lowered.contains("inprogress") {
+                        continueItems.append(contentsOf: items)
+                    } else if lowered.contains("ondeck") {
+                        onDeckItems.append(contentsOf: items)
+                    } else if lowered.contains("recentlyadded") || lowered.contains("recent") {
+                        recentItems.append(contentsOf: items)
+                    }
+                }
 
                 var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
-                if !cw.items.isEmpty {
+                if !continueItems.isEmpty {
                     snapshot.appendSections([.continueWatching])
-                    snapshot.appendItems(cw.items.map { .continueWatching($0) }, toSection: .continueWatching)
+                    snapshot.appendItems(continueItems.map { .media($0, "cw") }, toSection: .continueWatching)
                 }
-                if !od.isEmpty {
+                if !onDeckItems.isEmpty {
                     snapshot.appendSections([.onDeck])
-                    snapshot.appendItems(od.map { .onDeck($0) }, toSection: .onDeck)
+                    snapshot.appendItems(onDeckItems.map { .media($0, "od") }, toSection: .onDeck)
                 }
-                if !recent.isEmpty {
+                if !recentItems.isEmpty {
                     snapshot.appendSections([.recentlyAdded])
-                    snapshot.appendItems(recent.map { .recent($0) }, toSection: .recentlyAdded)
-                }
-                if !watched.isEmpty {
-                    snapshot.appendSections([.recentlyWatched])
-                    snapshot.appendItems(watched.map { .watched($0) }, toSection: .recentlyWatched)
+                    snapshot.appendItems(recentItems.map { .media($0, "ra") }, toSection: .recentlyAdded)
                 }
 
                 snapshot.appendSections([.surpriseMe])
@@ -219,10 +206,24 @@ final class HomeViewController: UICollectionViewController {
 
                 await self.dataSource.apply(snapshot, animatingDifferences: true)
                 self.collectionView.refreshControl?.endRefreshing()
+
+                if continueItems.isEmpty && onDeckItems.isEmpty && recentItems.isEmpty {
+                    var emptyConfig = UIContentUnavailableConfiguration.empty()
+                    emptyConfig.image = UIImage(systemName: "play.rectangle")
+                    emptyConfig.text = "No content yet"
+                    emptyConfig.secondaryText = "Add media to your Plex libraries to see it here"
+                    contentUnavailableConfiguration = emptyConfig
+                } else {
+                    contentUnavailableConfiguration = nil
+                }
             } catch {
                 guard !Task.isCancelled else { return }
-                Logger(subsystem: "com.guitaripod.crucible", category: "home").error("Load failed: \(error)")
                 collectionView.refreshControl?.endRefreshing()
+                var errConfig = UIContentUnavailableConfiguration.empty()
+                errConfig.image = UIImage(systemName: "exclamationmark.triangle")
+                errConfig.text = "Failed to load"
+                errConfig.secondaryText = error.localizedDescription
+                contentUnavailableConfiguration = errConfig
             }
         }
     }
@@ -232,23 +233,33 @@ final class HomeViewController: UICollectionViewController {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
-        case .continueWatching(let cw):
-            let detail = MediaDetailViewController(api: api, mediaId: cw.id, mediaType: cw.mediaType, showId: cw.showId)
-            navigationController?.pushViewController(detail, animated: true)
-        case .onDeck(let od):
-            let detail = MediaDetailViewController(api: api, mediaId: od.episodeId, mediaType: "episode", showId: od.showId)
-            navigationController?.pushViewController(detail, animated: true)
-        case .recent(let m), .watched(let m):
-            let detail = MediaDetailViewController(api: api, mediaId: m.id, mediaType: m.mediaType, showId: m.showId)
-            navigationController?.pushViewController(detail, animated: true)
+        case .media(let m, _):
+            if m.type == "show" {
+                let detail = ShowDetailViewController(api: api, showRatingKey: m.ratingKey)
+                navigationController?.pushViewController(detail, animated: true)
+            } else {
+                let detail = MediaDetailViewController(
+                    api: api,
+                    ratingKey: m.ratingKey,
+                    mediaType: m.type,
+                    showRatingKey: m.grandparentRatingKey,
+                    seasonRatingKey: m.parentRatingKey
+                )
+                navigationController?.pushViewController(detail, animated: true)
+            }
         case .surpriseMe:
             Task { [weak self] in
                 guard let self else { return }
                 do {
-                    let item: MediaSummary? = try await api.request(.randomItem())
-                    guard let item else { return }
-                    let detail = MediaDetailViewController(api: api, mediaId: item.id, mediaType: item.mediaType, showId: item.showId)
-                    navigationController?.pushViewController(detail, animated: true)
+                    let container = try await api.requestContainer(.recentlyAdded(start: 0, size: 100))
+                    guard let items = container.Metadata, let random = items.randomElement() else { return }
+                    if random.type == "show" {
+                        let detail = ShowDetailViewController(api: api, showRatingKey: random.ratingKey)
+                        navigationController?.pushViewController(detail, animated: true)
+                    } else {
+                        let detail = MediaDetailViewController(api: api, ratingKey: random.ratingKey, mediaType: random.type)
+                        navigationController?.pushViewController(detail, animated: true)
+                    }
                 } catch {}
             }
         }

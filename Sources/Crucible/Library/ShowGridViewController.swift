@@ -2,15 +2,17 @@
 
 final class ShowGridViewController: UICollectionViewController {
     private let api: APIClient
-    private var dataSource: UICollectionViewDiffableDataSource<Int, TvShowSummary>!
+    private let sectionId: String
+    private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
     private var loadTask: Task<Void, Never>?
-    private var currentPage = 1
-    private var totalPages = 1
+    private var currentOffset = 0
+    private var totalSize = 0
     private var isLoadingNextPage = false
-    private var currentSort = "name"
+    private var currentSort = "titleSort:asc"
 
-    init(api: APIClient) {
+    init(api: APIClient, sectionId: String) {
         self.api = api
+        self.sectionId = sectionId
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -32,7 +34,7 @@ final class ShowGridViewController: UICollectionViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         if dataSource.snapshot().numberOfItems == 0 {
-            loadPage(1)
+            loadPage(offset: 0)
         }
     }
 
@@ -65,20 +67,20 @@ final class ShowGridViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, TvShowSummary> { [unowned self] cell, _, item in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
             var config = PosterContentConfiguration()
-            config.posterPath = item.posterPath
-            config.blurhash = item.posterBlurhash
-            config.title = item.name
+            config.posterPath = item.thumb
+            config.title = item.title
             var parts = [String]()
-            parts.append(item.seasonCount == 1 ? "1 Season" : "\(item.seasonCount) Seasons")
-            parts.append("\(item.episodeCount) Ep")
+            let seasons = item.childCount ?? 0
+            parts.append(seasons == 1 ? "1 Season" : "\(seasons) Seasons")
+            let eps = item.leafCount ?? 0
+            parts.append("\(eps) Ep")
             config.subtitle = parts.joined(separator: " · ")
             config.placeholderIcon = "tv"
-            if item.episodeCount > 0 {
-                config.progress = Double(item.watchedCount) / Double(item.episodeCount)
+            if eps > 0, let watched = item.viewedLeafCount {
+                config.progress = Double(watched) / Double(eps)
             }
-            config.baseURL = self.api.baseURL
             cell.contentConfiguration = config
         }
 
@@ -89,9 +91,9 @@ final class ShowGridViewController: UICollectionViewController {
 
     private func setupNavigationBar() {
         let sortMenu = UIMenu(title: "Sort", children: [
-            UIAction(title: "Name", state: currentSort == "name" ? .on : .off) { [weak self] _ in self?.setSort("name") },
-            UIAction(title: "Added", state: currentSort == "added" ? .on : .off) { [weak self] _ in self?.setSort("added") },
-            UIAction(title: "Rating", state: currentSort == "rating" ? .on : .off) { [weak self] _ in self?.setSort("rating") },
+            UIAction(title: "Name", state: currentSort == "titleSort:asc" ? .on : .off) { [weak self] _ in self?.setSort("titleSort:asc") },
+            UIAction(title: "Added", state: currentSort == "addedAt:desc" ? .on : .off) { [weak self] _ in self?.setSort("addedAt:desc") },
+            UIAction(title: "Rating", state: currentSort == "rating:desc" ? .on : .off) { [weak self] _ in self?.setSort("rating:desc") },
         ])
         parent?.navigationItem.rightBarButtonItems = [
             UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu),
@@ -105,32 +107,34 @@ final class ShowGridViewController: UICollectionViewController {
     }
 
     private func resetAndLoad() {
-        currentPage = 1
-        totalPages = 1
-        loadPage(1)
+        currentOffset = 0
+        totalSize = 0
+        loadPage(offset: 0)
     }
 
-    private func loadPage(_ page: Int) {
+    private func loadPage(offset: Int) {
         loadTask?.cancel()
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let response: PaginatedResponse<TvShowSummary> = try await api.request(
-                    .listShows(page: page, sort: currentSort)
+                let container = try await api.requestContainer(
+                    .sectionItems(sectionId: sectionId, sort: currentSort, start: offset, size: 50)
                 )
                 guard !Task.isCancelled else { return }
-                totalPages = response.totalPages
-                currentPage = response.page
+
+                totalSize = container.totalSize ?? 0
+                let items = container.Metadata ?? []
 
                 var snapshot = dataSource.snapshot()
-                if page == 1 {
-                    snapshot = NSDiffableDataSourceSnapshot<Int, TvShowSummary>()
+                if offset == 0 {
+                    snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
                     snapshot.appendSections([0])
                 }
-                snapshot.appendItems(response.items, toSection: 0)
-                await dataSource.apply(snapshot, animatingDifferences: page > 1)
+                snapshot.appendItems(items, toSection: 0)
+                currentOffset = offset + items.count
+                await dataSource.apply(snapshot, animatingDifferences: offset > 0)
 
-                if response.items.isEmpty && page == 1 {
+                if items.isEmpty && offset == 0 {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "tv")
                     config.text = "No shows in library"
@@ -152,7 +156,7 @@ final class ShowGridViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        let detail = ShowDetailViewController(api: api, showId: item.id)
+        let detail = ShowDetailViewController(api: api, showRatingKey: item.ratingKey)
         navigationController?.pushViewController(detail, animated: true)
     }
 
@@ -168,11 +172,11 @@ final class ShowGridViewController: UICollectionViewController {
             return UIMenu(children: [
                 UIAction(title: "Mark All Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.markShowWatched(showId: item.id)) }
+                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.ratingKey)) }
                 },
                 UIAction(title: "Mark All Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.markShowUnwatched(showId: item.id)) }
+                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.ratingKey)) }
                 },
             ])
         })
@@ -184,11 +188,11 @@ extension ShowGridViewController: UICollectionViewDataSourcePrefetching {
         let itemCount = dataSource.snapshot().numberOfItems
         let threshold = itemCount - 10
         if indexPaths.contains(where: { $0.item >= threshold }),
-           currentPage < totalPages,
+           currentOffset < totalSize,
            !isLoadingNextPage
         {
             isLoadingNextPage = true
-            loadPage(currentPage + 1)
+            loadPage(offset: currentOffset)
         }
     }
 }

@@ -1,154 +1,160 @@
 import Foundation
 
-enum HTTPMethod: String, Sendable {
-    case get = "GET"
-    case post = "POST"
-    case put = "PUT"
-    case delete = "DELETE"
-}
+enum PlexEndpoint: Sendable {
+    case requestPin
+    case checkPin(pinId: Int)
+    case resources
 
-enum APIEndpoint: Sendable {
-    case listMovies(page: Int = 1, perPage: Int = 50, sort: String = "title", genre: String? = nil)
-    case getMovie(id: String)
-    case listShows(page: Int = 1, perPage: Int = 50, sort: String = "name")
-    case getShow(id: String)
-    case getSeasonEpisodes(showId: String, season: Int)
-    case nextEpisode(showId: String)
-    case getEpisode(id: String)
-    case continueWatching(perPage: Int = 20)
-    case onDeck(perPage: Int = 20)
-    case recentlyWatched(perPage: Int = 20)
-    case recentItems(perPage: Int = 20)
-    case listGenres
-    case randomItem(mediaType: String? = nil)
+    case identity
+    case sections
+    case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50)
+    case sectionGenres(sectionId: String)
+    case metadata(ratingKey: String)
+    case children(ratingKey: String)
+    case hubs(count: Int = 20)
+    case onDeck
+    case recentlyAdded(start: Int = 0, size: Int = 50)
     case search(query: String)
 
-    case getPlaybackState(id: String)
-    case updatePlaybackState(id: String, body: UpdatePlaybackRequest)
-    case markWatched(id: String)
-    case markUnwatched(id: String)
-    case markShowWatched(showId: String)
-    case markShowUnwatched(showId: String)
-    case markSeasonWatched(showId: String, season: Int)
-    case markSeasonUnwatched(showId: String, season: Int)
-    case activityHistory(mediaId: String? = nil, limit: Int = 50, offset: Int = 0)
+    case scrobble(ratingKey: String)
+    case unscrobble(ratingKey: String)
+    case timeline(ratingKey: String, state: String, timeMs: Int, durationMs: Int)
+    case progress(ratingKey: String, timeMs: Int)
+    case history(start: Int = 0, size: Int = 50)
 
-    case streamInfo(id: String)
-    case hlsPrepare(id: String, body: HlsPrepareRequest? = nil)
-    case hlsCancel(id: String)
-    case hlsStatus(id: String)
+    case stopTranscode(session: String)
 
-    case triggerScan
-    case triggerRefresh
-
-    case health
-    case stats
-    case config
-    case scanStatus
-
-    var method: HTTPMethod {
+    var isPlexTV: Bool {
         switch self {
-        case .listMovies, .getMovie, .listShows, .getShow, .getSeasonEpisodes,
-             .nextEpisode, .getEpisode, .continueWatching, .onDeck,
-             .recentlyWatched, .recentItems, .listGenres, .randomItem, .search,
-             .getPlaybackState, .activityHistory,
-             .streamInfo, .hlsStatus,
-             .health, .stats, .config, .scanStatus:
-            return .get
-        case .markWatched, .markShowWatched, .markSeasonWatched,
-             .hlsPrepare, .hlsCancel, .triggerScan, .triggerRefresh:
-            return .post
-        case .updatePlaybackState:
-            return .put
-        case .markUnwatched, .markShowUnwatched, .markSeasonUnwatched:
-            return .delete
+        case .requestPin, .checkPin, .resources: return true
+        default: return false
+        }
+    }
+
+    static let plexTVBaseURL = URL(string: "https://clients.plex.tv")!
+
+    var method: String {
+        switch self {
+        case .requestPin:
+            return "POST"
+        case .stopTranscode:
+            return "DELETE"
+        default:
+            return "GET"
         }
     }
 
     var path: String {
         switch self {
-        case .listMovies: return "/api/library/movies"
-        case .getMovie(let id): return "/api/library/movies/\(id)"
-        case .listShows: return "/api/library/shows"
-        case .getShow(let id): return "/api/library/shows/\(id)"
-        case .getSeasonEpisodes(let showId, let season): return "/api/library/shows/\(showId)/seasons/\(season)"
-        case .nextEpisode(let showId): return "/api/library/shows/\(showId)/next"
-        case .getEpisode(let id): return "/api/library/episodes/\(id)"
-        case .continueWatching: return "/api/library/continue"
-        case .onDeck: return "/api/library/ondeck"
-        case .recentlyWatched: return "/api/library/watched"
-        case .recentItems: return "/api/library/recent"
-        case .listGenres: return "/api/library/genres"
-        case .randomItem: return "/api/library/random"
-        case .search: return "/api/library/search"
-        case .getPlaybackState(let id): return "/api/playback/\(id)/state"
-        case .updatePlaybackState(let id, _): return "/api/playback/\(id)/state"
-        case .markWatched(let id): return "/api/playback/\(id)/watched"
-        case .markUnwatched(let id): return "/api/playback/\(id)/watched"
-        case .markShowWatched(let showId): return "/api/playback/shows/\(showId)/watched"
-        case .markShowUnwatched(let showId): return "/api/playback/shows/\(showId)/watched"
-        case .markSeasonWatched(let showId, let season): return "/api/playback/shows/\(showId)/seasons/\(season)/watched"
-        case .markSeasonUnwatched(let showId, let season): return "/api/playback/shows/\(showId)/seasons/\(season)/watched"
-        case .activityHistory: return "/api/playback/history"
-        case .streamInfo(let id): return "/api/stream/\(id)/info"
-        case .hlsPrepare(let id, _): return "/api/stream/\(id)/hls/prepare"
-        case .hlsCancel(let id): return "/api/stream/\(id)/hls/cancel"
-        case .hlsStatus(let id): return "/api/stream/\(id)/hls/status"
-        case .triggerScan: return "/api/metadata/scan"
-        case .triggerRefresh: return "/api/metadata/refresh"
-        case .health: return "/api/system/health"
-        case .stats: return "/api/system/stats"
-        case .config: return "/api/system/config"
-        case .scanStatus: return "/api/system/scan-status"
+        case .requestPin:
+            return "/api/v2/pins"
+        case .checkPin(let pinId):
+            return "/api/v2/pins/\(pinId)"
+        case .resources:
+            return "/api/v2/resources"
+        case .identity:
+            return "/identity"
+        case .sections:
+            return "/library/sections"
+        case .sectionItems(let sectionId, _, _, _, _):
+            return "/library/sections/\(sectionId)/all"
+        case .sectionGenres(let sectionId):
+            return "/library/sections/\(sectionId)/genre"
+        case .metadata(let ratingKey):
+            return "/library/metadata/\(ratingKey)"
+        case .children(let ratingKey):
+            return "/library/metadata/\(ratingKey)/children"
+        case .hubs:
+            return "/hubs"
+        case .onDeck:
+            return "/library/onDeck"
+        case .recentlyAdded:
+            return "/library/recentlyAdded"
+        case .search:
+            return "/hubs/search"
+        case .scrobble:
+            return "/:/scrobble"
+        case .unscrobble:
+            return "/:/unscrobble"
+        case .timeline:
+            return "/:/timeline"
+        case .progress:
+            return "/:/progress"
+        case .history:
+            return "/status/sessions/history/all"
+        case .stopTranscode:
+            return "/video/:/transcode/universal/stop"
         }
     }
 
     var queryItems: [URLQueryItem]? {
         switch self {
-        case .listMovies(let page, let perPage, let sort, let genre):
-            var items = [
-                URLQueryItem(name: "page", value: "\(page)"),
-                URLQueryItem(name: "per_page", value: "\(perPage)"),
-                URLQueryItem(name: "sort", value: sort),
+        case .resources:
+            return [
+                URLQueryItem(name: "includeHttps", value: "1"),
+                URLQueryItem(name: "includeRelay", value: "1"),
             ]
+        case .sectionItems(_, let sort, let genre, let start, let size):
+            var items = [
+                URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
+                URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
+            ]
+            if let sort { items.append(URLQueryItem(name: "sort", value: sort)) }
             if let genre { items.append(URLQueryItem(name: "genre", value: genre)) }
             return items
-        case .listShows(let page, let perPage, let sort):
+        case .hubs(let count):
+            return [URLQueryItem(name: "count", value: "\(count)")]
+        case .recentlyAdded(let start, let size):
             return [
-                URLQueryItem(name: "page", value: "\(page)"),
-                URLQueryItem(name: "per_page", value: "\(perPage)"),
-                URLQueryItem(name: "sort", value: sort),
+                URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
+                URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
             ]
-        case .continueWatching(let perPage), .onDeck(let perPage),
-             .recentlyWatched(let perPage), .recentItems(let perPage):
-            return [URLQueryItem(name: "per_page", value: "\(perPage)")]
-        case .randomItem(let mediaType):
-            if let mediaType { return [URLQueryItem(name: "media_type", value: mediaType)] }
-            return nil
         case .search(let query):
-            return [URLQueryItem(name: "q", value: query)]
-        case .activityHistory(let mediaId, let limit, let offset):
-            var items = [
-                URLQueryItem(name: "limit", value: "\(limit)"),
-                URLQueryItem(name: "offset", value: "\(offset)"),
+            return [
+                URLQueryItem(name: "query", value: query),
+                URLQueryItem(name: "includeCollections", value: "0"),
+                URLQueryItem(name: "includeExternalMedia", value: "0"),
             ]
-            if let mediaId { items.append(URLQueryItem(name: "media_id", value: mediaId)) }
-            return items
+        case .scrobble(let ratingKey):
+            return [
+                URLQueryItem(name: "identifier", value: "com.plexapp.plugins.library"),
+                URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
+            ]
+        case .unscrobble(let ratingKey):
+            return [
+                URLQueryItem(name: "identifier", value: "com.plexapp.plugins.library"),
+                URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
+            ]
+        case .timeline(let ratingKey, let state, let timeMs, let durationMs):
+            return [
+                URLQueryItem(name: "ratingKey", value: ratingKey),
+                URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
+                URLQueryItem(name: "state", value: state),
+                URLQueryItem(name: "time", value: "\(timeMs)"),
+                URLQueryItem(name: "duration", value: "\(durationMs)"),
+            ]
+        case .progress(let ratingKey, let timeMs):
+            return [
+                URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
+                URLQueryItem(name: "identifier", value: "com.plexapp.plugins.library"),
+                URLQueryItem(name: "time", value: "\(timeMs)"),
+            ]
+        case .history(let start, let size):
+            return [
+                URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
+                URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
+            ]
+        case .stopTranscode(let session):
+            return [URLQueryItem(name: "session", value: session)]
         default:
             return nil
         }
     }
 
-    var body: (any Encodable & Sendable)? {
-        switch self {
-        case .updatePlaybackState(_, let body): return body
-        case .hlsPrepare(_, let body): return body
-        default: return nil
-        }
-    }
-
-    func urlRequest(baseURL: URL) throws -> URLRequest {
-        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
+    func urlRequest(baseURL: URL, token: String?) throws -> URLRequest {
+        let base = isPlexTV ? Self.plexTVBaseURL : baseURL
+        let baseString = base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard var components = URLComponents(string: baseString + path) else {
             throw APIError.invalidURL
         }
         components.queryItems = queryItems
@@ -156,19 +162,18 @@ enum APIEndpoint: Sendable {
             throw APIError.invalidURL
         }
         var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
-        if let body {
-            request.httpBody = try? JSONEncoder.apiEncoder.encode(body)
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = method
+
+        for (key, value) in PlexHeaders.allHeaders(token: token) {
+            request.setValue(value, forHTTPHeaderField: key)
         }
+
+        if case .requestPin = self {
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.httpBody = "strong=true&X-Plex-Product=Crucible&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)".data(using: .utf8)
+        }
+
         return request
     }
-}
 
-extension JSONEncoder {
-    static let apiEncoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        return encoder
-    }()
 }
