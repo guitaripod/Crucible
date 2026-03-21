@@ -40,7 +40,7 @@ No Xcode. No macOS. No storyboards. Pure programmatic UIKit, cross-compiled from
 
 ## Building
 
-Requires Swift 6+ and the iOS cross-compilation SDK installed via [swiftly](https://github.com/swiftlang/swiftly) or [swift-bin (AUR)](https://aur.archlinux.org/packages/swift-bin).
+Requires Swift 6+ via [swift-bin (AUR)](https://aur.archlinux.org/packages/swift-bin) and the iOS cross-compilation SDK.
 
 ```bash
 swift build --swift-sdk arm64-apple-ios
