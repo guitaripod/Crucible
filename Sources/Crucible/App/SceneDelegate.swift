@@ -31,9 +31,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func showMainApp(connection: PlexConnection) {
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
-        Task {
-            await ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
-        }
+        ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
         let tabBar = TabBarController(api: api)
         window?.rootViewController = tabBar
     }

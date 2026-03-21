@@ -3,8 +3,8 @@
 actor ImageLoader {
     static let shared = ImageLoader()
 
-    private var baseURL: URL?
-    private var token: String?
+    nonisolated(unsafe) var baseURL: URL?
+    nonisolated(unsafe) var token: String?
 
     private let cache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
@@ -13,7 +13,7 @@ actor ImageLoader {
     }()
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
 
-    func configure(baseURL: URL, token: String) {
+    nonisolated func configure(baseURL: URL, token: String) {
         self.baseURL = baseURL
         self.token = token
     }
