@@ -55,6 +55,8 @@ final class SettingsViewController: UICollectionViewController {
                 var config = UIListContentConfiguration.valueCell()
                 config.text = "Server"
                 config.secondaryText = name
+                config.image = UIImage(systemName: "server.rack")
+                config.imageProperties.tintColor = .systemOrange
                 cell.contentConfiguration = config
                 cell.accessories = []
 
@@ -62,8 +64,10 @@ final class SettingsViewController: UICollectionViewController {
                 var config = UIListContentConfiguration.valueCell()
                 config.text = "Address"
                 config.secondaryText = uri
-                config.secondaryTextProperties.font = .systemFont(ofSize: 14)
+                config.secondaryTextProperties.font = .systemFont(ofSize: 13)
                 config.secondaryTextProperties.color = .tertiaryLabel
+                config.image = UIImage(systemName: "network")
+                config.imageProperties.tintColor = .tertiaryLabel
                 cell.contentConfiguration = config
                 cell.accessories = []
 
@@ -71,6 +75,8 @@ final class SettingsViewController: UICollectionViewController {
                 var config = UIListContentConfiguration.valueCell()
                 config.text = name
                 config.secondaryText = count
+                config.image = UIImage(systemName: "rectangle.stack.fill")
+                config.imageProperties.tintColor = .systemOrange
                 cell.contentConfiguration = config
                 cell.accessories = []
 
@@ -93,8 +99,10 @@ final class SettingsViewController: UICollectionViewController {
 
             case .appVersion(let version):
                 var config = UIListContentConfiguration.valueCell()
-                config.text = "App Version"
+                config.text = "Version"
                 config.secondaryText = version
+                config.image = UIImage(systemName: "info.circle.fill")
+                config.imageProperties.tintColor = .tertiaryLabel
                 cell.contentConfiguration = config
                 cell.accessories = []
             }

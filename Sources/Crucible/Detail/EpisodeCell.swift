@@ -32,12 +32,12 @@ final class EpisodeContentView: UIView, UIContentView {
         self.configuration = configuration
         super.init(frame: .zero)
 
-        numberContainer.backgroundColor = .secondarySystemBackground
-        numberContainer.layer.cornerRadius = 6
+        numberContainer.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        numberContainer.layer.cornerRadius = 8
         numberContainer.layer.cornerCurve = .continuous
         numberContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        numberLabel.font = .monospacedDigitSystemFont(ofSize: 14, weight: .bold)
+        numberLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .bold)
         numberLabel.textColor = .secondaryLabel
         numberLabel.textAlignment = .center
         numberLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -105,18 +105,18 @@ final class EpisodeContentView: UIView, UIContentView {
             statusImageView.image = UIImage(systemName: "checkmark.circle.fill")
             statusImageView.isHidden = false
             progressBar.isHidden = true
-            numberContainer.backgroundColor = .systemOrange.withAlphaComponent(0.15)
+            numberContainer.backgroundColor = Theme.accentSubtle
             numberLabel.textColor = .systemOrange
         } else if let progress = config.progress, progress > 0 {
             statusImageView.isHidden = true
             progressBar.isHidden = false
             progressBar.progress = progress
-            numberContainer.backgroundColor = .secondarySystemBackground
+            numberContainer.backgroundColor = UIColor.white.withAlphaComponent(0.06)
             numberLabel.textColor = .secondaryLabel
         } else {
             statusImageView.isHidden = true
             progressBar.isHidden = true
-            numberContainer.backgroundColor = .secondarySystemBackground
+            numberContainer.backgroundColor = UIColor.white.withAlphaComponent(0.06)
             numberLabel.textColor = .secondaryLabel
         }
     }

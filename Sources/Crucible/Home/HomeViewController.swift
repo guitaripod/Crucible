@@ -121,11 +121,13 @@ final class HomeViewController: UICollectionViewController {
         let surpriseReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { cell, _, _ in
             var config = UIButton.Configuration.filled()
             config.title = "Surprise Me"
-            config.image = UIImage(systemName: "shuffle")
-            config.imagePadding = 10
+            config.subtitle = "Pick something random"
+            config.titleAlignment = .leading
+            config.image = UIImage(systemName: "sparkles", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20))
+            config.imagePadding = 14
             config.cornerStyle = .large
-            config.baseBackgroundColor = .systemOrange
-            config.baseForegroundColor = .white
+            config.baseBackgroundColor = UIColor.systemOrange.withAlphaComponent(0.15)
+            config.baseForegroundColor = .systemOrange
             let button = UIButton(configuration: config)
             button.translatesAutoresizingMaskIntoConstraints = false
             cell.contentView.subviews.forEach { $0.removeFromSuperview() }
@@ -135,7 +137,7 @@ final class HomeViewController: UICollectionViewController {
                 button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
                 button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
                 button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-                button.heightAnchor.constraint(equalToConstant: 50),
+                button.heightAnchor.constraint(equalToConstant: 56),
             ])
             button.isUserInteractionEnabled = false
         }

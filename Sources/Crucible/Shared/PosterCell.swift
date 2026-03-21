@@ -59,6 +59,11 @@ final class PosterContentView: UIView, UIContentView {
         cardView.backgroundColor = UIColor.white.withAlphaComponent(0.06)
         cardView.translatesAutoresizingMaskIntoConstraints = false
 
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.25
+        layer.shadowOffset = CGSize(width: 0, height: 2)
+        layer.shadowRadius = 6
+
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.translatesAutoresizingMaskIntoConstraints = false

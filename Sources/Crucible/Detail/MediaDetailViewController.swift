@@ -125,7 +125,7 @@ final class MediaDetailViewController: UICollectionViewController {
             }
             cell.contentConfiguration = config
             if !stream.isBitmap {
-                cell.accessories = self.selectedSubtitleId == stream.id ? [.checkmark()] : []
+                cell.accessories = self.selectedSubtitleId == stream.id ? [.checkmark(options: .init(tintColor: .systemOrange))] : []
             } else {
                 cell.accessories = []
             }
@@ -135,7 +135,7 @@ final class MediaDetailViewController: UICollectionViewController {
             var config = UIListContentConfiguration.cell()
             config.text = "None"
             cell.contentConfiguration = config
-            cell.accessories = self.selectedSubtitleId == nil ? [.checkmark()] : []
+            cell.accessories = self.selectedSubtitleId == nil ? [.checkmark(options: .init(tintColor: .systemOrange))] : []
         }
 
         let audioCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexStream> { [unowned self] cell, _, stream in
@@ -149,7 +149,7 @@ final class MediaDetailViewController: UICollectionViewController {
             }
             config.secondaryText = details.joined(separator: " · ")
             cell.contentConfiguration = config
-            cell.accessories = self.selectedAudioTrackId == stream.id ? [.checkmark()] : []
+            cell.accessories = self.selectedAudioTrackId == stream.id ? [.checkmark(options: .init(tintColor: .systemOrange))] : []
         }
 
         let actionCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in

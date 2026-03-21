@@ -22,6 +22,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = "Movies, shows, episodes..."
+        searchController.searchBar.tintColor = .systemOrange
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
