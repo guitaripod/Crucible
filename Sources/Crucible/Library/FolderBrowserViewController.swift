@@ -74,21 +74,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
             }
 
-            let spacing: CGFloat = 10
-            let inset: CGFloat = 16
-            let containerWidth = environment.container.effectiveContentSize.width - (inset * 2)
-            let itemWidth = (containerWidth - spacing * 2) / 3
-            let itemHeight = itemWidth * 1.5
-
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1))
-            let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(itemHeight))
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: 3)
-            group.interItemSpacing = .fixed(spacing)
-            let layoutSection = NSCollectionLayoutSection(group: group)
-            layoutSection.interGroupSpacing = spacing
-            layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: inset, bottom: 16, trailing: inset)
-            return layoutSection
+            return Theme.gridLayout(environment: environment)
         }
     }
 

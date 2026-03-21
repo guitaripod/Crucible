@@ -82,11 +82,11 @@ final class HomeViewController: UICollectionViewController {
                 return layoutSection
             }
 
-            let cardWidth: CGFloat = section == .continueWatching ? 200 : 140
-            let estimatedHeight: CGFloat = section == .continueWatching ? 160 : 240
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
+            let cardWidth: CGFloat = 140
+            let cardHeight: CGFloat = 210
+            let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .estimated(estimatedHeight))
+            let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
             let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
             let layoutSection = NSCollectionLayoutSection(group: group)
             layoutSection.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary

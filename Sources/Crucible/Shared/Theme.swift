@@ -36,23 +36,24 @@ enum Theme {
         return coordinator
     }
 
-    static func gridLayout(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        let width = environment.container.effectiveContentSize.width
+    @MainActor static func gridLayout(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let containerWidth = environment.container.effectiveContentSize.width
         let columns: Int
-        if width < 400 { columns = 2 }
-        else if width < 700 { columns = 3 }
+        if containerWidth < 400 { columns = 2 }
+        else if containerWidth < 700 { columns = 3 }
         else { columns = 4 }
 
-        let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0 / CGFloat(columns)),
-            heightDimension: .estimated(280)
-        )
+        let availableWidth = containerWidth - (padding * 2) - (spacing * CGFloat(columns - 1))
+        let itemWidth = floor(availableWidth / CGFloat(columns))
+        let itemHeight = floor(itemWidth * 1.5)
+
+        let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(itemWidth), heightDimension: .absolute(itemHeight))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(280))
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(itemHeight))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: columns)
         group.interItemSpacing = .fixed(spacing)
         let section = NSCollectionLayoutSection(group: group)
-        section.interGroupSpacing = padding
+        section.interGroupSpacing = spacing
         section.contentInsets = NSDirectionalEdgeInsets(top: spacingMedium, leading: padding, bottom: padding, trailing: padding)
         return section
     }
