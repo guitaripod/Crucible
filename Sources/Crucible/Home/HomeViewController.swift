@@ -278,16 +278,39 @@ final class HomeViewController: UICollectionViewController {
     ) -> UIContextMenuConfiguration? {
         guard let indexPath = indexPaths.first,
               let item = dataSource.itemIdentifier(for: indexPath),
-              case .media(let m, _) = item,
-              m.mediaType != "show" else { return nil }
+              case .media(let m, _) = item else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
-            return UIMenu(children: [
-                UIAction(title: "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+            var actions = [UIMenuElement]()
+
+            if m.mediaType != "show" {
+                actions.append(UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     guard let self else { return }
                     quickPlay(m)
-                },
-            ])
+                })
+            }
+
+            if m.mediaType == "episode", let showKey = m.grandparentRatingKey {
+                actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
+                    guard let self else { return }
+                    let vc = ShowDetailViewController(api: api, showRatingKey: showKey)
+                    navigationController?.pushViewController(vc, animated: true)
+                })
+            }
+
+            actions.append(UIAction(title: m.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: m.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
+                guard let self else { return }
+                Task {
+                    if m.isWatched {
+                        try? await self.api.requestVoid(.unscrobble(ratingKey: m.id))
+                    } else {
+                        try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
+                    }
+                    self.loadData()
+                }
+            })
+
+            return UIMenu(children: actions)
         })
     }
 

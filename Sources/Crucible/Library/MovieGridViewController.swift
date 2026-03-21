@@ -181,17 +181,20 @@ final class MovieGridViewController: UICollectionViewController {
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
             return UIMenu(children: [
-                UIAction(title: "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                UIAction(title: item.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     guard let self else { return }
                     self.quickPlay(item)
                 },
-                UIAction(title: "Mark Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
+                UIAction(title: item.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: item.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.id)) }
-                },
-                UIAction(title: "Mark Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
-                    guard let self else { return }
-                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.id)) }
+                    Task {
+                        if item.isWatched {
+                            try? await self.api.requestVoid(.unscrobble(ratingKey: item.id))
+                        } else {
+                            try? await self.api.requestVoid(.scrobble(ratingKey: item.id))
+                        }
+                        self.resetAndLoad()
+                    }
                 },
             ])
         })

@@ -156,14 +156,20 @@ final class ShowGridViewController: UICollectionViewController {
               let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
+            let watched = item.viewedLeafCount ?? 0
+            let total = item.leafCount ?? 0
+            let allWatched = total > 0 && watched >= total
             return UIMenu(children: [
-                UIAction(title: "Mark All Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
+                UIAction(title: allWatched ? "Mark All Unwatched" : "Mark All Watched", image: UIImage(systemName: allWatched ? "eye.slash" : "checkmark.circle.fill")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.id)) }
-                },
-                UIAction(title: "Mark All Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
-                    guard let self else { return }
-                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.id)) }
+                    Task {
+                        if allWatched {
+                            try? await self.api.requestVoid(.unscrobble(ratingKey: item.id))
+                        } else {
+                            try? await self.api.requestVoid(.scrobble(ratingKey: item.id))
+                        }
+                        self.resetAndLoad()
+                    }
                 },
             ])
         })

@@ -48,6 +48,7 @@ final class PosterContentView: UIView, UIContentView {
     private let quickPlayButton = UIButton()
     private var imageTask: Task<Void, Never>?
     private var onQuickPlay: (() -> Void)?
+    private var currentPosterPath: String?
 
     init(configuration: PosterContentConfiguration) {
         self.configuration = configuration
@@ -179,20 +180,23 @@ final class PosterContentView: UIView, UIContentView {
             progressBar.isHidden = true
         }
 
-        imageView.image = nil
-        placeholderView.isHidden = false
-        placeholderView.image = UIImage(systemName: config.placeholderIcon)
+        if config.posterPath != currentPosterPath {
+            currentPosterPath = config.posterPath
+            imageView.image = nil
+            placeholderView.isHidden = false
+            placeholderView.image = UIImage(systemName: config.placeholderIcon)
 
-        guard let posterPath = config.posterPath else { return }
-
-        imageTask = Task { [weak self] in
-            let image = await ImageLoader.shared.loadImage(path: posterPath, width: 300)
-            guard !Task.isCancelled, let self else { return }
-            if let image {
-                UIView.transition(with: self.imageView, duration: 0.2, options: .transitionCrossDissolve) {
-                    self.imageView.image = image
+            if let posterPath = config.posterPath {
+                imageTask = Task { [weak self] in
+                    let image = await ImageLoader.shared.loadImage(path: posterPath, width: 300)
+                    guard !Task.isCancelled, let self else { return }
+                    if let image {
+                        UIView.transition(with: self.imageView, duration: 0.2, options: .transitionCrossDissolve) {
+                            self.imageView.image = image
+                        }
+                        self.placeholderView.isHidden = true
+                    }
                 }
-                self.placeholderView.isHidden = true
             }
         }
     }
