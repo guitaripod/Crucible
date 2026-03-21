@@ -37,7 +37,7 @@ final class PosterContentView: UIView, UIContentView {
 
     private let cardView = UIView()
     private let imageView = UIImageView()
-    private let gradientLayer = CAGradientLayer()
+    private let gradientView = GradientView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let progressBar = ProgressBar()
@@ -66,13 +66,8 @@ final class PosterContentView: UIView, UIContentView {
         imageView.clipsToBounds = true
         imageView.translatesAutoresizingMaskIntoConstraints = false
 
-        gradientLayer.colors = [
-            UIColor.clear.cgColor,
-            UIColor.black.withAlphaComponent(0.3).cgColor,
-            UIColor.black.withAlphaComponent(0.8).cgColor,
-        ]
-        gradientLayer.locations = [0.35, 0.65, 1.0]
-        imageView.layer.addSublayer(gradientLayer)
+        gradientView.translatesAutoresizingMaskIntoConstraints = false
+        gradientView.isUserInteractionEnabled = false
 
         placeholderView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 24, weight: .light)
         placeholderView.tintColor = .quaternaryLabel
@@ -110,6 +105,7 @@ final class PosterContentView: UIView, UIContentView {
 
         addSubview(cardView)
         cardView.addSubview(imageView)
+        cardView.addSubview(gradientView)
         cardView.addSubview(placeholderView)
         cardView.addSubview(textStack)
         cardView.addSubview(progressBar)
@@ -129,6 +125,11 @@ final class PosterContentView: UIView, UIContentView {
             imageView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
             imageView.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
+
+            gradientView.topAnchor.constraint(equalTo: cardView.topAnchor),
+            gradientView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            gradientView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            gradientView.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
 
             placeholderView.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
             placeholderView.centerYAnchor.constraint(equalTo: cardView.centerYAnchor, constant: -12),
@@ -155,11 +156,6 @@ final class PosterContentView: UIView, UIContentView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        gradientLayer.frame = imageView.bounds
-    }
 
     private func apply() {
         guard let config = configuration as? PosterContentConfiguration else { return }
@@ -198,4 +194,22 @@ final class PosterContentView: UIView, UIContentView {
             }
         }
     }
+}
+
+final class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        guard let gradient = layer as? CAGradientLayer else { return }
+        gradient.colors = [
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.3).cgColor,
+            UIColor.black.withAlphaComponent(0.8).cgColor,
+        ]
+        gradient.locations = [0.35, 0.65, 1.0]
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
 }
