@@ -48,7 +48,6 @@ struct PlexMetadata: Decodable, Sendable {
     let key: String?
     let type: String?
     let title: String
-    let originalTitle: String?
     let grandparentTitle: String?
     let grandparentRatingKey: String?
     let grandparentThumb: String?
@@ -62,31 +61,28 @@ struct PlexMetadata: Decodable, Sendable {
     let summary: String?
     let rating: Double?
     let audienceRating: Double?
-    let contentRating: String?
     let duration: Int?
     let viewOffset: Int?
     let viewCount: Int?
     let lastViewedAt: Int?
     let addedAt: Int?
-    let updatedAt: Int?
     let originallyAvailableAt: String?
     let thumb: String?
     let art: String?
     let leafCount: Int?
     let viewedLeafCount: Int?
     let childCount: Int?
-    let skipChildren: Bool?
     let Genre: [PlexTag]?
     let Media: [PlexMedia]?
 
     enum CodingKeys: String, CodingKey {
-        case ratingKey, key, type, title, originalTitle
+        case ratingKey, key, type, title
         case grandparentTitle, grandparentRatingKey, grandparentThumb, grandparentArt
         case parentTitle, parentRatingKey, parentThumb
-        case parentIndex, index, year, summary, rating, audienceRating, contentRating
-        case duration, viewOffset, viewCount, lastViewedAt, addedAt, updatedAt
+        case parentIndex, index, year, summary, rating, audienceRating
+        case duration, viewOffset, viewCount, lastViewedAt, addedAt
         case originallyAvailableAt, thumb, art
-        case leafCount, viewedLeafCount, childCount, skipChildren
+        case leafCount, viewedLeafCount, childCount
         case Genre, Media
     }
 }
@@ -207,13 +203,12 @@ struct PlexStream: Decodable, Sendable, Identifiable {
     let format: String?
     let key: String?
     let displayTitle: String?
-    let extendedDisplayTitle: String?
 
     enum CodingKeys: String, CodingKey {
         case id, streamType, codec, language, languageCode, languageTag
         case channels, bitrate, title, selected
         case isDefault = "default"
-        case forced, format, key, displayTitle, extendedDisplayTitle
+        case forced, format, key, displayTitle
     }
 
     var isBitmap: Bool {
@@ -259,10 +254,6 @@ struct PlexDirectory: Decodable, Sendable {
     let key: String?
     let type: String?
     let title: String?
-    let uuid: String?
-    let agent: String?
-    let scanner: String?
-    let language: String?
 }
 
 struct PlexResource: Decodable, Sendable {

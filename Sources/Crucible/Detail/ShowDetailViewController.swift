@@ -184,7 +184,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
                 let seasonsContainer = try await api.requestContainer(.children(ratingKey: showRatingKey))
                 guard !Task.isCancelled else { return }
-                seasons = (seasonsContainer.Metadata ?? []).filter { $0.type == "season" }
+                seasons = (seasonsContainer.Metadata ?? []).filter { $0.mediaType == "season" }
 
                 let firstUnwatched = seasons.first {
                     let watched = $0.viewedLeafCount ?? 0

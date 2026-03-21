@@ -44,26 +44,7 @@ final class ShowGridViewController: UICollectionViewController {
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { _, environment in
-            let width = environment.container.effectiveContentSize.width
-            let columns: Int
-            if width < 400 { columns = 2 }
-            else if width < 700 { columns = 3 }
-            else { columns = 4 }
-
-            let itemSize = NSCollectionLayoutSize(
-                widthDimension: .fractionalWidth(1.0 / CGFloat(columns)),
-                heightDimension: .estimated(280)
-            )
-            let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(280))
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
-            group.interItemSpacing = .fixed(12)
-            let section = NSCollectionLayoutSection(group: group)
-            section.interGroupSpacing = 16
-            section.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 16, trailing: 16)
-            return section
-        }
+        UICollectionViewCompositionalLayout { _, environment in Theme.gridLayout(environment: environment) }
     }
 
     private func configureDataSource() {

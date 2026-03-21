@@ -31,6 +31,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var endObserver: (any NSObjectProtocol)?
     private weak var presentingVC: UIViewController?
     private var nextCoordinator: PlayerCoordinator?
+    private weak var spinnerView: UIActivityIndicatorView?
 
     init(
         api: APIClient,
@@ -59,8 +60,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         spinner.color = .white
         spinner.translatesAutoresizingMaskIntoConstraints = false
         spinner.startAnimating()
-        spinner.tag = 9999
         viewController.view.addSubview(spinner)
+        spinnerView = spinner
         NSLayoutConstraint.activate([
             spinner.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor),
             spinner.centerYAnchor.constraint(equalTo: viewController.view.centerYAnchor),
@@ -75,7 +76,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                     startSecs: resumePosition > 0 ? resumePosition : nil
                 )
                 guard !Task.isCancelled else {
-                    removeSpinner(from: viewController)
+                    spinnerView?.removeFromSuperview()
                     isPresenting = false
                     return
                 }
@@ -83,11 +84,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 startPlayback(stream: stream, from: viewController)
             } catch {
                 guard !Task.isCancelled else {
-                    removeSpinner(from: viewController)
+                    spinnerView?.removeFromSuperview()
                     isPresenting = false
                     return
                 }
-                removeSpinner(from: viewController)
+                spinnerView?.removeFromSuperview()
                 isPresenting = false
                 let alert = UIAlertController(title: "Playback Error", message: error.localizedDescription, preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "OK", style: .default))
@@ -97,7 +98,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func startPlayback(stream: ResolvedStream, from viewController: UIViewController) {
-        removeSpinner(from: viewController)
+        spinnerView?.removeFromSuperview()
 
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
@@ -299,7 +300,4 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         isPresenting = false
     }
 
-    private func removeSpinner(from viewController: UIViewController) {
-        viewController.view.viewWithTag(9999)?.removeFromSuperview()
-    }
 }

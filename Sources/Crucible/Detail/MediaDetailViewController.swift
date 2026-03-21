@@ -89,7 +89,7 @@ final class MediaDetailViewController: UICollectionViewController {
             cell.contentConfiguration = HeroContentConfiguration(
                 metadata: metadata,
                 onPlay: { [weak self] in self?.play() },
-                onShowTap: metadata.type == "episode" && (self.showRatingKey ?? metadata.grandparentRatingKey) != nil ? { [weak self] in self?.navigateToShow() } : nil
+                onShowTap: metadata.mediaType == "episode" && (self.showRatingKey ?? metadata.grandparentRatingKey) != nil ? { [weak self] in self?.navigateToShow() } : nil
             )
         }
 
@@ -290,7 +290,7 @@ final class MediaDetailViewController: UICollectionViewController {
 
         snapshot.appendSections([.actions])
         snapshot.appendItems([.action("watched")], toSection: .actions)
-        if metadata.type == "episode" {
+        if metadata.mediaType == "episode" {
             snapshot.appendItems([.action("next")], toSection: .actions)
         }
 
@@ -552,7 +552,7 @@ final class HeroContentView: UIView, UIContentView {
         }
         playButton.configuration = playConfig
 
-        if item.type == "episode" {
+        if item.mediaType == "episode" {
             episodeButton.isHidden = false
             var parts = [String]()
             if let code = Formatters.episodeCode(item.parentIndex, item.index) { parts.append(code) }

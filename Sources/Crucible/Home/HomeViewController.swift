@@ -292,24 +292,6 @@ final class HomeViewController: UICollectionViewController {
     private var playerCoordinator: PlayerCoordinator?
 
     private func quickPlay(_ item: PlexMetadata) {
-        let meta = PlayerCoordinator.Metadata(
-            title: item.title,
-            showName: item.grandparentTitle,
-            seasonNumber: item.parentIndex,
-            episodeNumber: item.index,
-            posterPath: item.thumb ?? item.grandparentThumb,
-            duration: item.durationSecs
-        )
-        let coordinator = PlayerCoordinator(
-            api: api,
-            ratingKey: item.id,
-            mediaType: item.mediaType,
-            showRatingKey: item.grandparentRatingKey,
-            seasonRatingKey: item.parentRatingKey,
-            resumePosition: item.positionSecs,
-            metadata: meta
-        )
-        playerCoordinator = coordinator
-        coordinator.present(from: self)
+        playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
     }
 }
