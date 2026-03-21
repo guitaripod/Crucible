@@ -92,7 +92,12 @@ final class MovieGridViewController: UICollectionViewController {
 
         let sortButton = UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu)
         let filterButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), primaryAction: nil)
-        parent?.navigationItem.rightBarButtonItems = [filterButton, sortButton]
+        let folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
+            guard let self else { return }
+            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
+            navigationController?.pushViewController(vc, animated: true)
+        })
+        parent?.navigationItem.rightBarButtonItems = [filterButton, sortButton, folderButton]
 
         Task { [weak self] in
             guard let self else { return }

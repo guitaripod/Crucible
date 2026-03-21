@@ -95,8 +95,14 @@ final class ShowGridViewController: UICollectionViewController {
             UIAction(title: "Added", state: currentSort == "addedAt:desc" ? .on : .off) { [weak self] _ in self?.setSort("addedAt:desc") },
             UIAction(title: "Rating", state: currentSort == "rating:desc" ? .on : .off) { [weak self] _ in self?.setSort("rating:desc") },
         ])
+        let folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
+            guard let self else { return }
+            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
+            navigationController?.pushViewController(vc, animated: true)
+        })
         parent?.navigationItem.rightBarButtonItems = [
             UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu),
+            folderButton,
         ]
     }
 

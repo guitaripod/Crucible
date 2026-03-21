@@ -9,6 +9,7 @@ enum PlexEndpoint: Sendable {
     case sections
     case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50)
     case sectionGenres(sectionId: String)
+    case sectionFolder(sectionId: String, folderId: String? = nil)
     case metadata(ratingKey: String)
     case children(ratingKey: String)
     case hubs(count: Int = 20)
@@ -56,6 +57,11 @@ enum PlexEndpoint: Sendable {
             return "/identity"
         case .sections:
             return "/library/sections"
+        case .sectionFolder(let sectionId, let folderId):
+            if let folderId {
+                return "/library/sections/\(sectionId)/folder/\(folderId)"
+            }
+            return "/library/sections/\(sectionId)/folder"
         case .sectionItems(let sectionId, _, _, _, _):
             return "/library/sections/\(sectionId)/all"
         case .sectionGenres(let sectionId):
