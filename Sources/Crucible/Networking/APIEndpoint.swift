@@ -124,12 +124,12 @@ enum PlexEndpoint: Sendable {
         case .scrobble(let ratingKey):
             return [
                 URLQueryItem(name: "identifier", value: "com.plexapp.plugins.library"),
-                URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
+                URLQueryItem(name: "key", value: ratingKey),
             ]
         case .unscrobble(let ratingKey):
             return [
                 URLQueryItem(name: "identifier", value: "com.plexapp.plugins.library"),
-                URLQueryItem(name: "key", value: "/library/metadata/\(ratingKey)"),
+                URLQueryItem(name: "key", value: ratingKey),
             ]
         case .timeline(let ratingKey, let state, let timeMs, let durationMs):
             return [
