@@ -1,14 +1,34 @@
 @preconcurrency import UIKit
 
 final class ShowGridViewController: UICollectionViewController {
+    enum SectionKind: Int, Hashable {
+        case continueWatching, grid
+    }
+
+    struct GridItem: Hashable {
+        let metadata: PlexMetadata
+        let section: String
+
+        static func == (lhs: GridItem, rhs: GridItem) -> Bool {
+            lhs.metadata.id == rhs.metadata.id && lhs.section == rhs.section
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(metadata.id)
+            hasher.combine(section)
+        }
+    }
+
     private let api: APIClient
     private let sectionId: String
-    private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
+    private var dataSource: UICollectionViewDiffableDataSource<SectionKind, GridItem>!
     private var loadTask: Task<Void, Never>?
     private var currentOffset = 0
     private var totalSize = 0
     private var isLoadingNextPage = false
     private var currentSort = "titleSort:asc"
+    private var continueWatchingItems: [PlexMetadata] = []
+    private var gridItems: [PlexMetadata] = []
 
     init(api: APIClient, sectionId: String) {
         self.api = api
@@ -21,8 +41,8 @@ final class ShowGridViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        collectionView.collectionViewLayout = createLayout()
         configureDataSource()
+        collectionView.collectionViewLayout = createLayout()
         setupNavigationBar()
 
         let refresh = UIRefreshControl()
@@ -34,6 +54,7 @@ final class ShowGridViewController: UICollectionViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         if dataSource.snapshot().numberOfItems == 0 {
+            loadHubs()
             loadPage(offset: 0)
         }
     }
@@ -44,29 +65,100 @@ final class ShowGridViewController: UICollectionViewController {
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { _, environment in Theme.gridLayout(environment: environment) }
+        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44))
+        let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
+
+        return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let self else { return nil }
+            let sectionId = dataSource.snapshot().sectionIdentifiers[sectionIndex]
+
+            if sectionId == .continueWatching {
+                let cardWidth: CGFloat = 140
+                let cardHeight: CGFloat = 210
+                let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
+                let item = NSCollectionLayoutItem(layoutSize: itemSize)
+                let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+                let section = NSCollectionLayoutSection(group: group)
+                section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
+                section.interGroupSpacing = Theme.spacing
+                section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.padding, bottom: Theme.padding, trailing: Theme.padding)
+                section.boundarySupplementaryItems = [header]
+                return section
+            }
+
+            return Theme.gridLayout(environment: environment)
+        }
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, GridItem> { [weak self] cell, _, item in
+            guard let self else { return }
             var config = PosterContentConfiguration()
-            config.posterPath = item.thumb
-            config.title = item.title
-            var parts = [String]()
-            let seasons = item.childCount ?? 0
-            parts.append(seasons == 1 ? "1 Season" : "\(seasons) Seasons")
-            let eps = item.leafCount ?? 0
-            parts.append("\(eps) Ep")
-            config.subtitle = parts.joined(separator: " · ")
-            config.placeholderIcon = "tv"
-            if eps > 0, let watched = item.viewedLeafCount {
-                config.progress = Double(watched) / Double(eps)
+            config.posterPath = item.metadata.thumb ?? item.metadata.grandparentThumb
+            if item.section == "cw" {
+                if let show = item.metadata.grandparentTitle {
+                    config.title = show
+                    var sub = [String]()
+                    if let code = Formatters.episodeCode(item.metadata.parentIndex, item.metadata.index) { sub.append(code) }
+                    sub.append(item.metadata.title)
+                    config.subtitle = sub.joined(separator: " · ")
+                } else {
+                    config.title = item.metadata.title
+                }
+                config.placeholderIcon = "tv"
+                config.progress = item.metadata.progressPercent
+                config.showPlayButton = true
+                config.onQuickPlay = { [weak self] in
+                    self?.quickPlay(item.metadata)
+                }
+            } else {
+                config.title = item.metadata.title
+                var parts = [String]()
+                let seasons = item.metadata.childCount ?? 0
+                parts.append(seasons == 1 ? "1 Season" : "\(seasons) Seasons")
+                let eps = item.metadata.leafCount ?? 0
+                parts.append("\(eps) Ep")
+                config.subtitle = parts.joined(separator: " · ")
+                config.placeholderIcon = "tv"
+                if eps > 0, let watched = item.metadata.viewedLeafCount {
+                    config.progress = Double(watched) / Double(eps)
+                }
             }
             cell.contentConfiguration = config
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
+        }
+
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+            var config = SectionHeaderConfiguration()
+            config.title = "Continue Watching"
+            cell.contentConfiguration = config
+        }
+
+        dataSource.supplementaryViewProvider = { cv, kind, indexPath in
+            cv.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
+        }
+    }
+
+    private func loadHubs() {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let container = try await api.requestContainer(.sectionHubs(sectionId: sectionId))
+                guard !Task.isCancelled else { return }
+                var items = [PlexMetadata]()
+                for hub in container.Hub ?? [] {
+                    let id = (hub.hubIdentifier ?? "").lowercased()
+                    if id.contains("continue") || id.contains("inprogress") || id.contains("ondeck") {
+                        items.append(contentsOf: hub.Metadata ?? [])
+                    }
+                }
+                continueWatchingItems = items
+                applyFullSnapshot()
+            } catch {}
         }
     }
 
@@ -96,6 +188,7 @@ final class ShowGridViewController: UICollectionViewController {
     private func resetAndLoad() {
         currentOffset = 0
         totalSize = 0
+        loadHubs()
         loadPage(offset: 0)
     }
 
@@ -112,16 +205,15 @@ final class ShowGridViewController: UICollectionViewController {
                 totalSize = container.totalSize ?? 0
                 let items = container.Metadata ?? []
 
-                var snapshot = dataSource.snapshot()
                 if offset == 0 {
-                    snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
-                    snapshot.appendSections([0])
+                    gridItems = items
+                } else {
+                    gridItems.append(contentsOf: items)
                 }
-                snapshot.appendItems(items, toSection: 0)
                 currentOffset = offset + items.count
-                await dataSource.apply(snapshot, animatingDifferences: offset > 0)
+                applyFullSnapshot()
 
-                if items.isEmpty && offset == 0 {
+                if items.isEmpty && offset == 0 && continueWatchingItems.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "tv")
                     config.text = "No shows in library"
@@ -140,11 +232,33 @@ final class ShowGridViewController: UICollectionViewController {
         }
     }
 
+    private func applyFullSnapshot() {
+        var snapshot = NSDiffableDataSourceSnapshot<SectionKind, GridItem>()
+
+        if !continueWatchingItems.isEmpty {
+            snapshot.appendSections([.continueWatching])
+            snapshot.appendItems(continueWatchingItems.map { GridItem(metadata: $0, section: "cw") }, toSection: .continueWatching)
+        }
+
+        snapshot.appendSections([.grid])
+        snapshot.appendItems(gridItems.map { GridItem(metadata: $0, section: "grid") }, toSection: .grid)
+
+        Task {
+            await dataSource.apply(snapshot, animatingDifferences: false)
+        }
+    }
+
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        let detail = ShowDetailViewController(api: api, showRatingKey: item.id)
-        navigationController?.pushViewController(detail, animated: true)
+        let m = item.metadata
+        if m.mediaType == "episode" {
+            let detail = MediaDetailViewController(api: api, ratingKey: m.id, mediaType: "episode", showRatingKey: m.grandparentRatingKey, seasonRatingKey: m.parentRatingKey)
+            navigationController?.pushViewController(detail, animated: true)
+        } else {
+            let detail = ShowDetailViewController(api: api, showRatingKey: m.id)
+            navigationController?.pushViewController(detail, animated: true)
+        }
     }
 
     override func collectionView(
@@ -154,33 +268,49 @@ final class ShowGridViewController: UICollectionViewController {
     ) -> UIContextMenuConfiguration? {
         guard let indexPath = indexPaths.first,
               let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        let m = item.metadata
+        let watched = m.viewedLeafCount ?? 0
+        let total = m.leafCount ?? 0
+        let allWatched = total > 0 && watched >= total
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
-            let watched = item.viewedLeafCount ?? 0
-            let total = item.leafCount ?? 0
-            let allWatched = total > 0 && watched >= total
-            return UIMenu(children: [
-                UIAction(title: allWatched ? "Mark All Unwatched" : "Mark All Watched", image: UIImage(systemName: allWatched ? "eye.slash" : "checkmark.circle.fill")) { [weak self] _ in
+            var actions = [UIMenuElement]()
+            if m.mediaType == "episode" {
+                actions.append(UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     guard let self else { return }
-                    Task {
-                        if allWatched {
-                            try? await self.api.requestVoid(.unscrobble(ratingKey: item.id))
-                        } else {
-                            try? await self.api.requestVoid(.scrobble(ratingKey: item.id))
-                        }
-                        self.resetAndLoad()
+                    self.quickPlay(m)
+                })
+            }
+            actions.append(UIAction(title: allWatched ? "Mark All Unwatched" : "Mark All Watched", image: UIImage(systemName: allWatched ? "eye.slash" : "checkmark.circle.fill")) { [weak self] _ in
+                guard let self else { return }
+                Task {
+                    if allWatched {
+                        try? await self.api.requestVoid(.unscrobble(ratingKey: m.id))
+                    } else {
+                        try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
                     }
-                },
-            ])
+                    self.resetAndLoad()
+                }
+            })
+            return UIMenu(children: actions)
         })
+    }
+
+    private var playerCoordinator: PlayerCoordinator?
+
+    private func quickPlay(_ item: PlexMetadata) {
+        playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
     }
 }
 
 extension ShowGridViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let itemCount = dataSource.snapshot().numberOfItems
+        guard let gridSection = dataSource.snapshot().sectionIdentifiers.firstIndex(of: .grid) else { return }
+        let gridPaths = indexPaths.filter { $0.section == gridSection }
+        guard !gridPaths.isEmpty else { return }
+        let itemCount = dataSource.snapshot().numberOfItems(inSection: .grid)
         let threshold = itemCount - 10
-        if indexPaths.contains(where: { $0.item >= threshold }),
+        if gridPaths.contains(where: { $0.item >= threshold }),
            currentOffset < totalSize,
            !isLoadingNextPage
         {

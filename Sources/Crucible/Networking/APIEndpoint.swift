@@ -14,6 +14,7 @@ enum PlexEndpoint: Sendable {
     case metadata(ratingKey: String)
     case children(ratingKey: String)
     case hubs(count: Int = 20)
+    case sectionHubs(sectionId: String)
     case onDeck
     case recentlyAdded(start: Int = 0, size: Int = 50)
     case search(query: String)
@@ -72,6 +73,8 @@ enum PlexEndpoint: Sendable {
             return "/library/metadata/\(ratingKey)/children"
         case .hubs:
             return "/hubs"
+        case .sectionHubs(let sectionId):
+            return "/hubs/sections/\(sectionId)"
         case .onDeck:
             return "/library/onDeck"
         case .recentlyAdded:

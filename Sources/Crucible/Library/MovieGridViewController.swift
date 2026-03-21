@@ -1,9 +1,27 @@
 @preconcurrency import UIKit
 
 final class MovieGridViewController: UICollectionViewController {
+    enum SectionKind: Int, Hashable {
+        case continueWatching, grid
+    }
+
+    struct GridItem: Hashable {
+        let metadata: PlexMetadata
+        let section: String
+
+        static func == (lhs: GridItem, rhs: GridItem) -> Bool {
+            lhs.metadata.id == rhs.metadata.id && lhs.section == rhs.section
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(metadata.id)
+            hasher.combine(section)
+        }
+    }
+
     private let api: APIClient
     private let sectionId: String
-    private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
+    private var dataSource: UICollectionViewDiffableDataSource<SectionKind, GridItem>!
     private var loadTask: Task<Void, Never>?
     private var currentOffset = 0
     private var totalSize = 0
@@ -11,6 +29,7 @@ final class MovieGridViewController: UICollectionViewController {
     private var currentSort = "titleSort:asc"
     private var currentGenre: String?
     private var allGenres: [(key: String, title: String)] = []
+    private var continueWatchingItems: [PlexMetadata] = []
 
     init(api: APIClient, sectionId: String) {
         self.api = api
@@ -23,8 +42,8 @@ final class MovieGridViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        collectionView.collectionViewLayout = createLayout()
         configureDataSource()
+        collectionView.collectionViewLayout = createLayout()
         setupNavigationBar()
 
         let refresh = UIRefreshControl()
@@ -36,6 +55,7 @@ final class MovieGridViewController: UICollectionViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         if dataSource.snapshot().numberOfItems == 0 {
+            loadHubs()
             loadPage(offset: 0)
         }
     }
@@ -46,20 +66,89 @@ final class MovieGridViewController: UICollectionViewController {
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { _, environment in Theme.gridLayout(environment: environment) }
+        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44))
+        let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
+
+        return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let self else { return nil }
+            let sectionId = dataSource.snapshot().sectionIdentifiers[sectionIndex]
+
+            if sectionId == .continueWatching {
+                let cardWidth: CGFloat = 140
+                let cardHeight: CGFloat = 210
+                let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
+                let item = NSCollectionLayoutItem(layoutSize: itemSize)
+                let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+                let section = NSCollectionLayoutSection(group: group)
+                section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
+                section.interGroupSpacing = Theme.spacing
+                section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.padding, bottom: Theme.padding, trailing: Theme.padding)
+                section.boundarySupplementaryItems = [header]
+                return section
+            }
+
+            return Theme.gridLayout(environment: environment)
+        }
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, GridItem> { [weak self] cell, _, item in
+            guard let self else { return }
             var config = PosterContentConfiguration()
-            config.posterPath = item.thumb
-            config.title = item.title
-            if let year = item.year { config.subtitle = "\(year)" }
+            config.posterPath = item.metadata.thumb ?? item.metadata.grandparentThumb
+            config.title = item.metadata.title
+            if item.section == "cw" {
+                if item.metadata.mediaType == "episode", let show = item.metadata.grandparentTitle {
+                    config.title = show
+                    var sub = [String]()
+                    if let code = Formatters.episodeCode(item.metadata.parentIndex, item.metadata.index) { sub.append(code) }
+                    sub.append(item.metadata.title)
+                    config.subtitle = sub.joined(separator: " · ")
+                    config.placeholderIcon = "tv"
+                }
+                config.progress = item.metadata.progressPercent
+                config.showPlayButton = true
+                config.onQuickPlay = { [weak self] in
+                    self?.quickPlay(item.metadata)
+                }
+            } else {
+                if let year = item.metadata.year { config.subtitle = "\(year)" }
+            }
             cell.contentConfiguration = config
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
+        }
+
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, indexPath in
+            var config = SectionHeaderConfiguration()
+            config.title = "Continue Watching"
+            cell.contentConfiguration = config
+        }
+
+        dataSource.supplementaryViewProvider = { cv, kind, indexPath in
+            cv.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
+        }
+    }
+
+    private func loadHubs() {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let container = try await api.requestContainer(.sectionHubs(sectionId: sectionId))
+                guard !Task.isCancelled else { return }
+                var items = [PlexMetadata]()
+                for hub in container.Hub ?? [] {
+                    let id = (hub.hubIdentifier ?? "").lowercased()
+                    if id.contains("continue") || id.contains("inprogress") || id.contains("ondeck") {
+                        items.append(contentsOf: hub.Metadata ?? [])
+                    }
+                }
+                continueWatchingItems = items
+                applyFullSnapshot()
+            } catch {}
         }
     }
 
@@ -120,8 +209,11 @@ final class MovieGridViewController: UICollectionViewController {
     private func resetAndLoad() {
         currentOffset = 0
         totalSize = 0
+        loadHubs()
         loadPage(offset: 0)
     }
+
+    private var gridItems: [PlexMetadata] = []
 
     private func loadPage(offset: Int) {
         loadTask?.cancel()
@@ -136,16 +228,15 @@ final class MovieGridViewController: UICollectionViewController {
                 totalSize = container.totalSize ?? 0
                 let items = container.Metadata ?? []
 
-                var snapshot = dataSource.snapshot()
                 if offset == 0 {
-                    snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
-                    snapshot.appendSections([0])
+                    gridItems = items
+                } else {
+                    gridItems.append(contentsOf: items)
                 }
-                snapshot.appendItems(items, toSection: 0)
                 currentOffset = offset + items.count
-                await dataSource.apply(snapshot, animatingDifferences: offset > 0)
+                applyFullSnapshot()
 
-                if items.isEmpty && offset == 0 {
+                if items.isEmpty && offset == 0 && continueWatchingItems.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "film")
                     config.text = "No movies in library"
@@ -164,11 +255,36 @@ final class MovieGridViewController: UICollectionViewController {
         }
     }
 
+    private func applyFullSnapshot() {
+        var snapshot = NSDiffableDataSourceSnapshot<SectionKind, GridItem>()
+
+        if !continueWatchingItems.isEmpty {
+            snapshot.appendSections([.continueWatching])
+            snapshot.appendItems(continueWatchingItems.map { GridItem(metadata: $0, section: "cw") }, toSection: .continueWatching)
+        }
+
+        snapshot.appendSections([.grid])
+        snapshot.appendItems(gridItems.map { GridItem(metadata: $0, section: "grid") }, toSection: .grid)
+
+        Task {
+            await dataSource.apply(snapshot, animatingDifferences: false)
+        }
+    }
+
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        let detail = MediaDetailViewController(api: api, ratingKey: item.id, mediaType: "movie")
-        navigationController?.pushViewController(detail, animated: true)
+        let m = item.metadata
+        if m.mediaType == "show" {
+            let vc = ShowDetailViewController(api: api, showRatingKey: m.id)
+            navigationController?.pushViewController(vc, animated: true)
+        } else if m.mediaType == "episode" {
+            let detail = MediaDetailViewController(api: api, ratingKey: m.id, mediaType: "episode", showRatingKey: m.grandparentRatingKey, seasonRatingKey: m.parentRatingKey)
+            navigationController?.pushViewController(detail, animated: true)
+        } else {
+            let detail = MediaDetailViewController(api: api, ratingKey: m.id, mediaType: "movie")
+            navigationController?.pushViewController(detail, animated: true)
+        }
     }
 
     override func collectionView(
@@ -178,20 +294,21 @@ final class MovieGridViewController: UICollectionViewController {
     ) -> UIContextMenuConfiguration? {
         guard let indexPath = indexPaths.first,
               let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        let m = item.metadata
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
             return UIMenu(children: [
-                UIAction(title: item.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     guard let self else { return }
-                    self.quickPlay(item)
+                    self.quickPlay(m)
                 },
-                UIAction(title: item.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: item.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
+                UIAction(title: m.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: m.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
                     guard let self else { return }
                     Task {
-                        if item.isWatched {
-                            try? await self.api.requestVoid(.unscrobble(ratingKey: item.id))
+                        if m.isWatched {
+                            try? await self.api.requestVoid(.unscrobble(ratingKey: m.id))
                         } else {
-                            try? await self.api.requestVoid(.scrobble(ratingKey: item.id))
+                            try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
                         }
                         self.resetAndLoad()
                     }
@@ -209,9 +326,12 @@ final class MovieGridViewController: UICollectionViewController {
 
 extension MovieGridViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let itemCount = dataSource.snapshot().numberOfItems
+        let gridSection = dataSource.snapshot().indexOfSection(.grid)
+        let gridPaths = indexPaths.filter { $0.section == gridSection }
+        guard !gridPaths.isEmpty else { return }
+        let itemCount = dataSource.snapshot().numberOfItems(inSection: .grid)
         let threshold = itemCount - 10
-        if indexPaths.contains(where: { $0.item >= threshold }),
+        if gridPaths.contains(where: { $0.item >= threshold }),
            currentOffset < totalSize,
            !isLoadingNextPage
         {
