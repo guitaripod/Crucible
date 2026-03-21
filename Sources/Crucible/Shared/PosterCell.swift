@@ -48,7 +48,7 @@ final class PosterContentView: UIView, UIContentView {
     private let quickPlayButton = UIButton()
     private var imageTask: Task<Void, Never>?
     private var onQuickPlay: (() -> Void)?
-    private var currentPosterPath: String?
+    private var currentPosterPath: String? = "__unset__"
 
     init(configuration: PosterContentConfiguration) {
         self.configuration = configuration
