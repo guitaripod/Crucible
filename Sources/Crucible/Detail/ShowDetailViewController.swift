@@ -94,8 +94,8 @@ final class ShowDetailViewController: UICollectionViewController {
             config.title = "Season \(season.index ?? 0)"
             config.cornerStyle = .capsule
             config.buttonSize = .small
-            if self.selectedSeasonKey == season.ratingKey {
-                config.baseBackgroundColor = .systemBlue
+            if self.selectedSeasonKey == season.id {
+                config.baseBackgroundColor = .systemOrange
                 config.baseForegroundColor = .white
             }
             let button = UIButton(configuration: config)
@@ -125,17 +125,19 @@ final class ShowDetailViewController: UICollectionViewController {
 
         let actionReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
             var buttonConfig = UIButton.Configuration.tinted()
-            buttonConfig.cornerStyle = .medium
+            buttonConfig.cornerStyle = .large
+            buttonConfig.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
+            buttonConfig.baseForegroundColor = .systemOrange
             switch action {
             case "watchAll":
                 buttonConfig.title = "Mark All Watched"
-                buttonConfig.image = UIImage(systemName: "checkmark.circle")
+                buttonConfig.image = UIImage(systemName: "checkmark.circle.fill")
             case "unwatchAll":
                 buttonConfig.title = "Mark All Unwatched"
                 buttonConfig.image = UIImage(systemName: "circle")
             default: break
             }
-            buttonConfig.imagePadding = 8
+            buttonConfig.imagePadding = 10
             let button = UIButton(configuration: buttonConfig)
             button.addAction(UIAction { [weak self] _ in
                 guard let self else { return }
@@ -189,7 +191,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     let total = $0.leafCount ?? 0
                     return watched < total
                 }
-                selectedSeasonKey = firstUnwatched?.ratingKey ?? seasons.first?.ratingKey
+                selectedSeasonKey = firstUnwatched?.id ?? seasons.first?.id
 
                 if let selectedSeasonKey {
                     await loadSeason(selectedSeasonKey)
@@ -235,18 +237,18 @@ final class ShowDetailViewController: UICollectionViewController {
 
         switch item {
         case .season(let season):
-            selectedSeasonKey = season.ratingKey
+            selectedSeasonKey = season.id
             seasonTask?.cancel()
             seasonTask = Task { [weak self] in
                 guard let self else { return }
-                await loadSeason(season.ratingKey)
+                await loadSeason(season.id)
                 guard !Task.isCancelled else { return }
                 await applySnapshot()
             }
         case .episode(let episode):
             let detail = MediaDetailViewController(
                 api: api,
-                ratingKey: episode.ratingKey,
+                ratingKey: episode.id,
                 mediaType: "episode",
                 showRatingKey: showRatingKey,
                 seasonRatingKey: selectedSeasonKey
@@ -271,14 +273,14 @@ final class ShowDetailViewController: UICollectionViewController {
                 UIAction(title: "Mark Season Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                     guard let self else { return }
                     Task {
-                        try? await self.api.requestVoid(.scrobble(ratingKey: season.ratingKey))
+                        try? await self.api.requestVoid(.scrobble(ratingKey: season.id))
                         self.loadData()
                     }
                 },
                 UIAction(title: "Mark Season Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
                     guard let self else { return }
                     Task {
-                        try? await self.api.requestVoid(.unscrobble(ratingKey: season.ratingKey))
+                        try? await self.api.requestVoid(.unscrobble(ratingKey: season.id))
                         self.loadData()
                     }
                 },
@@ -292,11 +294,11 @@ struct ShowHeroConfiguration: UIContentConfiguration, Hashable {
     let seasons: [PlexMetadata]
 
     static func == (lhs: ShowHeroConfiguration, rhs: ShowHeroConfiguration) -> Bool {
-        lhs.show.ratingKey == rhs.show.ratingKey
+        lhs.show.id == rhs.show.id
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(show.ratingKey)
+        hasher.combine(show.id)
     }
 
     func makeContentView() -> UIView & UIContentView {
@@ -317,6 +319,8 @@ final class ShowHeroContentView: UIView, UIContentView {
     }
 
     private let backdropImageView = UIImageView()
+    private let gradientLayer = CAGradientLayer()
+    private let overlayStack = UIStackView()
     private let titleLabel = UILabel()
     private let metadataLabel = UILabel()
     private let overviewLabel = UILabel()
@@ -330,45 +334,59 @@ final class ShowHeroContentView: UIView, UIContentView {
 
         backdropImageView.contentMode = .scaleAspectFill
         backdropImageView.clipsToBounds = true
-        backdropImageView.backgroundColor = .systemGray6
+        backdropImageView.backgroundColor = .secondarySystemBackground
         backdropImageView.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLabel.font = .systemFont(ofSize: 24, weight: .bold)
+        gradientLayer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.4).cgColor,
+            UIColor.black.withAlphaComponent(0.85).cgColor,
+        ]
+        gradientLayer.locations = [0.0, 0.5, 1.0]
+        backdropImageView.layer.addSublayer(gradientLayer)
+
+        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.textColor = .white
         titleLabel.numberOfLines = 0
 
-        metadataLabel.font = .systemFont(ofSize: 14)
-        metadataLabel.textColor = .secondaryLabel
+        metadataLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        metadataLabel.textColor = UIColor.white.withAlphaComponent(0.8)
 
-        overviewLabel.font = .systemFont(ofSize: 15)
-        overviewLabel.textColor = .secondaryLabel
-        overviewLabel.numberOfLines = 4
+        overviewLabel.font = .systemFont(ofSize: 14)
+        overviewLabel.textColor = UIColor.white.withAlphaComponent(0.65)
+        overviewLabel.numberOfLines = 3
 
-        progressLabel.font = .systemFont(ofSize: 13)
-        progressLabel.textColor = .secondaryLabel
+        progressLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        progressLabel.textColor = UIColor.white.withAlphaComponent(0.7)
 
         progressBar.translatesAutoresizingMaskIntoConstraints = false
 
         let progressStack = UIStackView(arrangedSubviews: [progressLabel, progressBar])
         progressStack.axis = .vertical
-        progressStack.spacing = 4
+        progressStack.spacing = 6
 
-        let contentStack = UIStackView(arrangedSubviews: [titleLabel, metadataLabel, overviewLabel, progressStack])
-        contentStack.axis = .vertical
-        contentStack.spacing = 8
-        contentStack.setCustomSpacing(12, after: overviewLabel)
+        overlayStack.axis = .vertical
+        overlayStack.spacing = 6
+        overlayStack.setCustomSpacing(10, after: overviewLabel)
+        overlayStack.translatesAutoresizingMaskIntoConstraints = false
+        overlayStack.addArrangedSubview(titleLabel)
+        overlayStack.addArrangedSubview(metadataLabel)
+        overlayStack.addArrangedSubview(overviewLabel)
+        overlayStack.addArrangedSubview(progressStack)
 
-        let mainStack = UIStackView(arrangedSubviews: [backdropImageView, contentStack])
-        mainStack.axis = .vertical
-        mainStack.spacing = 16
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(backdropImageView)
+        addSubview(overlayStack)
 
-        addSubview(mainStack)
         NSLayoutConstraint.activate([
-            mainStack.topAnchor.constraint(equalTo: topAnchor),
-            mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            mainStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
-            backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 9.0 / 16.0),
+            backdropImageView.topAnchor.constraint(equalTo: topAnchor),
+            backdropImageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            backdropImageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            backdropImageView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 10.0 / 16.0),
+
+            overlayStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            overlayStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            overlayStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
         ])
 
         apply()
@@ -376,6 +394,11 @@ final class ShowHeroContentView: UIView, UIContentView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer.frame = backdropImageView.bounds
+    }
 
     private func apply() {
         guard let config = configuration as? ShowHeroConfiguration else { return }
@@ -394,7 +417,7 @@ final class ShowHeroContentView: UIView, UIContentView {
         overviewLabel.isHidden = show.summary == nil
 
         let totalWatched = config.seasons.reduce(0) { $0 + ($1.viewedLeafCount ?? 0) }
-        progressLabel.text = "\(totalWatched)/\(totalEps) episodes watched"
+        progressLabel.text = "\(totalWatched)/\(totalEps) watched"
         if totalEps > 0 {
             progressBar.progress = Double(totalWatched) / Double(totalEps)
         }
@@ -410,7 +433,11 @@ final class ShowHeroContentView: UIView, UIContentView {
                 image = await ImageLoader.shared.loadImage(path: imagePath, width: 500)
             }
             guard !Task.isCancelled, let self else { return }
-            if let image { self.backdropImageView.image = image }
+            if let image {
+                UIView.transition(with: self.backdropImageView, duration: 0.3, options: .transitionCrossDissolve) {
+                    self.backdropImageView.image = image
+                }
+            }
         }
     }
 }

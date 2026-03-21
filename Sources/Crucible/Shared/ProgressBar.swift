@@ -6,20 +6,25 @@ final class ProgressBar: UIView {
     }
 
     private let trackLayer = CALayer()
-    private let fillLayer = CALayer()
+    private let fillLayer = CAGradientLayer()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        trackLayer.backgroundColor = UIColor.systemGray5.cgColor
-        trackLayer.cornerRadius = 1.5
+        trackLayer.backgroundColor = UIColor.white.withAlphaComponent(0.1).cgColor
+        trackLayer.cornerRadius = 2
         layer.addSublayer(trackLayer)
-        fillLayer.backgroundColor = UIColor.systemBlue.cgColor
-        fillLayer.cornerRadius = 1.5
+
+        fillLayer.colors = [
+            UIColor.systemOrange.cgColor,
+            UIColor(red: 1.0, green: 0.55, blue: 0.0, alpha: 1.0).cgColor,
+        ]
+        fillLayer.startPoint = CGPoint(x: 0, y: 0.5)
+        fillLayer.endPoint = CGPoint(x: 1, y: 0.5)
+        fillLayer.cornerRadius = 2
         layer.addSublayer(fillLayer)
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: ProgressBar, _: UITraitCollection) in
-            view.trackLayer.backgroundColor = UIColor.systemGray5.cgColor
-            view.fillLayer.backgroundColor = UIColor.systemBlue.cgColor
+            view.trackLayer.backgroundColor = UIColor.white.withAlphaComponent(0.1).cgColor
         }
     }
 
@@ -27,7 +32,7 @@ final class ProgressBar: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 3)
+        CGSize(width: UIView.noIntrinsicMetric, height: 4)
     }
 
     override func layoutSubviews() {

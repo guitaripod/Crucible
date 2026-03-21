@@ -54,7 +54,7 @@ actor APIClient {
             let body = String(data: data.prefix(500), encoding: .utf8) ?? "non-utf8"
             Logger(subsystem: "com.guitaripod.crucible", category: "api")
                 .error("Decode \(T.self) failed: \(error)\nBody: \(body)")
-            throw APIError.decodingError(error.localizedDescription)
+            throw APIError.decodingError("\(error)\n\nResponse: \(body)")
         }
     }
 

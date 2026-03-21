@@ -75,8 +75,8 @@ final class ActivityHistoryViewController: UICollectionViewController {
             }
             config.secondaryText = details.isEmpty ? nil : details.joined(separator: " · ")
 
-            config.image = UIImage(systemName: "checkmark.circle")
-            config.imageProperties.tintColor = .secondaryLabel
+            config.image = UIImage(systemName: "checkmark.circle.fill")
+            config.imageProperties.tintColor = .systemOrange
 
             cell.contentConfiguration = config
             cell.accessories = [.disclosureIndicator()]
@@ -104,7 +104,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
                 totalSize = container.totalSize ?? 0
                 let items = (container.Metadata ?? []).enumerated().map { idx, m in
                     HistoryItem(
-                        ratingKey: m.ratingKey,
+                        ratingKey: m.id,
                         title: m.title,
                         type: m.type,
                         viewedAt: m.lastViewedAt ?? m.addedAt,
@@ -112,7 +112,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
                         grandparentTitle: m.grandparentTitle,
                         parentIndex: m.parentIndex,
                         index: m.index,
-                        uniqueId: "\(m.ratingKey)-\(offset + idx)"
+                        uniqueId: "\(m.id)-\(offset + idx)"
                     )
                 }
                 currentOffset = offset + items.count

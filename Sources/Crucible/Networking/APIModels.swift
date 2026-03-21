@@ -44,9 +44,9 @@ struct PlexMediaContainer: Decodable, Sendable {
 }
 
 struct PlexMetadata: Decodable, Sendable {
-    let ratingKey: String
+    let ratingKey: String?
     let key: String?
-    let type: String
+    let type: String?
     let title: String
     let originalTitle: String?
     let grandparentTitle: String?
@@ -93,11 +93,15 @@ struct PlexMetadata: Decodable, Sendable {
 
 extension PlexMetadata: Hashable {
     static func == (lhs: PlexMetadata, rhs: PlexMetadata) -> Bool {
-        lhs.ratingKey == rhs.ratingKey
+        lhs.hashId == rhs.hashId
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(ratingKey)
+        hasher.combine(hashId)
+    }
+
+    private var hashId: String {
+        ratingKey ?? key ?? title
     }
 }
 
@@ -119,7 +123,8 @@ extension PlexMetadata {
         return Double(offset) / Double(dur)
     }
 
-    var mediaType: String { type }
+    var id: String { ratingKey ?? key ?? "" }
+    var mediaType: String { type ?? "unknown" }
 
     var posterPath: String? { thumb }
     var backdropPath: String? { art }
@@ -251,9 +256,9 @@ struct PlexHub: Decodable, Sendable {
 }
 
 struct PlexDirectory: Decodable, Sendable {
-    let key: String
+    let key: String?
     let type: String?
-    let title: String
+    let title: String?
     let uuid: String?
     let agent: String?
     let scanner: String?

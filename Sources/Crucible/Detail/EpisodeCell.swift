@@ -21,6 +21,7 @@ final class EpisodeContentView: UIView, UIContentView {
         didSet { apply() }
     }
 
+    private let numberContainer = UIView()
     private let numberLabel = UILabel()
     private let titleLabel = UILabel()
     private let durationLabel = UILabel()
@@ -31,37 +32,40 @@ final class EpisodeContentView: UIView, UIContentView {
         self.configuration = configuration
         super.init(frame: .zero)
 
-        numberLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .medium)
+        numberContainer.backgroundColor = .secondarySystemBackground
+        numberContainer.layer.cornerRadius = 6
+        numberContainer.layer.cornerCurve = .continuous
+        numberContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        numberLabel.font = .monospacedDigitSystemFont(ofSize: 14, weight: .bold)
         numberLabel.textColor = .secondaryLabel
         numberLabel.textAlignment = .center
         numberLabel.translatesAutoresizingMaskIntoConstraints = false
-        numberLabel.widthAnchor.constraint(equalToConstant: 32).isActive = true
 
-        titleLabel.font = .systemFont(ofSize: 16, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         titleLabel.numberOfLines = 2
 
-        durationLabel.font = .systemFont(ofSize: 13)
-        durationLabel.textColor = .secondaryLabel
+        durationLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        durationLabel.textColor = .tertiaryLabel
 
         let textStack = UIStackView(arrangedSubviews: [titleLabel, durationLabel])
         textStack.axis = .vertical
         textStack.spacing = 2
 
         statusImageView.contentMode = .scaleAspectFit
-        statusImageView.tintColor = .systemGreen
+        statusImageView.tintColor = .systemOrange
         statusImageView.translatesAutoresizingMaskIntoConstraints = false
-        statusImageView.widthAnchor.constraint(equalToConstant: 24).isActive = true
-        statusImageView.heightAnchor.constraint(equalToConstant: 24).isActive = true
 
         progressBar.translatesAutoresizingMaskIntoConstraints = false
-        progressBar.widthAnchor.constraint(equalToConstant: 40).isActive = true
 
         let trailingStack = UIStackView(arrangedSubviews: [statusImageView, progressBar])
         trailingStack.axis = .vertical
         trailingStack.alignment = .center
         trailingStack.spacing = 2
 
-        let mainStack = UIStackView(arrangedSubviews: [numberLabel, textStack, trailingStack])
+        numberContainer.addSubview(numberLabel)
+
+        let mainStack = UIStackView(arrangedSubviews: [numberContainer, textStack, trailingStack])
         mainStack.axis = .horizontal
         mainStack.spacing = 12
         mainStack.alignment = .center
@@ -69,6 +73,15 @@ final class EpisodeContentView: UIView, UIContentView {
 
         addSubview(mainStack)
         NSLayoutConstraint.activate([
+            numberContainer.widthAnchor.constraint(equalToConstant: 36),
+            numberContainer.heightAnchor.constraint(equalToConstant: 36),
+            numberLabel.centerXAnchor.constraint(equalTo: numberContainer.centerXAnchor),
+            numberLabel.centerYAnchor.constraint(equalTo: numberContainer.centerYAnchor),
+
+            statusImageView.widthAnchor.constraint(equalToConstant: 24),
+            statusImageView.heightAnchor.constraint(equalToConstant: 24),
+            progressBar.widthAnchor.constraint(equalToConstant: 44),
+
             mainStack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
@@ -92,13 +105,19 @@ final class EpisodeContentView: UIView, UIContentView {
             statusImageView.image = UIImage(systemName: "checkmark.circle.fill")
             statusImageView.isHidden = false
             progressBar.isHidden = true
+            numberContainer.backgroundColor = .systemOrange.withAlphaComponent(0.15)
+            numberLabel.textColor = .systemOrange
         } else if let progress = config.progress, progress > 0 {
             statusImageView.isHidden = true
             progressBar.isHidden = false
             progressBar.progress = progress
+            numberContainer.backgroundColor = .secondarySystemBackground
+            numberLabel.textColor = .secondaryLabel
         } else {
             statusImageView.isHidden = true
             progressBar.isHidden = true
+            numberContainer.backgroundColor = .secondarySystemBackground
+            numberLabel.textColor = .secondaryLabel
         }
     }
 }

@@ -36,11 +36,13 @@ final class LibraryViewController: UIViewController {
                 for dir in dirs {
                     switch dir.type {
                     case "movie":
-                        titles.append(dir.title)
-                        vcs.append(MovieGridViewController(api: api, sectionId: dir.key))
+                        guard let key = dir.key else { continue }
+                        titles.append(dir.title ?? "Movies")
+                        vcs.append(MovieGridViewController(api: api, sectionId: key))
                     case "show":
-                        titles.append(dir.title)
-                        vcs.append(ShowGridViewController(api: api, sectionId: dir.key))
+                        guard let key = dir.key else { continue }
+                        titles.append(dir.title ?? "Shows")
+                        vcs.append(ShowGridViewController(api: api, sectionId: key))
                     default:
                         continue
                     }

@@ -22,14 +22,14 @@ final class SectionHeaderContentView: UIView, UIContentView {
     init(configuration: SectionHeaderConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
-        titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
+        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleLabel)
         NSLayoutConstraint.activate([
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
-            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 16),
-            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 20),
+            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
         ])
         apply()
     }

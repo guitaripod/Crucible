@@ -104,7 +104,10 @@ final class MovieGridViewController: UICollectionViewController {
             do {
                 let container = try await api.requestContainer(.sectionGenres(sectionId: sectionId))
                 let dirs = container.Directory ?? []
-                self.allGenres = dirs.map { (key: $0.key, title: $0.title) }
+                self.allGenres = dirs.compactMap { d in
+                    guard let key = d.key, let title = d.title else { return nil }
+                    return (key: key, title: title)
+                }
                 self.updateFilterMenu()
             } catch {}
         }
@@ -183,7 +186,7 @@ final class MovieGridViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        let detail = MediaDetailViewController(api: api, ratingKey: item.ratingKey, mediaType: "movie")
+        let detail = MediaDetailViewController(api: api, ratingKey: item.id, mediaType: "movie")
         navigationController?.pushViewController(detail, animated: true)
     }
 
@@ -197,16 +200,35 @@ final class MovieGridViewController: UICollectionViewController {
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
             return UIMenu(children: [
+                UIAction(title: "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                    guard let self else { return }
+                    self.quickPlay(item)
+                },
                 UIAction(title: "Mark Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.ratingKey)) }
+                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.id)) }
                 },
                 UIAction(title: "Mark Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.ratingKey)) }
+                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.id)) }
                 },
             ])
         })
+    }
+
+    private var playerCoordinator: PlayerCoordinator?
+
+    private func quickPlay(_ item: PlexMetadata) {
+        let meta = PlayerCoordinator.Metadata(
+            title: item.title, showName: nil, seasonNumber: nil, episodeNumber: nil,
+            posterPath: item.thumb, duration: item.durationSecs
+        )
+        let coordinator = PlayerCoordinator(
+            api: api, ratingKey: item.id, mediaType: "movie",
+            showRatingKey: nil, seasonRatingKey: nil, resumePosition: item.positionSecs, metadata: meta
+        )
+        playerCoordinator = coordinator
+        coordinator.present(from: self)
     }
 }
 

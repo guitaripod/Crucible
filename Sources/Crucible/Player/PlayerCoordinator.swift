@@ -194,7 +194,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             do {
                 let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
                 let episodes = container.Metadata ?? []
-                guard let currentIndex = episodes.firstIndex(where: { $0.ratingKey == ratingKey }),
+                guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
                       currentIndex + 1 < episodes.count else {
                     let pvc = playerVC
                     await cleanup()
@@ -217,7 +217,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                             guard let presenting = self.presentingVC else { return }
                             let coordinator = PlayerCoordinator(
                                 api: self.api,
-                                ratingKey: next.ratingKey,
+                                ratingKey: next.id,
                                 mediaType: "episode",
                                 showRatingKey: self.showRatingKey,
                                 seasonRatingKey: seasonRatingKey,

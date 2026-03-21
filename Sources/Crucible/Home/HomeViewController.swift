@@ -13,7 +13,7 @@ final class HomeViewController: UICollectionViewController {
         static func == (lhs: Item, rhs: Item) -> Bool {
             switch (lhs, rhs) {
             case (.media(let a, let sa), .media(let b, let sb)):
-                return a.ratingKey == b.ratingKey && sa == sb
+                return a.id == b.id && sa == sb
             case (.surpriseMe, .surpriseMe):
                 return true
             default:
@@ -24,7 +24,7 @@ final class HomeViewController: UICollectionViewController {
         func hash(into hasher: inout Hasher) {
             switch self {
             case .media(let m, let section):
-                hasher.combine(m.ratingKey)
+                hasher.combine(m.id)
                 hasher.combine(section)
             case .surpriseMe:
                 hasher.combine("surprise")
@@ -82,9 +82,11 @@ final class HomeViewController: UICollectionViewController {
                 return layoutSection
             }
 
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(240))
+            let cardWidth: CGFloat = section == .continueWatching ? 200 : 140
+            let estimatedHeight: CGFloat = section == .continueWatching ? 160 : 240
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(140), heightDimension: .estimated(240))
+            let groupSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .estimated(estimatedHeight))
             let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
             let layoutSection = NSCollectionLayoutSection(group: group)
             layoutSection.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
@@ -99,7 +101,7 @@ final class HomeViewController: UICollectionViewController {
         let posterReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
             var config = PosterContentConfiguration()
             config.posterPath = item.thumb ?? item.grandparentThumb
-            if item.type == "episode", let showName = item.grandparentTitle {
+            if item.mediaType == "episode", let showName = item.grandparentTitle {
                 config.title = showName
                 var sub = [String]()
                 if let code = Formatters.episodeCode(item.parentIndex, item.index) { sub.append(code) }
@@ -120,8 +122,10 @@ final class HomeViewController: UICollectionViewController {
             var config = UIButton.Configuration.filled()
             config.title = "Surprise Me"
             config.image = UIImage(systemName: "shuffle")
-            config.imagePadding = 8
-            config.cornerStyle = .medium
+            config.imagePadding = 10
+            config.cornerStyle = .large
+            config.baseBackgroundColor = .systemOrange
+            config.baseForegroundColor = .white
             let button = UIButton(configuration: config)
             button.translatesAutoresizingMaskIntoConstraints = false
             cell.contentView.subviews.forEach { $0.removeFromSuperview() }
@@ -234,14 +238,14 @@ final class HomeViewController: UICollectionViewController {
 
         switch item {
         case .media(let m, _):
-            if m.type == "show" {
-                let detail = ShowDetailViewController(api: api, showRatingKey: m.ratingKey)
+            if m.mediaType == "show" {
+                let detail = ShowDetailViewController(api: api, showRatingKey: m.id)
                 navigationController?.pushViewController(detail, animated: true)
             } else {
                 let detail = MediaDetailViewController(
                     api: api,
-                    ratingKey: m.ratingKey,
-                    mediaType: m.type,
+                    ratingKey: m.id,
+                    mediaType: m.mediaType,
                     showRatingKey: m.grandparentRatingKey,
                     seasonRatingKey: m.parentRatingKey
                 )
@@ -253,15 +257,59 @@ final class HomeViewController: UICollectionViewController {
                 do {
                     let container = try await api.requestContainer(.recentlyAdded(start: 0, size: 100))
                     guard let items = container.Metadata, let random = items.randomElement() else { return }
-                    if random.type == "show" {
-                        let detail = ShowDetailViewController(api: api, showRatingKey: random.ratingKey)
+                    if random.mediaType == "show" {
+                        let detail = ShowDetailViewController(api: api, showRatingKey: random.id)
                         navigationController?.pushViewController(detail, animated: true)
                     } else {
-                        let detail = MediaDetailViewController(api: api, ratingKey: random.ratingKey, mediaType: random.type)
+                        let detail = MediaDetailViewController(api: api, ratingKey: random.id, mediaType: random.mediaType)
                         navigationController?.pushViewController(detail, animated: true)
                     }
                 } catch {}
             }
         }
+    }
+
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let indexPath = indexPaths.first,
+              let item = dataSource.itemIdentifier(for: indexPath),
+              case .media(let m, _) = item,
+              m.mediaType != "show" else { return nil }
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            guard let self else { return nil }
+            return UIMenu(children: [
+                UIAction(title: "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                    guard let self else { return }
+                    quickPlay(m)
+                },
+            ])
+        })
+    }
+
+    private var playerCoordinator: PlayerCoordinator?
+
+    private func quickPlay(_ item: PlexMetadata) {
+        let meta = PlayerCoordinator.Metadata(
+            title: item.title,
+            showName: item.grandparentTitle,
+            seasonNumber: item.parentIndex,
+            episodeNumber: item.index,
+            posterPath: item.thumb ?? item.grandparentThumb,
+            duration: item.durationSecs
+        )
+        let coordinator = PlayerCoordinator(
+            api: api,
+            ratingKey: item.id,
+            mediaType: item.mediaType,
+            showRatingKey: item.grandparentRatingKey,
+            seasonRatingKey: item.parentRatingKey,
+            resumePosition: item.positionSecs,
+            metadata: meta
+        )
+        playerCoordinator = coordinator
+        coordinator.present(from: self)
     }
 }

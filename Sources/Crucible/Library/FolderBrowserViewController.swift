@@ -1,22 +1,42 @@
 @preconcurrency import UIKit
 
 final class FolderBrowserViewController: UICollectionViewController {
+    enum SectionKind: Int, Hashable {
+        case folders, media
+    }
+
     enum Item: Hashable {
         case folder(key: String, title: String)
         case media(PlexMetadata)
+
+        static func == (lhs: Item, rhs: Item) -> Bool {
+            switch (lhs, rhs) {
+            case (.folder(let a, _), .folder(let b, _)): return a == b
+            case (.media(let a), .media(let b)): return a.id == b.id
+            default: return false
+            }
+        }
+
+        func hash(into hasher: inout Hasher) {
+            switch self {
+            case .folder(let key, _): hasher.combine("f"); hasher.combine(key)
+            case .media(let m): hasher.combine("m"); hasher.combine(m.id)
+            }
+        }
     }
 
     private let api: APIClient
-    private let sectionId: String
-    private let folderKey: String?
+    private let sectionId: String?
+    private let folderPath: String?
     private let folderTitle: String?
-    private var dataSource: UICollectionViewDiffableDataSource<Int, Item>!
+    private var dataSource: UICollectionViewDiffableDataSource<SectionKind, Item>!
     private var loadTask: Task<Void, Never>?
+    private var playerCoordinator: PlayerCoordinator?
 
-    init(api: APIClient, sectionId: String, folderKey: String? = nil, folderTitle: String? = nil) {
+    init(api: APIClient, sectionId: String? = nil, folderPath: String? = nil, folderTitle: String? = nil) {
         self.api = api
         self.sectionId = sectionId
-        self.folderKey = folderKey
+        self.folderPath = folderPath
         self.folderTitle = folderTitle
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
@@ -26,13 +46,9 @@ final class FolderBrowserViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = folderTitle
+        title = folderTitle ?? "Browse"
         navigationItem.largeTitleDisplayMode = .never
-
-        var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
-        listConfig.showsSeparators = true
-        collectionView.collectionViewLayout = UICollectionViewCompositionalLayout.list(using: listConfig)
-
+        collectionView.collectionViewLayout = createLayout()
         configureDataSource()
     }
 
@@ -48,30 +64,62 @@ final class FolderBrowserViewController: UICollectionViewController {
         loadTask?.cancel()
     }
 
+    private func createLayout() -> UICollectionViewCompositionalLayout {
+        UICollectionViewCompositionalLayout { sectionIndex, environment in
+            guard let section = SectionKind(rawValue: sectionIndex) else { return nil }
+
+            if section == .folders {
+                var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
+                listConfig.showsSeparators = true
+                return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
+            }
+
+            let spacing: CGFloat = 10
+            let inset: CGFloat = 16
+            let containerWidth = environment.container.effectiveContentSize.width - (inset * 2)
+            let itemWidth = (containerWidth - spacing * 2) / 3
+            let itemHeight = itemWidth * 1.5
+
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1))
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
+            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(itemHeight))
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: 3)
+            group.interItemSpacing = .fixed(spacing)
+            let layoutSection = NSCollectionLayoutSection(group: group)
+            layoutSection.interGroupSpacing = spacing
+            layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: inset, bottom: 16, trailing: inset)
+            return layoutSection
+        }
+    }
+
     private func configureDataSource() {
         let folderReg = UICollectionView.CellRegistration<UICollectionViewListCell, (String, String)> { cell, _, item in
             var config = UIListContentConfiguration.cell()
             config.text = item.1
+            config.textProperties.font = .systemFont(ofSize: 16, weight: .semibold)
             config.image = UIImage(systemName: "folder.fill")
-            config.imageProperties.tintColor = .systemBlue
+            config.imageProperties.tintColor = .systemOrange
             cell.contentConfiguration = config
             cell.accessories = [.disclosureIndicator()]
         }
 
-        let mediaReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
+        let mediaReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [unowned self] cell, _, item in
             var config = PosterContentConfiguration()
             config.posterPath = item.thumb ?? item.grandparentThumb
             config.title = item.title
-            if let year = item.year {
-                config.subtitle = "\(year)"
-            } else if let show = item.grandparentTitle {
+            if let year = item.year { config.subtitle = "\(year)" }
+            else if let show = item.grandparentTitle {
                 var sub = [String]()
                 if let code = Formatters.episodeCode(item.parentIndex, item.index) { sub.append(code) }
                 sub.append(show)
                 config.subtitle = sub.joined(separator: " · ")
             }
-            if item.type == "show" || item.type == "episode" {
+            if item.mediaType == "show" || item.mediaType == "episode" {
                 config.placeholderIcon = "tv"
+            }
+            config.showPlayButton = item.ratingKey != nil
+            config.onQuickPlay = { [weak self] in
+                self?.quickPlay(item)
             }
             cell.contentConfiguration = config
         }
@@ -91,30 +139,43 @@ final class FolderBrowserViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let endpoint: PlexEndpoint
-                if let folderKey {
-                    endpoint = .sectionFolder(sectionId: sectionId, folderId: folderKey)
+                let container: PlexMediaContainer
+                if let folderPath {
+                    container = try await api.requestContainer(.folderPath(folderPath))
+                } else if let sectionId {
+                    container = try await api.requestContainer(.sectionFolder(sectionId: sectionId))
                 } else {
-                    endpoint = .sectionFolder(sectionId: sectionId)
+                    return
                 }
-                let container = try await api.requestContainer(endpoint)
-                guard !Task.isCancelled else { return }
 
-                var items = [Item]()
+                var folders = [Item]()
+                var media = [Item]()
 
                 for dir in container.Directory ?? [] {
-                    items.append(.folder(key: dir.key, title: dir.title))
-                }
-                for meta in container.Metadata ?? [] {
-                    items.append(.media(meta))
+                    guard let key = dir.key else { continue }
+                    folders.append(.folder(key: key, title: dir.title ?? key.components(separatedBy: "/").last ?? key))
                 }
 
-                var snapshot = NSDiffableDataSourceSnapshot<Int, Item>()
-                snapshot.appendSections([0])
-                snapshot.appendItems(items, toSection: 0)
+                for meta in container.Metadata ?? [] {
+                    if meta.ratingKey != nil {
+                        media.append(.media(meta))
+                    } else if let key = meta.key {
+                        folders.append(.folder(key: key, title: meta.title))
+                    }
+                }
+
+                var snapshot = NSDiffableDataSourceSnapshot<SectionKind, Item>()
+                if !folders.isEmpty {
+                    snapshot.appendSections([.folders])
+                    snapshot.appendItems(folders, toSection: .folders)
+                }
+                if !media.isEmpty {
+                    snapshot.appendSections([.media])
+                    snapshot.appendItems(media, toSection: .media)
+                }
                 await dataSource.apply(snapshot, animatingDifferences: false)
 
-                if items.isEmpty {
+                if folders.isEmpty && media.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "folder")
                     config.text = "Empty folder"
@@ -133,23 +194,45 @@ final class FolderBrowserViewController: UICollectionViewController {
         }
     }
 
+    private func quickPlay(_ item: PlexMetadata) {
+        let meta = PlayerCoordinator.Metadata(
+            title: item.title,
+            showName: item.grandparentTitle,
+            seasonNumber: item.parentIndex,
+            episodeNumber: item.index,
+            posterPath: item.thumb ?? item.grandparentThumb,
+            duration: item.durationSecs
+        )
+        let coordinator = PlayerCoordinator(
+            api: api,
+            ratingKey: item.id,
+            mediaType: item.mediaType,
+            showRatingKey: item.grandparentRatingKey,
+            seasonRatingKey: item.parentRatingKey,
+            resumePosition: item.positionSecs,
+            metadata: meta
+        )
+        playerCoordinator = coordinator
+        coordinator.present(from: self)
+    }
+
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
         case .folder(let key, let title):
-            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderKey: key, folderTitle: title)
+            let vc = FolderBrowserViewController(api: api, folderPath: key, folderTitle: title)
             navigationController?.pushViewController(vc, animated: true)
         case .media(let m):
-            if m.type == "show" {
-                let vc = ShowDetailViewController(api: api, showRatingKey: m.ratingKey)
+            if m.mediaType == "show" {
+                let vc = ShowDetailViewController(api: api, showRatingKey: m.id)
                 navigationController?.pushViewController(vc, animated: true)
             } else {
                 let vc = MediaDetailViewController(
                     api: api,
-                    ratingKey: m.ratingKey,
-                    mediaType: m.type,
+                    ratingKey: m.id,
+                    mediaType: m.mediaType,
                     showRatingKey: m.grandparentRatingKey,
                     seasonRatingKey: m.parentRatingKey
                 )

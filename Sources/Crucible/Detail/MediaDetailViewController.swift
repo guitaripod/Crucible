@@ -154,7 +154,9 @@ final class MediaDetailViewController: UICollectionViewController {
 
         let actionCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
             var buttonConfig = UIButton.Configuration.tinted()
-            buttonConfig.cornerStyle = .medium
+            buttonConfig.cornerStyle = .large
+            buttonConfig.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
+            buttonConfig.baseForegroundColor = .systemOrange
             switch action {
             case "watched":
                 let watched = self.metadata?.isWatched == true
@@ -162,10 +164,10 @@ final class MediaDetailViewController: UICollectionViewController {
                 buttonConfig.image = UIImage(systemName: watched ? "eye.slash" : "eye")
             case "next":
                 buttonConfig.title = "Next Episode"
-                buttonConfig.image = UIImage(systemName: "forward")
+                buttonConfig.image = UIImage(systemName: "forward.fill")
             default: break
             }
-            buttonConfig.imagePadding = 8
+            buttonConfig.imagePadding = 10
             let button = UIButton(configuration: buttonConfig)
             button.addAction(UIAction { [weak self] _ in
                 guard let self else { return }
@@ -361,12 +363,12 @@ final class MediaDetailViewController: UICollectionViewController {
             do {
                 let container = try await api.requestContainer(.children(ratingKey: parentKey))
                 let episodes = container.Metadata ?? []
-                guard let currentIndex = episodes.firstIndex(where: { $0.ratingKey == ratingKey }),
+                guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
                       currentIndex + 1 < episodes.count else { return }
                 let next = episodes[currentIndex + 1]
                 let vc = MediaDetailViewController(
                     api: api,
-                    ratingKey: next.ratingKey,
+                    ratingKey: next.id,
                     mediaType: "episode",
                     showRatingKey: showRatingKey ?? metadata?.grandparentRatingKey,
                     seasonRatingKey: parentKey
@@ -390,11 +392,11 @@ struct HeroContentConfiguration: UIContentConfiguration, Hashable {
     var onShowTap: (() -> Void)?
 
     static func == (lhs: HeroContentConfiguration, rhs: HeroContentConfiguration) -> Bool {
-        lhs.metadata.ratingKey == rhs.metadata.ratingKey && lhs.metadata.viewOffset == rhs.metadata.viewOffset
+        lhs.metadata.id == rhs.metadata.id && lhs.metadata.viewOffset == rhs.metadata.viewOffset
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(metadata.ratingKey)
+        hasher.combine(metadata.id)
         hasher.combine(metadata.viewOffset)
     }
 
@@ -416,6 +418,8 @@ final class HeroContentView: UIView, UIContentView {
     }
 
     private let backdropImageView = UIImageView()
+    private let gradientLayer = CAGradientLayer()
+    private let overlayStack = UIStackView()
     private let titleLabel = UILabel()
     private let metadataStack = UIStackView()
     private let badgeStack = UIStackView()
@@ -431,17 +435,26 @@ final class HeroContentView: UIView, UIContentView {
 
         backdropImageView.contentMode = .scaleAspectFill
         backdropImageView.clipsToBounds = true
-        backdropImageView.backgroundColor = .systemGray6
+        backdropImageView.backgroundColor = .secondarySystemBackground
         backdropImageView.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLabel.font = .systemFont(ofSize: 24, weight: .bold)
+        gradientLayer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.4).cgColor,
+            UIColor.black.withAlphaComponent(0.85).cgColor,
+        ]
+        gradientLayer.locations = [0.0, 0.5, 1.0]
+        backdropImageView.layer.addSublayer(gradientLayer)
+
+        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.textColor = .white
         titleLabel.numberOfLines = 0
 
         metadataStack.axis = .horizontal
         metadataStack.spacing = 12
 
         badgeStack.axis = .horizontal
-        badgeStack.spacing = 8
+        badgeStack.spacing = 6
 
         playButton.addAction(UIAction { [unowned self] _ in
             self.onPlay?()
@@ -449,33 +462,40 @@ final class HeroContentView: UIView, UIContentView {
 
         var showConfig = UIButton.Configuration.plain()
         showConfig.contentInsets = .zero
-        showConfig.baseForegroundColor = .systemBlue
+        showConfig.baseForegroundColor = .systemOrange
         episodeButton = UIButton(configuration: showConfig)
         episodeButton.contentHorizontalAlignment = .leading
         episodeButton.addAction(UIAction { [unowned self] _ in
             self.onShowTap?()
         }, for: .touchUpInside)
 
-        let contentStack = UIStackView(arrangedSubviews: [titleLabel, metadataStack, badgeStack, playButton, episodeButton])
-        contentStack.axis = .vertical
-        contentStack.spacing = 8
-        contentStack.setCustomSpacing(12, after: badgeStack)
-        contentStack.alignment = .leading
+        overlayStack.axis = .vertical
+        overlayStack.spacing = 8
+        overlayStack.setCustomSpacing(14, after: badgeStack)
+        overlayStack.alignment = .leading
+        overlayStack.translatesAutoresizingMaskIntoConstraints = false
+        overlayStack.addArrangedSubview(titleLabel)
+        overlayStack.addArrangedSubview(metadataStack)
+        overlayStack.addArrangedSubview(badgeStack)
+        overlayStack.addArrangedSubview(playButton)
+        overlayStack.addArrangedSubview(episodeButton)
 
-        let mainStack = UIStackView(arrangedSubviews: [backdropImageView, contentStack])
-        mainStack.axis = .vertical
-        mainStack.spacing = 16
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(backdropImageView)
+        addSubview(overlayStack)
 
-        addSubview(mainStack)
         NSLayoutConstraint.activate([
-            mainStack.topAnchor.constraint(equalTo: topAnchor),
-            mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            mainStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
-            backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 9.0 / 16.0),
+            backdropImageView.topAnchor.constraint(equalTo: topAnchor),
+            backdropImageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            backdropImageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            backdropImageView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 10.0 / 16.0),
+
+            overlayStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            overlayStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            overlayStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
+
             playButton.heightAnchor.constraint(equalToConstant: 50),
-            playButton.widthAnchor.constraint(equalTo: mainStack.widthAnchor),
+            playButton.widthAnchor.constraint(equalTo: overlayStack.widthAnchor),
         ])
 
         apply()
@@ -483,6 +503,11 @@ final class HeroContentView: UIView, UIContentView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer.frame = backdropImageView.bounds
+    }
 
     private func apply() {
         guard let config = configuration as? HeroContentConfiguration else { return }
@@ -494,24 +519,14 @@ final class HeroContentView: UIView, UIContentView {
 
         metadataStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if let year = item.year {
-            let label = UILabel()
-            label.text = "\(year)"
-            label.font = .systemFont(ofSize: 14)
-            label.textColor = .secondaryLabel
-            metadataStack.addArrangedSubview(label)
+            metadataStack.addArrangedSubview(makeMetaLabel("\(year)"))
         }
         if let rating = Formatters.rating(item.rating ?? item.audienceRating) {
-            let label = UILabel()
-            label.text = "★ \(rating)"
-            label.font = .systemFont(ofSize: 14)
+            let label = makeMetaLabel("★ \(rating)")
             label.textColor = .systemYellow
             metadataStack.addArrangedSubview(label)
         }
-        let durationLabel = UILabel()
-        durationLabel.text = Formatters.duration(item.durationSecs)
-        durationLabel.font = .systemFont(ofSize: 14)
-        durationLabel.textColor = .secondaryLabel
-        metadataStack.addArrangedSubview(durationLabel)
+        metadataStack.addArrangedSubview(makeMetaLabel(Formatters.duration(item.durationSecs)))
 
         badgeStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if let res = Formatters.resolution(item.videoWidth, item.videoHeight) {
@@ -526,8 +541,10 @@ final class HeroContentView: UIView, UIContentView {
 
         var playConfig = UIButton.Configuration.filled()
         playConfig.image = UIImage(systemName: "play.fill")
-        playConfig.imagePadding = 8
-        playConfig.cornerStyle = .medium
+        playConfig.imagePadding = 10
+        playConfig.cornerStyle = .large
+        playConfig.baseBackgroundColor = .systemOrange
+        playConfig.baseForegroundColor = .white
         if item.positionSecs > 0 {
             playConfig.title = "Resume from \(Formatters.timestamp(item.positionSecs))"
         } else {
@@ -542,6 +559,7 @@ final class HeroContentView: UIView, UIContentView {
             if let show = item.grandparentTitle { parts.append(show) }
             var btnConfig = episodeButton.configuration ?? .plain()
             btnConfig.title = parts.joined(separator: " — ")
+            btnConfig.baseForegroundColor = .systemOrange
             episodeButton.configuration = btnConfig
             episodeButton.isEnabled = config.onShowTap != nil
         } else {
@@ -560,40 +578,42 @@ final class HeroContentView: UIView, UIContentView {
                 image = await ImageLoader.shared.loadImage(path: imagePath, width: 500)
             }
             guard !Task.isCancelled, let self else { return }
-            if let image { self.backdropImageView.image = image }
+            if let image {
+                UIView.transition(with: self.backdropImageView, duration: 0.3, options: .transitionCrossDissolve) {
+                    self.backdropImageView.image = image
+                }
+            }
         }
+    }
+
+    private func makeMetaLabel(_ text: String) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = UIColor.white.withAlphaComponent(0.8)
+        return label
     }
 
     private func makeBadge(_ text: String) -> UIView {
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 11, weight: .semibold)
-        label.textColor = .secondaryLabel
+        label.font = .systemFont(ofSize: 10, weight: .bold)
+        label.textColor = UIColor.white.withAlphaComponent(0.9)
 
-        let container = BadgeView()
+        let container = UIView()
+        container.backgroundColor = UIColor.white.withAlphaComponent(0.15)
         container.layer.cornerRadius = 4
-        container.layer.borderWidth = 1
-        container.layer.borderColor = UIColor.separator.cgColor
+        container.layer.cornerCurve = .continuous
+        container.layer.borderWidth = 0.5
+        container.layer.borderColor = UIColor.white.withAlphaComponent(0.2).cgColor
         label.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(label)
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 2),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -2),
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 6),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -6),
+            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 3),
+            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -3),
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
         ])
         return container
     }
-}
-
-private final class BadgeView: UIView {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: BadgeView, _: UITraitCollection) in
-            view.layer.borderColor = UIColor.separator.cgColor
-        }
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
 }

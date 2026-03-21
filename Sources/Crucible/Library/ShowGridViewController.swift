@@ -162,7 +162,7 @@ final class ShowGridViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        let detail = ShowDetailViewController(api: api, showRatingKey: item.ratingKey)
+        let detail = ShowDetailViewController(api: api, showRatingKey: item.id)
         navigationController?.pushViewController(detail, animated: true)
     }
 
@@ -178,11 +178,11 @@ final class ShowGridViewController: UICollectionViewController {
             return UIMenu(children: [
                 UIAction(title: "Mark All Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.ratingKey)) }
+                    Task { try? await self.api.requestVoid(.scrobble(ratingKey: item.id)) }
                 },
                 UIAction(title: "Mark All Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
                     guard let self else { return }
-                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.ratingKey)) }
+                    Task { try? await self.api.requestVoid(.unscrobble(ratingKey: item.id)) }
                 },
             ])
         })

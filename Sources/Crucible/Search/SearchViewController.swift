@@ -50,7 +50,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             var config = SearchResultConfiguration()
             config.posterPath = result.thumb ?? result.grandparentThumb
             config.title = result.title
-            config.mediaType = result.type
+            config.mediaType = result.mediaType
 
             var subtitleParts = [String]()
             if let year = result.year { subtitleParts.append("\(year)") }
@@ -95,7 +95,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
                 }
 
                 var seen = Set<String>()
-                results = results.filter { seen.insert($0.ratingKey).inserted }
+                results = results.filter { seen.insert($0.id).inserted }
 
                 var snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
                 snapshot.appendSections([0])
@@ -119,21 +119,21 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let result = dataSource.itemIdentifier(for: indexPath) else { return }
 
-        switch result.type {
+        switch result.mediaType {
         case "show":
-            let vc = ShowDetailViewController(api: api, showRatingKey: result.ratingKey)
+            let vc = ShowDetailViewController(api: api, showRatingKey: result.id)
             navigationController?.pushViewController(vc, animated: true)
         case "episode":
             let vc = MediaDetailViewController(
                 api: api,
-                ratingKey: result.ratingKey,
+                ratingKey: result.id,
                 mediaType: "episode",
                 showRatingKey: result.grandparentRatingKey,
                 seasonRatingKey: result.parentRatingKey
             )
             navigationController?.pushViewController(vc, animated: true)
         default:
-            let vc = MediaDetailViewController(api: api, ratingKey: result.ratingKey, mediaType: "movie")
+            let vc = MediaDetailViewController(api: api, ratingKey: result.id, mediaType: "movie")
             navigationController?.pushViewController(vc, animated: true)
         }
     }

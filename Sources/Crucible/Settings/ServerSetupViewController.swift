@@ -13,38 +13,39 @@ final class ServerSetupViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        title = "Sign in to Plex"
-        navigationItem.largeTitleDisplayMode = .never
+        navigationController?.setNavigationBarHidden(true, animated: false)
 
-        let iconImage = UIImageView(image: UIImage(systemName: "play.rectangle.fill"))
+        let iconConfig = UIImage.SymbolConfiguration(pointSize: 48, weight: .medium)
+        let iconImage = UIImageView(image: UIImage(systemName: "play.rectangle.fill", withConfiguration: iconConfig))
         iconImage.tintColor = .systemOrange
         iconImage.contentMode = .scaleAspectFit
         iconImage.translatesAutoresizingMaskIntoConstraints = false
-        iconImage.heightAnchor.constraint(equalToConstant: 60).isActive = true
-        iconImage.widthAnchor.constraint(equalToConstant: 60).isActive = true
+        iconImage.heightAnchor.constraint(equalToConstant: 72).isActive = true
 
         let titleLabel = UILabel()
         titleLabel.text = "Crucible"
-        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.font = .systemFont(ofSize: 34, weight: .bold)
         titleLabel.textAlignment = .center
 
         let subtitleLabel = UILabel()
-        subtitleLabel.text = "A personal Plex client"
-        subtitleLabel.font = .systemFont(ofSize: 15, weight: .regular)
-        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.text = "Your personal Plex client"
+        subtitleLabel.font = .systemFont(ofSize: 16, weight: .regular)
+        subtitleLabel.textColor = .tertiaryLabel
         subtitleLabel.textAlignment = .center
 
         var config = UIButton.Configuration.filled()
         config.title = "Sign in with Plex"
-        config.image = UIImage(systemName: "person.badge.key.fill")
-        config.imagePadding = 8
-        config.cornerStyle = .medium
+        config.image = UIImage(systemName: "play.fill")
+        config.imagePadding = 10
+        config.cornerStyle = .large
         config.baseBackgroundColor = .systemOrange
+        config.baseForegroundColor = .white
+        config.buttonSize = .large
         signInButton.configuration = config
         signInButton.addAction(UIAction { [unowned self] _ in startAuth() }, for: .touchUpInside)
 
         statusLabel.textColor = .systemRed
-        statusLabel.font = .systemFont(ofSize: 14)
+        statusLabel.font = .systemFont(ofSize: 13, weight: .medium)
         statusLabel.textAlignment = .center
         statusLabel.numberOfLines = 0
         statusLabel.isHidden = true
@@ -55,15 +56,15 @@ final class ServerSetupViewController: UIViewController {
         stack.axis = .vertical
         stack.spacing = 16
         stack.alignment = .fill
-        stack.setCustomSpacing(4, after: titleLabel)
-        stack.setCustomSpacing(32, after: subtitleLabel)
+        stack.setCustomSpacing(6, after: titleLabel)
+        stack.setCustomSpacing(40, after: subtitleLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
-            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor, constant: 20),
-            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor, constant: -20),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -30),
+            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor, constant: -24),
         ])
     }
 

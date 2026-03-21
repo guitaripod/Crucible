@@ -77,7 +77,8 @@ final class SettingsViewController: UICollectionViewController {
             case .activityHistory:
                 var config = UIListContentConfiguration.cell()
                 config.text = "Activity History"
-                config.image = UIImage(systemName: "clock")
+                config.image = UIImage(systemName: "clock.fill")
+                config.imageProperties.tintColor = .systemOrange
                 cell.contentConfiguration = config
                 cell.accessories = [.disclosureIndicator()]
 
@@ -134,11 +135,12 @@ final class SettingsViewController: UICollectionViewController {
                 let container = try await api.requestContainer(.sections)
                 guard !Task.isCancelled else { return }
                 for dir in container.Directory ?? [] {
+                    guard let key = dir.key else { continue }
                     let sectionContainer = try await api.requestContainer(
-                        .sectionItems(sectionId: dir.key, start: 0, size: 0)
+                        .sectionItems(sectionId: key, start: 0, size: 0)
                     )
                     let count = sectionContainer.totalSize ?? 0
-                    libraryItems.append(.library(dir.title, "\(count) items"))
+                    libraryItems.append(.library(dir.title ?? "Library", "\(count) items"))
                 }
             } catch {
                 guard !Task.isCancelled else { return }

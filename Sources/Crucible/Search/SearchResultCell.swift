@@ -36,36 +36,37 @@ final class SearchResultContentView: UIView, UIContentView {
 
         posterImageView.contentMode = .scaleAspectFill
         posterImageView.clipsToBounds = true
-        posterImageView.layer.cornerRadius = 6
-        posterImageView.backgroundColor = .systemGray6
+        posterImageView.layer.cornerRadius = 8
+        posterImageView.layer.cornerCurve = .continuous
+        posterImageView.backgroundColor = .secondarySystemBackground
         posterImageView.translatesAutoresizingMaskIntoConstraints = false
 
         placeholderView.image = UIImage(systemName: "film")
-        placeholderView.tintColor = .systemGray3
+        placeholderView.tintColor = .quaternaryLabel
         placeholderView.contentMode = .scaleAspectFit
         placeholderView.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLabel.font = .systemFont(ofSize: 16, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         titleLabel.numberOfLines = 2
 
-        subtitleLabel.font = .systemFont(ofSize: 13)
+        subtitleLabel.font = .systemFont(ofSize: 13, weight: .regular)
         subtitleLabel.textColor = .secondaryLabel
 
-        typeBadge.font = .systemFont(ofSize: 11, weight: .medium)
+        typeBadge.font = .systemFont(ofSize: 10, weight: .bold)
         typeBadge.textColor = .white
-        typeBadge.backgroundColor = .systemBlue
         typeBadge.layer.cornerRadius = 4
+        typeBadge.layer.cornerCurve = .continuous
         typeBadge.clipsToBounds = true
         typeBadge.textAlignment = .center
 
         let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel, typeBadge])
         textStack.axis = .vertical
-        textStack.spacing = 4
+        textStack.spacing = 3
         textStack.alignment = .leading
 
         let mainStack = UIStackView(arrangedSubviews: [posterImageView, textStack])
         mainStack.axis = .horizontal
-        mainStack.spacing = 12
+        mainStack.spacing = 14
         mainStack.alignment = .center
         mainStack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -73,18 +74,18 @@ final class SearchResultContentView: UIView, UIContentView {
         posterImageView.addSubview(placeholderView)
 
         NSLayoutConstraint.activate([
-            mainStack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            mainStack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            mainStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            mainStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
 
-            posterImageView.widthAnchor.constraint(equalToConstant: 50),
-            posterImageView.heightAnchor.constraint(equalToConstant: 75),
+            posterImageView.widthAnchor.constraint(equalToConstant: 54),
+            posterImageView.heightAnchor.constraint(equalToConstant: 80),
 
             placeholderView.centerXAnchor.constraint(equalTo: posterImageView.centerXAnchor),
             placeholderView.centerYAnchor.constraint(equalTo: posterImageView.centerYAnchor),
-            placeholderView.widthAnchor.constraint(equalToConstant: 20),
-            placeholderView.heightAnchor.constraint(equalToConstant: 20),
+            placeholderView.widthAnchor.constraint(equalToConstant: 22),
+            placeholderView.heightAnchor.constraint(equalToConstant: 22),
         ])
 
         apply()
@@ -100,13 +101,23 @@ final class SearchResultContentView: UIView, UIContentView {
         subtitleLabel.isHidden = config.subtitle == nil
 
         let typeText: String
+        let badgeColor: UIColor
         switch config.mediaType {
-        case "movie": typeText = " Movie "
-        case "episode": typeText = " Episode "
-        case "show": typeText = " Show "
-        default: typeText = " \(config.mediaType) "
+        case "movie":
+            typeText = " MOVIE "
+            badgeColor = .systemOrange
+        case "episode":
+            typeText = " EPISODE "
+            badgeColor = .systemIndigo
+        case "show":
+            typeText = " SHOW "
+            badgeColor = .systemTeal
+        default:
+            typeText = " \(config.mediaType.uppercased()) "
+            badgeColor = .systemGray
         }
         typeBadge.text = typeText
+        typeBadge.backgroundColor = badgeColor
 
         posterImageView.image = nil
         placeholderView.isHidden = false

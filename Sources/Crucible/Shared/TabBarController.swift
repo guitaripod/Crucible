@@ -14,17 +14,19 @@ final class TabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        view.tintColor = .systemOrange
+
         let home = UINavigationController(rootViewController: HomeViewController(api: api))
-        home.tabBarItem = UITabBarItem(title: "Home", image: UIImage(systemName: "house"), tag: 0)
+        home.tabBarItem = UITabBarItem(title: "Home", image: UIImage(systemName: "house"), selectedImage: UIImage(systemName: "house.fill"))
 
         let library = UINavigationController(rootViewController: LibraryViewController(api: api))
-        library.tabBarItem = UITabBarItem(title: "Library", image: UIImage(systemName: "rectangle.grid.2x2"), tag: 1)
+        library.tabBarItem = UITabBarItem(title: "Library", image: UIImage(systemName: "rectangle.stack"), selectedImage: UIImage(systemName: "rectangle.stack.fill"))
 
         let search = UINavigationController(rootViewController: SearchViewController(api: api))
         search.tabBarItem = UITabBarItem(title: "Search", image: UIImage(systemName: "magnifyingglass"), tag: 2)
 
         let settings = UINavigationController(rootViewController: SettingsViewController(api: api))
-        settings.tabBarItem = UITabBarItem(title: "Settings", image: UIImage(systemName: "gear"), tag: 3)
+        settings.tabBarItem = UITabBarItem(title: "Settings", image: UIImage(systemName: "gearshape"), selectedImage: UIImage(systemName: "gearshape.fill"))
 
         viewControllers = [home, library, search, settings]
     }
