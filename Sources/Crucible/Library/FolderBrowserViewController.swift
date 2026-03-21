@@ -48,8 +48,8 @@ final class FolderBrowserViewController: UICollectionViewController {
         super.viewDidLoad()
         title = folderTitle ?? "Browse"
         navigationItem.largeTitleDisplayMode = .never
-        collectionView.collectionViewLayout = createLayout()
         configureDataSource()
+        collectionView.collectionViewLayout = createLayout()
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -65,10 +65,11 @@ final class FolderBrowserViewController: UICollectionViewController {
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { sectionIndex, environment in
-            guard let section = SectionKind(rawValue: sectionIndex) else { return nil }
+        UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let self else { return nil }
+            let sectionIdentifier = dataSource.snapshot().sectionIdentifiers[sectionIndex]
 
-            if section == .folders {
+            if sectionIdentifier == .folders {
                 var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
                 listConfig.showsSeparators = true
                 return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
@@ -160,6 +161,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                     snapshot.appendItems(media, toSection: .media)
                 }
                 await dataSource.apply(snapshot, animatingDifferences: false)
+                collectionView.collectionViewLayout.invalidateLayout()
 
                 if folders.isEmpty && media.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
