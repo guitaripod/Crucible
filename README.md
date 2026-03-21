@@ -11,6 +11,8 @@ A personal Plex client for iOS, built entirely on Arch Linux.
 
 No Xcode. No macOS. No storyboards. Pure programmatic UIKit, cross-compiled from Linux and deployed to iPhone over USB.
 
+![Screenshots](screenshots.png)
+
 ## Stack
 
 | | Tool |
@@ -48,7 +50,7 @@ swift build --swift-sdk arm64-apple-ios
 
 ## Deploying
 
-Requires [xtool](https://github.com/nicklama/xtool) and a USB-connected iPhone.
+Requires [xtool](https://github.com/xtool-org/xtool) and a USB-connected iPhone.
 
 ```bash
 xtool dev run --usb
