@@ -44,7 +44,15 @@ actor ImageLoader {
         let task = Task<UIImage?, Never> {
             defer { inFlight[cacheKey] = nil }
             let baseString = capturedBaseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            guard let url = URL(string: "\(baseString)/photo/:/transcode?url=\(path)&width=\(width)&height=\(height)&minSize=1&X-Plex-Token=\(capturedToken)") else { return nil }
+            guard var components = URLComponents(string: baseString + "/photo/:/transcode") else { return nil }
+            components.queryItems = [
+                URLQueryItem(name: "url", value: path),
+                URLQueryItem(name: "width", value: "\(width)"),
+                URLQueryItem(name: "height", value: "\(height)"),
+                URLQueryItem(name: "minSize", value: "1"),
+                URLQueryItem(name: "X-Plex-Token", value: capturedToken),
+            ]
+            guard let url = components.url else { return nil }
             do {
                 let (data, response) = try await URLSession.shared.data(from: url)
                 guard (response as? HTTPURLResponse)?.statusCode == 200,
