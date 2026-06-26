@@ -16,7 +16,13 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Crucible"
+            name: "Crucible",
+            linkerSettings: [
+                .unsafeFlags(
+                    ["-Xlinker", "-platform_version", "-Xlinker", "ios", "-Xlinker", "17.0", "-Xlinker", "26.2"],
+                    .when(platforms: [.iOS])
+                )
+            ]
         ),
     ]
 )
