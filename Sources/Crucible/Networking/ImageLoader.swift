@@ -31,6 +31,10 @@ actor ImageLoader {
         inFlight.removeAll()
     }
 
+    func clearCache() {
+        cache.removeAllObjects()
+    }
+
     func loadImage(path: String, width: Int) async -> UIImage? {
         await load(path: path, width: width, height: Int(Double(width) * 1.5), prefix: "p")
     }

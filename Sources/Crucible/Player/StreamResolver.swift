@@ -52,7 +52,8 @@ enum StreamResolver {
         let wantsBurnedSubtitle = selectedSubtitleId != nil
         let wantsNonDefaultAudio = selectedAudioStreamId != nil && selectedAudioStreamId != defaultAudioId
 
-        if !wantsBurnedSubtitle,
+        if Preferences.streamingQuality == .original,
+           !wantsBurnedSubtitle,
            !wantsNonDefaultAudio,
            isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec),
            let directURL = directPlayURL(baseURL: baseURL, partKey: part.key, token: token) {
@@ -173,6 +174,9 @@ enum StreamResolver {
             + "&X-Plex-Product=Crucible"
         if let secs = startSecs {
             query += "&offset=\(Int(secs))"
+        }
+        if Preferences.streamingQuality != .original {
+            query += "&maxVideoBitrate=\(Preferences.streamingQuality.rawValue)&videoQuality=100"
         }
         return plexURL(base: baseURL, path: "/video/:/transcode/universal/start.m3u8", query: query)
     }

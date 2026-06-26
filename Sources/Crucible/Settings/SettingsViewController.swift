@@ -2,15 +2,18 @@
 
 final class SettingsViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case server, libraries, activity, account, about
+        case server, libraries, playback, activity, storage, account, about
     }
 
     enum Item: Hashable {
         case serverName(String)
         case serverURI(String)
         case library(key: String, type: String, name: String, count: String)
+        case quality(String)
         case activityHistory
+        case clearCache
         case signOut
+        case sourceCode
         case appVersion(String)
     }
 
@@ -80,6 +83,32 @@ final class SettingsViewController: UICollectionViewController {
                 cell.contentConfiguration = config
                 cell.accessories = [.disclosureIndicator()]
 
+            case .quality(let current):
+                var config = UIListContentConfiguration.valueCell()
+                config.text = "Streaming Quality"
+                config.secondaryText = current
+                config.image = UIImage(systemName: "dial.high.fill")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [.disclosureIndicator()]
+
+            case .clearCache:
+                var config = UIListContentConfiguration.cell()
+                config.text = "Clear Image Cache"
+                config.image = UIImage(systemName: "trash")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = []
+
+            case .sourceCode:
+                var config = UIListContentConfiguration.valueCell()
+                config.text = "Source Code"
+                config.secondaryText = "GitHub"
+                config.image = UIImage(systemName: "chevron.left.forwardslash.chevron.right")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [.disclosureIndicator()]
+
             case .activityHistory:
                 var config = UIListContentConfiguration.cell()
                 config.text = "Activity History"
@@ -118,7 +147,9 @@ final class SettingsViewController: UICollectionViewController {
             switch section {
             case .server: config.text = "Server"
             case .libraries: config.text = "Libraries"
+            case .playback: config.text = "Playback"
             case .activity: config.text = "Activity"
+            case .storage: config.text = "Storage"
             case .account: config.text = "Account"
             case .about: config.text = "About"
             }
@@ -164,15 +195,21 @@ final class SettingsViewController: UICollectionViewController {
                 snapshot.appendItems(libraryItems, toSection: .libraries)
             }
 
+            snapshot.appendSections([.playback])
+            snapshot.appendItems([.quality(Preferences.streamingQuality.title)], toSection: .playback)
+
             snapshot.appendSections([.activity])
             snapshot.appendItems([.activityHistory], toSection: .activity)
+
+            snapshot.appendSections([.storage])
+            snapshot.appendItems([.clearCache], toSection: .storage)
 
             snapshot.appendSections([.account])
             snapshot.appendItems([.signOut], toSection: .account)
 
             snapshot.appendSections([.about])
             let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-            snapshot.appendItems([.appVersion(appVersion)], toSection: .about)
+            snapshot.appendItems([.sourceCode, .appVersion(appVersion)], toSection: .about)
 
             await dataSource.apply(snapshot, animatingDifferences: false)
         }
@@ -189,6 +226,33 @@ final class SettingsViewController: UICollectionViewController {
                 : MovieGridViewController(api: api, sectionId: key)
             vc.title = name
             navigationController?.pushViewController(vc, animated: true)
+
+        case .quality:
+            let sheet = UIAlertController(title: "Streaming Quality", message: "Original direct-plays when the device supports the file; lower settings transcode to save bandwidth.", preferredStyle: .actionSheet)
+            for quality in Preferences.Quality.allCases {
+                let isCurrent = quality == Preferences.streamingQuality
+                sheet.addAction(UIAlertAction(title: isCurrent ? "\(quality.title)  ✓" : quality.title, style: .default) { [weak self] _ in
+                    Preferences.streamingQuality = quality
+                    self?.loadData()
+                })
+            }
+            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            if let popover = sheet.popoverPresentationController, let cell = collectionView.cellForItem(at: indexPath) {
+                popover.sourceView = cell
+                popover.sourceRect = cell.bounds
+            }
+            present(sheet, animated: true)
+
+        case .clearCache:
+            Task { await ImageLoader.shared.clearCache() }
+            let alert = UIAlertController(title: "Image Cache Cleared", message: nil, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+
+        case .sourceCode:
+            if let url = URL(string: "https://github.com/guitaripod/Crucible") {
+                UIApplication.shared.open(url)
+            }
 
         case .activityHistory:
             let vc = ActivityHistoryViewController(api: api)
