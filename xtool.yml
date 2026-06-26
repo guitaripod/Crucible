@@ -1,3 +1,4 @@
 version: 1
 bundleID: com.guitaripod.crucible
 infoPath: InfoAdditions.plist
+iconPath: Resources/AppIcon.png
