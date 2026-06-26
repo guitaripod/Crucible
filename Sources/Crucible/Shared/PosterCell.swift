@@ -18,6 +18,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
         hasher.combine(posterPath)
         hasher.combine(title)
         hasher.combine(subtitle)
+        hasher.combine(progress)
         hasher.combine(showPlayButton)
     }
 
@@ -157,6 +158,13 @@ final class PosterContentView: UIView, UIContentView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit { imageTask?.cancel() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 12).cgPath
+    }
+
     private func apply() {
         guard let config = configuration as? PosterContentConfiguration else { return }
         onQuickPlay = config.onQuickPlay
@@ -197,17 +205,25 @@ final class PosterContentView: UIView, UIContentView {
 }
 
 final class GradientView: UIView {
-    override class var layerClass: AnyClass { CAGradientLayer.self }
+    private static let gradientImage: CGImage? = {
+        let size = CGSize(width: 4, height: 256)
+        let image = UIGraphicsImageRenderer(size: size).image { context in
+            let colors = [
+                UIColor.clear.cgColor,
+                UIColor.black.withAlphaComponent(0.3).cgColor,
+                UIColor.black.withAlphaComponent(0.8).cgColor,
+            ] as CFArray
+            guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.35, 0.65, 1.0]) else { return }
+            context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+        }
+        return image.cgImage
+    }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        guard let gradient = layer as? CAGradientLayer else { return }
-        gradient.colors = [
-            UIColor.clear.cgColor,
-            UIColor.black.withAlphaComponent(0.3).cgColor,
-            UIColor.black.withAlphaComponent(0.8).cgColor,
-        ]
-        gradient.locations = [0.35, 0.65, 1.0]
+        layer.contents = Self.gradientImage
+        layer.contentsGravity = .resize
+        isUserInteractionEnabled = false
     }
 
     @available(*, unavailable)
