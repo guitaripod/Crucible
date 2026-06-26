@@ -26,6 +26,7 @@ enum PlexEndpoint: Sendable {
     case history(start: Int = 0, size: Int = 50)
 
     case stopTranscode(session: String)
+    case pingTranscode(session: String)
 
     var isPlexTV: Bool {
         switch self {
@@ -35,6 +36,15 @@ enum PlexEndpoint: Sendable {
     }
 
     static let plexTVBaseURL = URL(string: "https://clients.plex.tv")!
+
+    var timeout: TimeInterval {
+        switch self {
+        case .scrobble, .unscrobble, .timeline, .progress, .stopTranscode, .pingTranscode:
+            return 10
+        default:
+            return 15
+        }
+    }
 
     var method: String {
         switch self {
@@ -93,6 +103,8 @@ enum PlexEndpoint: Sendable {
             return "/status/sessions/history/all"
         case .stopTranscode:
             return "/video/:/transcode/universal/stop"
+        case .pingTranscode:
+            return "/video/:/transcode/universal/ping"
         }
     }
 
@@ -155,6 +167,8 @@ enum PlexEndpoint: Sendable {
             ]
         case .stopTranscode(let session):
             return [URLQueryItem(name: "session", value: session)]
+        case .pingTranscode(let session):
+            return [URLQueryItem(name: "session", value: session)]
         default:
             return nil
         }
@@ -174,6 +188,7 @@ enum PlexEndpoint: Sendable {
         }
         var request = URLRequest(url: url)
         request.httpMethod = method
+        request.timeoutInterval = timeout
 
         for (key, value) in PlexHeaders.allHeaders(token: token) {
             request.setValue(value, forHTTPHeaderField: key)
