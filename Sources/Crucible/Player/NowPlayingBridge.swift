@@ -35,7 +35,7 @@ final class NowPlayingBridge {
             artworkTask = Task {
                 guard let image = await ImageLoader.shared.loadImage(path: posterPath, width: 300) else { return }
                 guard !Task.isCancelled else { return }
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { @Sendable _ in image }
                 MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] = artwork
             }
         }

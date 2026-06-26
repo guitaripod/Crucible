@@ -1,8 +1,11 @@
 import AVFoundation
 import Foundation
+import os
 
 @MainActor
 final class PlaybackReporter {
+    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
+
     private let api: APIClient
     private let ratingKey: String
     private let sessionId: String
@@ -10,6 +13,7 @@ final class PlaybackReporter {
     private weak var player: AVPlayer?
     private var timeObserverToken: Any?
     private var statusObservation: NSKeyValueObservation?
+    private let streamOffset = OSAllocatedUnfairLock<Double>(initialState: 0)
 
     init(api: APIClient, ratingKey: String, sessionId: String, durationMs: Int, player: AVPlayer) {
         self.api = api
@@ -20,32 +24,32 @@ final class PlaybackReporter {
         setupObservers()
     }
 
+    func setStreamOffset(_ offset: Double) {
+        streamOffset.withLock { $0 = offset }
+    }
+
     private func setupObservers() {
         guard let player else { return }
 
         let api = self.api
         let ratingKey = self.ratingKey
         let durationMs = self.durationMs
+        let offsetLock = self.streamOffset
 
         timeObserverToken = player.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 10, preferredTimescale: 1),
             queue: .main
         ) { time in
-            let position = time.seconds
+            let position = time.seconds + offsetLock.withLock { $0 }
             guard position.isFinite, position >= 0 else { return }
             let timeMs = Int(position * 1000)
             Task {
-                try? await api.requestVoid(.timeline(
-                    ratingKey: ratingKey,
-                    state: "playing",
-                    timeMs: timeMs,
-                    durationMs: durationMs
-                ))
+                await Self.report(api: api, ratingKey: ratingKey, state: "playing", timeMs: timeMs, durationMs: durationMs)
             }
         }
 
-        statusObservation = player.observe(\.timeControlStatus, options: [.new]) { observedPlayer, _ in
-            let position = observedPlayer.currentTime().seconds
+        statusObservation = player.observe(\.timeControlStatus, options: [.new]) { @Sendable observedPlayer, _ in
+            let position = observedPlayer.currentTime().seconds + offsetLock.withLock { $0 }
             guard position.isFinite, position >= 0 else { return }
             let state: String
             switch observedPlayer.timeControlStatus {
@@ -55,27 +59,25 @@ final class PlaybackReporter {
             }
             let timeMs = Int(position * 1000)
             Task {
-                try? await api.requestVoid(.timeline(
-                    ratingKey: ratingKey,
-                    state: state,
-                    timeMs: timeMs,
-                    durationMs: durationMs
-                ))
+                await Self.report(api: api, ratingKey: ratingKey, state: state, timeMs: timeMs, durationMs: durationMs)
             }
+        }
+    }
+
+    private static func report(api: APIClient, ratingKey: String, state: String, timeMs: Int, durationMs: Int) async {
+        do {
+            try await api.requestVoid(.timeline(ratingKey: ratingKey, state: state, timeMs: timeMs, durationMs: durationMs))
+        } catch {
+            log.error("Timeline report (\(state, privacy: .public)) failed for \(ratingKey, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
 
     func sendFinalPosition() async {
         guard let player else { return }
-        let position = player.currentTime().seconds
+        let position = player.currentTime().seconds + streamOffset.withLock { $0 }
         guard position.isFinite, position >= 0 else { return }
         let timeMs = Int(position * 1000)
-        try? await api.requestVoid(.timeline(
-            ratingKey: ratingKey,
-            state: "stopped",
-            timeMs: timeMs,
-            durationMs: durationMs
-        ))
+        await Self.report(api: api, ratingKey: ratingKey, state: "stopped", timeMs: timeMs, durationMs: durationMs)
     }
 
     func stop() async {

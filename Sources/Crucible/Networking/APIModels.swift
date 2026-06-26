@@ -149,6 +149,17 @@ extension PlexMetadata {
         Media?.first?.Part?.first?.key
     }
 
+    var mediaContainer: String? {
+        if let container = Media?.first?.container, !container.isEmpty {
+            return container.lowercased()
+        }
+        if let file = Media?.first?.Part?.first?.file,
+           let ext = file.split(separator: ".").last {
+            return String(ext).lowercased()
+        }
+        return nil
+    }
+
     var genres: [String] {
         Genre?.map(\.tag) ?? []
     }
@@ -164,11 +175,12 @@ struct PlexMedia: Decodable, Sendable {
     let audioChannels: Int?
     let bitrate: Int?
     let videoProfile: String?
+    let container: String?
     let Part: [PlexPart]?
 
     enum CodingKeys: String, CodingKey {
         case id, videoCodec, audioCodec, videoResolution
-        case width, height, audioChannels, bitrate, videoProfile
+        case width, height, audioChannels, bitrate, videoProfile, container
         case Part
     }
 }
