@@ -14,6 +14,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private let api: APIClient
     private let showRatingKey: String
+    private let initialSeasonKey: String?
     private var loadTask: Task<Void, Never>?
     private var seasonTask: Task<Void, Never>?
     private var show: PlexMetadata?
@@ -22,9 +23,10 @@ final class ShowDetailViewController: UICollectionViewController {
     private var episodes: [PlexMetadata] = []
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
 
-    init(api: APIClient, showRatingKey: String) {
+    init(api: APIClient, showRatingKey: String, initialSeasonKey: String? = nil) {
         self.api = api
         self.showRatingKey = showRatingKey
+        self.initialSeasonKey = initialSeasonKey
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -60,12 +62,12 @@ final class ShowDetailViewController: UICollectionViewController {
                 return NSCollectionLayoutSection(group: group)
 
             case .seasonPicker:
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .estimated(80), heightDimension: .absolute(36)))
-                let group = NSCollectionLayoutGroup.horizontal(layoutSize: NSCollectionLayoutSize(widthDimension: .estimated(80), heightDimension: .absolute(36)), subitems: [item])
+                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .estimated(96), heightDimension: .absolute(40)))
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: NSCollectionLayoutSize(widthDimension: .estimated(96), heightDimension: .absolute(40)), subitems: [item])
                 let layoutSection = NSCollectionLayoutSection(group: group)
                 layoutSection.orthogonalScrollingBehavior = .continuous
-                layoutSection.interGroupSpacing = 8
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+                layoutSection.interGroupSpacing = 10
+                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
                 return layoutSection
 
             case .episodes:
@@ -116,7 +118,12 @@ final class ShowDetailViewController: UICollectionViewController {
             }
             config.title = "Season \(season.index ?? 0)"
             config.cornerStyle = .capsule
-            config.buttonSize = .small
+            config.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 18, bottom: 7, trailing: 18)
+            config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+                var outgoing = incoming
+                outgoing.font = .systemFont(ofSize: 14, weight: .semibold)
+                return outgoing
+            }
             button.configuration = config
         }
 
@@ -206,7 +213,11 @@ final class ShowDetailViewController: UICollectionViewController {
                     let total = $0.leafCount ?? 0
                     return watched < total
                 }
-                selectedSeasonKey = firstUnwatched?.id ?? seasons.first?.id
+                if let initialSeasonKey, seasons.contains(where: { $0.id == initialSeasonKey }) {
+                    selectedSeasonKey = initialSeasonKey
+                } else {
+                    selectedSeasonKey = firstUnwatched?.id ?? seasons.first?.id
+                }
 
                 if let selectedSeasonKey {
                     await loadSeason(selectedSeasonKey)
@@ -224,6 +235,17 @@ final class ShowDetailViewController: UICollectionViewController {
             guard !Task.isCancelled else { return }
             episodes = container.Metadata ?? []
         } catch {}
+    }
+
+    private func reconfigureSeasonChips() {
+        var snapshot = dataSource.snapshot()
+        let seasonItems = snapshot.itemIdentifiers.filter { item in
+            if case .season = item { return true }
+            return false
+        }
+        guard !seasonItems.isEmpty else { return }
+        snapshot.reconfigureItems(seasonItems)
+        Task { await dataSource.apply(snapshot, animatingDifferences: false) }
     }
 
     private func applySnapshot() async {
@@ -252,7 +274,9 @@ final class ShowDetailViewController: UICollectionViewController {
 
         switch item {
         case .season(let season):
+            guard selectedSeasonKey != season.id else { return }
             selectedSeasonKey = season.id
+            reconfigureSeasonChips()
             seasonTask?.cancel()
             seasonTask = Task { [weak self] in
                 guard let self else { return }
@@ -414,8 +438,8 @@ final class ShowHeroContentView: UIView, UIContentView {
         progressStack.spacing = 6
 
         overlayStack.axis = .vertical
-        overlayStack.spacing = 6
-        overlayStack.setCustomSpacing(10, after: overviewLabel)
+        overlayStack.spacing = 8
+        overlayStack.setCustomSpacing(12, after: overviewLabel)
         overlayStack.translatesAutoresizingMaskIntoConstraints = false
         overlayStack.addArrangedSubview(titleLabel)
         overlayStack.addArrangedSubview(metadataLabel)

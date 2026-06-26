@@ -400,7 +400,8 @@ final class MediaDetailViewController: UICollectionViewController {
     private func navigateToShow() {
         let key = showRatingKey ?? metadata?.grandparentRatingKey
         guard let key else { return }
-        let vc = ShowDetailViewController(api: api, showRatingKey: key)
+        let seasonKey = seasonRatingKey ?? metadata?.parentRatingKey
+        let vc = ShowDetailViewController(api: api, showRatingKey: key, initialSeasonKey: seasonKey)
         navigationController?.pushViewController(vc, animated: true)
     }
 }
@@ -490,7 +491,7 @@ final class HeroContentView: UIView, UIContentView {
 
         overlayStack.axis = .vertical
         overlayStack.spacing = 8
-        overlayStack.setCustomSpacing(14, after: badgeStack)
+        overlayStack.setCustomSpacing(12, after: badgeStack)
         overlayStack.alignment = .leading
         overlayStack.translatesAutoresizingMaskIntoConstraints = false
         overlayStack.addArrangedSubview(titleLabel)
