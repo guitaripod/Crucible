@@ -67,7 +67,9 @@ final class FolderBrowserViewController: UICollectionViewController {
     private func createLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             guard let self else { return nil }
-            let sectionIdentifier = dataSource.snapshot().sectionIdentifiers[sectionIndex]
+            let identifiers = dataSource.snapshot().sectionIdentifiers
+            guard sectionIndex < identifiers.count else { return nil }
+            let sectionIdentifier = identifiers[sectionIndex]
 
             if sectionIdentifier == .folders {
                 var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)

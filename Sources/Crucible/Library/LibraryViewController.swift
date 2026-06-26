@@ -2,10 +2,12 @@ import UIKit
 
 final class LibraryViewController: UIViewController {
     private let api: APIClient
-    private var segmentedControl: UISegmentedControl!
+    private var titles: [String] = []
     private var sectionVCs: [UIViewController] = []
+    private var currentIndex = 0
     private var currentChild: UIViewController?
     private var loadTask: Task<Void, Never>?
+    private let titleButton = UIButton(configuration: .plain())
 
     init(api: APIClient) {
         self.api = api
@@ -19,6 +21,7 @@ final class LibraryViewController: UIViewController {
         super.viewDidLoad()
         title = "Library"
         view.backgroundColor = .systemBackground
+        titleButton.showsMenuAsPrimaryAction = true
         loadSections()
     }
 
@@ -48,16 +51,10 @@ final class LibraryViewController: UIViewController {
                     }
                 }
 
-                sectionVCs = vcs
-
-                if titles.count > 1 {
-                    segmentedControl = UISegmentedControl(items: titles)
-                    segmentedControl.selectedSegmentIndex = 0
-                    segmentedControl.addAction(UIAction { [unowned self] _ in
-                        switchSegment()
-                    }, for: .valueChanged)
-                    navigationItem.titleView = segmentedControl
-                }
+                self.titles = titles
+                self.sectionVCs = vcs
+                self.currentIndex = 0
+                configureNavTitle()
 
                 if let first = vcs.first {
                     showChild(first)
@@ -66,12 +63,44 @@ final class LibraryViewController: UIViewController {
         }
     }
 
-    private func switchSegment() {
-        let idx = segmentedControl.selectedSegmentIndex
-        guard idx >= 0, idx < sectionVCs.count else { return }
-        let target = sectionVCs[idx]
-        guard target !== currentChild else { return }
-        showChild(target)
+    private func configureNavTitle() {
+        guard titles.count > 1 else {
+            navigationItem.titleView = nil
+            title = titles.first ?? "Library"
+            return
+        }
+        updateTitleButton()
+        navigationItem.titleView = titleButton
+    }
+
+    private func updateTitleButton() {
+        var config = UIButton.Configuration.plain()
+        config.title = titles[currentIndex]
+        config.image = UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
+        config.imagePlacement = .trailing
+        config.imagePadding = 5
+        config.baseForegroundColor = .label
+        config.titleLineBreakMode = .byTruncatingTail
+        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .systemFont(ofSize: 17, weight: .semibold)
+            return outgoing
+        }
+        titleButton.configuration = config
+        titleButton.menu = UIMenu(children: titles.enumerated().map { index, name in
+            UIAction(title: name, state: index == currentIndex ? .on : .off) { [weak self] _ in
+                self?.selectLibrary(index)
+            }
+        })
+        titleButton.sizeToFit()
+    }
+
+    private func selectLibrary(_ index: Int) {
+        guard index >= 0, index < sectionVCs.count, index != currentIndex else { return }
+        currentIndex = index
+        updateTitleButton()
+        showChild(sectionVCs[index])
     }
 
     private func showChild(_ child: UIViewController) {

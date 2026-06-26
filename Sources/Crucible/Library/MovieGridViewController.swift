@@ -44,7 +44,7 @@ final class MovieGridViewController: UICollectionViewController {
         super.viewDidLoad()
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
-        setupNavigationBar()
+        loadGenres()
 
         let refresh = UIRefreshControl()
         refresh.addAction(UIAction { [unowned self] _ in resetAndLoad() }, for: .valueChanged)
@@ -54,6 +54,7 @@ final class MovieGridViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
+        applyNavItems()
         if dataSource.snapshot().numberOfItems == 0 {
             loadHubs()
             loadPage(offset: 0)
@@ -62,6 +63,7 @@ final class MovieGridViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        (parent ?? self).navigationItem.rightBarButtonItems = nil
         loadTask?.cancel()
     }
 
@@ -71,7 +73,9 @@ final class MovieGridViewController: UICollectionViewController {
 
         return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             guard let self else { return nil }
-            let sectionId = dataSource.snapshot().sectionIdentifiers[sectionIndex]
+            let identifiers = dataSource.snapshot().sectionIdentifiers
+            guard sectionIndex < identifiers.count else { return nil }
+            let sectionId = identifiers[sectionIndex]
 
             if sectionId == .continueWatching {
                 let cardWidth: CGFloat = 140
@@ -152,57 +156,78 @@ final class MovieGridViewController: UICollectionViewController {
         }
     }
 
-    private func setupNavigationBar() {
-        let sortMenu = UIMenu(title: "Sort", children: [
-            UIAction(title: "Title", state: currentSort == "titleSort:asc" ? .on : .off) { [weak self] _ in self?.setSort("titleSort:asc") },
-            UIAction(title: "Year", state: currentSort == "year:desc" ? .on : .off) { [weak self] _ in self?.setSort("year:desc") },
-            UIAction(title: "Added", state: currentSort == "addedAt:desc" ? .on : .off) { [weak self] _ in self?.setSort("addedAt:desc") },
-            UIAction(title: "Rating", state: currentSort == "rating:desc" ? .on : .off) { [weak self] _ in self?.setSort("rating:desc") },
-        ])
+    private lazy var optionsButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
 
-        let sortButton = UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu)
-        let filterButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), primaryAction: nil)
-        let folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
-            guard let self else { return }
-            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
-            navigationController?.pushViewController(vc, animated: true)
-        })
-        parent?.navigationItem.rightBarButtonItems = [filterButton, sortButton, folderButton]
+    private func applyNavItems() {
+        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton]
+        refreshOptionsMenu()
+    }
 
+    private func loadGenres() {
         Task { [weak self] in
             guard let self else { return }
             do {
                 let container = try await api.requestContainer(.sectionGenres(sectionId: sectionId))
                 let dirs = container.Directory ?? []
-                self.allGenres = dirs.compactMap { d in
-                    guard let key = d.key, let title = d.title else { return nil }
+                self.allGenres = dirs.compactMap { dir in
+                    guard let key = dir.key, let title = dir.title else { return nil }
                     return (key: key, title: title)
                 }
-                self.updateFilterMenu()
+                self.refreshOptionsMenu()
             } catch {}
         }
     }
 
-    private func updateFilterMenu() {
-        var actions: [UIAction] = [
-            UIAction(title: "All", state: currentGenre == nil ? .on : .off) { [weak self] _ in self?.setGenre(nil) },
-        ]
-        for genre in allGenres {
-            actions.append(UIAction(title: genre.title, state: currentGenre == genre.key ? .on : .off) { [weak self] _ in self?.setGenre(genre.key) })
+    private func refreshOptionsMenu() {
+        optionsButton.menu = buildOptionsMenu()
+        let filtering = currentGenre != nil
+        optionsButton.image = UIImage(systemName: filtering ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+    }
+
+    private func buildOptionsMenu() -> UIMenu {
+        let sort = UIMenu(title: "Sort By", options: .displayInline, children: [
+            sortAction("Title", "titleSort:asc"),
+            sortAction("Year", "year:desc"),
+            sortAction("Recently Added", "addedAt:desc"),
+            sortAction("Rating", "rating:desc"),
+        ])
+
+        var children: [UIMenuElement] = [sort]
+
+        if !allGenres.isEmpty {
+            var genreActions: [UIAction] = [
+                UIAction(title: "All Genres", state: currentGenre == nil ? .on : .off) { [weak self] _ in self?.setGenre(nil) }
+            ]
+            genreActions += allGenres.map { genre in
+                UIAction(title: genre.title, state: currentGenre == genre.key ? .on : .off) { [weak self] _ in self?.setGenre(genre.key) }
+            }
+            let selectedTitle = allGenres.first { $0.key == currentGenre }?.title ?? "Genre"
+            children.append(UIMenu(title: selectedTitle, image: UIImage(systemName: "tag"), children: genreActions))
         }
-        let menu = UIMenu(title: "Genre", children: actions)
-        parent?.navigationItem.rightBarButtonItems?.first?.menu = menu
+
+        let browse = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
+            guard let self else { return }
+            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
+            navigationController?.pushViewController(vc, animated: true)
+        }
+        children.append(UIMenu(options: .displayInline, children: [browse]))
+
+        return UIMenu(children: children)
+    }
+
+    private func sortAction(_ title: String, _ sort: String) -> UIAction {
+        UIAction(title: title, state: currentSort == sort ? .on : .off) { [weak self] _ in self?.setSort(sort) }
     }
 
     private func setSort(_ sort: String) {
         currentSort = sort
-        setupNavigationBar()
+        refreshOptionsMenu()
         resetAndLoad()
     }
 
     private func setGenre(_ genre: String?) {
         currentGenre = genre
-        updateFilterMenu()
+        refreshOptionsMenu()
         resetAndLoad()
     }
 
@@ -275,14 +300,24 @@ final class MovieGridViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         let m = item.metadata
+        if item.section == "cw", m.mediaType != "show", m.positionSecs > 0 {
+            quickPlay(m)
+            return
+        }
+        openDetail(m)
+    }
+
+    private func openDetail(_ m: PlexMetadata) {
         if m.mediaType == "show" {
-            let vc = ShowDetailViewController(api: api, showRatingKey: m.id)
-            navigationController?.pushViewController(vc, animated: true)
-        } else if m.mediaType == "episode" {
-            let detail = MediaDetailViewController(api: api, ratingKey: m.id, mediaType: "episode", showRatingKey: m.grandparentRatingKey, seasonRatingKey: m.parentRatingKey)
-            navigationController?.pushViewController(detail, animated: true)
+            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: m.id), animated: true)
         } else {
-            let detail = MediaDetailViewController(api: api, ratingKey: m.id, mediaType: "movie")
+            let detail = MediaDetailViewController(
+                api: api,
+                ratingKey: m.id,
+                mediaType: m.mediaType,
+                showRatingKey: m.grandparentRatingKey,
+                seasonRatingKey: m.parentRatingKey
+            )
             navigationController?.pushViewController(detail, animated: true)
         }
     }
@@ -297,23 +332,33 @@ final class MovieGridViewController: UICollectionViewController {
         let m = item.metadata
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
-            return UIMenu(children: [
-                UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+            var actions = [UIMenuElement]()
+            if m.mediaType != "show" {
+                actions.append(UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                    self?.quickPlay(m)
+                })
+            }
+            actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.openDetail(m)
+            })
+            if m.mediaType == "episode", let showKey = m.grandparentRatingKey {
+                actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
                     guard let self else { return }
-                    self.quickPlay(m)
-                },
-                UIAction(title: m.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: m.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
-                    guard let self else { return }
-                    Task {
-                        if m.isWatched {
-                            try? await self.api.requestVoid(.unscrobble(ratingKey: m.id))
-                        } else {
-                            try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
-                        }
-                        self.resetAndLoad()
+                    self.navigationController?.pushViewController(ShowDetailViewController(api: self.api, showRatingKey: showKey), animated: true)
+                })
+            }
+            actions.append(UIAction(title: m.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: m.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
+                guard let self else { return }
+                Task {
+                    if m.isWatched {
+                        try? await self.api.requestVoid(.unscrobble(ratingKey: m.id))
+                    } else {
+                        try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
                     }
-                },
-            ])
+                    self.resetAndLoad()
+                }
+            })
+            return UIMenu(children: actions)
         })
     }
 
@@ -326,10 +371,11 @@ final class MovieGridViewController: UICollectionViewController {
 
 extension MovieGridViewController: UICollectionViewDataSourcePrefetching {
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
-        let gridSection = dataSource.snapshot().indexOfSection(.grid)
+        let snapshot = dataSource.snapshot()
+        guard let gridSection = snapshot.sectionIdentifiers.firstIndex(of: .grid) else { return }
         let gridPaths = indexPaths.filter { $0.section == gridSection }
         guard !gridPaths.isEmpty else { return }
-        let itemCount = dataSource.snapshot().numberOfItems(inSection: .grid)
+        let itemCount = snapshot.numberOfItems(inSection: .grid)
         let threshold = itemCount - 10
         if gridPaths.contains(where: { $0.item >= threshold }),
            currentOffset < totalSize,

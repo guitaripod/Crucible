@@ -43,7 +43,6 @@ final class ShowGridViewController: UICollectionViewController {
         super.viewDidLoad()
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
-        setupNavigationBar()
 
         let refresh = UIRefreshControl()
         refresh.addAction(UIAction { [unowned self] _ in resetAndLoad() }, for: .valueChanged)
@@ -53,6 +52,7 @@ final class ShowGridViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
+        applyNavItems()
         if dataSource.snapshot().numberOfItems == 0 {
             loadHubs()
             loadPage(offset: 0)
@@ -61,6 +61,7 @@ final class ShowGridViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        (parent ?? self).navigationItem.rightBarButtonItems = nil
         loadTask?.cancel()
     }
 
@@ -70,7 +71,9 @@ final class ShowGridViewController: UICollectionViewController {
 
         return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             guard let self else { return nil }
-            let sectionId = dataSource.snapshot().sectionIdentifiers[sectionIndex]
+            let identifiers = dataSource.snapshot().sectionIdentifiers
+            guard sectionIndex < identifiers.count else { return nil }
+            let sectionId = identifiers[sectionIndex]
 
             if sectionId == .continueWatching {
                 let cardWidth: CGFloat = 140
@@ -162,26 +165,38 @@ final class ShowGridViewController: UICollectionViewController {
         }
     }
 
-    private func setupNavigationBar() {
-        let sortMenu = UIMenu(title: "Sort", children: [
-            UIAction(title: "Name", state: currentSort == "titleSort:asc" ? .on : .off) { [weak self] _ in self?.setSort("titleSort:asc") },
-            UIAction(title: "Added", state: currentSort == "addedAt:desc" ? .on : .off) { [weak self] _ in self?.setSort("addedAt:desc") },
-            UIAction(title: "Rating", state: currentSort == "rating:desc" ? .on : .off) { [weak self] _ in self?.setSort("rating:desc") },
+    private lazy var optionsButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
+
+    private func applyNavItems() {
+        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton]
+        refreshOptionsMenu()
+    }
+
+    private func refreshOptionsMenu() {
+        optionsButton.menu = buildOptionsMenu()
+    }
+
+    private func buildOptionsMenu() -> UIMenu {
+        let sort = UIMenu(title: "Sort By", options: .displayInline, children: [
+            sortAction("Name", "titleSort:asc"),
+            sortAction("Recently Added", "addedAt:desc"),
+            sortAction("Rating", "rating:desc"),
         ])
-        let folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
+        let browse = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
             guard let self else { return }
             let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
             navigationController?.pushViewController(vc, animated: true)
-        })
-        parent?.navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu),
-            folderButton,
-        ]
+        }
+        return UIMenu(children: [sort, UIMenu(options: .displayInline, children: [browse])])
+    }
+
+    private func sortAction(_ title: String, _ sort: String) -> UIAction {
+        UIAction(title: title, state: currentSort == sort ? .on : .off) { [weak self] _ in self?.setSort(sort) }
     }
 
     private func setSort(_ sort: String) {
         currentSort = sort
-        setupNavigationBar()
+        refreshOptionsMenu()
         resetAndLoad()
     }
 
@@ -252,12 +267,25 @@ final class ShowGridViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         let m = item.metadata
+        if item.section == "cw", m.mediaType != "show", m.positionSecs > 0 {
+            quickPlay(m)
+            return
+        }
+        openDetail(m)
+    }
+
+    private func openDetail(_ m: PlexMetadata) {
         if m.mediaType == "episode" {
-            let detail = MediaDetailViewController(api: api, ratingKey: m.id, mediaType: "episode", showRatingKey: m.grandparentRatingKey, seasonRatingKey: m.parentRatingKey)
+            let detail = MediaDetailViewController(
+                api: api,
+                ratingKey: m.id,
+                mediaType: "episode",
+                showRatingKey: m.grandparentRatingKey,
+                seasonRatingKey: m.parentRatingKey
+            )
             navigationController?.pushViewController(detail, animated: true)
         } else {
-            let detail = ShowDetailViewController(api: api, showRatingKey: m.id)
-            navigationController?.pushViewController(detail, animated: true)
+            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: m.id), animated: true)
         }
     }
 
@@ -279,6 +307,15 @@ final class ShowGridViewController: UICollectionViewController {
                 actions.append(UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     guard let self else { return }
                     self.quickPlay(m)
+                })
+            }
+            actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.openDetail(m)
+            })
+            if m.mediaType == "episode", let showKey = m.grandparentRatingKey {
+                actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
+                    guard let self else { return }
+                    self.navigationController?.pushViewController(ShowDetailViewController(api: self.api, showRatingKey: showKey), animated: true)
                 })
             }
             actions.append(UIAction(title: allWatched ? "Mark All Unwatched" : "Mark All Watched", image: UIImage(systemName: allWatched ? "eye.slash" : "checkmark.circle.fill")) { [weak self] _ in
