@@ -90,31 +90,42 @@ final class ShowDetailViewController: UICollectionViewController {
         }
 
         let seasonReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [unowned self] cell, _, season in
-            var config = UIButton.Configuration.gray()
+            let button = (cell.contentView.subviews.first as? UIButton) ?? {
+                let created = UIButton()
+                created.isUserInteractionEnabled = false
+                created.translatesAutoresizingMaskIntoConstraints = false
+                cell.contentView.addSubview(created)
+                NSLayoutConstraint.activate([
+                    created.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
+                    created.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
+                    created.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
+                    created.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
+                ])
+                return created
+            }()
+            var config: UIButton.Configuration
+            if self.selectedSeasonKey == season.id {
+                config = Glass.prominentButton {
+                    var c = UIButton.Configuration.gray()
+                    c.baseBackgroundColor = .systemOrange
+                    c.baseForegroundColor = .white
+                    return c
+                }
+            } else {
+                config = Glass.clearGlassButton { UIButton.Configuration.gray() }
+            }
             config.title = "Season \(season.index ?? 0)"
             config.cornerStyle = .capsule
             config.buttonSize = .small
-            if self.selectedSeasonKey == season.id {
-                config.baseBackgroundColor = .systemOrange
-                config.baseForegroundColor = .white
-            }
-            let button = UIButton(configuration: config)
-            button.isUserInteractionEnabled = false
-            button.translatesAutoresizingMaskIntoConstraints = false
-            cell.contentView.subviews.forEach { $0.removeFromSuperview() }
-            cell.contentView.addSubview(button)
-            NSLayoutConstraint.activate([
-                button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
-                button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
-                button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
-                button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-            ])
+            button.configuration = config
         }
 
         let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, episode in
             var config = EpisodeContentConfiguration()
             config.episodeNumber = episode.index
             config.title = episode.title
+            config.summary = episode.summary
+            config.thumbPath = episode.thumb
             config.duration = Formatters.duration(episode.durationSecs)
             config.isWatched = episode.isWatched
             if !episode.isWatched && episode.positionSecs > 0 && episode.durationSecs > 0 {
@@ -124,10 +135,13 @@ final class ShowDetailViewController: UICollectionViewController {
         }
 
         let actionReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
-            var buttonConfig = UIButton.Configuration.tinted()
+            var buttonConfig = Glass.glassButton {
+                var config = UIButton.Configuration.tinted()
+                config.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
+                config.baseForegroundColor = .systemOrange
+                return config
+            }
             buttonConfig.cornerStyle = .large
-            buttonConfig.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
-            buttonConfig.baseForegroundColor = .systemOrange
             switch action {
             case "watchAll":
                 buttonConfig.title = "Mark All Watched"
@@ -147,6 +161,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     case "unwatchAll": try? await self.api.requestVoid(.unscrobble(ratingKey: self.showRatingKey))
                     default: break
                     }
+                    await self.api.invalidateCache()
                     self.loadData()
                 }
             }, for: .touchUpInside)
@@ -259,33 +274,66 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    private var playerCoordinator: PlayerCoordinator?
+
+    private func quickPlay(_ item: PlexMetadata) {
+        playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
+    }
+
     override func collectionView(
         _ collectionView: UICollectionView,
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
         guard let indexPath = indexPaths.first,
-              let item = dataSource.itemIdentifier(for: indexPath),
-              case .season(let season) = item else { return nil }
-        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            guard let self else { return nil }
-            return UIMenu(children: [
-                UIAction(title: "Mark Season Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
-                    guard let self else { return }
-                    Task {
-                        try? await self.api.requestVoid(.scrobble(ratingKey: season.id))
-                        self.loadData()
-                    }
-                },
-                UIAction(title: "Mark Season Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
-                    guard let self else { return }
-                    Task {
-                        try? await self.api.requestVoid(.unscrobble(ratingKey: season.id))
-                        self.loadData()
-                    }
-                },
-            ])
-        })
+              let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        switch item {
+        case .season(let season):
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                guard let self else { return nil }
+                return UIMenu(children: [
+                    UIAction(title: "Mark Season Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
+                        guard let self else { return }
+                        Task {
+                            try? await self.api.requestVoid(.scrobble(ratingKey: season.id))
+                            await self.api.invalidateCache()
+                            self.loadData()
+                        }
+                    },
+                    UIAction(title: "Mark Season Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
+                        guard let self else { return }
+                        Task {
+                            try? await self.api.requestVoid(.unscrobble(ratingKey: season.id))
+                            await self.api.invalidateCache()
+                            self.loadData()
+                        }
+                    },
+                ])
+            })
+        case .episode(let episode):
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                guard let self else { return nil }
+                return UIMenu(children: [
+                    UIAction(title: episode.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                        self?.quickPlay(episode)
+                    },
+                    UIAction(title: episode.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: episode.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
+                        guard let self else { return }
+                        Task {
+                            if episode.isWatched {
+                                try? await self.api.requestVoid(.unscrobble(ratingKey: episode.id))
+                            } else {
+                                try? await self.api.requestVoid(.scrobble(ratingKey: episode.id))
+                            }
+                            await self.api.invalidateCache()
+                            self.loadData()
+                        }
+                    },
+                ])
+            })
+        default:
+            return nil
+        }
     }
 }
 
@@ -394,6 +442,8 @@ final class ShowHeroContentView: UIView, UIContentView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit { imageTask?.cancel() }
 
     override func layoutSubviews() {
         super.layoutSubviews()

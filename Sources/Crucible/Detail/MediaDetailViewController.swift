@@ -153,10 +153,13 @@ final class MediaDetailViewController: UICollectionViewController {
         }
 
         let actionCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
-            var buttonConfig = UIButton.Configuration.tinted()
+            var buttonConfig = Glass.glassButton {
+                var config = UIButton.Configuration.tinted()
+                config.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
+                config.baseForegroundColor = .systemOrange
+                return config
+            }
             buttonConfig.cornerStyle = .large
-            buttonConfig.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
-            buttonConfig.baseForegroundColor = .systemOrange
             switch action {
             case "watched":
                 let watched = self.metadata?.isWatched == true
@@ -305,16 +308,28 @@ final class MediaDetailViewController: UICollectionViewController {
         case .subtitle(let sub):
             guard !sub.isBitmap else { return }
             selectedSubtitleId = sub.id
-            Task { await applySnapshot() }
+            reconfigureTrackSections()
         case .subtitleNone:
             selectedSubtitleId = nil
-            Task { await applySnapshot() }
+            reconfigureTrackSections()
         case .audioTrack(let track):
             selectedAudioTrackId = track.id
-            Task { await applySnapshot() }
+            reconfigureTrackSections()
         default:
             break
         }
+    }
+
+    private func reconfigureTrackSections() {
+        var snapshot = dataSource.snapshot()
+        let items = snapshot.itemIdentifiers.filter { item in
+            switch item {
+            case .subtitle, .subtitleNone, .audioTrack: return true
+            default: return false
+            }
+        }
+        snapshot.reconfigureItems(items)
+        Task { await dataSource.apply(snapshot, animatingDifferences: false) }
     }
 
     private func play() {
@@ -334,8 +349,11 @@ final class MediaDetailViewController: UICollectionViewController {
             showRatingKey: showRatingKey ?? metadata.grandparentRatingKey,
             seasonRatingKey: seasonRatingKey ?? metadata.parentRatingKey,
             resumePosition: metadata.positionSecs,
-            metadata: meta
+            metadata: meta,
+            selectedSubtitleId: selectedSubtitleId,
+            selectedAudioStreamId: selectedAudioTrackId
         )
+        coordinator.onAdvanceToNext = { [weak self] next in self?.playerCoordinator = next }
         self.playerCoordinator = coordinator
         coordinator.present(from: self)
     }
@@ -350,6 +368,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 } else {
                     try await api.requestVoid(.scrobble(ratingKey: ratingKey))
                 }
+                await api.invalidateCache()
                 loadData()
             } catch {}
         }
@@ -504,6 +523,8 @@ final class HeroContentView: UIView, UIContentView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit { imageTask?.cancel() }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = backdropImageView.bounds
@@ -539,12 +560,15 @@ final class HeroContentView: UIView, UIContentView {
             badgeStack.addArrangedSubview(makeBadge(codec.uppercased()))
         }
 
-        var playConfig = UIButton.Configuration.filled()
+        var playConfig = Glass.prominentButton {
+            var config = UIButton.Configuration.filled()
+            config.baseBackgroundColor = .systemOrange
+            config.baseForegroundColor = .white
+            return config
+        }
         playConfig.image = UIImage(systemName: "play.fill")
         playConfig.imagePadding = 10
         playConfig.cornerStyle = .large
-        playConfig.baseBackgroundColor = .systemOrange
-        playConfig.baseForegroundColor = .white
         if item.positionSecs > 0 {
             playConfig.title = "Resume from \(Formatters.timestamp(item.positionSecs))"
         } else {
@@ -599,20 +623,32 @@ final class HeroContentView: UIView, UIContentView {
         label.text = text
         label.font = .systemFont(ofSize: 10, weight: .bold)
         label.textColor = UIColor.white.withAlphaComponent(0.9)
-
-        let container = UIView()
-        container.backgroundColor = UIColor.white.withAlphaComponent(0.15)
-        container.layer.cornerRadius = 4
-        container.layer.cornerCurve = .continuous
-        container.layer.borderWidth = 0.5
-        container.layer.borderColor = UIColor.white.withAlphaComponent(0.2).cgColor
         label.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(label)
+
+        let container: UIView
+        let host: UIView
+        if #available(iOS 26.0, tvOS 26.0, *) {
+            let effectView = UIVisualEffectView(effect: UIGlassEffect(style: .regular))
+            effectView.cornerConfiguration = .corners(radius: .containerConcentric())
+            container = effectView
+            host = effectView.contentView
+        } else {
+            let view = UIView()
+            view.backgroundColor = UIColor.white.withAlphaComponent(0.15)
+            view.layer.cornerRadius = 4
+            view.layer.cornerCurve = .continuous
+            view.layer.borderWidth = 0.5
+            view.layer.borderColor = UIColor.white.withAlphaComponent(0.2).cgColor
+            container = view
+            host = view
+        }
+        container.clipsToBounds = true
+        host.addSubview(label)
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 3),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -3),
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
+            label.topAnchor.constraint(equalTo: host.topAnchor, constant: 3),
+            label.bottomAnchor.constraint(equalTo: host.bottomAnchor, constant: -3),
+            label.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: 8),
+            label.trailingAnchor.constraint(equalTo: host.trailingAnchor, constant: -8),
         ])
         return container
     }
