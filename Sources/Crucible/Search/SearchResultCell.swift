@@ -61,12 +61,12 @@ final class SearchResultContentView: UIView, UIContentView {
 
         let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel, typeBadge])
         textStack.axis = .vertical
-        textStack.spacing = 3
+        textStack.spacing = 5
         textStack.alignment = .leading
 
         let mainStack = UIStackView(arrangedSubviews: [posterImageView, textStack])
         mainStack.axis = .horizontal
-        mainStack.spacing = 14
+        mainStack.spacing = 12
         mainStack.alignment = .center
         mainStack.translatesAutoresizingMaskIntoConstraints = false
 

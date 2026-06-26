@@ -104,8 +104,8 @@ final class EpisodeContentView: UIView, UIContentView {
 
         let textStack = UIStackView(arrangedSubviews: [eyebrowLabel, titleLabel, summaryLabel, metaLabel])
         textStack.axis = .vertical
-        textStack.spacing = 3
-        textStack.setCustomSpacing(5, after: summaryLabel)
+        textStack.spacing = 4
+        textStack.setCustomSpacing(8, after: summaryLabel)
 
         let mainStack = UIStackView(arrangedSubviews: [thumbContainer, textStack])
         mainStack.axis = .horizontal

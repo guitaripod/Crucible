@@ -86,7 +86,7 @@ final class PosterContentView: UIView, UIContentView {
 
         let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
         textStack.axis = .vertical
-        textStack.spacing = 1
+        textStack.spacing = 2
         textStack.translatesAutoresizingMaskIntoConstraints = false
 
         progressBar.translatesAutoresizingMaskIntoConstraints = false
