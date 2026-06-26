@@ -33,14 +33,18 @@ final class ServerSetupViewController: UIViewController {
         subtitleLabel.textColor = .tertiaryLabel
         subtitleLabel.textAlignment = .center
 
-        var config = UIButton.Configuration.filled()
+        var config = Glass.prominentButton {
+            var fallback = UIButton.Configuration.filled()
+            fallback.baseBackgroundColor = .systemOrange
+            fallback.baseForegroundColor = .white
+            return fallback
+        }
         config.title = "Sign in with Plex"
         config.image = UIImage(systemName: "play.fill")
         config.imagePadding = 10
         config.cornerStyle = .large
-        config.baseBackgroundColor = .systemOrange
-        config.baseForegroundColor = .white
         config.buttonSize = .large
+        signInButton.tintColor = .systemOrange
         signInButton.configuration = config
         signInButton.addAction(UIAction { [unowned self] _ in startAuth() }, for: .touchUpInside)
 
@@ -240,10 +244,10 @@ final class PlexWebAuthViewController: UIViewController {
         webView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(webView)
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
 
         webView.load(URLRequest(url: url))

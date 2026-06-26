@@ -7,6 +7,8 @@ struct HistoryItem: Hashable, Sendable {
     let viewedAt: Int?
     let thumb: String?
     let grandparentTitle: String?
+    let grandparentRatingKey: String?
+    let parentRatingKey: String?
     let parentIndex: Int?
     let index: Int?
     let uniqueId: String
@@ -110,6 +112,8 @@ final class ActivityHistoryViewController: UICollectionViewController {
                         viewedAt: m.lastViewedAt ?? m.addedAt,
                         thumb: m.thumb,
                         grandparentTitle: m.grandparentTitle,
+                        grandparentRatingKey: m.grandparentRatingKey,
+                        parentRatingKey: m.parentRatingKey,
                         parentIndex: m.parentIndex,
                         index: m.index,
                         uniqueId: "\(m.id)-\(offset + idx)"
@@ -150,7 +154,13 @@ final class ActivityHistoryViewController: UICollectionViewController {
 
         switch entry.type {
         case "episode":
-            let vc = MediaDetailViewController(api: api, ratingKey: entry.ratingKey, mediaType: "episode")
+            let vc = MediaDetailViewController(
+                api: api,
+                ratingKey: entry.ratingKey,
+                mediaType: "episode",
+                showRatingKey: entry.grandparentRatingKey,
+                seasonRatingKey: entry.parentRatingKey
+            )
             navigationController?.pushViewController(vc, animated: true)
         case "show":
             let vc = ShowDetailViewController(api: api, showRatingKey: entry.ratingKey)

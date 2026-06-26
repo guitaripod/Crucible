@@ -8,7 +8,7 @@ final class SettingsViewController: UICollectionViewController {
     enum Item: Hashable {
         case serverName(String)
         case serverURI(String)
-        case library(String, String)
+        case library(key: String, type: String, name: String, count: String)
         case activityHistory
         case signOut
         case appVersion(String)
@@ -71,14 +71,14 @@ final class SettingsViewController: UICollectionViewController {
                 cell.contentConfiguration = config
                 cell.accessories = []
 
-            case .library(let name, let count):
+            case .library(_, _, let name, let count):
                 var config = UIListContentConfiguration.valueCell()
                 config.text = name
                 config.secondaryText = count
                 config.image = UIImage(systemName: "rectangle.stack.fill")
                 config.imageProperties.tintColor = .systemOrange
                 cell.contentConfiguration = config
-                cell.accessories = []
+                cell.accessories = [.disclosureIndicator()]
 
             case .activityHistory:
                 var config = UIListContentConfiguration.cell()
@@ -148,7 +148,7 @@ final class SettingsViewController: UICollectionViewController {
                         .sectionItems(sectionId: key, start: 0, size: 0)
                     )
                     let count = sectionContainer.totalSize ?? 0
-                    libraryItems.append(.library(dir.title ?? "Library", "\(count) items"))
+                    libraryItems.append(.library(key: key, type: dir.type ?? "movie", name: dir.title ?? "Library", count: "\(count) items"))
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -183,6 +183,13 @@ final class SettingsViewController: UICollectionViewController {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
+        case .library(let key, let type, let name, _):
+            let vc: UIViewController = type == "show"
+                ? ShowGridViewController(api: api, sectionId: key)
+                : MovieGridViewController(api: api, sectionId: key)
+            vc.title = name
+            navigationController?.pushViewController(vc, animated: true)
+
         case .activityHistory:
             let vc = ActivityHistoryViewController(api: api)
             navigationController?.pushViewController(vc, animated: true)

@@ -119,15 +119,18 @@ final class HomeViewController: UICollectionViewController {
         }
 
         let surpriseReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { cell, _, _ in
-            var config = UIButton.Configuration.filled()
+            var config = Glass.glassButton {
+                var fallback = UIButton.Configuration.filled()
+                fallback.baseBackgroundColor = UIColor.systemOrange.withAlphaComponent(0.15)
+                fallback.baseForegroundColor = .systemOrange
+                return fallback
+            }
             config.title = "Surprise Me"
             config.subtitle = "Pick something random"
             config.titleAlignment = .leading
             config.image = UIImage(systemName: "sparkles", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20))
             config.imagePadding = 14
             config.cornerStyle = .large
-            config.baseBackgroundColor = UIColor.systemOrange.withAlphaComponent(0.15)
-            config.baseForegroundColor = .systemOrange
             let button = UIButton(configuration: config)
             button.translatesAutoresizingMaskIntoConstraints = false
             cell.contentView.subviews.forEach { $0.removeFromSuperview() }
@@ -210,7 +213,7 @@ final class HomeViewController: UICollectionViewController {
                 snapshot.appendSections([.surpriseMe])
                 snapshot.appendItems([.surpriseMe], toSection: .surpriseMe)
 
-                await self.dataSource.apply(snapshot, animatingDifferences: true)
+                await self.dataSource.apply(snapshot, animatingDifferences: false)
                 self.collectionView.refreshControl?.endRefreshing()
 
                 if continueItems.isEmpty && onDeckItems.isEmpty && recentItems.isEmpty {
@@ -239,20 +242,12 @@ final class HomeViewController: UICollectionViewController {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
-        case .media(let m, _):
-            if m.mediaType == "show" {
-                let detail = ShowDetailViewController(api: api, showRatingKey: m.id)
-                navigationController?.pushViewController(detail, animated: true)
-            } else {
-                let detail = MediaDetailViewController(
-                    api: api,
-                    ratingKey: m.id,
-                    mediaType: m.mediaType,
-                    showRatingKey: m.grandparentRatingKey,
-                    seasonRatingKey: m.parentRatingKey
-                )
-                navigationController?.pushViewController(detail, animated: true)
+        case .media(let m, let section):
+            if (section == "cw" || section == "od"), m.mediaType != "show", m.positionSecs > 0 {
+                quickPlay(m)
+                return
             }
+            openDetail(m)
         case .surpriseMe:
             Task { [weak self] in
                 guard let self else { return }
@@ -290,6 +285,11 @@ final class HomeViewController: UICollectionViewController {
                 })
             }
 
+            actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                guard let self else { return }
+                openDetail(m)
+            })
+
             if m.mediaType == "episode", let showKey = m.grandparentRatingKey {
                 actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
                     guard let self else { return }
@@ -312,6 +312,21 @@ final class HomeViewController: UICollectionViewController {
 
             return UIMenu(children: actions)
         })
+    }
+
+    private func openDetail(_ m: PlexMetadata) {
+        if m.mediaType == "show" {
+            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: m.id), animated: true)
+        } else {
+            let detail = MediaDetailViewController(
+                api: api,
+                ratingKey: m.id,
+                mediaType: m.mediaType,
+                showRatingKey: m.grandparentRatingKey,
+                seasonRatingKey: m.parentRatingKey
+            )
+            navigationController?.pushViewController(detail, animated: true)
+        }
     }
 
     private var playerCoordinator: PlayerCoordinator?

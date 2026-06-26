@@ -101,7 +101,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
                 var snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
                 snapshot.appendSections([0])
                 snapshot.appendItems(results, toSection: 0)
-                await dataSource.apply(snapshot, animatingDifferences: true)
+                await dataSource.apply(snapshot, animatingDifferences: false)
 
                 if results.isEmpty {
                     var config = UIContentUnavailableConfiguration.search()
@@ -137,5 +137,45 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             let vc = MediaDetailViewController(api: api, ratingKey: result.id, mediaType: "movie")
             navigationController?.pushViewController(vc, animated: true)
         }
+    }
+
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let indexPath = indexPaths.first, let m = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            guard let self else { return nil }
+            var actions = [UIMenuElement]()
+            if m.mediaType != "show" {
+                actions.append(UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                    self?.quickPlay(m)
+                })
+            }
+            if m.mediaType == "episode", let showKey = m.grandparentRatingKey {
+                actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
+                    guard let self else { return }
+                    self.navigationController?.pushViewController(ShowDetailViewController(api: self.api, showRatingKey: showKey), animated: true)
+                })
+            }
+            actions.append(UIAction(title: m.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: m.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
+                guard let self else { return }
+                Task {
+                    if m.isWatched {
+                        try? await self.api.requestVoid(.unscrobble(ratingKey: m.id))
+                    } else {
+                        try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
+                    }
+                }
+            })
+            return UIMenu(children: actions)
+        })
+    }
+
+    private var playerCoordinator: PlayerCoordinator?
+
+    private func quickPlay(_ item: PlexMetadata) {
+        playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
     }
 }
