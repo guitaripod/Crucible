@@ -157,9 +157,13 @@ final class MovieGridViewController: UICollectionViewController {
     }
 
     private lazy var optionsButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
+    private lazy var folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
+        guard let self else { return }
+        navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
+    })
 
     private func applyNavItems() {
-        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton]
+        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton, folderButton]
         refreshOptionsMenu()
     }
 
@@ -204,13 +208,6 @@ final class MovieGridViewController: UICollectionViewController {
             let selectedTitle = allGenres.first { $0.key == currentGenre }?.title ?? "Genre"
             children.append(UIMenu(title: selectedTitle, image: UIImage(systemName: "tag"), children: genreActions))
         }
-
-        let browse = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
-            guard let self else { return }
-            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
-            navigationController?.pushViewController(vc, animated: true)
-        }
-        children.append(UIMenu(options: .displayInline, children: [browse]))
 
         return UIMenu(children: children)
     }

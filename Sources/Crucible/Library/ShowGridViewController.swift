@@ -166,9 +166,13 @@ final class ShowGridViewController: UICollectionViewController {
     }
 
     private lazy var optionsButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
+    private lazy var folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
+        guard let self else { return }
+        navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
+    })
 
     private func applyNavItems() {
-        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton]
+        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton, folderButton]
         refreshOptionsMenu()
     }
 
@@ -182,12 +186,7 @@ final class ShowGridViewController: UICollectionViewController {
             sortAction("Recently Added", "addedAt:desc"),
             sortAction("Rating", "rating:desc"),
         ])
-        let browse = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
-            guard let self else { return }
-            let vc = FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders")
-            navigationController?.pushViewController(vc, animated: true)
-        }
-        return UIMenu(children: [sort, UIMenu(options: .displayInline, children: [browse])])
+        return UIMenu(children: [sort])
     }
 
     private func sortAction(_ title: String, _ sort: String) -> UIAction {
