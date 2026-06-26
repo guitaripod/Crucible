@@ -7,8 +7,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         NSSetUncaughtExceptionHandler { exception in
-            NSLog("CRUCIBLE EXCEPTION: %@ - %@", exception.name.rawValue, exception.reason ?? "no reason")
+            let stack = exception.callStackSymbols.joined(separator: "\n")
+            AppLogger.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", .lifecycle, sync: true)
         }
+        AppLogger.notice("App launched (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         application.beginReceivingRemoteControlEvents()
         return true
