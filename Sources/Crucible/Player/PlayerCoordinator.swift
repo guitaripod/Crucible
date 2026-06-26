@@ -42,6 +42,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var pingTask: Task<Void, Never>?
     private var seekObserver: (any NSObjectProtocol)?
     private var isRestarting = false
+    private var lastPlayhead: Double = 0
     private weak var presentingVC: UIViewController?
     private var nextCoordinator: PlayerCoordinator?
     private weak var spinnerView: UIActivityIndicatorView?
@@ -226,13 +227,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func setupNowPlayingObserver() {
         guard let player else { return }
         nowPlayingObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 5, preferredTimescale: 1),
+            forInterval: CMTime(seconds: 1, preferredTimescale: 1),
             queue: .main
         ) { [weak self] time in
             let seconds = time.seconds
             guard seconds.isFinite, seconds >= 0 else { return }
             Task { @MainActor in
                 guard let self, let player = self.player else { return }
+                self.lastPlayhead = seconds
                 self.nowPlaying?.updateElapsed(seconds + self.currentStreamOffset, rate: Double(player.rate))
             }
         }
@@ -256,8 +258,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private func handleSeek() {
         guard !isRestarting, let item = player?.currentItem else { return }
-        let target = currentStreamOffset + max(0, item.currentTime().seconds)
-        restartTranscode(atAbsolute: target)
+        let now = item.currentTime().seconds
+        guard now.isFinite else { return }
+        let jump = abs(now - lastPlayhead)
+        lastPlayhead = now
+        guard jump > 5 else { return }
+        restartTranscode(atAbsolute: currentStreamOffset + max(0, now))
     }
 
     private func restartTranscode(atAbsolute target: Double) {
@@ -271,6 +277,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         ) else { return }
 
         isRestarting = true
+        lastPlayhead = 0
         AppLogger.notice("Scrub: restarting transcode at \(Int(target))s", .playback)
         currentStreamOffset = target
         reporter?.setStreamOffset(target)
