@@ -30,6 +30,7 @@ final class MovieGridViewController: UICollectionViewController {
     private var currentGenre: String?
     private var allGenres: [(key: String, title: String)] = []
     private var continueWatchingItems: [PlexMetadata] = []
+    private var metadataById: [String: PlexMetadata] = [:]
 
     init(api: APIClient, sectionId: String) {
         self.api = api
@@ -58,6 +59,8 @@ final class MovieGridViewController: UICollectionViewController {
         if dataSource.snapshot().numberOfItems == 0 {
             loadHubs()
             loadPage(offset: 0)
+        } else {
+            loadHubs()
         }
     }
 
@@ -99,25 +102,26 @@ final class MovieGridViewController: UICollectionViewController {
     private func configureDataSource() {
         let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, GridItem> { [weak self] cell, _, item in
             guard let self else { return }
+            let m = self.metadataById[item.metadata.id] ?? item.metadata
             var config = PosterContentConfiguration()
-            config.posterPath = item.metadata.thumb ?? item.metadata.grandparentThumb
-            config.title = item.metadata.title
+            config.posterPath = m.thumb ?? m.grandparentThumb
+            config.title = m.title
             if item.section == "cw" {
-                if item.metadata.mediaType == "episode", let show = item.metadata.grandparentTitle {
+                if m.mediaType == "episode", let show = m.grandparentTitle {
                     config.title = show
                     var sub = [String]()
-                    if let code = Formatters.episodeCode(item.metadata.parentIndex, item.metadata.index) { sub.append(code) }
-                    sub.append(item.metadata.title)
+                    if let code = Formatters.episodeCode(m.parentIndex, m.index) { sub.append(code) }
+                    sub.append(m.title)
                     config.subtitle = sub.joined(separator: " · ")
                     config.placeholderIcon = "tv"
                 }
-                config.progress = item.metadata.progressPercent
+                config.progress = m.progressPercent
                 config.showPlayButton = true
                 config.onQuickPlay = { [weak self] in
-                    self?.quickPlay(item.metadata)
+                    self?.quickPlay(m)
                 }
             } else {
-                if let year = item.metadata.year { config.subtitle = "\(year)" }
+                if let year = m.year { config.subtitle = "\(year)" }
             }
             cell.contentConfiguration = config
         }
@@ -278,6 +282,10 @@ final class MovieGridViewController: UICollectionViewController {
     }
 
     private func applyFullSnapshot() {
+        metadataById = Dictionary(
+            (continueWatchingItems + gridItems).map { ($0.id, $0) },
+            uniquingKeysWith: { _, latest in latest }
+        )
         var snapshot = NSDiffableDataSourceSnapshot<SectionKind, GridItem>()
 
         if !continueWatchingItems.isEmpty {
@@ -290,6 +298,11 @@ final class MovieGridViewController: UICollectionViewController {
 
         Task {
             await dataSource.apply(snapshot, animatingDifferences: false)
+            var refreshed = dataSource.snapshot()
+            if !refreshed.itemIdentifiers.isEmpty {
+                refreshed.reconfigureItems(refreshed.itemIdentifiers)
+                await dataSource.apply(refreshed, animatingDifferences: false)
+            }
         }
     }
 
@@ -352,6 +365,7 @@ final class MovieGridViewController: UICollectionViewController {
                     } else {
                         try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
                     }
+                    await self.api.invalidateCache()
                     self.resetAndLoad()
                 }
             })

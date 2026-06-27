@@ -167,6 +167,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
                     } else {
                         try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
                     }
+                    await self.api.invalidateCache()
                 }
             })
             return UIMenu(children: actions)

@@ -29,6 +29,7 @@ final class ShowGridViewController: UICollectionViewController {
     private var currentSort = "titleSort:asc"
     private var continueWatchingItems: [PlexMetadata] = []
     private var gridItems: [PlexMetadata] = []
+    private var metadataById: [String: PlexMetadata] = [:]
 
     init(api: APIClient, sectionId: String) {
         self.api = api
@@ -56,6 +57,8 @@ final class ShowGridViewController: UICollectionViewController {
         if dataSource.snapshot().numberOfItems == 0 {
             loadHubs()
             loadPage(offset: 0)
+        } else {
+            loadHubs()
         }
     }
 
@@ -97,34 +100,35 @@ final class ShowGridViewController: UICollectionViewController {
     private func configureDataSource() {
         let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, GridItem> { [weak self] cell, _, item in
             guard let self else { return }
+            let m = self.metadataById[item.metadata.id] ?? item.metadata
             var config = PosterContentConfiguration()
-            config.posterPath = item.metadata.thumb ?? item.metadata.grandparentThumb
+            config.posterPath = m.thumb ?? m.grandparentThumb
             if item.section == "cw" {
-                if let show = item.metadata.grandparentTitle {
+                if let show = m.grandparentTitle {
                     config.title = show
                     var sub = [String]()
-                    if let code = Formatters.episodeCode(item.metadata.parentIndex, item.metadata.index) { sub.append(code) }
-                    sub.append(item.metadata.title)
+                    if let code = Formatters.episodeCode(m.parentIndex, m.index) { sub.append(code) }
+                    sub.append(m.title)
                     config.subtitle = sub.joined(separator: " · ")
                 } else {
-                    config.title = item.metadata.title
+                    config.title = m.title
                 }
                 config.placeholderIcon = "tv"
-                config.progress = item.metadata.progressPercent
+                config.progress = m.progressPercent
                 config.showPlayButton = true
                 config.onQuickPlay = { [weak self] in
-                    self?.quickPlay(item.metadata)
+                    self?.quickPlay(m)
                 }
             } else {
-                config.title = item.metadata.title
+                config.title = m.title
                 var parts = [String]()
-                let seasons = item.metadata.childCount ?? 0
+                let seasons = m.childCount ?? 0
                 parts.append(seasons == 1 ? "1 Season" : "\(seasons) Seasons")
-                let eps = item.metadata.leafCount ?? 0
+                let eps = m.leafCount ?? 0
                 parts.append("\(eps) Ep")
                 config.subtitle = parts.joined(separator: " · ")
                 config.placeholderIcon = "tv"
-                if eps > 0, let watched = item.metadata.viewedLeafCount {
+                if eps > 0, let watched = m.viewedLeafCount {
                     config.progress = Double(watched) / Double(eps)
                 }
             }
@@ -247,6 +251,10 @@ final class ShowGridViewController: UICollectionViewController {
     }
 
     private func applyFullSnapshot() {
+        metadataById = Dictionary(
+            (continueWatchingItems + gridItems).map { ($0.id, $0) },
+            uniquingKeysWith: { _, latest in latest }
+        )
         var snapshot = NSDiffableDataSourceSnapshot<SectionKind, GridItem>()
 
         if !continueWatchingItems.isEmpty {
@@ -259,6 +267,11 @@ final class ShowGridViewController: UICollectionViewController {
 
         Task {
             await dataSource.apply(snapshot, animatingDifferences: false)
+            var refreshed = dataSource.snapshot()
+            if !refreshed.itemIdentifiers.isEmpty {
+                refreshed.reconfigureItems(refreshed.itemIdentifiers)
+                await dataSource.apply(refreshed, animatingDifferences: false)
+            }
         }
     }
 
@@ -325,6 +338,7 @@ final class ShowGridViewController: UICollectionViewController {
                     } else {
                         try? await self.api.requestVoid(.scrobble(ratingKey: m.id))
                     }
+                    await self.api.invalidateCache()
                     self.resetAndLoad()
                 }
             })

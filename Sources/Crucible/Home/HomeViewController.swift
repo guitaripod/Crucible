@@ -35,6 +35,7 @@ final class HomeViewController: UICollectionViewController {
     private let api: APIClient
     private var loadTask: Task<Void, Never>?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
+    private var mediaById: [String: PlexMetadata] = [:]
 
     init(api: APIClient) {
         self.api = api
@@ -98,7 +99,8 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let posterReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, item in
+        let posterReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [weak self] cell, _, rawItem in
+            let item = self?.mediaById[rawItem.id] ?? rawItem
             var config = PosterContentConfiguration()
             config.posterPath = item.thumb ?? item.grandparentThumb
             if item.mediaType == "episode", let showName = item.grandparentTitle {
@@ -195,6 +197,11 @@ final class HomeViewController: UICollectionViewController {
                     }
                 }
 
+                self.mediaById = Dictionary(
+                    (continueItems + onDeckItems + recentItems).map { ($0.id, $0) },
+                    uniquingKeysWith: { _, latest in latest }
+                )
+
                 var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
                 if !continueItems.isEmpty {
@@ -214,6 +221,13 @@ final class HomeViewController: UICollectionViewController {
                 snapshot.appendItems([.surpriseMe], toSection: .surpriseMe)
 
                 await self.dataSource.apply(snapshot, animatingDifferences: false)
+
+                var refreshed = self.dataSource.snapshot()
+                let mediaItems = refreshed.itemIdentifiers.filter { if case .media = $0 { return true }; return false }
+                if !mediaItems.isEmpty {
+                    refreshed.reconfigureItems(mediaItems)
+                    await self.dataSource.apply(refreshed, animatingDifferences: false)
+                }
                 self.collectionView.refreshControl?.endRefreshing()
 
                 if continueItems.isEmpty && onDeckItems.isEmpty && recentItems.isEmpty {
