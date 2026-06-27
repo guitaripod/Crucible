@@ -23,7 +23,7 @@ No Xcode. No macOS. No storyboards. Pure programmatic UIKit, cross-compiled from
 | Build | **SwiftPM** — cross-compiled with `swift build --swift-sdk arm64-apple-ios` |
 | Deploy | **[xtool](https://github.com/xtool-org/xtool)** — cross-platform Xcode replacement, build and deploy iOS apps from Linux |
 | Backend | **Plex Media Server API** — OAuth PIN auth, HLS transcoding, timeline reporting |
-| Dev OS | **Arch Linux** (btw) |
+| Dev OS | **Arch Linux** |
 
 ## Features
 
