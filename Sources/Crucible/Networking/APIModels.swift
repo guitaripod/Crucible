@@ -59,6 +59,9 @@ struct PlexMetadata: Decodable, Sendable {
     let index: Int?
     let year: Int?
     let summary: String?
+    let tagline: String?
+    let contentRating: String?
+    let studio: String?
     let rating: Double?
     let audienceRating: Double?
     let duration: Int?
@@ -73,18 +76,46 @@ struct PlexMetadata: Decodable, Sendable {
     let viewedLeafCount: Int?
     let childCount: Int?
     let Genre: [PlexTag]?
+    let Role: [PlexRole]?
+    let Director: [PlexTag]?
+    let Writer: [PlexTag]?
     let Media: [PlexMedia]?
+    let Marker: [PlexMarker]?
+    let Related: PlexRelatedHubs?
 
     enum CodingKeys: String, CodingKey {
         case ratingKey, key, type, title
         case grandparentTitle, grandparentRatingKey, grandparentThumb, grandparentArt
         case parentTitle, parentRatingKey, parentThumb
-        case parentIndex, index, year, summary, rating, audienceRating
+        case parentIndex, index, year, summary, tagline, contentRating, studio, rating, audienceRating
         case duration, viewOffset, viewCount, lastViewedAt, addedAt
         case originallyAvailableAt, thumb, art
         case leafCount, viewedLeafCount, childCount
-        case Genre, Media
+        case Genre, Role, Director, Writer, Media, Marker, Related
     }
+}
+
+struct PlexMarker: Decodable, Sendable {
+    let type: String?
+    let startTimeOffset: Int?
+    let endTimeOffset: Int?
+    let final: Bool?
+
+    var isIntro: Bool { type == "intro" }
+    var isCredits: Bool { type == "credits" }
+    var startSecs: Double { Double(startTimeOffset ?? 0) / 1000.0 }
+    var endSecs: Double { Double(endTimeOffset ?? 0) / 1000.0 }
+}
+
+struct PlexRole: Decodable, Sendable, Hashable {
+    let id: Int?
+    let tag: String?
+    let role: String?
+    let thumb: String?
+}
+
+struct PlexRelatedHubs: Decodable, Sendable {
+    let Hub: [PlexHub]?
 }
 
 extension PlexMetadata: Hashable {
@@ -163,6 +194,13 @@ extension PlexMetadata {
     var genres: [String] {
         Genre?.map(\.tag) ?? []
     }
+
+    var cast: [PlexRole] { Role ?? [] }
+    var directors: [String] { Director?.map(\.tag) ?? [] }
+    var writers: [String] { Writer?.map(\.tag) ?? [] }
+    var relatedHubs: [PlexHub] { (Related?.Hub ?? []).filter { !($0.Metadata?.isEmpty ?? true) } }
+    var introMarker: PlexMarker? { Marker?.first { $0.isIntro } }
+    var firstCreditsMarker: PlexMarker? { Marker?.first { $0.isCredits } }
 }
 
 struct PlexMedia: Decodable, Sendable {

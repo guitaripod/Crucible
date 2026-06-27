@@ -7,6 +7,7 @@ struct ResolvedStream: Sendable {
     let sessionId: String
     let subtitles: [PlexStream]
     let audioTracks: [PlexStream]
+    let markers: [PlexMarker]
 }
 
 enum StreamResolverError: Error, LocalizedError {
@@ -47,6 +48,7 @@ enum StreamResolver {
 
         let subtitles = part.Stream?.filter { $0.streamType == 3 } ?? []
         let audioTracks = part.Stream?.filter { $0.streamType == 2 } ?? []
+        let markers = metadata.Marker ?? []
 
         let defaultAudioId = audioTracks.first(where: { $0.isDefault == true })?.id ?? audioTracks.first?.id
         let wantsBurnedSubtitle = selectedSubtitleId != nil
@@ -62,7 +64,8 @@ enum StreamResolver {
                 isDirectPlay: true,
                 sessionId: sessionId,
                 subtitles: subtitles,
-                audioTracks: audioTracks
+                audioTracks: audioTracks,
+                markers: markers
             )
         }
 
@@ -94,7 +97,8 @@ enum StreamResolver {
             isDirectPlay: false,
             sessionId: sessionId,
             subtitles: subtitles,
-            audioTracks: audioTracks
+            audioTracks: audioTracks,
+            markers: markers
         )
     }
 

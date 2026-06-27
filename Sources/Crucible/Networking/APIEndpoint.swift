@@ -110,6 +110,12 @@ enum PlexEndpoint: Sendable {
 
     var queryItems: [URLQueryItem]? {
         switch self {
+        case .metadata:
+            return [
+                URLQueryItem(name: "includeMarkers", value: "1"),
+                URLQueryItem(name: "includeRelated", value: "1"),
+                URLQueryItem(name: "includeRelatedCount", value: "10"),
+            ]
         case .resources:
             return [
                 URLQueryItem(name: "includeHttps", value: "1"),
