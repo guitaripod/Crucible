@@ -140,9 +140,58 @@ final class ServerSetupViewController: UIViewController {
 
     private func discoverServers(token: String) async throws {
         let resources: [PlexResource] = try await APIClient.plexTVRequest(.resources, token: token)
-        let server = resources.first { $0.provides.contains("server") }
+        guard let server = resources.first(where: { $0.provides.contains("server") }) else {
+            showError("No Plex server found on your account")
+            spinner.stopAnimating()
+            signInButton.isEnabled = true
+            return
+        }
 
-        promptServerURL(serverName: server?.name ?? "Plex Server", machineId: server?.clientIdentifier ?? UUID().uuidString, token: token)
+        let serverName = server.name
+        let machineId = server.clientIdentifier
+        let ranked = rankConnections(server.connections)
+
+        guard !ranked.isEmpty else {
+            promptServerURL(serverName: serverName, machineId: machineId, token: token)
+            return
+        }
+
+        showStatus("Finding the best route to \(serverName)…", color: .secondaryLabel)
+
+        let reachable = await withTaskGroup(of: (Int, Bool).self) { group in
+            for (index, connection) in ranked.enumerated() {
+                guard let url = URL(string: connection.uri) else { continue }
+                group.addTask {
+                    let client = APIClient(baseURL: url, token: token)
+                    return (index, await client.identityCheck())
+                }
+            }
+            var indices = [Int]()
+            for await (index, ok) in group where ok {
+                indices.append(index)
+            }
+            return indices
+        }
+
+        guard !Task.isCancelled else { return }
+        if let best = reachable.min() {
+            let connection = ranked[best]
+            connectTo(uri: connection.uri, serverName: serverName, machineId: machineId, token: token)
+        } else {
+            promptServerURL(serverName: serverName, machineId: machineId, token: token)
+        }
+    }
+
+    /// Orders connections best-first: local before remote, direct before relay, HTTPS before HTTP.
+    private func rankConnections(_ connections: [PlexResourceConnection]) -> [PlexResourceConnection] {
+        func score(_ connection: PlexResourceConnection) -> Int {
+            var score = 0
+            if connection.relay == true { score += 100 }
+            if connection.local != true { score += 10 }
+            if connection.protocol != "https" { score += 1 }
+            return score
+        }
+        return connections.sorted { score($0) < score($1) }
     }
 
     private func promptServerURL(serverName: String, machineId: String, token: String) {
