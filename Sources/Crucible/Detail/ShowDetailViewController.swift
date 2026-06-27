@@ -49,11 +49,27 @@ final class ShowDetailViewController: UICollectionViewController {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
         seasonTask?.cancel()
+        if isMovingFromParent || isBeingDismissed {
+            userActivity?.resignCurrent()
+        }
+    }
+
+    private func donateActivity(_ show: PlexMetadata) {
+        let activity = MediaActivity.make(
+            ratingKey: showRatingKey,
+            mediaType: "show",
+            title: show.title,
+            subtitle: show.year.map(String.init),
+            summary: show.summary,
+            thumbPath: show.thumb
+        )
+        userActivity = activity
+        activity.becomeCurrent()
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { sectionIndex, environment in
-            guard let section = Section(rawValue: sectionIndex) else { return nil }
+        UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let section = self?.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
 
             switch section {
             case .hero:
@@ -127,7 +143,8 @@ final class ShowDetailViewController: UICollectionViewController {
             button.configuration = config
         }
 
-        let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, episode in
+        let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [weak self] cell, _, item in
+            let episode = self?.episodes.first { $0.id == item.id } ?? item
             var config = EpisodeContentConfiguration()
             config.episodeNumber = episode.index
             config.title = episode.title
@@ -203,20 +220,23 @@ final class ShowDetailViewController: UICollectionViewController {
                 guard !Task.isCancelled, let showMeta = showContainer.Metadata?.first else { return }
                 show = showMeta
                 title = showMeta.title
+                donateActivity(showMeta)
 
                 let seasonsContainer = try await api.requestContainer(.children(ratingKey: showRatingKey))
                 guard !Task.isCancelled else { return }
                 seasons = (seasonsContainer.Metadata ?? []).filter { $0.mediaType == "season" }
 
-                let firstUnwatched = seasons.first {
-                    let watched = $0.viewedLeafCount ?? 0
-                    let total = $0.leafCount ?? 0
-                    return watched < total
-                }
-                if let initialSeasonKey, seasons.contains(where: { $0.id == initialSeasonKey }) {
-                    selectedSeasonKey = initialSeasonKey
-                } else {
-                    selectedSeasonKey = firstUnwatched?.id ?? seasons.first?.id
+                if selectedSeasonKey == nil || !seasons.contains(where: { $0.id == selectedSeasonKey }) {
+                    let firstUnwatched = seasons.first {
+                        let watched = $0.viewedLeafCount ?? 0
+                        let total = $0.leafCount ?? 0
+                        return watched < total
+                    }
+                    if let initialSeasonKey, seasons.contains(where: { $0.id == initialSeasonKey }) {
+                        selectedSeasonKey = initialSeasonKey
+                    } else {
+                        selectedSeasonKey = firstUnwatched?.id ?? seasons.first?.id
+                    }
                 }
 
                 if let selectedSeasonKey {
@@ -266,6 +286,18 @@ final class ShowDetailViewController: UICollectionViewController {
         snapshot.appendItems([.action("watchAll"), .action("unwatchAll")], toSection: .actions)
 
         await dataSource.apply(snapshot, animatingDifferences: false)
+
+        var refreshed = dataSource.snapshot()
+        let dynamic = refreshed.itemIdentifiers.filter { item in
+            switch item {
+            case .hero, .episode: return true
+            default: return false
+            }
+        }
+        if !dynamic.isEmpty {
+            refreshed.reconfigureItems(dynamic)
+            await dataSource.apply(refreshed, animatingDifferences: false)
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -384,11 +416,10 @@ struct ShowHeroConfiguration: UIContentConfiguration, Hashable {
 
 final class ShowHeroContentView: UIView, UIContentView {
     var configuration: UIContentConfiguration {
-        didSet {
-            imageTask?.cancel()
-            apply()
-        }
+        didSet { apply() }
     }
+
+    private var currentImagePath: String?
 
     private let backdropImageView = UIImageView()
     private let gradientLayer = CAGradientLayer()
@@ -498,6 +529,9 @@ final class ShowHeroContentView: UIView, UIContentView {
 
         let imagePath = show.art ?? show.thumb
         guard let imagePath else { return }
+        guard imagePath != currentImagePath else { return }
+        currentImagePath = imagePath
+        imageTask?.cancel()
         let isBackdrop = show.art != nil
         imageTask = Task { [weak self] in
             let image: UIImage?

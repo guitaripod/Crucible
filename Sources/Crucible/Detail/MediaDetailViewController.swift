@@ -2,7 +2,7 @@
 
 final class MediaDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, info, subtitles, audioTracks, actions
+        case hero, info, cast, subtitles, audioTracks, actions, related
     }
 
     enum Item: Hashable {
@@ -10,10 +10,12 @@ final class MediaDetailViewController: UICollectionViewController {
         case overview(String)
         case genres([String])
         case techInfo(String)
+        case castMember(PlexRole)
         case subtitle(PlexStream)
         case subtitleNone
         case audioTrack(PlexStream)
         case action(String)
+        case related(PlexMetadata)
     }
 
     private let api: APIClient
@@ -55,11 +57,27 @@ final class MediaDetailViewController: UICollectionViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
+        if isMovingFromParent || isBeingDismissed {
+            userActivity?.resignCurrent()
+        }
+    }
+
+    private func donateActivity(_ meta: PlexMetadata) {
+        let activity = MediaActivity.make(
+            ratingKey: ratingKey,
+            mediaType: mediaType,
+            title: meta.title,
+            subtitle: meta.grandparentTitle,
+            summary: meta.summary,
+            thumbPath: meta.thumb ?? meta.grandparentThumb
+        )
+        userActivity = activity
+        activity.becomeCurrent()
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { sectionIndex, environment in
-            guard let section = Section(rawValue: sectionIndex) else { return nil }
+        UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let section = self?.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
 
             switch section {
             case .hero:
@@ -79,8 +97,35 @@ final class MediaDetailViewController: UICollectionViewController {
                 var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
                 listConfig.headerMode = .supplementary
                 return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
+
+            case .cast:
+                let size = NSCollectionLayoutSize(widthDimension: .absolute(84), heightDimension: .absolute(132))
+                let item = NSCollectionLayoutItem(layoutSize: size)
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
+                let layoutSection = NSCollectionLayoutSection(group: group)
+                layoutSection.orthogonalScrollingBehavior = .continuous
+                layoutSection.interGroupSpacing = 14
+                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16)
+                layoutSection.boundarySupplementaryItems = [Self.sectionHeader()]
+                return layoutSection
+
+            case .related:
+                let size = NSCollectionLayoutSize(widthDimension: .absolute(120), heightDimension: .absolute(210))
+                let item = NSCollectionLayoutItem(layoutSize: size)
+                let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
+                let layoutSection = NSCollectionLayoutSection(group: group)
+                layoutSection.orthogonalScrollingBehavior = .continuous
+                layoutSection.interGroupSpacing = 12
+                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 24, trailing: 16)
+                layoutSection.boundarySupplementaryItems = [Self.sectionHeader()]
+                return layoutSection
             }
         }
+    }
+
+    private static func sectionHeader() -> NSCollectionLayoutBoundarySupplementaryItem {
+        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(40))
+        return NSCollectionLayoutBoundarySupplementaryItem(layoutSize: size, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
     }
 
     private func configureDataSource() {
@@ -192,6 +237,24 @@ final class MediaDetailViewController: UICollectionViewController {
             ])
         }
 
+        let castCellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
+            cell.contentConfiguration = CastContentConfiguration(
+                thumbPath: role.thumb,
+                name: role.tag ?? "",
+                role: role.role
+            )
+        }
+
+        let relatedCellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
+            cell.contentConfiguration = PosterContentConfiguration(
+                posterPath: related.posterPath ?? related.grandparentThumb,
+                title: related.title,
+                subtitle: related.year.map(String.init),
+                progress: related.progressPercent > 0 ? related.progressPercent : nil,
+                placeholderIcon: related.mediaType == "show" ? "tv" : "film"
+            )
+        }
+
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
             case .hero:
@@ -202,6 +265,8 @@ final class MediaDetailViewController: UICollectionViewController {
                 return cv.dequeueConfiguredReusableCell(using: genreCellReg, for: indexPath, item: genres)
             case .techInfo(let info):
                 return cv.dequeueConfiguredReusableCell(using: textCellReg, for: indexPath, item: info)
+            case .castMember(let role):
+                return cv.dequeueConfiguredReusableCell(using: castCellReg, for: indexPath, item: role)
             case .subtitle(let sub):
                 return cv.dequeueConfiguredReusableCell(using: subtitleCellReg, for: indexPath, item: sub)
             case .subtitleNone:
@@ -210,15 +275,19 @@ final class MediaDetailViewController: UICollectionViewController {
                 return cv.dequeueConfiguredReusableCell(using: audioCellReg, for: indexPath, item: track)
             case .action(let action):
                 return cv.dequeueConfiguredReusableCell(using: actionCellReg, for: indexPath, item: action)
+            case .related(let related):
+                return cv.dequeueConfiguredReusableCell(using: relatedCellReg, for: indexPath, item: related)
             }
         }
 
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, indexPath in
-            guard let section = Section(rawValue: indexPath.section) else { return }
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
+            guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else { return }
             var config = SectionHeaderConfiguration()
             switch section {
             case .subtitles: config.title = "Subtitles"
             case .audioTracks: config.title = "Audio"
+            case .cast: config.title = "Cast & Crew"
+            case .related: config.title = "More Like This"
             default: break
             }
             cell.contentConfiguration = config
@@ -237,6 +306,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 guard !Task.isCancelled, let meta = container.Metadata?.first else { return }
                 self.metadata = meta
                 self.title = meta.title
+                donateActivity(meta)
 
                 let audioStreams = meta.audioStreams
                 if let defaultAudio = audioStreams.first(where: { $0.isDefault == true }) {
@@ -278,6 +348,17 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems([.techInfo(techParts.joined(separator: " · "))], toSection: .info)
         }
 
+        let crew = metadata.directors.prefix(2).map { PlexRole(id: nil, tag: $0, role: "Director", thumb: nil) }
+            + metadata.writers.prefix(2).map { PlexRole(id: nil, tag: $0, role: "Writer", thumb: nil) }
+        var seenCast = Set<PlexRole>()
+        let crewAndCast = (crew + metadata.cast.prefix(20))
+            .filter { seenCast.insert($0).inserted }
+            .map { Item.castMember($0) }
+        if !crewAndCast.isEmpty {
+            snapshot.appendSections([.cast])
+            snapshot.appendItems(crewAndCast, toSection: .cast)
+        }
+
         let subtitles = metadata.subtitleStreams
         if !subtitles.isEmpty {
             snapshot.appendSections([.subtitles])
@@ -297,7 +378,29 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems([.action("next")], toSection: .actions)
         }
 
+        var seenRelated = Set<String>()
+        let relatedItems = metadata.relatedHubs
+            .flatMap { $0.Metadata ?? [] }
+            .filter { $0.id != ratingKey && seenRelated.insert($0.id).inserted }
+            .prefix(18)
+        if !relatedItems.isEmpty {
+            snapshot.appendSections([.related])
+            snapshot.appendItems(relatedItems.map { .related($0) }, toSection: .related)
+        }
+
         await dataSource.apply(snapshot, animatingDifferences: false)
+
+        var refreshed = dataSource.snapshot()
+        let dynamic = refreshed.itemIdentifiers.filter { item in
+            switch item {
+            case .hero, .action: return true
+            default: return false
+            }
+        }
+        if !dynamic.isEmpty {
+            refreshed.reconfigureItems(dynamic)
+            await dataSource.apply(refreshed, animatingDifferences: false)
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -315,8 +418,27 @@ final class MediaDetailViewController: UICollectionViewController {
         case .audioTrack(let track):
             selectedAudioTrackId = track.id
             reconfigureTrackSections()
+        case .related(let related):
+            openRelated(related)
         default:
             break
+        }
+    }
+
+    private func openRelated(_ related: PlexMetadata) {
+        let type = related.mediaType
+        if type == "show" {
+            let vc = ShowDetailViewController(api: api, showRatingKey: related.id)
+            navigationController?.pushViewController(vc, animated: true)
+        } else {
+            let vc = MediaDetailViewController(
+                api: api,
+                ratingKey: related.id,
+                mediaType: type,
+                showRatingKey: related.grandparentRatingKey,
+                seasonRatingKey: related.parentRatingKey
+            )
+            navigationController?.pushViewController(vc, animated: true)
         }
     }
 
@@ -431,11 +553,10 @@ struct HeroContentConfiguration: UIContentConfiguration, Hashable {
 
 final class HeroContentView: UIView, UIContentView {
     var configuration: UIContentConfiguration {
-        didSet {
-            imageTask?.cancel()
-            apply()
-        }
+        didSet { apply() }
     }
+
+    private var currentImagePath: String?
 
     private let backdropImageView = UIImageView()
     private let gradientLayer = CAGradientLayer()
@@ -593,7 +714,10 @@ final class HeroContentView: UIView, UIContentView {
 
         let imagePath = item.art ?? item.thumb
         guard let imagePath, !imagePath.isEmpty else { return }
+        guard imagePath != currentImagePath else { return }
+        currentImagePath = imagePath
 
+        imageTask?.cancel()
         let isBackdrop = item.art != nil
         imageTask = Task { [weak self] in
             let image: UIImage?
