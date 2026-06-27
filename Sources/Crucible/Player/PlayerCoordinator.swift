@@ -1,4 +1,5 @@
 import AVKit
+import MediaPlayer
 import os
 @preconcurrency import UIKit
 
@@ -43,6 +44,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var seekObserver: (any NSObjectProtocol)?
     private var isRestarting = false
     private var lastPlayhead: Double = 0
+    private var markers: [PlexMarker] = []
+    private var skipButton: UIButton?
+    private var upNextTriggered = false
+    private var remoteCommandsConfigured = false
+    private var isInPiP = false
+    private var pipRestoreInProgress = false
     private weak var presentingVC: UIViewController?
     private var nextCoordinator: PlayerCoordinator?
     private weak var spinnerView: UIActivityIndicatorView?
@@ -131,7 +138,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let playerVC = AVPlayerViewController()
         playerVC.player = player
         playerVC.allowsPictureInPicturePlayback = true
+        playerVC.canStartPictureInPictureAutomaticallyFromInline = true
         playerVC.modalPresentationStyle = .fullScreen
+        playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.delegate = self
         self.playerVC = playerVC
 
@@ -148,6 +157,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
         currentStreamOffset = stream.isDirectPlay ? 0 : resumePosition
         reporter?.setStreamOffset(currentStreamOffset)
+        markers = stream.markers
+        upNextTriggered = false
+        configureRemoteCommands()
         if !stream.isDirectPlay {
             startPingTimer(session: stream.sessionId)
         }
@@ -235,8 +247,73 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             Task { @MainActor in
                 guard let self, let player = self.player else { return }
                 self.lastPlayhead = seconds
-                self.nowPlaying?.updateElapsed(seconds + self.currentStreamOffset, rate: Double(player.rate))
+                let absolute = seconds + self.currentStreamOffset
+                self.nowPlaying?.updateElapsed(absolute, rate: Double(player.rate))
+                self.updateSkipUI(absolute: absolute)
             }
+        }
+    }
+
+    private func updateSkipUI(absolute: Double) {
+        if !upNextTriggered, mediaType == "episode", let credits = markers.first(where: { $0.isCredits }), absolute >= credits.startSecs {
+            upNextTriggered = true
+            showUpNext(dismissIfLast: false)
+        }
+
+        let active = markers.first { absolute >= $0.startSecs && absolute < $0.endSecs - 1 }
+        guard let active, upNextOverlay == nil else {
+            removeSkipButton()
+            return
+        }
+        showSkipButton(title: active.isCredits ? "Skip Credits" : "Skip Intro", target: active.endSecs)
+    }
+
+    private func showSkipButton(title: String, target: Double) {
+        guard let host = playerVC?.contentOverlayView else { return }
+        let button: UIButton
+        if let existing = skipButton {
+            button = existing
+        } else {
+            var config = Glass.prominentButton {
+                var fallback = UIButton.Configuration.filled()
+                fallback.baseBackgroundColor = UIColor.black.withAlphaComponent(0.55)
+                fallback.baseForegroundColor = .white
+                return fallback
+            }
+            config.cornerStyle = .capsule
+            config.image = UIImage(systemName: "forward.end.fill")
+            config.imagePadding = 6
+            let created = UIButton(configuration: config)
+            created.tintColor = .white
+            created.translatesAutoresizingMaskIntoConstraints = false
+            host.addSubview(created)
+            NSLayoutConstraint.activate([
+                created.trailingAnchor.constraint(equalTo: host.safeAreaLayoutGuide.trailingAnchor, constant: -28),
+                created.bottomAnchor.constraint(equalTo: host.safeAreaLayoutGuide.bottomAnchor, constant: -90),
+            ])
+            skipButton = created
+            button = created
+        }
+        button.configuration?.title = title
+        button.removeTarget(nil, action: nil, for: .primaryActionTriggered)
+        button.addAction(UIAction { [weak self] _ in self?.seekToAbsolute(target) }, for: .primaryActionTriggered)
+        button.isHidden = false
+    }
+
+    private func removeSkipButton() {
+        skipButton?.removeFromSuperview()
+        skipButton = nil
+    }
+
+    private func seekToAbsolute(_ target: Double) {
+        removeSkipButton()
+        guard let stream = resolvedStream else { return }
+        if stream.isDirectPlay {
+            player?.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
+                Task { @MainActor in self?.player?.play() }
+            }
+        } else {
+            restartTranscode(atAbsolute: target)
         }
     }
 
@@ -301,6 +378,78 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         setupSeekObserver()
     }
 
+    private func configureRemoteCommands() {
+        guard !remoteCommandsConfigured else { return }
+        remoteCommandsConfigured = true
+        let center = MPRemoteCommandCenter.shared()
+
+        center.playCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.player?.play() }
+            return .success
+        }
+        center.pauseCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.player?.pause() }
+            return .success
+        }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in
+            Task { @MainActor in
+                guard let player = self?.player else { return }
+                if player.timeControlStatus == .playing { player.pause() } else { player.play() }
+            }
+            return .success
+        }
+        center.skipForwardCommand.preferredIntervals = [10]
+        center.skipForwardCommand.addTarget { [weak self] event in
+            guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+            let interval = skip.interval
+            Task { @MainActor in
+                guard let player = self?.player else { return }
+                player.seek(to: CMTime(seconds: player.currentTime().seconds + interval, preferredTimescale: 600))
+            }
+            return .success
+        }
+        center.skipBackwardCommand.preferredIntervals = [10]
+        center.skipBackwardCommand.addTarget { [weak self] event in
+            guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+            let interval = skip.interval
+            Task { @MainActor in
+                guard let player = self?.player else { return }
+                player.seek(to: CMTime(seconds: max(0, player.currentTime().seconds - interval), preferredTimescale: 600))
+            }
+            return .success
+        }
+        center.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            let position = event.positionTime
+            Task { @MainActor in
+                guard let self else { return }
+                if self.resolvedStream?.isDirectPlay == false {
+                    self.restartTranscode(atAbsolute: position)
+                } else {
+                    self.player?.seek(to: CMTime(seconds: position, preferredTimescale: 600))
+                }
+            }
+            return .success
+        }
+        center.nextTrackCommand.isEnabled = mediaType == "episode"
+        center.nextTrackCommand.addTarget { [weak self] _ in
+            Task { @MainActor in self?.showUpNext(dismissIfLast: false) }
+            return .success
+        }
+    }
+
+    private func tearDownRemoteCommands() {
+        guard remoteCommandsConfigured else { return }
+        remoteCommandsConfigured = false
+        let center = MPRemoteCommandCenter.shared()
+        let commands: [MPRemoteCommand] = [
+            center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
+            center.skipForwardCommand, center.skipBackwardCommand,
+            center.changePlaybackPositionCommand, center.nextTrackCommand,
+        ]
+        commands.forEach { $0.removeTarget(nil) }
+    }
+
     private func startPingTimer(session: String) {
         pingTask?.cancel()
         pingTask = Task { [weak self] in
@@ -313,6 +462,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func handlePlaybackEnded() {
+        showUpNext(dismissIfLast: true)
+    }
+
+    private func showUpNext(dismissIfLast: Bool) {
         guard mediaType == "episode", let seasonRatingKey else { return }
         Task { [weak self] in
             guard let self else { return }
@@ -321,12 +474,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 let episodes = container.Metadata ?? []
                 guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
                       currentIndex + 1 < episodes.count else {
-                    await dismissPlayer()
+                    if dismissIfLast { await dismissPlayer() }
                     return
                 }
                 presentUpNext(next: episodes[currentIndex + 1], seasonRatingKey: seasonRatingKey)
             } catch {
-                await dismissPlayer()
+                if dismissIfLast { await dismissPlayer() }
             }
         }
     }
@@ -412,15 +565,37 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         false
     }
 
+    func playerViewControllerWillStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
+        isInPiP = true
+    }
+
+    func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+    ) {
+        pipRestoreInProgress = true
+        completionHandler(true)
+    }
+
+    func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
+        isInPiP = false
+        if pipRestoreInProgress {
+            pipRestoreInProgress = false
+            return
+        }
+        guard !isFinishing else { return }
+        Task { @MainActor in await self.dismissPlayer() }
+    }
+
     nonisolated func playerViewController(
         _ playerViewController: AVPlayerViewController,
         willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
     ) {
         MainActor.assumeIsolated {
-            _ = coordinator.animate(alongsideTransition: nil) { context in
-                guard !context.isCancelled else { return }
+            _ = coordinator.animate(alongsideTransition: nil) { [weak self] context in
+                guard let self, !context.isCancelled, !self.isInPiP else { return }
                 Task { @MainActor [weak self] in
-                    guard let self else { return }
+                    guard let self, !self.isInPiP else { return }
                     self.isFinishing = true
                     self.removeUpNextOverlay()
                     await self.cleanup()
@@ -431,6 +606,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private func cleanup() async {
         removeUpNextOverlay()
+        removeSkipButton()
+        tearDownRemoteCommands()
 
         pingTask?.cancel()
         pingTask = nil
