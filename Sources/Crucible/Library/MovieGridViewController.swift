@@ -61,6 +61,7 @@ final class MovieGridViewController: UICollectionViewController {
             loadPage(offset: 0)
         } else {
             loadHubs()
+            reloadLoadedPages()
         }
     }
 
@@ -237,6 +238,28 @@ final class MovieGridViewController: UICollectionViewController {
         totalSize = 0
         loadHubs()
         loadPage(offset: 0)
+    }
+
+    /// Refetches every page already loaded in one request so the grid refreshes
+    /// watched/progress state on return without collapsing pagination or scroll.
+    private func reloadLoadedPages() {
+        let size = max(currentOffset, 50)
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let container = try await api.requestContainer(
+                    .sectionItems(sectionId: sectionId, sort: currentSort, genre: currentGenre, start: 0, size: size)
+                )
+                guard !Task.isCancelled else { return }
+                totalSize = container.totalSize ?? 0
+                gridItems = container.Metadata ?? []
+                currentOffset = gridItems.count
+                applyFullSnapshot()
+            } catch {
+                guard !Task.isCancelled else { return }
+            }
+        }
     }
 
     private var gridItems: [PlexMetadata] = []
