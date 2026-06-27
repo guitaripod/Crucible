@@ -30,4 +30,14 @@ final class TabBarController: UITabBarController {
 
         viewControllers = [home, library, search, settings]
     }
+
+    func openMedia(ratingKey: String, mediaType: String) {
+        selectedIndex = 0
+        guard let nav = viewControllers?.first as? UINavigationController else { return }
+        let destination: UIViewController = mediaType == "show"
+            ? ShowDetailViewController(api: api, showRatingKey: ratingKey)
+            : MediaDetailViewController(api: api, ratingKey: ratingKey, mediaType: mediaType)
+        nav.popToRootViewController(animated: false)
+        nav.pushViewController(destination, animated: true)
+    }
 }

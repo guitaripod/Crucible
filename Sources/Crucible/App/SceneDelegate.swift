@@ -2,6 +2,7 @@ import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
+    private var pendingActivity: NSUserActivity?
 
     func scene(
         _ scene: UIScene,
@@ -19,6 +20,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         } else {
             showServerSetup()
         }
+
+        if let activity = connectionOptions.userActivities.first {
+            route(activity)
+        }
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        route(userActivity)
+    }
+
+    private func route(_ activity: NSUserActivity) {
+        guard let target = MediaActivity.route(activity) else { return }
+        guard let tabBar = window?.rootViewController as? TabBarController else {
+            pendingActivity = activity
+            return
+        }
+        tabBar.openMedia(ratingKey: target.ratingKey, mediaType: target.mediaType)
     }
 
     func reconfigureRoot() {
@@ -34,6 +52,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
         let tabBar = TabBarController(api: api)
         window?.rootViewController = tabBar
+        if let pending = pendingActivity {
+            pendingActivity = nil
+            route(pending)
+        }
     }
 
     private func showServerSetup() {
