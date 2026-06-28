@@ -32,13 +32,36 @@ final class LocalMediaServer: @unchecked Sendable {
         }
         listener.newConnectionHandler = { [weak self] connection in self?.accept(connection) }
         listener.stateUpdateHandler = { [weak self] state in
-            if case .ready = state, let port = listener.port?.rawValue {
-                self?.portValue.withLock { $0 = port }
-                Self.log.notice("Local media server ready on port \(port)")
+            guard let self else { return }
+            switch state {
+            case .ready:
+                if let port = listener.port?.rawValue {
+                    self.portValue.withLock { $0 = port }
+                    Self.log.notice("Local media server ready on port \(port)")
+                }
+            case .failed, .cancelled:
+                Self.log.error("Local media server \(String(describing: state), privacy: .public); resetting")
+                self.listener?.cancel()
+                self.listener = nil
+                self.portValue.withLock { $0 = 0 }
+            default:
+                break
             }
         }
         listener.start(queue: queue)
         self.listener = listener
+    }
+
+    /// Briefly blocks until the listener is bound (it usually already is — started at app launch).
+    @discardableResult
+    func awaitReady(timeout: TimeInterval) -> Bool {
+        if port != 0 { return true }
+        start()
+        let deadline = Date().addingTimeInterval(timeout)
+        while port == 0, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        return port != 0
     }
 
     func playlistURL(ratingKey: String) -> URL? {
@@ -101,16 +124,16 @@ final class LocalMediaServer: @unchecked Sendable {
         if let rangeLine, let range = parseRange(rangeLine, total: data.count) {
             var headers = "HTTP/1.1 206 Partial Content\r\n"
             headers += "Content-Type: \(contentType)\r\n"
-            headers += "Content-Range: bytes \(range.lowerBound)-\(range.upperBound)/\(data.count)\r\n"
+            headers += "Content-Range: bytes \(range.lowerBound)-\(range.upperBound - 1)/\(data.count)\r\n"
             headers += "Content-Length: \(range.count)\r\n"
             headers += "Accept-Ranges: bytes\r\nConnection: close\r\n\r\n"
-            send(connection, Data(headers.utf8) + data.subdata(in: range))
+            send(connection, headers: headers, body: data.subdata(in: range))
         } else {
             var headers = "HTTP/1.1 200 OK\r\n"
             headers += "Content-Type: \(contentType)\r\n"
             headers += "Content-Length: \(data.count)\r\n"
             headers += "Accept-Ranges: bytes\r\nConnection: close\r\n\r\n"
-            send(connection, Data(headers.utf8) + data)
+            send(connection, headers: headers, body: data)
         }
     }
 
@@ -129,10 +152,12 @@ final class LocalMediaServer: @unchecked Sendable {
 
     private func send(_ connection: NWConnection, status: Int) {
         let message = "HTTP/1.1 \(status) \r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-        send(connection, Data(message.utf8))
+        connection.send(content: Data(message.utf8), completion: .contentProcessed { _ in connection.cancel() })
     }
 
-    private func send(_ connection: NWConnection, _ data: Data) {
-        connection.send(content: data, completion: .contentProcessed { _ in connection.cancel() })
+    private func send(_ connection: NWConnection, headers: String, body: Data) {
+        connection.send(content: Data(headers.utf8), completion: .contentProcessed { _ in
+            connection.send(content: body, completion: .contentProcessed { _ in connection.cancel() })
+        })
     }
 }
