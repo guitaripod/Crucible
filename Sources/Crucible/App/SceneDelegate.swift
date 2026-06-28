@@ -30,6 +30,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         route(userActivity)
     }
 
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        DownloadManager.shared.handleEnteredBackground()
+    }
+
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        DownloadManager.shared.handleEnteredForeground()
+    }
+
     private func route(_ activity: NSUserActivity) {
         guard let target = MediaActivity.route(activity) else { return }
         guard let tabBar = window?.rootViewController as? TabBarController else {
@@ -50,6 +58,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func showMainApp(connection: PlexConnection) {
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
         ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
+        DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
         let tabBar = TabBarController(api: api)
         window?.rootViewController = tabBar
         if let pending = pendingActivity {
