@@ -1,4 +1,3 @@
-import BackgroundTasks
 import Foundation
 import Network
 import os
@@ -6,26 +5,37 @@ import UIKit
 import UserNotifications
 
 /// State-of-the-art offline download engine. Plex only transcodes to HLS, so each download is fetched
-/// segment-by-segment into a local playlist folder (see `HLSDownloader`) that AVPlayer plays with no
-/// network. Sequential fetching matches Plex's on-demand transcoder; re-running resumes by skipping
-/// existing segments. A concurrency-limited queue, Wi-Fi-only gating, pause/resume/retry, background
-/// time assertions, and on-disk persistence round it out.
+/// segment-by-segment over a **background `URLSession`** — transfers run in the system daemon and
+/// continue while the app is suspended or terminated, and iOS wakes the app to advance the chain.
+/// Segments are fetched sequentially per item (matching Plex's on-demand transcoder); a fresh Plex
+/// session is re-minted on failure. Includes a concurrency-limited queue, Wi-Fi-only gating (via
+/// per-request cellular policy + iOS deferral), pause/resume/retry, a download Live Activity, and
+/// on-disk persistence.
 @MainActor
 final class DownloadManager: NSObject {
     static let shared = DownloadManager()
-    static let backgroundProcessingId = "com.guitaripod.crucible.downloads.process"
+    static let sessionIdentifier = "com.guitaripod.crucible.segments"
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "downloads")
+    private static let maxSessionRefreshes = 12
 
     private struct Config { let baseURL: URL; let token: String }
     private var config: Config?
 
+    private struct SegmentJob {
+        let base: URL
+        let names: [String]
+        var completed: Int
+        let token: String
+        var refreshes: Int
+        var total: Int { names.count }
+    }
+
     private(set) var items: [DownloadItem] = []
-    private var tasks: [String: Task<Void, Never>] = [:]
-    private var taskTokens: [String: String] = [:]
+    private var jobs: [String: SegmentJob] = [:]
+    private var tasks: [String: URLSessionDownloadTask] = [:]
+    private var resolving: Set<String> = []
     private var observers: [UUID: (DownloadEvent) -> Void] = [:]
     private var lastProgressEmit: [String: Date] = [:]
-    private var bgTask: UIBackgroundTaskIdentifier = .invalid
-    private var bgProcessingTask: BGProcessingTask?
 
     let store = DownloadStore()
     var backgroundCompletionHandler: (() -> Void)?
@@ -38,6 +48,16 @@ final class DownloadManager: NSObject {
     #if os(iOS) && canImport(ActivityKit)
     private let liveActivity = DownloadActivityController()
     #endif
+
+    private lazy var session: URLSession = {
+        let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
+        configuration.sessionSendsLaunchEvents = true
+        configuration.isDiscretionary = false
+        configuration.httpMaximumConnectionsPerHost = max(2, Preferences.maxConcurrentDownloads)
+        configuration.timeoutIntervalForRequest = 90
+        configuration.timeoutIntervalForResource = 60 * 60 * 24 * 7
+        return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+    }()
 
     private override init() {
         super.init()
@@ -61,12 +81,21 @@ final class DownloadManager: NSObject {
             guard let self else { return }
             let loaded = await self.store.load()
             self.items = loaded
-            self.finishBootstrap()
+            self.recoverLiveTasks()
         }
     }
 
     func handleBackgroundEvents(identifier: String, completionHandler: @escaping () -> Void) {
-        completionHandler()
+        guard identifier == Self.sessionIdentifier else { completionHandler(); return }
+        backgroundCompletionHandler = completionHandler
+        _ = session
+    }
+
+    func handleEnteredForeground() {
+        #if os(iOS) && canImport(ActivityKit)
+        liveActivity.sync(items: items, force: true)
+        #endif
+        pumpQueue()
     }
 
     func handleSignOut() {
@@ -112,13 +141,8 @@ final class DownloadManager: NSObject {
         item(for: ratingKey)?.state == .completed
     }
 
-    var hasActiveDownloads: Bool {
-        items.contains { $0.state.isActive }
-    }
-
-    var activeDownloadCount: Int {
-        items.filter { $0.state.isActive }.count
-    }
+    var hasActiveDownloads: Bool { items.contains { $0.state.isActive } }
+    var activeDownloadCount: Int { items.filter { $0.state.isActive }.count }
 
     private func index(_ ratingKey: String) -> Int? {
         items.firstIndex { $0.ratingKey == ratingKey }
@@ -180,32 +204,15 @@ final class DownloadManager: NSObject {
         let posterPath = mediaType == "episode" ? (metadata.grandparentThumb ?? metadata.thumb) : metadata.thumb
         let durationMs = metadata.duration ?? 0
         return DownloadItem(
-            ratingKey: metadata.id,
-            mediaType: mediaType,
-            title: metadata.title,
-            showTitle: metadata.grandparentTitle,
-            grandparentRatingKey: metadata.grandparentRatingKey,
-            parentRatingKey: metadata.parentRatingKey,
-            seasonNumber: metadata.parentIndex,
-            episodeNumber: metadata.index,
-            year: metadata.year,
-            durationMs: durationMs,
-            summary: metadata.summary,
-            plexThumbPath: posterPath,
-            quality: quality,
-            isTranscoded: true,
-            fileExtension: "movpkg",
-            hlsRelativePath: nil,
-            state: .queued,
-            progress: 0,
-            totalBytes: 0,
-            downloadedBytes: 0,
-            estimatedBytes: quality.estimatedBytes(durationMs: durationMs),
-            errorMessage: nil,
-            createdAt: Date(),
-            completedAt: nil,
-            viewOffsetMs: metadata.viewOffset ?? 0,
-            markers: []
+            ratingKey: metadata.id, mediaType: mediaType, title: metadata.title,
+            showTitle: metadata.grandparentTitle, grandparentRatingKey: metadata.grandparentRatingKey,
+            parentRatingKey: metadata.parentRatingKey, seasonNumber: metadata.parentIndex,
+            episodeNumber: metadata.index, year: metadata.year, durationMs: durationMs,
+            summary: metadata.summary, plexThumbPath: posterPath, quality: quality,
+            isTranscoded: true, fileExtension: "movpkg", hlsRelativePath: nil, state: .queued,
+            progress: 0, totalBytes: 0, downloadedBytes: 0,
+            estimatedBytes: quality.estimatedBytes(durationMs: durationMs), errorMessage: nil,
+            createdAt: Date(), completedAt: nil, viewOffsetMs: metadata.viewOffset ?? 0, markers: []
         )
     }
 
@@ -213,7 +220,7 @@ final class DownloadManager: NSObject {
 
     func pause(_ ratingKey: String) {
         guard let idx = index(ratingKey), items[idx].state.isActive else { return }
-        cancelTask(ratingKey)
+        cancelItemTasks(ratingKey)
         items[idx].state = .paused
         persist()
         emit(.changed)
@@ -233,7 +240,7 @@ final class DownloadManager: NSObject {
 
     func delete(_ ratingKey: String) {
         guard let idx = index(ratingKey) else { return }
-        cancelTask(ratingKey)
+        cancelItemTasks(ratingKey)
         items.remove(at: idx)
         lastProgressEmit[ratingKey] = nil
         removeAssetDir(ratingKey)
@@ -247,15 +254,16 @@ final class DownloadManager: NSObject {
         let snapshot = items
         for (_, task) in tasks { task.cancel() }
         tasks.removeAll()
-        taskTokens.removeAll()
+        jobs.removeAll()
+        resolving.removeAll()
         lastProgressEmit.removeAll()
         items.removeAll()
+        session.getAllTasks { tasks in tasks.forEach { $0.cancel() } }
         for item in snapshot { removeAssetDir(item.ratingKey) }
         Task { [store] in
             for item in snapshot { await store.deletePoster(ratingKey: item.ratingKey) }
             await store.save([])
         }
-        updateBackgroundAssertion()
         emit(.changed)
     }
 
@@ -296,11 +304,12 @@ final class DownloadManager: NSObject {
         for i in items.indices where items[i].state == .waitingForWiFi {
             items[i].state = .queued
         }
-        var slots = Preferences.maxConcurrentDownloads - tasks.count
+        let activeItems = items.filter { $0.state == .downloading }.count
+        var slots = Preferences.maxConcurrentDownloads - activeItems
         guard slots > 0 else { return }
         for item in items where item.state == .queued {
             guard slots > 0 else { break }
-            guard tasks[item.ratingKey] == nil else { continue }
+            guard jobs[item.ratingKey] == nil, tasks[item.ratingKey] == nil, !resolving.contains(item.ratingKey) else { continue }
             startDownload(item.ratingKey)
             slots -= 1
         }
@@ -312,94 +321,153 @@ final class DownloadManager: NSObject {
 
     private func startDownload(_ ratingKey: String) {
         guard config != nil, let idx = index(ratingKey), items[idx].state == .queued else { return }
-        let token = UUID().uuidString
-        taskTokens[ratingKey] = token
         items[idx].state = .downloading
         items[idx].errorMessage = nil
         persist()
         emit(.changed)
-        let task = Task { [weak self] in
-            guard let self else { return }
-            await self.runDownload(ratingKey: ratingKey, token: token)
-        }
-        tasks[ratingKey] = task
-        updateBackgroundAssertion()
+        beginResolve(ratingKey, countAsFailure: false)
     }
 
-    private func runDownload(ratingKey: String, token: String) async {
-        guard let cfg = config else { finishTask(ratingKey, token: token); return }
+    /// (Re)resolves a fresh Plex session and starts/continues the segment chain.
+    private func beginResolve(_ ratingKey: String, countAsFailure: Bool) {
+        guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
+        guard !resolving.contains(ratingKey) else { return }
+        var refreshes = jobs[ratingKey]?.refreshes ?? 0
+        if countAsFailure {
+            refreshes += 1
+            if refreshes > Self.maxSessionRefreshes {
+                failItem(ratingKey, message: "Download failed")
+                return
+            }
+        }
+        tasks[ratingKey]?.cancel()
+        tasks[ratingKey] = nil
+        jobs[ratingKey] = nil
+        resolving.insert(ratingKey)
+        let quality = items[idx].quality
+        let carriedRefreshes = refreshes
+        Task { [weak self] in
+            await self?.performResolve(ratingKey, quality: quality, refreshes: carriedRefreshes)
+        }
+    }
+
+    private func performResolve(_ ratingKey: String, quality: DownloadQuality, refreshes: Int) async {
+        defer { resolving.remove(ratingKey) }
+        guard let cfg = config else { return }
         let api = APIClient(baseURL: cfg.baseURL, token: cfg.token)
         do {
-            let plan = try await DownloadResolver.plan(api: api, ratingKey: ratingKey, quality: item(for: ratingKey)?.quality ?? Preferences.downloadQuality)
-            guard taskTokens[ratingKey] == token, let idx = index(ratingKey) else { finishTask(ratingKey, token: token); return }
-
-            items[idx].estimatedBytes = plan.estimatedBytes
-            items[idx].durationMs = plan.durationMs > 0 ? plan.durationMs : items[idx].durationMs
-            items[idx].markers = plan.markers
-            if items[idx].summary == nil { items[idx].summary = plan.summary }
-            if items[idx].viewOffsetMs == 0 { items[idx].viewOffsetMs = plan.initialViewOffsetMs }
-            persist()
-
+            let plan = try await DownloadResolver.plan(api: api, ratingKey: ratingKey, quality: quality)
+            guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
+            applyPlanMetadata(at: idx, plan: plan)
             if let posterPath = plan.posterPath ?? items[idx].plexThumbPath {
                 fetchPoster(path: posterPath, ratingKey: ratingKey, baseURL: cfg.baseURL, token: cfg.token)
             }
-            AppLogger.notice("Download started key=\(ratingKey) quality=\(items[idx].quality.shortLabel) path=\(plan.url.path)", .persistence)
-
-            let result = try await HLSDownloader.download(masterURL: plan.url, ratingKey: ratingKey) { fraction in
-                Task { @MainActor [weak self] in
-                    self?.handleProgress(ratingKey: ratingKey, token: token, fraction: fraction)
-                }
-            }
-
-            guard taskTokens[ratingKey] == token, let fidx = index(ratingKey) else { finishTask(ratingKey, token: token); return }
-            items[fidx].state = .completed
-            items[fidx].progress = 1
-            items[fidx].totalBytes = result.totalBytes
-            items[fidx].downloadedBytes = result.totalBytes
-            items[fidx].completedAt = Date()
-            items[fidx].errorMessage = nil
-            finishTask(ratingKey, token: token)
-            lastProgressEmit[ratingKey] = nil
-            persist()
-            emit(.finished(ratingKey: ratingKey))
-            emit(.changed)
-            notifyDownloadComplete(title: items[fidx].displayTitle)
-            AppLogger.notice("Download finished key=\(ratingKey) bytes=\(result.totalBytes) segments=\(result.segmentCount)", .persistence)
-        } catch is CancellationError {
-            finishTask(ratingKey, token: token)
-        } catch HLSDownloadError.cancelled {
-            finishTask(ratingKey, token: token)
+            let resolved = try await HLSDownloader.resolve(masterURL: plan.url, ratingKey: ratingKey)
+            guard let liveIdx = index(ratingKey), items[liveIdx].state == .downloading else { return }
+            jobs[ratingKey] = SegmentJob(base: resolved.base, names: resolved.segments, completed: 0, token: UUID().uuidString, refreshes: refreshes)
+            AppLogger.notice("Download \(refreshes == 0 ? "started" : "resumed") key=\(ratingKey) quality=\(quality.shortLabel) segments=\(resolved.segments.count)", .persistence)
+            enqueueNextSegment(ratingKey)
         } catch {
-            guard taskTokens[ratingKey] == token, let idx = index(ratingKey) else { finishTask(ratingKey, token: token); return }
-            items[idx].state = .failed
-            items[idx].errorMessage = error.localizedDescription
-            finishTask(ratingKey, token: token)
-            persist()
-            emit(.failed(ratingKey: ratingKey, message: error.localizedDescription))
-            emit(.changed)
-            AppLogger.error("Download failed key=\(ratingKey): \(error.localizedDescription)", .persistence)
+            guard index(ratingKey) != nil else { return }
+            failItem(ratingKey, message: error.localizedDescription)
         }
     }
 
-    /// Clears task bookkeeping for the given token and pumps the queue. Safe to call when the token is
-    /// stale (a newer task owns the key) — it then leaves the live task untouched.
-    private func finishTask(_ ratingKey: String, token: String) {
-        if taskTokens[ratingKey] == nil || taskTokens[ratingKey] == token {
-            tasks[ratingKey] = nil
-            taskTokens[ratingKey] = nil
+    private func applyPlanMetadata(at idx: Int, plan: DownloadResolver.Plan) {
+        items[idx].estimatedBytes = plan.estimatedBytes
+        items[idx].durationMs = plan.durationMs > 0 ? plan.durationMs : items[idx].durationMs
+        items[idx].markers = plan.markers
+        if items[idx].summary == nil { items[idx].summary = plan.summary }
+        if items[idx].viewOffsetMs == 0 { items[idx].viewOffsetMs = plan.initialViewOffsetMs }
+        persist()
+    }
+
+    private func enqueueNextSegment(_ ratingKey: String) {
+        guard var job = jobs[ratingKey], let idx = index(ratingKey), items[idx].state == .downloading else { return }
+        let dir = DownloadPaths.assetDir(ratingKey: ratingKey)
+        while job.completed < job.total {
+            let onDisk = dir.appendingPathComponent(HLSDownloader.localName(for: job.names[job.completed]))
+            guard FileManager.default.fileExists(atPath: onDisk.path) else { break }
+            job.completed += 1
         }
-        updateBackgroundAssertion()
+        jobs[ratingKey] = job
+
+        items[idx].progress = job.total > 0 ? Double(job.completed) / Double(job.total) : 0
+        items[idx].downloadedBytes = Int64(items[idx].progress * Double(items[idx].knownBytes))
+
+        guard job.completed < job.total else {
+            finalizeComplete(ratingKey)
+            return
+        }
+        let name = job.names[job.completed]
+        guard let url = HLSDownloader.segmentURL(name: name, base: job.base) else {
+            failItem(ratingKey, message: "Bad segment URL")
+            return
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 90
+        request.allowsCellularAccess = Preferences.downloadOverCellular
+        request.setValue("*/*", forHTTPHeaderField: "Accept")
+        let task = session.downloadTask(with: request)
+        task.taskDescription = "\(ratingKey)|\(HLSDownloader.localName(for: name))|\(job.token)"
+        tasks[ratingKey] = task
+        task.resume()
+        emitProgress(ratingKey)
+    }
+
+    private func emitProgress(_ ratingKey: String) {
+        guard let idx = index(ratingKey) else { return }
+        let now = Date()
+        if let last = lastProgressEmit[ratingKey], now.timeIntervalSince(last) < 0.4 { return }
+        lastProgressEmit[ratingKey] = now
+        emit(.progress(ratingKey: ratingKey, fractionCompleted: items[idx].progress, downloadedBytes: items[idx].downloadedBytes, totalBytes: items[idx].knownBytes))
+    }
+
+    private func finalizeComplete(_ ratingKey: String) {
+        guard let idx = index(ratingKey) else { return }
+        let size = HLSDownloader.directorySize(DownloadPaths.assetDir(ratingKey: ratingKey))
+        items[idx].state = .completed
+        items[idx].progress = 1
+        items[idx].totalBytes = size
+        items[idx].downloadedBytes = size
+        items[idx].completedAt = Date()
+        items[idx].errorMessage = nil
+        jobs[ratingKey] = nil
+        tasks[ratingKey] = nil
+        lastProgressEmit[ratingKey] = nil
+        persist()
+        emit(.finished(ratingKey: ratingKey))
+        emit(.changed)
+        notifyDownloadComplete(title: items[idx].displayTitle)
+        AppLogger.notice("Download finished key=\(ratingKey) bytes=\(size)", .persistence)
         pumpQueue()
-        if bgProcessingTask != nil, !hasActiveDownloads {
-            completeBackgroundProcessing(success: true)
-        }
     }
 
-    private func cancelTask(_ ratingKey: String) {
+    private func failItem(_ ratingKey: String, message: String) {
+        guard let idx = index(ratingKey) else { return }
         tasks[ratingKey]?.cancel()
         tasks[ratingKey] = nil
-        taskTokens[ratingKey] = nil
-        updateBackgroundAssertion()
+        jobs[ratingKey] = nil
+        items[idx].state = .failed
+        items[idx].errorMessage = message
+        persist()
+        emit(.failed(ratingKey: ratingKey, message: message))
+        emit(.changed)
+        AppLogger.error("Download failed key=\(ratingKey): \(message)", .persistence)
+        pumpQueue()
+    }
+
+    private func cancelItemTasks(_ ratingKey: String) {
+        jobs[ratingKey] = nil
+        if let task = tasks[ratingKey] {
+            task.cancel()
+            tasks[ratingKey] = nil
+        }
+        session.getAllTasks { tasks in
+            for task in tasks where (task.taskDescription?.split(separator: "|").first).map(String.init) == ratingKey {
+                task.cancel()
+            }
+        }
     }
 
     private func fetchPoster(path: String, ratingKey: String, baseURL: URL, token: String) {
@@ -414,105 +482,6 @@ final class DownloadManager: NSObject {
                   (response as? HTTPURLResponse)?.statusCode == 200, !data.isEmpty else { return }
             await store.savePoster(data, ratingKey: ratingKey)
         }
-    }
-
-    private func updateBackgroundAssertion() {
-        if !tasks.isEmpty, bgTask == .invalid {
-            bgTask = UIApplication.shared.beginBackgroundTask(withName: "crucible.downloads") { [weak self] in
-                self?.interruptForBackground()
-            }
-        } else if tasks.isEmpty {
-            endBackgroundAssertion()
-        }
-    }
-
-    private func endBackgroundAssertion() {
-        guard bgTask != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(bgTask)
-        bgTask = .invalid
-    }
-
-    // MARK: - Background execution
-
-    func registerBackgroundTasks() {
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.backgroundProcessingId, using: nil) { task in
-            guard let processing = task as? BGProcessingTask else { task.setTaskCompleted(success: false); return }
-            Task { @MainActor in DownloadManager.shared.handleBackgroundProcessing(processing) }
-        }
-    }
-
-    func handleEnteredBackground() {
-        scheduleBackgroundProcessing()
-    }
-
-    func handleEnteredForeground() {
-        resumeStalledDownloads()
-        #if os(iOS) && canImport(ActivityKit)
-        liveActivity.sync(items: items, force: true)
-        #endif
-    }
-
-    private func scheduleBackgroundProcessing() {
-        guard hasActiveDownloads else { return }
-        let request = BGProcessingTaskRequest(identifier: Self.backgroundProcessingId)
-        request.requiresNetworkConnectivity = true
-        request.requiresExternalPower = false
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch {
-            Self.log.error("BG processing submit failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    private func handleBackgroundProcessing(_ task: BGProcessingTask) {
-        scheduleBackgroundProcessing()
-        bgProcessingTask = task
-        task.expirationHandler = {
-            Task { @MainActor in
-                DownloadManager.shared.interruptForBackground()
-                DownloadManager.shared.completeBackgroundProcessing(success: false)
-            }
-        }
-        resumeStalledDownloads()
-        if tasks.isEmpty {
-            completeBackgroundProcessing(success: true)
-        }
-    }
-
-    private func completeBackgroundProcessing(success: Bool) {
-        bgProcessingTask?.setTaskCompleted(success: success)
-        bgProcessingTask = nil
-    }
-
-    /// Cancels in-flight download tasks without failing them — items stay `.downloading` (no task) and
-    /// are resumed on the next foreground or background-processing window.
-    private func interruptForBackground() {
-        #if os(iOS) && canImport(ActivityKit)
-        liveActivity.markPaused(items: items)
-        #endif
-        for (_, task) in tasks { task.cancel() }
-        tasks.removeAll()
-        taskTokens.removeAll()
-        endBackgroundAssertion()
-    }
-
-    private func resumeStalledDownloads() {
-        var changed = false
-        for i in items.indices where items[i].state == .downloading && tasks[items[i].ratingKey] == nil {
-            items[i].state = .queued
-            changed = true
-        }
-        if changed { persist(); emit(.changed) }
-        pumpQueue()
-    }
-
-    private func notifyDownloadComplete(title: String) {
-        let content = UNMutableNotificationContent()
-        content.title = "Download complete"
-        content.body = title
-        content.sound = .default
-        let request = UNNotificationRequest(identifier: "crucible.download.\(UUID().uuidString)", content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
     }
 
     // MARK: - Network changes
@@ -533,17 +502,10 @@ final class DownloadManager: NSObject {
         let wasWiFi = isOnWiFi
         isOnWiFi = wifi
         isOnline = online
-        if !Preferences.downloadOverCellular {
-            if !wifi {
-                if items.contains(where: { $0.state == .downloading }) {
-                    pauseActiveForWiFi()
-                }
-                pumpQueue()
-            } else if !wasWiFi {
-                promoteWaitingAndPump()
-            }
-        } else if online {
+        if canStartOnCurrentNetwork(), (wifi && !wasWiFi) || online {
             promoteWaitingAndPump()
+        } else {
+            pumpQueue()
         }
     }
 
@@ -556,18 +518,30 @@ final class DownloadManager: NSObject {
         pumpQueue()
     }
 
-    private func pauseActiveForWiFi() {
-        for i in items.indices where items[i].state == .downloading {
-            cancelTask(items[i].ratingKey)
-            items[i].state = .waitingForWiFi
-        }
-        persist()
-        emit(.changed)
+    private func notifyDownloadComplete(title: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Download complete"
+        content.body = title
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: "crucible.download.\(UUID().uuidString)", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 
     // MARK: - Recovery
 
-    private func finishBootstrap() {
+    private func recoverLiveTasks() {
+        session.getAllTasks { [weak self] tasks in
+            let liveKeys: Set<String> = Set(tasks.compactMap { task in
+                guard task.state == .running || task.state == .suspended else { return nil }
+                return task.taskDescription?.split(separator: "|").first.map(String.init)
+            })
+            Task { @MainActor [weak self] in
+                self?.finishBootstrap(liveKeys: liveKeys)
+            }
+        }
+    }
+
+    private func finishBootstrap(liveKeys: Set<String>) {
         for i in items.indices {
             switch items[i].state {
             case .downloading:
@@ -575,7 +549,7 @@ final class DownloadManager: NSObject {
                     items[i].state = .completed
                     items[i].progress = 1
                     items[i].completedAt = items[i].completedAt ?? Date()
-                } else {
+                } else if !liveKeys.contains(items[i].ratingKey) {
                     items[i].state = .queued
                 }
             case .waitingForWiFi:
@@ -589,6 +563,8 @@ final class DownloadManager: NSObject {
         }
         persist()
         emit(.changed)
+        // Live recovered tasks drive their own chain via the delegate; non-live .downloading items
+        // were demoted to .queued above and are started by pumpQueue.
         pumpQueue()
     }
 
@@ -596,17 +572,31 @@ final class DownloadManager: NSObject {
         FileManager.default.fileExists(atPath: DownloadPaths.playlistURL(ratingKey: item.ratingKey).path)
     }
 
-    // MARK: - Progress (MainActor)
+    // MARK: - Delegate-driven handlers (MainActor)
 
-    fileprivate func handleProgress(ratingKey: String, token: String, fraction: Double) {
-        guard let idx = index(ratingKey), taskTokens[ratingKey] == token, items[idx].state == .downloading else { return }
-        let clamped = min(0.999, max(0, fraction))
-        items[idx].progress = clamped
-        items[idx].downloadedBytes = Int64(clamped * Double(items[idx].knownBytes))
-        let now = Date()
-        if let last = lastProgressEmit[ratingKey], now.timeIntervalSince(last) < 0.25 { return }
-        lastProgressEmit[ratingKey] = now
-        emit(.progress(ratingKey: ratingKey, fractionCompleted: clamped, downloadedBytes: items[idx].downloadedBytes, totalBytes: items[idx].knownBytes))
+    fileprivate func handleSegmentFinished(ratingKey: String, token: String) {
+        guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
+        tasks[ratingKey] = nil
+        if jobs[ratingKey] == nil {
+            beginResolve(ratingKey, countAsFailure: false)
+            return
+        }
+        guard jobs[ratingKey]?.token == token else { return }
+        jobs[ratingKey]?.refreshes = 0
+        enqueueNextSegment(ratingKey)
+    }
+
+    fileprivate func handleSegmentError(ratingKey: String, token: String) {
+        guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
+        guard jobs[ratingKey] == nil || jobs[ratingKey]?.token == token else { return }
+        tasks[ratingKey] = nil
+        beginResolve(ratingKey, countAsFailure: true)
+    }
+
+    fileprivate func runBackgroundCompletionHandler() {
+        let handler = backgroundCompletionHandler
+        backgroundCompletionHandler = nil
+        handler?()
     }
 
     // MARK: - Persistence
@@ -614,5 +604,45 @@ final class DownloadManager: NSObject {
     private func persist() {
         let snapshot = items
         Task { [store] in await store.save(snapshot) }
+    }
+}
+
+extension DownloadManager: URLSessionDownloadDelegate {
+    nonisolated func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
+        guard let parts = Self.descriptor(downloadTask) else { return }
+        let status = (downloadTask.response as? HTTPURLResponse)?.statusCode ?? 0
+        let size = (try? location.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        guard (200...299).contains(status), size > 0,
+              DownloadPaths.commitSegment(tempURL: location, ratingKey: parts.key, name: parts.name) else {
+            Task { @MainActor in DownloadManager.shared.handleSegmentError(ratingKey: parts.key, token: parts.token) }
+            return
+        }
+        Task { @MainActor in DownloadManager.shared.handleSegmentFinished(ratingKey: parts.key, token: parts.token) }
+    }
+
+    nonisolated func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: (any Error)?
+    ) {
+        guard let error, let parts = Self.descriptor(task) else { return }
+        let nsError = error as NSError
+        guard !(nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled) else { return }
+        Task { @MainActor in DownloadManager.shared.handleSegmentError(ratingKey: parts.key, token: parts.token) }
+    }
+
+    nonisolated func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
+        Task { @MainActor in DownloadManager.shared.runBackgroundCompletionHandler() }
+    }
+
+    nonisolated private static func descriptor(_ task: URLSessionTask) -> (key: String, name: String, token: String)? {
+        guard let desc = task.taskDescription else { return nil }
+        let parts = desc.split(separator: "|", maxSplits: 2).map(String.init)
+        guard parts.count == 3 else { return nil }
+        return (parts[0], parts[1], parts[2])
     }
 }

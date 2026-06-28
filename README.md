@@ -20,7 +20,7 @@ No Xcode. No macOS. No storyboards. Pure programmatic UIKit, cross-compiled from
 | Language | **Swift 6** with strict concurrency |
 | UI | **UIKit** — programmatic, compositional layouts, diffable data sources, content configurations, **Liquid Glass** on iOS 26 |
 | Playback | **AVKit / AVFoundation** — direct play, HLS transcoding, offline file playback, Picture-in-Picture, lock-screen controls |
-| Downloads | **Offline HLS engine** — sequential segment fetch, resumable, Wi-Fi-aware, `BGProcessingTask` background, **ActivityKit Live Activity** |
+| Downloads | **Offline HLS engine** — background `URLSession` segment fetch, resumable, Wi-Fi-aware, **ActivityKit Live Activity** |
 | Build | **SwiftPM** — cross-compiled with `swift build --swift-sdk arm64-apple-ios` |
 | Deploy | **[xtool](https://github.com/xtool-org/xtool)** — cross-platform Xcode replacement, build and deploy iOS apps from Linux |
 | Backend | **Plex Media Server API** — OAuth PIN auth, HLS transcoding, timeline reporting |
@@ -46,7 +46,7 @@ A proper download engine — not the afterthought the official app ships.
 - **Per-download quality** — Original (source quality), High (1080p · 20 Mbps), Medium (720p · 8 Mbps), Low (480p · 3 Mbps), and Data Saver (360p · 0.7 Mbps), with a configurable default in Settings
 - **Live Activity** — a Lock Screen card and Dynamic Island showing live download progress (percent, current title, "X of Y"), built with **ActivityKit + a WidgetKit extension** — compiled and signed on Linux by xtool
 - **Real offline HLS engine** — downloads the transcoded stream segment-by-segment into a self-contained local playlist, re-minting the Plex session on the fly so a stalled transcode never breaks the download
-- **Background downloading** — keeps going via background-time assertions and **`BGProcessingTask`**; if the system reclaims time mid-download it interrupts gracefully (never "failed") and **auto-resumes** from the segments already on disk, with a notification when a download finishes while you're away
+- **True background downloading** — segments are fetched over a **background `URLSession`**, so transfers continue in the system daemon while the app is suspended or terminated (the Live Activity keeps advancing); a fresh Plex session is re-minted on failure, downloads **auto-resume** from the segments already on disk, and a notification fires when one finishes while you're away
 - **Real download queue** — concurrency limit plus pause / resume / cancel / retry per item and live progress
 - **Wi-Fi-only by default** — downloads pause when you leave Wi-Fi and resume when it returns; opt into cellular with one toggle
 - **Dedicated Downloads tab** — in-progress items, downloaded movies, and episodes grouped by show, with storage used and free space

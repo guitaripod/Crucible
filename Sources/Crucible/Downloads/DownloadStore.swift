@@ -34,6 +34,21 @@ enum DownloadPaths {
         directory.appendingPathComponent("\(ratingKey).resume")
     }
 
+    /// Synchronously moves a finished segment temp file into the item's asset folder. Safe to call
+    /// from the background URLSession delegate queue (the temp file is valid only until it returns).
+    static func commitSegment(tempURL: URL, ratingKey: String, name: String) -> Bool {
+        let dir = assetDir(ratingKey: ratingKey)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dest = dir.appendingPathComponent(name)
+        try? FileManager.default.removeItem(at: dest)
+        do {
+            try FileManager.default.moveItem(at: tempURL, to: dest)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     @discardableResult
     static func ensureDirectory() -> Bool {
         let dir = directory

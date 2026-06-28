@@ -14,7 +14,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         AppLogger.notice("App launched (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         application.beginReceivingRemoteControlEvents()
-        DownloadManager.shared.registerBackgroundTasks()
         DownloadManager.shared.bootstrap()
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         return true

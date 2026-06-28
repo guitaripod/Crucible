@@ -30,10 +30,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         route(userActivity)
     }
 
-    func sceneDidEnterBackground(_ scene: UIScene) {
-        DownloadManager.shared.handleEnteredBackground()
-    }
-
     func sceneWillEnterForeground(_ scene: UIScene) {
         DownloadManager.shared.handleEnteredForeground()
     }

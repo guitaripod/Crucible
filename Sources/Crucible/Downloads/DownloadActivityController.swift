@@ -45,16 +45,6 @@ final class DownloadActivityController {
         present(state(items: items, active: active, pausedOverride: false))
     }
 
-    /// Pushes a paused snapshot when background time runs out, so the Lock Screen reflects the stall
-    /// instead of showing frozen "active" progress. Only updates an existing activity.
-    func markPaused(items: [DownloadItem]) {
-        guard let activity, activity.activityState == .active else { return }
-        let active = items.filter { $0.state.isActive }
-        guard !active.isEmpty else { return }
-        let content = ActivityContent(state: state(items: items, active: active, pausedOverride: true), staleDate: nil)
-        Task { await activity.update(content) }
-    }
-
     private func state(items: [DownloadItem], active: [DownloadItem], pausedOverride: Bool) -> DownloadActivityAttributes.ContentState {
         let sessionItems = sessionKeys.compactMap { key in items.first { $0.ratingKey == key } }
         let total = max(sessionItems.count, 1)
