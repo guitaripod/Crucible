@@ -151,8 +151,8 @@ final class DownloadManager: NSObject {
     func offlineAsset(for ratingKey: String) -> OfflineAsset? {
         guard let item = item(for: ratingKey), item.state == .completed else { return nil }
         guard FileManager.default.fileExists(atPath: DownloadPaths.playlistURL(ratingKey: ratingKey).path) else { return nil }
-        LocalMediaServer.shared.start()
-        let url = LocalMediaServer.shared.playlistURL(ratingKey: ratingKey) ?? DownloadPaths.playlistURL(ratingKey: ratingKey)
+        LocalMediaServer.shared.awaitReady(timeout: 2)
+        guard let url = LocalMediaServer.shared.playlistURL(ratingKey: ratingKey) else { return nil }
         return OfflineAsset(
             fileURL: url,
             markers: item.markers.map(\.asPlexMarker),
@@ -303,14 +303,14 @@ final class DownloadManager: NSObject {
         for i in items.indices where items[i].state == .waitingForWiFi {
             items[i].state = .queued
         }
-        let activeItems = items.filter { $0.state == .downloading }.count
-        var slots = Preferences.maxConcurrentDownloads - activeItems
-        guard slots > 0 else { return }
+        // Segments stream over one background session capped to a single connection per host (Plex's
+        // transcode session is single-threaded), so downloads run one item at a time — concurrent
+        // items would starve each other's transcode sessions into refresh churn.
+        guard !items.contains(where: { $0.state == .downloading }) else { return }
         for item in items where item.state == .queued {
-            guard slots > 0 else { break }
             guard jobs[item.ratingKey] == nil, !resolving.contains(item.ratingKey) else { continue }
             startDownload(item.ratingKey)
-            slots -= 1
+            return
         }
     }
 

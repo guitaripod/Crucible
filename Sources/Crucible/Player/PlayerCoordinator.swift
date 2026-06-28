@@ -41,6 +41,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var isFinishing = false
     private var currentStreamOffset: Double = 0
     private var restartItemObserver: NSKeyValueObservation?
+    private var offlineResumeObserver: NSKeyValueObservation?
     private var pingTask: Task<Void, Never>?
     private var seekObserver: (any NSObjectProtocol)?
     private var isRestarting = false
@@ -203,7 +204,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         setupSeekObserver()
         setupNowPlayingObserver()
 
-        if resumePosition > 0 && stream.isDirectPlay {
+        if resumePosition > 0, offlineAsset != nil {
+            seekOfflineResumeWhenReady()
+        } else if resumePosition > 0, stream.isDirectPlay {
             let time = CMTime(seconds: resumePosition, preferredTimescale: 600)
             player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
                 Task { @MainActor in
@@ -215,6 +218,32 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
 
         viewController.present(playerVC, animated: true)
+    }
+
+    /// HLS (offline downloads served over the loopback server) only accepts seeks at segment
+    /// boundaries once the item is ready, so resume waits for `.readyToPlay` and seeks with tolerance
+    /// instead of the eager zero-tolerance seek used for true direct-play files.
+    private func seekOfflineResumeWhenReady() {
+        guard let player, let item = player.currentItem else { player?.play(); return }
+        let target = resumePosition
+        offlineResumeObserver?.invalidate()
+        offlineResumeObserver = item.observe(\.status, options: [.new]) { @Sendable observedItem, _ in
+            guard observedItem.status != .unknown else { return }
+            let ready = observedItem.status == .readyToPlay
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.offlineResumeObserver?.invalidate()
+                self.offlineResumeObserver = nil
+                guard ready else { self.player?.play(); return }
+                self.player?.seek(
+                    to: CMTime(seconds: target, preferredTimescale: 600),
+                    toleranceBefore: CMTime(seconds: 3, preferredTimescale: 600),
+                    toleranceAfter: .positiveInfinity
+                ) { @Sendable _ in
+                    Task { @MainActor [weak self] in self?.player?.play() }
+                }
+            }
+        }
     }
 
     private func setupInterruptionHandling() {
@@ -645,6 +674,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         pingTask = nil
         restartItemObserver?.invalidate()
         restartItemObserver = nil
+        offlineResumeObserver?.invalidate()
+        offlineResumeObserver = nil
         if let seekObserver {
             NotificationCenter.default.removeObserver(seekObserver)
         }

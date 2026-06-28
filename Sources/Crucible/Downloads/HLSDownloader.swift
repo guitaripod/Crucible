@@ -129,6 +129,7 @@ enum HLSDownloader {
                 out.append(localName(for: line))
             }
         }
+        if !out.contains("#EXT-X-ENDLIST") { out.append("#EXT-X-ENDLIST") }
         return out.joined(separator: "\n") + "\n"
     }
 
