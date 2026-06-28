@@ -12,6 +12,8 @@ final class DownloadsViewController: UICollectionViewController {
     private let api: APIClient
     private var dataSource: UICollectionViewDiffableDataSource<DLSection, String>!
     private var observerToken: UUID?
+    private var pendingSnapshot = false
+    private lazy var multiSelect = MultiSelectController(collectionView: collectionView, host: self)
     private var storageText: String?
     private var playerCoordinator: PlayerCoordinator?
 
@@ -35,7 +37,14 @@ final class DownloadsViewController: UICollectionViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
+        configureMultiSelect()
         DownloadManager.shared.bootstrap()
+    }
+
+    private func configureMultiSelect() {
+        multiSelect.onEnter = { [weak self] in self?.updateNavItems(hasItems: true) }
+        multiSelect.onExit = { [weak self] in self?.updateNavItems(hasItems: !DownloadManager.shared.items.isEmpty) }
+        multiSelect.toolbarItemsProvider = { [weak self] count in self?.selectionToolbarItems(count: count) ?? [] }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -50,6 +59,7 @@ final class DownloadsViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        multiSelect.setEditing(false)
         if let observerToken {
             DownloadManager.shared.removeObserver(observerToken)
             self.observerToken = nil
@@ -65,9 +75,20 @@ final class DownloadsViewController: UICollectionViewController {
                 dataSource.apply(snapshot, animatingDifferences: false)
             }
         case .changed, .failed:
-            applySnapshot()
+            scheduleSnapshot()
         case .finished:
             refresh()
+        }
+    }
+
+    /// Collapses the burst of state events at each episode boundary into one full snapshot rebuild.
+    private func scheduleSnapshot() {
+        guard !pendingSnapshot else { return }
+        pendingSnapshot = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.pendingSnapshot = false
+            self.applySnapshot()
         }
     }
 
@@ -160,7 +181,7 @@ final class DownloadsViewController: UICollectionViewController {
         button.tintColor = .systemOrange
         button.frame = CGRect(x: 0, y: 0, width: 32, height: 32)
         button.addAction(UIAction { _ in action() }, for: .touchUpInside)
-        return .customView(configuration: .init(customView: button, placement: .trailing(displayed: .always)))
+        return .customView(configuration: .init(customView: button, placement: .trailing(displayed: .whenNotEditing)))
     }
 
     private func applySnapshot() {
@@ -217,15 +238,54 @@ final class DownloadsViewController: UICollectionViewController {
 
     private func updateNavItems(hasItems: Bool) {
         guard hasItems else {
-            navigationItem.rightBarButtonItem = nil
+            navigationItem.leftBarButtonItem = nil
+            navigationItem.rightBarButtonItems = nil
             return
         }
+        if multiSelect.isEditing {
+            navigationItem.leftBarButtonItem = UIBarButtonItem(primaryAction: UIAction(title: "Select All") { [weak self] _ in
+                self?.selectAllItems()
+            })
+            navigationItem.rightBarButtonItems = [multiSelect.barButton]
+            return
+        }
+        navigationItem.leftBarButtonItem = nil
         let menu = UIMenu(children: [
             UIAction(title: "Delete All Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.confirmDeleteAll()
             }
         ])
-        navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: menu)
+        let menuButton = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: menu)
+        navigationItem.rightBarButtonItems = [menuButton, multiSelect.barButton]
+    }
+
+    private func selectionToolbarItems(count: Int) -> [UIBarButtonItem] {
+        let title = count > 0 ? "Delete \(count)" : "Delete"
+        let action = UIAction(title: title, image: UIImage(systemName: "trash")) { [weak self] _ in
+            self?.confirmDeleteSelected()
+        }
+        let delete = UIBarButtonItem(primaryAction: action)
+        delete.tintColor = .systemRed
+        delete.isEnabled = count > 0
+        return [.flexibleSpace(), delete, .flexibleSpace()]
+    }
+
+    private func selectAllItems() {
+        let all = (dataSource.snapshot().itemIdentifiers).compactMap { dataSource.indexPath(for: $0) }
+        multiSelect.selectAll(all)
+    }
+
+    private func confirmDeleteSelected() {
+        let keys = (collectionView.indexPathsForSelectedItems ?? []).compactMap { dataSource.itemIdentifier(for: $0) }
+        guard !keys.isEmpty else { return }
+        let noun = keys.count == 1 ? "Download" : "Downloads"
+        let alert = UIAlertController(title: "Delete \(keys.count) \(noun)?", message: "This removes the selected items from this device.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            DownloadManager.shared.deleteItems(keys)
+            self?.multiSelect.setEditing(false)
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
     }
 
     private func confirmDeleteAll() {
@@ -238,7 +298,7 @@ final class DownloadsViewController: UICollectionViewController {
     }
 
     private func swipeActions(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        guard let ratingKey = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        guard !collectionView.isEditing, let ratingKey = dataSource.itemIdentifier(for: indexPath) else { return nil }
         let delete = UIContextualAction(style: .destructive, title: "Delete") { _, _, completion in
             DownloadManager.shared.delete(ratingKey)
             completion(true)
@@ -248,10 +308,23 @@ final class DownloadsViewController: UICollectionViewController {
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if collectionView.isEditing { multiSelect.selectionChanged(); return }
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let ratingKey = dataSource.itemIdentifier(for: indexPath),
               let item = DownloadManager.shared.item(for: ratingKey) else { return }
         openDetail(item)
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+        if collectionView.isEditing { multiSelect.selectionChanged() }
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath) -> Bool {
+        true
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, didBeginMultipleSelectionInteractionAt indexPath: IndexPath) {
+        multiSelect.setEditing(true)
     }
 
     override func collectionView(
@@ -259,6 +332,7 @@ final class DownloadsViewController: UICollectionViewController {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
+        guard !collectionView.isEditing else { return nil }
         guard let indexPath = indexPaths.first,
               let ratingKey = dataSource.itemIdentifier(for: indexPath),
               let item = DownloadManager.shared.item(for: ratingKey) else { return nil }

@@ -23,6 +23,8 @@ final class ShowDetailViewController: UICollectionViewController {
     private var episodes: [PlexMetadata] = []
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var downloadObserver: UUID?
+    private var pendingFullReconfigure = false
+    private lazy var multiSelect = MultiSelectController(collectionView: collectionView, host: self)
 
     init(api: APIClient, showRatingKey: String, initialSeasonKey: String? = nil) {
         self.api = api
@@ -39,13 +41,34 @@ final class ShowDetailViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .never
         collectionView.collectionViewLayout = createLayout()
         configureDataSource()
+        configureMultiSelect()
+    }
+
+    private func configureMultiSelect() {
+        multiSelect.onEnter = { [weak self] in self?.updateSelectBarButton(); self?.reconfigureEpisodeAccessories() }
+        multiSelect.onExit = { [weak self] in self?.updateSelectBarButton(); self?.reconfigureEpisodeAccessories() }
+        multiSelect.toolbarItemsProvider = { [weak self] count in self?.selectionToolbarItems(count: count) ?? [] }
+    }
+
+    private func updateSelectBarButton() {
+        let hasEpisodes = !episodes.isEmpty
+        navigationItem.rightBarButtonItems = (multiSelect.isEditing || hasEpisodes) ? [multiSelect.barButton] : nil
+    }
+
+    private func reconfigureEpisodeAccessories() {
+        guard dataSource != nil else { return }
+        var snapshot = dataSource.snapshot()
+        let eps = snapshot.itemIdentifiers.filter { if case .episode = $0 { return true }; return false }
+        guard !eps.isEmpty else { return }
+        snapshot.reconfigureItems(eps)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         if downloadObserver == nil {
-            downloadObserver = DownloadManager.shared.addObserver { [weak self] _ in
-                self?.reconfigureDownloadItems()
+            downloadObserver = DownloadManager.shared.addObserver { [weak self] event in
+                self?.handleDownloadEvent(event)
             }
         }
         loadData()
@@ -53,6 +76,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        multiSelect.setEditing(false)
         loadTask?.cancel()
         seasonTask?.cancel()
         if let downloadObserver {
@@ -70,7 +94,43 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    /// Progress fires several times per second per active download; reconfiguring every episode cell
+    /// on each tick thrashes the whole list when a season is downloading. Scope progress to the single
+    /// episode that changed, and only rebuild every cell on the rarer state transitions.
+    private func handleDownloadEvent(_ event: DownloadEvent) {
+        switch event {
+        case .progress(let ratingKey, _, _, _):
+            reconfigureEpisode(ratingKey)
+        case .changed, .finished, .failed:
+            reconfigureDownloadItems()
+        }
+    }
+
+    private func reconfigureEpisode(_ ratingKey: String) {
+        guard dataSource != nil else { return }
+        var snapshot = dataSource.snapshot()
+        let target = snapshot.itemIdentifiers.filter { item in
+            if case .episode(let episode) = item { return episode.ratingKey == ratingKey }
+            return false
+        }
+        guard !target.isEmpty else { return }
+        snapshot.reconfigureItems(target)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    /// A single episode boundary fires `.finished` + `.changed` and the next item's start fires another
+    /// `.changed` — coalesce that burst into one full rebuild per runloop tick.
     private func reconfigureDownloadItems() {
+        guard !pendingFullReconfigure else { return }
+        pendingFullReconfigure = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.pendingFullReconfigure = false
+            self.performFullReconfigure()
+        }
+    }
+
+    private func performFullReconfigure() {
         guard dataSource != nil else { return }
         var snapshot = dataSource.snapshot()
         let items = snapshot.itemIdentifiers.filter { item in
@@ -182,7 +242,7 @@ final class ShowDetailViewController: UICollectionViewController {
             button.configuration = config
         }
 
-        let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [weak self] cell, _, item in
+        let episodeReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexMetadata> { [weak self] cell, _, item in
             let episode = self?.episodes.first { $0.id == item.id } ?? item
             var config = EpisodeContentConfiguration()
             config.episodeNumber = episode.index
@@ -196,6 +256,7 @@ final class ShowDetailViewController: UICollectionViewController {
             }
             config.downloadBadge = self?.downloadBadge(for: episode.id) ?? .none
             cell.contentConfiguration = config
+            cell.accessories = (self?.collectionView.isEditing ?? false) ? [.multiselect()] : []
         }
 
         let actionReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
@@ -345,9 +406,11 @@ final class ShowDetailViewController: UICollectionViewController {
             refreshed.reconfigureItems(dynamic)
             await dataSource.apply(refreshed, animatingDifferences: false)
         }
+        updateSelectBarButton()
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if collectionView.isEditing { multiSelect.selectionChanged(); return }
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
@@ -375,6 +438,25 @@ final class ShowDetailViewController: UICollectionViewController {
         default:
             break
         }
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+        if collectionView.isEditing { multiSelect.selectionChanged() }
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        guard collectionView.isEditing else { return true }
+        if case .episode = dataSource.itemIdentifier(for: indexPath) { return true }
+        return false
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath) -> Bool {
+        if case .episode = dataSource.itemIdentifier(for: indexPath) { return true }
+        return false
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, didBeginMultipleSelectionInteractionAt indexPath: IndexPath) {
+        multiSelect.setEditing(true)
     }
 
     private var playerCoordinator: PlayerCoordinator?
@@ -455,9 +537,69 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func removeSeasonDownloads() {
-        for episode in episodes where DownloadManager.shared.item(for: episode.id) != nil {
-            DownloadManager.shared.delete(episode.id)
+        let keys = episodes.map(\.id).filter { DownloadManager.shared.item(for: $0) != nil }
+        DownloadManager.shared.deleteItems(keys)
+    }
+
+    // MARK: - Batch selection actions
+
+    private func selectionToolbarItems(count: Int) -> [UIBarButtonItem] {
+        let selectAll = UIBarButtonItem(primaryAction: UIAction(title: "Select All") { [weak self] _ in
+            self?.selectAllEpisodes()
+        })
+
+        let downloadItem = UIBarButtonItem(title: count > 0 ? "Download \(count)" : "Download", menu: selectedDownloadMenu())
+        downloadItem.isEnabled = count > 0
+
+        let removeAction = UIAction(title: count > 0 ? "Remove \(count)" : "Remove") { [weak self] _ in
+            self?.removeSelectedEpisodes()
         }
+        let removeItem = UIBarButtonItem(primaryAction: removeAction)
+        removeItem.tintColor = .systemRed
+        removeItem.isEnabled = count > 0 && selectionHasDownloads()
+
+        return [selectAll, .flexibleSpace(), downloadItem, .flexibleSpace(), removeItem]
+    }
+
+    private func selectedDownloadMenu() -> UIMenu {
+        let current = Preferences.downloadQuality
+        let actions = DownloadQuality.allCases.map { quality in
+            UIAction(title: "\(quality.title) · \(quality.detail)", state: quality == current ? .on : .off) { [weak self] _ in
+                self?.downloadSelectedEpisodes(quality: quality)
+            }
+        }
+        return UIMenu(title: "Download Quality", children: actions)
+    }
+
+    private func selectedEpisodes() -> [PlexMetadata] {
+        (collectionView.indexPathsForSelectedItems ?? []).compactMap {
+            if case .episode(let episode) = dataSource.itemIdentifier(for: $0) { return episode }
+            return nil
+        }
+    }
+
+    private func selectionHasDownloads() -> Bool {
+        selectedEpisodes().contains { DownloadManager.shared.item(for: $0.id) != nil }
+    }
+
+    private func selectAllEpisodes() {
+        let paths = episodes.compactMap { dataSource.indexPath(for: .episode($0)) }
+        multiSelect.selectAll(paths)
+    }
+
+    private func downloadSelectedEpisodes(quality: DownloadQuality) {
+        let eps = selectedEpisodes()
+        guard !eps.isEmpty else { return }
+        let added = DownloadManager.shared.enqueueAll(eps, quality: quality)
+        AppLogger.notice("Batch download queued \(added) episodes", .persistence)
+        multiSelect.setEditing(false)
+    }
+
+    private func removeSelectedEpisodes() {
+        let keys = selectedEpisodes().map(\.id).filter { DownloadManager.shared.item(for: $0) != nil }
+        guard !keys.isEmpty else { return }
+        DownloadManager.shared.deleteItems(keys)
+        multiSelect.setEditing(false)
     }
 
     private func downloadMenuAction(for episode: PlexMetadata) -> UIMenuElement {
@@ -469,6 +611,7 @@ final class ShowDetailViewController: UICollectionViewController {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
+        guard !collectionView.isEditing else { return nil }
         guard let indexPath = indexPaths.first,
               let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         switch item {
