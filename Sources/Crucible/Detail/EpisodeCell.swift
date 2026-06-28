@@ -1,6 +1,12 @@
 import UIKit
 
 struct EpisodeContentConfiguration: UIContentConfiguration, Hashable {
+    enum DownloadBadge: Hashable {
+        case none
+        case downloading(Int)
+        case completed
+    }
+
     var episodeNumber: Int?
     var title: String = ""
     var summary: String?
@@ -8,6 +14,7 @@ struct EpisodeContentConfiguration: UIContentConfiguration, Hashable {
     var thumbPath: String?
     var isWatched: Bool = false
     var progress: Double?
+    var downloadBadge: DownloadBadge = .none
 
     func makeContentView() -> UIView & UIContentView {
         EpisodeContentView(configuration: self)
@@ -28,6 +35,7 @@ final class EpisodeContentView: UIView, UIContentView {
     private let placeholderIcon = UIImageView()
     private let watchedScrim = UIView()
     private let watchedBadge = UIImageView()
+    private let downloadBadge = UIImageView()
     private let thumbProgress = ProgressBar()
     private let eyebrowLabel = UILabel()
     private let titleLabel = UILabel()
@@ -79,6 +87,16 @@ final class EpisodeContentView: UIView, UIContentView {
         watchedBadge.isHidden = true
         watchedBadge.translatesAutoresizingMaskIntoConstraints = false
 
+        downloadBadge.image = UIImage(systemName: "arrow.down.circle.fill")
+        downloadBadge.tintColor = .systemGreen
+        downloadBadge.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
+        downloadBadge.contentMode = .scaleAspectFit
+        downloadBadge.isHidden = true
+        downloadBadge.translatesAutoresizingMaskIntoConstraints = false
+        downloadBadge.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        downloadBadge.layer.cornerRadius = 10
+        downloadBadge.clipsToBounds = true
+
         thumbProgress.translatesAutoresizingMaskIntoConstraints = false
         thumbProgress.isHidden = true
 
@@ -101,6 +119,7 @@ final class EpisodeContentView: UIView, UIContentView {
         thumbContainer.addSubview(watchedScrim)
         thumbContainer.addSubview(thumbProgress)
         thumbContainer.addSubview(watchedBadge)
+        thumbContainer.addSubview(downloadBadge)
 
         let textStack = UIStackView(arrangedSubviews: [eyebrowLabel, titleLabel, summaryLabel, metaLabel])
         textStack.axis = .vertical
@@ -134,6 +153,11 @@ final class EpisodeContentView: UIView, UIContentView {
 
             watchedBadge.trailingAnchor.constraint(equalTo: thumbContainer.trailingAnchor, constant: -6),
             watchedBadge.topAnchor.constraint(equalTo: thumbContainer.topAnchor, constant: 6),
+
+            downloadBadge.leadingAnchor.constraint(equalTo: thumbContainer.leadingAnchor, constant: 6),
+            downloadBadge.topAnchor.constraint(equalTo: thumbContainer.topAnchor, constant: 6),
+            downloadBadge.widthAnchor.constraint(equalToConstant: 20),
+            downloadBadge.heightAnchor.constraint(equalToConstant: 20),
 
             thumbProgress.leadingAnchor.constraint(equalTo: thumbContainer.leadingAnchor),
             thumbProgress.trailingAnchor.constraint(equalTo: thumbContainer.trailingAnchor),
@@ -178,6 +202,20 @@ final class EpisodeContentView: UIView, UIContentView {
             thumbProgress.isHidden = true
             titleLabel.textColor = .label
             eyebrowLabel.textColor = .systemOrange
+        }
+
+        switch config.downloadBadge {
+        case .none:
+            downloadBadge.isHidden = true
+        case .completed:
+            downloadBadge.isHidden = false
+            downloadBadge.image = UIImage(systemName: "arrow.down.circle.fill")
+            downloadBadge.tintColor = .systemGreen
+        case .downloading(let pct):
+            downloadBadge.isHidden = false
+            downloadBadge.image = UIImage(systemName: "arrow.down.circle")
+            downloadBadge.tintColor = .systemOrange
+            metaParts.append("↓ \(pct)%")
         }
 
         metaLabel.text = metaParts.joined(separator: " · ")

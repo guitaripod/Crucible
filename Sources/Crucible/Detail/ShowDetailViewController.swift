@@ -22,6 +22,7 @@ final class ShowDetailViewController: UICollectionViewController {
     private var selectedSeasonKey: String?
     private var episodes: [PlexMetadata] = []
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
+    private var downloadObserver: UUID?
 
     init(api: APIClient, showRatingKey: String, initialSeasonKey: String? = nil) {
         self.api = api
@@ -42,6 +43,11 @@ final class ShowDetailViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
+        if downloadObserver == nil {
+            downloadObserver = DownloadManager.shared.addObserver { [weak self] _ in
+                self?.reconfigureDownloadItems()
+            }
+        }
         loadData()
     }
 
@@ -49,8 +55,41 @@ final class ShowDetailViewController: UICollectionViewController {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
         seasonTask?.cancel()
+        if let downloadObserver {
+            DownloadManager.shared.removeObserver(downloadObserver)
+            self.downloadObserver = nil
+        }
         if isMovingFromParent || isBeingDismissed {
             userActivity?.resignCurrent()
+        }
+    }
+
+    deinit {
+        if let downloadObserver {
+            Task { @MainActor in DownloadManager.shared.removeObserver(downloadObserver) }
+        }
+    }
+
+    private func reconfigureDownloadItems() {
+        guard dataSource != nil else { return }
+        var snapshot = dataSource.snapshot()
+        let items = snapshot.itemIdentifiers.filter { item in
+            if case .episode = item { return true }
+            if item == .action("downloadSeason") { return true }
+            return false
+        }
+        guard !items.isEmpty else { return }
+        snapshot.reconfigureItems(items)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    private func downloadBadge(for ratingKey: String) -> EpisodeContentConfiguration.DownloadBadge {
+        guard let item = DownloadManager.shared.item(for: ratingKey) else { return .none }
+        switch item.state {
+        case .completed: return .completed
+        case .downloading, .queued, .waitingForWiFi, .paused:
+            return .downloading(Int((item.progress * 100).rounded()))
+        case .failed: return .none
         }
     }
 
@@ -155,10 +194,15 @@ final class ShowDetailViewController: UICollectionViewController {
             if !episode.isWatched && episode.positionSecs > 0 && episode.durationSecs > 0 {
                 config.progress = episode.positionSecs / episode.durationSecs
             }
+            config.downloadBadge = self?.downloadBadge(for: episode.id) ?? .none
             cell.contentConfiguration = config
         }
 
         let actionReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
+            if action == "downloadSeason" {
+                self.configureSeasonDownloadCell(cell)
+                return
+            }
             var buttonConfig = Glass.glassButton {
                 var config = UIButton.Configuration.tinted()
                 config.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
@@ -283,7 +327,10 @@ final class ShowDetailViewController: UICollectionViewController {
         snapshot.appendItems(episodes.map { .episode($0) }, toSection: .episodes)
 
         snapshot.appendSections([.actions])
-        snapshot.appendItems([.action("watchAll"), .action("unwatchAll")], toSection: .actions)
+        var actionItems: [Item] = []
+        if !episodes.isEmpty { actionItems.append(.action("downloadSeason")) }
+        actionItems.append(contentsOf: [.action("watchAll"), .action("unwatchAll")])
+        snapshot.appendItems(actionItems, toSection: .actions)
 
         await dataSource.apply(snapshot, animatingDifferences: false)
 
@@ -336,6 +383,87 @@ final class ShowDetailViewController: UICollectionViewController {
         playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
     }
 
+    private func configureSeasonDownloadCell(_ cell: UICollectionViewCell) {
+        var config = Glass.glassButton {
+            var c = UIButton.Configuration.tinted()
+            c.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
+            c.baseForegroundColor = .systemOrange
+            return c
+        }
+        config.cornerStyle = .large
+        config.imagePadding = 10
+
+        let states = episodes.map { DownloadManager.shared.state(for: $0.id) }
+        let total = episodes.count
+        let completed = states.filter { $0 == .completed }.count
+        let active = states.filter { $0?.isActive ?? false }.count
+
+        let menu: UIMenu
+
+        if total > 0, completed == total {
+            config.baseForegroundColor = .systemGreen
+            config.title = "Season Downloaded"
+            config.image = UIImage(systemName: "checkmark.circle.fill")
+            menu = UIMenu(children: [
+                UIAction(title: "Remove Season Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                    self?.removeSeasonDownloads()
+                }
+            ])
+        } else if active > 0 {
+            config.title = "Downloading Season · \(completed)/\(total)"
+            config.showsActivityIndicator = true
+            menu = UIMenu(children: [
+                UIAction(title: "Cancel Season Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                    self?.removeSeasonDownloads()
+                }
+            ])
+        } else {
+            config.title = completed > 0 ? "Download Remaining (\(total - completed))" : "Download Season"
+            config.image = UIImage(systemName: "arrow.down.circle")
+            menu = seasonQualityMenu()
+        }
+
+        let button = UIButton(configuration: config)
+        button.tintColor = config.baseForegroundColor
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        cell.contentView.subviews.forEach { $0.removeFromSuperview() }
+        cell.contentView.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
+            button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
+            button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
+            button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
+            button.heightAnchor.constraint(equalToConstant: 44),
+        ])
+    }
+
+    private func seasonQualityMenu() -> UIMenu {
+        let current = Preferences.downloadQuality
+        let actions = DownloadQuality.allCases.map { quality in
+            UIAction(title: "\(quality.title) · \(quality.detail)", state: quality == current ? .on : .off) { [weak self] _ in
+                self?.enqueueSeason(quality: quality)
+            }
+        }
+        return UIMenu(title: "Download Quality", children: actions)
+    }
+
+    private func enqueueSeason(quality: DownloadQuality) {
+        let added = DownloadManager.shared.enqueueAll(episodes, quality: quality)
+        AppLogger.notice("Season download queued \(added) episodes", .persistence)
+    }
+
+    private func removeSeasonDownloads() {
+        for episode in episodes where DownloadManager.shared.item(for: episode.id) != nil {
+            DownloadManager.shared.delete(episode.id)
+        }
+    }
+
+    private func downloadMenuAction(for episode: PlexMetadata) -> UIMenuElement {
+        DownloadMenu.action(for: episode)
+    }
+
     override func collectionView(
         _ collectionView: UICollectionView,
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
@@ -373,6 +501,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     UIAction(title: episode.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                         self?.quickPlay(episode)
                     },
+                    self.downloadMenuAction(for: episode),
                     UIAction(title: episode.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: episode.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
                         guard let self else { return }
                         Task {

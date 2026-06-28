@@ -370,6 +370,7 @@ final class MovieGridViewController: UICollectionViewController {
                 actions.append(UIAction(title: m.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     self?.quickPlay(m)
                 })
+                actions.append(DownloadMenu.action(for: m))
             }
             actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
                 self?.openDetail(m)

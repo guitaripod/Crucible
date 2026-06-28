@@ -29,6 +29,7 @@ final class MediaDetailViewController: UICollectionViewController {
     private var selectedAudioTrackId: Int?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var playerCoordinator: PlayerCoordinator?
+    private var downloadObserver: UUID?
 
     init(api: APIClient, ratingKey: String, mediaType: String, showRatingKey: String? = nil, seasonRatingKey: String? = nil) {
         self.api = api
@@ -51,15 +52,47 @@ final class MediaDetailViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
+        if downloadObserver == nil {
+            downloadObserver = DownloadManager.shared.addObserver { [weak self] event in
+                self?.handleDownloadEvent(event)
+            }
+        }
         loadData()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
+        if let downloadObserver {
+            DownloadManager.shared.removeObserver(downloadObserver)
+            self.downloadObserver = nil
+        }
         if isMovingFromParent || isBeingDismissed {
             userActivity?.resignCurrent()
         }
+    }
+
+    deinit {
+        if let downloadObserver {
+            Task { @MainActor in DownloadManager.shared.removeObserver(downloadObserver) }
+        }
+    }
+
+    private func handleDownloadEvent(_ event: DownloadEvent) {
+        switch event {
+        case .progress(let key, _, _, _) where key != ratingKey:
+            return
+        default:
+            reconfigureDownloadAction()
+        }
+    }
+
+    private func reconfigureDownloadAction() {
+        guard dataSource != nil else { return }
+        var snapshot = dataSource.snapshot()
+        guard snapshot.itemIdentifiers.contains(.action("download")) else { return }
+        snapshot.reconfigureItems([.action("download")])
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func donateActivity(_ meta: PlexMetadata) {
@@ -198,6 +231,10 @@ final class MediaDetailViewController: UICollectionViewController {
         }
 
         let actionCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
+            if action == "download" {
+                self.configureDownloadCell(cell)
+                return
+            }
             var buttonConfig = Glass.glassButton {
                 var config = UIButton.Configuration.tinted()
                 config.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
@@ -318,6 +355,12 @@ final class MediaDetailViewController: UICollectionViewController {
                 await applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
+                if metadata == nil, let download = DownloadManager.shared.item(for: ratingKey) {
+                    let meta = download.asPlexMetadata
+                    self.metadata = meta
+                    self.title = meta.title
+                    await applySnapshot()
+                }
             }
         }
     }
@@ -373,7 +416,7 @@ final class MediaDetailViewController: UICollectionViewController {
         }
 
         snapshot.appendSections([.actions])
-        snapshot.appendItems([.action("watched")], toSection: .actions)
+        snapshot.appendItems([.action("download"), .action("watched")], toSection: .actions)
         if metadata.mediaType == "episode" {
             snapshot.appendItems([.action("next")], toSection: .actions)
         }
@@ -464,20 +507,160 @@ final class MediaDetailViewController: UICollectionViewController {
             posterPath: metadata.thumb ?? metadata.grandparentThumb,
             duration: metadata.durationSecs
         )
+        let offlineAsset = DownloadManager.shared.offlineAsset(for: ratingKey)
+        let resumePosition = offlineAsset != nil
+            ? (DownloadManager.shared.item(for: ratingKey)?.resumeSecs ?? metadata.positionSecs)
+            : metadata.positionSecs
         let coordinator = PlayerCoordinator(
             api: api,
             ratingKey: ratingKey,
             mediaType: mediaType,
             showRatingKey: showRatingKey ?? metadata.grandparentRatingKey,
             seasonRatingKey: seasonRatingKey ?? metadata.parentRatingKey,
-            resumePosition: metadata.positionSecs,
+            resumePosition: resumePosition,
             metadata: meta,
             selectedSubtitleId: selectedSubtitleId,
-            selectedAudioStreamId: selectedAudioTrackId
+            selectedAudioStreamId: selectedAudioTrackId,
+            offlineAsset: offlineAsset
         )
         coordinator.onAdvanceToNext = { [weak self] next in self?.playerCoordinator = next }
         self.playerCoordinator = coordinator
         coordinator.present(from: self)
+    }
+
+    private func configureDownloadCell(_ cell: UICollectionViewCell) {
+        let item = DownloadManager.shared.item(for: ratingKey)
+        var config = Glass.glassButton {
+            var c = UIButton.Configuration.tinted()
+            c.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
+            c.baseForegroundColor = .systemOrange
+            return c
+        }
+        config.cornerStyle = .large
+        config.imagePadding = 10
+        config.titlePadding = 2
+
+        let menu: UIMenu
+
+        switch item?.state {
+        case .none:
+            config.title = "Download"
+            config.image = UIImage(systemName: "arrow.down.circle")
+            menu = qualityMenu()
+        case .queued:
+            config.title = "Queued"
+            config.subtitle = item?.quality.shortLabel
+            config.showsActivityIndicator = true
+            menu = activeMenu()
+        case .waitingForWiFi:
+            config.title = "Waiting for Wi-Fi"
+            config.image = UIImage(systemName: "wifi.slash")
+            menu = activeMenu()
+        case .downloading:
+            config.title = "Downloading"
+            config.subtitle = item.map { "\($0.percentText) · \($0.quality.shortLabel)" }
+            config.image = UIImage(systemName: "stop.circle")
+            menu = activeMenu()
+        case .paused:
+            let pct = Int(((item?.progress ?? 0) * 100).rounded())
+            config.title = "Paused · \(pct)%"
+            config.subtitle = "Tap for options"
+            config.image = UIImage(systemName: "play.circle")
+            menu = pausedMenu()
+        case .failed:
+            config.baseForegroundColor = .systemRed
+            config.title = "Download Failed"
+            config.subtitle = item?.errorMessage ?? "Tap to retry"
+            config.image = UIImage(systemName: "exclamationmark.triangle")
+            menu = failedMenu()
+        case .completed:
+            config.baseForegroundColor = .systemGreen
+            config.title = "Downloaded"
+            config.subtitle = item?.statusLine
+            config.image = UIImage(systemName: "checkmark.circle.fill")
+            menu = completedMenu()
+        }
+
+        let button = UIButton(configuration: config)
+        button.tintColor = config.baseForegroundColor
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        cell.contentView.subviews.forEach { $0.removeFromSuperview() }
+        cell.contentView.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
+            button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
+            button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
+            button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
+        ])
+    }
+
+    private func qualityMenu() -> UIMenu {
+        let current = Preferences.downloadQuality
+        let actions = DownloadQuality.allCases.map { quality in
+            UIAction(title: "\(quality.title) · \(quality.detail)", state: quality == current ? .on : .off) { [weak self] _ in
+                self?.startDownload(quality: quality)
+            }
+        }
+        return UIMenu(title: "Download Quality", children: actions)
+    }
+
+    private func activeMenu() -> UIMenu {
+        UIMenu(children: [
+            UIAction(title: "Pause", image: UIImage(systemName: "pause.fill")) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.pause(self.ratingKey)
+            },
+            UIAction(title: "Cancel Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.delete(self.ratingKey)
+            },
+        ])
+    }
+
+    private func pausedMenu() -> UIMenu {
+        UIMenu(children: [
+            UIAction(title: "Resume", image: UIImage(systemName: "arrow.down.to.line")) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.resume(self.ratingKey)
+            },
+            UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.delete(self.ratingKey)
+            },
+        ])
+    }
+
+    private func failedMenu() -> UIMenu {
+        UIMenu(children: [
+            UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.retry(self.ratingKey)
+            },
+            UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.delete(self.ratingKey)
+            },
+        ])
+    }
+
+    private func completedMenu() -> UIMenu {
+        UIMenu(children: [
+            UIAction(title: "Play Offline", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                self?.play()
+            },
+            UIAction(title: "Delete Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self else { return }
+                DownloadManager.shared.delete(self.ratingKey)
+            },
+        ])
+    }
+
+    private func startDownload(quality: DownloadQuality) {
+        guard let metadata else { return }
+        DownloadManager.shared.enqueue(metadata: metadata, quality: quality)
     }
 
     private func toggleWatched() {

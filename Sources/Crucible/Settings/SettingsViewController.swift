@@ -2,7 +2,7 @@
 
 final class SettingsViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case server, libraries, playback, activity, storage, account, about
+        case server, libraries, playback, downloads, activity, storage, account, about
     }
 
     enum Item: Hashable {
@@ -10,6 +10,12 @@ final class SettingsViewController: UICollectionViewController {
         case serverURI(String)
         case library(key: String, type: String, name: String, count: String)
         case quality(String)
+        case downloadQuality(String)
+        case downloadCellular(Bool)
+        case deleteWatched(Bool)
+        case downloadsUsage(String)
+        case manageDownloads(String)
+        case deleteAllDownloads
         case activityHistory
         case clearCache
         case signOut
@@ -52,7 +58,7 @@ final class SettingsViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, item in
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [unowned self] cell, _, item in
             switch item {
             case .serverName(let name):
                 var config = UIListContentConfiguration.valueCell()
@@ -91,6 +97,63 @@ final class SettingsViewController: UICollectionViewController {
                 config.imageProperties.tintColor = .systemOrange
                 cell.contentConfiguration = config
                 cell.accessories = [.disclosureIndicator()]
+
+            case .downloadQuality(let current):
+                var config = UIListContentConfiguration.valueCell()
+                config.text = "Download Quality"
+                config.secondaryText = current
+                config.image = UIImage(systemName: "arrow.down.circle")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [.disclosureIndicator()]
+
+            case .downloadCellular(let isOn):
+                var config = UIListContentConfiguration.cell()
+                config.text = "Download over Cellular"
+                config.image = UIImage(systemName: "antenna.radiowaves.left.and.right")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [self.switchAccessory(isOn: isOn) { newValue in
+                    Preferences.downloadOverCellular = newValue
+                    DownloadManager.shared.cellularPreferenceChanged()
+                }]
+
+            case .deleteWatched(let isOn):
+                var config = UIListContentConfiguration.cell()
+                config.text = "Delete Watched Downloads"
+                config.image = UIImage(systemName: "eye.trianglebadge.exclamationmark")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [self.switchAccessory(isOn: isOn) { newValue in
+                    Preferences.deleteWatchedDownloads = newValue
+                }]
+
+            case .downloadsUsage(let usage):
+                var config = UIListContentConfiguration.valueCell()
+                config.text = "Storage Used"
+                config.secondaryText = usage
+                config.image = UIImage(systemName: "internaldrive")
+                config.imageProperties.tintColor = .tertiaryLabel
+                cell.contentConfiguration = config
+                cell.accessories = []
+
+            case .manageDownloads(let count):
+                var config = UIListContentConfiguration.valueCell()
+                config.text = "Manage Downloads"
+                config.secondaryText = count
+                config.image = UIImage(systemName: "square.and.arrow.down.on.square")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [.disclosureIndicator()]
+
+            case .deleteAllDownloads:
+                var config = UIListContentConfiguration.cell()
+                config.text = "Delete All Downloads"
+                config.textProperties.color = .systemRed
+                config.image = UIImage(systemName: "trash")
+                config.imageProperties.tintColor = .systemRed
+                cell.contentConfiguration = config
+                cell.accessories = []
 
             case .clearCache:
                 var config = UIListContentConfiguration.cell()
@@ -148,6 +211,7 @@ final class SettingsViewController: UICollectionViewController {
             case .server: config.text = "Server"
             case .libraries: config.text = "Libraries"
             case .playback: config.text = "Playback"
+            case .downloads: config.text = "Downloads"
             case .activity: config.text = "Activity"
             case .storage: config.text = "Storage"
             case .account: config.text = "Account"
@@ -158,6 +222,17 @@ final class SettingsViewController: UICollectionViewController {
         dataSource.supplementaryViewProvider = { cv, kind, indexPath in
             cv.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
         }
+    }
+
+    private func switchAccessory(isOn: Bool, onChange: @escaping (Bool) -> Void) -> UICellAccessory {
+        let toggle = UISwitch()
+        toggle.isOn = isOn
+        toggle.onTintColor = .systemOrange
+        toggle.addAction(UIAction { [weak toggle] _ in
+            guard let toggle else { return }
+            onChange(toggle.isOn)
+        }, for: .valueChanged)
+        return .customView(configuration: .init(customView: toggle, placement: .trailing(displayed: .always)))
     }
 
     private func loadData() {
@@ -197,6 +272,24 @@ final class SettingsViewController: UICollectionViewController {
 
             snapshot.appendSections([.playback])
             snapshot.appendItems([.quality(Preferences.streamingQuality.title)], toSection: .playback)
+
+            let usedBytes = await DownloadManager.shared.totalBytesOnDisk()
+            let downloadCount = DownloadManager.shared.items.filter { $0.state == .completed }.count
+            let activeCount = DownloadManager.shared.activeDownloadCount
+            guard !Task.isCancelled else { return }
+            snapshot.appendSections([.downloads])
+            var downloadItems: [Item] = [
+                .downloadQuality(Preferences.downloadQuality.title),
+                .downloadCellular(Preferences.downloadOverCellular),
+                .deleteWatched(Preferences.deleteWatchedDownloads),
+                .downloadsUsage(usedBytes > 0 ? Formatters.fileSize(usedBytes) : "None"),
+            ]
+            let countText = activeCount > 0 ? "\(downloadCount) · \(activeCount) active" : "\(downloadCount)"
+            downloadItems.append(.manageDownloads(countText))
+            if downloadCount > 0 || activeCount > 0 {
+                downloadItems.append(.deleteAllDownloads)
+            }
+            snapshot.appendItems(downloadItems, toSection: .downloads)
 
             snapshot.appendSections([.activity])
             snapshot.appendItems([.activityHistory], toSection: .activity)
@@ -243,6 +336,36 @@ final class SettingsViewController: UICollectionViewController {
             }
             present(sheet, animated: true)
 
+        case .downloadQuality:
+            let sheet = UIAlertController(title: "Download Quality", message: "Higher quality looks better but uses more storage. Original copies the source file when your device can play it, otherwise it converts to a compatible format.", preferredStyle: .actionSheet)
+            for quality in DownloadQuality.allCases {
+                let isCurrent = quality == Preferences.downloadQuality
+                let title = "\(quality.title) · \(quality.detail)"
+                sheet.addAction(UIAlertAction(title: isCurrent ? "\(title)  ✓" : title, style: .default) { [weak self] _ in
+                    Preferences.downloadQuality = quality
+                    self?.loadData()
+                })
+            }
+            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            if let popover = sheet.popoverPresentationController, let cell = collectionView.cellForItem(at: indexPath) {
+                popover.sourceView = cell
+                popover.sourceRect = cell.bounds
+            }
+            present(sheet, animated: true)
+
+        case .manageDownloads:
+            let vc = DownloadsViewController(api: api)
+            navigationController?.pushViewController(vc, animated: true)
+
+        case .deleteAllDownloads:
+            let alert = UIAlertController(title: "Delete All Downloads?", message: "This removes every downloaded movie and episode from this device.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Delete All", style: .destructive) { [weak self] _ in
+                DownloadManager.shared.deleteAll()
+                self?.loadData()
+            })
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            present(alert, animated: true)
+
         case .clearCache:
             Task { await ImageLoader.shared.clearCache() }
             let alert = UIAlertController(title: "Image Cache Cleared", message: nil, preferredStyle: .alert)
@@ -262,6 +385,7 @@ final class SettingsViewController: UICollectionViewController {
             let alert = UIAlertController(title: "Sign Out", message: "Are you sure you want to sign out?", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
                 guard let self else { return }
+                DownloadManager.shared.handleSignOut()
                 ServerBootstrap.clear()
                 if let scene = view.window?.windowScene?.delegate as? SceneDelegate {
                     scene.reconfigureRoot()

@@ -25,10 +25,13 @@ final class TabBarController: UITabBarController {
         let search = UINavigationController(rootViewController: SearchViewController(api: api))
         search.tabBarItem = UITabBarItem(title: "Search", image: UIImage(systemName: "magnifyingglass"), tag: 2)
 
+        let downloads = UINavigationController(rootViewController: DownloadsViewController(api: api))
+        downloads.tabBarItem = UITabBarItem(title: "Downloads", image: UIImage(systemName: "arrow.down.circle"), selectedImage: UIImage(systemName: "arrow.down.circle.fill"))
+
         let settings = UINavigationController(rootViewController: SettingsViewController(api: api))
         settings.tabBarItem = UITabBarItem(title: "Settings", image: UIImage(systemName: "gearshape"), selectedImage: UIImage(systemName: "gearshape.fill"))
 
-        viewControllers = [home, library, search, settings]
+        viewControllers = [home, library, search, downloads, settings]
     }
 
     func openMedia(ratingKey: String, mediaType: String) {

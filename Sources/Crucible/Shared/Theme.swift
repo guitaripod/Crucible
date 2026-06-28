@@ -23,14 +23,19 @@ enum Theme {
             posterPath: item.thumb ?? item.grandparentThumb,
             duration: item.durationSecs
         )
+        let offlineAsset = DownloadManager.shared.offlineAsset(for: item.id)
+        let resumePosition = offlineAsset != nil
+            ? (DownloadManager.shared.item(for: item.id)?.resumeSecs ?? item.positionSecs)
+            : item.positionSecs
         let coordinator = PlayerCoordinator(
             api: api,
             ratingKey: item.id,
             mediaType: item.mediaType,
             showRatingKey: item.grandparentRatingKey,
             seasonRatingKey: item.parentRatingKey,
-            resumePosition: item.positionSecs,
-            metadata: meta
+            resumePosition: resumePosition,
+            metadata: meta,
+            offlineAsset: offlineAsset
         )
         coordinator.present(from: vc)
         return coordinator

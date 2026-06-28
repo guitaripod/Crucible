@@ -25,6 +25,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private let metadata: Metadata?
     private let selectedSubtitleId: Int?
     private let selectedAudioStreamId: Int?
+    private let offlineAsset: OfflineAsset?
 
     private var player: AVPlayer?
     private var playerVC: AVPlayerViewController?
@@ -44,6 +45,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var seekObserver: (any NSObjectProtocol)?
     private var isRestarting = false
     private var lastPlayhead: Double = 0
+    private var lastOfflineWrite: Double = 0
     private var markers: [PlexMarker] = []
     private var skipButton: UIButton?
     private var upNextTriggered = false
@@ -64,7 +66,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         resumePosition: Double,
         metadata: Metadata? = nil,
         selectedSubtitleId: Int? = nil,
-        selectedAudioStreamId: Int? = nil
+        selectedAudioStreamId: Int? = nil,
+        offlineAsset: OfflineAsset? = nil
     ) {
         self.api = api
         self.ratingKey = ratingKey
@@ -75,6 +78,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         self.metadata = metadata
         self.selectedSubtitleId = selectedSubtitleId
         self.selectedAudioStreamId = selectedAudioStreamId
+        self.offlineAsset = offlineAsset
     }
 
     func present(from viewController: UIViewController) {
@@ -82,6 +86,21 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         isPresenting = true
         presentingVC = viewController
         AppLogger.notice("Play requested ratingKey=\(ratingKey) type=\(mediaType) resumeSecs=\(Int(resumePosition))", .playback)
+
+        if let offlineAsset {
+            AppLogger.notice("Playing offline asset for ratingKey=\(ratingKey)", .playback)
+            let stream = ResolvedStream(
+                url: offlineAsset.fileURL,
+                isDirectPlay: true,
+                sessionId: "offline",
+                subtitles: [],
+                audioTracks: [],
+                markers: offlineAsset.markers
+            )
+            resolvedStream = stream
+            startPlayback(stream: stream, from: viewController)
+            return
+        }
 
         let spinner = UIActivityIndicatorView(style: .large)
         spinner.color = .white
@@ -144,14 +163,16 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC.delegate = self
         self.playerVC = playerVC
 
-        let durationMs = metadata.map { Int(($0.duration ?? 0) * 1000) } ?? 0
-        reporter = PlaybackReporter(
-            api: api,
-            ratingKey: ratingKey,
-            sessionId: stream.sessionId,
-            durationMs: durationMs,
-            player: player
-        )
+        if offlineAsset == nil {
+            let durationMs = metadata.map { Int(($0.duration ?? 0) * 1000) } ?? 0
+            reporter = PlaybackReporter(
+                api: api,
+                ratingKey: ratingKey,
+                sessionId: stream.sessionId,
+                durationMs: durationMs,
+                player: player
+            )
+        }
         let np = NowPlayingBridge()
         nowPlaying = np
 
@@ -250,6 +271,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 let absolute = seconds + self.currentStreamOffset
                 self.nowPlaying?.updateElapsed(absolute, rate: Double(player.rate))
                 self.updateSkipUI(absolute: absolute)
+                if self.offlineAsset != nil, absolute - self.lastOfflineWrite >= 10 {
+                    self.lastOfflineWrite = absolute
+                    DownloadManager.shared.recordOfflineProgress(ratingKey: self.ratingKey, positionSecs: absolute)
+                }
             }
         }
     }
@@ -605,6 +630,13 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func cleanup() async {
+        let offlineFinalPosition: Double?
+        if offlineAsset != nil {
+            let position = player?.currentTime().seconds ?? lastPlayhead
+            offlineFinalPosition = (position.isFinite && position >= 0) ? position : nil
+        } else {
+            offlineFinalPosition = nil
+        }
         removeUpNextOverlay()
         removeSkipButton()
         tearDownRemoteCommands()
@@ -652,6 +684,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
         player?.replaceCurrentItem(with: nil)
         playerVC?.player = nil
+
+        if let offlineFinalPosition {
+            DownloadManager.shared.recordOfflineProgress(ratingKey: ratingKey, positionSecs: offlineFinalPosition, deleteIfWatched: true)
+        }
 
         nowPlaying?.clear()
         nowPlaying = nil
