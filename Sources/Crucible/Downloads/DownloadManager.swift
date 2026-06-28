@@ -24,7 +24,7 @@ final class DownloadManager: NSObject {
     private struct SegmentJob {
         let base: URL
         let names: [String]
-        var completed: Int
+        var onDisk: Set<String>
         let token: String
         var refreshes: Int
         var total: Int { names.count }
@@ -32,7 +32,6 @@ final class DownloadManager: NSObject {
 
     private(set) var items: [DownloadItem] = []
     private var jobs: [String: SegmentJob] = [:]
-    private var tasks: [String: URLSessionDownloadTask] = [:]
     private var resolving: Set<String> = []
     private var observers: [UUID: (DownloadEvent) -> Void] = [:]
     private var lastProgressEmit: [String: Date] = [:]
@@ -53,7 +52,7 @@ final class DownloadManager: NSObject {
         let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
         configuration.sessionSendsLaunchEvents = true
         configuration.isDiscretionary = false
-        configuration.httpMaximumConnectionsPerHost = max(2, Preferences.maxConcurrentDownloads)
+        configuration.httpMaximumConnectionsPerHost = 1
         configuration.timeoutIntervalForRequest = 90
         configuration.timeoutIntervalForResource = 60 * 60 * 24 * 7
         return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
@@ -252,8 +251,6 @@ final class DownloadManager: NSObject {
 
     func deleteAll() {
         let snapshot = items
-        for (_, task) in tasks { task.cancel() }
-        tasks.removeAll()
         jobs.removeAll()
         resolving.removeAll()
         lastProgressEmit.removeAll()
@@ -309,7 +306,7 @@ final class DownloadManager: NSObject {
         guard slots > 0 else { return }
         for item in items where item.state == .queued {
             guard slots > 0 else { break }
-            guard jobs[item.ratingKey] == nil, tasks[item.ratingKey] == nil, !resolving.contains(item.ratingKey) else { continue }
+            guard jobs[item.ratingKey] == nil, !resolving.contains(item.ratingKey) else { continue }
             startDownload(item.ratingKey)
             slots -= 1
         }
@@ -340,9 +337,8 @@ final class DownloadManager: NSObject {
                 return
             }
         }
-        tasks[ratingKey]?.cancel()
-        tasks[ratingKey] = nil
         jobs[ratingKey] = nil
+        cancelInflight(ratingKey)
         resolving.insert(ratingKey)
         let quality = items[idx].quality
         let carriedRefreshes = refreshes
@@ -364,9 +360,13 @@ final class DownloadManager: NSObject {
             }
             let resolved = try await HLSDownloader.resolve(masterURL: plan.url, ratingKey: ratingKey)
             guard let liveIdx = index(ratingKey), items[liveIdx].state == .downloading else { return }
-            jobs[ratingKey] = SegmentJob(base: resolved.base, names: resolved.segments, completed: 0, token: UUID().uuidString, refreshes: refreshes)
-            AppLogger.notice("Download \(refreshes == 0 ? "started" : "resumed") key=\(ratingKey) quality=\(quality.shortLabel) segments=\(resolved.segments.count)", .persistence)
-            enqueueNextSegment(ratingKey)
+            let dir = DownloadPaths.assetDir(ratingKey: ratingKey)
+            let onDisk = Set(resolved.segments
+                .map { HLSDownloader.localName(for: $0) }
+                .filter { FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path) })
+            jobs[ratingKey] = SegmentJob(base: resolved.base, names: resolved.segments, onDisk: onDisk, token: UUID().uuidString, refreshes: refreshes)
+            AppLogger.notice("Download \(refreshes == 0 ? "started" : "resumed") key=\(ratingKey) quality=\(quality.shortLabel) segments=\(resolved.segments.count) onDisk=\(onDisk.count)", .persistence)
+            enqueueAllSegments(ratingKey)
         } catch {
             guard index(ratingKey) != nil else { return }
             failItem(ratingKey, message: error.localizedDescription)
@@ -382,41 +382,33 @@ final class DownloadManager: NSObject {
         persist()
     }
 
-    private func enqueueNextSegment(_ ratingKey: String) {
-        guard var job = jobs[ratingKey], let idx = index(ratingKey), items[idx].state == .downloading else { return }
-        let dir = DownloadPaths.assetDir(ratingKey: ratingKey)
-        while job.completed < job.total {
-            let onDisk = dir.appendingPathComponent(HLSDownloader.localName(for: job.names[job.completed]))
-            guard FileManager.default.fileExists(atPath: onDisk.path) else { break }
-            job.completed += 1
+    /// Enqueues every not-yet-downloaded segment at once. With the session capped to one connection per
+    /// host, iOS runs them back-to-back in the daemon in playlist order — sequential (so Plex's
+    /// single-threaded transcode session never contends) yet with no per-segment app-wake latency.
+    private func enqueueAllSegments(_ ratingKey: String) {
+        guard let job = jobs[ratingKey], let idx = index(ratingKey), items[idx].state == .downloading else { return }
+        updateProgress(ratingKey)
+        var enqueued = 0
+        for name in job.names {
+            let local = HLSDownloader.localName(for: name)
+            if job.onDisk.contains(local) { continue }
+            guard let url = HLSDownloader.segmentURL(name: name, base: job.base) else { continue }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 90
+            request.allowsCellularAccess = Preferences.downloadOverCellular
+            request.setValue("*/*", forHTTPHeaderField: "Accept")
+            let task = session.downloadTask(with: request)
+            task.taskDescription = "\(ratingKey)|\(local)|\(job.token)"
+            task.resume()
+            enqueued += 1
         }
-        jobs[ratingKey] = job
-
-        items[idx].progress = job.total > 0 ? Double(job.completed) / Double(job.total) : 0
-        items[idx].downloadedBytes = Int64(items[idx].progress * Double(items[idx].knownBytes))
-
-        guard job.completed < job.total else {
-            finalizeComplete(ratingKey)
-            return
-        }
-        let name = job.names[job.completed]
-        guard let url = HLSDownloader.segmentURL(name: name, base: job.base) else {
-            failItem(ratingKey, message: "Bad segment URL")
-            return
-        }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 90
-        request.allowsCellularAccess = Preferences.downloadOverCellular
-        request.setValue("*/*", forHTTPHeaderField: "Accept")
-        let task = session.downloadTask(with: request)
-        task.taskDescription = "\(ratingKey)|\(HLSDownloader.localName(for: name))|\(job.token)"
-        tasks[ratingKey] = task
-        task.resume()
-        emitProgress(ratingKey)
+        if enqueued == 0 { finalizeComplete(ratingKey) }
     }
 
-    private func emitProgress(_ ratingKey: String) {
-        guard let idx = index(ratingKey) else { return }
+    private func updateProgress(_ ratingKey: String) {
+        guard let job = jobs[ratingKey], let idx = index(ratingKey) else { return }
+        items[idx].progress = job.total > 0 ? Double(job.onDisk.count) / Double(job.total) : 0
+        items[idx].downloadedBytes = Int64(items[idx].progress * Double(items[idx].knownBytes))
         let now = Date()
         if let last = lastProgressEmit[ratingKey], now.timeIntervalSince(last) < 0.4 { return }
         lastProgressEmit[ratingKey] = now
@@ -433,7 +425,7 @@ final class DownloadManager: NSObject {
         items[idx].completedAt = Date()
         items[idx].errorMessage = nil
         jobs[ratingKey] = nil
-        tasks[ratingKey] = nil
+        cancelInflight(ratingKey)
         lastProgressEmit[ratingKey] = nil
         persist()
         emit(.finished(ratingKey: ratingKey))
@@ -445,9 +437,8 @@ final class DownloadManager: NSObject {
 
     private func failItem(_ ratingKey: String, message: String) {
         guard let idx = index(ratingKey) else { return }
-        tasks[ratingKey]?.cancel()
-        tasks[ratingKey] = nil
         jobs[ratingKey] = nil
+        cancelInflight(ratingKey)
         items[idx].state = .failed
         items[idx].errorMessage = message
         persist()
@@ -459,10 +450,10 @@ final class DownloadManager: NSObject {
 
     private func cancelItemTasks(_ ratingKey: String) {
         jobs[ratingKey] = nil
-        if let task = tasks[ratingKey] {
-            task.cancel()
-            tasks[ratingKey] = nil
-        }
+        cancelInflight(ratingKey)
+    }
+
+    private func cancelInflight(_ ratingKey: String) {
         session.getAllTasks { tasks in
             for task in tasks where (task.taskDescription?.split(separator: "|").first).map(String.init) == ratingKey {
                 task.cancel()
@@ -530,18 +521,16 @@ final class DownloadManager: NSObject {
     // MARK: - Recovery
 
     private func recoverLiveTasks() {
-        session.getAllTasks { [weak self] tasks in
-            let liveKeys: Set<String> = Set(tasks.compactMap { task in
-                guard task.state == .running || task.state == .suspended else { return nil }
-                return task.taskDescription?.split(separator: "|").first.map(String.init)
-            })
-            Task { @MainActor [weak self] in
-                self?.finishBootstrap(liveKeys: liveKeys)
-            }
+        // Clean slate: cancel any tasks left in the background session from a previous launch, then
+        // re-resolve each active download fresh (it resumes from the segments already on disk). This
+        // avoids trusting a recovered task that may be stuck, which would freeze the item.
+        session.getAllTasks { tasks in
+            tasks.forEach { $0.cancel() }
+            Task { @MainActor in DownloadManager.shared.finishBootstrap() }
         }
     }
 
-    private func finishBootstrap(liveKeys: Set<String>) {
+    private func finishBootstrap() {
         for i in items.indices {
             switch items[i].state {
             case .downloading:
@@ -549,8 +538,6 @@ final class DownloadManager: NSObject {
                     items[i].state = .completed
                     items[i].progress = 1
                     items[i].completedAt = items[i].completedAt ?? Date()
-                } else if !liveKeys.contains(items[i].ratingKey) {
-                    items[i].state = .queued
                 }
             case .waitingForWiFi:
                 items[i].state = .queued
@@ -563,8 +550,9 @@ final class DownloadManager: NSObject {
         }
         persist()
         emit(.changed)
-        // Live recovered tasks drive their own chain via the delegate; non-live .downloading items
-        // were demoted to .queued above and are started by pumpQueue.
+        for item in items where item.state == .downloading {
+            beginResolve(item.ratingKey, countAsFailure: false)
+        }
         pumpQueue()
     }
 
@@ -574,22 +562,24 @@ final class DownloadManager: NSObject {
 
     // MARK: - Delegate-driven handlers (MainActor)
 
-    fileprivate func handleSegmentFinished(ratingKey: String, token: String) {
+    fileprivate func handleSegmentFinished(ratingKey: String, name: String, token: String) {
         guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
-        tasks[ratingKey] = nil
         if jobs[ratingKey] == nil {
             beginResolve(ratingKey, countAsFailure: false)
             return
         }
         guard jobs[ratingKey]?.token == token else { return }
+        jobs[ratingKey]?.onDisk.insert(name)
         jobs[ratingKey]?.refreshes = 0
-        enqueueNextSegment(ratingKey)
+        updateProgress(ratingKey)
+        if let job = jobs[ratingKey], job.onDisk.count >= job.total {
+            finalizeComplete(ratingKey)
+        }
     }
 
     fileprivate func handleSegmentError(ratingKey: String, token: String) {
         guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
         guard jobs[ratingKey] == nil || jobs[ratingKey]?.token == token else { return }
-        tasks[ratingKey] = nil
         beginResolve(ratingKey, countAsFailure: true)
     }
 
@@ -621,7 +611,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
             Task { @MainActor in DownloadManager.shared.handleSegmentError(ratingKey: parts.key, token: parts.token) }
             return
         }
-        Task { @MainActor in DownloadManager.shared.handleSegmentFinished(ratingKey: parts.key, token: parts.token) }
+        Task { @MainActor in DownloadManager.shared.handleSegmentFinished(ratingKey: parts.key, name: parts.name, token: parts.token) }
     }
 
     nonisolated func urlSession(
