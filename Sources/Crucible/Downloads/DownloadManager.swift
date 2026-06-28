@@ -76,6 +76,7 @@ final class DownloadManager: NSObject {
         #if os(iOS) && canImport(ActivityKit)
         liveActivity.endStale()
         #endif
+        LocalMediaServer.shared.start()
         Task { [weak self] in
             guard let self else { return }
             let loaded = await self.store.load()
@@ -149,8 +150,9 @@ final class DownloadManager: NSObject {
 
     func offlineAsset(for ratingKey: String) -> OfflineAsset? {
         guard let item = item(for: ratingKey), item.state == .completed else { return nil }
-        let url = DownloadPaths.playlistURL(ratingKey: ratingKey)
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard FileManager.default.fileExists(atPath: DownloadPaths.playlistURL(ratingKey: ratingKey).path) else { return nil }
+        LocalMediaServer.shared.start()
+        let url = LocalMediaServer.shared.playlistURL(ratingKey: ratingKey) ?? DownloadPaths.playlistURL(ratingKey: ratingKey)
         return OfflineAsset(
             fileURL: url,
             markers: item.markers.map(\.asPlexMarker),
