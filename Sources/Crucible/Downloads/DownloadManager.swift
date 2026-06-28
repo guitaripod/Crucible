@@ -17,6 +17,7 @@ final class DownloadManager: NSObject {
     static let sessionIdentifier = "com.guitaripod.crucible.segments"
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "downloads")
     private static let maxSessionRefreshes = 12
+    private static let maxResolveRetries = 5
 
     private struct Config { let baseURL: URL; let token: String }
     private var config: Config?
@@ -33,6 +34,7 @@ final class DownloadManager: NSObject {
     private(set) var items: [DownloadItem] = []
     private var jobs: [String: SegmentJob] = [:]
     private var resolving: Set<String> = []
+    private var resolveRetries: [String: Int] = [:]
     private var observers: [UUID: (DownloadEvent) -> Void] = [:]
     private var lastProgressEmit: [String: Date] = [:]
 
@@ -40,6 +42,7 @@ final class DownloadManager: NSObject {
     var backgroundCompletionHandler: (() -> Void)?
 
     private let pathMonitor = NWPathMonitor()
+    private let enqueueQueue = DispatchQueue(label: "com.guitaripod.crucible.enqueue")
     private var isOnWiFi = true
     private var isOnline = true
     private var didBootstrap = false
@@ -92,6 +95,7 @@ final class DownloadManager: NSObject {
     }
 
     func handleEnteredForeground() {
+        resolveRetries.removeAll()
         #if os(iOS) && canImport(ActivityKit)
         liveActivity.sync(items: items, force: true)
         #endif
@@ -232,6 +236,7 @@ final class DownloadManager: NSObject {
         guard let idx = index(ratingKey), items[idx].state == .paused || items[idx].state == .failed else { return }
         items[idx].state = .queued
         items[idx].errorMessage = nil
+        resolveRetries[ratingKey] = nil
         persist()
         emit(.changed)
         pumpQueue()
@@ -244,8 +249,33 @@ final class DownloadManager: NSObject {
         cancelItemTasks(ratingKey)
         items.remove(at: idx)
         lastProgressEmit[ratingKey] = nil
+        resolveRetries[ratingKey] = nil
         removeAssetDir(ratingKey)
         Task { [store] in await store.deletePoster(ratingKey: ratingKey) }
+        persist()
+        emit(.changed)
+        pumpQueue()
+    }
+
+    func deleteItems(_ ratingKeys: [String]) {
+        let set = Set(ratingKeys)
+        guard !set.isEmpty, items.contains(where: { set.contains($0.ratingKey) }) else { return }
+        for key in set {
+            jobs[key] = nil
+            lastProgressEmit[key] = nil
+            resolveRetries[key] = nil
+            removeAssetDir(key)
+        }
+        session.getAllTasks { tasks in
+            for task in tasks {
+                guard let key = task.taskDescription?.split(separator: "|").first.map(String.init), set.contains(key) else { continue }
+                task.cancel()
+            }
+        }
+        items.removeAll { set.contains($0.ratingKey) }
+        Task { [store] in
+            for key in set { await store.deletePoster(ratingKey: key) }
+        }
         persist()
         emit(.changed)
         pumpQueue()
@@ -255,6 +285,7 @@ final class DownloadManager: NSObject {
         let snapshot = items
         jobs.removeAll()
         resolving.removeAll()
+        resolveRetries.removeAll()
         lastProgressEmit.removeAll()
         items.removeAll()
         session.getAllTasks { tasks in tasks.forEach { $0.cancel() } }
@@ -350,7 +381,13 @@ final class DownloadManager: NSObject {
     }
 
     private func performResolve(_ ratingKey: String, quality: DownloadQuality, refreshes: Int) async {
-        defer { resolving.remove(ratingKey) }
+        // Resolving fetches the Plex plan + playlists over a foreground URLSession, which is suspended
+        // while the app is backgrounded. A background-task assertion buys ~30s so a hand-off between
+        // episodes (the resolve) can finish even when iOS woke us only for a background segment event.
+        var bgTask: UIBackgroundTaskIdentifier = .invalid
+        let endAssertion = { if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask); bgTask = .invalid } }
+        bgTask = UIApplication.shared.beginBackgroundTask(withName: "crucible.resolve.\(ratingKey)") { endAssertion() }
+        defer { resolving.remove(ratingKey); endAssertion() }
         guard let cfg = config else { return }
         let api = APIClient(baseURL: cfg.baseURL, token: cfg.token)
         do {
@@ -367,11 +404,59 @@ final class DownloadManager: NSObject {
                 .map { HLSDownloader.localName(for: $0) }
                 .filter { FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path) })
             jobs[ratingKey] = SegmentJob(base: resolved.base, names: resolved.segments, onDisk: onDisk, token: UUID().uuidString, refreshes: refreshes)
+            resolveRetries[ratingKey] = nil
             AppLogger.notice("Download \(refreshes == 0 ? "started" : "resumed") key=\(ratingKey) quality=\(quality.shortLabel) segments=\(resolved.segments.count) onDisk=\(onDisk.count)", .persistence)
             enqueueAllSegments(ratingKey)
         } catch {
             guard index(ratingKey) != nil else { return }
-            failItem(ratingKey, message: error.localizedDescription)
+            handleResolveFailure(ratingKey, error: error)
+        }
+    }
+
+    /// A timeout/connectivity error during resolve is almost always the app being suspended mid
+    /// hand-off, not a dead download — re-queue it rather than failing terminally. While backgrounded
+    /// we simply wait for the next foreground entry; while active we retry a bounded number of times.
+    private func handleResolveFailure(_ ratingKey: String, error: Error) {
+        guard let idx = index(ratingKey), items[idx].state == .downloading else { return }
+        jobs[ratingKey] = nil
+        if isTransientNetworkError(error) {
+            let backgrounded = UIApplication.shared.applicationState == .background
+            if backgrounded {
+                items[idx].state = .queued
+                persist()
+                emit(.changed)
+                AppLogger.notice("Resolve deferred (app backgrounded) key=\(ratingKey)", .persistence)
+                return
+            }
+            let retries = (resolveRetries[ratingKey] ?? 0) + 1
+            if retries <= Self.maxResolveRetries {
+                resolveRetries[ratingKey] = retries
+                items[idx].state = .queued
+                persist()
+                emit(.changed)
+                AppLogger.notice("Resolve retry \(retries)/\(Self.maxResolveRetries) key=\(ratingKey)", .persistence)
+                scheduleResolveRetry()
+                return
+            }
+        }
+        resolveRetries[ratingKey] = nil
+        failItem(ratingKey, message: error.localizedDescription)
+    }
+
+    private func isTransientNetworkError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        let transient: Set<URLError.Code> = [
+            .timedOut, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed,
+            .networkConnectionLost, .notConnectedToInternet, .resourceUnavailable,
+            .secureConnectionFailed, .internationalRoamingOff, .callIsActive, .dataNotAllowed,
+        ]
+        return transient.contains(urlError.code)
+    }
+
+    private func scheduleResolveRetry() {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            self?.pumpQueue()
         }
     }
 
@@ -390,21 +475,33 @@ final class DownloadManager: NSObject {
     private func enqueueAllSegments(_ ratingKey: String) {
         guard let job = jobs[ratingKey], let idx = index(ratingKey), items[idx].state == .downloading else { return }
         updateProgress(ratingKey)
-        var enqueued = 0
-        for name in job.names {
+        let pending: [(url: URL, descriptor: String)] = job.names.compactMap { name in
             let local = HLSDownloader.localName(for: name)
-            if job.onDisk.contains(local) { continue }
-            guard let url = HLSDownloader.segmentURL(name: name, base: job.base) else { continue }
-            var request = URLRequest(url: url)
-            request.timeoutInterval = 90
-            request.allowsCellularAccess = Preferences.downloadOverCellular
-            request.setValue("*/*", forHTTPHeaderField: "Accept")
-            let task = session.downloadTask(with: request)
-            task.taskDescription = "\(ratingKey)|\(local)|\(job.token)"
-            task.resume()
-            enqueued += 1
+            guard !job.onDisk.contains(local),
+                  let url = HLSDownloader.segmentURL(name: name, base: job.base) else { return nil }
+            return (url, "\(ratingKey)|\(local)|\(job.token)")
         }
-        if enqueued == 0 { finalizeComplete(ratingKey) }
+        guard !pending.isEmpty else { finalizeComplete(ratingKey); return }
+        resumeSegmentTasks(pending, allowsCellular: Preferences.downloadOverCellular)
+    }
+
+    /// Creates and resumes the background segment tasks off the main thread: spawning a few hundred
+    /// background tasks at once is XPC-heavy and would hitch the UI at every item boundary (painfully
+    /// visible when downloading a whole season). The serial queue preserves playlist order, which the
+    /// single-connection session then streams sequentially for Plex's on-demand transcoder.
+    private func resumeSegmentTasks(_ pending: [(url: URL, descriptor: String)], allowsCellular: Bool) {
+        let session = self.session
+        enqueueQueue.async {
+            for segment in pending {
+                var request = URLRequest(url: segment.url)
+                request.timeoutInterval = 90
+                request.allowsCellularAccess = allowsCellular
+                request.setValue("*/*", forHTTPHeaderField: "Accept")
+                let task = session.downloadTask(with: request)
+                task.taskDescription = segment.descriptor
+                task.resume()
+            }
+        }
     }
 
     private func updateProgress(_ ratingKey: String) {

@@ -30,6 +30,31 @@ enum DownloadPaths {
         directory.appendingPathComponent("\(ratingKey).jpg")
     }
 
+    /// App Group shared container so the widget extension (a separate sandbox) can read poster art
+    /// for the Live Activity. Returns nil until the `application-groups` entitlement is provisioned —
+    /// every caller degrades gracefully to no artwork in that case.
+    static let appGroupID = "group.com.guitaripod.crucible"
+
+    static var appGroupArtworkDir: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
+            .appendingPathComponent("Artwork", isDirectory: true)
+    }
+
+    static func appGroupPosterURL(ratingKey: String) -> URL? {
+        appGroupArtworkDir?.appendingPathComponent("\(ratingKey).jpg")
+    }
+
+    static func mirrorPosterToAppGroup(_ data: Data, ratingKey: String) {
+        guard let dir = appGroupArtworkDir else { return }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? data.write(to: dir.appendingPathComponent("\(ratingKey).jpg"), options: .atomic)
+    }
+
+    static func removePosterFromAppGroup(ratingKey: String) {
+        guard let url = appGroupPosterURL(ratingKey: ratingKey) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
     static func resumeURL(ratingKey: String) -> URL {
         directory.appendingPathComponent("\(ratingKey).resume")
     }
@@ -130,10 +155,12 @@ actor DownloadStore {
         let url = DownloadPaths.posterURL(ratingKey: ratingKey)
         try? data.write(to: url, options: .atomic)
         DownloadPaths.excludeFromBackup(url)
+        DownloadPaths.mirrorPosterToAppGroup(data, ratingKey: ratingKey)
     }
 
     func deletePoster(ratingKey: String) {
         try? FileManager.default.removeItem(at: DownloadPaths.posterURL(ratingKey: ratingKey))
+        DownloadPaths.removePosterFromAppGroup(ratingKey: ratingKey)
     }
 
     func deleteFiles(ratingKey: String, ext: String) {
@@ -145,6 +172,7 @@ actor DownloadStore {
         ] {
             try? fm.removeItem(at: url)
         }
+        DownloadPaths.removePosterFromAppGroup(ratingKey: ratingKey)
     }
 
     func saveResumeData(_ data: Data, ratingKey: String) {
