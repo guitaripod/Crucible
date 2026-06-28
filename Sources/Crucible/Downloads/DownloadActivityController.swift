@@ -16,6 +16,10 @@ final class DownloadActivityController {
     private var sessionKeys: [String] = []
     private var lastUpdate = Date.distantPast
 
+    private struct RateSample { var ratingKey: String; var bytes: Int64; var fraction: Double; var at: Date }
+    private var lastSample: RateSample?
+    private var smoothedBytesPerSec: Double = 0
+
     /// Ends any activities left over from a previous launch.
     func endStale() {
         sessionKeys = []
@@ -29,52 +33,112 @@ final class DownloadActivityController {
 
     func sync(items: [DownloadItem], force: Bool) {
         let active = items.filter { $0.state.isActive }
-        guard !active.isEmpty else {
-            end()
-            return
-        }
-
         for item in active where !sessionKeys.contains(item.ratingKey) {
             sessionKeys.append(item.ratingKey)
+        }
+        let sessionItems = sessionKeys.compactMap { key in items.first { $0.ratingKey == key } }
+        // Keep the activity alive (showing "Paused") when everything is paused; only tear down when the
+        // session has nothing active and nothing paused left to resume.
+        let hasPaused = sessionItems.contains { $0.state == .paused }
+        guard !active.isEmpty || hasPaused else {
+            end()
+            return
         }
 
         let now = Date()
         if !force, now.timeIntervalSince(lastUpdate) < 1.5 { return }
         lastUpdate = now
 
-        present(state(items: items, active: active, pausedOverride: false))
+        guard let content = state(items: items, active: active) else { return }
+        present(content)
     }
 
-    private func state(items: [DownloadItem], active: [DownloadItem], pausedOverride: Bool) -> DownloadActivityAttributes.ContentState {
+    private func state(items: [DownloadItem], active: [DownloadItem]) -> DownloadActivityAttributes.ContentState? {
         let sessionItems = sessionKeys.compactMap { key in items.first { $0.ratingKey == key } }
         let total = max(sessionItems.count, 1)
         let completed = sessionItems.filter { $0.state == .completed }.count
         let downloading = items.first { $0.state == .downloading }
-        let current = downloading ?? active.first!
-        let currentProgress = downloading?.progress ?? 0
-        let overall = min(1, (Double(completed) + currentProgress) / Double(total))
-        let waitingForWiFi = downloading == nil && active.allSatisfy { $0.state == .waitingForWiFi }
-        let paused = pausedOverride || downloading == nil
+        let pausedItem = sessionItems.first { $0.state == .paused }
+        guard let current = downloading ?? active.first ?? pausedItem ?? sessionItems.first else { return nil }
+        let currentProgress = current.progress
+        let batch = min(1, (Double(completed) + (downloading?.progress ?? 0)) / Double(total))
+        let waitingForWiFi = downloading == nil && !active.isEmpty && active.allSatisfy { $0.state == .waitingForWiFi }
 
-        let detail: String
-        if pausedOverride {
-            detail = "Paused · will resume"
-        } else if waitingForWiFi {
-            detail = "Waiting for Wi-Fi"
-        } else if paused {
-            detail = "Paused"
+        let status: DownloadActivityAttributes.ContentState.Status
+        if downloading != nil { status = .downloading }
+        else if current.state == .paused { status = .paused }
+        else if waitingForWiFi { status = .waitingForWiFi }
+        else { status = .queued }
+
+        let eta: Double?
+        if status == .downloading {
+            eta = estimateETA(for: current)
         } else {
-            detail = current.episodeSubtitle ?? current.quality.shortLabel
+            resetRate()
+            eta = nil
         }
 
+        let isEpisode = current.mediaType == "episode"
         return DownloadActivityAttributes.ContentState(
-            title: current.displayTitle,
-            detail: detail,
-            fractionCompleted: overall,
+            showTitle: current.displayTitle,
+            episodeCode: isEpisode ? Formatters.episodeCode(current.seasonNumber, current.episodeNumber) : nil,
+            episodeTitle: isEpisode ? current.title : nil,
+            qualityLabel: current.quality.shortLabel,
+            itemFraction: currentProgress,
+            downloadedBytes: current.downloadedBytes,
+            totalBytes: current.knownBytes,
             completedCount: completed,
             totalCount: total,
-            isPaused: paused
+            batchFraction: batch,
+            status: status,
+            etaSeconds: eta,
+            artworkPath: artworkPath(for: current)
         )
+    }
+
+    /// Smoothed (EMA) byte-rate → ETA. HLS segments commit in bursts, so a raw instantaneous rate
+    /// jitters wildly; the EMA over the ~1.5s sync cadence keeps the estimate stable. Returns nil
+    /// until a positive rate and a known remaining size both exist, so the UI omits ETA gracefully.
+    private func estimateETA(for item: DownloadItem) -> Double? {
+        let now = Date()
+        defer { lastSample = RateSample(ratingKey: item.ratingKey, bytes: item.downloadedBytes, fraction: item.progress, at: now) }
+        guard let prev = lastSample, prev.ratingKey == item.ratingKey else { resetRate(); return nil }
+        let dt = now.timeIntervalSince(prev.at)
+        guard dt >= 0.5 else { return etaFromSmoothed(item) }
+
+        let dBytes = Double(item.downloadedBytes - prev.bytes)
+        if dBytes > 0 {
+            let inst = dBytes / dt
+            smoothedBytesPerSec = smoothedBytesPerSec == 0 ? inst : 0.3 * inst + 0.7 * smoothedBytesPerSec
+        } else {
+            let dFrac = item.progress - prev.fraction
+            if dFrac > 0, item.knownBytes > 0 {
+                let inst = (dFrac * Double(item.knownBytes)) / dt
+                smoothedBytesPerSec = smoothedBytesPerSec == 0 ? inst : 0.3 * inst + 0.7 * smoothedBytesPerSec
+            }
+        }
+        return etaFromSmoothed(item)
+    }
+
+    private func etaFromSmoothed(_ item: DownloadItem) -> Double? {
+        guard smoothedBytesPerSec > 0, item.knownBytes > 0 else { return nil }
+        let remaining = max(0, Double(item.knownBytes) - Double(item.downloadedBytes))
+        guard remaining > 0 else { return nil }
+        return remaining / smoothedBytesPerSec
+    }
+
+    private func resetRate() {
+        lastSample = nil
+        smoothedBytesPerSec = 0
+    }
+
+    /// Absolute path to the artwork JPEG in the App Group, or nil. The widget reads this file
+    /// directly; nil means the group isn't provisioned (or no poster yet) and the widget shows a
+    /// fallback symbol.
+    private func artworkPath(for item: DownloadItem) -> String? {
+        guard let url = DownloadPaths.appGroupPosterURL(ratingKey: item.ratingKey),
+              FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url.path
     }
 
     private func present(_ state: DownloadActivityAttributes.ContentState) {
@@ -95,6 +159,7 @@ final class DownloadActivityController {
     private func end() {
         sessionKeys = []
         lastUpdate = .distantPast
+        resetRate()
         guard let activity else { return }
         self.activity = nil
         Task { await activity.end(nil, dismissalPolicy: .immediate) }
