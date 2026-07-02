@@ -88,7 +88,7 @@ final class DownloadsViewController: UICollectionViewController {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.pendingSnapshot = false
-            self.applySnapshot()
+            self.refresh()
         }
     }
 
@@ -163,16 +163,18 @@ final class DownloadsViewController: UICollectionViewController {
     }
 
     private func accessories(for item: DownloadItem) -> [UICellAccessory] {
+        let stateAccessories: [UICellAccessory]
         switch item.state {
         case .completed:
-            return [.disclosureIndicator()]
+            stateAccessories = [.disclosureIndicator()]
         case .downloading, .queued, .waitingForWiFi:
-            return [controlAccessory(symbol: "pause.circle.fill") { DownloadManager.shared.pause(item.ratingKey) }]
+            stateAccessories = [controlAccessory(symbol: "pause.circle.fill") { DownloadManager.shared.pause(item.ratingKey) }]
         case .paused:
-            return [controlAccessory(symbol: "arrow.down.circle.fill") { DownloadManager.shared.resume(item.ratingKey) }]
+            stateAccessories = [controlAccessory(symbol: "arrow.down.circle.fill") { DownloadManager.shared.resume(item.ratingKey) }]
         case .failed:
-            return [controlAccessory(symbol: "arrow.clockwise.circle.fill") { DownloadManager.shared.retry(item.ratingKey) }]
+            stateAccessories = [controlAccessory(symbol: "arrow.clockwise.circle.fill") { DownloadManager.shared.retry(item.ratingKey) }]
         }
+        return [.multiselect()] + stateAccessories
     }
 
     private func controlAccessory(symbol: String, action: @escaping () -> Void) -> UICellAccessory {

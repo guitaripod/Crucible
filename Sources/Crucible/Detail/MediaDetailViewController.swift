@@ -581,6 +581,13 @@ final class MediaDetailViewController: UICollectionViewController {
             menu = completedMenu()
         }
 
+        if let button = cell.contentView.subviews.first as? UIButton, button.showsMenuAsPrimaryAction {
+            button.configuration = config
+            button.tintColor = config.baseForegroundColor
+            button.menu = menu
+            return
+        }
+
         let button = UIButton(configuration: config)
         button.tintColor = config.baseForegroundColor
         button.menu = menu

@@ -153,6 +153,26 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    private func episodeAccessories(for episode: PlexMetadata) -> [UICellAccessory] {
+        if collectionView.isEditing { return [.multiselect()] }
+        guard DownloadManager.shared.state(for: episode.id) == .failed else { return [] }
+        return [failedDownloadAccessory(ratingKey: episode.id)]
+    }
+
+    /// The failed state has no thumbnail badge, so surface it as a red retry control on the row —
+    /// mirroring the Downloads screen's per-row failure affordance.
+    private func failedDownloadAccessory(ratingKey: String) -> UICellAccessory {
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "exclamationmark.circle.fill")
+        config.baseForegroundColor = .systemRed
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+        config.contentInsets = .zero
+        let button = UIButton(configuration: config)
+        button.addAction(UIAction { _ in DownloadManager.shared.retry(ratingKey) }, for: .touchUpInside)
+        button.frame = CGRect(x: 0, y: 0, width: 28, height: 28)
+        return .customView(configuration: .init(customView: button, placement: .trailing(displayed: .whenNotEditing)))
+    }
+
     private func donateActivity(_ show: PlexMetadata) {
         let activity = MediaActivity.make(
             ratingKey: showRatingKey,
@@ -231,7 +251,7 @@ final class ShowDetailViewController: UICollectionViewController {
             } else {
                 config = Glass.clearGlassButton { UIButton.Configuration.gray() }
             }
-            config.title = "Season \(season.index ?? 0)"
+            config.title = season.title.isEmpty ? "Season \(season.index ?? 0)" : season.title
             config.cornerStyle = .capsule
             config.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 18, bottom: 7, trailing: 18)
             config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
@@ -256,7 +276,7 @@ final class ShowDetailViewController: UICollectionViewController {
             }
             config.downloadBadge = self?.downloadBadge(for: episode.id) ?? .none
             cell.contentConfiguration = config
-            cell.accessories = (self?.collectionView.isEditing ?? false) ? [.multiselect()] : []
+            cell.accessories = self?.episodeAccessories(for: episode) ?? []
         }
 
         let actionReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
@@ -347,9 +367,22 @@ final class ShowDetailViewController: UICollectionViewController {
                 if let selectedSeasonKey {
                     await loadSeason(selectedSeasonKey)
                 }
+                contentUnavailableConfiguration = nil
                 await applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
+                if show == nil {
+                    var errConfig = UIContentUnavailableConfiguration.empty()
+                    errConfig.image = UIImage(systemName: "exclamationmark.triangle")
+                    errConfig.text = "Failed to load"
+                    errConfig.secondaryText = error.localizedDescription
+                    errConfig.button.title = "Retry"
+                    errConfig.buttonProperties.primaryAction = UIAction { [weak self] _ in
+                        self?.contentUnavailableConfiguration = nil
+                        self?.loadData()
+                    }
+                    contentUnavailableConfiguration = errConfig
+                }
             }
         }
     }
@@ -399,7 +432,7 @@ final class ShowDetailViewController: UICollectionViewController {
         let dynamic = refreshed.itemIdentifiers.filter { item in
             switch item {
             case .hero, .episode: return true
-            default: return false
+            default: return item == .action("downloadSeason")
             }
         }
         if !dynamic.isEmpty {

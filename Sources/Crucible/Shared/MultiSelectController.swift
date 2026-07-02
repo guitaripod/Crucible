@@ -36,6 +36,7 @@ final class MultiSelectController {
             collectionView.indexPathsForSelectedItems?.forEach { collectionView.deselectItem(at: $0, animated: false) }
         }
         configureBarButton(editing: editing)
+        host.tabBarController?.tabBar.isHidden = editing
         host.navigationController?.setToolbarHidden(!editing, animated: true)
         (editing ? onEnter : onExit)?()
         updateToolbar()

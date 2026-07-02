@@ -203,7 +203,8 @@ final class DownloadRowView: UIView, UIContentView {
             progressBar.isHidden = true
         }
 
-        if config.ratingKey != currentPosterKey {
+        let posterMissing = posterImageView.image == nil && imageTask == nil
+        if config.ratingKey != currentPosterKey || posterMissing {
             currentPosterKey = config.ratingKey
             imageTask?.cancel()
             posterImageView.image = nil
@@ -217,6 +218,7 @@ final class DownloadRowView: UIView, UIContentView {
                     self.posterImageView.image = image
                     self.placeholderIcon.isHidden = true
                 }
+                self.imageTask = nil
             }
         }
     }
