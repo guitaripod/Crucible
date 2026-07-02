@@ -7,7 +7,7 @@ import Foundation
 public struct DownloadActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         public enum Status: String, Codable, Hashable {
-            case downloading, paused, waitingForWiFi, queued
+            case downloading, paused, waitingForWiFi, queued, needsApp
         }
 
         public var showTitle: String
@@ -25,7 +25,6 @@ public struct DownloadActivityAttributes: ActivityAttributes {
 
         public var status: Status
         public var etaSeconds: Double?
-        public var artworkPath: String?
 
         public init(
             showTitle: String,
@@ -39,8 +38,7 @@ public struct DownloadActivityAttributes: ActivityAttributes {
             totalCount: Int,
             batchFraction: Double,
             status: Status,
-            etaSeconds: Double?,
-            artworkPath: String?
+            etaSeconds: Double?
         ) {
             self.showTitle = showTitle
             self.episodeCode = episodeCode
@@ -54,11 +52,10 @@ public struct DownloadActivityAttributes: ActivityAttributes {
             self.batchFraction = batchFraction
             self.status = status
             self.etaSeconds = etaSeconds
-            self.artworkPath = artworkPath
         }
 
         public var itemPercentText: String { "\(Int((itemFraction * 100).rounded()))%" }
-        public var isPaused: Bool { status == .paused || status == .waitingForWiFi }
+        public var isPaused: Bool { status == .paused || status == .waitingForWiFi || status == .needsApp }
         public var clampedItemFraction: Double { min(1, max(0, itemFraction)) }
         public var clampedBatchFraction: Double { min(1, max(0, batchFraction)) }
 
@@ -70,10 +67,12 @@ public struct DownloadActivityAttributes: ActivityAttributes {
             return parts.isEmpty ? qualityLabel : parts.joined(separator: " · ")
         }
 
-        /// "Episode 3 of 13" — only when more than one item is in the session.
+        /// "Episode 3 of 13" (or "Item 3 of 13" for non-episode batches) — only when more than one
+        /// item is in the session. `episodeCode` is nil exactly when the current item isn't an episode.
         public var batchText: String? {
             guard totalCount > 1 else { return nil }
-            return "Episode \(min(completedCount + 1, totalCount)) of \(totalCount)"
+            let noun = episodeCode != nil ? "Episode" : "Item"
+            return "\(noun) \(min(completedCount + 1, totalCount)) of \(totalCount)"
         }
 
         /// "142 MB of 1.1 GB", or just "142 MB" when the total is unknown.
@@ -99,6 +98,7 @@ public struct DownloadActivityAttributes: ActivityAttributes {
             case .paused: return "Paused"
             case .queued: return "Queued"
             case .downloading: return "Downloading"
+            case .needsApp: return "Tap to resume"
             }
         }
 

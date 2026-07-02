@@ -15,30 +15,36 @@ final class DownloadActivityController {
     private var activity: Activity<DownloadActivityAttributes>?
     private var sessionKeys: [String] = []
     private var lastUpdate = Date.distantPast
+    private var needsForeground = false
 
     private struct RateSample { var ratingKey: String; var bytes: Int64; var fraction: Double; var at: Date }
     private var lastSample: RateSample?
     private var smoothedBytesPerSec: Double = 0
 
-    /// Ends any activities left over from a previous launch.
+    /// Adopts the activity that survived an app relaunch instead of ending it: after a background
+    /// relaunch for URLSession events a new activity cannot be started (foreground-only rule), so
+    /// ending the survivor would blank the Lock Screen for the rest of the batch. Updating an adopted
+    /// activity is background-legal — the first sync refreshes it, or ends it if nothing is active.
+    /// Duplicate leftovers beyond the first are genuinely stale and are dismissed.
     func endStale() {
         sessionKeys = []
-        activity = nil
+        let surviving = Activity<DownloadActivityAttributes>.activities
+        activity = surviving.first
+        guard surviving.count > 1 else { return }
         Task {
-            for activity in Activity<DownloadActivityAttributes>.activities {
-                await activity.end(nil, dismissalPolicy: .immediate)
+            for extra in surviving.dropFirst() {
+                await extra.end(nil, dismissalPolicy: .immediate)
             }
         }
     }
 
-    func sync(items: [DownloadItem], force: Bool) {
+    func sync(items: [DownloadItem], force: Bool, needsForeground: Bool = false) {
+        self.needsForeground = needsForeground
         let active = items.filter { $0.state.isActive }
         for item in active where !sessionKeys.contains(item.ratingKey) {
             sessionKeys.append(item.ratingKey)
         }
         let sessionItems = sessionKeys.compactMap { key in items.first { $0.ratingKey == key } }
-        // Keep the activity alive (showing "Paused") when everything is paused; only tear down when the
-        // session has nothing active and nothing paused left to resume.
         let hasPaused = sessionItems.contains { $0.state == .paused }
         guard !active.isEmpty || hasPaused else {
             end()
@@ -46,7 +52,7 @@ final class DownloadActivityController {
         }
 
         let now = Date()
-        if !force, now.timeIntervalSince(lastUpdate) < 1.5 { return }
+        if !force, now.timeIntervalSince(lastUpdate) < 0.5 { return }
         lastUpdate = now
 
         guard let content = state(items: items, active: active) else { return }
@@ -56,18 +62,19 @@ final class DownloadActivityController {
     private func state(items: [DownloadItem], active: [DownloadItem]) -> DownloadActivityAttributes.ContentState? {
         let sessionItems = sessionKeys.compactMap { key in items.first { $0.ratingKey == key } }
         let total = max(sessionItems.count, 1)
-        let completed = sessionItems.filter { $0.state == .completed }.count
+        let settled = sessionItems.filter { $0.state == .completed || $0.state == .failed }.count
         let downloading = items.first { $0.state == .downloading }
         let pausedItem = sessionItems.first { $0.state == .paused }
         guard let current = downloading ?? active.first ?? pausedItem ?? sessionItems.first else { return nil }
         let currentProgress = current.progress
-        let batch = min(1, (Double(completed) + (downloading?.progress ?? 0)) / Double(total))
+        let batch = min(1, (Double(settled) + (downloading?.progress ?? 0)) / Double(total))
         let waitingForWiFi = downloading == nil && !active.isEmpty && active.allSatisfy { $0.state == .waitingForWiFi }
 
         let status: DownloadActivityAttributes.ContentState.Status
         if downloading != nil { status = .downloading }
         else if current.state == .paused { status = .paused }
         else if waitingForWiFi { status = .waitingForWiFi }
+        else if needsForeground { status = .needsApp }
         else { status = .queued }
 
         let eta: Double?
@@ -87,12 +94,11 @@ final class DownloadActivityController {
             itemFraction: currentProgress,
             downloadedBytes: current.downloadedBytes,
             totalBytes: current.knownBytes,
-            completedCount: completed,
+            completedCount: settled,
             totalCount: total,
             batchFraction: batch,
             status: status,
-            etaSeconds: eta,
-            artworkPath: artworkPath(for: current)
+            etaSeconds: eta
         )
     }
 
@@ -130,15 +136,6 @@ final class DownloadActivityController {
     private func resetRate() {
         lastSample = nil
         smoothedBytesPerSec = 0
-    }
-
-    /// Absolute path to the artwork JPEG in the App Group, or nil. The widget reads this file
-    /// directly; nil means the group isn't provisioned (or no poster yet) and the widget shows a
-    /// fallback symbol.
-    private func artworkPath(for item: DownloadItem) -> String? {
-        guard let url = DownloadPaths.appGroupPosterURL(ratingKey: item.ratingKey),
-              FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return url.path
     }
 
     private func present(_ state: DownloadActivityAttributes.ContentState) {

@@ -14,27 +14,18 @@ struct CrucibleWidgetBundle: WidgetBundle {
 private typealias State = DownloadActivityAttributes.ContentState
 
 private struct ArtworkView: View {
-    let path: String?
     let size: CGFloat
     let cornerRadius: CGFloat
     let symbol: String
     let accent: Color
 
     var body: some View {
-        Group {
-            if let path, let image = UIImage(contentsOfFile: path) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(.white.opacity(0.12))
-                    Image(systemName: symbol)
-                        .font(.system(size: size * 0.42))
-                        .foregroundStyle(accent)
-                }
-            }
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(.white.opacity(0.12))
+            Image(systemName: symbol)
+                .font(.system(size: size * 0.42))
+                .foregroundStyle(accent)
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -54,7 +45,7 @@ struct DownloadLiveActivity: Widget {
             let state = context.state
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    ArtworkView(path: state.artworkPath, size: 42, cornerRadius: 6,
+                    ArtworkView(size: 42, cornerRadius: 6,
                                 symbol: state.isPaused ? "pause.circle.fill" : "arrow.down.circle.fill",
                                 accent: Self.accent)
                 }
@@ -110,7 +101,7 @@ struct DownloadLiveActivity: Widget {
     @ViewBuilder
     private func lockScreen(_ state: State) -> some View {
         HStack(spacing: 12) {
-            ArtworkView(path: state.artworkPath, size: 58, cornerRadius: 8,
+            ArtworkView(size: 58, cornerRadius: 8,
                         symbol: state.isPaused ? "pause.circle.fill" : "arrow.down.circle.fill",
                         accent: Self.accent)
             VStack(alignment: .leading, spacing: 5) {
