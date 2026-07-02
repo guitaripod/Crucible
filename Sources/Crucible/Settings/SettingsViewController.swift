@@ -204,8 +204,8 @@ final class SettingsViewController: UICollectionViewController {
             cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
         }
 
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, indexPath in
-            guard let section = Section(rawValue: indexPath.section) else { return }
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
+            guard let section = self?.dataSource.sectionIdentifier(for: indexPath.section) else { return }
             var config = UIListContentConfiguration.groupedHeader()
             switch section {
             case .server: config.text = "Server"

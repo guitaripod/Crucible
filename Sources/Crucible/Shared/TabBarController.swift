@@ -35,6 +35,9 @@ final class TabBarController: UITabBarController {
     }
 
     func openMedia(ratingKey: String, mediaType: String) {
+        if presentedViewController != nil {
+            dismiss(animated: false)
+        }
         selectedIndex = 0
         guard let nav = viewControllers?.first as? UINavigationController else { return }
         let destination: UIViewController = mediaType == "show"

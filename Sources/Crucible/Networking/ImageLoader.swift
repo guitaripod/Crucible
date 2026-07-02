@@ -73,7 +73,9 @@ actor ImageLoader {
                     return nil
                 }
                 let image = await decoded.byPreparingForDisplay() ?? decoded
-                cache.setObject(image, forKey: nsKey, cost: data.count)
+                let cost = image.cgImage.map { $0.bytesPerRow * $0.height }
+                    ?? Int(image.size.width * image.scale) * Int(image.size.height * image.scale) * 4
+                cache.setObject(image, forKey: nsKey, cost: cost)
                 return image
             } catch {
                 logger.debug("Image request \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")

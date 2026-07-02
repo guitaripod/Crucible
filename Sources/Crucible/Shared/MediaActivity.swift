@@ -21,7 +21,6 @@ enum MediaActivity {
         let attributes = CSSearchableItemAttributeSet(contentType: .audiovisualContent)
         attributes.title = title
         attributes.contentDescription = summary ?? subtitle
-        attributes.relatedUniqueIdentifier = identifier
         activity.contentAttributeSet = attributes
         activity.keywords = Set([title, subtitle].compactMap { $0 })
         return activity

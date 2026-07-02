@@ -49,8 +49,8 @@ final class HomeViewController: UICollectionViewController {
         super.viewDidLoad()
         title = "Home"
         navigationController?.navigationBar.prefersLargeTitles = true
-        collectionView.collectionViewLayout = createLayout()
         configureDataSource()
+        collectionView.collectionViewLayout = createLayout()
 
         let refresh = UIRefreshControl()
         refresh.addAction(UIAction { [unowned self] _ in loadData() }, for: .valueChanged)
@@ -71,8 +71,9 @@ final class HomeViewController: UICollectionViewController {
         let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44))
         let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
 
-        return UICollectionViewCompositionalLayout { sectionIndex, environment in
-            guard let section = Section(rawValue: sectionIndex) else { return nil }
+        return UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let self,
+                  let section = dataSource.snapshot().sectionIdentifiers[safe: sectionIndex] else { return nil }
 
             if section == .surpriseMe {
                 let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(50)))
@@ -156,8 +157,8 @@ final class HomeViewController: UICollectionViewController {
             }
         }
 
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, indexPath in
-            guard let section = Section(rawValue: indexPath.section) else { return }
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
+            guard let section = self?.dataSource.snapshot().sectionIdentifiers[safe: indexPath.section] else { return }
             var config = SectionHeaderConfiguration()
             switch section {
             case .continueWatching: config.title = "Continue Watching"
@@ -347,5 +348,11 @@ final class HomeViewController: UICollectionViewController {
 
     private func quickPlay(_ item: PlexMetadata) {
         playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

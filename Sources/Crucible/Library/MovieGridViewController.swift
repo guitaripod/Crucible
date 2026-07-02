@@ -155,7 +155,8 @@ final class MovieGridViewController: UICollectionViewController {
                         items.append(contentsOf: hub.Metadata ?? [])
                     }
                 }
-                continueWatchingItems = items
+                var seen = Set<String>()
+                continueWatchingItems = items.filter { seen.insert($0.id).inserted }
                 applyFullSnapshot()
             } catch {}
         }

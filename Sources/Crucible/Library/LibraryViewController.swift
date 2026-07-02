@@ -26,6 +26,7 @@ final class LibraryViewController: UIViewController {
     }
 
     private func loadSections() {
+        contentUnavailableConfiguration = nil
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -58,9 +59,39 @@ final class LibraryViewController: UIViewController {
 
                 if let first = vcs.first {
                     showChild(first)
+                } else {
+                    showEmptyState()
                 }
-            } catch {}
+            } catch {
+                guard !Task.isCancelled else { return }
+                AppLogger.error("Library sections fetch failed: \(error.localizedDescription)", .networking)
+                showErrorState(error)
+            }
         }
+    }
+
+    private func showEmptyState() {
+        var config = UIContentUnavailableConfiguration.empty()
+        config.image = UIImage(systemName: "rectangle.stack")
+        config.text = "No Libraries"
+        config.secondaryText = "Add a movie or TV show library to your Plex server to browse it here."
+        contentUnavailableConfiguration = config
+    }
+
+    private func showErrorState(_ error: Error) {
+        var config = UIContentUnavailableConfiguration.empty()
+        config.image = UIImage(systemName: "exclamationmark.triangle")
+        config.text = "Couldn't Load Libraries"
+        config.secondaryText = error.localizedDescription
+        var button = UIButton.Configuration.filled()
+        button.title = "Retry"
+        config.button = button
+        config.buttonProperties.primaryAction = UIAction { [weak self] _ in
+            guard let self else { return }
+            contentUnavailableConfiguration = nil
+            loadSections()
+        }
+        contentUnavailableConfiguration = config
     }
 
     private func configureNavTitle() {

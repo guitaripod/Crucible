@@ -188,6 +188,7 @@ enum PlexEndpoint: Sendable {
         }
         if let queryItems {
             components.queryItems = queryItems
+            components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         }
         guard let url = components.url else {
             throw APIError.invalidURL
