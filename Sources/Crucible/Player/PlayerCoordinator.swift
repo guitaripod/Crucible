@@ -6,6 +6,8 @@ import os
 @MainActor
 final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
+    private static let skipActionIdentifier = UIAction.Identifier("crucible.skip")
+    private static weak var resolvingCoordinator: PlayerCoordinator?
 
     struct Metadata: Sendable {
         let title: String
@@ -38,10 +40,15 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var endObserver: (any NSObjectProtocol)?
     private var nowPlayingObserver: Any?
     private var upNextOverlay: UpNextOverlayView?
+    private var pendingUpNext: (next: PlexMetadata, seasonRatingKey: String, playbackEnded: Bool)?
+    private var foregroundObserver: (any NSObjectProtocol)?
     private var isFinishing = false
     private var currentStreamOffset: Double = 0
     private var restartItemObserver: NSKeyValueObservation?
     private var offlineResumeObserver: NSKeyValueObservation?
+    private var failureObserver: NSKeyValueObservation?
+    private var failedToPlayObserver: (any NSObjectProtocol)?
+    private var didAttemptTranscodeFallback = false
     private var pingTask: Task<Void, Never>?
     private var seekObserver: (any NSObjectProtocol)?
     private var isRestarting = false
@@ -86,6 +93,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         guard !isPresenting else { return }
         isPresenting = true
         presentingVC = viewController
+        if let resolving = Self.resolvingCoordinator, resolving !== self {
+            resolving.cancel()
+        }
         AppLogger.notice("Play requested ratingKey=\(ratingKey) type=\(mediaType) resumeSecs=\(Int(resumePosition))", .playback)
 
         if let offlineAsset {
@@ -114,8 +124,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             spinner.centerYAnchor.constraint(equalTo: viewController.view.centerYAnchor),
         ])
 
+        Self.resolvingCoordinator = self
         resolveTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if Self.resolvingCoordinator === self { Self.resolvingCoordinator = nil }
+            }
             do {
                 let stream = try await StreamResolver.resolve(
                     api: api,
@@ -127,6 +141,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 guard !Task.isCancelled else {
                     spinnerView?.removeFromSuperview()
                     isPresenting = false
+                    discardUnusedStream(stream)
                     return
                 }
                 resolvedStream = stream
@@ -148,8 +163,34 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
     }
 
+    /// Aborts a resolve that has not yet produced a player, so a coordinator replaced
+    /// mid-resolve does not leak a detached AVPlayer or a live transcode session.
+    func cancel() {
+        guard player == nil else { return }
+        resolveTask?.cancel()
+        resolveTask = nil
+        spinnerView?.removeFromSuperview()
+        isPresenting = false
+        if Self.resolvingCoordinator === self { Self.resolvingCoordinator = nil }
+    }
+
+    private func discardUnusedStream(_ stream: ResolvedStream) {
+        resolvedStream = nil
+        guard !stream.isDirectPlay else { return }
+        Task { [api] in
+            try? await api.requestVoid(.stopTranscode(session: stream.sessionId))
+        }
+    }
+
     private func startPlayback(stream: ResolvedStream, from viewController: UIViewController) {
         spinnerView?.removeFromSuperview()
+
+        guard viewController.presentedViewController == nil, viewController.view.window != nil else {
+            AppLogger.error("Presentation unavailable for ratingKey=\(ratingKey); abandoning playback", .playback)
+            isPresenting = false
+            discardUnusedStream(stream)
+            return
+        }
 
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
@@ -164,16 +205,19 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC.delegate = self
         self.playerVC = playerVC
 
-        if offlineAsset == nil {
-            let durationMs = metadata.map { Int(($0.duration ?? 0) * 1000) } ?? 0
-            reporter = PlaybackReporter(
-                api: api,
-                ratingKey: ratingKey,
-                sessionId: stream.sessionId,
-                durationMs: durationMs,
-                player: player
-            )
+        let durationSecs: Double
+        if let offlineAsset, offlineAsset.durationSecs > 0 {
+            durationSecs = offlineAsset.durationSecs
+        } else {
+            durationSecs = metadata?.duration ?? 0
         }
+        reporter = PlaybackReporter(
+            api: api,
+            ratingKey: ratingKey,
+            sessionId: stream.sessionId,
+            durationMs: Int(durationSecs * 1000),
+            player: player
+        )
         let np = NowPlayingBridge()
         nowPlaying = np
 
@@ -200,9 +244,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
 
         setupInterruptionHandling()
+        setupForegroundObserver()
         setupEndObserver()
         setupSeekObserver()
         setupNowPlayingObserver()
+        setupFailureObserver()
 
         if resumePosition > 0, offlineAsset != nil {
             seekOfflineResumeWhenReady()
@@ -218,6 +264,79 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
 
         viewController.present(playerVC, animated: true)
+    }
+
+    /// AVPlayer failures are otherwise completely silent (black screen); observe both the item
+    /// entering `.failed` and mid-playback stalls so every failure is logged with its real error and
+    /// direct-play failures can automatically retry via the transcoder.
+    private func setupFailureObserver() {
+        failureObserver?.invalidate()
+        if let failedToPlayObserver { NotificationCenter.default.removeObserver(failedToPlayObserver) }
+        guard let item = player?.currentItem else { return }
+        failureObserver = item.observe(\.status, options: [.new]) { @Sendable observedItem, _ in
+            guard observedItem.status == .failed else { return }
+            let nsError = observedItem.error as NSError?
+            let message = "\(nsError?.domain ?? "?")#\(nsError?.code ?? 0): \(observedItem.error?.localizedDescription ?? "unknown")"
+            Task { @MainActor [weak self] in self?.handlePlaybackFailure(message: message) }
+        }
+        failedToPlayObserver = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.failedToPlayToEndTimeNotification,
+            object: item,
+            queue: .main
+        ) { [weak self] notification in
+            let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? NSError
+            let message = "\(error?.domain ?? "?")#\(error?.code ?? 0): \(error?.localizedDescription ?? "failed to play to end")"
+            Task { @MainActor [weak self] in self?.handlePlaybackFailure(message: message) }
+        }
+    }
+
+    private func handlePlaybackFailure(message: String) {
+        let wasDirectPlay = resolvedStream?.isDirectPlay ?? false
+        AppLogger.error("Playback failed ratingKey=\(ratingKey) directPlay=\(wasDirectPlay): \(message)", .playback)
+        guard wasDirectPlay, offlineAsset == nil, !didAttemptTranscodeFallback else {
+            showPlaybackError(message)
+            return
+        }
+        didAttemptTranscodeFallback = true
+        AppLogger.notice("Retrying via transcode ratingKey=\(ratingKey)", .playback)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let stream = try await StreamResolver.resolve(
+                    api: api,
+                    ratingKey: ratingKey,
+                    startSecs: resumePosition > 0 ? resumePosition : nil,
+                    selectedSubtitleId: selectedSubtitleId,
+                    selectedAudioStreamId: selectedAudioStreamId,
+                    forceTranscode: true
+                )
+                guard let player = self.player else { return }
+                self.resolvedStream = stream
+                self.currentStreamOffset = self.resumePosition
+                self.reporter = PlaybackReporter(
+                    api: self.api,
+                    ratingKey: self.ratingKey,
+                    sessionId: stream.sessionId,
+                    durationMs: Int((self.metadata?.duration ?? 0) * 1000),
+                    player: player
+                )
+                self.reporter?.setStreamOffset(self.currentStreamOffset)
+                self.startPingTimer(session: stream.sessionId)
+                player.replaceCurrentItem(with: AVPlayerItem(url: stream.url))
+                self.setupFailureObserver()
+                player.play()
+                AppLogger.notice("Transcode fallback playing ratingKey=\(self.ratingKey)", .playback)
+            } catch {
+                AppLogger.error("Transcode fallback failed ratingKey=\(self.ratingKey): \(error.localizedDescription)", .playback)
+                self.showPlaybackError(error.localizedDescription)
+            }
+        }
+    }
+
+    private func showPlaybackError(_ message: String) {
+        let alert = UIAlertController(title: "Playback Error", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        (playerVC ?? presentingVC)?.present(alert, animated: true)
     }
 
     /// HLS (offline downloads served over the loopback server) only accepts seeks at segment
@@ -271,6 +390,19 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
     }
 
+    private func setupForegroundObserver() {
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, !self.isInPiP else { return }
+                self.flushPendingUpNext()
+            }
+        }
+    }
+
     private func setupEndObserver() {
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
@@ -300,7 +432,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 let absolute = seconds + self.currentStreamOffset
                 self.nowPlaying?.updateElapsed(absolute, rate: Double(player.rate))
                 self.updateSkipUI(absolute: absolute)
-                if self.offlineAsset != nil, absolute - self.lastOfflineWrite >= 10 {
+                if self.offlineAsset != nil, abs(absolute - self.lastOfflineWrite) >= 10 {
                     self.lastOfflineWrite = absolute
                     DownloadManager.shared.recordOfflineProgress(ratingKey: self.ratingKey, positionSecs: absolute)
                 }
@@ -349,8 +481,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             button = created
         }
         button.configuration?.title = title
-        button.removeTarget(nil, action: nil, for: .primaryActionTriggered)
-        button.addAction(UIAction { [weak self] _ in self?.seekToAbsolute(target) }, for: .primaryActionTriggered)
+        button.removeAction(identifiedBy: Self.skipActionIdentifier, for: .primaryActionTriggered)
+        button.addAction(
+            UIAction(identifier: Self.skipActionIdentifier) { [weak self] _ in self?.seekToAbsolute(target) },
+            for: .primaryActionTriggered
+        )
         button.isHidden = false
     }
 
@@ -528,18 +663,22 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 let episodes = container.Metadata ?? []
                 guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
                       currentIndex + 1 < episodes.count else {
-                    if dismissIfLast { await dismissPlayer() }
+                    if dismissIfLast, !isInPiP { await dismissPlayer() }
                     return
                 }
-                presentUpNext(next: episodes[currentIndex + 1], seasonRatingKey: seasonRatingKey)
+                presentUpNext(next: episodes[currentIndex + 1], seasonRatingKey: seasonRatingKey, playbackEnded: dismissIfLast)
             } catch {
-                if dismissIfLast { await dismissPlayer() }
+                if dismissIfLast, !isInPiP { await dismissPlayer() }
             }
         }
     }
 
-    private func presentUpNext(next: PlexMetadata, seasonRatingKey: String) {
+    private func presentUpNext(next: PlexMetadata, seasonRatingKey: String, playbackEnded: Bool) {
         guard !isFinishing, upNextOverlay == nil else { return }
+        if isInPiP || UIApplication.shared.applicationState != .active {
+            pendingUpNext = (next, seasonRatingKey, playbackEnded)
+            return
+        }
         guard let playerVC, let host = playerVC.contentOverlayView else {
             Task { await dismissPlayer() }
             return
@@ -561,6 +700,16 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         ])
         upNextOverlay = overlay
         overlay.startCountdown()
+    }
+
+    private func flushPendingUpNext() {
+        guard let pending = pendingUpNext, !isFinishing else { return }
+        pendingUpNext = nil
+        if pending.playbackEnded {
+            playNext(pending.next, seasonRatingKey: pending.seasonRatingKey)
+        } else {
+            presentUpNext(next: pending.next, seasonRatingKey: pending.seasonRatingKey, playbackEnded: false)
+        }
     }
 
     private func playNext(_ next: PlexMetadata, seasonRatingKey: String) {
@@ -587,12 +736,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                         episodeNumber: next.index,
                         posterPath: next.grandparentThumb ?? next.thumb,
                         duration: next.durationSecs
-                    )
+                    ),
+                    offlineAsset: DownloadManager.shared.offlineAsset(for: next.id)
                 )
-                coordinator.onAdvanceToNext = self.onAdvanceToNext
                 if let onAdvanceToNext = self.onAdvanceToNext {
+                    coordinator.onAdvanceToNext = onAdvanceToNext
                     onAdvanceToNext(coordinator)
                 } else {
+                    coordinator.onAdvanceToNext = { [weak self] advanced in self?.nextCoordinator = advanced }
                     self.nextCoordinator = coordinator
                 }
                 coordinator.present(from: presenting)
@@ -635,8 +786,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         isInPiP = false
         if pipRestoreInProgress {
             pipRestoreInProgress = false
+            flushPendingUpNext()
             return
         }
+        pendingUpNext = nil
         guard !isFinishing else { return }
         Task { @MainActor in await self.dismissPlayer() }
     }
@@ -647,9 +800,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     ) {
         MainActor.assumeIsolated {
             _ = coordinator.animate(alongsideTransition: nil) { [weak self] context in
-                guard let self, !context.isCancelled, !self.isInPiP else { return }
+                guard let self, !context.isCancelled, !self.isInPiP, !self.isFinishing else { return }
                 Task { @MainActor [weak self] in
-                    guard let self, !self.isInPiP else { return }
+                    guard let self, !self.isInPiP, !self.isFinishing else { return }
                     self.isFinishing = true
                     self.removeUpNextOverlay()
                     await self.cleanup()
@@ -669,6 +822,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         removeUpNextOverlay()
         removeSkipButton()
         tearDownRemoteCommands()
+        pendingUpNext = nil
 
         pingTask?.cancel()
         pingTask = nil
@@ -676,6 +830,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         restartItemObserver = nil
         offlineResumeObserver?.invalidate()
         offlineResumeObserver = nil
+        failureObserver?.invalidate()
+        failureObserver = nil
+        if let failedToPlayObserver {
+            NotificationCenter.default.removeObserver(failedToPlayObserver)
+        }
+        failedToPlayObserver = nil
         if let seekObserver {
             NotificationCenter.default.removeObserver(seekObserver)
         }
@@ -699,6 +859,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             NotificationCenter.default.removeObserver(interruptionObserver)
         }
         interruptionObserver = nil
+
+        if let foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
+        }
+        foregroundObserver = nil
 
         if let nowPlayingObserver {
             player?.removeTimeObserver(nowPlayingObserver)
@@ -725,6 +890,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
         player = nil
         playerVC = nil
+        resolvedStream = nil
         isPresenting = false
     }
 

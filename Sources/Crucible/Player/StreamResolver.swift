@@ -33,7 +33,8 @@ enum StreamResolver {
         ratingKey: String,
         startSecs: Double?,
         selectedSubtitleId: Int?,
-        selectedAudioStreamId: Int?
+        selectedAudioStreamId: Int?,
+        forceTranscode: Bool = false
     ) async throws -> ResolvedStream {
         let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
         guard let metadata = container.Metadata?.first,
@@ -54,7 +55,8 @@ enum StreamResolver {
         let wantsBurnedSubtitle = selectedSubtitleId != nil
         let wantsNonDefaultAudio = selectedAudioStreamId != nil && selectedAudioStreamId != defaultAudioId
 
-        if Preferences.streamingQuality == .original,
+        if !forceTranscode,
+           Preferences.streamingQuality == .original,
            !wantsBurnedSubtitle,
            !wantsNonDefaultAudio,
            isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec),

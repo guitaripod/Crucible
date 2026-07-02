@@ -15,6 +15,7 @@ enum Theme {
     static let buttonHeight: CGFloat = 44
 
     @MainActor static func quickPlay(api: APIClient, item: PlexMetadata, from vc: UIViewController) -> PlayerCoordinator {
+        AppLogger.notice("Quick play tapped ratingKey=\(item.id) type=\(item.mediaType)", .playback)
         let meta = PlayerCoordinator.Metadata(
             title: item.title,
             showName: item.grandparentTitle,
