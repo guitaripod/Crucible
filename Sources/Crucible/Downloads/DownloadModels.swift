@@ -133,7 +133,7 @@ struct DownloadItem: Codable, Sendable {
     }
 
     var durationSecs: Double { Double(durationMs) / 1000.0 }
-    var resumeSecs: Double { Double(viewOffsetMs) / 1000.0 }
+    var resumeSecs: Double { isWatched ? 0 : Double(viewOffsetMs) / 1000.0 }
 
     var watchProgress: Double {
         guard durationMs > 0 else { return 0 }

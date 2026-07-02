@@ -58,6 +58,17 @@ enum HLSDownloader {
         URL(string: name, relativeTo: base)?.absoluteURL
     }
 
+    /// Local filenames a persisted (rewritten) playlist references: the `#EXT-X-MAP` init segment
+    /// (if any) plus every media segment. Lets callers verify an on-disk asset is actually whole —
+    /// the playlist itself is written at resolve time, before any segment has been fetched.
+    static func referencedLocalNames(inPlaylistAt url: URL) -> [String]? {
+        guard let body = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        var names: [String] = []
+        if let initURI = mapURI(in: body) { names.append(localName(for: initURI)) }
+        names.append(contentsOf: segmentURIs(in: body).map { localName(for: $0) })
+        return names
+    }
+
     /// Local filename for a (possibly query-bearing) segment URI; the on-disk name must match what the
     /// rewritten playlist references.
     static func localName(for uri: String) -> String {

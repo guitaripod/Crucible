@@ -22,6 +22,7 @@ enum DownloadResolver {
 
     struct Plan: Sendable {
         let url: URL
+        let sessionID: String
         let estimatedBytes: Int64
         let durationMs: Int
         let markers: [StoredMarker]
@@ -71,7 +72,8 @@ enum DownloadResolver {
             estimatedBytes = part.size ?? estimateBytes(kbps: 12000, durationMs: durationMs)
         }
 
-        guard let url = hlsURL(baseURL: baseURL, ratingKey: ratingKey, token: token, maxVideoBitrate: bitrate) else {
+        let sessionID = UUID().uuidString
+        guard let url = hlsURL(baseURL: baseURL, ratingKey: ratingKey, token: token, sessionID: sessionID, maxVideoBitrate: bitrate) else {
             throw DownloadResolverError.noURL
         }
 
@@ -79,6 +81,7 @@ enum DownloadResolver {
 
         return Plan(
             url: url,
+            sessionID: sessionID,
             estimatedBytes: estimatedBytes,
             durationMs: durationMs,
             markers: markers,
@@ -118,12 +121,11 @@ enum DownloadResolver {
 
     /// Builds the universal-transcoder HLS master-playlist URL. Mirrors the proven streaming format,
     /// minus the playback offset. `maxVideoBitrate == nil` (Original) direct-streams at source quality.
-    private static func hlsURL(baseURL: URL, ratingKey: String, token: String, maxVideoBitrate: Int?) -> URL? {
-        let session = UUID().uuidString
+    private static func hlsURL(baseURL: URL, ratingKey: String, token: String, sessionID: String, maxVideoBitrate: Int?) -> URL? {
         var query = "path=/library/metadata/\(ratingKey)"
             + "&mediaIndex=0&partIndex=0&protocol=hls"
             + "&fastSeek=1&directPlay=0&directStream=1&directStreamAudio=1"
-            + "&session=\(session)"
+            + "&session=\(sessionID)"
             + "&subtitleSize=100&audioBoost=100&subtitles=none"
             + "&location=lan&autoAdjustQuality=0"
             + "&X-Plex-Token=\(token)"
