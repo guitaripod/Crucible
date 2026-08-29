@@ -7,6 +7,7 @@ actor ImageLoader {
     private struct Config: Sendable {
         let baseURL: URL
         let token: String
+        let machineIdentifier: String
     }
 
     private let config = OSAllocatedUnfairLock<Config?>(initialState: nil)
@@ -17,22 +18,35 @@ actor ImageLoader {
         c.totalCostLimit = 100 * 1024 * 1024
         return c
     }()
-    private var inFlight: [String: Task<UIImage?, Never>] = [:]
+    private var inFlight: [String: (token: Int, task: Task<UIImage?, Never>)] = [:]
+    private var inFlightCounter = 0
+    private var disk: DiskImageCache?
+    private var diskNamespace: String?
 
-    nonisolated func configure(baseURL: URL, token: String) {
-        config.withLock { $0 = Config(baseURL: baseURL, token: token) }
+    nonisolated func configure(baseURL: URL, token: String, machineIdentifier: String) {
+        config.withLock { $0 = Config(baseURL: baseURL, token: token, machineIdentifier: machineIdentifier) }
         Task { await self.cancelInFlight() }
     }
 
     private func cancelInFlight() {
-        for task in inFlight.values {
-            task.cancel()
+        for entry in inFlight.values {
+            entry.task.cancel()
         }
         inFlight.removeAll()
     }
 
+    /// Returns the disk tier for the active server, rebuilding it when the server changes.
+    private func diskCache(namespace: String) -> DiskImageCache {
+        if diskNamespace != namespace || disk == nil {
+            disk = DiskImageCache(namespace: namespace)
+            diskNamespace = namespace
+        }
+        return disk!
+    }
+
     func clearCache() {
         cache.removeAllObjects()
+        disk?.clear()
     }
 
     func loadImage(path: String, width: Int) async -> UIImage? {
@@ -45,7 +59,8 @@ actor ImageLoader {
 
     private func load(path: String, width: Int, height: Int, prefix: String) async -> UIImage? {
         guard let config = config.withLock({ $0 }) else { return nil }
-        let cacheKey = "\(prefix)\(width)/\(path)"
+        let diskKey = "\(prefix)\(width)/\(path)"
+        let cacheKey = "\(config.machineIdentifier)/\(diskKey)"
         let nsKey = cacheKey as NSString
 
         if let cached = cache.object(forKey: nsKey) {
@@ -53,11 +68,21 @@ actor ImageLoader {
         }
 
         if let existing = inFlight[cacheKey] {
-            return await existing.value
+            return await existing.task.value
         }
 
+        let disk = diskCache(namespace: config.machineIdentifier)
+        inFlightCounter &+= 1
+        let token = inFlightCounter
+
         let task = Task<UIImage?, Never> {
-            defer { inFlight[cacheKey] = nil }
+            defer { if inFlight[cacheKey]?.token == token { inFlight[cacheKey] = nil } }
+
+            if let cached = await disk.read(key: diskKey), let image = await Self.prepare(cached) {
+                cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
+                return image
+            }
+
             guard let request = imageRequest(config: config, path: path, width: width, height: height) else {
                 return nil
             }
@@ -68,14 +93,12 @@ actor ImageLoader {
                     logger.error("Image request \(path, privacy: .public) returned HTTP \(http.statusCode)")
                     return nil
                 }
-                guard let decoded = UIImage(data: data) else {
+                guard let image = await Self.prepare(data) else {
                     logger.error("Image request \(path, privacy: .public) returned undecodable data")
                     return nil
                 }
-                let image = await decoded.byPreparingForDisplay() ?? decoded
-                let cost = image.cgImage.map { $0.bytesPerRow * $0.height }
-                    ?? Int(image.size.width * image.scale) * Int(image.size.height * image.scale) * 4
-                cache.setObject(image, forKey: nsKey, cost: cost)
+                disk.write(data, key: diskKey)
+                cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
                 return image
             } catch {
                 logger.debug("Image request \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
@@ -83,8 +106,18 @@ actor ImageLoader {
             }
         }
 
-        inFlight[cacheKey] = task
+        inFlight[cacheKey] = (token, task)
         return await task.value
+    }
+
+    private static func prepare(_ data: Data) async -> UIImage? {
+        guard let decoded = UIImage(data: data) else { return nil }
+        return await decoded.byPreparingForDisplay() ?? decoded
+    }
+
+    private static func cost(of image: UIImage) -> Int {
+        image.cgImage.map { $0.bytesPerRow * $0.height }
+            ?? Int(image.size.width * image.scale) * Int(image.size.height * image.scale) * 4
     }
 
     private func imageRequest(config: Config, path: String, width: Int, height: Int) -> URLRequest? {
