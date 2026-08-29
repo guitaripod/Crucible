@@ -12,6 +12,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: windowScene)
         window.tintColor = .systemOrange
+        window.backgroundColor = .systemBackground
         self.window = window
         window.makeKeyAndVisible()
 
@@ -53,8 +54,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func showMainApp(connection: PlexConnection) {
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
-        ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
+        ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken, machineIdentifier: connection.machineIdentifier)
         DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
+        StatsManager.shared.configure(api: api)
+        StatsManager.shared.kickBackgroundSync()
         let tabBar = TabBarController(api: api)
         window?.rootViewController = tabBar
         if let pending = pendingActivity {
