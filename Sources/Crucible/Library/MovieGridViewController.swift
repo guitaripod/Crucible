@@ -55,7 +55,8 @@ final class MovieGridViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        applyNavItems()
+        AppLogger.info("MovieGrid appeared section=\(sectionId)", .ui)
+        applyControls()
         if dataSource.snapshot().numberOfItems == 0 {
             loadHubs()
             loadPage(offset: 0)
@@ -67,7 +68,9 @@ final class MovieGridViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        (parent ?? self).navigationItem.rightBarButtonItems = nil
+        if (parent as? LibrarySectionsProviding) == nil {
+            (parent ?? self).navigationItem.rightBarButtonItems = nil
+        }
         loadTask?.cancel()
     }
 
@@ -164,13 +167,33 @@ final class MovieGridViewController: UICollectionViewController {
 
     private lazy var optionsButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
     private lazy var folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
-        guard let self else { return }
-        navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
+        self?.openFolderBrowser()
     })
 
-    private func applyNavItems() {
-        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton, folderButton]
-        refreshOptionsMenu()
+    private func applyControls() {
+        optionsButton.accessibilityLabel = "Sort and Filter"
+        folderButton.accessibilityLabel = "Browse Folders"
+        if let provider = parent as? LibrarySectionsProviding {
+            pushActionBarConfig(to: provider)
+        } else {
+            refreshOptionsMenu()
+            (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton, folderButton]
+        }
+        AppLogger.info("MovieGrid controls installed", .ui)
+    }
+
+    private func openFolderBrowser() {
+        AppLogger.info("Folder browse tapped section=\(sectionId)", .ui)
+        navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
+    }
+
+    private func pushActionBarConfig(to provider: LibrarySectionsProviding) {
+        let filtering = currentGenre != nil
+        provider.updateActionBar(LibraryActionBarConfig(
+            optionsMenu: buildOptionsMenu(),
+            optionsIcon: UIImage(systemName: filtering ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease"),
+            onBrowseFolders: { [weak self] in self?.openFolderBrowser() }
+        ))
     }
 
     private func loadGenres() {
@@ -192,6 +215,9 @@ final class MovieGridViewController: UICollectionViewController {
         optionsButton.menu = buildOptionsMenu()
         let filtering = currentGenre != nil
         optionsButton.image = UIImage(systemName: filtering ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+        if let provider = parent as? LibrarySectionsProviding {
+            pushActionBarConfig(to: provider)
+        }
     }
 
     private func buildOptionsMenu() -> UIMenu {

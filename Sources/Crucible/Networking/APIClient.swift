@@ -116,6 +116,8 @@ actor APIClient {
         } catch {
             logger.error("Decode \(T.self, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             logger.debug("Decode body: \(String(data: data.prefix(500), encoding: .utf8) ?? "non-utf8", privacy: .private)")
+            let body = String(data: data.prefix(280), encoding: .utf8) ?? "non-utf8"
+            AppLogger.error("Decode \(T.self) failed: \(String(describing: error)) | body: \(body)", .networking)
             throw APIError.decodingError(error.localizedDescription)
         }
     }

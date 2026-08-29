@@ -53,7 +53,8 @@ final class ShowGridViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        applyNavItems()
+        AppLogger.info("ShowGrid appeared section=\(sectionId)", .ui)
+        applyControls()
         if dataSource.snapshot().numberOfItems == 0 {
             loadHubs()
             loadPage(offset: 0)
@@ -65,7 +66,9 @@ final class ShowGridViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        (parent ?? self).navigationItem.rightBarButtonItems = nil
+        if (parent as? LibrarySectionsProviding) == nil {
+            (parent ?? self).navigationItem.rightBarButtonItems = nil
+        }
         loadTask?.cancel()
     }
 
@@ -173,17 +176,39 @@ final class ShowGridViewController: UICollectionViewController {
 
     private lazy var optionsButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
     private lazy var folderButton = UIBarButtonItem(image: UIImage(systemName: "folder"), primaryAction: UIAction { [weak self] _ in
-        guard let self else { return }
-        navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
+        self?.openFolderBrowser()
     })
 
-    private func applyNavItems() {
-        (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton, folderButton]
-        refreshOptionsMenu()
+    private func applyControls() {
+        optionsButton.accessibilityLabel = "Sort and Filter"
+        folderButton.accessibilityLabel = "Browse Folders"
+        if let provider = parent as? LibrarySectionsProviding {
+            pushActionBarConfig(to: provider)
+        } else {
+            refreshOptionsMenu()
+            (parent ?? self).navigationItem.rightBarButtonItems = [optionsButton, folderButton]
+        }
+        AppLogger.info("ShowGrid controls installed", .ui)
+    }
+
+    private func openFolderBrowser() {
+        AppLogger.info("Folder browse tapped section=\(sectionId)", .ui)
+        navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
+    }
+
+    private func pushActionBarConfig(to provider: LibrarySectionsProviding) {
+        provider.updateActionBar(LibraryActionBarConfig(
+            optionsMenu: buildOptionsMenu(),
+            optionsIcon: UIImage(systemName: "line.3.horizontal.decrease"),
+            onBrowseFolders: { [weak self] in self?.openFolderBrowser() }
+        ))
     }
 
     private func refreshOptionsMenu() {
         optionsButton.menu = buildOptionsMenu()
+        if let provider = parent as? LibrarySectionsProviding {
+            pushActionBarConfig(to: provider)
+        }
     }
 
     private func buildOptionsMenu() -> UIMenu {

@@ -23,7 +23,7 @@ enum PlexEndpoint: Sendable {
     case unscrobble(ratingKey: String)
     case timeline(ratingKey: String, state: String, timeMs: Int, durationMs: Int)
     case progress(ratingKey: String, timeMs: Int)
-    case history(start: Int = 0, size: Int = 50)
+    case history(start: Int = 0, size: Int = 50, sort: String? = "viewedAt:desc")
 
     case stopTranscode(session: String)
     case pingTranscode(session: String)
@@ -166,11 +166,13 @@ enum PlexEndpoint: Sendable {
                 URLQueryItem(name: "identifier", value: "com.plexapp.plugins.library"),
                 URLQueryItem(name: "time", value: "\(timeMs)"),
             ]
-        case .history(let start, let size):
-            return [
+        case .history(let start, let size, let sort):
+            var items = [
                 URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
                 URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
             ]
+            if let sort { items.append(URLQueryItem(name: "sort", value: sort)) }
+            return items
         case .stopTranscode(let session):
             return [URLQueryItem(name: "session", value: session)]
         case .pingTranscode(let session):

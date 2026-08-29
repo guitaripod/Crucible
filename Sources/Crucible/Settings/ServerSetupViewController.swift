@@ -7,13 +7,23 @@ final class ServerSetupViewController: UIViewController {
     private let statusLabel = UILabel()
     private let spinner = UIActivityIndicatorView(style: .medium)
     var onConnected: ((PlexConnection) -> Void)?
+    var allowsCancel = false
     private var authTask: Task<Void, Never>?
     private let log = Logger(subsystem: "com.guitaripod.crucible", category: "auth")
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        navigationController?.setNavigationBarHidden(true, animated: false)
+        if allowsCancel {
+            navigationController?.setNavigationBarHidden(false, animated: false)
+            title = "Switch Server"
+            navigationItem.leftBarButtonItem = UIBarButtonItem(
+                systemItem: .cancel,
+                primaryAction: UIAction { [weak self] _ in self?.dismiss(animated: true) }
+            )
+        } else {
+            navigationController?.setNavigationBarHidden(true, animated: false)
+        }
 
         let iconConfig = UIImage.SymbolConfiguration(pointSize: 48, weight: .medium)
         let iconImage = UIImageView(image: UIImage(systemName: "play.rectangle.fill", withConfiguration: iconConfig))

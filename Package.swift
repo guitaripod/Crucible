@@ -25,13 +25,19 @@ let package = Package(
             targets: ["CrucibleWidgets"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
+    ],
     targets: [
         .target(
             name: "CrucibleActivity"
         ),
         .target(
             name: "Crucible",
-            dependencies: ["CrucibleActivity"],
+            dependencies: [
+                "CrucibleActivity",
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ],
             linkerSettings: iosStamp
         ),
         .target(

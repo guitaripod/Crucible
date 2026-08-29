@@ -16,6 +16,7 @@ final class SettingsViewController: UICollectionViewController {
         case downloadsUsage(String)
         case manageDownloads(String)
         case deleteAllDownloads
+        case statistics
         case activityHistory
         case clearCache
         case signOut
@@ -172,6 +173,15 @@ final class SettingsViewController: UICollectionViewController {
                 cell.contentConfiguration = config
                 cell.accessories = [.disclosureIndicator()]
 
+            case .statistics:
+                var config = UIListContentConfiguration.cell()
+                config.text = "Statistics"
+                config.secondaryText = "Your year in review"
+                config.image = UIImage(systemName: "chart.bar.xaxis")
+                config.imageProperties.tintColor = .systemOrange
+                cell.contentConfiguration = config
+                cell.accessories = [.disclosureIndicator()]
+
             case .activityHistory:
                 var config = UIListContentConfiguration.cell()
                 config.text = "Activity History"
@@ -292,7 +302,7 @@ final class SettingsViewController: UICollectionViewController {
             snapshot.appendItems(downloadItems, toSection: .downloads)
 
             snapshot.appendSections([.activity])
-            snapshot.appendItems([.activityHistory], toSection: .activity)
+            snapshot.appendItems([.statistics, .activityHistory], toSection: .activity)
 
             snapshot.appendSections([.storage])
             snapshot.appendItems([.clearCache], toSection: .storage)
@@ -377,6 +387,10 @@ final class SettingsViewController: UICollectionViewController {
                 UIApplication.shared.open(url)
             }
 
+        case .statistics:
+            let vc = StatisticsViewController(api: api)
+            navigationController?.pushViewController(vc, animated: true)
+
         case .activityHistory:
             let vc = ActivityHistoryViewController(api: api)
             navigationController?.pushViewController(vc, animated: true)
@@ -386,6 +400,9 @@ final class SettingsViewController: UICollectionViewController {
             alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
                 guard let self else { return }
                 DownloadManager.shared.handleSignOut()
+                StatsManager.shared.handleSignOut()
+                HomeSnapshotStore.destroy()
+                Task { await ImageLoader.shared.clearCache() }
                 ServerBootstrap.clear()
                 if let scene = view.window?.windowScene?.delegate as? SceneDelegate {
                     scene.reconfigureRoot()

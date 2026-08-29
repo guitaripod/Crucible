@@ -3,7 +3,7 @@ import os
 
 enum AppLogger {
     enum Category: String {
-        case lifecycle, networking, playback, persistence, ui
+        case lifecycle, networking, playback, persistence, ui, stats
     }
 
     static func info(_ message: String, _ category: Category) { emit(message, category, .info, "INFO") }

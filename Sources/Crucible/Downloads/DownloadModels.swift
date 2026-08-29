@@ -165,9 +165,11 @@ extension DownloadItem {
             parentIndex: seasonNumber, index: episodeNumber, year: year, summary: summary,
             tagline: nil, contentRating: nil, studio: nil, rating: nil, audienceRating: nil,
             duration: durationMs, viewOffset: viewOffsetMs, viewCount: isWatched ? 1 : 0, lastViewedAt: nil,
+            viewedAt: nil, accountID: nil, deviceID: nil,
             addedAt: nil, originallyAvailableAt: nil,
             thumb: plexThumbPath, art: nil,
             leafCount: nil, viewedLeafCount: nil, childCount: nil,
+            librarySectionID: nil, librarySectionTitle: nil,
             Genre: nil, Role: nil, Director: nil, Writer: nil,
             Media: nil, Marker: markers.map(\.asPlexMarker), Related: nil
         )
