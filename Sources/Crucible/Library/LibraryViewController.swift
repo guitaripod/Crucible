@@ -52,6 +52,7 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
         layoutActionBar()
     }
 
+
     private func layoutActionBar() {
         guard !actionBar.isHidden else {
             if additionalSafeAreaInsets.bottom != 0 {
@@ -59,23 +60,26 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
             }
             return
         }
+        let systemBottom = view.safeAreaInsets.bottom - additionalSafeAreaInsets.bottom
+        let contentBottom = view.bounds.height - systemBottom
         let tabBarTop: CGFloat
         if let tabBar = tabBarController?.tabBar {
             tabBarTop = view.convert(tabBar.bounds, from: tabBar).minY
         } else {
             tabBarTop = view.bounds.height
         }
-        let margin: CGFloat = 8
         let width = min(view.bounds.width - 32, 540)
         actionBar.frame = CGRect(
             x: (view.bounds.width - width) / 2,
-            y: tabBarTop - margin - LibraryActionBarView.height,
+            y: tabBarTop - 8 - LibraryActionBarView.height,
             width: width,
             height: LibraryActionBarView.height
         )
-        let contentBottom = view.bounds.height - view.safeAreaInsets.bottom
-        additionalSafeAreaInsets.bottom = max(0, contentBottom - actionBar.frame.minY + 8)
         view.bringSubviewToFront(actionBar)
+        let targetInset = max(0, actionBar.frame.minY - contentBottom + 8)
+        if additionalSafeAreaInsets.bottom != targetInset {
+            additionalSafeAreaInsets.bottom = targetInset
+        }
     }
 
     private func loadSections() {

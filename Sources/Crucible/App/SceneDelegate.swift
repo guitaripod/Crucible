@@ -3,6 +3,8 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var pendingActivity: NSUserActivity?
+    private var mainTabBar: TabBarController?
+    private var revealTimer: Timer?
 
     func scene(
         _ scene: UIScene,
@@ -59,10 +61,44 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
         let tabBar = TabBarController(api: api)
-        window?.rootViewController = tabBar
+        if let homeNav = tabBar.viewControllers?.first as? UINavigationController,
+           let homeVC = homeNav.viewControllers.first as? HomeViewController {
+            homeVC.onReady = { [weak self] in
+                self?.revealMainWindow()
+            }
+        }
+        installOffscreen(tabBar)
+        revealTimer?.invalidate()
+        revealTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: false) { [weak self] _ in
+            self?.revealMainWindow()
+        }
+    }
+
+    private func installOffscreen(_ tabBar: TabBarController) {
+        mainTabBar?.view.removeFromSuperview()
+        guard let window else { return }
+        tabBar.view.frame = window.bounds
+        tabBar.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        window.addSubview(tabBar.view)
+        self.mainTabBar = tabBar
         if let pending = pendingActivity {
             pendingActivity = nil
             route(pending)
+        }
+    }
+
+    private func revealMainWindow() {
+        revealTimer?.invalidate()
+        revealTimer = nil
+        guard let tabBar = mainTabBar, tabBar.view.alpha < 1 else { return }
+        window?.rootViewController = tabBar
+        tabBar.view.alpha = 0
+        UIView.transition(
+            with: tabBar.view,
+            duration: 0.35,
+            options: [.curveEaseOut]
+        ) {
+            tabBar.view.alpha = 1
         }
     }
 

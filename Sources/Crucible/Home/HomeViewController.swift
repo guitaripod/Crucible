@@ -40,10 +40,12 @@ final class HomeViewController: UICollectionViewController {
 
     private let api: APIClient
     private var loadTask: Task<Void, Never>?
-    private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
-    private var mediaById: [String: PlexMetadata] = [:]
     private let surpriseMenuItem = UIBarButtonItem()
     private let serverMenuItem = UIBarButtonItem()
+    private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
+    private var mediaById: [String: PlexMetadata] = [:]
+    var onReady: (() -> Void)?
+    private var hasAnnouncedReady = false
 
     init(api: APIClient) {
         self.api = api
@@ -65,9 +67,17 @@ final class HomeViewController: UICollectionViewController {
         refresh.addAction(UIAction { [unowned self] _ in loadData() }, for: .valueChanged)
         collectionView.refreshControl = refresh
 
-        if !hydrateFromSnapshot() {
+        if hydrateFromSnapshot() {
+            announceReady()
+        } else {
             showSkeleton()
         }
+    }
+
+    private func announceReady() {
+        guard !hasAnnouncedReady else { return }
+        hasAnnouncedReady = true
+        onReady?()
     }
 
     @discardableResult
@@ -406,10 +416,11 @@ final class HomeViewController: UICollectionViewController {
                 } else {
                     contentUnavailableConfiguration = nil
                 }
+                announceReady()
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Home load failed: \(error.localizedDescription)", .networking)
                 collectionView.refreshControl?.endRefreshing()
+                announceReady()
                 var errConfig = UIContentUnavailableConfiguration.empty()
                 errConfig.image = UIImage(systemName: "exclamationmark.triangle")
                 errConfig.text = "Failed to load"
