@@ -218,7 +218,7 @@ final class MediaDetailViewController: UICollectionViewController {
 
         let audioCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexStream> { [unowned self] cell, _, stream in
             var config = UIListContentConfiguration.subtitleCell()
-            config.text = stream.displayTitle ?? stream.language ?? "Track \(stream.id)"
+            config.text = stream.displayTitle ?? stream.language ?? stream.id.map { "Track \($0)" } ?? "Audio Track"
             var details = [String]()
             if let codec = stream.codec { details.append(codec.uppercased()) }
             details.append(stream.channelDescription)

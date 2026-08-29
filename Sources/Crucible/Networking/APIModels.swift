@@ -8,6 +8,76 @@ struct PlexResponse: Decodable, Sendable {
     }
 }
 
+/// Dedicated, fully-lenient decode for `/status/sessions/history/all`. Every field is optional and
+/// type-tolerant so a single malformed/missing field (or a non-numeric id) can never fail the whole
+/// sync — history responses are noisier than library metadata.
+struct PlexHistoryResponse: Decodable, Sendable {
+    let MediaContainer: Container
+
+    struct Container: Decodable, Sendable {
+        let totalSize: Int?
+        let Metadata: [PlexHistoryEntry]?
+
+        enum CodingKeys: String, CodingKey { case totalSize, Metadata }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            totalSize = (try? c.decodeIfPresent(Int.self, forKey: .totalSize)) ?? nil
+            Metadata = (try? c.decodeIfPresent([PlexHistoryEntry].self, forKey: .Metadata)) ?? nil
+        }
+    }
+}
+
+struct PlexHistoryEntry: Decodable, Sendable {
+    let ratingKey: String?
+    let type: String?
+    let title: String?
+    let grandparentTitle: String?
+    let grandparentRatingKey: String?
+    let grandparentThumb: String?
+    let thumb: String?
+    let parentIndex: Int?
+    let index: Int?
+    let viewedAt: Int?
+    let librarySectionID: Int?
+    let librarySectionTitle: String?
+    let accountID: Int?
+    let deviceID: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case ratingKey, type, title, grandparentTitle, grandparentRatingKey, grandparentThumb, thumb
+        case parentIndex, index, viewedAt, librarySectionID, librarySectionTitle, accountID, deviceID
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func str(_ key: CodingKeys) -> String? {
+            if let s = try? c.decodeIfPresent(String.self, forKey: key) { return s }
+            if let i = try? c.decodeIfPresent(Int.self, forKey: key) { return String(i) }
+            return nil
+        }
+        func int(_ key: CodingKeys) -> Int? {
+            if let i = try? c.decodeIfPresent(Int.self, forKey: key) { return i }
+            if let s = try? c.decodeIfPresent(String.self, forKey: key) { return Int(s) }
+            return nil
+        }
+        ratingKey = str(.ratingKey)
+        type = str(.type)
+        title = str(.title)
+        grandparentTitle = str(.grandparentTitle)
+        grandparentRatingKey = str(.grandparentRatingKey)
+        grandparentThumb = str(.grandparentThumb)
+        thumb = str(.thumb)
+        parentIndex = int(.parentIndex)
+        index = int(.index)
+        viewedAt = int(.viewedAt)
+        librarySectionID = int(.librarySectionID)
+        librarySectionTitle = str(.librarySectionTitle)
+        accountID = int(.accountID)
+        deviceID = int(.deviceID)
+    }
+}
+
 struct PlexMediaContainer: Decodable, Sendable {
     let size: Int?
     let totalSize: Int?
@@ -68,6 +138,9 @@ struct PlexMetadata: Decodable, Sendable {
     let viewOffset: Int?
     let viewCount: Int?
     let lastViewedAt: Int?
+    let viewedAt: Int?
+    let accountID: Int?
+    let deviceID: Int?
     let addedAt: Int?
     let originallyAvailableAt: String?
     let thumb: String?
@@ -75,6 +148,8 @@ struct PlexMetadata: Decodable, Sendable {
     let leafCount: Int?
     let viewedLeafCount: Int?
     let childCount: Int?
+    let librarySectionID: Int?
+    let librarySectionTitle: String?
     let Genre: [PlexTag]?
     let Role: [PlexRole]?
     let Director: [PlexTag]?
@@ -88,10 +163,80 @@ struct PlexMetadata: Decodable, Sendable {
         case grandparentTitle, grandparentRatingKey, grandparentThumb, grandparentArt
         case parentTitle, parentRatingKey, parentThumb
         case parentIndex, index, year, summary, tagline, contentRating, studio, rating, audienceRating
-        case duration, viewOffset, viewCount, lastViewedAt, addedAt
+        case duration, viewOffset, viewCount, lastViewedAt, viewedAt, accountID, deviceID, addedAt
         case originallyAvailableAt, thumb, art
-        case leafCount, viewedLeafCount, childCount
+        case leafCount, viewedLeafCount, childCount, librarySectionID, librarySectionTitle
         case Genre, Role, Director, Writer, Media, Marker, Related
+    }
+}
+
+extension PlexMetadata {
+    init(homeCard card: HomeCardSnapshot) {
+        self.init(
+            ratingKey: card.ratingKey,
+            key: nil,
+            type: card.type,
+            title: card.title,
+            grandparentTitle: card.grandparentTitle,
+            grandparentRatingKey: card.grandparentRatingKey,
+            grandparentThumb: card.grandparentThumb,
+            grandparentArt: nil,
+            parentTitle: nil,
+            parentRatingKey: card.parentRatingKey,
+            parentThumb: nil,
+            parentIndex: card.parentIndex,
+            index: card.index,
+            year: card.year,
+            summary: nil,
+            tagline: nil,
+            contentRating: nil,
+            studio: nil,
+            rating: nil,
+            audienceRating: nil,
+            duration: card.duration,
+            viewOffset: card.viewOffset,
+            viewCount: card.viewCount,
+            lastViewedAt: nil,
+            viewedAt: nil,
+            accountID: nil,
+            deviceID: nil,
+            addedAt: nil,
+            originallyAvailableAt: nil,
+            thumb: card.thumb,
+            art: nil,
+            leafCount: nil,
+            viewedLeafCount: nil,
+            childCount: nil,
+            librarySectionID: nil,
+            librarySectionTitle: nil,
+            Genre: nil,
+            Role: nil,
+            Director: nil,
+            Writer: nil,
+            Media: nil,
+            Marker: nil,
+            Related: nil
+        )
+    }
+
+    func homeCard(bucket: String) -> HomeCardSnapshot {
+        HomeCardSnapshot(
+            ratingKey: id,
+            type: type,
+            title: title,
+            grandparentTitle: grandparentTitle,
+            grandparentRatingKey: grandparentRatingKey,
+            grandparentThumb: grandparentThumb,
+            parentRatingKey: parentRatingKey,
+            thumb: thumb,
+            parentIndex: parentIndex,
+            index: index,
+            year: year,
+            viewOffset: viewOffset,
+            duration: duration,
+            viewCount: viewCount,
+            bucket: bucket
+        )
     }
 }
 
@@ -238,7 +383,7 @@ struct PlexPart: Decodable, Sendable {
 }
 
 struct PlexStream: Decodable, Sendable, Identifiable {
-    let id: Int
+    let id: Int?
     let streamType: Int
     let codec: String?
     let language: String?
@@ -275,10 +420,20 @@ struct PlexStream: Decodable, Sendable, Identifiable {
 extension PlexStream: Hashable {
     static func == (lhs: PlexStream, rhs: PlexStream) -> Bool {
         lhs.id == rhs.id
+            && lhs.streamType == rhs.streamType
+            && lhs.codec == rhs.codec
+            && lhs.language == rhs.language
+            && lhs.displayTitle == rhs.displayTitle
+            && lhs.channels == rhs.channels
+            && lhs.bitrate == rhs.bitrate
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+        hasher.combine(streamType)
+        hasher.combine(codec)
+        hasher.combine(language)
+        hasher.combine(displayTitle)
     }
 }
 
