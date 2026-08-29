@@ -1,13 +1,27 @@
 import UIKit
 
-final class LibraryViewController: UIViewController {
+/// Implemented by `LibraryViewController` so embedded grid view controllers can publish their
+/// options state into the shared bottom action bar.
+@MainActor
+struct LibraryActionBarConfig {
+    let optionsMenu: UIMenu
+    let optionsIcon: UIImage?
+    let onBrowseFolders: () -> Void
+}
+
+@MainActor
+protocol LibrarySectionsProviding: AnyObject {
+    func updateActionBar(_ config: LibraryActionBarConfig)
+}
+
+final class LibraryViewController: UIViewController, LibrarySectionsProviding {
     private let api: APIClient
     private var titles: [String] = []
     private var sectionVCs: [UIViewController] = []
     private var currentIndex = 0
     private var currentChild: UIViewController?
     private var loadTask: Task<Void, Never>?
-    private let titleButton = UIButton(configuration: .plain())
+    private let actionBar = LibraryActionBarView()
 
     init(api: APIClient) {
         self.api = api
@@ -21,8 +35,47 @@ final class LibraryViewController: UIViewController {
         super.viewDidLoad()
         title = "Library"
         view.backgroundColor = .systemBackground
-        titleButton.showsMenuAsPrimaryAction = true
+        view.addSubview(actionBar)
+        actionBar.isHidden = true
         loadSections()
+    }
+
+    func updateActionBar(_ config: LibraryActionBarConfig) {
+        actionBar.setOptions(menu: config.optionsMenu, icon: config.optionsIcon)
+        actionBar.setFolderAction(config.onBrowseFolders)
+        actionBar.isHidden = currentChild == nil
+        layoutActionBar()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        layoutActionBar()
+    }
+
+    private func layoutActionBar() {
+        guard !actionBar.isHidden else {
+            if additionalSafeAreaInsets.bottom != 0 {
+                additionalSafeAreaInsets.bottom = 0
+            }
+            return
+        }
+        let tabBarTop: CGFloat
+        if let tabBar = tabBarController?.tabBar {
+            tabBarTop = view.convert(tabBar.bounds, from: tabBar).minY
+        } else {
+            tabBarTop = view.bounds.height
+        }
+        let margin: CGFloat = 8
+        let width = min(view.bounds.width - 32, 540)
+        actionBar.frame = CGRect(
+            x: (view.bounds.width - width) / 2,
+            y: tabBarTop - margin - LibraryActionBarView.height,
+            width: width,
+            height: LibraryActionBarView.height
+        )
+        let contentBottom = view.bounds.height - view.safeAreaInsets.bottom
+        additionalSafeAreaInsets.bottom = max(0, contentBottom - actionBar.frame.minY + 8)
+        view.bringSubviewToFront(actionBar)
     }
 
     private func loadSections() {
@@ -56,6 +109,7 @@ final class LibraryViewController: UIViewController {
                 self.sectionVCs = vcs
                 self.currentIndex = 0
                 configureNavTitle()
+                AppLogger.info("Library sections loaded: \(titles.joined(separator: ", "))", .ui)
 
                 if let first = vcs.first {
                     showChild(first)
@@ -95,42 +149,25 @@ final class LibraryViewController: UIViewController {
     }
 
     private func configureNavTitle() {
-        guard titles.count > 1 else {
-            navigationItem.titleView = nil
-            title = titles.first ?? "Library"
-            return
-        }
-        updateTitleButton()
-        navigationItem.titleView = titleButton
+        title = titles.indices.contains(currentIndex) ? titles[currentIndex] : "Library"
+        updateSwitcherButton()
+        AppLogger.info("Library nav: \(titles.count) libraries", .ui)
     }
 
-    private func updateTitleButton() {
-        var config = UIButton.Configuration.plain()
-        config.title = titles[currentIndex]
-        config.image = UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(scale: .small))
-        config.imagePlacement = .trailing
-        config.imagePadding = 5
-        config.baseForegroundColor = .label
-        config.titleLineBreakMode = .byTruncatingTail
-        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12)
-        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 17, weight: .semibold)
-            return outgoing
-        }
-        titleButton.configuration = config
-        titleButton.menu = UIMenu(children: titles.enumerated().map { index, name in
-            UIAction(title: name, state: index == currentIndex ? .on : .off) { [weak self] _ in
+    private func updateSwitcherButton() {
+        let name = titles.indices.contains(currentIndex) ? titles[currentIndex] : "Library"
+        actionBar.setSwitcher(title: name, menu: UIMenu(children: titles.enumerated().map { index, library in
+            UIAction(title: library, state: index == currentIndex ? .on : .off) { [weak self] _ in
                 self?.selectLibrary(index)
             }
-        })
-        titleButton.sizeToFit()
+        }))
     }
 
     private func selectLibrary(_ index: Int) {
         guard index >= 0, index < sectionVCs.count, index != currentIndex else { return }
+        AppLogger.info("Library switch -> \(titles[index])", .ui)
         currentIndex = index
-        updateTitleButton()
+        configureNavTitle()
         showChild(sectionVCs[index])
     }
 
