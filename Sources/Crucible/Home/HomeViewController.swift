@@ -424,7 +424,7 @@ final class HomeViewController: UICollectionViewController {
                 var errConfig = UIContentUnavailableConfiguration.empty()
                 errConfig.image = UIImage(systemName: "exclamationmark.triangle")
                 errConfig.text = "Failed to load"
-                errConfig.secondaryText = error.localizedDescription
+                errConfig.secondaryText = ConnectionError.message(for: error)
                 contentUnavailableConfiguration = errConfig
             }
         }

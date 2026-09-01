@@ -162,13 +162,13 @@ final class ServerSetupViewController: UIViewController {
         let ranked = rankConnections(server.connections)
 
         guard !ranked.isEmpty else {
-            promptServerURL(serverName: serverName, machineId: machineId, token: token)
+            promptServerURL(serverName: serverName, machineId: machineId, token: token, advertised: [])
             return
         }
 
         showStatus("Finding the best route to \(serverName)…", color: .secondaryLabel)
 
-        let reachable = await withTaskGroup(of: (Int, Bool).self) { group in
+        let reachability = await withTaskGroup(of: (Int, Bool).self) { group in
             for (index, connection) in ranked.enumerated() {
                 guard let url = URL(string: connection.uri) else { continue }
                 group.addTask {
@@ -176,35 +176,42 @@ final class ServerSetupViewController: UIViewController {
                     return (index, await client.identityCheck())
                 }
             }
-            var indices = [Int]()
-            for await (index, ok) in group where ok {
-                indices.append(index)
+            var results = [Int: Bool]()
+            for await (index, ok) in group {
+                results[index] = ok
             }
-            return indices
+            return results
         }
 
         guard !Task.isCancelled else { return }
-        if let best = reachable.min() {
-            let connection = ranked[best]
-            connectTo(uri: connection.uri, serverName: serverName, machineId: machineId, token: token)
+        let advertised = ranked.compactMap { URL(string: $0.uri) }
+        if let best = reachability.filter(\.value).keys.min() {
+            connectTo(uri: ranked[best].uri, serverName: serverName, machineId: machineId, token: token, candidates: advertised)
         } else {
-            promptServerURL(serverName: serverName, machineId: machineId, token: token)
+            promptServerURL(serverName: serverName, machineId: machineId, token: token, advertised: advertised)
         }
     }
 
     /// Orders connections best-first: local before remote, direct before relay, HTTPS before HTTP.
+    /// Docker-bridge addresses (RFC 1918 ranges a phone can never route) are demoted below the
+    /// server's LAN address so a same-network client pins a route it can actually reach.
     private func rankConnections(_ connections: [PlexResourceConnection]) -> [PlexResourceConnection] {
         func score(_ connection: PlexResourceConnection) -> Int {
             var score = 0
             if connection.relay == true { score += 100 }
             if connection.local != true { score += 10 }
             if connection.protocol != "https" { score += 1 }
+            if let address = connection.address, Self.unroutablePrefixes.contains(where: { address.hasPrefix($0) }) {
+                score += 5
+            }
             return score
         }
         return connections.sorted { score($0) < score($1) }
     }
 
-    private func promptServerURL(serverName: String, machineId: String, token: String) {
+    private static let unroutablePrefixes = ["172.17.", "172.18.", "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31."]
+
+    private func promptServerURL(serverName: String, machineId: String, token: String, advertised: [URL]) {
         let alert = UIAlertController(title: "Server Address", message: "Enter your Plex server's Tailscale IP", preferredStyle: .alert)
         alert.addTextField { field in
             field.placeholder = "100.x.x.x"
@@ -215,7 +222,7 @@ final class ServerSetupViewController: UIViewController {
             guard let self, let ip = alert.textFields?.first?.text, !ip.isEmpty else { return }
             UserDefaults.standard.set(ip, forKey: "last_server_ip")
             let uri = "http://\(ip):32400"
-            connectTo(uri: uri, serverName: serverName, machineId: machineId, token: token)
+            connectTo(uri: uri, serverName: serverName, machineId: machineId, token: token, candidates: advertised)
         })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
             self?.spinner.stopAnimating()
@@ -224,7 +231,7 @@ final class ServerSetupViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    private func connectTo(uri: String, serverName: String, machineId: String, token: String) {
+    private func connectTo(uri: String, serverName: String, machineId: String, token: String, candidates: [URL]) {
         guard let url = URL(string: uri) else {
             showError("Invalid URL")
             spinner.stopAnimating()
@@ -244,7 +251,8 @@ final class ServerSetupViewController: UIViewController {
                 return
             }
 
-            ServerBootstrap.saveServer(uri: url, name: serverName, machineIdentifier: machineId)
+            let otherCandidates = candidates.filter { $0 != url }
+            ServerBootstrap.saveServer(uri: url, name: serverName, machineIdentifier: machineId, candidates: otherCandidates)
             showStatus("Connected to \(serverName)", color: .systemGreen)
 
             guard let plexConnection = ServerBootstrap.connection() else {
@@ -260,6 +268,7 @@ final class ServerSetupViewController: UIViewController {
             onConnected?(plexConnection)
         }
     }
+
 
     private func showError(_ message: String) {
         statusLabel.textColor = .systemRed

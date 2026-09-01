@@ -10,6 +10,7 @@ enum APIError: Error, LocalizedError, Sendable {
     case rateLimited
     case serverUnavailable
     case timedOut
+    case secureConnectionFailed
 
     var errorDescription: String? {
         switch self {
@@ -29,13 +30,15 @@ enum APIError: Error, LocalizedError, Sendable {
             return "The server is temporarily unavailable. Please try again shortly."
         case .timedOut:
             return "The request timed out. Please check your connection and try again."
+        case .secureConnectionFailed:
+            return "Could not connect securely to the server. Crucible will re-check your server's address on the next launch."
         }
     }
 }
 
 actor APIClient {
-    nonisolated let baseURL: URL
     nonisolated let token: String
+    private var baseURLStorage: URL
     private let decoder: JSONDecoder
     private let logger = Logger(subsystem: "com.guitaripod.crucible", category: "api")
 
@@ -47,10 +50,25 @@ actor APIClient {
     private static let cacheTTL: TimeInterval = 120
     private var containerCache: [String: CacheEntry] = [:]
 
+    /// Current server base URL. Awaitable from anywhere; follows failover repins.
+    var baseURL: URL {
+        get { baseURLStorage }
+    }
     init(baseURL: URL, token: String) {
-        self.baseURL = baseURL
+        self.baseURLStorage = baseURL
         self.token = token
         self.decoder = JSONDecoder()
+    }
+
+    /// Called (rarely) when failover repins the server address; reconfigures the URL-derived
+    /// singletons so image loads and downloads follow the new route.
+    nonisolated static let onBaseURLChanged = OSAllocatedUnfairLock<(@Sendable (URL) -> Void)?>(initialState: nil)
+
+    private func applyFailover(to newURL: URL) {
+        guard newURL != baseURLStorage else { return }
+        baseURLStorage = newURL
+        containerCache.removeAll()
+        Self.onBaseURLChanged.withLock { $0 }?(newURL)
     }
 
     func invalidateCache() {
@@ -68,10 +86,20 @@ actor APIClient {
     }
 
     func request<T: Decodable & Sendable>(_ endpoint: PlexEndpoint) async throws -> T {
-        let urlRequest = try endpoint.urlRequest(baseURL: baseURL, token: token)
-        let (data, httpResponse) = try await Self.performWithRetry { try await Self.send(urlRequest) }
+        let (data, httpResponse) = try await requestRaw(endpoint)
         try Self.validateStatus(httpResponse.statusCode, data: data)
         return try decode(T.self, from: data)
+    }
+
+    private func requestRaw(_ endpoint: PlexEndpoint) async throws -> (Data, HTTPURLResponse) {
+        let urlRequest = try endpoint.urlRequest(baseURL: baseURL, token: token)
+        do {
+            return try await Self.performWithRetry { try await Self.send(urlRequest) }
+        } catch {
+            guard Self.isTransportFailure(error), Self.canAttemptFailover else { throw error }
+            try await Self.backoff(attempt: 1)
+            return try await failover { try await Self.send(try endpoint.urlRequest(baseURL: $0, token: token)) }
+        }
     }
 
     func requestContainer(_ endpoint: PlexEndpoint) async throws -> PlexMediaContainer {
@@ -87,9 +115,7 @@ actor APIClient {
     }
 
     func requestVoid(_ endpoint: PlexEndpoint) async throws {
-        let urlRequest = try endpoint.urlRequest(baseURL: baseURL, token: token)
-        let (data, httpResponse) = try await Self.performWithRetry { try await Self.send(urlRequest) }
-        try Self.validateStatus(httpResponse.statusCode, data: data)
+        _ = try await requestRaw(endpoint)
     }
 
     private func cachedContainer(forKey key: String) -> PlexMediaContainer? {
@@ -123,13 +149,18 @@ actor APIClient {
     }
 
     nonisolated func identityCheck() async -> Bool {
+        await Self.probe(baseURL: baseURL, token: token)
+    }
+
+    /// Lightweight reachability probe: `/identity` needs no auth and no TLS pinning.
+    nonisolated static func probe(baseURL: URL, token: String) async -> Bool {
         var request = URLRequest(url: baseURL.appendingPathComponent("/identity"))
-        request.timeoutInterval = 10
+        request.timeoutInterval = 6
         for (key, value) in PlexHeaders.allHeaders(token: token) {
             request.setValue(value, forHTTPHeaderField: key)
         }
         do {
-            let (_, httpResponse) = try await Self.send(request)
+            let (_, httpResponse) = try await send(request)
             return httpResponse.statusCode == 200
         } catch {
             return false
@@ -165,6 +196,62 @@ actor APIClient {
         } catch let error as URLError where error.code == .timedOut {
             throw APIError.timedOut
         }
+    }
+
+    private static func isTransportFailure(_ error: Error) -> Bool {
+        switch error {
+        case APIError.timedOut:
+            return true
+        case let urlError as URLError:
+            return transportURLErrorCodes.contains(urlError.code)
+        default:
+            return false
+        }
+    }
+
+    private static var canAttemptFailover: Bool {
+        KeychainHelper.load(key: "plex_auth_token") != nil
+            && UserDefaults.standard.string(forKey: "plex_machine_id") != nil
+    }
+    private static let transportURLErrorCodes: Set<URLError.Code> = transientURLErrorCodes.union([.secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid])
+
+    /// The pinned route died mid-session. Re-discover the server's advertised connections from
+    /// plex.tv (the stored token authorizes this), probe them all in parallel, repin the first
+    /// reachable one, and replay the failed request against it. Throws the original error when
+    /// nothing is reachable so the UI keeps its normal failure path.
+    private func failover(
+        _ replay: @Sendable (URL) async throws -> (Data, HTTPURLResponse)
+    ) async throws -> (Data, HTTPURLResponse) {
+        logger.error("Transport failure on \(self.baseURLStorage.absoluteString, privacy: .public); attempting failover")
+        let candidates = await Self.discoverCandidates(token: token, pinned: baseURL)
+        for candidate in candidates where candidate != baseURL {
+            if await Self.probe(baseURL: candidate, token: token) {
+                logger.notice("Failover to \(candidate.absoluteString, privacy: .public)")
+                ServerBootstrap.repin(uri: candidate)
+                applyFailover(to: candidate)
+                return try await Self.performWithRetry { try await replay(candidate) }
+            }
+        }
+        logger.error("Failover found no reachable route; rethrowing")
+        throw APIError.serverUnavailable
+    }
+
+    /// Stored candidates first (no network beyond the probe), then plex.tv resources.
+    static func discoverCandidates(token: String, pinned: URL) async -> [URL] {
+        var seen: [URL] = []
+        if let stored = ServerBootstrap.connection()?.candidateURIs {
+            seen.append(contentsOf: stored)
+        }
+        if let resources: [PlexResource] = try? await plexTVRequest(.resources, token: token) {
+            for resource in resources where resource.provides.contains("server") {
+                for connection in resource.connections {
+                    if let url = URL(string: connection.uri), !seen.contains(url) {
+                        seen.append(url)
+                    }
+                }
+            }
+        }
+        return seen.filter { $0 != pinned }
     }
 
     private static func validateStatus(_ statusCode: Int, data: Data) throws {

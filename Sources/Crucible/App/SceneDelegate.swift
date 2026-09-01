@@ -19,7 +19,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
 
         if let connection = ServerBootstrap.connection() {
-            showMainApp(connection: connection)
+            establishMainApp(connection: connection)
         } else {
             showServerSetup()
         }
@@ -48,14 +48,64 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func reconfigureRoot() {
         if let connection = ServerBootstrap.connection() {
-            showMainApp(connection: connection)
+            establishMainApp(connection: connection)
         } else {
             showServerSetup()
         }
     }
+    /// Validates the saved route before wiring the app together: a stale plex.direct cert or a
+    /// moved network previously surfaced as a permanent TLS error screen on every launch. Now a
+    /// failed probe triggers re-discovery of the server's advertised connections, and the app
+    /// either follows a working route or falls back to setup.
+    private func establishMainApp(connection: PlexConnection) {
+        let skeleton = UIViewController()
+        skeleton.view.backgroundColor = .systemBackground
+        window?.rootViewController = skeleton
+        Task { @MainActor in
+            let validated = await ServerConnectionResolver.validate(
+                connection: connection,
+                progress: { [weak self] message in
+                    Task { @MainActor in self?.updateSkeleton(skeleton, message: message) }
+                }
+            )
+            guard !Task.isCancelled else { return }
+            switch validated {
+            case .connection(let connection):
+                showMainApp(connection: connection)
+            case .needsSetup:
+                showServerSetup()
+            }
+        }
+    }
+
+    private func updateSkeleton(_ vc: UIViewController, message: String) {
+        guard vc.view.subviews.isEmpty else { return }
+        let label = UILabel()
+        label.text = message
+        label.font = .systemFont(ofSize: 15, weight: .medium)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        vc.view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: vc.view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: vc.view.centerYAnchor),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: vc.view.layoutMarginsGuide.leadingAnchor, constant: 24),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: vc.view.layoutMarginsGuide.trailingAnchor, constant: -24),
+        ])
+    }
 
     private func showMainApp(connection: PlexConnection) {
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
+        APIClient.onBaseURLChanged.withLock { handler in
+            handler = { [weak api] newURL in
+                guard let api else { return }
+                Task { @MainActor in
+                    ImageLoader.shared.configure(baseURL: newURL, token: api.token, machineIdentifier: connection.machineIdentifier)
+                    DownloadManager.shared.configure(baseURL: newURL, token: api.token)
+                }
+            }
+        }
         ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken, machineIdentifier: connection.machineIdentifier)
         DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
         StatsManager.shared.configure(api: api)

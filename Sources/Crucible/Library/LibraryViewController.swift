@@ -140,7 +140,7 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "exclamationmark.triangle")
         config.text = "Couldn't Load Libraries"
-        config.secondaryText = error.localizedDescription
+        config.secondaryText = ConnectionError.message(for: error)
         var button = UIButton.Configuration.filled()
         button.title = "Retry"
         config.button = button

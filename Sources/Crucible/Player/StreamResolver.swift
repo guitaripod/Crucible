@@ -44,7 +44,7 @@ enum StreamResolver {
         }
 
         let sessionId = UUID().uuidString
-        let baseURL = api.baseURL
+        let baseURL = await api.baseURL
         let token = api.token
 
         let subtitles = part.Stream?.filter { $0.streamType == 3 } ?? []
@@ -111,9 +111,9 @@ enum StreamResolver {
         offsetSecs: Double,
         sessionId: String,
         burnSubtitle: Bool
-    ) -> URL? {
+    ) async -> URL? {
         transcodeURL(
-            baseURL: api.baseURL,
+            baseURL: await api.baseURL,
             token: api.token,
             ratingKey: ratingKey,
             session: sessionId,

@@ -534,17 +534,30 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private func restartTranscode(atAbsolute target: Double) {
         guard let player, let stream = resolvedStream, !isRestarting else { return }
-        guard let url = StreamResolver.transcodeRestartURL(
-            api: api,
-            ratingKey: ratingKey,
-            offsetSecs: target,
-            sessionId: stream.sessionId,
-            burnSubtitle: selectedSubtitleId != nil
-        ) else { return }
-
         isRestarting = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let url = await StreamResolver.transcodeRestartURL(
+                api: self.api,
+                ratingKey: self.ratingKey,
+                offsetSecs: target,
+                sessionId: stream.sessionId,
+                burnSubtitle: self.selectedSubtitleId != nil
+            )
+            guard let url else {
+                self.isRestarting = false
+                return
+            }
+            self.applyTranscodeRestart(url: url, atAbsolute: target, stream: stream)
+        }
+    }
+
+    private func applyTranscodeRestart(url: URL, atAbsolute target: Double, stream: ResolvedStream) {
+        guard let player else {
+            isRestarting = false
+            return
+        }
         lastPlayhead = 0
-        AppLogger.notice("Scrub: restarting transcode at \(Int(target))s", .playback)
         currentStreamOffset = target
         reporter?.setStreamOffset(target)
 

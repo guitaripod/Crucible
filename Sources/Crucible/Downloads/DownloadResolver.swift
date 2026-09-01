@@ -48,7 +48,7 @@ enum DownloadResolver {
             throw DownloadResolverError.noMediaFound
         }
 
-        let baseURL = api.baseURL
+        let baseURL = await api.baseURL
         let token = api.token
         let durationMs = part.duration ?? metadata.duration ?? 0
 
