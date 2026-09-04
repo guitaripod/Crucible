@@ -44,11 +44,11 @@ final class HomeViewController: UICollectionViewController {
     private let serverMenuItem = UIBarButtonItem()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var mediaById: [String: PlexMetadata] = [:]
-    var onReady: (() -> Void)?
-    private var hasAnnouncedReady = false
+    private var preloaded: PlexMediaContainer?
 
-    init(api: APIClient) {
+    init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
+        self.preloaded = preloaded
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -67,17 +67,13 @@ final class HomeViewController: UICollectionViewController {
         refresh.addAction(UIAction { [unowned self] _ in loadData() }, for: .valueChanged)
         collectionView.refreshControl = refresh
 
-        if hydrateFromSnapshot() {
-            announceReady()
-        } else {
+        if let preloaded {
+            self.preloaded = nil
+            skipNextAppearanceLoad = true
+            apply(container: preloaded, animated: false)
+        } else if !hydrateFromSnapshot() {
             showSkeleton()
         }
-    }
-
-    private func announceReady() {
-        guard !hasAnnouncedReady else { return }
-        hasAnnouncedReady = true
-        onReady?()
     }
 
     @discardableResult
@@ -152,8 +148,14 @@ final class HomeViewController: UICollectionViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         updateServerMenu()
-        loadData()
+        if skipNextAppearanceLoad {
+            skipNextAppearanceLoad = false
+        } else {
+            loadData()
+        }
     }
+
+    private var skipNextAppearanceLoad = false
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
@@ -344,89 +346,87 @@ final class HomeViewController: UICollectionViewController {
             do {
                 let container = try await api.requestContainer(.hubs())
                 guard !Task.isCancelled else { return }
-
-                var continueItems = [PlexMetadata]()
-                var onDeckItems = [PlexMetadata]()
-                var recentItems = [PlexMetadata]()
-
-                for hub in container.Hub ?? [] {
-                    guard let id = hub.hubIdentifier, let items = hub.Metadata, !items.isEmpty else { continue }
-                    let lowered = id.lowercased()
-                    if lowered.contains("continue") || lowered.contains("inprogress") {
-                        continueItems.append(contentsOf: items)
-                    } else if lowered.contains("ondeck") {
-                        onDeckItems.append(contentsOf: items)
-                    } else if lowered.contains("recentlyadded") || lowered.contains("recent") {
-                        recentItems.append(contentsOf: items)
-                    }
-                }
-
-                continueItems = Self.dedupe(continueItems)
-                onDeckItems = Self.dedupe(onDeckItems)
-                recentItems = Self.dedupe(recentItems)
-                AppLogger.info("Home loaded: cw=\(continueItems.count) od=\(onDeckItems.count) ra=\(recentItems.count)", .networking)
-
-                self.mediaById = Dictionary(
-                    (continueItems + onDeckItems + recentItems).map { ($0.id, $0) },
-                    uniquingKeysWith: { _, latest in latest }
-                )
-
-                HomeSnapshotStore.save(HomeSnapshot(
-                    schema: HomeSnapshotStore.schemaVersion,
-                    machineIdentifier: ServerBootstrap.connection()?.machineIdentifier ?? "",
-                    savedAt: Int(Date().timeIntervalSince1970),
-                    cards: Self.homeCards(continueItems: continueItems, onDeckItems: onDeckItems, recentItems: recentItems)
-                ))
-
-                var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-
-                if !continueItems.isEmpty {
-                    snapshot.appendSections([.continueWatching])
-                    snapshot.appendItems(continueItems.map { .media($0, "cw") }, toSection: .continueWatching)
-                }
-                if !onDeckItems.isEmpty {
-                    snapshot.appendSections([.onDeck])
-                    snapshot.appendItems(onDeckItems.map { .media($0, "od") }, toSection: .onDeck)
-                }
-                if !recentItems.isEmpty {
-                    snapshot.appendSections([.recentlyAdded])
-                    snapshot.appendItems(recentItems.map { .media($0, "ra") }, toSection: .recentlyAdded)
-                }
-
-                snapshot.appendSections([.surpriseMe])
-                snapshot.appendItems([.surpriseMe], toSection: .surpriseMe)
-
-                let animateHandoff = self.dataSource.snapshot().numberOfItems > 0
-                await self.dataSource.apply(snapshot, animatingDifferences: animateHandoff)
-
-                var refreshed = self.dataSource.snapshot()
-                let mediaItems = refreshed.itemIdentifiers.filter { if case .media = $0 { return true }; return false }
-                if !mediaItems.isEmpty {
-                    refreshed.reconfigureItems(mediaItems)
-                    await self.dataSource.apply(refreshed, animatingDifferences: false)
-                }
-                self.collectionView.refreshControl?.endRefreshing()
-
-                if continueItems.isEmpty && onDeckItems.isEmpty && recentItems.isEmpty {
-                    var emptyConfig = UIContentUnavailableConfiguration.empty()
-                    emptyConfig.image = UIImage(systemName: "play.rectangle")
-                    emptyConfig.text = "No content yet"
-                    emptyConfig.secondaryText = "Add media to your Plex libraries to see it here"
-                    contentUnavailableConfiguration = emptyConfig
-                } else {
-                    contentUnavailableConfiguration = nil
-                }
-                announceReady()
+                apply(container: container, animated: self.dataSource.snapshot().numberOfItems > 0)
             } catch {
                 guard !Task.isCancelled else { return }
                 collectionView.refreshControl?.endRefreshing()
-                announceReady()
                 var errConfig = UIContentUnavailableConfiguration.empty()
                 errConfig.image = UIImage(systemName: "exclamationmark.triangle")
                 errConfig.text = "Failed to load"
                 errConfig.secondaryText = ConnectionError.message(for: error)
                 contentUnavailableConfiguration = errConfig
             }
+        }
+    }
+
+    private func apply(container: PlexMediaContainer, animated: Bool) {
+        var continueItems = [PlexMetadata]()
+        var onDeckItems = [PlexMetadata]()
+        var recentItems = [PlexMetadata]()
+
+        for hub in container.Hub ?? [] {
+            guard let id = hub.hubIdentifier, let items = hub.Metadata, !items.isEmpty else { continue }
+            let lowered = id.lowercased()
+            if lowered.contains("continue") || lowered.contains("inprogress") {
+                continueItems.append(contentsOf: items)
+            } else if lowered.contains("ondeck") {
+                onDeckItems.append(contentsOf: items)
+            } else if lowered.contains("recentlyadded") || lowered.contains("recent") {
+                recentItems.append(contentsOf: items)
+            }
+        }
+
+        continueItems = Self.dedupe(continueItems)
+        onDeckItems = Self.dedupe(onDeckItems)
+        recentItems = Self.dedupe(recentItems)
+        AppLogger.info("Home loaded: cw=\(continueItems.count) od=\(onDeckItems.count) ra=\(recentItems.count)", .networking)
+
+        mediaById = Dictionary(
+            (continueItems + onDeckItems + recentItems).map { ($0.id, $0) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+
+        HomeSnapshotStore.save(HomeSnapshot(
+            schema: HomeSnapshotStore.schemaVersion,
+            machineIdentifier: ServerBootstrap.connection()?.machineIdentifier ?? "",
+            savedAt: Int(Date().timeIntervalSince1970),
+            cards: Self.homeCards(continueItems: continueItems, onDeckItems: onDeckItems, recentItems: recentItems)
+        ))
+
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        if !continueItems.isEmpty {
+            snapshot.appendSections([.continueWatching])
+            snapshot.appendItems(continueItems.map { .media($0, "cw") }, toSection: .continueWatching)
+        }
+        if !onDeckItems.isEmpty {
+            snapshot.appendSections([.onDeck])
+            snapshot.appendItems(onDeckItems.map { .media($0, "od") }, toSection: .onDeck)
+        }
+        if !recentItems.isEmpty {
+            snapshot.appendSections([.recentlyAdded])
+            snapshot.appendItems(recentItems.map { .media($0, "ra") }, toSection: .recentlyAdded)
+        }
+        snapshot.appendSections([.surpriseMe])
+        snapshot.appendItems([.surpriseMe], toSection: .surpriseMe)
+
+        dataSource.apply(snapshot, animatingDifferences: animated)
+
+        var refreshed = dataSource.snapshot()
+        let mediaItems = refreshed.itemIdentifiers.filter { if case .media = $0 { return true }; return false }
+        if !mediaItems.isEmpty {
+            refreshed.reconfigureItems(mediaItems)
+            dataSource.apply(refreshed, animatingDifferences: false)
+        }
+        collectionView.refreshControl?.endRefreshing()
+
+        if continueItems.isEmpty && onDeckItems.isEmpty && recentItems.isEmpty {
+            var emptyConfig = UIContentUnavailableConfiguration.empty()
+            emptyConfig.image = UIImage(systemName: "play.rectangle")
+            emptyConfig.text = "No content yet"
+            emptyConfig.secondaryText = "Add media to your Plex libraries to see it here"
+            contentUnavailableConfiguration = emptyConfig
+        } else {
+            contentUnavailableConfiguration = nil
         }
     }
 

@@ -223,17 +223,17 @@ actor APIClient {
         _ replay: @Sendable (URL) async throws -> (Data, HTTPURLResponse)
     ) async throws -> (Data, HTTPURLResponse) {
         logger.error("Transport failure on \(self.baseURLStorage.absoluteString, privacy: .public); attempting failover")
-        let candidates = await Self.discoverCandidates(token: token, pinned: baseURL)
-        for candidate in candidates where candidate != baseURL {
-            if await Self.probe(baseURL: candidate, token: token) {
-                logger.notice("Failover to \(candidate.absoluteString, privacy: .public)")
-                ServerBootstrap.repin(uri: candidate)
-                applyFailover(to: candidate)
-                return try await Self.performWithRetry { try await replay(candidate) }
-            }
+        let candidates = await Self.discoverCandidates(token: token, pinned: baseURL).filter { $0 != baseURL }
+        guard let candidate = await ServerConnectionResolver.firstReachable(candidates, token: token) else {
+            logger.error("Failover found no reachable route; rethrowing")
+            AppLogger.error("Failover from \(baseURLStorage.absoluteString) found no reachable route", .networking)
+            throw APIError.serverUnavailable
         }
-        logger.error("Failover found no reachable route; rethrowing")
-        throw APIError.serverUnavailable
+        logger.notice("Failover to \(candidate.absoluteString, privacy: .public)")
+        AppLogger.notice("Failover to \(candidate.absoluteString)", .networking)
+        ServerBootstrap.repin(uri: candidate)
+        applyFailover(to: candidate)
+        return try await Self.performWithRetry { try await replay(candidate) }
     }
 
     /// Stored candidates first (no network beyond the probe), then plex.tv resources.

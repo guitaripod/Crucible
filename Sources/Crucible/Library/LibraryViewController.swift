@@ -22,9 +22,11 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
     private var currentChild: UIViewController?
     private var loadTask: Task<Void, Never>?
     private let actionBar = LibraryActionBarView()
+    private var preloaded: PlexMediaContainer?
 
-    init(api: APIClient) {
+    init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
+        self.preloaded = preloaded
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -37,7 +39,12 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
         view.backgroundColor = .systemBackground
         view.addSubview(actionBar)
         actionBar.isHidden = true
-        loadSections()
+        if let preloaded {
+            self.preloaded = nil
+            install(sections: preloaded)
+        } else {
+            loadSections()
+        }
     }
 
     func updateActionBar(_ config: LibraryActionBarConfig) {
@@ -89,42 +96,44 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
             do {
                 let container = try await api.requestContainer(.sections)
                 guard !Task.isCancelled else { return }
-                let dirs = container.Directory ?? []
-
-                var titles = [String]()
-                var vcs = [UIViewController]()
-
-                for dir in dirs {
-                    switch dir.type {
-                    case "movie":
-                        guard let key = dir.key else { continue }
-                        titles.append(dir.title ?? "Movies")
-                        vcs.append(MovieGridViewController(api: api, sectionId: key))
-                    case "show":
-                        guard let key = dir.key else { continue }
-                        titles.append(dir.title ?? "Shows")
-                        vcs.append(ShowGridViewController(api: api, sectionId: key))
-                    default:
-                        continue
-                    }
-                }
-
-                self.titles = titles
-                self.sectionVCs = vcs
-                self.currentIndex = 0
-                configureNavTitle()
-                AppLogger.info("Library sections loaded: \(titles.joined(separator: ", "))", .ui)
-
-                if let first = vcs.first {
-                    showChild(first)
-                } else {
-                    showEmptyState()
-                }
+                install(sections: container)
             } catch {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("Library sections fetch failed: \(error.localizedDescription)", .networking)
                 showErrorState(error)
             }
+        }
+    }
+
+    private func install(sections container: PlexMediaContainer) {
+        var titles = [String]()
+        var vcs = [UIViewController]()
+
+        for dir in container.Directory ?? [] {
+            switch dir.type {
+            case "movie":
+                guard let key = dir.key else { continue }
+                titles.append(dir.title ?? "Movies")
+                vcs.append(MovieGridViewController(api: api, sectionId: key))
+            case "show":
+                guard let key = dir.key else { continue }
+                titles.append(dir.title ?? "Shows")
+                vcs.append(ShowGridViewController(api: api, sectionId: key))
+            default:
+                continue
+            }
+        }
+
+        self.titles = titles
+        self.sectionVCs = vcs
+        self.currentIndex = 0
+        configureNavTitle()
+        AppLogger.info("Library sections loaded: \(titles.joined(separator: ", "))", .ui)
+
+        if let first = vcs.first {
+            showChild(first)
+        } else {
+            showEmptyState()
         }
     }
 

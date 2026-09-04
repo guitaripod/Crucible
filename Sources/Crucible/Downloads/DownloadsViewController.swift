@@ -17,6 +17,9 @@ final class DownloadsViewController: UICollectionViewController {
     private var storageText: String?
     private var playerCoordinator: PlayerCoordinator?
 
+    /// Set when presented modally (offline launch fallback); survives the edit-mode item swaps.
+    var closeItem: UIBarButtonItem?
+
     init(api: APIClient) {
         self.api = api
         super.init(collectionViewLayout: UICollectionViewLayout())
@@ -240,7 +243,7 @@ final class DownloadsViewController: UICollectionViewController {
 
     private func updateNavItems(hasItems: Bool) {
         guard hasItems else {
-            navigationItem.leftBarButtonItem = nil
+            navigationItem.leftBarButtonItem = closeItem
             navigationItem.rightBarButtonItems = nil
             return
         }
@@ -251,7 +254,7 @@ final class DownloadsViewController: UICollectionViewController {
             navigationItem.rightBarButtonItems = [multiSelect.barButton]
             return
         }
-        navigationItem.leftBarButtonItem = nil
+        navigationItem.leftBarButtonItem = closeItem
         let menu = UIMenu(children: [
             UIAction(title: "Delete All Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.confirmDeleteAll()

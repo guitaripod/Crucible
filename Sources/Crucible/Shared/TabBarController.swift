@@ -3,8 +3,11 @@ import UIKit
 final class TabBarController: UITabBarController {
     private let api: APIClient
 
-    init(api: APIClient) {
-        self.api = api
+    private let payload: LaunchPayload
+
+    init(payload: LaunchPayload) {
+        self.payload = payload
+        self.api = payload.api
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -16,10 +19,10 @@ final class TabBarController: UITabBarController {
 
         view.tintColor = .systemOrange
 
-        let home = UINavigationController(rootViewController: HomeViewController(api: api))
+        let home = UINavigationController(rootViewController: HomeViewController(api: api, preloaded: payload.hubs))
         home.tabBarItem = UITabBarItem(title: "Home", image: UIImage(systemName: "house"), selectedImage: UIImage(systemName: "house.fill"))
 
-        let library = UINavigationController(rootViewController: LibraryViewController(api: api))
+        let library = UINavigationController(rootViewController: LibraryViewController(api: api, preloaded: payload.sections))
         library.tabBarItem = UITabBarItem(title: "Library", image: UIImage(systemName: "rectangle.stack"), selectedImage: UIImage(systemName: "rectangle.stack.fill"))
 
         let search = UINavigationController(rootViewController: SearchViewController(api: api))

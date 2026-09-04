@@ -3,8 +3,7 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var pendingActivity: NSUserActivity?
-    private var mainTabBar: TabBarController?
-    private var revealTimer: Timer?
+    private var launchTask: Task<Void, Never>?
 
     func scene(
         _ scene: UIScene,
@@ -14,19 +13,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: windowScene)
         window.tintColor = .systemOrange
-        window.backgroundColor = .systemBackground
+        window.backgroundColor = CrystalGlyphView.canvas
         self.window = window
         window.makeKeyAndVisible()
 
-        if let connection = ServerBootstrap.connection() {
-            establishMainApp(connection: connection)
-        } else {
-            showServerSetup()
-        }
-
         if let activity = connectionOptions.userActivities.first {
-            route(activity)
+            pendingActivity = activity
         }
+        reconfigureRoot()
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
@@ -47,56 +41,53 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func reconfigureRoot() {
+        launchTask?.cancel()
         if let connection = ServerBootstrap.connection() {
-            establishMainApp(connection: connection)
+            launch(connection: connection)
         } else {
             showServerSetup()
         }
     }
-    /// Validates the saved route before wiring the app together: a stale plex.direct cert or a
-    /// moved network previously surfaced as a permanent TLS error screen on every launch. Now a
-    /// failed probe triggers re-discovery of the server's advertised connections, and the app
-    /// either follows a working route or falls back to setup.
-    private func establishMainApp(connection: PlexConnection) {
-        let skeleton = UIViewController()
-        skeleton.view.backgroundColor = .systemBackground
-        window?.rootViewController = skeleton
-        Task { @MainActor in
-            let validated = await ServerConnectionResolver.validate(
-                connection: connection,
-                progress: { [weak self] message in
-                    Task { @MainActor in self?.updateSkeleton(skeleton, message: message) }
+
+    /// The main UI is never on screen with a broken connection: the launch screen holds until the
+    /// route is validated (healing it if needed) and both Home and Library payloads are in hand.
+    private func launch(connection: PlexConnection) {
+        let gate = (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
+        gate.showLoading(status: "Connecting to \(connection.serverName)…")
+        launchTask = Task { @MainActor [weak self, weak gate] in
+            let outcome = await AppLaunchSession.run(connection: connection) { message in
+                Task { @MainActor in gate?.showLoading(status: message) }
+            }
+            guard !Task.isCancelled, let self, let gate else { return }
+            switch outcome {
+            case .success(let payload):
+                let tabBar = self.buildMainApp(payload)
+                gate.playSuccess { [weak self] in
+                    self?.present(root: tabBar)
                 }
-            )
-            guard !Task.isCancelled else { return }
-            switch validated {
-            case .connection(let connection):
-                showMainApp(connection: connection)
-            case .needsSetup:
-                showServerSetup()
+            case .failure(let failure):
+                let hasOffline = DownloadManager.shared.items.contains { $0.state == .completed }
+                gate.showFailure(
+                    title: "Couldn't Reach \(connection.serverName)",
+                    message: failure.message,
+                    canOpenDownloads: hasOffline
+                )
+                gate.onOpenDownloads = { [weak self] in self?.showOfflineDownloads(connection: connection) }
             }
         }
     }
 
-    private func updateSkeleton(_ vc: UIViewController, message: String) {
-        guard vc.view.subviews.isEmpty else { return }
-        let label = UILabel()
-        label.text = message
-        label.font = .systemFont(ofSize: 15, weight: .medium)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        vc.view.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: vc.view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: vc.view.centerYAnchor),
-            label.leadingAnchor.constraint(greaterThanOrEqualTo: vc.view.layoutMarginsGuide.leadingAnchor, constant: 24),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: vc.view.layoutMarginsGuide.trailingAnchor, constant: -24),
-        ])
+    private func installLaunchScreen() -> LaunchViewController {
+        let gate = LaunchViewController()
+        gate.onRetry = { [weak self] in self?.reconfigureRoot() }
+        gate.onSwitchServer = { [weak self] in self?.presentServerSwitcher() }
+        window?.rootViewController = gate
+        return gate
     }
 
-    private func showMainApp(connection: PlexConnection) {
-        let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
+    private func buildMainApp(_ payload: LaunchPayload) -> TabBarController {
+        let api = payload.api
+        let connection = payload.connection
         APIClient.onBaseURLChanged.withLock { handler in
             handler = { [weak api] newURL in
                 guard let api else { return }
@@ -110,54 +101,55 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
-        let tabBar = TabBarController(api: api)
-        if let homeNav = tabBar.viewControllers?.first as? UINavigationController,
-           let homeVC = homeNav.viewControllers.first as? HomeViewController {
-            homeVC.onReady = { [weak self] in
-                self?.revealMainWindow()
-            }
-        }
-        installOffscreen(tabBar)
-        revealTimer?.invalidate()
-        revealTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: false) { [weak self] _ in
-            self?.revealMainWindow()
-        }
+        return TabBarController(payload: payload)
     }
 
-    private func installOffscreen(_ tabBar: TabBarController) {
-        mainTabBar?.view.removeFromSuperview()
+    private func present(root: UIViewController) {
         guard let window else { return }
-        tabBar.view.frame = window.bounds
-        tabBar.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        window.addSubview(tabBar.view)
-        self.mainTabBar = tabBar
-        if let pending = pendingActivity {
-            pendingActivity = nil
-            route(pending)
-        }
-    }
-
-    private func revealMainWindow() {
-        revealTimer?.invalidate()
-        revealTimer = nil
-        guard let tabBar = mainTabBar, tabBar.view.alpha < 1 else { return }
-        window?.rootViewController = tabBar
-        tabBar.view.alpha = 0
-        UIView.transition(
-            with: tabBar.view,
-            duration: 0.35,
-            options: [.curveEaseOut]
-        ) {
-            tabBar.view.alpha = 1
+        window.backgroundColor = .systemBackground
+        UIView.transition(with: window, duration: 0.4, options: [.transitionCrossDissolve, .curveEaseOut]) {
+            window.rootViewController = root
+        } completion: { [weak self] _ in
+            guard let self, let pending = self.pendingActivity else { return }
+            self.pendingActivity = nil
+            self.route(pending)
         }
     }
 
     private func showServerSetup() {
         let setup = ServerSetupViewController()
         setup.onConnected = { [weak self] connection in
-            self?.showMainApp(connection: connection)
+            self?.launch(connection: connection)
         }
         let nav = UINavigationController(rootViewController: setup)
+        window?.backgroundColor = .systemBackground
         window?.rootViewController = nav
+    }
+
+    private func presentServerSwitcher() {
+        guard let gate = window?.rootViewController else { return }
+        let setup = ServerSetupViewController()
+        setup.allowsCancel = true
+        setup.onConnected = { [weak self] _ in
+            gate.dismiss(animated: true) { self?.reconfigureRoot() }
+        }
+        let nav = UINavigationController(rootViewController: setup)
+        nav.modalPresentationStyle = .fullScreen
+        gate.present(nav, animated: true)
+    }
+
+    private func showOfflineDownloads(connection: PlexConnection) {
+        guard let gate = window?.rootViewController else { return }
+        let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
+        ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken, machineIdentifier: connection.machineIdentifier)
+        DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
+        let downloads = DownloadsViewController(api: api)
+        downloads.closeItem = UIBarButtonItem(
+            systemItem: .close,
+            primaryAction: UIAction { [weak gate] _ in gate?.dismiss(animated: true) }
+        )
+        let nav = UINavigationController(rootViewController: downloads)
+        nav.modalPresentationStyle = .fullScreen
+        gate.present(nav, animated: true)
     }
 }
