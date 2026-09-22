@@ -24,6 +24,7 @@ enum PlexEndpoint: Sendable {
     case timeline(ratingKey: String, state: String, timeMs: Int, durationMs: Int)
     case progress(ratingKey: String, timeMs: Int)
     case history(start: Int = 0, size: Int = 50, sort: String? = "viewedAt:desc")
+    case sectionHistory(sectionId: String, size: Int = 100)
 
     case stopTranscode(session: String)
     case pingTranscode(session: String)
@@ -99,7 +100,7 @@ enum PlexEndpoint: Sendable {
             return "/:/timeline"
         case .progress:
             return "/:/progress"
-        case .history:
+        case .history, .sectionHistory:
             return "/status/sessions/history/all"
         case .stopTranscode:
             return "/video/:/transcode/universal/stop"
@@ -173,6 +174,13 @@ enum PlexEndpoint: Sendable {
             ]
             if let sort { items.append(URLQueryItem(name: "sort", value: sort)) }
             return items
+        case .sectionHistory(let sectionId, let size):
+            return [
+                URLQueryItem(name: "librarySectionID", value: sectionId),
+                URLQueryItem(name: "sort", value: "viewedAt:desc"),
+                URLQueryItem(name: "X-Plex-Container-Start", value: "0"),
+                URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
+            ]
         case .stopTranscode(let session):
             return [URLQueryItem(name: "session", value: session)]
         case .pingTranscode(let session):

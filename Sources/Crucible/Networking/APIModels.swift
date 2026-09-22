@@ -219,6 +219,57 @@ extension PlexMetadata {
         )
     }
 
+    /// Lifts a `/status/sessions/history/all` row into the metadata shape the poster cells consume.
+    /// History rows carry no runtime or rating data, and a row only exists once the server recorded
+    /// a view, so `viewCount` is seeded to 1.
+    init(historyEntry entry: PlexHistoryEntry) {
+        self.init(
+            ratingKey: entry.ratingKey,
+            key: nil,
+            type: entry.type,
+            title: entry.title ?? "",
+            grandparentTitle: entry.grandparentTitle,
+            grandparentRatingKey: entry.grandparentRatingKey,
+            grandparentThumb: entry.grandparentThumb,
+            grandparentArt: nil,
+            parentTitle: nil,
+            parentRatingKey: nil,
+            parentThumb: nil,
+            parentIndex: entry.parentIndex,
+            index: entry.index,
+            year: nil,
+            summary: nil,
+            tagline: nil,
+            contentRating: nil,
+            studio: nil,
+            rating: nil,
+            audienceRating: nil,
+            duration: nil,
+            viewOffset: nil,
+            viewCount: 1,
+            lastViewedAt: entry.viewedAt,
+            viewedAt: entry.viewedAt,
+            accountID: entry.accountID,
+            deviceID: entry.deviceID,
+            addedAt: nil,
+            originallyAvailableAt: nil,
+            thumb: entry.thumb,
+            art: nil,
+            leafCount: nil,
+            viewedLeafCount: nil,
+            childCount: nil,
+            librarySectionID: entry.librarySectionID,
+            librarySectionTitle: entry.librarySectionTitle,
+            Genre: nil,
+            Role: nil,
+            Director: nil,
+            Writer: nil,
+            Media: nil,
+            Marker: nil,
+            Related: nil
+        )
+    }
+
     func homeCard(bucket: String) -> HomeCardSnapshot {
         HomeCardSnapshot(
             ratingKey: id,

@@ -2,7 +2,15 @@
 
 final class ShowGridViewController: UICollectionViewController {
     enum SectionKind: Int, Hashable {
-        case continueWatching, grid
+        case continueWatching, recentlyWatched, grid
+
+        var title: String {
+            switch self {
+            case .continueWatching: return "Continue Watching"
+            case .recentlyWatched: return "Recently Watched"
+            case .grid: return ""
+            }
+        }
     }
 
     struct GridItem: Hashable {
@@ -28,6 +36,7 @@ final class ShowGridViewController: UICollectionViewController {
     private var isLoadingNextPage = false
     private var currentSort = "titleSort:asc"
     private var continueWatchingItems: [PlexMetadata] = []
+    private var recentlyWatchedItems: [PlexMetadata] = []
     private var gridItems: [PlexMetadata] = []
     private var metadataById: [String: PlexMetadata] = [:]
 
@@ -55,11 +64,11 @@ final class ShowGridViewController: UICollectionViewController {
         super.viewIsAppearing(animated)
         AppLogger.info("ShowGrid appeared section=\(sectionId)", .ui)
         applyControls()
+        loadHubs()
+        loadRecentlyWatched()
         if dataSource.snapshot().numberOfItems == 0 {
-            loadHubs()
             loadPage(offset: 0)
         } else {
-            loadHubs()
             reloadLoadedPages()
         }
     }
@@ -82,7 +91,7 @@ final class ShowGridViewController: UICollectionViewController {
             guard sectionIndex < identifiers.count else { return nil }
             let sectionId = identifiers[sectionIndex]
 
-            if sectionId == .continueWatching {
+            if sectionId != .grid {
                 let cardWidth: CGFloat = 140
                 let cardHeight: CGFloat = 210
                 let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
@@ -104,10 +113,18 @@ final class ShowGridViewController: UICollectionViewController {
     private func configureDataSource() {
         let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, GridItem> { [weak self] cell, _, item in
             guard let self else { return }
-            let m = self.metadataById[item.metadata.id] ?? item.metadata
+            let m = item.section == "rw" ? item.metadata : (self.metadataById[item.metadata.id] ?? item.metadata)
             var config = PosterContentConfiguration()
             config.posterPath = m.thumb ?? m.grandparentThumb
-            if item.section == "cw" {
+            if item.section == "rw" {
+                config.posterPath = m.grandparentThumb ?? m.thumb
+                config.title = m.grandparentTitle ?? m.title
+                var sub = [String]()
+                if let code = Formatters.episodeCode(m.parentIndex, m.index) { sub.append(code) }
+                if let when = Formatters.unixRelativeDate(m.viewedAt) { sub.append(when) }
+                config.subtitle = sub.isEmpty ? nil : sub.joined(separator: " · ")
+                config.placeholderIcon = "tv"
+            } else if item.section == "cw" {
                 if let show = m.grandparentTitle {
                     config.title = show
                     var sub = [String]()
@@ -143,9 +160,10 @@ final class ShowGridViewController: UICollectionViewController {
             cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
         }
 
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             var config = SectionHeaderConfiguration()
-            config.title = "Continue Watching"
+            let sections = self?.dataSource.snapshot().sectionIdentifiers ?? []
+            config.title = sections.indices.contains(indexPath.section) ? sections[indexPath.section].title : ""
             cell.contentConfiguration = config
         }
 
@@ -171,6 +189,16 @@ final class ShowGridViewController: UICollectionViewController {
                 continueWatchingItems = items.filter { seen.insert($0.id).inserted }
                 applyFullSnapshot()
             } catch {}
+        }
+    }
+
+    private func loadRecentlyWatched() {
+        Task { [weak self] in
+            guard let self else { return }
+            let items = await RecentlyWatched.load(api: api, sectionId: sectionId, groupingByShow: true)
+            guard !Task.isCancelled else { return }
+            recentlyWatchedItems = items
+            applyFullSnapshot()
         }
     }
 
@@ -234,6 +262,7 @@ final class ShowGridViewController: UICollectionViewController {
         currentOffset = 0
         totalSize = 0
         loadHubs()
+        loadRecentlyWatched()
         loadPage(offset: 0)
     }
 
@@ -280,7 +309,7 @@ final class ShowGridViewController: UICollectionViewController {
                 currentOffset = offset + items.count
                 applyFullSnapshot()
 
-                if items.isEmpty && offset == 0 && continueWatchingItems.isEmpty {
+                if items.isEmpty && offset == 0 && continueWatchingItems.isEmpty && recentlyWatchedItems.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "tv")
                     config.text = "No shows in library"
@@ -311,6 +340,13 @@ final class ShowGridViewController: UICollectionViewController {
             snapshot.appendItems(continueWatchingItems.map { GridItem(metadata: $0, section: "cw") }, toSection: .continueWatching)
         }
 
+        let inProgressShows = Set(continueWatchingItems.map { $0.grandparentRatingKey ?? $0.id })
+        let recents = recentlyWatchedItems.filter { !inProgressShows.contains($0.grandparentRatingKey ?? $0.id) }
+        if !recents.isEmpty {
+            snapshot.appendSections([.recentlyWatched])
+            snapshot.appendItems(recents.map { GridItem(metadata: $0, section: "rw") }, toSection: .recentlyWatched)
+        }
+
         snapshot.appendSections([.grid])
         snapshot.appendItems(gridItems.map { GridItem(metadata: $0, section: "grid") }, toSection: .grid)
 
@@ -328,6 +364,13 @@ final class ShowGridViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         let m = item.metadata
+        if item.section == "rw" {
+            navigationController?.pushViewController(
+                ShowDetailViewController(api: api, showRatingKey: m.grandparentRatingKey ?? m.id),
+                animated: true
+            )
+            return
+        }
         if item.section == "cw", m.mediaType != "show", m.positionSecs > 0 {
             quickPlay(m)
             return
@@ -358,6 +401,7 @@ final class ShowGridViewController: UICollectionViewController {
         guard let indexPath = indexPaths.first,
               let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
         let m = item.metadata
+        if item.section == "rw" { return recentlyWatchedMenu(for: m) }
         let watched = m.viewedLeafCount ?? 0
         let total = m.leafCount ?? 0
         let allWatched = total > 0 && watched >= total
@@ -390,6 +434,28 @@ final class ShowGridViewController: UICollectionViewController {
                     await self.api.invalidateCache()
                     self.resetAndLoad()
                 }
+            })
+            return UIMenu(children: actions)
+        })
+    }
+
+    /// Recently watched cards stand for a show but carry the episode that was played, so the menu
+    /// offers both destinations instead of the show-level watched-state actions.
+    private func recentlyWatchedMenu(for m: PlexMetadata) -> UIContextMenuConfiguration {
+        UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            guard let self else { return nil }
+            var actions = [UIMenuElement]()
+            if let showKey = m.grandparentRatingKey {
+                actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
+                    guard let self else { return }
+                    self.navigationController?.pushViewController(ShowDetailViewController(api: self.api, showRatingKey: showKey), animated: true)
+                })
+            }
+            actions.append(UIAction(title: "Play Again", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                self?.quickPlay(m)
+            })
+            actions.append(UIAction(title: "Episode Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.openDetail(m)
             })
             return UIMenu(children: actions)
         })

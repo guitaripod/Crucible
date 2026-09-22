@@ -2,7 +2,15 @@
 
 final class MovieGridViewController: UICollectionViewController {
     enum SectionKind: Int, Hashable {
-        case continueWatching, grid
+        case continueWatching, recentlyWatched, grid
+
+        var title: String {
+            switch self {
+            case .continueWatching: return "Continue Watching"
+            case .recentlyWatched: return "Recently Watched"
+            case .grid: return ""
+            }
+        }
     }
 
     struct GridItem: Hashable {
@@ -30,6 +38,7 @@ final class MovieGridViewController: UICollectionViewController {
     private var currentGenre: String?
     private var allGenres: [(key: String, title: String)] = []
     private var continueWatchingItems: [PlexMetadata] = []
+    private var recentlyWatchedItems: [PlexMetadata] = []
     private var metadataById: [String: PlexMetadata] = [:]
 
     init(api: APIClient, sectionId: String) {
@@ -57,11 +66,11 @@ final class MovieGridViewController: UICollectionViewController {
         super.viewIsAppearing(animated)
         AppLogger.info("MovieGrid appeared section=\(sectionId)", .ui)
         applyControls()
+        loadHubs()
+        loadRecentlyWatched()
         if dataSource.snapshot().numberOfItems == 0 {
-            loadHubs()
             loadPage(offset: 0)
         } else {
-            loadHubs()
             reloadLoadedPages()
         }
     }
@@ -84,7 +93,7 @@ final class MovieGridViewController: UICollectionViewController {
             guard sectionIndex < identifiers.count else { return nil }
             let sectionId = identifiers[sectionIndex]
 
-            if sectionId == .continueWatching {
+            if sectionId != .grid {
                 let cardWidth: CGFloat = 140
                 let cardHeight: CGFloat = 210
                 let itemSize = NSCollectionLayoutSize(widthDimension: .absolute(cardWidth), heightDimension: .absolute(cardHeight))
@@ -106,11 +115,13 @@ final class MovieGridViewController: UICollectionViewController {
     private func configureDataSource() {
         let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, GridItem> { [weak self] cell, _, item in
             guard let self else { return }
-            let m = self.metadataById[item.metadata.id] ?? item.metadata
+            let m = item.section == "rw" ? item.metadata : (self.metadataById[item.metadata.id] ?? item.metadata)
             var config = PosterContentConfiguration()
             config.posterPath = m.thumb ?? m.grandparentThumb
             config.title = m.title
-            if item.section == "cw" {
+            if item.section == "rw" {
+                config.subtitle = Formatters.unixRelativeDate(m.viewedAt)
+            } else if item.section == "cw" {
                 if m.mediaType == "episode", let show = m.grandparentTitle {
                     config.title = show
                     var sub = [String]()
@@ -134,9 +145,10 @@ final class MovieGridViewController: UICollectionViewController {
             cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
         }
 
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, indexPath in
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             var config = SectionHeaderConfiguration()
-            config.title = "Continue Watching"
+            let sections = self?.dataSource.snapshot().sectionIdentifiers ?? []
+            config.title = sections.indices.contains(indexPath.section) ? sections[indexPath.section].title : ""
             cell.contentConfiguration = config
         }
 
@@ -162,6 +174,16 @@ final class MovieGridViewController: UICollectionViewController {
                 continueWatchingItems = items.filter { seen.insert($0.id).inserted }
                 applyFullSnapshot()
             } catch {}
+        }
+    }
+
+    private func loadRecentlyWatched() {
+        Task { [weak self] in
+            guard let self else { return }
+            let items = await RecentlyWatched.load(api: api, sectionId: sectionId, groupingByShow: false)
+            guard !Task.isCancelled else { return }
+            recentlyWatchedItems = items
+            applyFullSnapshot()
         }
     }
 
@@ -264,6 +286,7 @@ final class MovieGridViewController: UICollectionViewController {
         currentOffset = 0
         totalSize = 0
         loadHubs()
+        loadRecentlyWatched()
         loadPage(offset: 0)
     }
 
@@ -312,7 +335,7 @@ final class MovieGridViewController: UICollectionViewController {
                 currentOffset = offset + items.count
                 applyFullSnapshot()
 
-                if items.isEmpty && offset == 0 && continueWatchingItems.isEmpty {
+                if items.isEmpty && offset == 0 && continueWatchingItems.isEmpty && recentlyWatchedItems.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "film")
                     config.text = "No movies in library"
@@ -341,6 +364,13 @@ final class MovieGridViewController: UICollectionViewController {
         if !continueWatchingItems.isEmpty {
             snapshot.appendSections([.continueWatching])
             snapshot.appendItems(continueWatchingItems.map { GridItem(metadata: $0, section: "cw") }, toSection: .continueWatching)
+        }
+
+        let inProgress = Set(continueWatchingItems.map(\.id))
+        let recents = recentlyWatchedItems.filter { !inProgress.contains($0.id) }
+        if !recents.isEmpty {
+            snapshot.appendSections([.recentlyWatched])
+            snapshot.appendItems(recents.map { GridItem(metadata: $0, section: "rw") }, toSection: .recentlyWatched)
         }
 
         snapshot.appendSections([.grid])
