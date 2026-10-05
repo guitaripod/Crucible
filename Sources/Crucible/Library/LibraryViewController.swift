@@ -40,7 +40,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         title = "Library"
         view.backgroundColor = Theme.Color.canvas
         navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.largeTitleDisplayMode = .always
+        navigationItem.largeTitleDisplayMode = .never
         navigationItem.backButtonDisplayMode = .minimal
         if let preloaded {
             self.preloaded = nil

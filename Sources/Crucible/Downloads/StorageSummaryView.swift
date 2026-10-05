@@ -129,11 +129,13 @@ final class StorageSummaryView: UIView, UIContentView {
         }
         freeLabel.setContentHuggingPriority(.required, for: .horizontal)
         usedLabel.setContentHuggingPriority(.required, for: .horizontal)
+        usedLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        usedLabel.numberOfLines = 1
 
         valueStack.addArrangedSubview(usedLabel)
         valueStack.addArrangedSubview(captionLabel)
         valueStack.spacing = 8
-        valueStack.alignment = .firstBaseline
+        valueStack.alignment = .lastBaseline
 
         headlineRow.addArrangedSubview(valueStack)
         headlineRow.addArrangedSubview(UIView())

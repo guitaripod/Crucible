@@ -1,3 +1,4 @@
+import AVKit
 import UIKit
 @testable import Crucible
 
@@ -96,12 +97,15 @@ enum ShotScript {
         await ShotHarness.settle(1)
         let coordinator = Theme.quickPlay(api: api, item: item, from: tabBar)
         _ = coordinator
-        await ShotHarness.settle(6)
-        await ShotHarness.capture("09a-player-portrait")
+        await ShotHarness.settle(5)
         if let scene = tabBar.view.window?.windowScene {
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
+                NSLog("geometry update failed: \(error)")
+            }
         }
         await ShotHarness.settle(26)
+        (tabBar.presentedViewController as? AVPlayerViewController)?.player?.pause()
+        await ShotHarness.settle(1.5)
         await ShotHarness.capture("09-player")
         withExtendedLifetime(coordinator) {}
     }

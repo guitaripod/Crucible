@@ -31,7 +31,7 @@ enum ShotHarness {
             .init(ratingKey: "4036", state: .completed, progress: 1, watched: 0, gigabytes: 1.1, ageDays: 3),
             .init(ratingKey: "4037", state: .completed, progress: 1, watched: 0, gigabytes: 1.2, ageDays: 3),
             .init(ratingKey: "1002", state: .completed, progress: 1, watched: 0.42, gigabytes: 6.4, ageDays: 2),
-            .init(ratingKey: "1001", state: .completed, progress: 1, watched: 1.0, gigabytes: 6.8, ageDays: 9),
+            .init(ratingKey: "1017", state: .completed, progress: 1, watched: 1.0, gigabytes: 5.9, ageDays: 9),
             .init(ratingKey: "4013", state: .paused, progress: 0.64, watched: 0, gigabytes: 1.3, ageDays: 0.1),
         ])
 

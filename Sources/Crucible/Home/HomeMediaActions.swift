@@ -33,7 +33,7 @@ enum HomeMediaActions {
         if item.positionSecs > 0, item.duration != nil {
             config.progress = item.progressPercent
         }
-        config.isUnwatched = isUnwatched(item)
+        config.isUnwatched = bucket == .recentlyAdded && isUnwatched(item)
         config.isDownloaded = DownloadManager.shared.isDownloaded(item.id)
         return config
     }

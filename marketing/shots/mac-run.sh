@@ -13,7 +13,8 @@ PORT=32400
 mkdir -p "$RAW" "$SIGNALS"
 rm -f "$RAW"/*.png "$SIGNALS"/*
 
-pkill -f "marketing/mock/server.py" 2>/dev/null || true
+lsof -ti "tcp:$PORT" | xargs kill 2>/dev/null || true
+sleep 0.5
 (cd marketing/mock && PORT=$PORT nohup python3 server.py > /tmp/crucible-mock.log 2>&1 &)
 for _ in $(seq 1 50); do
   if curl -fs -H 'Accept: application/json' "http://127.0.0.1:$PORT/identity" > /dev/null; then break; fi
@@ -59,7 +60,7 @@ while [ $SECONDS -lt $deadline ]; do
     name=$(basename "$ready" .ready)
     if [ "$name" = done ]; then
       rm -f "$ready"
-      pkill -f "marketing/mock/server.py" 2>/dev/null || true
+      lsof -ti "tcp:$PORT" | xargs kill 2>/dev/null || true
       xcrun simctl status_bar "$UDID" clear
       exit 0
     fi

@@ -4,9 +4,7 @@
 @MainActor
 enum ThemeButton {
     static func primaryConfiguration(title: String, symbol: String? = nil) -> UIButton.Configuration {
-        var config = Glass.prominentButton {
-            UIButton.Configuration.filled()
-        }
+        var config = UIButton.Configuration.filled()
         config.title = title
         config.baseBackgroundColor = Theme.Color.accent
         config.baseForegroundColor = Theme.Color.onAccent
