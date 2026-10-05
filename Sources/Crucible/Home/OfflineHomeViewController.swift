@@ -446,15 +446,6 @@ final class OfflineBannerContentView: UIView, UIContentView {
     required init?(coder: NSCoder) { fatalError() }
 }
 
-/// A compact button whose touch target still meets the 44pt minimum.
-private final class ExpandedHitButton: UIButton {
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        let dx = max(0, (Theme.Size.minTarget - bounds.width) / 2)
-        let dy = max(0, (Theme.Size.minTarget - bounds.height) / 2)
-        return bounds.insetBy(dx: -dx, dy: -dy).contains(point)
-    }
-}
-
 /// A downloaded title's poster, read from the copy saved beside the download so it renders offline.
 struct OfflinePosterConfiguration: UIContentConfiguration, Hashable {
     var ratingKey: String
