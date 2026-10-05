@@ -301,7 +301,11 @@ class LibraryGridViewController: UIViewController {
         loadPage(offset: 0)
     }
 
-    func loadPage(offset: Int, size: Int = pageSize, then completion: PageCompletion? = nil) {
+    final func loadPage(offset: Int) {
+        fetchPage(offset: offset, size: Self.pageSize, then: nil)
+    }
+
+    final func fetchPage(offset: Int, size: Int, then completion: PageCompletion?) {
         loadTask?.cancel()
         isLoadingPage = true
         if offset == 0 { showLoadingState() }
@@ -338,7 +342,7 @@ class LibraryGridViewController: UIViewController {
     /// Refetches every page already loaded in one request so the grid picks up watched/progress
     /// changes on return without collapsing pagination or scroll position.
     private func reloadLoadedPages() {
-        loadPage(offset: 0, size: max(serverOffset, Self.pageSize))
+        fetchPage(offset: 0, size: max(serverOffset, Self.pageSize), then: nil)
     }
 
     private func replaceItems(_ items: [PlexMetadata]) {
@@ -622,7 +626,7 @@ class LibraryGridViewController: UIViewController {
         }
         let needed = offset - serverOffset + Self.pageSize
         AppLogger.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset) loading \(needed)", .ui)
-        loadPage(offset: serverOffset, size: needed) { [weak self] in
+        fetchPage(offset: serverOffset, size: needed) { [weak self] in
             self?.scrollToGridIndex(offset)
         }
     }
