@@ -166,6 +166,9 @@ final class HomeHeroContentView: UIView, UIContentView {
 
         let minimumHeight = cardView.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.heroCardHeight)
         minimumHeightConstraint = minimumHeight
+        let preferredHeight = cardView.heightAnchor.constraint(equalToConstant: Theme.Size.heroCardHeight)
+        preferredHeight.priority = .defaultLow
+        preferredHeight.isActive = true
 
         NSLayoutConstraint.activate([
             cardView.topAnchor.constraint(equalTo: topAnchor),

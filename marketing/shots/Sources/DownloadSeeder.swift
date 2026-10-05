@@ -51,11 +51,20 @@ enum DownloadSeeder {
                 markers: []
             )
             items.append(item)
+            if completed { writePlaylist(ratingKey: spec.ratingKey) }
             savePoster(base: base, metadata: metadata, ratingKey: spec.ratingKey)
         }
         let encoder = JSONEncoder()
         guard let data = try? encoder.encode(items) else { return }
         try? data.write(to: DownloadPaths.manifestURL, options: .atomic)
+    }
+
+    private static func writePlaylist(ratingKey: String) {
+        let directory = DownloadPaths.assetDir(ratingKey: ratingKey)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let playlist = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:10\n#EXTINF:10.0,\nseg0.ts\n#EXT-X-ENDLIST\n"
+        try? playlist.write(to: DownloadPaths.playlistURL(ratingKey: ratingKey), atomically: true, encoding: .utf8)
+        FileManager.default.createFile(atPath: directory.appendingPathComponent("seg0.ts").path, contents: Data([0]))
     }
 
     private static func request(_ url: URL) -> Data? {

@@ -47,7 +47,14 @@ SIMCTL_CHILD_CRUCIBLE_LIGHT="$LIGHT" \
   xcrun simctl launch "$UDID" "$APP_ID" > /dev/null
 
 deadline=$((SECONDS + ${TIMEOUT:-420}))
+tick=0
 while [ $SECONDS -lt $deadline ]; do
+  tick=$((tick + 1))
+  if [ $((tick % 40)) -eq 0 ] && ! xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "UIKitApplication:$APP_ID"; then
+    echo "app is no longer running (crashed?)" >&2
+    ls -t "$HOME"/Library/Logs/DiagnosticReports/CrucibleShots* 2>/dev/null | head -1 >&2
+    exit 2
+  fi
   for ready in $(ls -tr "$SIGNALS"/*.ready 2>/dev/null); do
     name=$(basename "$ready" .ready)
     if [ "$name" = done ]; then
