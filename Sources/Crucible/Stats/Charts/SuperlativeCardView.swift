@@ -9,7 +9,7 @@ final class SuperlativeCardView: UIView {
         let view = UIImageView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.contentMode = .scaleAspectFit
-        view.tintColor = .white
+        view.tintColor = Theme.Color.onArt
         view.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
         view.setContentHuggingPriority(.required, for: .vertical)
         view.setContentCompressionResistancePriority(.required, for: .vertical)
@@ -19,7 +19,7 @@ final class SuperlativeCardView: UIView {
     private let headlineLabel: UILabel = {
         let label = UILabel()
         label.font = SuperlativeCardView.roundedFont(size: 40, weight: .heavy)
-        label.textColor = .white
+        label.textColor = Theme.Color.onArt
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.5
         label.numberOfLines = 1
@@ -30,7 +30,7 @@ final class SuperlativeCardView: UIView {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 15, weight: .semibold)
-        label.textColor = UIColor.white.withAlphaComponent(0.95)
+        label.textColor = Theme.Color.onArt
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
         return label
@@ -39,7 +39,7 @@ final class SuperlativeCardView: UIView {
     private let captionLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12, weight: .regular)
-        label.textColor = UIColor.white.withAlphaComponent(0.75)
+        label.textColor = Theme.Color.onArtSecondary
         label.numberOfLines = 2
         label.lineBreakMode = .byTruncatingTail
         return label

@@ -1,31 +1,26 @@
 import UIKit
 
 enum StatsStyle {
-    static let accent = UIColor.systemOrange
-    static let accentBright = UIColor(red: 1.0, green: 0.62, blue: 0.15, alpha: 1.0)
+    static let accent = Theme.Color.accent
+    static let accentBright = UIColor(hex: 0xFFB340)
 
-    static let cardBackground = UIColor { trait in
-        trait.userInterfaceStyle == .dark
-            ? UIColor.white.withAlphaComponent(0.06)
-            : UIColor.black.withAlphaComponent(0.04)
-    }
+    static let cardBackground = Theme.Color.surface
+    static let insetBackground = Theme.Color.surfaceRaised
+    static let trackBackground = Theme.Color.surfaceHigh
+    static let hairline = Theme.Color.separator
 
-    static let cornerRadius: CGFloat = 16
-    static let tileCornerRadius: CGFloat = 18
+    static let cornerRadius: CGFloat = Theme.Radius.m
+    static let tileCornerRadius: CGFloat = Theme.Radius.m
+    static let heroCornerRadius: CGFloat = Theme.Radius.l
 
     /// Six-stop heat ramp (index 0 == empty). Semantic colours so the ramp reads in both appearances.
     static func heatColor(level: Int) -> UIColor {
         switch max(0, min(5, level)) {
-        case 0:
-            return UIColor { trait in
-                trait.userInterfaceStyle == .dark
-                    ? UIColor.white.withAlphaComponent(0.06)
-                    : UIColor.black.withAlphaComponent(0.05)
-            }
+        case 0: return Theme.Color.surfaceHigh
         case 1: return accent.withAlphaComponent(0.28)
-        case 2: return accent.withAlphaComponent(0.45)
-        case 3: return accent.withAlphaComponent(0.64)
-        case 4: return accent.withAlphaComponent(0.84)
+        case 2: return accent.withAlphaComponent(0.46)
+        case 3: return accent.withAlphaComponent(0.66)
+        case 4: return accent.withAlphaComponent(0.86)
         default: return accentBright
         }
     }

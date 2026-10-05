@@ -9,7 +9,7 @@ final class BingeTimelineView: UIView {
         static let topInset: CGFloat = 4
         static let axisReserve: CGFloat = 16
         static let axisBottomMargin: CGFloat = 8
-        static let horizontalInset: CGFloat = 12
+        static let horizontalInset: CGFloat = 0
         static let cardSpacing: CGFloat = 12
         static let minCardWidth: CGFloat = 64
         static let maxCardWidth: CGFloat = 220
@@ -142,7 +142,7 @@ private final class BingeCardView: UIView {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 15, weight: .semibold)
-        label.textColor = .white
+        label.textColor = Theme.Color.onArt
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
         return label
@@ -151,7 +151,7 @@ private final class BingeCardView: UIView {
     private let epsLabel: UILabel = {
         let label = UILabel()
         label.font = BingeCardView.roundedFont(size: 20, weight: .bold)
-        label.textColor = .white
+        label.textColor = Theme.Color.onArt
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
         return label
@@ -160,7 +160,7 @@ private final class BingeCardView: UIView {
     private let captionLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = UIColor.white.withAlphaComponent(0.82)
+        label.textColor = Theme.Color.onArtSecondary
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
         return label

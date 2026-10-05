@@ -2,7 +2,7 @@
 
 final class StatisticsViewController: UICollectionViewController {
     enum StatSection: Hashable {
-        case hero, kpis, heatmap, clock, momentum, topShows, topMovies
+        case range, hero, kpis, heatmap, topShows, topMovies, clock, momentum
         case libraries, binges, genres, onThisDay, superlatives, share
     }
 
@@ -16,17 +16,17 @@ final class StatisticsViewController: UICollectionViewController {
     }
 
     enum Row: Hashable {
+        case range(Int)
         case hero(Int)
         case kpi(KPITile)
         case heatmap(Int)
         case clock(Int)
         case momentum(Int)
-        case showRow(ShowStat)
+        case showsCard(Int)
         case moviePoster(MovieStat)
         case libraries(Int)
         case binges(Int)
-        case genreRow(GenreStat)
-        case genrePending(Int)
+        case genresCard(Int)
         case onThisDayPoster(OnThisDayItem)
         case superlative(Superlative)
         case shareButton(Int)
@@ -46,15 +46,7 @@ final class StatisticsViewController: UICollectionViewController {
     var dataSource: UICollectionViewDiffableDataSource<StatSection, Row>!
 
     static let sectionTitles: [StatSection: String] = [
-        .kpis: "The Numbers",
-        .heatmap: "Year in Orange",
-        .clock: "When You Watch",
-        .momentum: "Your Momentum",
-        .topShows: "Top Shows",
         .topMovies: "Top Movies",
-        .libraries: "Your Libraries",
-        .binges: "Binges & Streaks",
-        .genres: "Your Taste",
         .onThisDay: "On This Day",
         .superlatives: "Wrapped Moments",
     ]
@@ -71,7 +63,10 @@ final class StatisticsViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Statistics"
-        navigationItem.largeTitleDisplayMode = .never
+        navigationItem.largeTitleDisplayMode = .always
+        view.backgroundColor = Theme.Color.canvas
+        collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.alwaysBounceVertical = true
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
 
@@ -145,6 +140,9 @@ final class StatisticsViewController: UICollectionViewController {
         contentUnavailableConfiguration = nil
         let v = dataVersion
 
+        snapshot.appendSections([.range])
+        snapshot.appendItems([.range(0)], toSection: .range)
+
         snapshot.appendSections([.hero])
         snapshot.appendItems([.hero(v)], toSection: .hero)
 
@@ -159,6 +157,16 @@ final class StatisticsViewController: UICollectionViewController {
             snapshot.appendItems([.heatmap(v)], toSection: .heatmap)
         }
 
+        if !current.topShows.isEmpty {
+            snapshot.appendSections([.topShows])
+            snapshot.appendItems([.showsCard(v)], toSection: .topShows)
+        }
+
+        if !current.topMovies.isEmpty {
+            snapshot.appendSections([.topMovies])
+            snapshot.appendItems(current.topMovies.map { .moviePoster($0) }, toSection: .topMovies)
+        }
+
         snapshot.appendSections([.clock])
         snapshot.appendItems([.clock(v)], toSection: .clock)
 
@@ -167,14 +175,9 @@ final class StatisticsViewController: UICollectionViewController {
             snapshot.appendItems([.momentum(v)], toSection: .momentum)
         }
 
-        if !current.topShows.isEmpty {
-            snapshot.appendSections([.topShows])
-            snapshot.appendItems(current.topShows.map { .showRow($0) }, toSection: .topShows)
-        }
-
-        if !current.topMovies.isEmpty {
-            snapshot.appendSections([.topMovies])
-            snapshot.appendItems(current.topMovies.map { .moviePoster($0) }, toSection: .topMovies)
+        if !current.binges.isEmpty {
+            snapshot.appendSections([.binges])
+            snapshot.appendItems([.binges(v)], toSection: .binges)
         }
 
         if current.libraries.count >= 2 {
@@ -182,17 +185,9 @@ final class StatisticsViewController: UICollectionViewController {
             snapshot.appendItems([.libraries(v)], toSection: .libraries)
         }
 
-        if !current.binges.isEmpty {
-            snapshot.appendSections([.binges])
-            snapshot.appendItems([.binges(v)], toSection: .binges)
-        }
-
-        if !current.genres.isEmpty {
+        if !current.genres.isEmpty || current.enrichment.genreCoverage < 0.5 {
             snapshot.appendSections([.genres])
-            snapshot.appendItems(current.genres.map { .genreRow($0) }, toSection: .genres)
-        } else if current.enrichment.genreCoverage < 0.5 {
-            snapshot.appendSections([.genres])
-            snapshot.appendItems([.genrePending(v)], toSection: .genres)
+            snapshot.appendItems([.genresCard(v)], toSection: .genres)
         }
 
         if !current.onThisDay.isEmpty {
@@ -216,18 +211,50 @@ final class StatisticsViewController: UICollectionViewController {
 
     private func buildTiles() -> [KPITile] {
         let o = current.overview
+        let streakCaption = o.longestStreak > o.currentStreak ? "days · best \(o.longestStreak)" : "days"
         var tiles: [KPITile] = [
             KPITile(key: "days", title: "Days Active", value: "\(o.daysActive)", systemImage: "calendar", caption: nil, sparkline: current.weeklySparkline),
-            KPITile(key: "streak", title: "Current Streak", value: "\(o.currentStreak)", systemImage: "flame.fill", caption: o.longestStreak > o.currentStreak ? "best \(o.longestStreak)" : nil, sparkline: []),
+            KPITile(key: "streak", title: "Streak", value: "\(o.currentStreak)", systemImage: "flame", caption: streakCaption, sparkline: []),
             KPITile(key: "shows", title: "Shows", value: StatsStyle.abbreviatedCount(o.showsWatched), systemImage: "tv", caption: nil, sparkline: []),
             KPITile(key: "movies", title: "Movies", value: StatsStyle.abbreviatedCount(o.moviesWatched), systemImage: "film", caption: nil, sparkline: []),
-            KPITile(key: "episodes", title: "Episodes", value: StatsStyle.abbreviatedCount(o.episodes), systemImage: "play.tv", caption: nil, sparkline: []),
+            KPITile(key: "episodes", title: "Episodes", value: StatsStyle.abbreviatedCount(o.episodes), systemImage: "play", caption: nil, sparkline: []),
         ]
-        if let hours = o.estHours {
-            let pct = Int((o.coverage * 100).rounded())
-            tiles.append(KPITile(key: "hours", title: "Hours Watched", value: StatsStyle.hoursLabel(hours), systemImage: "clock", caption: "est · \(pct)% counted", sparkline: []))
+        if let binge = longestBinge() {
+            tiles.append(KPITile(key: "binge", title: "Longest Binge", value: binge.value, systemImage: "clock", caption: binge.date, sparkline: []))
         }
         return tiles
+    }
+
+    /// The longest session by wall-clock span, formatted as "9 h" / "45 min" plus its start date.
+    private func longestBinge() -> (value: String, date: String)? {
+        guard let session = current.binges.max(by: { $0.endViewedAt - $0.startViewedAt < $1.endViewedAt - $1.startViewedAt }) else { return nil }
+        let seconds = session.endViewedAt - session.startViewedAt
+        guard seconds >= 60 else { return nil }
+        let value = seconds >= 3600 ? "\(Int((Double(seconds) / 3600).rounded())) h" : "\(seconds / 60) min"
+        let date = Date(timeIntervalSince1970: TimeInterval(session.startViewedAt)).formatted(.dateTime.month(.abbreviated).day())
+        return (value, date)
+    }
+
+    /// Hero copy: the verdict as eyebrow, estimated hours (or plays while runtimes are unknown) as the big number.
+    func heroContent() -> (eyebrow: String, value: Int, unit: String, detail: String) {
+        let o = current.overview
+        let eyebrow = watchVerdict().isEmpty ? "Your viewing" : watchVerdict()
+        let phrase = rangePhrase()
+        guard let hours = o.estHours, hours >= 0.5 else {
+            return (eyebrow, o.totalPlays, o.totalPlays == 1 ? "play" : "plays", "watched \(phrase)")
+        }
+        let value = Int(hours.rounded())
+        let pct = Int((o.coverage * 100).rounded())
+        return (eyebrow, value, value == 1 ? "hour" : "hours", "watched \(phrase) · estimate, \(pct)% counted")
+    }
+
+    private func rangePhrase() -> String {
+        switch range {
+        case .week: return "in the last 7 days"
+        case .month: return "in the last 30 days"
+        case .year: return "in \(statsTime.calendar.component(.year, from: Date()))"
+        case .allTime: return "in total"
+        }
     }
 
     private func showEmptyOrLoading() {

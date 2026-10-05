@@ -32,14 +32,14 @@ final class DonutChartView: UIView {
         ringContainer.addSublayer(trackLayer)
 
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
-        titleLabel.textColor = .label
+        titleLabel.textColor = Theme.Color.label
         titleLabel.textAlignment = .center
         titleLabel.adjustsFontSizeToFitWidth = true
         titleLabel.minimumScaleFactor = 0.5
         titleLabel.numberOfLines = 1
 
         subtitleLabel.font = .systemFont(ofSize: 11, weight: .medium)
-        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.textColor = Theme.Color.labelSecondary
         subtitleLabel.textAlignment = .center
         subtitleLabel.numberOfLines = 2
 

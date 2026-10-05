@@ -1,9 +1,9 @@
 import UIKit
 
 private enum HeatmapMetrics {
-    static let cellEdge: CGFloat = 13
+    static let cellEdge: CGFloat = 12
     static let gap: CGFloat = 3
-    static let corner: CGFloat = 3
+    static let corner: CGFloat = 2.5
     static let rows = 7
     static let monthLabelHeight: CGFloat = 16
     static var step: CGFloat { cellEdge + gap }
@@ -31,6 +31,8 @@ final class ContributionHeatmapView: UIView {
         scrollView.delaysContentTouches = false
         scrollView.backgroundColor = .clear
         addSubview(scrollView)
+        isAccessibilityElement = true
+        accessibilityTraits = .image
 
         content.backgroundColor = .clear
         content.onTap = { [weak self] point in
@@ -58,6 +60,7 @@ final class ContributionHeatmapView: UIView {
     /// Replaces the rendered calendar and queues a reveal that pans to the most recent week.
     func setModel(_ model: HeatmapModel) {
         self.model = model
+        accessibilityLabel = Self.summary(for: model)
         content.model = model
         content.setNeedsDisplay()
         pendingReveal = true
@@ -75,6 +78,13 @@ final class ContributionHeatmapView: UIView {
             pendingReveal = false
             performReveal(width: width)
         }
+    }
+
+    private static func summary(for model: HeatmapModel) -> String {
+        let active = model.cells.count
+        guard active > 0 else { return "Activity heatmap. No watched days." }
+        let busiest = model.cells.map(\.count).max() ?? 0
+        return "Activity heatmap. \(active) active days, busiest day with \(busiest) plays."
     }
 
     private func performReveal(width: CGFloat) {
@@ -168,10 +178,10 @@ private final class GridContentView: UIView {
 
     private func drawMonthLabels(_ m: HeatmapModel) {
         guard !m.monthLabels.isEmpty else { return }
-        let font = UIFont.systemFont(ofSize: 10, weight: .semibold)
+        let font = UIFont.systemFont(ofSize: 11, weight: .regular)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: UIColor.secondaryLabel,
+            .foregroundColor: Theme.Color.labelTertiary,
         ]
         let y = max(0, (HeatmapMetrics.monthLabelHeight - font.lineHeight) / 2)
         for (column, label) in m.monthLabels where column >= 0 && column < m.columns {

@@ -46,7 +46,7 @@ final class WeekdayColumnChartView: UIView {
 
             let weekday = UILabel()
             weekday.font = weekdayFont
-            weekday.textColor = .secondaryLabel
+            weekday.textColor = Theme.Color.labelSecondary
             weekday.textAlignment = .center
             weekday.text = String(StatsStyle.weekdayShort(i + 1).prefix(1))
             addSubview(weekday)
@@ -54,7 +54,7 @@ final class WeekdayColumnChartView: UIView {
 
             let value = UILabel()
             value.font = valueFont
-            value.textColor = .secondaryLabel
+            value.textColor = Theme.Color.labelSecondary
             value.textAlignment = .center
             value.isHidden = true
             addSubview(value)
@@ -151,7 +151,7 @@ final class WeekdayColumnChartView: UIView {
     override func draw(_ rect: CGRect) {
         guard values.count == 7, baselineY > 0, let context = UIGraphicsGetCurrentContext() else { return }
         let y = baselineY.rounded() + 0.5
-        context.setStrokeColor(UIColor.separator.withAlphaComponent(0.6).cgColor)
+        context.setStrokeColor(Theme.Color.separator.withAlphaComponent(0.6).cgColor)
         context.setLineWidth(1)
         context.move(to: CGPoint(x: 0, y: y))
         context.addLine(to: CGPoint(x: bounds.width, y: y))
@@ -210,7 +210,7 @@ final class WeekdayColumnChartView: UIView {
 
     private func applyLayerColors() {
         let trait = traitCollection
-        let trackColor = StatsStyle.cardBackground.resolvedColor(with: trait).cgColor
+        let trackColor = StatsStyle.insetBackground.resolvedColor(with: trait).cgColor
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         for i in 0..<barLayers.count {

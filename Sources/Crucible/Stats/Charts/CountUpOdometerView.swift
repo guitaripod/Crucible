@@ -23,6 +23,9 @@ final class CountUpOdometerView: UIView {
     }
 
     private let label = UILabel()
+
+    var textBaselineAnchor: NSLayoutYAxisAnchor { label.lastBaselineAnchor }
+
     private var displayLink: CADisplayLink?
     private var displayedValue = 0
     private var startValue = 0
@@ -38,8 +41,12 @@ final class CountUpOdometerView: UIView {
         label.font = font
         label.textAlignment = .center
         label.numberOfLines = 1
+        label.adjustsFontForContentSizeCategory = true
         label.text = valueFormatter(0)
         addSubview(label)
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: CountUpOdometerView, _: UITraitCollection) in
+            view.invalidateIntrinsicContentSize()
+        }
 
         NSLayoutConstraint.activate([
             label.centerXAnchor.constraint(equalTo: centerXAnchor),
@@ -57,7 +64,7 @@ final class CountUpOdometerView: UIView {
 
     override var intrinsicContentSize: CGSize {
         let widest = max(measuredWidth(startValue), measuredWidth(targetValue), measuredWidth(displayedValue))
-        return CGSize(width: ceil(widest), height: ceil(font.lineHeight))
+        return CGSize(width: ceil(widest), height: ceil(label.font.lineHeight))
     }
 
     /// Animates the label from the currently displayed integer to `value` over ~0.9s (ease-out).
@@ -115,7 +122,7 @@ final class CountUpOdometerView: UIView {
     }
 
     private func measuredWidth(_ value: Int) -> CGFloat {
-        (valueFormatter(value) as NSString).size(withAttributes: [.font: font]).width
+        (valueFormatter(value) as NSString).size(withAttributes: [.font: label.font as Any]).width
     }
 
     private static var defaultFont: UIFont {

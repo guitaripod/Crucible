@@ -115,14 +115,14 @@ final class RadialClockView: UIView {
         let step = CGFloat.pi * 2 / CGFloat(hourCount)
         let dark = traitCollection.userInterfaceStyle == .dark
 
-        ctx.setFillColor(StatsStyle.cardBackground.cgColor)
+        ctx.setFillColor(StatsStyle.insetBackground.cgColor)
         ctx.fillEllipse(in: CGRect(x: center.x - innerR, y: center.y - innerR, width: innerR * 2, height: innerR * 2))
 
         ctx.setLineWidth(1)
-        ctx.setStrokeColor(UIColor.label.withAlphaComponent(dark ? 0.16 : 0.14).cgColor)
+        ctx.setStrokeColor(Theme.Color.label.withAlphaComponent(dark ? 0.16 : 0.14).cgColor)
         ctx.strokeEllipse(in: CGRect(x: center.x - innerR, y: center.y - innerR, width: innerR * 2, height: innerR * 2))
 
-        ctx.setStrokeColor(UIColor.label.withAlphaComponent(dark ? 0.06 : 0.05).cgColor)
+        ctx.setStrokeColor(Theme.Color.label.withAlphaComponent(dark ? 0.06 : 0.05).cgColor)
         ctx.strokeEllipse(in: CGRect(x: center.x - outerR, y: center.y - outerR, width: outerR * 2, height: outerR * 2))
 
         ctx.setLineCap(.round)
@@ -132,7 +132,7 @@ final class RadialClockView: UIView {
             let length = cardinal ? radius * 0.055 : radius * 0.03
             let outerEnd = pointOnCircle(center: center, radius: innerR - radius * 0.015, angle: angle)
             let innerEnd = pointOnCircle(center: center, radius: innerR - radius * 0.015 - length, angle: angle)
-            let color = cardinal ? StatsStyle.accent.withAlphaComponent(0.55) : UIColor.label.withAlphaComponent(0.22)
+            let color = cardinal ? StatsStyle.accent.withAlphaComponent(0.55) : Theme.Color.label.withAlphaComponent(0.22)
             ctx.setStrokeColor(color.cgColor)
             ctx.setLineWidth(cardinal ? 1.5 : 1)
             ctx.beginPath()

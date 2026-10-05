@@ -187,15 +187,17 @@ struct StatsTime {
 }
 
 enum StatsRange: Int, CaseIterable {
+    case week
+    case month
     case year
-    case days90
     case allTime
 
     var title: String {
         switch self {
-        case .year: return "This Year"
-        case .days90: return "90 Days"
-        case .allTime: return "All Time"
+        case .week: return "Week"
+        case .month: return "Month"
+        case .year: return "Year"
+        case .allTime: return "All"
         }
     }
 
@@ -204,8 +206,11 @@ enum StatsRange: Int, CaseIterable {
         switch self {
         case .allTime:
             return nil
-        case .days90:
-            guard let d = calendar.date(byAdding: .day, value: -90, to: now) else { return nil }
+        case .week:
+            guard let d = calendar.date(byAdding: .day, value: -7, to: now) else { return nil }
+            return Int(d.timeIntervalSince1970)
+        case .month:
+            guard let d = calendar.date(byAdding: .day, value: -30, to: now) else { return nil }
             return Int(d.timeIntervalSince1970)
         case .year:
             let comps = calendar.dateComponents([.year], from: now)
