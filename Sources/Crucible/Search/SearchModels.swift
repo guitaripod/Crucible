@@ -150,9 +150,16 @@ enum GenrePalette {
         (0x1A4A3A, 0x3AD08F),
     ]
 
+    private static let knownSlots: [String: Int] = [
+        "action": 0, "adventure": 1, "drama": 2, "sci-fi": 3, "science fiction": 3, "comedy": 4,
+        "animation": 5, "thriller": 6, "mystery": 7, "documentary": 7, "horror": 0, "fantasy": 2,
+        "romance": 5, "crime": 6, "family": 1, "western": 1, "war": 0, "music": 5,
+    ]
+
     /// A stable palette slot for a genre name. `String.hashValue` is randomised per launch, so the
     /// slot is derived from the unicode scalars instead.
     static func pair(for title: String) -> (start: UInt32, end: UInt32) {
+        if let slot = knownSlots[title.lowercased()] { return pairs[slot] }
         let sum = title.lowercased().unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) % 9973 }
         return pairs[sum % pairs.count]
     }

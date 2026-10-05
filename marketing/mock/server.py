@@ -245,7 +245,7 @@ class Handler(BaseHTTPRequestHandler):
                     for k, (n, t) in library.SECTIONS.items()]
             return self.send_json(container(size=len(dirs), allowLibraryOrder=True, title1="Plex Library", Directory=dirs))
 
-        m = re.match(r"^/library/sections/(\d+)(?:/(all|genre|folder)(?:/([A-Za-z0-9-]+))?)?$", p)
+        m = re.match(r"^/library/sections/(\d+)(?:/(all|genre|folder|firstCharacter)(?:/([A-Za-z0-9-]+))?)?$", p)
         if m and m.group(1) in library.SECTIONS:
             return self.section(m.group(1), m.group(2), m.group(3), q)
 
@@ -384,6 +384,14 @@ class Handler(BaseHTTPRequestHandler):
                                 viewGroup=kind)
                 c["Metadata"] = [LIB.render(i) for i in page]
                 return self.send_json({"MediaContainer": c})
+            if what == "firstCharacter":
+                counts = {}
+                for i in items:
+                    letter = i["titleSort"][:1].upper()
+                    letter = letter if letter.isalpha() else "#"
+                    counts[letter] = counts.get(letter, 0) + 1
+                dirs = [{"key": k, "title": k, "size": counts[k]} for k in sorted(counts, key=lambda k: ("\uffff" if k == "#" else k))]
+                return self.send_json(container(size=len(dirs), title1=title, Directory=dirs))
             if what == "genre":
                 present = sorted({g for i in items for g in i["_genres"]})
                 dirs = [{"key": library.GENRE_ID[g], "title": g, "type": "genre",
