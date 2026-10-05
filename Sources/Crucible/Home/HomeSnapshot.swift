@@ -21,6 +21,7 @@ struct HomeCardSnapshot: Codable, Sendable {
     let bucket: String
     var art: String? = nil
     var grandparentArt: String? = nil
+    var librarySectionID: Int? = nil
 }
 
 struct HomeSnapshot: Codable, Sendable {
@@ -31,7 +32,7 @@ struct HomeSnapshot: Codable, Sendable {
 }
 
 enum HomeSnapshotStore {
-    static let schemaVersion = 1
+    static let schemaVersion = 2
     private static let maxReadBytes = 512 * 1024
     private static let queue = DispatchQueue(label: "com.guitaripod.crucible.homesnapshot")
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "persistence")

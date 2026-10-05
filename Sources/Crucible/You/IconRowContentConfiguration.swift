@@ -3,12 +3,19 @@ import UIKit
 /// Grouped-list row: a 32pt neutral icon well, title with optional badge and subtitle, and an optional
 /// trailing value. When `menu` is set the whole row is a menu button.
 struct IconRowContentConfiguration: UIContentConfiguration {
+    struct Toggle {
+        var isOn: Bool
+        var isEnabled = true
+        var onChange: (Bool) -> Void
+    }
+
     var symbol: String
     var title: String
     var subtitle: String?
     var badge: String?
     var value: String?
     var menu: UIMenu?
+    var toggle: Toggle?
     var exposesToAccessibility = true
 
     func makeContentView() -> UIView & UIContentView {
@@ -33,6 +40,8 @@ final class IconRowContentView: UIView, UIContentView {
     private let subtitleLabel = UILabel()
     private let valueLabel = UILabel()
     private let menuChevron = UIImageView()
+    private let toggleSwitch = UISwitch()
+    private let rootStack = UIStackView()
     private let menuButton = UIButton(configuration: .plain())
 
     init(configuration: IconRowContentConfiguration) {
@@ -118,16 +127,25 @@ final class IconRowContentView: UIView, UIContentView {
         menuChevron.setContentHuggingPriority(.required, for: .horizontal)
         menuChevron.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let trailing = UIStackView(arrangedSubviews: [valueLabel, menuChevron])
+        toggleSwitch.onTintColor = Theme.Color.accent
+        toggleSwitch.setContentHuggingPriority(.required, for: .horizontal)
+        toggleSwitch.setContentCompressionResistancePriority(.required, for: .horizontal)
+        toggleSwitch.addAction(UIAction { [weak self] _ in
+            guard let self, let toggle = (configuration as? IconRowContentConfiguration)?.toggle else { return }
+            Haptics.selection()
+            toggle.onChange(toggleSwitch.isOn)
+        }, for: .valueChanged)
+
+        let trailing = UIStackView(arrangedSubviews: [valueLabel, menuChevron, toggleSwitch])
         trailing.axis = .horizontal
         trailing.spacing = 4
         trailing.alignment = .center
 
-        let root = UIStackView(arrangedSubviews: [wellView, textStack, trailing])
+        let root = rootStack
+        [wellView, textStack, trailing].forEach { root.addArrangedSubview($0) }
         root.axis = .horizontal
         root.spacing = 12
         root.alignment = .center
-        root.isUserInteractionEnabled = false
         root.translatesAutoresizingMaskIntoConstraints = false
         addSubview(root)
         NSLayoutConstraint.activate([
@@ -166,6 +184,12 @@ final class IconRowContentView: UIView, UIContentView {
         valueLabel.text = config.value
         valueLabel.isHidden = config.value == nil
         menuChevron.isHidden = config.menu == nil
+        toggleSwitch.isHidden = config.toggle == nil
+        rootStack.isUserInteractionEnabled = config.toggle != nil
+        if let toggle = config.toggle {
+            toggleSwitch.setOn(toggle.isOn, animated: false)
+            toggleSwitch.isEnabled = toggle.isEnabled
+        }
 
         let spoken = [config.title, config.badge, config.subtitle, config.value].compactMap { $0 }.joined(separator: ", ")
         menuButton.menu = config.menu
@@ -173,7 +197,10 @@ final class IconRowContentView: UIView, UIContentView {
         menuButton.isAccessibilityElement = config.menu != nil && config.exposesToAccessibility
         menuButton.accessibilityLabel = spoken
         menuButton.accessibilityHint = "Opens a menu"
-        isAccessibilityElement = config.menu == nil && config.exposesToAccessibility
+        toggleSwitch.accessibilityLabel = config.title
+        toggleSwitch.accessibilityHint = config.subtitle
+        isAccessibilityElement = config.menu == nil && config.toggle == nil && config.exposesToAccessibility
+        accessibilityElements = config.toggle == nil ? nil : [toggleSwitch]
         accessibilityLabel = spoken
     }
 }

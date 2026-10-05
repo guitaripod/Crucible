@@ -57,6 +57,8 @@ final class PosterContentView: UIView, UIContentView {
     private let playChip = UIButton()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
+    private let captionStack = UIStackView()
+    private var captionHeightConstraint: NSLayoutConstraint?
     private var imageTask: Task<Void, Never>?
     private var onQuickPlay: (() -> Void)?
     private var currentPosterPath: String? = "__unset__"
@@ -117,11 +119,16 @@ final class PosterContentView: UIView, UIContentView {
         subtitleLabel.textColor = Theme.Color.labelSecondary
         subtitleLabel.lineBreakMode = .byTruncatingTail
 
-        let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        textStack.axis = .vertical
-        textStack.spacing = 1
+        let captionSpacer = UIView()
+        captionSpacer.setContentHuggingPriority(.fittingSizeLevel, for: .vertical)
+        [titleLabel, subtitleLabel, captionSpacer].forEach { captionStack.addArrangedSubview($0) }
+        captionStack.axis = .vertical
+        captionStack.spacing = 1
+        let captionHeight = captionStack.heightAnchor.constraint(greaterThanOrEqualToConstant: 0)
+        captionHeight.isActive = true
+        captionHeightConstraint = captionHeight
 
-        let mainStack = UIStackView(arrangedSubviews: [cardView, textStack])
+        let mainStack = UIStackView(arrangedSubviews: [cardView, captionStack])
         mainStack.axis = .vertical
         mainStack.spacing = 7
         mainStack.alignment = .fill
@@ -223,10 +230,15 @@ final class PosterContentView: UIView, UIContentView {
         playChip.addAction(UIAction { [weak self] _ in self?.onQuickPlay?() }, for: .primaryActionTriggered)
     }
 
+    /// Titles wrap to a second line before they truncate, and the caption always reserves the room
+    /// for it, so a rail or grid row never changes height as artwork and titles load.
     private func updateLineLimits() {
         let accessibilitySize = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
-        titleLabel.numberOfLines = accessibilitySize ? 3 : 1
+        titleLabel.numberOfLines = accessibilitySize ? 3 : 2
         subtitleLabel.numberOfLines = accessibilitySize ? 2 : 1
+        let titleHeight = titleLabel.font.lineHeight * CGFloat(titleLabel.numberOfLines)
+        let subtitleHeight = subtitleLabel.font.lineHeight * CGFloat(subtitleLabel.numberOfLines)
+        captionHeightConstraint?.constant = ceil(titleHeight + captionStack.spacing + subtitleHeight)
     }
 
     private func apply() {

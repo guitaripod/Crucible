@@ -185,8 +185,9 @@ private final class GridContentView: UIView {
         ]
         let y = max(0, (HeatmapMetrics.monthLabelHeight - font.lineHeight) / 2)
         for (column, label) in m.monthLabels where column >= 0 && column < m.columns {
-            let point = CGPoint(x: CGFloat(column) * HeatmapMetrics.step, y: y)
-            (label as NSString).draw(at: point, withAttributes: attributes)
+            let labelWidth = (label as NSString).size(withAttributes: attributes).width
+            let x = min(CGFloat(column) * HeatmapMetrics.step, max(0, bounds.width - labelWidth))
+            (label as NSString).draw(at: CGPoint(x: x, y: y), withAttributes: attributes)
         }
     }
 

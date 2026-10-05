@@ -333,8 +333,7 @@ final class DetailTracksContentView: UIView, UIContentView {
         }
         button.isHidden = false
         ThemeButton.configureMenuButton(button, caption: caption, value: value)
-        button.configuration?.titleLineBreakMode = .byTruncatingTail
-        button.configuration?.subtitleLineBreakMode = .byTruncatingTail
+        button.configuration?.subtitleLineBreakMode = .byWordWrapping
         button.menu = menu
         button.showsMenuAsPrimaryAction = true
     }

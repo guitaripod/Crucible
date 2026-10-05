@@ -78,6 +78,12 @@ enum ShotScript {
         you?.pushViewController(SettingsViewController(api: api), animated: false)
         await ShotHarness.settle(2.5)
         await ShotHarness.capture("11-settings")
+        scroll(you?.topViewController, to: 760)
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("11b-settings-home")
+        you?.pushViewController(LibrariesViewController(api: api), animated: false)
+        await ShotHarness.settle(3)
+        await ShotHarness.capture("11c-libraries")
         you?.popToRootViewController(animated: false)
 
         you?.pushViewController(ServerDetailViewController(api: api), animated: false)

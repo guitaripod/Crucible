@@ -102,7 +102,7 @@ enum Theme {
         static let minTarget: CGFloat = 44
         static let heroCardHeight: CGFloat = 288
         static let posterAspect: CGFloat = 1.5
-        static let captionBlockHeight: CGFloat = 40
+        static let captionBlockHeight: CGFloat = 50
     }
 
     static let accent = Color.accent

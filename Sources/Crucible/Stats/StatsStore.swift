@@ -160,7 +160,7 @@ struct StatsStore: Sendable {
     /// On a multi-user server accessed with the owner token, history spans every account. When more
     /// than one account is present we scope every aggregate to the server owner (account id 1);
     /// single-user and auto-scoped shared-user mirrors contain one account and are left unfiltered.
-    /// Libraries the server hides from Home never count, so the numbers describe what Home shows.
+    /// Libraries left out of Home and Statistics never count, so the numbers describe what Home shows.
     static func scope(_ db: Database) throws -> StatsScope {
         let distinct = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT accountID) FROM play WHERE accountID IS NOT NULL") ?? 0
         var accountID: Int?
@@ -168,18 +168,7 @@ struct StatsStore: Sendable {
             let ownerRows = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM play WHERE accountID = 1") ?? 0
             accountID = ownerRows > 0 ? 1 : nil
         }
-        let hidden = try Int.fetchAll(db, sql: "SELECT id FROM hidden_section ORDER BY id")
-        return StatsScope(accountID: accountID, hiddenSections: hidden)
-    }
-
-    /// Replaces the set of libraries the server hides from Home; the next read applies it.
-    func replaceHiddenSections(_ ids: Set<Int>) async throws {
-        try await dbQueue.write { db in
-            try db.execute(sql: "DELETE FROM hidden_section")
-            for id in ids.sorted() {
-                try db.execute(sql: "INSERT INTO hidden_section (id) VALUES (?)", arguments: [id])
-            }
-        }
+        return StatsScope(accountID: accountID, excludedSections: LibraryVisibility.excluded.sorted())
     }
 
     /// Titles watched on a specific local day, for the heatmap drill-down.

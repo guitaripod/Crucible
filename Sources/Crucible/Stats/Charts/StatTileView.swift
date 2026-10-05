@@ -82,7 +82,7 @@ final class StatTileView: UIView {
         titleLabel.font = Theme.Font.caption2
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = Theme.Color.labelTertiary
-        titleLabel.numberOfLines = 1
+        titleLabel.numberOfLines = 2
         titleLabel.lineBreakMode = .byTruncatingTail
 
         suffixLabel.font = Theme.Font.subheadline

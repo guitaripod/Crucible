@@ -45,6 +45,10 @@ final class HomeViewController: UICollectionViewController {
     private var continueItems: [PlexMetadata] = []
     private var onDeckItems: [PlexMetadata] = []
     private var recentItems: [PlexMetadata] = []
+    private var fetchedContinue: [PlexMetadata] = []
+    private var fetchedOnDeck: [PlexMetadata] = []
+    private var fetchedRecent: [PlexMetadata] = []
+    private var visibilityObserver: UUID?
     private var arrangement = Arrangement()
     private var weekSummary: HomeWeekSummary?
     private var isShowingSkeleton = false
@@ -60,6 +64,12 @@ final class HomeViewController: UICollectionViewController {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit {
+        if let visibilityObserver {
+            Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -79,6 +89,9 @@ final class HomeViewController: UICollectionViewController {
             self?.loadWeek()
         }, for: .valueChanged)
         collectionView.refreshControl = refresh
+        visibilityObserver = LibraryVisibility.addObserver { [weak self] in
+            self?.libraryVisibilityChanged()
+        }
 
         if let preloaded {
             self.preloaded = nil
@@ -146,6 +159,35 @@ final class HomeViewController: UICollectionViewController {
             + recentItems.prefix(cap).map { card($0, "ra") }
     }
 
+    /// Drops items from libraries left out of Home; items with no known library stay.
+    private static func visible(_ items: [PlexMetadata]) -> [PlexMetadata] {
+        let excluded = LibraryVisibility.excluded
+        guard !excluded.isEmpty else { return items }
+        return items.filter { item in item.librarySectionID.map { !excluded.contains($0) } ?? true }
+    }
+
+    private func libraryVisibilityChanged() {
+        guard !isShowingSkeleton else { return }
+        setContent(continueItems: fetchedContinue, onDeckItems: fetchedOnDeck, recentItems: fetchedRecent)
+        rebuildSnapshot(animated: true)
+        contentUnavailableConfiguration = arrangement.isEmpty ? Self.emptyHomeConfiguration() : nil
+        sectionGrid.map { $0.update(items: items(for: $0.bucket)) }
+        loadWeek()
+    }
+
+    private static func emptyHomeConfiguration() -> UIContentUnavailableConfiguration {
+        var config = UIContentUnavailableConfiguration.empty()
+        config.image = UIImage(systemName: "play.rectangle")
+        if LibraryVisibility.isCustomized {
+            config.text = "Nothing From These Libraries"
+            config.secondaryText = "Home is limited to the libraries you chose in Settings."
+        } else {
+            config.text = "Nothing Here Yet"
+            config.secondaryText = "Add media to your Plex libraries to see it here."
+        }
+        return config
+    }
+
     private static func dedupe(_ items: [PlexMetadata]) -> [PlexMetadata] {
         var seen = Set<String>()
         return items.filter { seen.insert($0.id).inserted }
@@ -154,9 +196,12 @@ final class HomeViewController: UICollectionViewController {
     // MARK: - Content
 
     private func setContent(continueItems: [PlexMetadata], onDeckItems: [PlexMetadata], recentItems: [PlexMetadata]) {
-        self.continueItems = Self.dedupe(continueItems)
-        self.onDeckItems = Self.dedupe(onDeckItems)
-        self.recentItems = Self.dedupe(recentItems)
+        fetchedContinue = continueItems
+        fetchedOnDeck = onDeckItems
+        fetchedRecent = recentItems
+        self.continueItems = Self.dedupe(Self.visible(continueItems))
+        self.onDeckItems = Self.dedupe(Self.visible(onDeckItems))
+        self.recentItems = Self.dedupe(Self.visible(recentItems))
         mediaById = Dictionary(
             (self.continueItems + self.onDeckItems + self.recentItems).map { ($0.id, $0) },
             uniquingKeysWith: { _, latest in latest }
@@ -450,7 +495,7 @@ final class HomeViewController: UICollectionViewController {
             var pool = recentItems
             do {
                 let container = try await api.requestContainer(.recentlyAdded(start: 0, size: 100))
-                pool = (container.Metadata ?? []) + pool
+                pool = Self.visible(container.Metadata ?? []) + pool
             } catch {
                 AppLogger.error("Surprise Me fetch failed, using cached Home items: \(error.localizedDescription)", .networking)
             }
@@ -594,15 +639,7 @@ final class HomeViewController: UICollectionViewController {
         rebuildSnapshot(animated: animated)
         endRefreshing()
 
-        if arrangement.isEmpty {
-            var emptyConfig = UIContentUnavailableConfiguration.empty()
-            emptyConfig.image = UIImage(systemName: "play.rectangle")
-            emptyConfig.text = "Nothing Here Yet"
-            emptyConfig.secondaryText = "Add media to your Plex libraries to see it here."
-            contentUnavailableConfiguration = emptyConfig
-        } else {
-            contentUnavailableConfiguration = nil
-        }
+        contentUnavailableConfiguration = arrangement.isEmpty ? Self.emptyHomeConfiguration() : nil
     }
 
     private func endRefreshing() {

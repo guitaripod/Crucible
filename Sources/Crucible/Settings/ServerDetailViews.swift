@@ -328,7 +328,7 @@ final class TestButtonContentView: UIView, UIContentView {
     private func apply() {
         guard let config = configuration as? TestButtonConfiguration else { return }
         action = config.action
-        var updated = ThemeButton.glassConfiguration(title: config.isTesting ? "Testing…" : "Test Connection", symbol: config.isTesting ? nil : "bolt.horizontal")
+        var updated = ThemeButton.glassConfiguration(title: config.isTesting ? "Testing…" : "Test Connection", symbol: "bolt.horizontal")
         updated.showsActivityIndicator = config.isTesting
         button.configuration = updated
         button.isEnabled = !config.isTesting

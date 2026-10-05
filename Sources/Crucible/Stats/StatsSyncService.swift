@@ -21,9 +21,7 @@ struct StatsSyncService: Sendable {
             }
 
             let sections = await loadSections()
-            if let hidden = sections.hiddenFromHome {
-                try await store.replaceHiddenSections(hidden)
-            }
+            await MainActor.run { LibraryVisibility.record(directories: sections.directories) }
             let sectionTitles = sections.titles
             let time = StatsTime()
             let wasComplete = state.historyComplete
@@ -142,21 +140,18 @@ struct StatsSyncService: Sendable {
         }
     }
 
-    /// Library titles by id, plus the ids the server hides from Home; `hiddenFromHome` is nil when
-    /// the listing could not be fetched, so a failed request never un-hides a library.
-    private func loadSections() async -> (titles: [Int: String], hiddenFromHome: Set<Int>?) {
+    /// The server's libraries and their titles by id; empty when the listing could not be fetched.
+    private func loadSections() async -> (titles: [Int: String], directories: [PlexDirectory]) {
         do {
             let container = try await api.requestContainer(.sections)
+            let directories = container.Directory ?? []
             var titles = [Int: String]()
-            var hidden = Set<Int>()
-            for dir in container.Directory ?? [] {
-                guard let key = dir.key, let id = Int(key) else { continue }
-                if let title = dir.title { titles[id] = title }
-                if dir.isHiddenFromHome { hidden.insert(id) }
+            for dir in directories {
+                if let key = dir.key, let id = Int(key), let title = dir.title { titles[id] = title }
             }
-            return (titles, hidden)
+            return (titles, directories)
         } catch {
-            return ([:], nil)
+            return ([:], [])
         }
     }
 

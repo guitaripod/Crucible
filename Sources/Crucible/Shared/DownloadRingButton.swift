@@ -12,9 +12,16 @@ final class DownloadRingButton: UIButton {
         case failed
     }
 
+    private struct Appearance: Equatable {
+        let symbol: String
+        let pointSize: CGFloat
+        let tint: UIColor
+    }
+
     private let trackLayer = CAShapeLayer()
     private let ringLayer = CAShapeLayer()
     private var currentState: State = .idle
+    private var appearance: Appearance?
 
     var diameter: CGFloat = 36 {
         didSet { invalidateIntrinsicContentSize() }
@@ -67,8 +74,6 @@ final class DownloadRingButton: UIButton {
         guard state != currentState || configuration == nil else { return }
         currentState = state
 
-        var config = UIButton.Configuration.plain()
-        config.contentInsets = .zero
         let (symbol, tint): (String, UIColor)
         switch state {
         case .idle:
@@ -85,9 +90,7 @@ final class DownloadRingButton: UIButton {
             (symbol, tint) = ("arrow.clockwise", Theme.Color.destructive)
         }
         let pointSize: CGFloat = state == .idle || state == .completed || state == .failed ? 15 : 12
-        config.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: pointSize, weight: .bold))
-        config.baseForegroundColor = tint
-        configuration = config
+        applyAppearance(Appearance(symbol: symbol, pointSize: pointSize, tint: tint))
 
         let showsRing: Bool
         let fraction: CGFloat
@@ -113,6 +116,18 @@ final class DownloadRingButton: UIButton {
         }
         ringLayer.strokeEnd = fraction
         accessibilityLabel = Self.spokenDescription(for: state)
+    }
+
+    /// Progress ticks arrive many times a second; only a change of glyph or tint rebuilds the
+    /// configuration, so the button never re-lays itself out or drops its pressed state mid-download.
+    private func applyAppearance(_ next: Appearance) {
+        guard next != appearance || configuration == nil else { return }
+        appearance = next
+        var config = UIButton.Configuration.plain()
+        config.contentInsets = .zero
+        config.image = UIImage(systemName: next.symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: next.pointSize, weight: .bold))
+        config.baseForegroundColor = next.tint
+        configuration = config
     }
 
     private static func spokenDescription(for state: State) -> String {

@@ -108,12 +108,6 @@ final class StatsDatabase: Sendable {
             }
         }
 
-        migrator.registerMigration("v2") { db in
-            try db.create(table: "hidden_section") { t in
-                t.primaryKey("id", .integer)
-            }
-        }
-
         return migrator
     }
 }

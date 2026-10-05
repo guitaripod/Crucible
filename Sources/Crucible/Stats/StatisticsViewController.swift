@@ -42,6 +42,7 @@ final class StatisticsViewController: UICollectionViewController {
     var dataVersion = 0
     private var syncedAtLeastOnce = false
     private var loadTask: Task<Void, Never>?
+    var visibilityObserver: UUID?
 
     var dataSource: UICollectionViewDiffableDataSource<StatSection, Row>!
 
@@ -60,6 +61,12 @@ final class StatisticsViewController: UICollectionViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        if let visibilityObserver {
+            Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Statistics"
@@ -74,6 +81,7 @@ final class StatisticsViewController: UICollectionViewController {
         let refresh = UIRefreshControl()
         refresh.addAction(UIAction { [weak self] _ in self?.refresh() }, for: .valueChanged)
         collectionView.refreshControl = refresh
+        configureLibrariesItem()
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -106,7 +114,7 @@ final class StatisticsViewController: UICollectionViewController {
         load(animateHero: true)
     }
 
-    private func load(animateHero: Bool) {
+    func load(animateHero: Bool) {
         guard let store else {
             showUnavailable()
             return
@@ -262,8 +270,13 @@ final class StatisticsViewController: UICollectionViewController {
         if syncedAtLeastOnce {
             var config = UIContentUnavailableConfiguration.empty()
             config.image = UIImage(systemName: "chart.bar.xaxis")
-            config.text = "No watch history yet"
-            config.secondaryText = "Play something and your stats will appear here."
+            if LibraryVisibility.isCustomized {
+                config.text = "No plays in these libraries"
+                config.secondaryText = "Switch on more libraries with the filter button."
+            } else {
+                config.text = "No watch history yet"
+                config.secondaryText = "Play something and your stats will appear here."
+            }
             contentUnavailableConfiguration = config
         } else {
             var config = UIContentUnavailableConfiguration.loading()

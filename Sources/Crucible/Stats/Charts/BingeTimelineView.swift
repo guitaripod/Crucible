@@ -5,7 +5,7 @@ import UIKit
 /// ``setSessions(_:)`` with the sessions already sorted biggest-first.
 final class BingeTimelineView: UIView {
     private enum Metrics {
-        static let intrinsicHeight: CGFloat = 120
+        static let intrinsicHeight: CGFloat = 136
         static let topInset: CGFloat = 4
         static let axisReserve: CGFloat = 16
         static let axisBottomMargin: CGFloat = 8
@@ -143,7 +143,7 @@ private final class BingeCardView: UIView {
         let label = UILabel()
         label.font = .systemFont(ofSize: 15, weight: .semibold)
         label.textColor = Theme.Color.onArt
-        label.numberOfLines = 1
+        label.numberOfLines = 2
         label.lineBreakMode = .byTruncatingTail
         return label
     }()

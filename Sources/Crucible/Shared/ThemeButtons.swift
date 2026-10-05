@@ -11,6 +11,7 @@ enum ThemeButton {
         config.cornerStyle = .capsule
         config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 24, bottom: 14, trailing: 24)
         config.imagePadding = 8
+        config.titleLineBreakMode = .byTruncatingTail
         if let symbol {
             config.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold))
         }
@@ -32,6 +33,7 @@ enum ThemeButton {
         config.baseForegroundColor = Theme.Color.label
         config.cornerStyle = .capsule
         config.imagePadding = 8
+        config.titleLineBreakMode = .byTruncatingTail
         if let symbol {
             config.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .medium))
         }

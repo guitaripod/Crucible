@@ -45,6 +45,7 @@ enum AppLaunchSession {
             async let hubs = api.requestContainer(.hubs())
             async let sections = api.requestContainer(.sections)
             let payload = try await LaunchPayload(connection: connection, api: api, hubs: hubs, sections: sections)
+            await MainActor.run { LibraryVisibility.record(directories: payload.sections.Directory ?? []) }
             AppLogger.notice("Launch ready: \(payload.sections.Directory?.count ?? 0) sections, \(payload.hubs.Hub?.count ?? 0) hubs via \(connection.serverURI.absoluteString)", .lifecycle)
             return .success(payload)
         } catch {

@@ -2,12 +2,13 @@
 
 final class SettingsViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case playback, downloads, appearance, support, account
+        case playback, downloads, home, appearance, support, account
 
         var title: String? {
             switch self {
             case .playback: return "Playback"
             case .downloads: return "Downloads"
+            case .home: return "Home & Statistics"
             case .appearance: return "Appearance"
             case .support: return "Support"
             case .account: return nil
@@ -18,13 +19,14 @@ final class SettingsViewController: UICollectionViewController {
     enum Item: Hashable {
         case streamingQuality, skipIntro, autoplay
         case downloadQuality, downloadCellular, deleteWatched, manageStorage
+        case libraries
         case appearance, libraryGrid
         case shareLogs, clearCache, sourceCode
         case signOut
 
         var isSelectable: Bool {
             switch self {
-            case .manageStorage, .shareLogs, .clearCache, .sourceCode, .signOut: return true
+            case .manageStorage, .libraries, .shareLogs, .clearCache, .sourceCode, .signOut: return true
             default: return false
             }
         }
@@ -63,6 +65,7 @@ final class SettingsViewController: UICollectionViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         loadSizes()
+        reconfigure([.libraries])
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -75,7 +78,7 @@ final class SettingsViewController: UICollectionViewController {
             var config = UICollectionLayoutListConfiguration.wellRows()
             let section = self?.dataSource?.sectionIdentifier(for: index)
             config.headerMode = section?.title == nil ? .none : .supplementary
-            config.footerMode = (section == .playback || section == .account) ? .supplementary : .none
+            config.footerMode = (section == .playback || section == .home || section == .account) ? .supplementary : .none
             if section == .account {
                 config.itemSeparatorHandler = nil
             }
@@ -88,6 +91,7 @@ final class SettingsViewController: UICollectionViewController {
         snapshot.appendSections(Section.allCases)
         snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay], toSection: .playback)
         snapshot.appendItems([.downloadQuality, .downloadCellular, .deleteWatched, .manageStorage], toSection: .downloads)
+        snapshot.appendItems([.libraries], toSection: .home)
         snapshot.appendItems([.appearance, .libraryGrid], toSection: .appearance)
         snapshot.appendItems([.shareLogs, .clearCache, .sourceCode], toSection: .support)
         snapshot.appendItems([.signOut], toSection: .account)
@@ -149,6 +153,11 @@ final class SettingsViewController: UICollectionViewController {
             case .manageStorage:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "internaldrive", title: "Manage Storage", value: storageText)
                 cell.accessories = [.disclosureIndicator()]
+            case .libraries:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "rectangle.stack", title: "Libraries", value: Self.librariesSummary()
+                )
+                cell.accessories = [.disclosureIndicator()]
             case .appearance:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "sun.max", title: "Appearance",
@@ -198,6 +207,8 @@ final class SettingsViewController: UICollectionViewController {
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .playback:
                 content.text = "Skip Intro can show a button, skip automatically, or stay out of the way."
+            case .home:
+                content.text = "Choose which libraries appear on Home and count toward your statistics."
             case .account:
                 content.text = "Crucible \(AboutViewController.versionText) (\(AboutViewController.buildText))"
                 content.textProperties.alignment = .center
@@ -217,18 +228,15 @@ final class SettingsViewController: UICollectionViewController {
 
     private func toggleRow(_ cell: UICollectionViewListCell, symbol: String, title: String, isOn: Bool, onChange: @escaping (Bool) -> Void) {
         var content = IconRowContentConfiguration(symbol: symbol, title: title)
-        content.exposesToAccessibility = false
+        content.toggle = .init(isOn: isOn, onChange: onChange)
         cell.contentConfiguration = content
-        let toggle = UISwitch()
-        toggle.isOn = isOn
-        toggle.onTintColor = Theme.Color.accent
-        toggle.accessibilityLabel = title
-        toggle.addAction(UIAction { [weak toggle] _ in
-            guard let toggle else { return }
-            Haptics.selection()
-            onChange(toggle.isOn)
-        }, for: .valueChanged)
-        cell.accessories = [.customView(configuration: .init(customView: toggle, placement: .trailing(displayed: .always)))]
+    }
+
+    private static func librariesSummary() -> String? {
+        let libraries = LibraryVisibility.libraries
+        guard !libraries.isEmpty else { return nil }
+        let included = libraries.filter { LibraryVisibility.isIncluded($0.id) }.count
+        return included == libraries.count ? "All" : "\(included) of \(libraries.count)"
     }
 
     private func streamingQualityMenu() -> UIMenu {
@@ -313,6 +321,8 @@ final class SettingsViewController: UICollectionViewController {
         switch item {
         case .manageStorage:
             tabBarController?.selectedIndex = 2
+        case .libraries:
+            navigationController?.pushViewController(LibrariesViewController(api: api), animated: true)
         case .shareLogs:
             shareLogs(from: collectionView.cellForItem(at: indexPath))
         case .clearCache:

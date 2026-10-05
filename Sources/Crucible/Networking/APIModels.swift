@@ -207,7 +207,7 @@ extension PlexMetadata {
             leafCount: nil,
             viewedLeafCount: nil,
             childCount: nil,
-            librarySectionID: nil,
+            librarySectionID: card.librarySectionID,
             librarySectionTitle: nil,
             Genre: nil,
             Role: nil,
@@ -286,7 +286,8 @@ extension PlexMetadata {
             viewOffset: viewOffset,
             duration: duration,
             viewCount: viewCount,
-            bucket: bucket
+            bucket: bucket,
+            librarySectionID: librarySectionID
         )
     }
 }

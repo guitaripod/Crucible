@@ -43,7 +43,7 @@ final class RankedRowView: UIView {
         titleLabel.font = Theme.Font.subheadlineSemibold
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = Theme.Color.label
-        titleLabel.numberOfLines = 1
+        titleLabel.numberOfLines = 2
 
         valueLabel.font = Theme.Font.scaled(.subheadline, 15, .medium)
         valueLabel.adjustsFontForContentSizeCategory = true
