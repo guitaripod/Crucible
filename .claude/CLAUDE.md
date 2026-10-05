@@ -22,7 +22,7 @@
 - Prefer UIStackView for all multi-view layouts (horizontal rows, vertical groups, badge rows, button groups). Only use raw constraints when stack views can't express the layout (e.g., aspect ratio constraints, overlay positioning)
 
 ## Build & Deploy
-- `swift build --swift-sdk arm64-apple-ios` — cross-compile check after every change (~0.1s, no device needed)
+- `swift build --swift-sdk arm64-apple-ios --build-system native` — cross-compile check after every change (seconds, no device needed); the plain form fails on the current Darwin SDK
 - At the end of each task, use the `/deploy` skill to compile-check and install to the connected iPhone
 - Bundle ID: com.guitaripod.crucible
 

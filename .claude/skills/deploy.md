@@ -7,7 +7,7 @@ user-invocable: true
 
 Run these steps in order from the Crucible project directory (`/home/marcus/Dev/Crucible`):
 
-1. **Compile check**: `swift build --swift-sdk arm64-apple-ios` — fast cross-compile to catch errors without needing the device.
+1. **Compile check**: `swift build --swift-sdk arm64-apple-ios --build-system native` — fast cross-compile to catch errors without needing the device.
 2. **If compilation fails**, fix the errors and re-run step 1. Do not proceed until it compiles.
 3. **Deploy**: `xtool dev` — builds, signs, installs, and verifies on the connected iPhone.
 4. **Report** the result to the user — whether it succeeded or failed.

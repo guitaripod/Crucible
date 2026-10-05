@@ -403,7 +403,9 @@ final class DetailHeroCoordinator {
     private func heroTitleFrame(in collectionView: UICollectionView, at indexPath: IndexPath) -> CGRect? {
         guard let cell = collectionView.cellForItem(at: indexPath),
               let hero = Self.findHero(in: cell.contentView),
-              hero.titleLabel.window != nil else { return nil }
+              hero.titleLabel.window != nil,
+              hero.titleLabel.bounds.height > 0,
+              !hero.bounds.isEmpty else { return nil }
         return hero.titleLabel.convert(hero.titleLabel.bounds, to: collectionView)
     }
 

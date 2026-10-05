@@ -35,6 +35,7 @@ No Xcode. No macOS. No storyboards. Pure programmatic UIKit, cross-compiled from
 - **Picture-in-Picture** and **background audio**
 - **Lock screen & Control Center controls** — play/pause, skip ±10s, scrub, next episode
 - **Credits-triggered Up Next** autoplay between episodes
+- **Skip Intro** your way: a glass button with a live progress sweep, automatic skipping with Undo, or off
 - Adjustable **playback speed**, subtitle and audio track selection
 - Resume from where you left off, progress synced to the server via the timeline API
 
@@ -49,27 +50,31 @@ A proper download engine — not the afterthought the official app ships.
 - **True background downloading** — segments are fetched over a **background `URLSession`**, so transfers continue in the system daemon while the app is suspended or terminated (the Live Activity keeps advancing); a fresh Plex session is re-minted on failure, downloads **auto-resume** from the segments already on disk, and a notification fires when one finishes while you're away
 - **Real download queue** — concurrency limit plus pause / resume / cancel / retry per item and live progress
 - **Wi-Fi-only by default** — downloads pause when you leave Wi-Fi and resume when it returns; opt into cellular with one toggle
-- **Dedicated Downloads tab** — in-progress items, downloaded movies, and episodes grouped by show, with storage used and free space
+- **Dedicated Downloads tab** — a storage summary, the live queue, and downloaded movies and shows grouped as stacks, with one-tap **Free up space** for watched titles
+- **Season download sheet** — pick All, Unwatched or the Next 3 episodes, choose the quality, and optionally **keep the next episodes downloaded** as you watch
 - **First-class offline playback** — Skip Intro / Skip Credits (markers saved with the download), resume, Picture-in-Picture, background audio, and lock-screen controls, all with no network
 - **Storage management** — see space used, delete individual downloads or all at once, optional auto-delete of watched downloads; media is stored on-device and excluded from iCloud backup
 
 ### Browse & discover
 
-- Home with **Continue Watching**, **On Deck**, and **Recently Added** hubs
-- Library poster grids with **genre filtering**, sort options, and per-library Continue Watching carousels
-- **Folder browsing** for unindexed content
-- Movie/episode detail with backdrop hero, codec/HDR badges, **Cast & Crew**, and **More Like This**
-- Show detail with season picker and an episode list that tracks watched and in-progress state
-- **Search** across all libraries and a **watch history** timeline
+- **Home** opens on a **Resume hero** for whatever you were watching, then Continue Watching, Up Next, a **This Week** watch-time card and Recently Added — and an **offline Home** built from your downloads when the server can't be reached
+- **Library** poster grids (3-up by default, 2-up on request) with **filter chips** (All, Unwatched, In Progress, Genre, Sort), unwatched dots and counts, a compact Continue banner, an A–Z scrubber and the library switcher in the title menu; **folder browsing** for unindexed content
+- **Movie and episode detail** with an immersive backdrop, one-tap Resume, audio and subtitle menus, quality badges, **Cast & Crew**, a details grid and **More Like This**
+- **Show detail** with a season picker, episode rows that track watched and in-progress state, **swipe actions**, and a download ring on every episode
+- **Search** on the system search tab: recents, genre tiles, and results grouped by type with a **Top Result**
+- **You** tab: profile and live server status, a **Year in Review** card, **Watch History** grouped by day with posters, **Statistics**, Settings and **Server & Connection**
+- **Statistics** — a Year-in-Review dashboard: watch time, streaks, activity heatmap, top shows and a shareable card, built from your Plex history
 - **Handoff & Spotlight** — hand a title between devices, find recently-viewed media in iOS search
 - **Surprise Me** random picker
 
 ### Built different
 
-- **Liquid Glass** materials throughout on iOS 26
+- **Liquid Glass** materials on iOS 26, with one design system underneath: tokens for colour, type, spacing and radii, one ember accent, and Light and Dark appearances
+- **Accessible** — Dynamic Type everywhere, VoiceOver labels, Reduce Motion fallbacks, 44pt targets and contrast-checked colour pairs
+- **Server & Connection** screen with per-route latency (Local, Tailscale, Relay), Prefer Local and Allow Relay switches, and add-by-address
 - Automatic **best-connection server discovery** (prefers local, non-relay, HTTPS), Tailscale-friendly
 - Live watched/progress refresh across Home, Library, and detail screens — never stale on return
-- On-device **file logger** for diagnostics without a Mac attached
+- On-device **file logger** for diagnostics without a Mac attached, shareable from Settings
 - Plex **OAuth** sign-in, token stored in the **Keychain**
 
 ## Building
@@ -77,7 +82,7 @@ A proper download engine — not the afterthought the official app ships.
 Requires Swift 6+ via [swift-bin (AUR)](https://aur.archlinux.org/packages/swift-bin) and the iOS cross-compilation SDK.
 
 ```bash
-swift build --swift-sdk arm64-apple-ios
+swift build --swift-sdk arm64-apple-ios --build-system native
 ```
 
 ## Deploying
@@ -87,6 +92,10 @@ Requires [xtool](https://github.com/xtool-org/xtool) and a USB-connected iPhone.
 ```bash
 xtool dev run --usb
 ```
+
+## Marketing screenshots
+
+The README and landing-page images are real captures of the app running in the iOS Simulator against a mock Plex server with generated, fictional artwork — no real library or copyrighted posters. `marketing/mock/` is the server and art generator, `marketing/shots/` drives the app and takes the screenshots (`run.sh`), and `compose.sh` frames them with the `frames` CLI (Apple device bezels) for the README banner and the gallery.
 
 ## Architecture
 
@@ -98,16 +107,18 @@ Sources/
     ├── App/                # AppDelegate, SceneDelegate, ServerBootstrap, BGTask registration, deep links
     ├── Detail/             # Movie/episode detail, show detail, cast & episode cells
     ├── Downloads/          # HLS download engine, store, resolver, Live Activity controller, offline UI + tab
-    ├── History/            # Watch activity history
-    ├── Home/               # Hub-based home screen
-    ├── Library/            # Movie grid, show grid, folder browser
+    ├── History/            # Watch History (day-grouped, filterable)
+    ├── Home/               # Resume hero, rails, This Week card, offline Home
+    ├── Library/            # Shared poster grid, filter chips, A–Z scrubber, folder browser
     ├── Networking/         # APIClient (actor), endpoints, models, ImageLoader, Keychain, blurhash
     ├── Player/             # StreamResolver, PlaybackReporter, PlayerCoordinator, Now Playing, Up Next
-    ├── Search/             # Search with hub-based results
-    ├── Settings/           # Server setup/connection discovery, preferences, Plex OAuth
-    └── Shared/             # Theme, Glass, PosterCell, Formatters, MediaActivity, AppLogger
+    ├── Search/             # Search tab: recents, genre browse, grouped results
+    ├── Settings/           # Settings, Server & Connection, sign-in and server setup
+    ├── Shared/             # Theme tokens, Glass, poster/landscape cards, chips, buttons, haptics, AppLogger
+    ├── Stats/              # GRDB-backed statistics: sync, store, charts, Year in Review
+    └── You/                # Profile hub, year card, about
 ```
 
 The widget extension is built and signed entirely on Linux via xtool's `extensions:` mechanism — Live Activities with no Xcode.
 
-Zero third-party dependencies. Pure Apple frameworks: Foundation, UIKit, AVKit/AVFoundation, MediaPlayer, Network, BackgroundTasks, ActivityKit, WidgetKit, UserNotifications, CoreSpotlight, WebKit, Security.
+One third-party dependency, [GRDB](https://github.com/groue/GRDB.swift), for the statistics store. Everything else is Apple frameworks: Foundation, UIKit, AVKit/AVFoundation, MediaPlayer, Network, BackgroundTasks, ActivityKit, WidgetKit, UserNotifications, CoreSpotlight, WebKit, Security.
