@@ -48,6 +48,7 @@ final class FolderBrowserViewController: UICollectionViewController {
         super.viewDidLoad()
         title = folderTitle ?? "Browse"
         navigationItem.largeTitleDisplayMode = .never
+        collectionView.backgroundColor = Theme.Color.canvas
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
     }
@@ -74,6 +75,7 @@ final class FolderBrowserViewController: UICollectionViewController {
             if sectionIdentifier == .folders {
                 var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
                 listConfig.showsSeparators = true
+                listConfig.backgroundColor = Theme.Color.canvas
                 return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
             }
 
@@ -85,9 +87,10 @@ final class FolderBrowserViewController: UICollectionViewController {
         let folderReg = UICollectionView.CellRegistration<UICollectionViewListCell, (String, String)> { cell, _, item in
             var config = UIListContentConfiguration.cell()
             config.text = item.1
-            config.textProperties.font = .systemFont(ofSize: 16, weight: .semibold)
+            config.textProperties.font = Theme.Font.scaled(.callout, 16, .semibold)
+            config.textProperties.color = Theme.Color.label
             config.image = UIImage(systemName: "folder.fill")
-            config.imageProperties.tintColor = .systemOrange
+            config.imageProperties.tintColor = Theme.Color.accentText
             cell.contentConfiguration = config
             cell.accessories = [.disclosureIndicator()]
         }
