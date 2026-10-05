@@ -87,11 +87,15 @@ swift build --swift-sdk arm64-apple-ios --build-system native
 
 ## Deploying
 
+New to this? [INSTALL.md](INSTALL.md) walks through putting Crucible on your own iPhone, step by step.
+
 Requires [xtool](https://github.com/xtool-org/xtool) and a USB-connected iPhone.
 
 ```bash
-xtool dev run --usb
+./scripts/install-ios.sh
 ```
+
+The script checks your setup, builds a release configuration and installs it with `xtool dev run -c release --usb`. Run it with `--check` to verify without building.
 
 ## Marketing screenshots
 
