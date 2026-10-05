@@ -13,7 +13,7 @@ PORT=32400
 mkdir -p "$RAW" "$SIGNALS"
 rm -f "$RAW"/*.png "$SIGNALS"/*
 
-lsof -ti "tcp:$PORT" | xargs kill 2>/dev/null || true
+pkill -f "Python server\.py" 2>/dev/null || true
 sleep 0.5
 (cd marketing/mock && PORT=$PORT nohup python3 server.py > /tmp/crucible-mock.log 2>&1 &)
 for _ in $(seq 1 50); do
@@ -60,7 +60,7 @@ while [ $SECONDS -lt $deadline ]; do
     name=$(basename "$ready" .ready)
     if [ "$name" = done ]; then
       rm -f "$ready"
-      lsof -ti "tcp:$PORT" | xargs kill 2>/dev/null || true
+      pkill -f "Python server\.py" 2>/dev/null || true
       xcrun simctl status_bar "$UDID" clear
       exit 0
     fi

@@ -77,7 +77,7 @@ enum DownloadSeeder {
             result = data
             semaphore.signal()
         }.resume()
-        semaphore.wait()
+        _ = semaphore.wait(timeout: .now() + 6)
         return result
     }
 
