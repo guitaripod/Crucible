@@ -9,6 +9,10 @@ let iosStamp: [LinkerSetting] = [
     )
 ]
 
+let widgetKeep: [LinkerSetting] = [
+    .unsafeFlags(["-Xlinker", "-u", "-Xlinker", "_main"], .when(platforms: [.iOS]))
+]
+
 let package = Package(
     name: "Crucible",
     platforms: [
@@ -43,7 +47,7 @@ let package = Package(
         .target(
             name: "CrucibleWidgets",
             dependencies: ["CrucibleActivity"],
-            linkerSettings: iosStamp
+            linkerSettings: iosStamp + widgetKeep
         ),
     ]
 )
