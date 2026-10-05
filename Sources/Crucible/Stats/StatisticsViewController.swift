@@ -214,6 +214,7 @@ final class StatisticsViewController: UICollectionViewController {
 
         heroShouldAnimate = animateHero
         dataSource.apply(snapshot, animatingDifferences: false)
+        collectionView.collectionViewLayout.invalidateLayout()
     }
 
     var heroShouldAnimate = true

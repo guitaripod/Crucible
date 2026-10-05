@@ -29,10 +29,15 @@ final class StatsCardView: UIView {
             arranged.append(header)
         }
         arranged.append(content)
+        let slack = UIView()
+        slack.setContentHuggingPriority(.fittingSizeLevel, for: .vertical)
+        slack.setContentCompressionResistancePriority(.fittingSizeLevel, for: .vertical)
+        arranged.append(slack)
 
         let stack = UIStackView(arrangedSubviews: arranged)
         stack.axis = .vertical
         stack.spacing = 12
+        stack.setCustomSpacing(0, after: content)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 

@@ -100,12 +100,18 @@ final class WrappedSharePreviewViewController: UIViewController {
             shareButton.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Theme.Space.l),
             shareButton.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Theme.Space.l),
             shareButton.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -Theme.Space.m),
+            shareButton.heightAnchor.constraint(equalToConstant: Theme.Size.primaryButtonHeight),
 
             stage.topAnchor.constraint(equalTo: guide.topAnchor, constant: Theme.Space.s),
             stage.bottomAnchor.constraint(equalTo: shareButton.topAnchor, constant: -Theme.Space.m),
             stage.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: Theme.Space.l),
             stage.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -Theme.Space.l),
         ])
+    }
+
+    func select(_ next: WrappedShareCardRenderer.Format) {
+        formatControl.selectedSegmentIndex = next.rawValue
+        show(next, animated: false)
     }
 
     private func show(_ next: WrappedShareCardRenderer.Format, animated: Bool) {

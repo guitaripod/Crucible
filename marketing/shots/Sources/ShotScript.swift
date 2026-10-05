@@ -112,8 +112,21 @@ enum ShotScript {
         stats.shareWrapped(from: nil)
         await ShotHarness.settle(3)
         await ShotHarness.capture("07c-share-preview")
+        let preview = (stats.presentedViewController as? UINavigationController)?.viewControllers.first as? WrappedSharePreviewViewController
+        preview?.select(.square)
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("07d-share-square")
         stats.dismiss(animated: false)
         await ShotHarness.settle(1)
+        stats.selectRange(.week)
+        await ShotHarness.settle(3)
+        if let collection = firstCollectionView(in: stats.view) {
+            collection.setContentOffset(CGPoint(x: 0, y: 1500), animated: false)
+        }
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("07e-stats-week")
+        stats.selectRange(.year)
+        await ShotHarness.settle(2)
     }
 
     /// Scrolls Home far enough that the hero cell is recycled, then back, so the capture shows the

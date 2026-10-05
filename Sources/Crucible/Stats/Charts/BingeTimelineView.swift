@@ -11,7 +11,7 @@ final class BingeTimelineView: UIView {
         static let axisBottomMargin: CGFloat = 8
         static let horizontalInset: CGFloat = 0
         static let cardSpacing: CGFloat = 12
-        static let minCardWidth: CGFloat = 64
+        static let minCardWidth: CGFloat = 132
         static let maxCardWidth: CGFloat = 220
         static let pointsPerEpisode: CGFloat = 10
     }
