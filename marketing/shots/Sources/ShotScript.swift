@@ -13,6 +13,8 @@ enum ShotScript {
         tabBar.selectedIndex = 1
         await ShotHarness.settle(3.5)
         await ShotHarness.capture("02-library")
+        await ShotHarness.settle(5)
+        await ShotHarness.capture("02b-library-settled")
 
         tabBar.selectedIndex = 0
         await ShotHarness.settle(1)

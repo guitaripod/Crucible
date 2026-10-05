@@ -326,8 +326,8 @@ class LibraryGridViewController: UIViewController {
                 hasLoaded = true
                 isLoadingPage = false
                 endRefreshing()
-                applySnapshot()
                 updateEmptyState(error: nil)
+                applySnapshot()
                 completion?()
             } catch {
                 guard !Task.isCancelled else { return }
