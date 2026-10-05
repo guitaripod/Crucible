@@ -58,12 +58,13 @@ A proper download engine — not the afterthought the official app ships.
 ### Browse & discover
 
 - **Home** opens on a **Resume hero** for whatever you were watching, then Continue Watching, Up Next, a **This Week** watch-time card and Recently Added — and an **offline Home** built from your downloads when the server can't be reached
-- **Library** poster grids (3-up by default, 2-up on request) with **filter chips** (All, Unwatched, In Progress, Genre, Sort), unwatched dots and counts, a compact Continue banner, an A–Z scrubber and the library switcher in the title menu; **folder browsing** for unindexed content
+- **Library** poster grids (3-up by default, 2-up on request) with **filter chips** (All, Unwatched, In Progress, Genre, Sort), unwatched dots and counts, a compact Continue banner, a **Recently Watched** rail with See All, an A–Z scrubber and the library switcher in the title menu; **folder browsing** for unindexed content
 - **Movie and episode detail** with an immersive backdrop, one-tap Resume, audio and subtitle menus, quality badges, **Cast & Crew**, a details grid and **More Like This**
 - **Show detail** with a season picker, episode rows that track watched and in-progress state, **swipe actions**, and a download ring on every episode
 - **Search** on the system search tab: recents, genre tiles, and results grouped by type with a **Top Result**
 - **You** tab: profile and live server status, a **Year in Review** card, **Watch History** grouped by day with posters, **Statistics**, Settings and **Server & Connection**
-- **Statistics** — a Year-in-Review dashboard: watch time, streaks, activity heatmap, top shows and a shareable card, built from your Plex history
+- **Statistics** — a Year-in-Review dashboard: watch time, streaks, activity heatmap and top shows built from your Plex history, with a **Story or Square share poster** you preview before sending
+- **Choose your libraries** — Settings › Libraries, or the filter in Statistics, picks which libraries appear on Home and count toward your statistics; libraries Plex hides from Home start switched off
 - **Handoff & Spotlight** — hand a title between devices, find recently-viewed media in iOS search
 - **Surprise Me** random picker
 

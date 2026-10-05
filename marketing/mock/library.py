@@ -7,6 +7,9 @@ SECTIONS = {
     "1": ("Movies", "movie"),
     "2": ("TV Shows", "show"),
     "3": ("Documentaries", "movie"),
+    "4": ("Anime", "show"),
+    "5": ("Kids", "movie"),
+    "6": ("Home Videos", "movie"),
 }
 
 GENRES = ["Action", "Adventure", "Animation", "Comedy", "Documentary", "Drama", "Mystery", "Sci-Fi", "Thriller"]
