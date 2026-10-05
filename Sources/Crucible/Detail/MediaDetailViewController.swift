@@ -486,6 +486,17 @@ final class MediaDetailViewController: UICollectionViewController {
         contentUnavailableConfiguration = config
     }
 
+    /// Directors and writers as cast-rail entries; a person who does both appears once with both roles.
+    private static func crew(for metadata: PlexMetadata) -> [PlexRole] {
+        var order = [String]()
+        var roles = [String: [String]]()
+        for (name, role) in metadata.directors.prefix(2).map({ ($0, "Director") }) + metadata.writers.prefix(2).map({ ($0, "Writer") }) {
+            if roles[name] == nil { order.append(name) }
+            roles[name, default: []].append(role)
+        }
+        return order.map { PlexRole(id: nil, tag: $0, role: roles[$0]?.joined(separator: ", "), thumb: nil) }
+    }
+
     private func applySnapshot() async {
         guard let metadata else { return }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
@@ -515,10 +526,8 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems([.genres], toSection: .genres)
         }
 
-        let crew = metadata.directors.prefix(2).map { PlexRole(id: nil, tag: $0, role: "Director", thumb: nil) }
-            + metadata.writers.prefix(2).map { PlexRole(id: nil, tag: $0, role: "Writer", thumb: nil) }
         var seenCast = Set<PlexRole>()
-        let crewAndCast = (crew + metadata.cast.prefix(20))
+        let crewAndCast = (Self.crew(for: metadata) + metadata.cast.prefix(20))
             .filter { seenCast.insert($0).inserted }
             .map { Item.castMember($0) }
         if !crewAndCast.isEmpty {
