@@ -12,7 +12,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: windowScene)
-        window.tintColor = .systemOrange
+        window.tintColor = Theme.Color.accent
+        AppearanceController.apply(to: window)
         window.backgroundColor = CrystalGlyphView.canvas
         self.window = window
         window.makeKeyAndVisible()
@@ -106,7 +107,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     private func present(root: UIViewController) {
         guard let window else { return }
-        window.backgroundColor = .systemBackground
+        window.backgroundColor = Theme.Color.canvas
         UIView.transition(with: window, duration: 0.4, options: [.transitionCrossDissolve, .curveEaseOut]) {
             window.rootViewController = root
         } completion: { [weak self] _ in
@@ -122,7 +123,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             self?.launch(connection: connection)
         }
         let nav = UINavigationController(rootViewController: setup)
-        window?.backgroundColor = .systemBackground
+        window?.backgroundColor = Theme.Color.canvas
         window?.rootViewController = nav
     }
 

@@ -31,11 +31,25 @@ final class DownloadActivityController {
         let surviving = Activity<DownloadActivityAttributes>.activities
         activity = surviving.first
         guard surviving.count > 1 else { return }
-        Task {
-            for extra in surviving.dropFirst() {
-                await extra.end(nil, dismissalPolicy: .immediate)
-            }
+        let stale = UncheckedSendable(value: Array(surviving.dropFirst()))
+        Task { await Self.end(stale) }
+    }
+
+    private struct UncheckedSendable<Value>: @unchecked Sendable {
+        let value: Value
+    }
+
+    private nonisolated static func end(_ activities: UncheckedSendable<[Activity<DownloadActivityAttributes>]>) async {
+        for activity in activities.value {
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
+    }
+
+    private nonisolated static func update(
+        _ activity: UncheckedSendable<Activity<DownloadActivityAttributes>>,
+        _ content: UncheckedSendable<ActivityContent<DownloadActivityAttributes.ContentState>>
+    ) async {
+        await activity.value.update(content.value)
     }
 
     func sync(items: [DownloadItem], force: Bool, needsForeground: Bool = false) {
@@ -141,7 +155,9 @@ final class DownloadActivityController {
     private func present(_ state: DownloadActivityAttributes.ContentState) {
         let content = ActivityContent(state: state, staleDate: nil)
         if let activity, activity.activityState == .active {
-            Task { await activity.update(content) }
+            let boxedActivity = UncheckedSendable(value: activity)
+            let boxedContent = UncheckedSendable(value: content)
+            Task { await Self.update(boxedActivity, boxedContent) }
             return
         }
         guard ActivityAuthorizationInfo().areActivitiesEnabled,
@@ -159,7 +175,8 @@ final class DownloadActivityController {
         resetRate()
         guard let activity else { return }
         self.activity = nil
-        Task { await activity.end(nil, dismissalPolicy: .immediate) }
+        let ending = UncheckedSendable(value: [activity])
+        Task { await Self.end(ending) }
     }
 }
 #endif
