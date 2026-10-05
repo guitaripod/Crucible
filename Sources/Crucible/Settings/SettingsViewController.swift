@@ -2,31 +2,39 @@
 
 final class SettingsViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case server, libraries, playback, downloads, activity, storage, account, about
+        case playback, downloads, appearance, support, account
+
+        var title: String? {
+            switch self {
+            case .playback: return "Playback"
+            case .downloads: return "Downloads"
+            case .appearance: return "Appearance"
+            case .support: return "Support"
+            case .account: return nil
+            }
+        }
     }
 
     enum Item: Hashable {
-        case serverName(String)
-        case serverURI(String)
-        case library(key: String, type: String, name: String, count: String)
-        case quality(String)
-        case downloadQuality(String)
-        case downloadCellular(Bool)
-        case deleteWatched(Bool)
-        case downloadsUsage(String)
-        case manageDownloads(String)
-        case deleteAllDownloads
-        case statistics
-        case activityHistory
-        case clearCache
+        case streamingQuality, skipIntro, autoplay
+        case downloadQuality, downloadCellular, deleteWatched, manageStorage
+        case appearance, libraryGrid
+        case shareLogs, clearCache, sourceCode
         case signOut
-        case sourceCode
-        case appVersion(String)
+
+        var isSelectable: Bool {
+            switch self {
+            case .manageStorage, .shareLogs, .clearCache, .sourceCode, .signOut: return true
+            default: return false
+            }
+        }
     }
 
     private let api: APIClient
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var loadTask: Task<Void, Never>?
+    private var storageText = "None"
+    private var cacheText = "…"
 
     init(api: APIClient) {
         self.api = api
@@ -36,21 +44,24 @@ final class SettingsViewController: UICollectionViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        loadTask?.cancel()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Settings"
         navigationController?.navigationBar.prefersLargeTitles = true
-
-        var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
-        listConfig.headerMode = .supplementary
-        collectionView.collectionViewLayout = UICollectionViewCompositionalLayout.list(using: listConfig)
-
+        navigationItem.largeTitleDisplayMode = .always
+        collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
+        applySnapshot()
     }
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        loadData()
+        loadSizes()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -58,361 +69,315 @@ final class SettingsViewController: UICollectionViewController {
         loadTask?.cancel()
     }
 
-    private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [unowned self] cell, _, item in
-            switch item {
-            case .serverName(let name):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Server"
-                config.secondaryText = name
-                config.image = UIImage(systemName: "server.rack")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = []
-
-            case .serverURI(let uri):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Address"
-                config.secondaryText = uri
-                config.secondaryTextProperties.font = .systemFont(ofSize: 13)
-                config.secondaryTextProperties.color = .tertiaryLabel
-                config.image = UIImage(systemName: "network")
-                config.imageProperties.tintColor = .tertiaryLabel
-                cell.contentConfiguration = config
-                cell.accessories = []
-
-            case .library(_, _, let name, let count):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = name
-                config.secondaryText = count
-                config.image = UIImage(systemName: "rectangle.stack.fill")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .quality(let current):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Streaming Quality"
-                config.secondaryText = current
-                config.image = UIImage(systemName: "dial.high.fill")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .downloadQuality(let current):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Download Quality"
-                config.secondaryText = current
-                config.image = UIImage(systemName: "arrow.down.circle")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .downloadCellular(let isOn):
-                var config = UIListContentConfiguration.cell()
-                config.text = "Download over Cellular"
-                config.image = UIImage(systemName: "antenna.radiowaves.left.and.right")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [self.switchAccessory(isOn: isOn) { newValue in
-                    Preferences.downloadOverCellular = newValue
-                    DownloadManager.shared.cellularPreferenceChanged()
-                }]
-
-            case .deleteWatched(let isOn):
-                var config = UIListContentConfiguration.cell()
-                config.text = "Delete Watched Downloads"
-                config.image = UIImage(systemName: "eye.trianglebadge.exclamationmark")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [self.switchAccessory(isOn: isOn) { newValue in
-                    Preferences.deleteWatchedDownloads = newValue
-                }]
-
-            case .downloadsUsage(let usage):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Storage Used"
-                config.secondaryText = usage
-                config.image = UIImage(systemName: "internaldrive")
-                config.imageProperties.tintColor = .tertiaryLabel
-                cell.contentConfiguration = config
-                cell.accessories = []
-
-            case .manageDownloads(let count):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Manage Downloads"
-                config.secondaryText = count
-                config.image = UIImage(systemName: "square.and.arrow.down.on.square")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .deleteAllDownloads:
-                var config = UIListContentConfiguration.cell()
-                config.text = "Delete All Downloads"
-                config.textProperties.color = .systemRed
-                config.image = UIImage(systemName: "trash")
-                config.imageProperties.tintColor = .systemRed
-                cell.contentConfiguration = config
-                cell.accessories = []
-
-            case .clearCache:
-                var config = UIListContentConfiguration.cell()
-                config.text = "Clear Image Cache"
-                config.image = UIImage(systemName: "trash")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = []
-
-            case .sourceCode:
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Source Code"
-                config.secondaryText = "GitHub"
-                config.image = UIImage(systemName: "chevron.left.forwardslash.chevron.right")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .statistics:
-                var config = UIListContentConfiguration.cell()
-                config.text = "Statistics"
-                config.secondaryText = "Your year in review"
-                config.image = UIImage(systemName: "chart.bar.xaxis")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .activityHistory:
-                var config = UIListContentConfiguration.cell()
-                config.text = "Activity History"
-                config.image = UIImage(systemName: "clock.fill")
-                config.imageProperties.tintColor = .systemOrange
-                cell.contentConfiguration = config
-                cell.accessories = [.disclosureIndicator()]
-
-            case .signOut:
-                var config = UIListContentConfiguration.cell()
-                config.text = "Sign Out"
-                config.textProperties.color = .systemRed
-                config.image = UIImage(systemName: "rectangle.portrait.and.arrow.right")
-                config.imageProperties.tintColor = .systemRed
-                cell.contentConfiguration = config
-                cell.accessories = []
-
-            case .appVersion(let version):
-                var config = UIListContentConfiguration.valueCell()
-                config.text = "Version"
-                config.secondaryText = version
-                config.image = UIImage(systemName: "info.circle.fill")
-                config.imageProperties.tintColor = .tertiaryLabel
-                cell.contentConfiguration = config
-                cell.accessories = []
+    private func makeLayout() -> UICollectionViewLayout {
+        UICollectionViewCompositionalLayout { [weak self] index, environment in
+            var config = UICollectionLayoutListConfiguration.wellRows()
+            let section = self?.dataSource?.sectionIdentifier(for: index)
+            config.headerMode = section?.title == nil ? .none : .supplementary
+            config.footerMode = (section == .playback || section == .account) ? .supplementary : .none
+            if section == .account {
+                config.itemSeparatorHandler = nil
             }
-        }
-
-        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
-            cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
-        }
-
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            guard let section = self?.dataSource.sectionIdentifier(for: indexPath.section) else { return }
-            var config = UIListContentConfiguration.groupedHeader()
-            switch section {
-            case .server: config.text = "Server"
-            case .libraries: config.text = "Libraries"
-            case .playback: config.text = "Playback"
-            case .downloads: config.text = "Downloads"
-            case .activity: config.text = "Activity"
-            case .storage: config.text = "Storage"
-            case .account: config.text = "Account"
-            case .about: config.text = "About"
-            }
-            cell.contentConfiguration = config
-        }
-        dataSource.supplementaryViewProvider = { cv, kind, indexPath in
-            cv.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
+            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
         }
     }
 
-    private func switchAccessory(isOn: Bool, onChange: @escaping (Bool) -> Void) -> UICellAccessory {
-        let toggle = UISwitch()
-        toggle.isOn = isOn
-        toggle.onTintColor = .systemOrange
-        toggle.addAction(UIAction { [weak toggle] _ in
-            guard let toggle else { return }
-            onChange(toggle.isOn)
-        }, for: .valueChanged)
-        return .customView(configuration: .init(customView: toggle, placement: .trailing(displayed: .always)))
+    private func applySnapshot() {
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        snapshot.appendSections(Section.allCases)
+        snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay], toSection: .playback)
+        snapshot.appendItems([.downloadQuality, .downloadCellular, .deleteWatched, .manageStorage], toSection: .downloads)
+        snapshot.appendItems([.appearance, .libraryGrid], toSection: .appearance)
+        snapshot.appendItems([.shareLogs, .clearCache, .sourceCode], toSection: .support)
+        snapshot.appendItems([.signOut], toSection: .account)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    private func loadData() {
+    private func loadSizes() {
         loadTask?.cancel()
         loadTask = Task { [weak self] in
-            guard let self else { return }
-
-            let connection = ServerBootstrap.connection()
-            let serverName = connection?.serverName ?? "Unknown"
-            let serverURI = connection?.serverURI.absoluteString ?? "Unknown"
-
-            var libraryItems = [Item]()
-            do {
-                let container = try await api.requestContainer(.sections)
-                guard !Task.isCancelled else { return }
-                for dir in container.Directory ?? [] {
-                    guard let key = dir.key else { continue }
-                    let sectionContainer = try await api.requestContainer(
-                        .sectionItems(sectionId: key, start: 0, size: 0)
-                    )
-                    let count = sectionContainer.totalSize ?? 0
-                    libraryItems.append(.library(key: key, type: dir.type ?? "movie", name: dir.title ?? "Library", count: "\(count) items"))
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-            }
-
-            var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-
-            snapshot.appendSections([.server])
-            snapshot.appendItems([.serverName(serverName), .serverURI(serverURI)], toSection: .server)
-
-            if !libraryItems.isEmpty {
-                snapshot.appendSections([.libraries])
-                snapshot.appendItems(libraryItems, toSection: .libraries)
-            }
-
-            snapshot.appendSections([.playback])
-            snapshot.appendItems([.quality(Preferences.streamingQuality.title)], toSection: .playback)
-
             let usedBytes = await DownloadManager.shared.totalBytesOnDisk()
-            let downloadCount = DownloadManager.shared.items.filter { $0.state == .completed }.count
-            let activeCount = DownloadManager.shared.activeDownloadCount
-            guard !Task.isCancelled else { return }
-            snapshot.appendSections([.downloads])
-            var downloadItems: [Item] = [
-                .downloadQuality(Preferences.downloadQuality.title),
-                .downloadCellular(Preferences.downloadOverCellular),
-                .deleteWatched(Preferences.deleteWatchedDownloads),
-                .downloadsUsage(usedBytes > 0 ? Formatters.fileSize(usedBytes) : "None"),
-            ]
-            let countText = activeCount > 0 ? "\(downloadCount) · \(activeCount) active" : "\(downloadCount)"
-            downloadItems.append(.manageDownloads(countText))
-            if downloadCount > 0 || activeCount > 0 {
-                downloadItems.append(.deleteAllDownloads)
-            }
-            snapshot.appendItems(downloadItems, toSection: .downloads)
-
-            snapshot.appendSections([.activity])
-            snapshot.appendItems([.statistics, .activityHistory], toSection: .activity)
-
-            snapshot.appendSections([.storage])
-            snapshot.appendItems([.clearCache], toSection: .storage)
-
-            snapshot.appendSections([.account])
-            snapshot.appendItems([.signOut], toSection: .account)
-
-            snapshot.appendSections([.about])
-            let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-            snapshot.appendItems([.sourceCode, .appVersion(appVersion)], toSection: .about)
-
-            await dataSource.apply(snapshot, animatingDifferences: false)
+            let cacheBytes = await ImageCacheMeter.totalBytes()
+            guard let self, !Task.isCancelled else { return }
+            storageText = usedBytes > 0 ? Formatters.fileSize(usedBytes) : "None"
+            cacheText = ImageCacheMeter.formatted(cacheBytes)
+            reconfigure([.manageStorage, .clearCache])
         }
+    }
+
+    private func reconfigure(_ items: [Item]) {
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(items.filter { snapshot.indexOfItem($0) != nil })
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    private func configureDataSource() {
+        let cellRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, item in
+            guard let self else { return }
+            cell.accessories = []
+            cell.applyThemedBackground()
+            switch item {
+            case .streamingQuality:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "dial.high", title: "Streaming Quality",
+                    value: Preferences.streamingQuality.title, menu: streamingQualityMenu()
+                )
+            case .skipIntro:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "forward.end", title: "Skip Intro", badge: "NEW",
+                    value: Preferences.skipIntroMode.title, menu: skipIntroMenu()
+                )
+            case .autoplay:
+                toggleRow(cell, symbol: "play", title: "Autoplay Next Episode", isOn: Preferences.autoplayNextEpisode) { newValue in
+                    Preferences.autoplayNextEpisode = newValue
+                }
+            case .downloadQuality:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "arrow.down.circle", title: "Download Quality",
+                    value: Preferences.downloadQuality.title, menu: downloadQualityMenu()
+                )
+            case .downloadCellular:
+                toggleRow(cell, symbol: "cellularbars", title: "Download over Cellular", isOn: Preferences.downloadOverCellular) { newValue in
+                    Preferences.downloadOverCellular = newValue
+                    DownloadManager.shared.cellularPreferenceChanged()
+                }
+            case .deleteWatched:
+                toggleRow(cell, symbol: "trash", title: "Delete Watched Downloads", isOn: Preferences.deleteWatchedDownloads) { newValue in
+                    Preferences.deleteWatchedDownloads = newValue
+                }
+            case .manageStorage:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "internaldrive", title: "Manage Storage", value: storageText)
+                cell.accessories = [.disclosureIndicator()]
+            case .appearance:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "sun.max", title: "Appearance",
+                    value: Preferences.appearance.title, menu: appearanceMenu()
+                )
+            case .libraryGrid:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "square.grid.3x3", title: "Library Grid",
+                    value: "\(Preferences.libraryColumns) Columns", menu: libraryGridMenu()
+                )
+            case .shareLogs:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: "Share Diagnostic Logs")
+                cell.accessories = [.disclosureIndicator()]
+            case .clearCache:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "trash", title: "Clear Image Cache", value: cacheText)
+            case .sourceCode:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "chevron.left.forwardslash.chevron.right", title: "Source Code", value: "GitHub"
+                )
+            case .signOut:
+                var content = UIListContentConfiguration.cell()
+                content.text = "Sign Out"
+                content.textProperties.color = Theme.Color.destructive
+                content.textProperties.font = Theme.Font.headline
+                content.textProperties.alignment = .center
+                content.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+                cell.contentConfiguration = content
+            }
+        }
+        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
+            collectionView.dequeueConfiguredReusableCell(using: cellRegistration, for: indexPath, item: item)
+        }
+
+        let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
+            var content = UIListContentConfiguration.groupedHeader()
+            content.text = self?.dataSource.sectionIdentifier(for: indexPath.section)?.title
+            content.textProperties.transform = .uppercase
+            content.textProperties.font = Theme.Font.footnoteSemibold
+            content.textProperties.color = Theme.Color.labelSecondary
+            cell.contentConfiguration = content
+            cell.accessibilityTraits = .header
+        }
+        let footerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { [weak self] cell, _, indexPath in
+            var content = UIListContentConfiguration.groupedFooter()
+            content.textProperties.font = Theme.Font.caption1Regular
+            content.textProperties.color = Theme.Color.labelSecondary
+            switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
+            case .playback:
+                content.text = "Skip Intro can show a button, skip automatically, or stay out of the way."
+            case .account:
+                content.text = "Crucible \(AboutViewController.versionText) (\(AboutViewController.buildText))"
+                content.textProperties.alignment = .center
+                content.textProperties.color = Theme.Color.labelTertiary
+            default:
+                content.text = nil
+            }
+            cell.contentConfiguration = content
+        }
+        dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
+            if kind == UICollectionView.elementKindSectionHeader {
+                return collectionView.dequeueConfiguredReusableSupplementary(using: headerRegistration, for: indexPath)
+            }
+            return collectionView.dequeueConfiguredReusableSupplementary(using: footerRegistration, for: indexPath)
+        }
+    }
+
+    private func toggleRow(_ cell: UICollectionViewListCell, symbol: String, title: String, isOn: Bool, onChange: @escaping (Bool) -> Void) {
+        var content = IconRowContentConfiguration(symbol: symbol, title: title)
+        content.exposesToAccessibility = false
+        cell.contentConfiguration = content
+        let toggle = UISwitch()
+        toggle.isOn = isOn
+        toggle.onTintColor = Theme.Color.accent
+        toggle.accessibilityLabel = title
+        toggle.addAction(UIAction { [weak toggle] _ in
+            guard let toggle else { return }
+            Haptics.selection()
+            onChange(toggle.isOn)
+        }, for: .valueChanged)
+        cell.accessories = [.customView(configuration: .init(customView: toggle, placement: .trailing(displayed: .always)))]
+    }
+
+    private func streamingQualityMenu() -> UIMenu {
+        let current = Preferences.streamingQuality
+        let actions = Preferences.Quality.allCases.map { quality in
+            UIAction(title: quality.title, state: quality == current ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                Preferences.streamingQuality = quality
+                self?.reconfigure([.streamingQuality])
+            }
+        }
+        return UIMenu(title: "Streaming Quality", children: actions)
+    }
+
+    private func skipIntroMenu() -> UIMenu {
+        let current = Preferences.skipIntroMode
+        let actions = Preferences.SkipIntroMode.allCases.map { mode in
+            UIAction(title: mode.title, state: mode == current ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                Preferences.skipIntroMode = mode
+                self?.reconfigure([.skipIntro])
+            }
+        }
+        return UIMenu(title: "Skip Intro", children: actions)
+    }
+
+    private func downloadQualityMenu() -> UIMenu {
+        let current = Preferences.downloadQuality
+        let actions = DownloadQuality.allCases.map { quality in
+            let action = UIAction(title: quality.title, subtitle: quality.detail, state: quality == current ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                Preferences.downloadQuality = quality
+                self?.reconfigure([.downloadQuality])
+            }
+            return action
+        }
+        return UIMenu(title: "Download Quality", children: actions)
+    }
+
+    private func appearanceMenu() -> UIMenu {
+        let current = Preferences.appearance
+        let actions = Preferences.Appearance.allCases.map { appearance in
+            UIAction(title: appearance.title, state: appearance == current ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                self?.apply(appearance)
+            }
+        }
+        return UIMenu(title: "Appearance", children: actions)
+    }
+
+    private func apply(_ appearance: Preferences.Appearance) {
+        Preferences.appearance = appearance
+        if let window = view.window, !UIAccessibility.isReduceMotionEnabled {
+            UIView.transition(with: window, duration: 0.25, options: .transitionCrossDissolve) {
+                AppearanceController.apply()
+            }
+        } else {
+            AppearanceController.apply()
+        }
+        reconfigure([.appearance])
+    }
+
+    private func libraryGridMenu() -> UIMenu {
+        let current = Preferences.libraryColumns
+        let actions = [2, 3].map { columns in
+            UIAction(title: "\(columns) Columns", state: columns == current ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                Preferences.libraryColumns = columns
+                self?.reconfigure([.libraryGrid])
+            }
+        }
+        return UIMenu(title: "Library Grid", children: actions)
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        dataSource.itemIdentifier(for: indexPath)?.isSelectable ?? false
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-
         switch item {
-        case .library(let key, let type, let name, _):
-            let vc: UIViewController = type == "show"
-                ? ShowGridViewController(api: api, sectionId: key)
-                : MovieGridViewController(api: api, sectionId: key)
-            vc.title = name
-            navigationController?.pushViewController(vc, animated: true)
-
-        case .quality:
-            let sheet = UIAlertController(title: "Streaming Quality", message: "Original direct-plays when the device supports the file; lower settings transcode to save bandwidth.", preferredStyle: .actionSheet)
-            for quality in Preferences.Quality.allCases {
-                let isCurrent = quality == Preferences.streamingQuality
-                sheet.addAction(UIAlertAction(title: isCurrent ? "\(quality.title)  ✓" : quality.title, style: .default) { [weak self] _ in
-                    Preferences.streamingQuality = quality
-                    self?.loadData()
-                })
-            }
-            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            if let popover = sheet.popoverPresentationController, let cell = collectionView.cellForItem(at: indexPath) {
-                popover.sourceView = cell
-                popover.sourceRect = cell.bounds
-            }
-            present(sheet, animated: true)
-
-        case .downloadQuality:
-            let sheet = UIAlertController(title: "Download Quality", message: "Higher quality looks better but uses more storage. Original copies the source file when your device can play it, otherwise it converts to a compatible format.", preferredStyle: .actionSheet)
-            for quality in DownloadQuality.allCases {
-                let isCurrent = quality == Preferences.downloadQuality
-                let title = "\(quality.title) · \(quality.detail)"
-                sheet.addAction(UIAlertAction(title: isCurrent ? "\(title)  ✓" : title, style: .default) { [weak self] _ in
-                    Preferences.downloadQuality = quality
-                    self?.loadData()
-                })
-            }
-            sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            if let popover = sheet.popoverPresentationController, let cell = collectionView.cellForItem(at: indexPath) {
-                popover.sourceView = cell
-                popover.sourceRect = cell.bounds
-            }
-            present(sheet, animated: true)
-
-        case .manageDownloads:
-            let vc = DownloadsViewController(api: api)
-            navigationController?.pushViewController(vc, animated: true)
-
-        case .deleteAllDownloads:
-            let alert = UIAlertController(title: "Delete All Downloads?", message: "This removes every downloaded movie and episode from this device.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Delete All", style: .destructive) { [weak self] _ in
-                DownloadManager.shared.deleteAll()
-                self?.loadData()
-            })
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            present(alert, animated: true)
-
+        case .manageStorage:
+            tabBarController?.selectedIndex = 2
+        case .shareLogs:
+            shareLogs(from: collectionView.cellForItem(at: indexPath))
         case .clearCache:
-            Task { await ImageLoader.shared.clearCache() }
-            let alert = UIAlertController(title: "Image Cache Cleared", message: nil, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            present(alert, animated: true)
-
+            confirmClearCache()
         case .sourceCode:
-            if let url = URL(string: "https://github.com/guitaripod/Crucible") {
+            if let url = AboutViewController.sourceURL {
                 UIApplication.shared.open(url)
             }
-
-        case .statistics:
-            let vc = StatisticsViewController(api: api)
-            navigationController?.pushViewController(vc, animated: true)
-
-        case .activityHistory:
-            let vc = ActivityHistoryViewController(api: api)
-            navigationController?.pushViewController(vc, animated: true)
-
         case .signOut:
-            let alert = UIAlertController(title: "Sign Out", message: "Are you sure you want to sign out?", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.handleSignOut()
-                StatsManager.shared.handleSignOut()
-                HomeSnapshotStore.destroy()
-                Task { await ImageLoader.shared.clearCache() }
-                ServerBootstrap.clear()
-                if let scene = view.window?.windowScene?.delegate as? SceneDelegate {
-                    scene.reconfigureRoot()
-                }
-            })
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            present(alert, animated: true)
-
+            confirmSignOut()
         default:
             break
         }
+    }
+
+    private func shareLogs(from source: UIView?) {
+        Task { [weak self] in
+            let url = await DiagnosticLogExporter.export()
+            guard let self else { return }
+            guard let url else {
+                let alert = UIAlertController(title: "No Logs Yet", message: "There are no diagnostic logs to share.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+                return
+            }
+            let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            activity.completionWithItemsHandler = { _, _, _, _ in
+                try? FileManager.default.removeItem(at: url)
+            }
+            activity.popoverPresentationController?.sourceView = source ?? view
+            activity.popoverPresentationController?.sourceRect = source?.bounds ?? .zero
+            present(activity, animated: true)
+        }
+    }
+
+    private func confirmClearCache() {
+        let alert = UIAlertController(
+            title: "Clear Image Cache?",
+            message: "Posters and backdrops will be downloaded again as you browse.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Clear", style: .destructive) { [weak self] _ in
+            Task { [weak self] in
+                await ImageLoader.shared.clearCache()
+                Haptics.success()
+                self?.loadSizes()
+            }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    private func confirmSignOut() {
+        let alert = UIAlertController(title: "Sign Out", message: "Are you sure you want to sign out?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
+            guard let self else { return }
+            DownloadManager.shared.handleSignOut()
+            StatsManager.shared.handleSignOut()
+            HomeSnapshotStore.destroy()
+            Task { await ImageLoader.shared.clearCache() }
+            ServerBootstrap.clear()
+            if let scene = view.window?.windowScene?.delegate as? SceneDelegate {
+                scene.reconfigureRoot()
+            }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
     }
 }
