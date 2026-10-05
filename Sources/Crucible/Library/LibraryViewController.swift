@@ -1,28 +1,28 @@
 import UIKit
 
-/// Implemented by `LibraryViewController` so embedded grid view controllers can publish their
-/// options state into the shared bottom action bar.
-@MainActor
-struct LibraryActionBarConfig {
-    let optionsMenu: UIMenu
-    let optionsIcon: UIImage?
-    let onBrowseFolders: () -> Void
-}
+final class LibraryViewController: UIViewController, LibraryGridHosting {
+    private struct Library {
+        let title: String
+        let kind: LibraryGridKind
+        let grid: LibraryGridViewController
+    }
 
-@MainActor
-protocol LibrarySectionsProviding: AnyObject {
-    func updateActionBar(_ config: LibraryActionBarConfig)
-}
-
-final class LibraryViewController: UIViewController, LibrarySectionsProviding {
     private let api: APIClient
-    private var titles: [String] = []
-    private var sectionVCs: [UIViewController] = []
+    private var libraries: [Library] = []
     private var currentIndex = 0
-    private var currentChild: UIViewController?
+    private var currentChild: LibraryGridViewController?
     private var loadTask: Task<Void, Never>?
-    private let actionBar = LibraryActionBarView()
     private var preloaded: PlexMediaContainer?
+
+    private lazy var optionsItem: UIBarButtonItem = {
+        let item = UIBarButtonItem(image: LibraryGridOptions.optionsImage(filtering: false), menu: nil)
+        item.accessibilityLabel = "Sort and Filter"
+        return item
+    }()
+
+    private lazy var gridSizeItem = LibraryGridSizeMenu.barButtonItem { [weak self] in
+        self?.libraries.forEach { $0.grid.reloadGridLayout() }
+    }
 
     init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
@@ -33,12 +33,15 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit { loadTask?.cancel() }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Library"
-        view.backgroundColor = .systemBackground
-        view.addSubview(actionBar)
-        actionBar.isHidden = true
+        view.backgroundColor = Theme.Color.canvas
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .always
+        navigationItem.backButtonDisplayMode = .minimal
         if let preloaded {
             self.preloaded = nil
             install(sections: preloaded)
@@ -47,50 +50,15 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
         }
     }
 
-    func updateActionBar(_ config: LibraryActionBarConfig) {
-        actionBar.setOptions(menu: config.optionsMenu, icon: config.optionsIcon)
-        actionBar.setFolderAction(config.onBrowseFolders)
-        actionBar.isHidden = currentChild == nil
-        layoutActionBar()
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        layoutActionBar()
-    }
-
-
-    private func layoutActionBar() {
-        guard !actionBar.isHidden else {
-            if additionalSafeAreaInsets.bottom != 0 {
-                additionalSafeAreaInsets.bottom = 0
-            }
-            return
-        }
-        let systemBottom = view.safeAreaInsets.bottom - additionalSafeAreaInsets.bottom
-        let contentBottom = view.bounds.height - systemBottom
-        let tabBarTop: CGFloat
-        if let tabBar = tabBarController?.tabBar {
-            tabBarTop = view.convert(tabBar.bounds, from: tabBar).minY
-        } else {
-            tabBarTop = view.bounds.height
-        }
-        let width = min(view.bounds.width - 32, 540)
-        actionBar.frame = CGRect(
-            x: (view.bounds.width - width) / 2,
-            y: tabBarTop - 8 - LibraryActionBarView.height,
-            width: width,
-            height: LibraryActionBarView.height
-        )
-        view.bringSubviewToFront(actionBar)
-        let targetInset = max(0, actionBar.frame.minY - contentBottom + 8)
-        if additionalSafeAreaInsets.bottom != targetInset {
-            additionalSafeAreaInsets.bottom = targetInset
-        }
+    func libraryGridDidUpdateOptions(_ grid: LibraryGridViewController) {
+        guard grid === currentChild else { return }
+        optionsItem.menu = grid.optionsMenu()
+        optionsItem.image = LibraryGridOptions.optionsImage(filtering: grid.isFiltering)
     }
 
     private func loadSections() {
-        contentUnavailableConfiguration = nil
+        contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+        loadTask?.cancel()
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -106,32 +74,23 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
     }
 
     private func install(sections container: PlexMediaContainer) {
-        var titles = [String]()
-        var vcs = [UIViewController]()
-
-        for dir in container.Directory ?? [] {
+        contentUnavailableConfiguration = nil
+        libraries = (container.Directory ?? []).compactMap { dir in
+            guard let key = dir.key else { return nil }
             switch dir.type {
             case "movie":
-                guard let key = dir.key else { continue }
-                titles.append(dir.title ?? "Movies")
-                vcs.append(MovieGridViewController(api: api, sectionId: key))
+                return Library(title: dir.title ?? "Movies", kind: .movie, grid: MovieGridViewController(api: api, sectionId: key))
             case "show":
-                guard let key = dir.key else { continue }
-                titles.append(dir.title ?? "Shows")
-                vcs.append(ShowGridViewController(api: api, sectionId: key))
+                return Library(title: dir.title ?? "TV Shows", kind: .show, grid: ShowGridViewController(api: api, sectionId: key))
             default:
-                continue
+                return nil
             }
         }
-
-        self.titles = titles
-        self.sectionVCs = vcs
-        self.currentIndex = 0
-        configureNavTitle()
-        AppLogger.info("Library sections loaded: \(titles.joined(separator: ", "))", .ui)
-
-        if let first = vcs.first {
-            showChild(first)
+        currentIndex = 0
+        AppLogger.info("Library sections loaded: \(libraries.map(\.title).joined(separator: ", "))", .ui)
+        configureNavigation()
+        if let first = libraries.first {
+            showChild(first.grid)
         } else {
             showEmptyState()
         }
@@ -148,62 +107,78 @@ final class LibraryViewController: UIViewController, LibrarySectionsProviding {
     private func showErrorState(_ error: Error) {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "exclamationmark.triangle")
-        config.text = "Couldn't Load Libraries"
+        config.text = "Couldn’t Load Libraries"
         config.secondaryText = ConnectionError.message(for: error)
-        var button = UIButton.Configuration.filled()
-        button.title = "Retry"
-        config.button = button
+        config.button = ThemeButton.primaryConfiguration(title: "Retry")
         config.buttonProperties.primaryAction = UIAction { [weak self] _ in
-            guard let self else { return }
-            contentUnavailableConfiguration = nil
-            loadSections()
+            self?.loadSections()
         }
         contentUnavailableConfiguration = config
     }
 
-    private func configureNavTitle() {
-        title = titles.indices.contains(currentIndex) ? titles[currentIndex] : "Library"
-        updateSwitcherButton()
-        AppLogger.info("Library nav: \(titles.count) libraries", .ui)
+    /// The library name is the large title and doubles as the switcher: the system title menu lists
+    /// every library plus folder browsing.
+    private func configureNavigation() {
+        title = libraries.indices.contains(currentIndex) ? libraries[currentIndex].title : "Library"
+        guard !libraries.isEmpty else {
+            navigationItem.titleMenuProvider = nil
+            navigationItem.rightBarButtonItems = nil
+            return
+        }
+        navigationItem.titleMenuProvider = { [weak self] _ in
+            self?.libraryMenu()
+        }
+        navigationItem.rightBarButtonItems = [optionsItem, gridSizeItem]
     }
 
-    private func updateSwitcherButton() {
-        let name = titles.indices.contains(currentIndex) ? titles[currentIndex] : "Library"
-        actionBar.setSwitcher(title: name, menu: UIMenu(children: titles.enumerated().map { index, library in
-            UIAction(title: library, state: index == currentIndex ? .on : .off) { [weak self] _ in
+    private func libraryMenu() -> UIMenu {
+        let switcher = libraries.enumerated().map { index, library in
+            UIAction(
+                title: library.title,
+                image: UIImage(systemName: library.kind == .movie ? "film" : "tv"),
+                state: index == currentIndex ? .on : .off
+            ) { [weak self] _ in
                 self?.selectLibrary(index)
             }
-        }))
+        }
+        let folders = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
+            self?.currentChild?.openFolderBrowser()
+        }
+        return UIMenu(children: [
+            UIMenu(options: .displayInline, children: switcher),
+            UIMenu(options: .displayInline, children: [folders]),
+        ])
     }
 
     private func selectLibrary(_ index: Int) {
-        guard index >= 0, index < sectionVCs.count, index != currentIndex else { return }
-        AppLogger.info("Library switch -> \(titles[index])", .ui)
+        guard libraries.indices.contains(index), index != currentIndex else { return }
+        AppLogger.info("Library switch -> \(libraries[index].title)", .ui)
+        Haptics.selection()
         currentIndex = index
-        configureNavTitle()
-        showChild(sectionVCs[index])
+        configureNavigation()
+        showChild(libraries[index].grid)
     }
 
-    private func showChild(_ child: UIViewController) {
+    private func showChild(_ child: LibraryGridViewController) {
         let old = currentChild
-
+        currentChild = child
         addChild(child)
         child.view.frame = view.bounds
         child.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        setContentScrollView(child.collectionView, for: [.top, .bottom])
+        libraryGridDidUpdateOptions(child)
 
-        if let old {
-            old.willMove(toParent: nil)
-            transition(from: old, to: child, duration: 0.2, options: .transitionCrossDissolve) {
-                child.view.frame = self.view.bounds
-            } completion: { _ in
-                old.removeFromParent()
-                child.didMove(toParent: self)
-            }
-        } else {
+        guard let old, old !== child else {
             view.addSubview(child.view)
             child.didMove(toParent: self)
+            return
         }
-
-        currentChild = child
+        old.willMove(toParent: nil)
+        transition(from: old, to: child, duration: 0.2, options: .transitionCrossDissolve) {
+            child.view.frame = self.view.bounds
+        } completion: { _ in
+            old.removeFromParent()
+            child.didMove(toParent: self)
+        }
     }
 }

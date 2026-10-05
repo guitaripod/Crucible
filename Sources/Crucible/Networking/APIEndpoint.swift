@@ -7,8 +7,9 @@ enum PlexEndpoint: Sendable {
 
     case identity
     case sections
-    case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50)
+    case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50, unwatched: Bool = false, inProgress: Bool = false)
     case sectionGenres(sectionId: String)
+    case sectionFirstCharacter(sectionId: String)
     case sectionFolder(sectionId: String)
     case folderPath(String)
     case metadata(ratingKey: String)
@@ -74,8 +75,10 @@ enum PlexEndpoint: Sendable {
             return "/library/sections/\(sectionId)/folder"
         case .folderPath(let path):
             return path
-        case .sectionItems(let sectionId, _, _, _, _):
+        case .sectionItems(let sectionId, _, _, _, _, _, _):
             return "/library/sections/\(sectionId)/all"
+        case .sectionFirstCharacter(let sectionId):
+            return "/library/sections/\(sectionId)/firstCharacter"
         case .sectionGenres(let sectionId):
             return "/library/sections/\(sectionId)/genre"
         case .metadata(let ratingKey):
@@ -122,13 +125,15 @@ enum PlexEndpoint: Sendable {
                 URLQueryItem(name: "includeHttps", value: "1"),
                 URLQueryItem(name: "includeRelay", value: "1"),
             ]
-        case .sectionItems(_, let sort, let genre, let start, let size):
+        case .sectionItems(_, let sort, let genre, let start, let size, let unwatched, let inProgress):
             var items = [
                 URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
                 URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
             ]
             if let sort { items.append(URLQueryItem(name: "sort", value: sort)) }
             if let genre { items.append(URLQueryItem(name: "genre", value: genre)) }
+            if unwatched { items.append(URLQueryItem(name: "unwatched", value: "1")) }
+            if inProgress { items.append(URLQueryItem(name: "inProgress", value: "1")) }
             return items
         case .hubs(let count):
             return [URLQueryItem(name: "count", value: "\(count)")]
