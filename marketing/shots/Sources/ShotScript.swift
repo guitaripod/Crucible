@@ -98,13 +98,24 @@ enum ShotScript {
         let coordinator = Theme.quickPlay(api: api, item: item, from: tabBar)
         _ = coordinator
         await ShotHarness.settle(5)
+        let debugPath = "\(ShotHarness.signalDirectory)/player-debug.txt"
+        var debug = "presented: \(String(describing: tabBar.presentedViewController))\n"
         if let scene = tabBar.view.window?.windowScene {
             scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
-                NSLog("geometry update failed: \(error)")
+                try? "geometry error: \(error)".write(toFile: debugPath + ".err", atomically: true, encoding: .utf8)
             }
+            debug += "scene orientation: \(scene.interfaceOrientation.rawValue)\n"
         }
+        tabBar.presentedViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        tabBar.setNeedsUpdateOfSupportedInterfaceOrientations()
         await ShotHarness.settle(26)
-        (tabBar.presentedViewController as? AVPlayerViewController)?.player?.pause()
+        if let player = tabBar.presentedViewController as? AVPlayerViewController {
+            player.player?.pause()
+            player.showsPlaybackControls = false
+            player.showsPlaybackControls = true
+        }
+        debug += "after: \(tabBar.view.window?.windowScene?.interfaceOrientation.rawValue ?? -1) bounds \(tabBar.view.window?.bounds ?? .zero)\n"
+        try? debug.write(toFile: debugPath, atomically: true, encoding: .utf8)
         await ShotHarness.settle(1.5)
         await ShotHarness.capture("09-player")
         withExtendedLifetime(coordinator) {}
