@@ -27,10 +27,11 @@ xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --ba
 
 perl -0pi -e 's/let iosStamp: \[LinkerSetting\] = \[.*?\n\]\n/let iosStamp: [LinkerSetting] = []\n/s' Package.swift
 sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
+sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
 
 xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
   -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
-  CODE_SIGNING_ALLOWED=NO build > /tmp/crucible-xcodebuild.log 2>&1 || { tail -40 /tmp/crucible-xcodebuild.log; exit 1; }
+  build > /tmp/crucible-xcodebuild.log 2>&1 || { tail -40 /tmp/crucible-xcodebuild.log; exit 1; }
 
 APP=$ROOT/.dd/Build/Products/Debug-iphonesimulator/CrucibleShots.app
 xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
