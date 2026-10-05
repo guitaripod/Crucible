@@ -116,11 +116,14 @@ final class LandscapeContentView: UIView, UIContentView {
         let aspect = cardView.heightAnchor.constraint(equalTo: cardView.widthAnchor, multiplier: 9.0 / 16.0)
         aspect.priority = UILayoutPriority(999)
 
+        let bottomPin = mainStack.bottomAnchor.constraint(equalTo: bottomAnchor)
+        bottomPin.priority = UILayoutPriority(999)
+
         NSLayoutConstraint.activate([
             mainStack.topAnchor.constraint(equalTo: topAnchor),
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            mainStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
+            bottomPin,
             aspect,
 
             imageView.topAnchor.constraint(equalTo: cardView.topAnchor),

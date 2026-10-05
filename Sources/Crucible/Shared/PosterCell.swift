@@ -138,11 +138,14 @@ final class PosterContentView: UIView, UIContentView {
         let heightConstraint = cardView.heightAnchor.constraint(equalTo: cardView.widthAnchor, multiplier: Theme.Size.posterAspect)
         heightConstraint.priority = UILayoutPriority(999)
 
+        let bottomPin = mainStack.bottomAnchor.constraint(equalTo: bottomAnchor)
+        bottomPin.priority = UILayoutPriority(999)
+
         NSLayoutConstraint.activate([
             mainStack.topAnchor.constraint(equalTo: topAnchor),
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            mainStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor),
+            bottomPin,
             heightConstraint,
 
             imageView.topAnchor.constraint(equalTo: cardView.topAnchor),
