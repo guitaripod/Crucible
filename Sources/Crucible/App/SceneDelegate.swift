@@ -30,6 +30,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneWillEnterForeground(_ scene: UIScene) {
         DownloadManager.shared.handleEnteredForeground()
+        AutoDownloadPolicy.shared.evaluateOnForeground()
     }
 
     private func route(_ activity: NSUserActivity) {
