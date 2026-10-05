@@ -517,6 +517,8 @@ struct PlexResource: Decodable, Sendable {
     let provides: String
     let clientIdentifier: String
     let owned: Bool?
+    let presence: Bool?
+    let lastSeenAt: String?
     let connections: [PlexResourceConnection]
 }
 
