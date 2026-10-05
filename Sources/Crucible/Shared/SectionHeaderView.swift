@@ -49,7 +49,7 @@ final class SectionHeaderContentView: UIView, UIContentView {
 
         let stack = UIStackView(arrangedSubviews: [titleLabel, actionButton])
         stack.axis = .horizontal
-        stack.alignment = .firstBaseline
+        stack.alignment = .center
         stack.spacing = Theme.Space.s
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
