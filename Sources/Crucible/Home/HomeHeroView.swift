@@ -72,6 +72,7 @@ final class HomeHeroContentView: UIView, UIContentView {
     init(configuration: HomeHeroConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: HomeHeroContentView, _: UITraitCollection) in

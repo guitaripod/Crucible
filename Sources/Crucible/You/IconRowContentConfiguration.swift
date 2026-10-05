@@ -38,6 +38,7 @@ final class IconRowContentView: UIView, UIContentView {
     init(configuration: IconRowContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

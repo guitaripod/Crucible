@@ -37,6 +37,7 @@ final class LibraryHeaderContentView: UIView, UIContentView {
     init(configuration: LibraryHeaderConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }

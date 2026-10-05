@@ -36,6 +36,7 @@ final class HistoryRowContentView: UIView, UIContentView {
     init(configuration: HistoryRowConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         posterView.contentMode = .scaleAspectFill
         posterView.clipsToBounds = true
@@ -137,6 +138,7 @@ final class HistoryControlsContentView: UIView, UIContentView {
     init(configuration: HistoryControlsConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         summaryLabel.font = Theme.Font.footnote
         summaryLabel.textColor = Theme.Color.labelSecondary

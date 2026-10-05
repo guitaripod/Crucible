@@ -374,6 +374,7 @@ final class OfflineBannerContentView: UIView, UIContentView {
         self.configuration = configuration
         self.onRetry = configuration.onRetry
         super.init(frame: .zero)
+        preferContentHeight()
 
         let glass = Glass.effectView(fallback: .systemThinMaterial)
         glass.layer.cornerRadius = 20
@@ -479,6 +480,7 @@ final class OfflinePosterContentView: UIView, UIContentView {
     init(configuration: OfflinePosterConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: OfflinePosterContentView, _: UITraitCollection) in

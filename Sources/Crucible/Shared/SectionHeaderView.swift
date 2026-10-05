@@ -35,6 +35,7 @@ final class SectionHeaderContentView: UIView, UIContentView {
     init(configuration: SectionHeaderConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         titleLabel.font = Theme.Font.title3
         titleLabel.adjustsFontForContentSizeCategory = true

@@ -64,6 +64,7 @@ final class PosterContentView: UIView, UIContentView {
     init(configuration: PosterContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: PosterContentView, _: UITraitCollection) in

@@ -41,6 +41,7 @@ final class DetailActionsContentView: UIView, UIContentView {
     init(configuration: DetailActionsConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         primaryButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
         primaryButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -158,6 +159,7 @@ final class DetailProgressContentView: UIView, UIContentView {
     init(configuration: DetailProgressConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         bar.style = .onSurface
         bar.setContentHuggingPriority(.defaultLow, for: .horizontal)
         label.font = Theme.Font.caption1Regular
@@ -225,6 +227,7 @@ final class DetailPillsContentView: UIView, UIContentView {
     init(configuration: DetailPillsConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         stack.axis = .horizontal
         stack.alignment = .center
         stack.spacing = 10
@@ -296,6 +299,7 @@ final class DetailTracksContentView: UIView, UIContentView {
     init(configuration: DetailTracksConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         let stack = UIStackView(arrangedSubviews: [audioButton, subtitleButton])
         stack.axis = .horizontal
         stack.distribution = .fillEqually
@@ -388,6 +392,7 @@ final class DetailOverviewContentView: UIView, UIContentView {
     init(configuration: DetailOverviewConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         label.adjustsFontForContentSizeCategory = true
         label.lineBreakMode = .byTruncatingTail
 
@@ -463,6 +468,7 @@ final class DetailChipsContentView: UIView, UIContentView {
     init(configuration: DetailChipsConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.alwaysBounceHorizontal = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -568,6 +574,7 @@ final class DetailFactContentView: UIView, UIContentView {
     init(configuration: DetailFactConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         hairline.backgroundColor = Theme.Color.separator
         hairline.translatesAutoresizingMaskIntoConstraints = false
         keyLabel.adjustsFontForContentSizeCategory = true
@@ -634,6 +641,7 @@ final class DetailSeasonBarContentView: UIView, UIContentView {
     init(configuration: DetailSeasonBarConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         seasonButton.showsMenuAsPrimaryAction = true
         seasonButton.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         seasonButton.setContentHuggingPriority(.required, for: .horizontal)

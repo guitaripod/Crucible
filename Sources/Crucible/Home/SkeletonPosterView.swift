@@ -82,6 +82,7 @@ final class HomeSkeletonContentView: UIView, UIContentView {
     init(configuration: HomeSkeletonConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         clipsToBounds = true
         isAccessibilityElement = true
         accessibilityLabel = "Loading"

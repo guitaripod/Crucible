@@ -360,6 +360,7 @@ final class DownloadRowView: UIView, UIContentView {
     init(configuration: DownloadRowConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

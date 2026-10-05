@@ -50,6 +50,7 @@ final class EpisodeContentView: UIView, UIContentView {
     init(configuration: EpisodeContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }

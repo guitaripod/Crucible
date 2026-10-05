@@ -42,6 +42,7 @@ final class LandscapeContentView: UIView, UIContentView {
     init(configuration: LandscapeContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: LandscapeContentView, _: UITraitCollection) in

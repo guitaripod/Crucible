@@ -137,6 +137,7 @@ final class YouYearCardContentView: UIView, UIContentView {
     init(configuration: YouYearCardContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

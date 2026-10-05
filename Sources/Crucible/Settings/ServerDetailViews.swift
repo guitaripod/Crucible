@@ -65,6 +65,7 @@ final class ServerCardContentView: UIView, UIContentView {
     init(configuration: ServerCardConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         let well = SymbolWellView(symbol: "server.rack", size: 48, cornerRadius: 14, pointSize: 24)
 
@@ -151,6 +152,7 @@ final class RouteRowContentView: UIView, UIContentView {
     init(configuration: RouteRowConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         kindLabel.font = Theme.Font.scaled(.body, 16, .semibold)
         kindLabel.textColor = Theme.Color.label
@@ -245,6 +247,7 @@ final class ActionRowContentView: UIView, UIContentView {
     init(configuration: ActionRowConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         titleLabel.numberOfLines = 0
         titleLabel.adjustsFontForContentSizeCategory = true
@@ -305,6 +308,7 @@ final class TestButtonContentView: UIView, UIContentView {
     init(configuration: TestButtonConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         button.addAction(UIAction { [weak self] _ in self?.action() }, for: .primaryActionTriggered)
         button.translatesAutoresizingMaskIntoConstraints = false
         addSubview(button)

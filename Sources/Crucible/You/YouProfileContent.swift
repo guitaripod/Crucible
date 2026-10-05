@@ -68,6 +68,7 @@ final class YouProfileContentView: UIView, UIContentView {
     init(configuration: YouProfileContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

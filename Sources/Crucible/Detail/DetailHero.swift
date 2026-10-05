@@ -160,6 +160,7 @@ final class DetailHeroContentView: UIView, UIContentView {
     init(configuration: DetailHeroConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         eyebrowLabel.adjustsFontForContentSizeCategory = true
         eyebrowLabel.numberOfLines = 1

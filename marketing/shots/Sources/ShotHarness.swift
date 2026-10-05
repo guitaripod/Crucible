@@ -35,6 +35,13 @@ enum ShotHarness {
             .init(ratingKey: "4013", state: .paused, progress: 0.64, watched: 0, gigabytes: 1.3, ageDays: 0.1),
         ])
 
+        if environment["CRUCIBLE_PROBE"] == "1" {
+            NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { LayoutProbe.run() }
+            }
+            return
+        }
+
         var started = false
         NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated {

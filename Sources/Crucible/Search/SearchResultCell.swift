@@ -108,6 +108,7 @@ final class TopResultContentView: UIView, UIContentView {
     init(configuration: TopResultConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }
@@ -336,6 +337,7 @@ final class SearchEpisodeContentView: UIView, UIContentView {
     init(configuration: SearchEpisodeConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }
@@ -458,6 +460,7 @@ final class SearchGenreContentView: UIView, UIContentView {
     init(configuration: SearchGenreConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }
@@ -539,6 +542,7 @@ final class SearchChipContentView: UIView, UIContentView {
     init(configuration: SearchChipConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }
@@ -626,6 +630,7 @@ final class SearchHeaderContentView: UIView, UIContentView {
     init(configuration: SearchHeaderConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
 
         titleLabel.font = Theme.Font.title3
         titleLabel.adjustsFontForContentSizeCategory = true

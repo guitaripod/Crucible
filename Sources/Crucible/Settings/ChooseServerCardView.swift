@@ -33,6 +33,7 @@ final class ChooseServerCardView: UIView, UIContentView {
     init(configuration: ChooseServerCardConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         buildHierarchy()
         apply()
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: ChooseServerCardView, _: UITraitCollection) in

@@ -106,6 +106,7 @@ final class StorageSummaryView: UIView, UIContentView {
     init(configuration: StorageSummaryConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

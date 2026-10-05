@@ -41,6 +41,7 @@ final class CastContentView: UIView, UIContentView {
     init(configuration: CastContentConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }

@@ -33,6 +33,7 @@ final class HomeWeekContentView: UIView, UIContentView {
     init(configuration: HomeWeekConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: HomeWeekContentView, _: UITraitCollection) in
