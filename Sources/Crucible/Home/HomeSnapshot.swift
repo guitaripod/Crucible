@@ -19,6 +19,8 @@ struct HomeCardSnapshot: Codable, Sendable {
     let duration: Int?
     let viewCount: Int?
     let bucket: String
+    var art: String? = nil
+    var grandparentArt: String? = nil
 }
 
 struct HomeSnapshot: Codable, Sendable {

@@ -144,12 +144,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
         ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken, machineIdentifier: connection.machineIdentifier)
         DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
-        let downloads = DownloadsViewController(api: api)
-        downloads.closeItem = UIBarButtonItem(
-            systemItem: .close,
-            primaryAction: UIAction { [weak gate] _ in gate?.dismiss(animated: true) }
-        )
-        let nav = UINavigationController(rootViewController: downloads)
+        let offlineHome = OfflineHomeViewController(api: api, connection: connection)
+        let nav = UINavigationController(rootViewController: offlineHome)
         nav.modalPresentationStyle = .fullScreen
         gate.present(nav, animated: true)
     }
