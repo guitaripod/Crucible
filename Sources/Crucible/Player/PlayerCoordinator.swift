@@ -6,7 +6,6 @@ import os
 @MainActor
 final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
-    private static let skipActionIdentifier = UIAction.Identifier("crucible.skip")
     private static weak var resolvingCoordinator: PlayerCoordinator?
 
     struct Metadata: Sendable {
@@ -55,7 +54,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var lastPlayhead: Double = 0
     private var lastOfflineWrite: Double = 0
     private var markers: [PlexMarker] = []
-    private var skipButton: UIButton?
+    private var skipPill: SkipPillView?
+    private var skipToast: SkipToastView?
+    private var autoSkippedMarkers: Set<Double> = []
     private var upNextTriggered = false
     private var remoteCommandsConfigured = false
     private var isInPiP = false
@@ -446,52 +447,77 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             showUpNext(dismissIfLast: false)
         }
 
+        let mode = Preferences.skipIntroMode
         let active = markers.first { absolute >= $0.startSecs && absolute < $0.endSecs - 1 }
-        guard let active, upNextOverlay == nil else {
+        guard mode != .off, let active, upNextOverlay == nil else {
             removeSkipButton()
             return
         }
-        showSkipButton(title: active.isCredits ? "Skip Credits" : "Skip Intro", target: active.endSecs)
+        if mode == .automatic, !active.isCredits, !autoSkippedMarkers.contains(active.startSecs) {
+            autoSkip(active, from: absolute)
+            return
+        }
+        guard skipToast == nil else {
+            removeSkipButton()
+            return
+        }
+        showSkipButton(for: active, absolute: absolute)
     }
 
-    private func showSkipButton(title: String, target: Double) {
+    /// Jumps past an intro the first time its marker starts and offers a few seconds to undo it.
+    private func autoSkip(_ marker: PlexMarker, from absolute: Double) {
+        autoSkippedMarkers.insert(marker.startSecs)
+        removeSkipButton()
+        Haptics.light()
+        seekToAbsolute(marker.endSecs)
+        showSkipToast(returningTo: absolute)
+    }
+
+    private func showSkipToast(returningTo position: Double) {
         guard let host = playerVC?.contentOverlayView else { return }
-        let button: UIButton
-        if let existing = skipButton {
-            button = existing
-        } else {
-            var config = Glass.prominentButton {
-                var fallback = UIButton.Configuration.filled()
-                fallback.baseBackgroundColor = UIColor.black.withAlphaComponent(0.55)
-                fallback.baseForegroundColor = .white
-                return fallback
-            }
-            config.cornerStyle = .capsule
-            config.image = UIImage(systemName: "forward.end.fill")
-            config.imagePadding = 6
-            let created = UIButton(configuration: config)
-            created.tintColor = .white
-            created.translatesAutoresizingMaskIntoConstraints = false
-            host.addSubview(created)
-            NSLayoutConstraint.activate([
-                created.trailingAnchor.constraint(equalTo: host.safeAreaLayoutGuide.trailingAnchor, constant: -28),
-                created.bottomAnchor.constraint(equalTo: host.safeAreaLayoutGuide.bottomAnchor, constant: -90),
-            ])
-            skipButton = created
-            button = created
-        }
-        button.configuration?.title = title
-        button.removeAction(identifiedBy: Self.skipActionIdentifier, for: .primaryActionTriggered)
-        button.addAction(
-            UIAction(identifier: Self.skipActionIdentifier) { [weak self] _ in self?.seekToAbsolute(target) },
-            for: .primaryActionTriggered
+        removeSkipToast(animated: false)
+        let toast = SkipToastView(
+            message: "Skipped intro",
+            onUndo: { [weak self] in
+                Haptics.light()
+                self?.removeSkipToast(animated: true)
+                self?.seekToAbsolute(position)
+            },
+            onExpire: { [weak self] in self?.removeSkipToast(animated: true) }
         )
-        button.isHidden = false
+        toast.present(in: host)
+        skipToast = toast
+    }
+
+    private func removeSkipToast(animated: Bool) {
+        skipToast?.dismiss(animated: animated)
+        skipToast = nil
+    }
+
+    private func showSkipButton(for marker: PlexMarker, absolute: Double) {
+        guard let host = playerVC?.contentOverlayView else { return }
+        let title = marker.isCredits ? "Skip Credits" : "Skip Intro"
+        let span = marker.endSecs - marker.startSecs
+        let progress = span > 0 ? (absolute - marker.startSecs) / span : 0
+        let pill: SkipPillView
+        if let existing = skipPill {
+            pill = existing
+        } else {
+            pill = SkipPillView()
+            pill.present(in: host)
+            skipPill = pill
+        }
+        let target = marker.endSecs
+        pill.onTap = { [weak self] in
+            Haptics.light()
+            self?.seekToAbsolute(target)
+        }
+        pill.update(title: title, accessibilityTitle: title, progress: progress)
     }
 
     private func removeSkipButton() {
-        skipButton?.removeFromSuperview()
-        skipButton = nil
+        skipPill?.dismiss(animated: true)
+        skipPill = nil
     }
 
     private func seekToAbsolute(_ target: Double) {
@@ -696,21 +722,19 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             Task { await dismissPlayer() }
             return
         }
+        removeSkipToast(animated: false)
         let overlay = UpNextOverlayView(
-            episodeCode: Formatters.episodeCode(next.parentIndex, next.index),
-            episodeTitle: next.title,
+            content: UpNextOverlayView.Content(
+                seasonNumber: next.parentIndex,
+                episodeNumber: next.index,
+                episodeTitle: next.title,
+                thumbPath: next.thumb,
+                autoplays: Preferences.autoplayNextEpisode
+            ),
             onPlayNext: { [weak self] in self?.playNext(next, seasonRatingKey: seasonRatingKey) },
             onDismiss: { [weak self] in Task { await self?.dismissPlayer() } }
         )
-        overlay.translatesAutoresizingMaskIntoConstraints = false
-        host.addSubview(overlay)
-        NSLayoutConstraint.activate([
-            overlay.trailingAnchor.constraint(equalTo: host.safeAreaLayoutGuide.trailingAnchor, constant: -24),
-            overlay.bottomAnchor.constraint(equalTo: host.safeAreaLayoutGuide.bottomAnchor, constant: -24),
-            overlay.widthAnchor.constraint(lessThanOrEqualToConstant: 360),
-            overlay.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
-            overlay.leadingAnchor.constraint(greaterThanOrEqualTo: host.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-        ])
+        overlay.present(in: host)
         upNextOverlay = overlay
         overlay.startCountdown()
     }
@@ -718,7 +742,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func flushPendingUpNext() {
         guard let pending = pendingUpNext, !isFinishing else { return }
         pendingUpNext = nil
-        if pending.playbackEnded {
+        if pending.playbackEnded, Preferences.autoplayNextEpisode {
             playNext(pending.next, seasonRatingKey: pending.seasonRatingKey)
         } else {
             presentUpNext(next: pending.next, seasonRatingKey: pending.seasonRatingKey, playbackEnded: false)
@@ -833,7 +857,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             offlineFinalPosition = nil
         }
         removeUpNextOverlay()
-        removeSkipButton()
+        skipPill?.dismiss(animated: false)
+        skipPill = nil
+        removeSkipToast(animated: false)
         tearDownRemoteCommands()
         pendingUpNext = nil
 
