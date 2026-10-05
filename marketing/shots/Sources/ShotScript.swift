@@ -16,6 +16,11 @@ enum ShotScript {
         await ShotHarness.capture("02-library")
         await ShotHarness.settle(5)
         await ShotHarness.capture("02b-library-settled")
+        let library = navigation(tabBar)
+        library?.pushViewController(RecentlyWatchedGridViewController(api: api, sectionId: "1", kind: .movie, items: []), animated: false)
+        await ShotHarness.settle(3)
+        await ShotHarness.capture("02c-library-recent-all")
+        library?.popViewController(animated: false)
 
         tabBar.selectedIndex = 0
         await ShotHarness.settle(1)

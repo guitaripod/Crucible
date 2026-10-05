@@ -228,7 +228,7 @@ class LibraryGridViewController: UIViewController {
                 cell.contentConfiguration = PosterContentConfiguration()
                 return
             }
-            cell.contentConfiguration = recentConfiguration(for: item)
+            cell.contentConfiguration = RecentlyWatchedActions.posterConfiguration(for: item, kind: kind)
         }
 
         let headerRegistration = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
@@ -247,34 +247,16 @@ class LibraryGridViewController: UIViewController {
             }
         }
 
-        let railHeaderRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+        let railHeaderRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, _ in
             var config = SectionHeaderConfiguration()
             config.title = "Recently Watched"
+            config.actionTitle = "See All"
+            config.onAction = { [weak self] in self?.showAllRecent() }
             cell.contentConfiguration = config
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: railHeaderRegistration, for: indexPath)
         }
-    }
-
-    /// A movie card names the film; a show card names the series and the episode last played, since
-    /// the rail holds one card per show.
-    private func recentConfiguration(for item: PlexMetadata) -> PosterContentConfiguration {
-        var config = PosterContentConfiguration()
-        config.placeholderIcon = kind.placeholderIcon
-        let when = Formatters.unixRelativeDate(item.viewedAt)
-        switch kind {
-        case .movie:
-            config.posterPath = item.thumb ?? item.grandparentThumb
-            config.title = item.title
-            config.subtitle = when
-        case .show:
-            config.posterPath = item.grandparentThumb ?? item.thumb
-            config.title = item.grandparentTitle ?? item.title
-            let detail = [Formatters.episodeCode(item.parentIndex, item.index), when].compactMap { $0 }.joined(separator: " · ")
-            config.subtitle = detail.isEmpty ? nil : detail
-        }
-        return config
     }
 
     private func posterConfiguration(for item: PlexMetadata) -> PosterContentConfiguration {
@@ -688,6 +670,7 @@ class LibraryGridViewController: UIViewController {
             && !gridIds.isEmpty
             && contentUnavailableConfiguration == nil
             && needed <= available
+        collectionView.showsVerticalScrollIndicator = !visible
         guard visible == scrubber.isHidden else { return }
         if visible { scrubber.isHidden = false }
         let animations = { self.scrubber.alpha = visible ? 1 : 0 }
@@ -762,8 +745,10 @@ class LibraryGridViewController: UIViewController {
         navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
     }
 
-    private func openShow(_ ratingKey: String, zoomingFrom source: Item? = nil) {
-        push(ShowDetailViewController(api: api, showRatingKey: ratingKey), zoomingFrom: source)
+    private func showAllRecent() {
+        Haptics.selection()
+        let grid = RecentlyWatchedGridViewController(api: api, sectionId: sectionId, kind: kind, items: recentItems)
+        navigationController?.pushViewController(grid, animated: true)
     }
 
     private func openDetail(_ item: PlexMetadata, zoomingFrom source: Item? = nil) {
@@ -820,24 +805,6 @@ class LibraryGridViewController: UIViewController {
         }
     }
 
-    /// A recent card stands for the title, or for the show when the rail holds episodes, so the menu
-    /// offers the destinations and a replay rather than watched-state toggles.
-    private func recentContextMenu(for item: PlexMetadata) -> UIMenu {
-        var actions = [UIMenuElement]()
-        if kind == .show, let showKey = item.grandparentRatingKey {
-            actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
-                self?.openShow(showKey)
-            })
-        }
-        actions.append(UIAction(title: "Play Again", image: UIImage(systemName: "play.fill")) { [weak self] _ in
-            self?.quickPlay(item)
-        })
-        actions.append(UIAction(title: kind == .show ? "Episode Details" : "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
-            self?.openDetail(item)
-        })
-        return UIMenu(children: actions)
-    }
-
     private func contextMenu(for item: PlexMetadata) -> UIMenu {
         var actions = [UIMenuElement]()
         switch kind {
@@ -880,11 +847,7 @@ extension LibraryGridViewController: UICollectionViewDelegate {
             openDetail(item, zoomingFrom: .media(id))
         case .recent(let id):
             guard let item = recentItems.first(where: { $0.id == id }) else { return }
-            if kind == .show {
-                openShow(item.grandparentRatingKey ?? item.id, zoomingFrom: .recent(id))
-            } else {
-                openDetail(item, zoomingFrom: .recent(id))
-            }
+            push(RecentlyWatchedActions.destination(for: item, kind: kind, api: api), zoomingFrom: .recent(id))
         case .header, nil:
             return
         }
@@ -910,7 +873,14 @@ extension LibraryGridViewController: UICollectionViewDelegate {
         case .recent(let id):
             guard let item = recentItems.first(where: { $0.id == id }) else { return nil }
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-                self?.recentContextMenu(for: item)
+                guard let self else { return nil }
+                return RecentlyWatchedActions.contextMenu(
+                    for: item,
+                    kind: kind,
+                    api: api,
+                    open: { [weak self] in self?.navigationController?.pushViewController($0, animated: true) },
+                    play: { [weak self] in self?.quickPlay($0) }
+                )
             })
         case .header, nil:
             return nil

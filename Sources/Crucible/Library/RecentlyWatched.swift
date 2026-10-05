@@ -3,13 +3,14 @@ import Foundation
 /// Builds the per-library "Recently Watched" rail from the server's play history, scoped to the
 /// library section the grid is showing.
 enum RecentlyWatched {
-    static let limit = 20
-    private static let fetchSize = 120
+    static let railLimit = 20
+    static let gridLimit = 120
+    private static let rowsPerTitle = 6
 
-    static func load(api: APIClient, sectionId: String, groupingByShow: Bool) async -> [PlexMetadata] {
+    static func load(api: APIClient, sectionId: String, groupingByShow: Bool, limit: Int = railLimit) async -> [PlexMetadata] {
         let response: PlexHistoryResponse?
         do {
-            response = try await api.request(.sectionHistory(sectionId: sectionId, size: fetchSize))
+            response = try await api.request(.sectionHistory(sectionId: sectionId, size: limit * rowsPerTitle))
         } catch {
             AppLogger.error("Recently watched fetch failed section=\(sectionId): \(error.localizedDescription)", .networking)
             return []

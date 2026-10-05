@@ -510,6 +510,10 @@ struct PlexDirectory: Decodable, Sendable {
     let key: String?
     let type: String?
     let title: String?
+    let hidden: Int?
+
+    /// Plex marks a library 1 to leave it off Home and 2 to leave it off Home and global search.
+    var isHiddenFromHome: Bool { (hidden ?? 0) > 0 }
 }
 
 struct PlexResource: Decodable, Sendable {

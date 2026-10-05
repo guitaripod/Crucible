@@ -54,6 +54,7 @@ final class SettingsViewController: UICollectionViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.showsVerticalScrollIndicator = false
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
         applySnapshot()

@@ -35,6 +35,7 @@ final class YouViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.showsVerticalScrollIndicator = false
 
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()

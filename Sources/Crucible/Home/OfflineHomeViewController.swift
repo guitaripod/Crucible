@@ -43,6 +43,7 @@ final class OfflineHomeViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.showsVerticalScrollIndicator = false
         configureNavItems()
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()

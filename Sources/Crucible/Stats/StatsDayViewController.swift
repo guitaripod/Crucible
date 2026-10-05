@@ -24,6 +24,7 @@ final class StatsDayViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.largeTitleDisplayMode = .never
+        collectionView.showsVerticalScrollIndicator = false
         collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { _, environment in
             Theme.gridLayout(environment: environment)
         }

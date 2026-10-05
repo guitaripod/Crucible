@@ -20,7 +20,11 @@ struct StatsSyncService: Sendable {
                 try await store.saveSyncState(state)
             }
 
-            let sectionTitles = await loadSectionTitles()
+            let sections = await loadSections()
+            if let hidden = sections.hiddenFromHome {
+                try await store.replaceHiddenSections(hidden)
+            }
+            let sectionTitles = sections.titles
             let time = StatsTime()
             let wasComplete = state.historyComplete
             let highWater = wasComplete ? (state.highWaterViewedAt ?? 0) : 0
@@ -138,18 +142,21 @@ struct StatsSyncService: Sendable {
         }
     }
 
-    private func loadSectionTitles() async -> [Int: String] {
+    /// Library titles by id, plus the ids the server hides from Home; `hiddenFromHome` is nil when
+    /// the listing could not be fetched, so a failed request never un-hides a library.
+    private func loadSections() async -> (titles: [Int: String], hiddenFromHome: Set<Int>?) {
         do {
             let container = try await api.requestContainer(.sections)
-            var map = [Int: String]()
+            var titles = [Int: String]()
+            var hidden = Set<Int>()
             for dir in container.Directory ?? [] {
-                if let key = dir.key, let id = Int(key), let title = dir.title {
-                    map[id] = title
-                }
+                guard let key = dir.key, let id = Int(key) else { continue }
+                if let title = dir.title { titles[id] = title }
+                if dir.isHiddenFromHome { hidden.insert(id) }
             }
-            return map
+            return (titles, hidden)
         } catch {
-            return [:]
+            return ([:], nil)
         }
     }
 

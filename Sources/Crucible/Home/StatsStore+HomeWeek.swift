@@ -31,8 +31,7 @@ extension StatsStore {
         let lastWeekStart = weekStart - 7
 
         let perDay: [Int: Int] = try await database.dbQueue.read { db in
-            let scope = try Self.homeAccountScope(db)
-            let acct = scope.map { " AND p.accountID = \($0)" } ?? ""
+            let acct = try Self.scope(db).clause(column: "p.accountID")
             let averageMs = try Double.fetchOne(db, sql: """
                 SELECT AVG(im.durationMs) FROM play p
                 JOIN item_meta im ON im.ratingKey = p.ratingKey
@@ -66,13 +65,5 @@ extension StatsStore {
             lastWeekSameSpanSeconds: lastWeek.prefix(todayIndex + 1).reduce(0, +),
             lastWeekSeconds: lastWeek.reduce(0, +)
         )
-    }
-
-    /// Mirrors the Stats screen's owner scoping so Home and Statistics agree on the numbers.
-    private static func homeAccountScope(_ db: Database) throws -> Int? {
-        let distinct = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT accountID) FROM play WHERE accountID IS NOT NULL") ?? 0
-        guard distinct > 1 else { return nil }
-        let ownerRows = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM play WHERE accountID = 1") ?? 0
-        return ownerRows > 0 ? 1 : nil
     }
 }

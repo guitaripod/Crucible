@@ -99,6 +99,7 @@ final class ServerDetailViewController: UIViewController {
         }
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.showsVerticalScrollIndicator = false
         collectionView.delegate = self
         collectionView.alwaysBounceVertical = true
         collectionView.translatesAutoresizingMaskIntoConstraints = false

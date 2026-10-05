@@ -57,6 +57,7 @@ final class MediaDetailViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.collectionViewLayout = createLayout()
+        collectionView.showsVerticalScrollIndicator = false
         hero.install(on: collectionView)
         navigationItem.rightBarButtonItems = [hero.chrome.playItem]
         configureDataSource()

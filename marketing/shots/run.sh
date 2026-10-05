@@ -13,7 +13,7 @@ rsync -az --delete \
   --exclude 'marketing/shots/out' \
   "$ROOT/" "$MAC:$REMOTE/"
 
-ssh "$MAC" "cd $REMOTE && UDID=$UDID MODE=$MODE bash marketing/shots/mac-run.sh"
+ssh "$MAC" "cd $REMOTE && UDID=$UDID MODE=$MODE MOCK_HIDDEN_SECTIONS=${MOCK_HIDDEN_SECTIONS:-} bash marketing/shots/mac-run.sh"
 
 mkdir -p "$OUT"
 rsync -az --delete "$MAC:$REMOTE/marketing/shots/out/raw-$MODE/" "$OUT/"

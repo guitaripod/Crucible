@@ -53,6 +53,7 @@ final class ShowDetailViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.collectionViewLayout = createLayout()
+        collectionView.showsVerticalScrollIndicator = false
         hero.install(on: collectionView)
         configureDataSource()
         configureMultiSelect()

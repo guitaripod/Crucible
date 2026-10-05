@@ -240,8 +240,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_empty()
 
         if p == "/library/sections":
+            hidden = set(os.environ.get("MOCK_HIDDEN_SECTIONS", "").split(","))
             dirs = [{"key": k, "type": t, "title": n, "agent": f"tv.plex.agents.{t}", "language": "en-US",
-                     "refreshing": False, "uuid": f"0000{k}-aaaa-4bbb-8ccc-000000000{k}"}
+                     "refreshing": False, "uuid": f"0000{k}-aaaa-4bbb-8ccc-000000000{k}",
+                     "hidden": 1 if k in hidden else 0}
                     for k, (n, t) in library.SECTIONS.items()]
             return self.send_json(container(size=len(dirs), allowLibraryOrder=True, title1="Plex Library", Directory=dirs))
 

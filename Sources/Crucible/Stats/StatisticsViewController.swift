@@ -66,6 +66,7 @@ final class StatisticsViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.showsVerticalScrollIndicator = false
         collectionView.alwaysBounceVertical = true
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()

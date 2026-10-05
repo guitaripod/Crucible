@@ -68,6 +68,7 @@ final class HomeViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.showsVerticalScrollIndicator = false
         configureNavButtons()
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
