@@ -1,20 +1,20 @@
 import UIKit
 
-struct EpisodeContentConfiguration: UIContentConfiguration, Hashable {
-    enum DownloadBadge: Hashable {
-        case none
-        case downloading(Int)
-        case completed
-    }
-
+struct EpisodeContentConfiguration: UIContentConfiguration {
     var episodeNumber: Int?
     var title: String = ""
     var summary: String?
-    var duration: String?
     var thumbPath: String?
-    var isWatched: Bool = false
+    var durationSecs: Double = 0
+    var positionSecs: Double = 0
+    var isWatched = false
+    var isUpNext = false
     var progress: Double?
-    var downloadBadge: DownloadBadge = .none
+    var downloadState: DownloadRingButton.State = .idle
+    var showsDownloadControl = true
+    var downloadMenu: UIMenu?
+    var onDownloadTap: ((UIView) -> Void)?
+    var accessibilityActions: [UIAccessibilityCustomAction] = []
 
     func makeContentView() -> UIView & UIContentView {
         EpisodeContentView(configuration: self)
@@ -30,21 +30,22 @@ final class EpisodeContentView: UIView, UIContentView {
         didSet { apply() }
     }
 
+    private static let thumbWidth = Theme.Size.episodeThumbWidth
+    private static let thumbHeight: CGFloat = 74
+
+    private let rowStack = UIStackView()
     private let thumbContainer = UIView()
     private let thumbImageView = UIImageView()
     private let placeholderIcon = UIImageView()
-    private let watchedScrim = UIView()
-    private let watchedBadge = UIImageView()
-    private let downloadBadge = UIImageView()
+    private let watchedBadge = UIView()
     private let thumbProgress = ProgressBar()
     private let eyebrowLabel = UILabel()
     private let titleLabel = UILabel()
-    private let summaryLabel = UILabel()
     private let metaLabel = UILabel()
+    private let summaryLabel = UILabel()
+    private let ring = DownloadRingButton()
     private var imageTask: Task<Void, Never>?
     private var currentThumbPath: String? = "__unset__"
-
-    private static let thumbWidth: CGFloat = 132
 
     init(configuration: EpisodeContentConfiguration) {
         self.configuration = configuration
@@ -59,84 +60,84 @@ final class EpisodeContentView: UIView, UIContentView {
     deinit { imageTask?.cancel() }
 
     private func setupViews() {
-        thumbContainer.layer.cornerRadius = 8
+        thumbContainer.layer.cornerRadius = Theme.Radius.s
         thumbContainer.layer.cornerCurve = .continuous
+        thumbContainer.layer.borderWidth = 1
+        thumbContainer.layer.borderColor = Theme.Color.artHairline.cgColor
         thumbContainer.clipsToBounds = true
-        thumbContainer.backgroundColor = .secondarySystemBackground
+        thumbContainer.backgroundColor = Theme.Color.surfaceRaised
         thumbContainer.translatesAutoresizingMaskIntoConstraints = false
-        thumbContainer.setContentHuggingPriority(.required, for: .horizontal)
 
         thumbImageView.contentMode = .scaleAspectFill
         thumbImageView.clipsToBounds = true
         thumbImageView.translatesAutoresizingMaskIntoConstraints = false
 
         placeholderIcon.image = UIImage(systemName: "tv")
-        placeholderIcon.tintColor = .quaternaryLabel
+        placeholderIcon.tintColor = Theme.Color.labelTertiary
         placeholderIcon.contentMode = .scaleAspectFit
         placeholderIcon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 22, weight: .light)
         placeholderIcon.translatesAutoresizingMaskIntoConstraints = false
 
-        watchedScrim.backgroundColor = UIColor.black.withAlphaComponent(0.45)
-        watchedScrim.isHidden = true
-        watchedScrim.translatesAutoresizingMaskIntoConstraints = false
-
-        watchedBadge.image = UIImage(systemName: "checkmark.circle.fill")
-        watchedBadge.tintColor = .systemGreen
-        watchedBadge.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 22, weight: .bold)
-        watchedBadge.contentMode = .scaleAspectFit
+        watchedBadge.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        watchedBadge.layer.cornerRadius = 11
         watchedBadge.isHidden = true
         watchedBadge.translatesAutoresizingMaskIntoConstraints = false
+        let check = UIImageView(image: UIImage(systemName: "checkmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .heavy)))
+        check.tintColor = Theme.Color.onArt
+        check.translatesAutoresizingMaskIntoConstraints = false
+        watchedBadge.addSubview(check)
 
-        downloadBadge.image = UIImage(systemName: "arrow.down.circle.fill")
-        downloadBadge.tintColor = .systemGreen
-        downloadBadge.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
-        downloadBadge.contentMode = .scaleAspectFit
-        downloadBadge.isHidden = true
-        downloadBadge.translatesAutoresizingMaskIntoConstraints = false
-        downloadBadge.backgroundColor = UIColor.black.withAlphaComponent(0.35)
-        downloadBadge.layer.cornerRadius = 10
-        downloadBadge.clipsToBounds = true
-
-        thumbProgress.translatesAutoresizingMaskIntoConstraints = false
+        thumbProgress.style = .onArt
         thumbProgress.isHidden = true
-
-        eyebrowLabel.font = .systemFont(ofSize: 11, weight: .heavy)
-        eyebrowLabel.textColor = .systemOrange
-
-        titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        titleLabel.numberOfLines = 1
-        titleLabel.lineBreakMode = .byTruncatingTail
-
-        summaryLabel.font = .systemFont(ofSize: 13)
-        summaryLabel.textColor = .secondaryLabel
-        summaryLabel.numberOfLines = 2
-
-        metaLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        metaLabel.textColor = .tertiaryLabel
+        thumbProgress.translatesAutoresizingMaskIntoConstraints = false
 
         thumbContainer.addSubview(placeholderIcon)
         thumbContainer.addSubview(thumbImageView)
-        thumbContainer.addSubview(watchedScrim)
         thumbContainer.addSubview(thumbProgress)
         thumbContainer.addSubview(watchedBadge)
-        thumbContainer.addSubview(downloadBadge)
 
-        let textStack = UIStackView(arrangedSubviews: [eyebrowLabel, titleLabel, summaryLabel, metaLabel])
+        eyebrowLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.font = Theme.Font.episodeTitle
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.textColor = Theme.Color.label
+        titleLabel.numberOfLines = 2
+        metaLabel.font = Theme.Font.footnote
+        metaLabel.adjustsFontForContentSizeCategory = true
+        metaLabel.textColor = Theme.Color.labelSecondary
+        metaLabel.numberOfLines = 0
+        summaryLabel.font = Theme.Font.footnote
+        summaryLabel.adjustsFontForContentSizeCategory = true
+        summaryLabel.textColor = Theme.Color.labelSecondary
+        summaryLabel.numberOfLines = 2
+
+        let textStack = UIStackView(arrangedSubviews: [eyebrowLabel, titleLabel, metaLabel, summaryLabel])
         textStack.axis = .vertical
-        textStack.spacing = 4
-        textStack.setCustomSpacing(8, after: summaryLabel)
+        textStack.spacing = 1
+        textStack.setCustomSpacing(4, after: metaLabel)
+        textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let mainStack = UIStackView(arrangedSubviews: [thumbContainer, textStack])
-        mainStack.axis = .horizontal
-        mainStack.spacing = 12
-        mainStack.alignment = .top
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        ring.diameter = 36
+        ring.setContentHuggingPriority(.required, for: .horizontal)
+        ring.setContentCompressionResistancePriority(.required, for: .horizontal)
+        ring.isAccessibilityElement = false
+        ring.addAction(UIAction { [weak self] _ in
+            guard let self, let config = self.configuration as? EpisodeContentConfiguration else { return }
+            config.onDownloadTap?(self.ring)
+        }, for: .primaryActionTriggered)
 
-        addSubview(mainStack)
+        rowStack.axis = .horizontal
+        rowStack.alignment = .top
+        rowStack.spacing = Theme.Space.s
+        rowStack.addArrangedSubview(thumbContainer)
+        rowStack.addArrangedSubview(textStack)
+        rowStack.addArrangedSubview(ring)
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(rowStack)
 
         NSLayoutConstraint.activate([
             thumbContainer.widthAnchor.constraint(equalToConstant: Self.thumbWidth),
-            thumbContainer.heightAnchor.constraint(equalTo: thumbContainer.widthAnchor, multiplier: 9.0 / 16.0),
+            thumbContainer.heightAnchor.constraint(equalToConstant: Self.thumbHeight),
 
             thumbImageView.topAnchor.constraint(equalTo: thumbContainer.topAnchor),
             thumbImageView.leadingAnchor.constraint(equalTo: thumbContainer.leadingAnchor),
@@ -146,82 +147,114 @@ final class EpisodeContentView: UIView, UIContentView {
             placeholderIcon.centerXAnchor.constraint(equalTo: thumbContainer.centerXAnchor),
             placeholderIcon.centerYAnchor.constraint(equalTo: thumbContainer.centerYAnchor),
 
-            watchedScrim.topAnchor.constraint(equalTo: thumbContainer.topAnchor),
-            watchedScrim.leadingAnchor.constraint(equalTo: thumbContainer.leadingAnchor),
-            watchedScrim.trailingAnchor.constraint(equalTo: thumbContainer.trailingAnchor),
-            watchedScrim.bottomAnchor.constraint(equalTo: thumbContainer.bottomAnchor),
-
             watchedBadge.trailingAnchor.constraint(equalTo: thumbContainer.trailingAnchor, constant: -6),
             watchedBadge.topAnchor.constraint(equalTo: thumbContainer.topAnchor, constant: 6),
-
-            downloadBadge.leadingAnchor.constraint(equalTo: thumbContainer.leadingAnchor, constant: 6),
-            downloadBadge.topAnchor.constraint(equalTo: thumbContainer.topAnchor, constant: 6),
-            downloadBadge.widthAnchor.constraint(equalToConstant: 20),
-            downloadBadge.heightAnchor.constraint(equalToConstant: 20),
+            watchedBadge.widthAnchor.constraint(equalToConstant: 22),
+            watchedBadge.heightAnchor.constraint(equalToConstant: 22),
+            check.centerXAnchor.constraint(equalTo: watchedBadge.centerXAnchor),
+            check.centerYAnchor.constraint(equalTo: watchedBadge.centerYAnchor),
 
             thumbProgress.leadingAnchor.constraint(equalTo: thumbContainer.leadingAnchor),
             thumbProgress.trailingAnchor.constraint(equalTo: thumbContainer.trailingAnchor),
             thumbProgress.bottomAnchor.constraint(equalTo: thumbContainer.bottomAnchor),
+            thumbProgress.heightAnchor.constraint(equalToConstant: 4),
 
-            mainStack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            mainStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            rowStack.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            rowStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.Space.m),
+            rowStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Space.s),
+            rowStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
         ])
+
+        isAccessibilityElement = true
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: EpisodeContentView, _: UITraitCollection) in
+            view.thumbContainer.layer.borderColor = Theme.Color.artHairline.cgColor
+        }
     }
 
     private func apply() {
         guard let config = configuration as? EpisodeContentConfiguration else { return }
+        let inProgress = !config.isWatched && (config.progress ?? 0) > 0
+        let isDownloading: Bool
+        switch config.downloadState {
+        case .progress, .queued: isDownloading = true
+        default: isDownloading = false
+        }
 
-        eyebrowLabel.text = config.episodeNumber.map { "EPISODE \($0)" } ?? "EPISODE"
+        let number = config.episodeNumber.map { "E\($0)" } ?? "EPISODE"
+        let eyebrowText: String
+        let eyebrowColor: UIColor
+        if config.isWatched {
+            eyebrowText = "\(number) · WATCHED"
+            eyebrowColor = Theme.Color.labelTertiary
+        } else if inProgress {
+            eyebrowText = "\(number) · CONTINUE"
+            eyebrowColor = Theme.Color.accentText
+        } else if isDownloading {
+            eyebrowText = "\(number) · DOWNLOADING"
+            eyebrowColor = Theme.Color.labelTertiary
+        } else if config.isUpNext {
+            eyebrowText = "\(number) · UP NEXT"
+            eyebrowColor = Theme.Color.accentText
+        } else {
+            eyebrowText = number
+            eyebrowColor = Theme.Color.labelTertiary
+        }
+        eyebrowLabel.attributedText = DetailFormat.eyebrow(eyebrowText, color: eyebrowColor)
         titleLabel.text = config.title
         summaryLabel.text = config.summary
         summaryLabel.isHidden = (config.summary ?? "").isEmpty
 
-        var metaParts = [String]()
-        if let duration = config.duration { metaParts.append(duration) }
-
-        if config.isWatched {
-            watchedBadge.isHidden = false
-            watchedScrim.isHidden = false
-            thumbProgress.isHidden = true
-            titleLabel.textColor = .secondaryLabel
-            eyebrowLabel.textColor = .systemGreen
-            metaParts.append("Watched")
-        } else if let progress = config.progress, progress > 0 {
-            watchedBadge.isHidden = true
-            watchedScrim.isHidden = true
-            thumbProgress.isHidden = false
-            thumbProgress.progress = progress
-            titleLabel.textColor = .label
-            eyebrowLabel.textColor = .systemOrange
-            metaParts.append("\(Int(progress * 100))% watched")
-        } else {
-            watchedBadge.isHidden = true
-            watchedScrim.isHidden = true
-            thumbProgress.isHidden = true
-            titleLabel.textColor = .label
-            eyebrowLabel.textColor = .systemOrange
+        var meta: [String] = []
+        if let runtime = DetailFormat.runtime(config.durationSecs) { meta.append(runtime) }
+        if inProgress, let left = DetailFormat.remaining(position: config.positionSecs, duration: config.durationSecs) {
+            meta.append(left)
         }
-
-        switch config.downloadBadge {
-        case .none:
-            downloadBadge.isHidden = true
-        case .completed:
-            downloadBadge.isHidden = false
-            downloadBadge.image = UIImage(systemName: "arrow.down.circle.fill")
-            downloadBadge.tintColor = .systemGreen
-        case .downloading(let pct):
-            downloadBadge.isHidden = false
-            downloadBadge.image = UIImage(systemName: "arrow.down.circle")
-            downloadBadge.tintColor = .systemOrange
-            metaParts.append("↓ \(pct)%")
+        switch config.downloadState {
+        case .progress(let value): meta.append("\(Int((value * 100).rounded()))%")
+        case .queued: meta.append("Queued")
+        case .paused(let value): meta.append("Paused · \(Int((value * 100).rounded()))%")
+        case .completed: meta.append("Downloaded")
+        case .failed: meta.append("Download failed")
+        case .idle: break
         }
+        metaLabel.text = meta.joined(separator: " · ")
+        metaLabel.isHidden = meta.isEmpty
 
-        metaLabel.text = metaParts.joined(separator: " · ")
-        metaLabel.isHidden = metaParts.isEmpty
+        watchedBadge.isHidden = !config.isWatched
+        thumbProgress.isHidden = !inProgress
+        thumbProgress.progress = config.progress ?? 0
+        rowStack.alpha = config.isWatched ? 0.55 : 1
 
+        ring.isHidden = !config.showsDownloadControl
+        ring.set(config.downloadState)
+        ring.menu = config.downloadMenu
+        ring.showsMenuAsPrimaryAction = false
+
+        accessibilityLabel = Self.spokenDescription(config, inProgress: inProgress)
+        accessibilityCustomActions = config.accessibilityActions
         loadThumb(config.thumbPath)
+    }
+
+    private static func spokenDescription(_ config: EpisodeContentConfiguration, inProgress: Bool) -> String {
+        var parts: [String] = []
+        if let number = config.episodeNumber { parts.append("Episode \(number)") }
+        parts.append(config.title)
+        if config.isWatched {
+            parts.append("watched")
+        } else if inProgress, let left = DetailFormat.spokenDuration(config.durationSecs - config.positionSecs) {
+            parts.append("\(left) left")
+        } else if let duration = DetailFormat.spokenDuration(config.durationSecs) {
+            parts.append(duration)
+        }
+        switch config.downloadState {
+        case .progress(let value): parts.append("downloading \(Int((value * 100).rounded())) percent")
+        case .queued: parts.append("download queued")
+        case .paused(let value): parts.append("download paused at \(Int((value * 100).rounded())) percent")
+        case .completed: parts.append("downloaded")
+        case .failed: parts.append("download failed")
+        case .idle: break
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func loadThumb(_ path: String?) {
@@ -234,12 +267,10 @@ final class EpisodeContentView: UIView, UIContentView {
 
         guard let path, !path.isEmpty else { return }
         imageTask = Task { [weak self] in
-            let image = await ImageLoader.shared.loadBackdrop(path: path, width: Int(Self.thumbWidth * 2))
-            guard !Task.isCancelled, let self else { return }
-            if let image {
-                self.thumbImageView.image = image
-                self.placeholderIcon.isHidden = true
-            }
+            let image = await ImageLoader.shared.loadBackdrop(path: path, width: Int(Self.thumbWidth * 3))
+            guard !Task.isCancelled, let self, let image else { return }
+            self.thumbImageView.image = image
+            self.placeholderIcon.isHidden = true
         }
     }
 }

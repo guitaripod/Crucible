@@ -2,14 +2,20 @@
 
 final class ShowDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, seasonPicker, episodes, actions
+        case hero, actions, overview, seasonBar, episodes, related
     }
 
     enum Item: Hashable {
         case hero
-        case season(PlexMetadata)
+        case actions
+        case overview
+        case seasonBar
         case episode(PlexMetadata)
-        case action(String)
+        case related(PlexMetadata)
+    }
+
+    private enum UpNextKind {
+        case resume, next, start
     }
 
     private let api: APIClient
@@ -21,10 +27,18 @@ final class ShowDetailViewController: UICollectionViewController {
     private var seasons: [PlexMetadata] = []
     private var selectedSeasonKey: String?
     private var episodes: [PlexMetadata] = []
+    private var allEpisodes: [PlexMetadata] = []
+    private var upNext: (episode: PlexMetadata, kind: UpNextKind)?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var downloadObserver: UUID?
     private var pendingFullReconfigure = false
+    private var isOverviewExpanded = false
+    private var lastLayoutWidth: CGFloat = 0
+    private var playerCoordinator: PlayerCoordinator?
     private lazy var multiSelect = MultiSelectController(collectionView: collectionView, host: self)
+    private lazy var hero = DetailHeroCoordinator(navigationItem: navigationItem, heightRatio: 1.13) { [weak self] in
+        self?.playUpNext()
+    }
 
     init(api: APIClient, showRatingKey: String, initialSeasonKey: String? = nil) {
         self.api = api
@@ -38,30 +52,31 @@ final class ShowDetailViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        navigationItem.largeTitleDisplayMode = .never
         collectionView.collectionViewLayout = createLayout()
+        hero.install(on: collectionView)
         configureDataSource()
         configureMultiSelect()
+        updateBarButtons()
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: ShowDetailViewController, _: UITraitCollection) in
+            controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
+        }
     }
 
     private func configureMultiSelect() {
-        multiSelect.onEnter = { [weak self] in self?.updateSelectBarButton(); self?.reconfigureEpisodeAccessories() }
-        multiSelect.onExit = { [weak self] in self?.updateSelectBarButton(); self?.reconfigureEpisodeAccessories() }
+        multiSelect.onEnter = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories() }
+        multiSelect.onExit = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories() }
         multiSelect.toolbarItemsProvider = { [weak self] count in self?.selectionToolbarItems(count: count) ?? [] }
     }
 
-    private func updateSelectBarButton() {
-        let hasEpisodes = !episodes.isEmpty
-        navigationItem.rightBarButtonItems = (multiSelect.isEditing || hasEpisodes) ? [multiSelect.barButton] : nil
+    private func updateBarButtons() {
+        var items: [UIBarButtonItem] = []
+        if !multiSelect.isEditing { items.append(hero.chrome.playItem) }
+        if multiSelect.isEditing || !episodes.isEmpty { items.append(multiSelect.barButton) }
+        navigationItem.rightBarButtonItems = items
     }
 
     private func reconfigureEpisodeAccessories() {
-        guard dataSource != nil else { return }
-        var snapshot = dataSource.snapshot()
-        let eps = snapshot.itemIdentifiers.filter { if case .episode = $0 { return true }; return false }
-        guard !eps.isEmpty else { return }
-        snapshot.reconfigureItems(eps)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        reconfigure(episodeItems())
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -94,9 +109,25 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        var stale: [Item] = []
+        if hero.refreshMinimumHeight(collectionView) { stale.append(.hero) }
+        if abs(collectionView.bounds.width - lastLayoutWidth) > 0.5 {
+            lastLayoutWidth = collectionView.bounds.width
+            stale.append(.overview)
+        }
+        reconfigure(stale)
+        hero.scrolled(collectionView)
+    }
+
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        hero.scrolled(collectionView)
+    }
+
     /// Progress fires several times per second per active download; reconfiguring every episode cell
     /// on each tick thrashes the whole list when a season is downloading. Scope progress to the single
-    /// episode that changed, and only rebuild every cell on the rarer state transitions.
+    /// episode that changed (plus the season ring), and only rebuild every cell on the rarer state transitions.
     private func handleDownloadEvent(_ event: DownloadEvent) {
         switch event {
         case .progress(let ratingKey, _, _, _):
@@ -108,14 +139,12 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func reconfigureEpisode(_ ratingKey: String) {
         guard dataSource != nil else { return }
-        var snapshot = dataSource.snapshot()
-        let target = snapshot.itemIdentifiers.filter { item in
+        let target = dataSource.snapshot().itemIdentifiers.filter { item in
             if case .episode(let episode) = item { return episode.ratingKey == ratingKey }
             return false
         }
         guard !target.isEmpty else { return }
-        snapshot.reconfigureItems(target)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        reconfigure(target + [.actions])
     }
 
     /// A single episode boundary fires `.finished` + `.changed` and the next item's start fires another
@@ -131,46 +160,24 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func performFullReconfigure() {
-        guard dataSource != nil else { return }
-        var snapshot = dataSource.snapshot()
-        let items = snapshot.itemIdentifiers.filter { item in
-            if case .episode = item { return true }
-            if item == .action("downloadSeason") { return true }
+        reconfigure(episodeItems() + [.actions])
+    }
+
+    private func episodeItems() -> [Item] {
+        guard dataSource != nil else { return [] }
+        return dataSource.snapshot().itemIdentifiers.filter {
+            if case .episode = $0 { return true }
             return false
         }
-        guard !items.isEmpty else { return }
-        snapshot.reconfigureItems(items)
-        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    private func downloadBadge(for ratingKey: String) -> EpisodeContentConfiguration.DownloadBadge {
-        guard let item = DownloadManager.shared.item(for: ratingKey) else { return .none }
-        switch item.state {
-        case .completed: return .completed
-        case .downloading, .queued, .waitingForWiFi, .paused:
-            return .downloading(Int((item.progress * 100).rounded()))
-        case .failed: return .none
-        }
-    }
-
-    private func episodeAccessories(for episode: PlexMetadata) -> [UICellAccessory] {
-        if collectionView.isEditing { return [.multiselect()] }
-        guard DownloadManager.shared.state(for: episode.id) == .failed else { return [] }
-        return [failedDownloadAccessory(ratingKey: episode.id)]
-    }
-
-    /// The failed state has no thumbnail badge, so surface it as a red retry control on the row —
-    /// mirroring the Downloads screen's per-row failure affordance.
-    private func failedDownloadAccessory(ratingKey: String) -> UICellAccessory {
-        var config = UIButton.Configuration.plain()
-        config.image = UIImage(systemName: "exclamationmark.circle.fill")
-        config.baseForegroundColor = .systemRed
-        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
-        config.contentInsets = .zero
-        let button = UIButton(configuration: config)
-        button.addAction(UIAction { _ in DownloadManager.shared.retry(ratingKey) }, for: .touchUpInside)
-        button.frame = CGRect(x: 0, y: 0, width: 28, height: 28)
-        return .customView(configuration: .init(customView: button, placement: .trailing(displayed: .whenNotEditing)))
+    private func reconfigure(_ items: [Item], animated: Bool = false) {
+        guard dataSource != nil, !items.isEmpty else { return }
+        var snapshot = dataSource.snapshot()
+        let present = items.filter { snapshot.indexOfItem($0) != nil }
+        guard !present.isEmpty else { return }
+        snapshot.reconfigureItems(present)
+        dataSource.apply(snapshot, animatingDifferences: animated)
     }
 
     private func donateActivity(_ show: PlexMetadata) {
@@ -188,165 +195,460 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
-            guard let section = self?.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
-
+            guard let self, let section = self.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
             switch section {
-            case .hero:
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(300)))
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(300)), subitems: [item])
-                return NSCollectionLayoutSection(group: group)
-
-            case .seasonPicker:
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .estimated(96), heightDimension: .absolute(40)))
-                let group = NSCollectionLayoutGroup.horizontal(layoutSize: NSCollectionLayoutSize(widthDimension: .estimated(96), heightDimension: .absolute(40)), subitems: [item])
-                let layoutSection = NSCollectionLayoutSection(group: group)
-                layoutSection.orthogonalScrollingBehavior = .continuous
-                layoutSection.interGroupSpacing = 10
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
-                return layoutSection
-
-            case .episodes:
-                var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
-                listConfig.showsSeparators = true
-                return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
-
-            case .actions:
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44)))
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44)), subitems: [item])
-                let layoutSection = NSCollectionLayoutSection(group: group)
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
-                return layoutSection
+            case .hero: return DetailLayout.fullWidth(top: 0)
+            case .actions: return DetailLayout.fullWidth(top: 4)
+            case .overview: return DetailLayout.fullWidth(top: 16)
+            case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4)
+            case .episodes: return self.episodesSection(environment)
+            case .related: return DetailLayout.posterRail()
             }
         }
     }
 
+    private func episodesSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        var config = UICollectionLayoutListConfiguration(appearance: .plain)
+        config.showsSeparators = false
+        config.backgroundColor = .clear
+        #if os(iOS)
+        config.leadingSwipeActionsConfigurationProvider = { [weak self] indexPath in
+            self?.leadingSwipeActions(at: indexPath)
+        }
+        config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
+            self?.trailingSwipeActions(at: indexPath)
+        }
+        #endif
+        let section = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+        section.contentInsets = NSDirectionalEdgeInsets(top: Theme.Space.xs, leading: 0, bottom: 0, trailing: 0)
+        return section
+    }
+
     private func configureDataSource() {
-        let heroCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, _ in
-            guard let show = self.show else { return }
-            cell.contentConfiguration = ShowHeroConfiguration(show: show, seasons: self.seasons)
+        let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let show = self.show else { return }
+            cell.contentConfiguration = self.heroConfiguration(show)
         }
-
-        let seasonReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [unowned self] cell, _, season in
-            let button = (cell.contentView.subviews.first as? UIButton) ?? {
-                let created = UIButton()
-                created.isUserInteractionEnabled = false
-                created.translatesAutoresizingMaskIntoConstraints = false
-                cell.contentView.addSubview(created)
-                NSLayoutConstraint.activate([
-                    created.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
-                    created.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
-                    created.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
-                    created.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-                ])
-                return created
-            }()
-            var config: UIButton.Configuration
-            if self.selectedSeasonKey == season.id {
-                config = Glass.prominentButton {
-                    var c = UIButton.Configuration.gray()
-                    c.baseBackgroundColor = .systemOrange
-                    c.baseForegroundColor = .white
-                    return c
-                }
-            } else {
-                config = Glass.clearGlassButton { UIButton.Configuration.gray() }
-            }
-            config.title = season.title.isEmpty ? "Season \(season.index ?? 0)" : season.title
-            config.cornerStyle = .capsule
-            config.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 18, bottom: 7, trailing: 18)
-            config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-                var outgoing = incoming
-                outgoing.font = .systemFont(ofSize: 14, weight: .semibold)
-                return outgoing
-            }
-            button.configuration = config
+        let actionsReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let show = self.show else { return }
+            cell.contentConfiguration = self.actionsConfiguration(show)
         }
-
+        let overviewReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let summary = self.show?.summary else { return }
+            let lines = 3
+            let width = self.collectionView.bounds.width - Theme.Space.m * 2
+            cell.contentConfiguration = DetailOverviewConfiguration(
+                text: summary,
+                collapsedLines: lines,
+                isExpanded: self.isOverviewExpanded,
+                isTruncatable: DetailOverviewConfiguration.needsTruncation(summary, width: width, lines: lines),
+                onToggle: { [weak self] in self?.toggleOverview() }
+            )
+        }
+        let seasonBarReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self else { return }
+            cell.contentConfiguration = self.seasonBarConfiguration()
+        }
         let episodeReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexMetadata> { [weak self] cell, _, item in
-            let episode = self?.episodes.first { $0.id == item.id } ?? item
-            var config = EpisodeContentConfiguration()
-            config.episodeNumber = episode.index
-            config.title = episode.title
-            config.summary = episode.summary
-            config.thumbPath = episode.thumb
-            config.duration = Formatters.duration(episode.durationSecs)
-            config.isWatched = episode.isWatched
-            if !episode.isWatched && episode.positionSecs > 0 && episode.durationSecs > 0 {
-                config.progress = episode.positionSecs / episode.durationSecs
+            guard let self else { return }
+            let episode = self.episodes.first { $0.id == item.id } ?? item
+            cell.contentConfiguration = self.episodeConfiguration(episode)
+            cell.accessories = self.collectionView.isEditing ? [.multiselect(displayed: .whenEditing)] : []
+            cell.configurationUpdateHandler = { cell, state in
+                var background = UIBackgroundConfiguration.listPlainCell()
+                background.backgroundColor = state.isHighlighted || state.isSelected ? Theme.Color.surface : Theme.Color.canvas
+                cell.backgroundConfiguration = background
             }
-            config.downloadBadge = self?.downloadBadge(for: episode.id) ?? .none
-            cell.contentConfiguration = config
-            cell.accessories = self?.episodeAccessories(for: episode) ?? []
         }
-
-        let actionReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
-            if action == "downloadSeason" {
-                self.configureSeasonDownloadCell(cell)
-                return
-            }
-            var buttonConfig = Glass.glassButton {
-                var config = UIButton.Configuration.tinted()
-                config.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
-                config.baseForegroundColor = .systemOrange
-                return config
-            }
-            buttonConfig.cornerStyle = .large
-            switch action {
-            case "watchAll":
-                buttonConfig.title = "Mark All Watched"
-                buttonConfig.image = UIImage(systemName: "checkmark.circle.fill")
-            case "unwatchAll":
-                buttonConfig.title = "Mark All Unwatched"
-                buttonConfig.image = UIImage(systemName: "circle")
-            default: break
-            }
-            buttonConfig.imagePadding = 10
-            let button = UIButton(configuration: buttonConfig)
-            button.addAction(UIAction { [weak self] _ in
-                guard let self else { return }
-                Task {
-                    switch action {
-                    case "watchAll": try? await self.api.requestVoid(.scrobble(ratingKey: self.showRatingKey))
-                    case "unwatchAll": try? await self.api.requestVoid(.unscrobble(ratingKey: self.showRatingKey))
-                    default: break
-                    }
-                    await self.api.invalidateCache()
-                    self.loadData()
-                }
-            }, for: .touchUpInside)
-            button.translatesAutoresizingMaskIntoConstraints = false
-            cell.contentView.subviews.forEach { $0.removeFromSuperview() }
-            cell.contentView.addSubview(button)
-            NSLayoutConstraint.activate([
-                button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
-                button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
-                button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
-                button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-                button.heightAnchor.constraint(equalToConstant: 44),
-            ])
+        let relatedReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
+            cell.contentConfiguration = DetailLayout.posterConfiguration(for: related)
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
-            case .hero: return cv.dequeueConfiguredReusableCell(using: heroCellReg, for: indexPath, item: "hero")
-            case .season(let s): return cv.dequeueConfiguredReusableCell(using: seasonReg, for: indexPath, item: s)
+            case .hero: return cv.dequeueConfiguredReusableCell(using: heroReg, for: indexPath, item: item)
+            case .actions: return cv.dequeueConfiguredReusableCell(using: actionsReg, for: indexPath, item: item)
+            case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
+            case .seasonBar: return cv.dequeueConfiguredReusableCell(using: seasonBarReg, for: indexPath, item: item)
             case .episode(let e): return cv.dequeueConfiguredReusableCell(using: episodeReg, for: indexPath, item: e)
-            case .action(let a): return cv.dequeueConfiguredReusableCell(using: actionReg, for: indexPath, item: a)
+            case .related(let r): return cv.dequeueConfiguredReusableCell(using: relatedReg, for: indexPath, item: r)
+            }
+        }
+
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+            var config = SectionHeaderConfiguration()
+            config.title = "More Like This"
+            cell.contentConfiguration = config
+        }
+        dataSource.supplementaryViewProvider = { cv, _, indexPath in
+            cv.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
+        }
+    }
+
+    private var selectedSeason: PlexMetadata? {
+        seasons.first { $0.id == selectedSeasonKey }
+    }
+
+    private static func seasonTitle(_ season: PlexMetadata) -> String {
+        season.title.isEmpty ? "Season \(season.index ?? 0)" : season.title
+    }
+
+    private var isShowWatched: Bool {
+        guard let show, let total = show.leafCount, total > 0 else { return false }
+        return (show.viewedLeafCount ?? 0) >= total
+    }
+
+    private func heroConfiguration(_ show: PlexMetadata) -> DetailHeroConfiguration {
+        var leading: [String] = []
+        if let year = show.year { leading.append(String(year)) }
+        let seasonCount = seasons.isEmpty ? (show.childCount ?? 0) : seasons.count
+        if seasonCount > 0 { leading.append(seasonCount == 1 ? "1 Season" : "\(seasonCount) Seasons") }
+        let rating = DetailFormat.ratingParts(audience: show.audienceRating, critic: show.rating)
+        let meta = DetailFormat.metaLine(leading: leading, star: rating.star, trailing: rating.trailing)
+        let sample = upNext?.episode ?? episodes.first
+        let badges = DetailFormat.technicalBadges(for: sample, contentRating: show.contentRating, audio: nil)
+
+        var spoken = [show.title, "TV show"]
+        spoken.append(contentsOf: leading)
+        if let ratingText = DetailFormat.spokenRating(audience: show.audienceRating, critic: show.rating) { spoken.append(ratingText) }
+        spoken.append(contentsOf: badges)
+
+        return DetailHeroConfiguration(
+            eyebrow: "TV SHOW",
+            title: show.title,
+            meta: meta.length > 0 ? meta : nil,
+            badges: badges,
+            minimumHeight: hero.minimumHeroCellHeight,
+            accessibilityText: spoken.joined(separator: ", ")
+        )
+    }
+
+    private func primaryTitle() -> String {
+        guard let upNext else { return "Play" }
+        let code = DetailFormat.episodeCode(season: upNext.episode.parentIndex, episode: upNext.episode.index)
+        let verb = upNext.kind == .start ? "Play" : "Continue"
+        return [verb, code].compactMap { $0 }.joined(separator: " ")
+    }
+
+    private func primaryAccessibilityLabel() -> String {
+        guard let upNext, let show else { return "Play" }
+        let episode = upNext.episode
+        let verb: String
+        switch upNext.kind {
+        case .start: verb = "Play"
+        case .resume: verb = "Resume"
+        case .next: verb = "Continue"
+        }
+        var parts = ["\(verb) \(show.title)"]
+        if let season = episode.parentIndex, let number = episode.index { parts.append("season \(season) episode \(number)") }
+        if upNext.kind == .resume, episode.durationSecs > episode.positionSecs,
+           let left = DetailFormat.spokenDuration(episode.durationSecs - episode.positionSecs) {
+            parts.append("\(left) left")
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    private func actionsConfiguration(_ show: PlexMetadata) -> DetailActionsConfiguration {
+        var config = DetailActionsConfiguration()
+        config.primaryTitle = primaryTitle()
+        config.primarySymbol = "play.fill"
+        config.primaryAccessibilityLabel = primaryAccessibilityLabel()
+        config.isPrimaryEnabled = upNext != nil
+        config.onPrimary = { [weak self] in self?.playUpNext() }
+        config.downloadState = seasonDownloadState()
+        config.downloadMenu = downloadMenu()
+        config.downloadMenuIsPrimary = true
+        config.downloadAccessibilityLabel = downloadAccessibilityLabel()
+        config.isWatched = isShowWatched
+        config.watchedMenu = watchedMenu()
+        config.watchedAccessibilityLabel = isShowWatched ? "Watched. Mark unwatched" : "Mark watched"
+        return config
+    }
+
+    private func seasonBarConfiguration() -> DetailSeasonBarConfiguration {
+        var config = DetailSeasonBarConfiguration()
+        if let season = selectedSeason {
+            config.seasonTitle = Self.seasonTitle(season)
+            if let total = season.leafCount, total > 0 {
+                config.watchedText = "\(season.viewedLeafCount ?? 0) of \(total) watched"
+            }
+        } else {
+            config.seasonTitle = "Season"
+        }
+        config.menu = seasonMenu()
+        return config
+    }
+
+    private func seasonMenu() -> UIMenu? {
+        guard !seasons.isEmpty else { return nil }
+        let actions = seasons.map { season in
+            let action = UIAction(title: Self.seasonTitle(season), state: season.id == selectedSeasonKey ? .on : .off) { [weak self] _ in
+                self?.selectSeason(season.id)
+            }
+            if let total = season.leafCount, total > 0 {
+                action.subtitle = "\(season.viewedLeafCount ?? 0) of \(total) watched"
+            }
+            return action
+        }
+        return UIMenu(title: "Seasons", options: .singleSelection, children: actions)
+    }
+
+    private func episodeConfiguration(_ episode: PlexMetadata) -> EpisodeContentConfiguration {
+        var config = EpisodeContentConfiguration()
+        config.episodeNumber = episode.index
+        config.title = episode.title
+        config.summary = episode.summary
+        config.thumbPath = episode.thumb
+        config.durationSecs = episode.durationSecs
+        config.positionSecs = episode.positionSecs
+        config.isWatched = episode.isWatched
+        config.isUpNext = upNext?.episode.id == episode.id
+        if !episode.isWatched && episode.positionSecs > 0 && episode.durationSecs > 0 {
+            config.progress = episode.positionSecs / episode.durationSecs
+        }
+        config.downloadState = DetailDownload.ringState(for: episode.id)
+        config.showsDownloadControl = !collectionView.isEditing
+        config.downloadMenu = DetailDownload.menu(for: episode, onPlayOffline: { [weak self] in self?.quickPlay(episode) })
+        config.onDownloadTap = { [weak self] source in
+            guard let self else { return }
+            DetailDownload.performTap(for: episode, from: self, sourceView: source)
+        }
+        config.accessibilityActions = episodeAccessibilityActions(episode)
+        return config
+    }
+
+    private func episodeAccessibilityActions(_ episode: PlexMetadata) -> [UIAccessibilityCustomAction] {
+        let play = UIAccessibilityCustomAction(name: episode.positionSecs > 0 ? "Resume" : "Play") { [weak self] _ in
+            self?.quickPlay(episode)
+            return true
+        }
+        let watched = UIAccessibilityCustomAction(name: episode.isWatched ? "Mark Unwatched" : "Mark Watched") { [weak self] _ in
+            self?.setWatched(!episode.isWatched, ratingKey: episode.id)
+            return true
+        }
+        let downloadName: String
+        switch DownloadManager.shared.item(for: episode.id)?.state {
+        case nil: downloadName = "Download"
+        case .queued?, .waitingForWiFi?: downloadName = "Cancel Download"
+        case .downloading?: downloadName = "Pause Download"
+        case .paused?: downloadName = "Resume Download"
+        case .failed?: downloadName = "Retry Download"
+        case .completed?: downloadName = "Remove Download"
+        }
+        let download = UIAccessibilityCustomAction(name: downloadName) { [weak self] _ in
+            guard let self else { return false }
+            DetailDownload.performTap(for: episode, from: self, sourceView: nil)
+            return true
+        }
+        return [play, watched, download]
+    }
+
+    private func seasonDownloadState() -> DownloadRingButton.State {
+        let manager = DownloadManager.shared
+        let items = episodes.compactMap { manager.item(for: $0.id) }
+        guard !episodes.isEmpty, !items.isEmpty else { return .idle }
+        if items.count == episodes.count, items.allSatisfy({ $0.state == .completed }) { return .completed }
+        let tracked = items.filter { $0.state != .failed }
+        let done = tracked.reduce(0.0) { $0 + ($1.state == .completed ? 1 : $1.progress) }
+        let fraction = tracked.isEmpty ? 0 : done / Double(tracked.count)
+        if items.contains(where: { $0.state.isActive }) {
+            return fraction > 0 ? .progress(fraction) : .queued
+        }
+        if items.contains(where: { $0.state == .failed }) { return .failed }
+        if items.contains(where: { $0.state == .paused }) { return .paused(fraction) }
+        return .idle
+    }
+
+    private func downloadAccessibilityLabel() -> String {
+        let manager = DownloadManager.shared
+        let completed = episodes.filter { manager.state(for: $0.id) == .completed }.count
+        guard completed > 0 else { return "Download options" }
+        return "Download options, \(completed) of \(episodes.count) episodes downloaded"
+    }
+
+    private func downloadMenu() -> UIMenu {
+        let manager = DownloadManager.shared
+        let seasonName = selectedSeason.map(Self.seasonTitle) ?? "Season"
+        let pool = allEpisodes.isEmpty ? episodes : allEpisodes
+        var downloads: [UIMenuElement] = []
+
+        let seasonRemaining = episodes.filter { manager.item(for: $0.id) == nil }
+        if !seasonRemaining.isEmpty {
+            let action = UIAction(title: "Download Season", image: UIImage(systemName: "arrow.down.circle")) { [weak self] _ in
+                self?.enqueue(seasonRemaining, reason: "season")
+            }
+            action.subtitle = "\(seasonName) · \(Self.episodeCount(seasonRemaining.count))"
+            downloads.append(action)
+        }
+
+        let unwatched = pool.filter { !$0.isWatched && manager.item(for: $0.id) == nil }
+        if !unwatched.isEmpty {
+            let action = UIAction(title: "Download Unwatched", image: UIImage(systemName: "eye")) { [weak self] _ in
+                self?.enqueue(unwatched, reason: "unwatched")
+            }
+            action.subtitle = Self.episodeCount(unwatched.count)
+            downloads.append(action)
+        }
+
+        if let upNext, let start = pool.firstIndex(where: { $0.id == upNext.episode.id }) {
+            let next = Array(pool[start...].prefix(5)).filter { manager.item(for: $0.id) == nil }
+            if !next.isEmpty {
+                let action = UIAction(title: "Download Next 5", image: UIImage(systemName: "text.badge.plus")) { [weak self] _ in
+                    self?.enqueue(next, reason: "next5")
+                }
+                action.subtitle = DetailFormat.episodeCode(season: upNext.episode.parentIndex, episode: upNext.episode.index)
+                    .map { "From \($0)" }
+                downloads.append(action)
+            }
+        }
+
+        downloads.append(UIAction(title: "Options\u{2026}", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in
+            self?.presentDownloadOptions()
+        })
+
+        var manage: [UIMenuElement] = []
+        let seasonItems = episodes.compactMap { manager.item(for: $0.id) }
+        let activeKeys = seasonItems.filter { $0.state.isActive }.map(\.ratingKey)
+        if !activeKeys.isEmpty {
+            manage.append(UIAction(title: "Pause Season Downloads", image: UIImage(systemName: "pause.fill")) { _ in
+                activeKeys.forEach { manager.pause($0) }
+            })
+        }
+        let resumable = episodes.filter { manager.state(for: $0.id) == .failed || manager.state(for: $0.id) == .paused }
+        if !resumable.isEmpty {
+            manage.append(UIAction(title: "Resume Season Downloads", image: UIImage(systemName: "arrow.clockwise")) { [weak self] _ in
+                self?.enqueue(resumable, reason: "resume")
+            })
+        }
+        if !seasonItems.isEmpty {
+            let title = activeKeys.isEmpty ? "Remove Season Downloads" : "Cancel Season Downloads"
+            manage.append(UIAction(title: title, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                self?.removeSeasonDownloads()
+            })
+        }
+
+        var children: [UIMenuElement] = [UIMenu(title: "", options: .displayInline, children: downloads)]
+        if !manage.isEmpty { children.append(UIMenu(title: "", options: .displayInline, children: manage)) }
+        return UIMenu(title: "", children: children)
+    }
+
+    private static func episodeCount(_ count: Int) -> String {
+        count == 1 ? "1 episode" : "\(count) episodes"
+    }
+
+    private func enqueue(_ items: [PlexMetadata], reason: String) {
+        Haptics.medium()
+        let added = DownloadManager.shared.enqueueAll(items)
+        AppLogger.notice("Show download (\(reason)) queued \(added) episodes", .persistence)
+    }
+
+    private func removeSeasonDownloads() {
+        let keys = episodes.map(\.id).filter { DownloadManager.shared.item(for: $0) != nil }
+        guard !keys.isEmpty else { return }
+        Haptics.medium()
+        DownloadManager.shared.deleteItems(keys)
+    }
+
+    private func presentDownloadOptions() {
+        guard let show else { return }
+        let context = DownloadOptionsSheetViewController.Context(
+            showRatingKey: showRatingKey,
+            showTitle: show.title,
+            seasonTitle: selectedSeason.map(Self.seasonTitle) ?? "",
+            posterPath: show.thumb,
+            episodes: episodes
+        )
+        let sheet = DownloadOptionsSheetViewController(context: context) { [weak self] in
+            guard let presented = self?.presentedViewController as? DownloadOptionsSheetViewController else { return }
+            presented.dismiss(animated: true)
+        }
+        sheet.modalPresentationStyle = .pageSheet
+        if let controller = sheet.sheetPresentationController {
+            controller.detents = [.medium(), .large()]
+            controller.prefersGrabberVisible = true
+        }
+        present(sheet, animated: true)
+    }
+
+    private func watchedMenu() -> UIMenu {
+        var showActions: [UIMenuElement] = []
+        if !isShowWatched {
+            showActions.append(UIAction(title: "Mark Show Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
+                guard let self else { return }
+                self.setWatched(true, ratingKey: self.showRatingKey)
+            })
+        }
+        if (show?.viewedLeafCount ?? 0) > 0 {
+            showActions.append(UIAction(title: "Mark Show Unwatched", image: UIImage(systemName: "eye.slash")) { [weak self] _ in
+                guard let self else { return }
+                self.setWatched(false, ratingKey: self.showRatingKey)
+            })
+        }
+        var children: [UIMenuElement] = [UIMenu(title: "", options: .displayInline, children: showActions)]
+        if let season = selectedSeason {
+            let name = Self.seasonTitle(season)
+            let viewed = season.viewedLeafCount ?? 0
+            let total = season.leafCount ?? 0
+            var seasonActions: [UIMenuElement] = []
+            if total == 0 || viewed < total {
+                seasonActions.append(UIAction(title: "Mark \(name) Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
+                    self?.setWatched(true, ratingKey: season.id)
+                })
+            }
+            if viewed > 0 {
+                seasonActions.append(UIAction(title: "Mark \(name) Unwatched", image: UIImage(systemName: "eye.slash")) { [weak self] _ in
+                    self?.setWatched(false, ratingKey: season.id)
+                })
+            }
+            if !seasonActions.isEmpty {
+                children.append(UIMenu(title: "", options: .displayInline, children: seasonActions))
+            }
+        }
+        return UIMenu(title: "", children: children)
+    }
+
+    private func setWatched(_ watched: Bool, ratingKey: String) {
+        Haptics.light()
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                if watched {
+                    try await api.requestVoid(.scrobble(ratingKey: ratingKey))
+                } else {
+                    try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
+                }
+                await api.invalidateCache()
+                loadData()
+            } catch {
+                AppLogger.error("Mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+                Haptics.error()
             }
         }
     }
 
     private func loadData() {
         loadTask?.cancel()
+        if show == nil {
+            contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+        }
+        let api = self.api
+        let leavesPath = "/library/metadata/\(showRatingKey)/allLeaves"
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
                 let showContainer = try await api.requestContainer(.metadata(ratingKey: showRatingKey))
-                guard !Task.isCancelled, let showMeta = showContainer.Metadata?.first else { return }
+                guard !Task.isCancelled else { return }
+                guard let showMeta = showContainer.Metadata?.first else {
+                    if show == nil { showLoadError(message: "This show is no longer available on the server.") }
+                    return
+                }
                 show = showMeta
                 title = showMeta.title
+                hero.chrome.setTitle(showMeta.title)
+                hero.backdrop.loadImage(path: showMeta.art ?? showMeta.thumb, isBackdrop: showMeta.art != nil, offlineRatingKey: nil)
                 donateActivity(showMeta)
 
+                async let leaves = try? api.requestContainer(.folderPath(leavesPath))
                 let seasonsContainer = try await api.requestContainer(.children(ratingKey: showRatingKey))
                 guard !Task.isCancelled else { return }
                 seasons = (seasonsContainer.Metadata ?? []).filter { $0.mediaType == "season" }
@@ -367,24 +669,40 @@ final class ShowDetailViewController: UICollectionViewController {
                 if let selectedSeasonKey {
                     await loadSeason(selectedSeasonKey)
                 }
+                let leafEpisodes = (await leaves)?.Metadata?.filter { $0.mediaType == "episode" } ?? []
+                guard !Task.isCancelled else { return }
+                allEpisodes = leafEpisodes
                 contentUnavailableConfiguration = nil
                 await applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
+                AppLogger.error("Show load failed ratingKey=\(showRatingKey): \(error.localizedDescription)", .networking)
                 if show == nil {
-                    var errConfig = UIContentUnavailableConfiguration.empty()
-                    errConfig.image = UIImage(systemName: "exclamationmark.triangle")
-                    errConfig.text = "Failed to load"
-                    errConfig.secondaryText = error.localizedDescription
-                    errConfig.button.title = "Retry"
-                    errConfig.buttonProperties.primaryAction = UIAction { [weak self] _ in
-                        self?.contentUnavailableConfiguration = nil
-                        self?.loadData()
-                    }
-                    contentUnavailableConfiguration = errConfig
+                    showLoadError(message: error.localizedDescription)
+                } else {
+                    contentUnavailableConfiguration = nil
+                    await applySnapshot()
                 }
             }
         }
+    }
+
+    private func showLoadError(message: String) {
+        var config = UIContentUnavailableConfiguration.empty()
+        config.image = UIImage(systemName: "exclamationmark.triangle")
+        config.text = "Failed to load"
+        config.secondaryText = message
+        var button = UIButton.Configuration.filled()
+        button.title = "Retry"
+        button.baseBackgroundColor = Theme.Color.accent
+        button.baseForegroundColor = Theme.Color.onAccent
+        button.cornerStyle = .capsule
+        config.button = button
+        config.buttonProperties.primaryAction = UIAction { [weak self] _ in
+            self?.contentUnavailableConfiguration = nil
+            self?.loadData()
+        }
+        contentUnavailableConfiguration = config
     }
 
     private func loadSeason(_ seasonKey: String) async {
@@ -392,54 +710,93 @@ final class ShowDetailViewController: UICollectionViewController {
             let container = try await api.requestContainer(.children(ratingKey: seasonKey))
             guard !Task.isCancelled else { return }
             episodes = container.Metadata ?? []
-        } catch {}
+        } catch {
+            guard !Task.isCancelled else { return }
+            AppLogger.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", .networking)
+            episodes = []
+        }
     }
 
-    private func reconfigureSeasonChips() {
-        var snapshot = dataSource.snapshot()
-        let seasonItems = snapshot.itemIdentifiers.filter { item in
-            if case .season = item { return true }
-            return false
+    /// The episode the primary button plays: an in-progress episode first, then the first unwatched
+    /// episode after the last watched one, otherwise the very first episode.
+    private static func computeUpNext(in episodes: [PlexMetadata]) -> (episode: PlexMetadata, kind: UpNextKind)? {
+        guard let first = episodes.first else { return nil }
+        if let inProgress = episodes.first(where: { !$0.isWatched && $0.positionSecs > 0 }) {
+            return (inProgress, .resume)
         }
-        guard !seasonItems.isEmpty else { return }
-        snapshot.reconfigureItems(seasonItems)
-        Task { await dataSource.apply(snapshot, animatingDifferences: false) }
+        guard let lastWatched = episodes.lastIndex(where: \.isWatched) else { return (first, .start) }
+        if let next = episodes[(lastWatched + 1)...].first(where: { !$0.isWatched }) ?? episodes.first(where: { !$0.isWatched }) {
+            return (next, .next)
+        }
+        return (first, .start)
     }
 
     private func applySnapshot() async {
+        guard let show else { return }
+        upNext = Self.computeUpNext(in: allEpisodes.isEmpty ? episodes : allEpisodes)
+
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-
-        snapshot.appendSections([.hero])
+        snapshot.appendSections([.hero, .actions])
         snapshot.appendItems([.hero], toSection: .hero)
+        snapshot.appendItems([.actions], toSection: .actions)
 
-        if !seasons.isEmpty {
-            snapshot.appendSections([.seasonPicker])
-            snapshot.appendItems(seasons.map { .season($0) }, toSection: .seasonPicker)
+        if let summary = show.summary, !summary.isEmpty {
+            snapshot.appendSections([.overview])
+            snapshot.appendItems([.overview], toSection: .overview)
         }
-
+        if !seasons.isEmpty {
+            snapshot.appendSections([.seasonBar])
+            snapshot.appendItems([.seasonBar], toSection: .seasonBar)
+        }
         snapshot.appendSections([.episodes])
         snapshot.appendItems(episodes.map { .episode($0) }, toSection: .episodes)
 
-        snapshot.appendSections([.actions])
-        var actionItems: [Item] = []
-        if !episodes.isEmpty { actionItems.append(.action("downloadSeason")) }
-        actionItems.append(contentsOf: [.action("watchAll"), .action("unwatchAll")])
-        snapshot.appendItems(actionItems, toSection: .actions)
+        var seenRelated = Set<String>()
+        let related = show.relatedHubs
+            .flatMap { $0.Metadata ?? [] }
+            .filter { $0.id != showRatingKey && seenRelated.insert($0.id).inserted }
+            .prefix(18)
+        if !related.isEmpty {
+            snapshot.appendSections([.related])
+            snapshot.appendItems(related.map { .related($0) }, toSection: .related)
+        }
 
         await dataSource.apply(snapshot, animatingDifferences: false)
 
         var refreshed = dataSource.snapshot()
         let dynamic = refreshed.itemIdentifiers.filter { item in
             switch item {
-            case .hero, .episode: return true
-            default: return item == .action("downloadSeason")
+            case .hero, .actions, .overview, .seasonBar, .episode: return true
+            case .related: return false
             }
         }
         if !dynamic.isEmpty {
             refreshed.reconfigureItems(dynamic)
             await dataSource.apply(refreshed, animatingDifferences: false)
         }
-        updateSelectBarButton()
+        hero.chrome.setPlay(label: primaryAccessibilityLabel(), available: upNext != nil)
+        updateBarButtons()
+        hero.scrolled(collectionView)
+    }
+
+    private func selectSeason(_ key: String) {
+        guard selectedSeasonKey != key else { return }
+        Haptics.selection()
+        multiSelect.setEditing(false)
+        selectedSeasonKey = key
+        reconfigure([.seasonBar])
+        seasonTask?.cancel()
+        seasonTask = Task { [weak self] in
+            guard let self else { return }
+            await loadSeason(key)
+            guard !Task.isCancelled else { return }
+            await applySnapshot()
+        }
+    }
+
+    private func episode(at indexPath: IndexPath) -> PlexMetadata? {
+        guard case .episode(let item) = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return episodes.first { $0.id == item.id } ?? item
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -448,17 +805,6 @@ final class ShowDetailViewController: UICollectionViewController {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
 
         switch item {
-        case .season(let season):
-            guard selectedSeasonKey != season.id else { return }
-            selectedSeasonKey = season.id
-            reconfigureSeasonChips()
-            seasonTask?.cancel()
-            seasonTask = Task { [weak self] in
-                guard let self else { return }
-                await loadSeason(season.id)
-                guard !Task.isCancelled else { return }
-                await applySnapshot()
-            }
         case .episode(let episode):
             let detail = MediaDetailViewController(
                 api: api,
@@ -468,8 +814,25 @@ final class ShowDetailViewController: UICollectionViewController {
                 seasonRatingKey: selectedSeasonKey
             )
             navigationController?.pushViewController(detail, animated: true)
+        case .related(let related):
+            openRelated(related)
         default:
             break
+        }
+    }
+
+    private func openRelated(_ related: PlexMetadata) {
+        if related.mediaType == "show" {
+            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: related.id), animated: true)
+        } else {
+            let vc = MediaDetailViewController(
+                api: api,
+                ratingKey: related.id,
+                mediaType: related.mediaType,
+                showRatingKey: related.grandparentRatingKey,
+                seasonRatingKey: related.parentRatingKey
+            )
+            navigationController?.pushViewController(vc, animated: true)
         }
     }
 
@@ -478,9 +841,11 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        guard collectionView.isEditing else { return true }
-        if case .episode = dataSource.itemIdentifier(for: indexPath) { return true }
-        return false
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .episode: return true
+        case .related: return !collectionView.isEditing
+        default: return false
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath) -> Bool {
@@ -492,89 +857,125 @@ final class ShowDetailViewController: UICollectionViewController {
         multiSelect.setEditing(true)
     }
 
-    private var playerCoordinator: PlayerCoordinator?
+    private func toggleOverview() {
+        isOverviewExpanded.toggle()
+        reconfigure([.overview], animated: !UIAccessibility.isReduceMotionEnabled)
+    }
+
+    private func playUpNext() {
+        guard let episode = upNext?.episode else { return }
+        quickPlay(episode)
+    }
 
     private func quickPlay(_ item: PlexMetadata) {
         playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
     }
 
-    private func configureSeasonDownloadCell(_ cell: UICollectionViewCell) {
-        var config = Glass.glassButton {
-            var c = UIButton.Configuration.tinted()
-            c.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
-            c.baseForegroundColor = .systemOrange
-            return c
-        }
-        config.cornerStyle = .large
-        config.imagePadding = 10
-
-        let states = episodes.map { DownloadManager.shared.state(for: $0.id) }
-        let total = episodes.count
-        let completed = states.filter { $0 == .completed }.count
-        let active = states.filter { $0?.isActive ?? false }.count
-
-        let menu: UIMenu
-
-        if total > 0, completed == total {
-            config.baseForegroundColor = .systemGreen
-            config.title = "Season Downloaded"
-            config.image = UIImage(systemName: "checkmark.circle.fill")
-            menu = UIMenu(children: [
-                UIAction(title: "Remove Season Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                    self?.removeSeasonDownloads()
-                }
-            ])
-        } else if active > 0 {
-            config.title = "Downloading Season · \(completed)/\(total)"
-            config.showsActivityIndicator = true
-            menu = UIMenu(children: [
-                UIAction(title: "Cancel Season Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                    self?.removeSeasonDownloads()
-                }
-            ])
-        } else {
-            config.title = completed > 0 ? "Download Remaining (\(total - completed))" : "Download Season"
-            config.image = UIImage(systemName: "arrow.down.circle")
-            menu = seasonQualityMenu()
-        }
-
-        let button = UIButton(configuration: config)
-        button.tintColor = config.baseForegroundColor
-        button.menu = menu
-        button.showsMenuAsPrimaryAction = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        cell.contentView.subviews.forEach { $0.removeFromSuperview() }
-        cell.contentView.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
-            button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
-            button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
-            button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-            button.heightAnchor.constraint(equalToConstant: 44),
-        ])
+    private func playFromBeginning(_ episode: PlexMetadata) {
+        let meta = PlayerCoordinator.Metadata(
+            title: episode.title,
+            showName: episode.grandparentTitle,
+            seasonNumber: episode.parentIndex,
+            episodeNumber: episode.index,
+            posterPath: episode.thumb ?? episode.grandparentThumb,
+            duration: episode.durationSecs
+        )
+        let coordinator = PlayerCoordinator(
+            api: api,
+            ratingKey: episode.id,
+            mediaType: episode.mediaType,
+            showRatingKey: episode.grandparentRatingKey ?? showRatingKey,
+            seasonRatingKey: episode.parentRatingKey,
+            resumePosition: 0,
+            metadata: meta,
+            offlineAsset: DownloadManager.shared.offlineAsset(for: episode.id)
+        )
+        playerCoordinator = coordinator
+        coordinator.present(from: self)
     }
 
-    private func seasonQualityMenu() -> UIMenu {
-        let current = Preferences.downloadQuality
-        let actions = DownloadQuality.allCases.map { quality in
-            UIAction(title: "\(quality.title) · \(quality.detail)", state: quality == current ? .on : .off) { [weak self] _ in
-                self?.enqueueSeason(quality: quality)
+    #if os(iOS)
+    private func leadingSwipeActions(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard !collectionView.isEditing, let episode = episode(at: indexPath) else { return nil }
+        let markWatched = !episode.isWatched
+        let action = UIContextualAction(style: .normal, title: nil) { [weak self] _, _, completion in
+            self?.setWatched(markWatched, ratingKey: episode.id)
+            completion(true)
+        }
+        action.backgroundColor = Theme.Color.accent
+        action.image = SwipeActionArt.image(
+            symbol: markWatched ? "eye" : "eye.slash",
+            title: markWatched ? "Watched" : "Unwatched",
+            spokenTitle: markWatched ? "Mark Watched" : "Mark Unwatched",
+            color: Theme.Color.onAccent,
+            traits: traitCollection
+        )
+        return UISwipeActionsConfiguration(actions: [action])
+    }
+
+    private func trailingSwipeActions(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard !collectionView.isEditing, let episode = episode(at: indexPath) else { return nil }
+        let key = episode.id
+        let manager = DownloadManager.shared
+        let traits = traitCollection
+        let sourceView = collectionView.cellForItem(at: indexPath)
+
+        func graphite(_ symbol: String, _ title: String, _ spoken: String, handler: @escaping () -> Void) -> UIContextualAction {
+            let action = UIContextualAction(style: .normal, title: nil) { _, _, completion in
+                Haptics.medium()
+                handler()
+                completion(true)
             }
+            action.backgroundColor = Theme.Color.surfaceHigh
+            action.image = SwipeActionArt.image(symbol: symbol, title: title, spokenTitle: spoken, color: Theme.Color.label, traits: traits)
+            return action
         }
-        return UIMenu(title: "Download Quality", children: actions)
-    }
 
-    private func enqueueSeason(quality: DownloadQuality) {
-        let added = DownloadManager.shared.enqueueAll(episodes, quality: quality)
-        AppLogger.notice("Season download queued \(added) episodes", .persistence)
-    }
+        func destructive(_ title: String, _ spoken: String, handler: @escaping () -> Void) -> UIContextualAction {
+            let action = UIContextualAction(style: .normal, title: nil) { _, _, completion in
+                handler()
+                completion(true)
+            }
+            action.backgroundColor = Theme.Color.destructive
+            action.image = SwipeActionArt.image(symbol: "trash", title: title, spokenTitle: spoken, color: Theme.Color.onArt, traits: traits)
+            return action
+        }
 
-    private func removeSeasonDownloads() {
-        let keys = episodes.map(\.id).filter { DownloadManager.shared.item(for: $0) != nil }
-        DownloadManager.shared.deleteItems(keys)
+        let configuration: UISwipeActionsConfiguration
+        switch manager.item(for: key)?.state {
+        case nil:
+            configuration = UISwipeActionsConfiguration(actions: [
+                graphite("arrow.down", "Download", "Download") { manager.enqueue(metadata: episode) },
+            ])
+        case .completed?:
+            configuration = UISwipeActionsConfiguration(actions: [
+                destructive("Remove", "Remove Download") { [weak self] in
+                    guard let self else { return }
+                    DetailDownload.confirmRemoval(title: episode.title, ratingKey: key, from: self, sourceView: sourceView)
+                },
+            ])
+        case .queued?, .waitingForWiFi?, .downloading?:
+            configuration = UISwipeActionsConfiguration(actions: [
+                destructive("Cancel", "Cancel Download") { Haptics.medium(); manager.delete(key) },
+                graphite("pause.fill", "Pause", "Pause Download") { manager.pause(key) },
+            ])
+            configuration.performsFirstActionWithFullSwipe = false
+        case .paused?:
+            configuration = UISwipeActionsConfiguration(actions: [
+                destructive("Delete", "Delete Download") { Haptics.medium(); manager.delete(key) },
+                graphite("arrow.down", "Resume", "Resume Download") { manager.resume(key) },
+            ])
+            configuration.performsFirstActionWithFullSwipe = false
+        case .failed?:
+            configuration = UISwipeActionsConfiguration(actions: [
+                destructive("Delete", "Delete Download") { Haptics.medium(); manager.delete(key) },
+                graphite("arrow.clockwise", "Retry", "Retry Download") { manager.retry(key) },
+            ])
+            configuration.performsFirstActionWithFullSwipe = false
+        }
+        return configuration
     }
-
-    // MARK: - Batch selection actions
+    #endif
 
     private func selectionToolbarItems(count: Int) -> [UIBarButtonItem] {
         let selectAll = UIBarButtonItem(primaryAction: UIAction(title: "Select All") { [weak self] _ in
@@ -588,7 +989,7 @@ final class ShowDetailViewController: UICollectionViewController {
             self?.removeSelectedEpisodes()
         }
         let removeItem = UIBarButtonItem(primaryAction: removeAction)
-        removeItem.tintColor = .systemRed
+        removeItem.tintColor = Theme.Color.destructive
         removeItem.isEnabled = count > 0 && selectionHasDownloads()
 
         return [selectAll, .flexibleSpace(), downloadItem, .flexibleSpace(), removeItem]
@@ -623,6 +1024,7 @@ final class ShowDetailViewController: UICollectionViewController {
     private func downloadSelectedEpisodes(quality: DownloadQuality) {
         let eps = selectedEpisodes()
         guard !eps.isEmpty else { return }
+        Haptics.medium()
         let added = DownloadManager.shared.enqueueAll(eps, quality: quality)
         AppLogger.notice("Batch download queued \(added) episodes", .persistence)
         multiSelect.setEditing(false)
@@ -635,222 +1037,59 @@ final class ShowDetailViewController: UICollectionViewController {
         multiSelect.setEditing(false)
     }
 
-    private func downloadMenuAction(for episode: PlexMetadata) -> UIMenuElement {
-        DownloadMenu.action(for: episode)
-    }
-
     override func collectionView(
         _ collectionView: UICollectionView,
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        guard !collectionView.isEditing else { return nil }
-        guard let indexPath = indexPaths.first,
-              let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
-        switch item {
-        case .season(let season):
-            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-                guard let self else { return nil }
-                return UIMenu(children: [
-                    UIAction(title: "Mark Season Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
-                        guard let self else { return }
-                        Task {
-                            try? await self.api.requestVoid(.scrobble(ratingKey: season.id))
-                            await self.api.invalidateCache()
-                            self.loadData()
-                        }
-                    },
-                    UIAction(title: "Mark Season Unwatched", image: UIImage(systemName: "circle")) { [weak self] _ in
-                        guard let self else { return }
-                        Task {
-                            try? await self.api.requestVoid(.unscrobble(ratingKey: season.id))
-                            await self.api.invalidateCache()
-                            self.loadData()
-                        }
-                    },
-                ])
-            })
-        case .episode(let episode):
-            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-                guard let self else { return nil }
-                return UIMenu(children: [
-                    UIAction(title: episode.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
-                        self?.quickPlay(episode)
-                    },
-                    self.downloadMenuAction(for: episode),
-                    UIAction(title: episode.isWatched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: episode.isWatched ? "eye.slash" : "eye")) { [weak self] _ in
-                        guard let self else { return }
-                        Task {
-                            if episode.isWatched {
-                                try? await self.api.requestVoid(.unscrobble(ratingKey: episode.id))
-                            } else {
-                                try? await self.api.requestVoid(.scrobble(ratingKey: episode.id))
-                            }
-                            await self.api.invalidateCache()
-                            self.loadData()
-                        }
-                    },
-                ])
-            })
-        default:
-            return nil
-        }
+        guard !collectionView.isEditing, let indexPath = indexPaths.first, let episode = episode(at: indexPath) else { return nil }
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            var children: [UIMenuElement] = [
+                UIAction(title: episode.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                    Haptics.light()
+                    self?.quickPlay(episode)
+                },
+                DownloadMenu.action(for: episode),
+                UIAction(
+                    title: episode.isWatched ? "Mark Unwatched" : "Mark Watched",
+                    image: UIImage(systemName: episode.isWatched ? "eye.slash" : "eye")
+                ) { [weak self] _ in
+                    self?.setWatched(!episode.isWatched, ratingKey: episode.id)
+                },
+            ]
+            if episode.positionSecs > 0 {
+                children.insert(UIAction(title: "Play from Beginning", image: UIImage(systemName: "gobackward")) { [weak self] _ in
+                    Haptics.light()
+                    self?.playFromBeginning(episode)
+                }, at: 1)
+            }
+            return UIMenu(children: children)
+        })
     }
 }
 
-struct ShowHeroConfiguration: UIContentConfiguration, Hashable {
-    let show: PlexMetadata
-    let seasons: [PlexMetadata]
-
-    static func == (lhs: ShowHeroConfiguration, rhs: ShowHeroConfiguration) -> Bool {
-        lhs.show.id == rhs.show.id
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(show.id)
-    }
-
-    func makeContentView() -> UIView & UIContentView {
-        ShowHeroContentView(configuration: self)
-    }
-
-    func updated(for state: UIConfigurationState) -> ShowHeroConfiguration {
-        self
-    }
-}
-
-final class ShowHeroContentView: UIView, UIContentView {
-    var configuration: UIContentConfiguration {
-        didSet { apply() }
-    }
-
-    private var currentImagePath: String?
-
-    private let backdropImageView = UIImageView()
-    private let gradientLayer = CAGradientLayer()
-    private let overlayStack = UIStackView()
-    private let titleLabel = UILabel()
-    private let metadataLabel = UILabel()
-    private let overviewLabel = UILabel()
-    private let progressLabel = UILabel()
-    private let progressBar = ProgressBar()
-    private var imageTask: Task<Void, Never>?
-
-    init(configuration: ShowHeroConfiguration) {
-        self.configuration = configuration
-        super.init(frame: .zero)
-
-        backdropImageView.contentMode = .scaleAspectFill
-        backdropImageView.clipsToBounds = true
-        backdropImageView.backgroundColor = .secondarySystemBackground
-        backdropImageView.translatesAutoresizingMaskIntoConstraints = false
-
-        gradientLayer.colors = [
-            UIColor.clear.cgColor,
-            UIColor.black.withAlphaComponent(0.4).cgColor,
-            UIColor.black.withAlphaComponent(0.85).cgColor,
-        ]
-        gradientLayer.locations = [0.0, 0.5, 1.0]
-        backdropImageView.layer.addSublayer(gradientLayer)
-
-        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = .white
-        titleLabel.numberOfLines = 0
-
-        metadataLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        metadataLabel.textColor = UIColor.white.withAlphaComponent(0.8)
-
-        overviewLabel.font = .systemFont(ofSize: 14)
-        overviewLabel.textColor = UIColor.white.withAlphaComponent(0.65)
-        overviewLabel.numberOfLines = 3
-
-        progressLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        progressLabel.textColor = UIColor.white.withAlphaComponent(0.7)
-
-        progressBar.translatesAutoresizingMaskIntoConstraints = false
-
-        let progressStack = UIStackView(arrangedSubviews: [progressLabel, progressBar])
-        progressStack.axis = .vertical
-        progressStack.spacing = 6
-
-        overlayStack.axis = .vertical
-        overlayStack.spacing = 8
-        overlayStack.setCustomSpacing(12, after: overviewLabel)
-        overlayStack.translatesAutoresizingMaskIntoConstraints = false
-        overlayStack.addArrangedSubview(titleLabel)
-        overlayStack.addArrangedSubview(metadataLabel)
-        overlayStack.addArrangedSubview(overviewLabel)
-        overlayStack.addArrangedSubview(progressStack)
-
-        addSubview(backdropImageView)
-        addSubview(overlayStack)
-
-        NSLayoutConstraint.activate([
-            backdropImageView.topAnchor.constraint(equalTo: topAnchor),
-            backdropImageView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            backdropImageView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            backdropImageView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 10.0 / 16.0),
-
-            overlayStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            overlayStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            overlayStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
-        ])
-
-        apply()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    deinit { imageTask?.cancel() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        gradientLayer.frame = backdropImageView.bounds
-    }
-
-    private func apply() {
-        guard let config = configuration as? ShowHeroConfiguration else { return }
-        let show = config.show
-
-        titleLabel.text = show.title
-
-        var meta = [String]()
-        if let rating = Formatters.rating(show.rating ?? show.audienceRating) { meta.append("★ \(rating)") }
-        if let year = show.year { meta.append("\(year)") }
-        let totalEps = config.seasons.reduce(0) { $0 + ($1.leafCount ?? 0) }
-        meta.append("\(totalEps) episodes")
-        metadataLabel.text = meta.joined(separator: " · ")
-
-        overviewLabel.text = show.summary
-        overviewLabel.isHidden = show.summary == nil
-
-        let totalWatched = config.seasons.reduce(0) { $0 + ($1.viewedLeafCount ?? 0) }
-        progressLabel.text = "\(totalWatched)/\(totalEps) watched"
-        if totalEps > 0 {
-            progressBar.progress = Double(totalWatched) / Double(totalEps)
+/// Renders a swipe action's glyph and caption into one image so the caption can use the
+/// on-accent or label colour (UIKit always draws contextual action titles in white).
+@MainActor
+enum SwipeActionArt {
+    static func image(symbol: String, title: String, spokenTitle: String, color: UIColor, traits: UITraitCollection) -> UIImage? {
+        let resolved = color.resolvedColor(with: traits)
+        let font = UIFont.systemFont(ofSize: 12, weight: .bold)
+        let glyph = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold))?
+            .withTintColor(resolved, renderingMode: .alwaysOriginal)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: resolved]
+        let textSize = (title as NSString).size(withAttributes: attributes)
+        let glyphSize = glyph?.size ?? .zero
+        let width = ceil(max(textSize.width, glyphSize.width, 24))
+        let spacing: CGFloat = 4
+        let height = ceil(glyphSize.height + spacing + textSize.height)
+        let format = UIGraphicsImageRendererFormat(for: traits)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { _ in
+            glyph?.draw(in: CGRect(x: (width - glyphSize.width) / 2, y: 0, width: glyphSize.width, height: glyphSize.height))
+            (title as NSString).draw(at: CGPoint(x: (width - textSize.width) / 2, y: glyphSize.height + spacing), withAttributes: attributes)
         }
-
-        let imagePath = show.art ?? show.thumb
-        guard let imagePath else { return }
-        guard imagePath != currentImagePath else { return }
-        currentImagePath = imagePath
-        imageTask?.cancel()
-        let isBackdrop = show.art != nil
-        imageTask = Task { [weak self] in
-            let image: UIImage?
-            if isBackdrop {
-                image = await ImageLoader.shared.loadBackdrop(path: imagePath, width: 780)
-            } else {
-                image = await ImageLoader.shared.loadImage(path: imagePath, width: 500)
-            }
-            guard !Task.isCancelled, let self else { return }
-            if let image {
-                UIView.transition(with: self.backdropImageView, duration: 0.3, options: .transitionCrossDissolve) {
-                    self.backdropImageView.image = image
-                }
-            }
-        }
+        let result = image.withRenderingMode(.alwaysOriginal)
+        result.accessibilityLabel = spokenTitle
+        return result
     }
 }

@@ -2,19 +2,24 @@
 
 final class MediaDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, info, cast, subtitles, audioTracks, actions, related
+        case hero, actions, progress, links, tracks, overview, genres, cast, details, related
+    }
+
+    struct Fact: Hashable {
+        let key: String
+        let value: String
     }
 
     enum Item: Hashable {
         case hero
-        case overview(String)
-        case genres([String])
-        case techInfo(String)
+        case actions
+        case progress
+        case links
+        case tracks
+        case overview
+        case genres
         case castMember(PlexRole)
-        case subtitle(PlexStream)
-        case subtitleNone
-        case audioTrack(PlexStream)
-        case action(String)
+        case fact(Fact)
         case related(PlexMetadata)
     }
 
@@ -30,6 +35,12 @@ final class MediaDetailViewController: UICollectionViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var playerCoordinator: PlayerCoordinator?
     private var downloadObserver: UUID?
+    private var isOverviewExpanded = false
+    private var lastLayoutWidth: CGFloat = 0
+    private lazy var hero = DetailHeroCoordinator(
+        navigationItem: navigationItem,
+        heightRatio: mediaType == "episode" ? 0.95 : 1.28
+    ) { [weak self] in self?.play() }
 
     init(api: APIClient, ratingKey: String, mediaType: String, showRatingKey: String? = nil, seasonRatingKey: String? = nil) {
         self.api = api
@@ -45,9 +56,13 @@ final class MediaDetailViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        navigationItem.largeTitleDisplayMode = .never
         collectionView.collectionViewLayout = createLayout()
+        hero.install(on: collectionView)
+        navigationItem.rightBarButtonItems = [hero.chrome.playItem]
         configureDataSource()
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: MediaDetailViewController, _: UITraitCollection) in
+            controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
+        }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -78,21 +93,38 @@ final class MediaDetailViewController: UICollectionViewController {
         }
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        var stale: [Item] = []
+        if hero.refreshMinimumHeight(collectionView) { stale.append(.hero) }
+        if abs(collectionView.bounds.width - lastLayoutWidth) > 0.5 {
+            lastLayoutWidth = collectionView.bounds.width
+            stale.append(.overview)
+        }
+        reconfigure(stale)
+        hero.scrolled(collectionView)
+    }
+
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        hero.scrolled(collectionView)
+    }
+
     private func handleDownloadEvent(_ event: DownloadEvent) {
         switch event {
         case .progress(let key, _, _, _) where key != ratingKey:
             return
         default:
-            reconfigureDownloadAction()
+            reconfigure([.actions])
         }
     }
 
-    private func reconfigureDownloadAction() {
-        guard dataSource != nil else { return }
+    private func reconfigure(_ items: [Item], animated: Bool = false) {
+        guard dataSource != nil, !items.isEmpty else { return }
         var snapshot = dataSource.snapshot()
-        guard snapshot.itemIdentifiers.contains(.action("download")) else { return }
-        snapshot.reconfigureItems([.action("download")])
-        dataSource.apply(snapshot, animatingDifferences: false)
+        let present = items.filter { snapshot.indexOfItem($0) != nil }
+        guard !present.isEmpty else { return }
+        snapshot.reconfigureItems(present)
+        dataSource.apply(snapshot, animatingDifferences: animated)
     }
 
     private func donateActivity(_ meta: PlexMetadata) {
@@ -109,211 +141,81 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+        UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
             guard let section = self?.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
-
             switch section {
-            case .hero:
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(400)))
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(400)), subitems: [item])
-                return NSCollectionLayoutSection(group: group)
-
-            case .info, .actions:
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44)))
-                let group = NSCollectionLayoutGroup.vertical(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44)), subitems: [item])
-                let layoutSection = NSCollectionLayoutSection(group: group)
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
-                layoutSection.interGroupSpacing = 8
-                return layoutSection
-
-            case .subtitles, .audioTracks:
-                var listConfig = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
-                listConfig.headerMode = .supplementary
-                return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
-
-            case .cast:
-                let size = NSCollectionLayoutSize(widthDimension: .absolute(84), heightDimension: .absolute(132))
-                let item = NSCollectionLayoutItem(layoutSize: size)
-                let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
-                let layoutSection = NSCollectionLayoutSection(group: group)
-                layoutSection.orthogonalScrollingBehavior = .continuous
-                layoutSection.interGroupSpacing = 14
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16)
-                layoutSection.boundarySupplementaryItems = [Self.sectionHeader()]
-                return layoutSection
-
-            case .related:
-                let size = NSCollectionLayoutSize(widthDimension: .absolute(120), heightDimension: .absolute(210))
-                let item = NSCollectionLayoutItem(layoutSize: size)
-                let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
-                let layoutSection = NSCollectionLayoutSection(group: group)
-                layoutSection.orthogonalScrollingBehavior = .continuous
-                layoutSection.interGroupSpacing = 12
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 24, trailing: 16)
-                layoutSection.boundarySupplementaryItems = [Self.sectionHeader()]
-                return layoutSection
+            case .hero: return DetailLayout.fullWidth(top: 0, bottom: 0)
+            case .actions: return DetailLayout.fullWidth(top: 4)
+            case .progress: return DetailLayout.fullWidth(top: 12)
+            case .links: return DetailLayout.fullWidth(top: 12)
+            case .tracks: return DetailLayout.fullWidth(top: 16)
+            case .overview: return DetailLayout.fullWidth(top: 20)
+            case .genres: return DetailLayout.fullWidth(top: 16)
+            case .cast: return DetailLayout.castRail()
+            case .details: return DetailLayout.factsGrid()
+            case .related: return DetailLayout.posterRail()
             }
         }
-    }
-
-    private static func sectionHeader() -> NSCollectionLayoutBoundarySupplementaryItem {
-        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(40))
-        return NSCollectionLayoutBoundarySupplementaryItem(layoutSize: size, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
     }
 
     private func configureDataSource() {
-        let heroCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, _ in
-            guard let metadata = self.metadata else { return }
-            cell.contentConfiguration = HeroContentConfiguration(
-                metadata: metadata,
-                onPlay: { [weak self] in self?.play() },
-                onShowTap: metadata.mediaType == "episode" && (self.showRatingKey ?? metadata.grandparentRatingKey) != nil ? { [weak self] in self?.navigateToShow() } : nil
+        let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let metadata = self.metadata else { return }
+            cell.contentConfiguration = self.heroConfiguration(metadata)
+        }
+        let actionsReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let metadata = self.metadata else { return }
+            cell.contentConfiguration = self.actionsConfiguration(metadata)
+        }
+        let progressReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let metadata = self.metadata else { return }
+            cell.contentConfiguration = Self.progressConfiguration(metadata)
+        }
+        let linksReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let metadata = self.metadata else { return }
+            cell.contentConfiguration = self.linksConfiguration(metadata)
+        }
+        let tracksReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let metadata = self.metadata else { return }
+            cell.contentConfiguration = self.tracksConfiguration(metadata)
+        }
+        let overviewReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let summary = self.metadata?.summary else { return }
+            let lines = 4
+            let width = self.collectionView.bounds.width - Theme.Space.m * 2
+            cell.contentConfiguration = DetailOverviewConfiguration(
+                text: summary,
+                collapsedLines: lines,
+                isExpanded: self.isOverviewExpanded,
+                isTruncatable: DetailOverviewConfiguration.needsTruncation(summary, width: width, lines: lines),
+                onToggle: { [weak self] in self?.toggleOverview() }
             )
         }
-
-        let textCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { cell, _, text in
-            var config = UIListContentConfiguration.cell()
-            config.text = text
-            config.textProperties.numberOfLines = 0
-            config.textProperties.font = .systemFont(ofSize: 15)
-            config.textProperties.color = .secondaryLabel
-            cell.contentConfiguration = config
+        let genresReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            cell.contentConfiguration = DetailChipsConfiguration(chips: self?.metadata?.genres ?? [])
         }
-
-        let genreCellReg = UICollectionView.CellRegistration<UICollectionViewCell, [String]> { cell, _, genres in
-            var config = UIListContentConfiguration.cell()
-            config.text = genres.joined(separator: " · ")
-            config.textProperties.font = .systemFont(ofSize: 13)
-            config.textProperties.color = .tertiaryLabel
-            cell.contentConfiguration = config
+        let castReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
+            cell.contentConfiguration = CastContentConfiguration(thumbPath: role.thumb, name: role.tag ?? "", role: role.role)
         }
-
-        let subtitleCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexStream> { [unowned self] cell, _, stream in
-            var config = UIListContentConfiguration.subtitleCell()
-            config.text = stream.displayTitle ?? stream.language ?? "Unknown"
-            var details = [String]()
-            if let codec = stream.codec { details.append(codec) }
-            if stream.forced == true { details.append("Forced") }
-            if stream.isDefault == true { details.append("Default") }
-            if stream.isBitmap { details.append("Image-based") }
-            config.secondaryText = details.joined(separator: " · ")
-            if stream.isBitmap {
-                config.textProperties.color = .tertiaryLabel
-                config.secondaryTextProperties.color = .tertiaryLabel
-            }
-            cell.contentConfiguration = config
-            if !stream.isBitmap {
-                cell.accessories = self.selectedSubtitleId == stream.id ? [.checkmark(options: .init(tintColor: .systemOrange))] : []
-            } else {
-                cell.accessories = []
-            }
+        let factReg = UICollectionView.CellRegistration<UICollectionViewCell, Fact> { cell, _, fact in
+            cell.contentConfiguration = DetailFactConfiguration(key: fact.key, value: fact.value)
         }
-
-        let subtitleNoneReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [unowned self] cell, _, _ in
-            var config = UIListContentConfiguration.cell()
-            config.text = "None"
-            cell.contentConfiguration = config
-            cell.accessories = self.selectedSubtitleId == nil ? [.checkmark(options: .init(tintColor: .systemOrange))] : []
-        }
-
-        let audioCellReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexStream> { [unowned self] cell, _, stream in
-            var config = UIListContentConfiguration.subtitleCell()
-            config.text = stream.displayTitle ?? stream.language ?? stream.id.map { "Track \($0)" } ?? "Audio Track"
-            var details = [String]()
-            if let codec = stream.codec { details.append(codec.uppercased()) }
-            details.append(stream.channelDescription)
-            if let bitrate = stream.bitrate {
-                details.append("\(bitrate) kbps")
-            }
-            config.secondaryText = details.joined(separator: " · ")
-            cell.contentConfiguration = config
-            cell.accessories = self.selectedAudioTrackId == stream.id ? [.checkmark(options: .init(tintColor: .systemOrange))] : []
-        }
-
-        let actionCellReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [unowned self] cell, _, action in
-            if action == "download" {
-                self.configureDownloadCell(cell)
-                return
-            }
-            var buttonConfig = Glass.glassButton {
-                var config = UIButton.Configuration.tinted()
-                config.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
-                config.baseForegroundColor = .systemOrange
-                return config
-            }
-            buttonConfig.cornerStyle = .large
-            switch action {
-            case "watched":
-                let watched = self.metadata?.isWatched == true
-                buttonConfig.title = watched ? "Mark Unwatched" : "Mark Watched"
-                buttonConfig.image = UIImage(systemName: watched ? "eye.slash" : "eye")
-            case "next":
-                buttonConfig.title = "Next Episode"
-                buttonConfig.image = UIImage(systemName: "forward.fill")
-            default: break
-            }
-            buttonConfig.imagePadding = 10
-            let button = UIButton(configuration: buttonConfig)
-            button.addAction(UIAction { [weak self] _ in
-                guard let self else { return }
-                switch action {
-                case "watched": self.toggleWatched()
-                case "next": self.goToNextEpisode()
-                default: break
-                }
-            }, for: .touchUpInside)
-            button.translatesAutoresizingMaskIntoConstraints = false
-            cell.contentView.subviews.forEach { $0.removeFromSuperview() }
-            cell.contentView.addSubview(button)
-            NSLayoutConstraint.activate([
-                button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
-                button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
-                button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
-                button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-                button.heightAnchor.constraint(equalToConstant: 44),
-            ])
-        }
-
-        let castCellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
-            cell.contentConfiguration = CastContentConfiguration(
-                thumbPath: role.thumb,
-                name: role.tag ?? "",
-                role: role.role
-            )
-        }
-
-        let relatedCellReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
-            cell.contentConfiguration = PosterContentConfiguration(
-                posterPath: related.posterPath ?? related.grandparentThumb,
-                title: related.title,
-                subtitle: related.year.map(String.init),
-                progress: related.progressPercent > 0 ? related.progressPercent : nil,
-                placeholderIcon: related.mediaType == "show" ? "tv" : "film"
-            )
+        let relatedReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
+            cell.contentConfiguration = DetailLayout.posterConfiguration(for: related)
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
-            case .hero:
-                return cv.dequeueConfiguredReusableCell(using: heroCellReg, for: indexPath, item: "hero")
-            case .overview(let text):
-                return cv.dequeueConfiguredReusableCell(using: textCellReg, for: indexPath, item: text)
-            case .genres(let genres):
-                return cv.dequeueConfiguredReusableCell(using: genreCellReg, for: indexPath, item: genres)
-            case .techInfo(let info):
-                return cv.dequeueConfiguredReusableCell(using: textCellReg, for: indexPath, item: info)
-            case .castMember(let role):
-                return cv.dequeueConfiguredReusableCell(using: castCellReg, for: indexPath, item: role)
-            case .subtitle(let sub):
-                return cv.dequeueConfiguredReusableCell(using: subtitleCellReg, for: indexPath, item: sub)
-            case .subtitleNone:
-                return cv.dequeueConfiguredReusableCell(using: subtitleNoneReg, for: indexPath, item: "none")
-            case .audioTrack(let track):
-                return cv.dequeueConfiguredReusableCell(using: audioCellReg, for: indexPath, item: track)
-            case .action(let action):
-                return cv.dequeueConfiguredReusableCell(using: actionCellReg, for: indexPath, item: action)
-            case .related(let related):
-                return cv.dequeueConfiguredReusableCell(using: relatedCellReg, for: indexPath, item: related)
+            case .hero: return cv.dequeueConfiguredReusableCell(using: heroReg, for: indexPath, item: item)
+            case .actions: return cv.dequeueConfiguredReusableCell(using: actionsReg, for: indexPath, item: item)
+            case .progress: return cv.dequeueConfiguredReusableCell(using: progressReg, for: indexPath, item: item)
+            case .links: return cv.dequeueConfiguredReusableCell(using: linksReg, for: indexPath, item: item)
+            case .tracks: return cv.dequeueConfiguredReusableCell(using: tracksReg, for: indexPath, item: item)
+            case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
+            case .genres: return cv.dequeueConfiguredReusableCell(using: genresReg, for: indexPath, item: item)
+            case .castMember(let role): return cv.dequeueConfiguredReusableCell(using: castReg, for: indexPath, item: role)
+            case .fact(let fact): return cv.dequeueConfiguredReusableCell(using: factReg, for: indexPath, item: fact)
+            case .related(let related): return cv.dequeueConfiguredReusableCell(using: relatedReg, for: indexPath, item: related)
             }
         }
 
@@ -321,74 +223,296 @@ final class MediaDetailViewController: UICollectionViewController {
             guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else { return }
             var config = SectionHeaderConfiguration()
             switch section {
-            case .subtitles: config.title = "Subtitles"
-            case .audioTracks: config.title = "Audio"
             case .cast: config.title = "Cast & Crew"
+            case .details: config.title = "Details"
             case .related: config.title = "More Like This"
             default: break
             }
             cell.contentConfiguration = config
         }
-        dataSource.supplementaryViewProvider = { cv, kind, indexPath in
+        dataSource.supplementaryViewProvider = { cv, _, indexPath in
             cv.dequeueConfiguredReusableSupplementary(using: headerReg, for: indexPath)
         }
     }
 
+    private func heroConfiguration(_ item: PlexMetadata) -> DetailHeroConfiguration {
+        let eyebrow: String
+        switch item.mediaType {
+        case "episode":
+            eyebrow = ["EPISODE", DetailFormat.episodeCode(season: item.parentIndex, episode: item.index)]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+        case "movie": eyebrow = "MOVIE"
+        default: eyebrow = item.mediaType == "unknown" ? "" : item.mediaType.uppercased()
+        }
+
+        let dateText: String? = item.mediaType == "episode"
+            ? (Formatters.plexDate(item.originallyAvailableAt) ?? item.year.map(String.init))
+            : item.year.map(String.init)
+        var leading: [String] = dateText.map { [$0] } ?? []
+        if let runtime = DetailFormat.runtime(item.durationSecs) { leading.append(runtime) }
+        let rating = DetailFormat.ratingParts(audience: item.audienceRating, critic: item.rating)
+        let meta = DetailFormat.metaLine(leading: leading, star: rating.star, trailing: rating.trailing)
+
+        let audio = DetailFormat.primaryAudioStream(item)
+        let badges = DetailFormat.technicalBadges(for: item, contentRating: item.contentRating, audio: audio)
+
+        var spoken = [item.title]
+        if item.mediaType == "episode" {
+            if let show = item.grandparentTitle { spoken.append(show) }
+            if let season = item.parentIndex, let episode = item.index { spoken.append("season \(season) episode \(episode)") }
+        } else if !eyebrow.isEmpty {
+            spoken.append(eyebrow.lowercased())
+        }
+        if let dateText { spoken.append(dateText) }
+        if let duration = DetailFormat.spokenDuration(item.durationSecs) { spoken.append(duration) }
+        if let ratingText = DetailFormat.spokenRating(audience: item.audienceRating, critic: item.rating) { spoken.append(ratingText) }
+        spoken.append(contentsOf: badges)
+
+        return DetailHeroConfiguration(
+            eyebrow: eyebrow,
+            title: item.title,
+            meta: meta.length > 0 ? meta : nil,
+            badges: badges,
+            minimumHeight: hero.minimumHeroCellHeight,
+            accessibilityText: spoken.joined(separator: ", ")
+        )
+    }
+
+    private func actionsConfiguration(_ item: PlexMetadata) -> DetailActionsConfiguration {
+        let resumes = item.positionSecs > 0
+        var config = DetailActionsConfiguration()
+        config.primaryTitle = resumes ? "Resume" : "Play"
+        config.primarySymbol = "play.fill"
+        config.primaryAccessibilityLabel = playAccessibilityLabel(item)
+        config.onPrimary = { [weak self] in self?.play() }
+        config.downloadState = DetailDownload.ringState(for: ratingKey)
+        config.downloadMenu = DetailDownload.menu(for: item, onPlayOffline: { [weak self] in self?.play() })
+        config.onDownload = { [weak self] source in
+            guard let self, let metadata = self.metadata else { return }
+            DetailDownload.performTap(for: metadata, from: self, sourceView: source)
+        }
+        config.isWatched = item.isWatched
+        config.onToggleWatched = { [weak self] in self?.toggleWatched() }
+        return config
+    }
+
+    private func playAccessibilityLabel(_ item: PlexMetadata) -> String {
+        guard item.positionSecs > 0 else { return "Play \(item.title)" }
+        if let left = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs), item.durationSecs > item.positionSecs {
+            return "Resume \(item.title), \(left) left"
+        }
+        return "Resume \(item.title)"
+    }
+
+    private static func hasProgress(_ item: PlexMetadata) -> Bool {
+        item.positionSecs > 0 && item.durationSecs > item.positionSecs
+    }
+
+    private static func progressConfiguration(_ item: PlexMetadata) -> DetailProgressConfiguration {
+        let fraction = item.durationSecs > 0 ? item.positionSecs / item.durationSecs : 0
+        let text = DetailFormat.remaining(position: item.positionSecs, duration: item.durationSecs) ?? ""
+        let spokenLeft = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs).map { "\($0) left" } ?? ""
+        return DetailProgressConfiguration(
+            progress: fraction,
+            text: text,
+            accessibilityText: "\(Int((fraction * 100).rounded())) percent watched, \(spokenLeft)"
+        )
+    }
+
+    private var showKey: String? { showRatingKey ?? metadata?.grandparentRatingKey }
+    private var seasonKey: String? { seasonRatingKey ?? metadata?.parentRatingKey }
+
+    private func linksConfiguration(_ item: PlexMetadata) -> DetailPillsConfiguration {
+        var pills: [DetailPillsConfiguration.Pill] = []
+        if showKey != nil {
+            let showTitle = item.grandparentTitle
+            pills.append(.init(
+                title: showTitle ?? "Go to Show",
+                symbol: "tv",
+                accessibilityLabel: showTitle.map { "Go to show, \($0)" } ?? "Go to Show",
+                action: { [weak self] in self?.navigateToShow() }
+            ))
+        }
+        if seasonKey != nil {
+            pills.append(.init(title: "Next Episode", symbol: "forward.end.fill", accessibilityLabel: nil, action: { [weak self] in
+                self?.goToNextEpisode()
+            }))
+        }
+        return DetailPillsConfiguration(pills: pills)
+    }
+
+    private func tracksConfiguration(_ item: PlexMetadata) -> DetailTracksConfiguration {
+        var config = DetailTracksConfiguration()
+        let audio = item.audioStreams
+        if !audio.isEmpty {
+            let selected = DetailFormat.primaryAudioStream(item, selectedId: selectedAudioTrackId)
+            config.audioValue = selected.map(DetailFormat.audioValue) ?? "Default"
+            config.audioMenu = audioMenu(audio)
+        }
+        let subtitles = item.subtitleStreams
+        if !subtitles.isEmpty {
+            let selected = subtitles.first { $0.id != nil && $0.id == selectedSubtitleId }
+            config.subtitleValue = selected.map(DetailFormat.subtitleValue) ?? "Off"
+            config.subtitleMenu = subtitleMenu(subtitles)
+        }
+        return config
+    }
+
+    private func audioMenu(_ streams: [PlexStream]) -> UIMenu {
+        let actions = streams.map { stream in
+            let action = UIAction(title: stream.displayTitle ?? DetailFormat.languageName(stream), state: stream.id == selectedAudioTrackId ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                self?.selectedAudioTrackId = stream.id
+                self?.reconfigure([.tracks])
+            }
+            let detail = DetailFormat.audioDetail(stream)
+            action.subtitle = detail.isEmpty ? nil : detail
+            return action
+        }
+        return UIMenu(title: "Audio", options: .singleSelection, children: actions)
+    }
+
+    private func subtitleMenu(_ streams: [PlexStream]) -> UIMenu {
+        let off = UIAction(title: "Off", state: selectedSubtitleId == nil ? .on : .off) { [weak self] _ in
+            Haptics.selection()
+            self?.selectedSubtitleId = nil
+            self?.reconfigure([.tracks])
+        }
+        let actions = streams.map { stream in
+            let action = UIAction(
+                title: stream.displayTitle ?? DetailFormat.languageName(stream),
+                attributes: stream.isBitmap ? .disabled : [],
+                state: !stream.isBitmap && stream.id != nil && stream.id == selectedSubtitleId ? .on : .off
+            ) { [weak self] _ in
+                guard !stream.isBitmap else { return }
+                Haptics.selection()
+                self?.selectedSubtitleId = stream.id
+                self?.reconfigure([.tracks])
+            }
+            let detail = DetailFormat.subtitleDetail(stream)
+            action.subtitle = detail.isEmpty ? nil : detail
+            return action
+        }
+        return UIMenu(title: "Subtitles", options: .singleSelection, children: [off] + actions)
+    }
+
+    private func facts(_ item: PlexMetadata) -> [Fact] {
+        var facts: [Fact] = []
+        func add(_ key: String, _ value: String?) {
+            guard let value, !value.isEmpty else { return }
+            facts.append(Fact(key: key, value: value))
+        }
+        let directors = item.directors.prefix(2)
+        add(directors.count > 1 ? "Directors" : "Director", directors.isEmpty ? nil : directors.joined(separator: ", "))
+        let writers = item.writers.prefix(2)
+        add(writers.count > 1 ? "Writers" : "Writer", writers.isEmpty ? nil : writers.joined(separator: ", "))
+        add("Studio", item.studio)
+        if item.mediaType == "episode" {
+            add("Aired", Formatters.plexDate(item.originallyAvailableAt))
+        }
+        add("Added", DetailFormat.addedDate(item.addedAt))
+        add("File", DetailFormat.fileFact(item))
+        add("Audio", DetailFormat.audioFact(DetailFormat.primaryAudioStream(item)))
+        return facts
+    }
+
     private func loadData() {
         loadTask?.cancel()
+        if metadata == nil {
+            contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+        }
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
                 let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
-                guard !Task.isCancelled, let meta = container.Metadata?.first else { return }
-                self.metadata = meta
-                self.title = meta.title
-                donateActivity(meta)
-
-                let audioStreams = meta.audioStreams
-                if let defaultAudio = audioStreams.first(where: { $0.isDefault == true }) {
-                    selectedAudioTrackId = defaultAudio.id
-                } else if let first = audioStreams.first {
-                    selectedAudioTrackId = first.id
+                guard !Task.isCancelled else { return }
+                guard let meta = container.Metadata?.first else {
+                    if metadata == nil { showLoadError(message: "This item is no longer available on the server.") }
+                    return
                 }
-
-                await applySnapshot()
+                donateActivity(meta)
+                await display(meta)
             } catch {
                 guard !Task.isCancelled else { return }
+                AppLogger.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
                 if metadata == nil, let download = DownloadManager.shared.item(for: ratingKey) {
-                    let meta = download.asPlexMetadata
-                    self.metadata = meta
-                    self.title = meta.title
-                    await applySnapshot()
+                    await display(download.asPlexMetadata)
+                } else if metadata == nil {
+                    showLoadError(message: error.localizedDescription)
                 }
             }
         }
+    }
+
+    private func display(_ meta: PlexMetadata) async {
+        metadata = meta
+        title = meta.title
+        hero.chrome.setTitle(meta.title)
+        hero.chrome.setPlay(label: playAccessibilityLabel(meta), available: true)
+        let audioStreams = meta.audioStreams
+        if selectedAudioTrackId == nil || !audioStreams.contains(where: { $0.id == selectedAudioTrackId }) {
+            selectedAudioTrackId = (audioStreams.first(where: { $0.isDefault == true }) ?? audioStreams.first)?.id
+        }
+        if let selectedSubtitleId, !meta.subtitleStreams.contains(where: { $0.id == selectedSubtitleId }) {
+            self.selectedSubtitleId = nil
+        }
+        let isBackdrop = meta.mediaType == "episode" ? meta.thumb != nil || meta.art != nil : meta.art != nil
+        let path = meta.mediaType == "episode" ? (meta.thumb ?? meta.art ?? meta.grandparentArt) : (meta.art ?? meta.thumb)
+        hero.backdrop.loadImage(
+            path: path,
+            isBackdrop: isBackdrop,
+            offlineRatingKey: DownloadManager.shared.item(for: ratingKey) != nil ? ratingKey : nil
+        )
+        contentUnavailableConfiguration = nil
+        await applySnapshot()
+    }
+
+    private func showLoadError(message: String) {
+        var config = UIContentUnavailableConfiguration.empty()
+        config.image = UIImage(systemName: "exclamationmark.triangle")
+        config.text = "Couldn\u{2019}t Load"
+        config.secondaryText = message
+        var button = UIButton.Configuration.filled()
+        button.title = "Retry"
+        button.baseBackgroundColor = Theme.Color.accent
+        button.baseForegroundColor = Theme.Color.onAccent
+        button.cornerStyle = .capsule
+        config.button = button
+        config.buttonProperties.primaryAction = UIAction { [weak self] _ in
+            self?.contentUnavailableConfiguration = nil
+            self?.loadData()
+        }
+        contentUnavailableConfiguration = config
     }
 
     private func applySnapshot() async {
         guard let metadata else { return }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
-        snapshot.appendSections([.hero])
+        snapshot.appendSections([.hero, .actions])
         snapshot.appendItems([.hero], toSection: .hero)
+        snapshot.appendItems([.actions], toSection: .actions)
 
-        snapshot.appendSections([.info])
-        if let overview = metadata.summary, !overview.isEmpty {
-            snapshot.appendItems([.overview(overview)], toSection: .info)
+        if Self.hasProgress(metadata) {
+            snapshot.appendSections([.progress])
+            snapshot.appendItems([.progress], toSection: .progress)
         }
-        let genres = metadata.genres
-        if !genres.isEmpty {
-            snapshot.appendItems([.genres(genres)], toSection: .info)
+        if metadata.mediaType == "episode", showKey != nil || seasonKey != nil {
+            snapshot.appendSections([.links])
+            snapshot.appendItems([.links], toSection: .links)
         }
-        var techParts = [String]()
-        if let vc = metadata.videoCodec { techParts.append(vc.uppercased()) }
-        if let ac = metadata.audioCodec { techParts.append(ac.uppercased()) }
-        if let size = metadata.fileSize { techParts.append(Formatters.fileSize(size)) }
-        if let channels = metadata.audioChannels {
-            techParts.append(Formatters.channelDescription(channels))
+        if !metadata.audioStreams.isEmpty || !metadata.subtitleStreams.isEmpty {
+            snapshot.appendSections([.tracks])
+            snapshot.appendItems([.tracks], toSection: .tracks)
         }
-        if !techParts.isEmpty {
-            snapshot.appendItems([.techInfo(techParts.joined(separator: " · "))], toSection: .info)
+        if let summary = metadata.summary, !summary.isEmpty {
+            snapshot.appendSections([.overview])
+            snapshot.appendItems([.overview], toSection: .overview)
+        }
+        if !metadata.genres.isEmpty {
+            snapshot.appendSections([.genres])
+            snapshot.appendItems([.genres], toSection: .genres)
         }
 
         let crew = metadata.directors.prefix(2).map { PlexRole(id: nil, tag: $0, role: "Director", thumb: nil) }
@@ -402,23 +526,11 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems(crewAndCast, toSection: .cast)
         }
 
-        let subtitles = metadata.subtitleStreams
-        if !subtitles.isEmpty {
-            snapshot.appendSections([.subtitles])
-            snapshot.appendItems([.subtitleNone], toSection: .subtitles)
-            snapshot.appendItems(subtitles.map { .subtitle($0) }, toSection: .subtitles)
-        }
-
-        let audioTracks = metadata.audioStreams
-        if !audioTracks.isEmpty {
-            snapshot.appendSections([.audioTracks])
-            snapshot.appendItems(audioTracks.map { .audioTrack($0) }, toSection: .audioTracks)
-        }
-
-        snapshot.appendSections([.actions])
-        snapshot.appendItems([.action("download"), .action("watched")], toSection: .actions)
-        if metadata.mediaType == "episode" {
-            snapshot.appendItems([.action("next")], toSection: .actions)
+        var seenFacts = Set<Fact>()
+        let factItems = facts(metadata).filter { seenFacts.insert($0).inserted }.map { Item.fact($0) }
+        if !factItems.isEmpty {
+            snapshot.appendSections([.details])
+            snapshot.appendItems(factItems, toSection: .details)
         }
 
         var seenRelated = Set<String>()
@@ -434,45 +546,30 @@ final class MediaDetailViewController: UICollectionViewController {
         await dataSource.apply(snapshot, animatingDifferences: false)
 
         var refreshed = dataSource.snapshot()
-        let dynamic = refreshed.itemIdentifiers.filter { item in
-            switch item {
-            case .hero, .action: return true
-            default: return false
-            }
-        }
+        let dynamic: [Item] = [.hero, .actions, .progress, .links, .tracks, .overview, .genres]
+            .filter { refreshed.indexOfItem($0) != nil }
         if !dynamic.isEmpty {
             refreshed.reconfigureItems(dynamic)
             await dataSource.apply(refreshed, animatingDifferences: false)
         }
+        hero.scrolled(collectionView)
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        if case .related = dataSource.itemIdentifier(for: indexPath) { return true }
+        return false
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-
-        switch item {
-        case .subtitle(let sub):
-            guard !sub.isBitmap else { return }
-            selectedSubtitleId = sub.id
-            reconfigureTrackSections()
-        case .subtitleNone:
-            selectedSubtitleId = nil
-            reconfigureTrackSections()
-        case .audioTrack(let track):
-            selectedAudioTrackId = track.id
-            reconfigureTrackSections()
-        case .related(let related):
-            openRelated(related)
-        default:
-            break
-        }
+        guard case .related(let related) = dataSource.itemIdentifier(for: indexPath) else { return }
+        openRelated(related)
     }
 
     private func openRelated(_ related: PlexMetadata) {
         let type = related.mediaType
         if type == "show" {
-            let vc = ShowDetailViewController(api: api, showRatingKey: related.id)
-            navigationController?.pushViewController(vc, animated: true)
+            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: related.id), animated: true)
         } else {
             let vc = MediaDetailViewController(
                 api: api,
@@ -485,16 +582,9 @@ final class MediaDetailViewController: UICollectionViewController {
         }
     }
 
-    private func reconfigureTrackSections() {
-        var snapshot = dataSource.snapshot()
-        let items = snapshot.itemIdentifiers.filter { item in
-            switch item {
-            case .subtitle, .subtitleNone, .audioTrack: return true
-            default: return false
-            }
-        }
-        snapshot.reconfigureItems(items)
-        Task { await dataSource.apply(snapshot, animatingDifferences: false) }
+    private func toggleOverview() {
+        isOverviewExpanded.toggle()
+        reconfigure([.overview], animated: !UIAccessibility.isReduceMotionEnabled)
     }
 
     private func play() {
@@ -528,167 +618,28 @@ final class MediaDetailViewController: UICollectionViewController {
         coordinator.present(from: self)
     }
 
-    private func configureDownloadCell(_ cell: UICollectionViewCell) {
-        let item = DownloadManager.shared.item(for: ratingKey)
-        var config = Glass.glassButton {
-            var c = UIButton.Configuration.tinted()
-            c.baseBackgroundColor = .systemOrange.withAlphaComponent(0.15)
-            c.baseForegroundColor = .systemOrange
-            return c
-        }
-        config.cornerStyle = .large
-        config.imagePadding = 10
-        config.titlePadding = 2
-
-        let menu: UIMenu
-
-        switch item?.state {
-        case .none:
-            config.title = "Download"
-            config.image = UIImage(systemName: "arrow.down.circle")
-            menu = qualityMenu()
-        case .queued:
-            config.title = "Queued"
-            config.subtitle = item?.quality.shortLabel
-            config.showsActivityIndicator = true
-            menu = activeMenu()
-        case .waitingForWiFi:
-            config.title = "Waiting for Wi-Fi"
-            config.image = UIImage(systemName: "wifi.slash")
-            menu = activeMenu()
-        case .downloading:
-            config.title = "Downloading"
-            config.subtitle = item.map { "\($0.percentText) · \($0.quality.shortLabel)" }
-            config.image = UIImage(systemName: "stop.circle")
-            menu = activeMenu()
-        case .paused:
-            let pct = Int(((item?.progress ?? 0) * 100).rounded())
-            config.title = "Paused · \(pct)%"
-            config.subtitle = "Tap for options"
-            config.image = UIImage(systemName: "play.circle")
-            menu = pausedMenu()
-        case .failed:
-            config.baseForegroundColor = .systemRed
-            config.title = "Download Failed"
-            config.subtitle = item?.errorMessage ?? "Tap to retry"
-            config.image = UIImage(systemName: "exclamationmark.triangle")
-            menu = failedMenu()
-        case .completed:
-            config.baseForegroundColor = .systemGreen
-            config.title = "Downloaded"
-            config.subtitle = item?.statusLine
-            config.image = UIImage(systemName: "checkmark.circle.fill")
-            menu = completedMenu()
-        }
-
-        if let button = cell.contentView.subviews.first as? UIButton, button.showsMenuAsPrimaryAction {
-            button.configuration = config
-            button.tintColor = config.baseForegroundColor
-            button.menu = menu
-            return
-        }
-
-        let button = UIButton(configuration: config)
-        button.tintColor = config.baseForegroundColor
-        button.menu = menu
-        button.showsMenuAsPrimaryAction = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        cell.contentView.subviews.forEach { $0.removeFromSuperview() }
-        cell.contentView.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
-            button.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
-            button.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
-            button.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
-            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
-        ])
-    }
-
-    private func qualityMenu() -> UIMenu {
-        let current = Preferences.downloadQuality
-        let actions = DownloadQuality.allCases.map { quality in
-            UIAction(title: "\(quality.title) · \(quality.detail)", state: quality == current ? .on : .off) { [weak self] _ in
-                self?.startDownload(quality: quality)
-            }
-        }
-        return UIMenu(title: "Download Quality", children: actions)
-    }
-
-    private func activeMenu() -> UIMenu {
-        UIMenu(children: [
-            UIAction(title: "Pause", image: UIImage(systemName: "pause.fill")) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.pause(self.ratingKey)
-            },
-            UIAction(title: "Cancel Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.delete(self.ratingKey)
-            },
-        ])
-    }
-
-    private func pausedMenu() -> UIMenu {
-        UIMenu(children: [
-            UIAction(title: "Resume", image: UIImage(systemName: "arrow.down.to.line")) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.resume(self.ratingKey)
-            },
-            UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.delete(self.ratingKey)
-            },
-        ])
-    }
-
-    private func failedMenu() -> UIMenu {
-        UIMenu(children: [
-            UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.retry(self.ratingKey)
-            },
-            UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.delete(self.ratingKey)
-            },
-        ])
-    }
-
-    private func completedMenu() -> UIMenu {
-        UIMenu(children: [
-            UIAction(title: "Play Offline", image: UIImage(systemName: "play.fill")) { [weak self] _ in
-                self?.play()
-            },
-            UIAction(title: "Delete Download", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                guard let self else { return }
-                DownloadManager.shared.delete(self.ratingKey)
-            },
-        ])
-    }
-
-    private func startDownload(quality: DownloadQuality) {
-        guard let metadata else { return }
-        DownloadManager.shared.enqueue(metadata: metadata, quality: quality)
-    }
-
     private func toggleWatched() {
         guard let metadata else { return }
+        let wasWatched = metadata.isWatched
         Task { [weak self] in
             guard let self else { return }
             do {
-                if metadata.isWatched {
+                if wasWatched {
                     try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
                 } else {
                     try await api.requestVoid(.scrobble(ratingKey: ratingKey))
                 }
                 await api.invalidateCache()
                 loadData()
-            } catch {}
+            } catch {
+                AppLogger.error("Toggle watched failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+                Haptics.error()
+            }
         }
     }
 
     private func goToNextEpisode() {
-        let parentKey = seasonRatingKey ?? metadata?.parentRatingKey
-        guard let parentKey else { return }
+        guard let parentKey = seasonKey else { return }
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -701,270 +652,19 @@ final class MediaDetailViewController: UICollectionViewController {
                     api: api,
                     ratingKey: next.id,
                     mediaType: "episode",
-                    showRatingKey: showRatingKey ?? metadata?.grandparentRatingKey,
+                    showRatingKey: showKey,
                     seasonRatingKey: parentKey
                 )
                 navigationController?.pushViewController(vc, animated: true)
-            } catch {}
+            } catch {
+                AppLogger.error("Next episode lookup failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+            }
         }
     }
 
     private func navigateToShow() {
-        let key = showRatingKey ?? metadata?.grandparentRatingKey
-        guard let key else { return }
-        let seasonKey = seasonRatingKey ?? metadata?.parentRatingKey
+        guard let key = showKey else { return }
         let vc = ShowDetailViewController(api: api, showRatingKey: key, initialSeasonKey: seasonKey)
         navigationController?.pushViewController(vc, animated: true)
-    }
-}
-
-struct HeroContentConfiguration: UIContentConfiguration, Hashable {
-    let metadata: PlexMetadata
-    var onPlay: (() -> Void)?
-    var onShowTap: (() -> Void)?
-
-    static func == (lhs: HeroContentConfiguration, rhs: HeroContentConfiguration) -> Bool {
-        lhs.metadata.id == rhs.metadata.id && lhs.metadata.viewOffset == rhs.metadata.viewOffset
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(metadata.id)
-        hasher.combine(metadata.viewOffset)
-    }
-
-    func makeContentView() -> UIView & UIContentView {
-        HeroContentView(configuration: self)
-    }
-
-    func updated(for state: UIConfigurationState) -> HeroContentConfiguration {
-        self
-    }
-}
-
-final class HeroContentView: UIView, UIContentView {
-    var configuration: UIContentConfiguration {
-        didSet { apply() }
-    }
-
-    private var currentImagePath: String?
-
-    private let backdropImageView = UIImageView()
-    private let gradientLayer = CAGradientLayer()
-    private let overlayStack = UIStackView()
-    private let titleLabel = UILabel()
-    private let metadataStack = UIStackView()
-    private let badgeStack = UIStackView()
-    private let playButton = UIButton(configuration: .filled())
-    private var episodeButton = UIButton(configuration: .plain())
-    private var imageTask: Task<Void, Never>?
-    private var onPlay: (() -> Void)?
-    private var onShowTap: (() -> Void)?
-
-    init(configuration: HeroContentConfiguration) {
-        self.configuration = configuration
-        super.init(frame: .zero)
-
-        backdropImageView.contentMode = .scaleAspectFill
-        backdropImageView.clipsToBounds = true
-        backdropImageView.backgroundColor = .secondarySystemBackground
-        backdropImageView.translatesAutoresizingMaskIntoConstraints = false
-
-        gradientLayer.colors = [
-            UIColor.clear.cgColor,
-            UIColor.black.withAlphaComponent(0.4).cgColor,
-            UIColor.black.withAlphaComponent(0.85).cgColor,
-        ]
-        gradientLayer.locations = [0.0, 0.5, 1.0]
-        backdropImageView.layer.addSublayer(gradientLayer)
-
-        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = .white
-        titleLabel.numberOfLines = 0
-
-        metadataStack.axis = .horizontal
-        metadataStack.spacing = 12
-
-        badgeStack.axis = .horizontal
-        badgeStack.spacing = 6
-
-        playButton.addAction(UIAction { [unowned self] _ in
-            self.onPlay?()
-        }, for: .touchUpInside)
-
-        var showConfig = UIButton.Configuration.plain()
-        showConfig.contentInsets = .zero
-        showConfig.baseForegroundColor = .systemOrange
-        episodeButton = UIButton(configuration: showConfig)
-        episodeButton.contentHorizontalAlignment = .leading
-        episodeButton.addAction(UIAction { [unowned self] _ in
-            self.onShowTap?()
-        }, for: .touchUpInside)
-
-        overlayStack.axis = .vertical
-        overlayStack.spacing = 8
-        overlayStack.setCustomSpacing(12, after: badgeStack)
-        overlayStack.alignment = .leading
-        overlayStack.translatesAutoresizingMaskIntoConstraints = false
-        overlayStack.addArrangedSubview(titleLabel)
-        overlayStack.addArrangedSubview(metadataStack)
-        overlayStack.addArrangedSubview(badgeStack)
-        overlayStack.addArrangedSubview(playButton)
-        overlayStack.addArrangedSubview(episodeButton)
-
-        addSubview(backdropImageView)
-        addSubview(overlayStack)
-
-        NSLayoutConstraint.activate([
-            backdropImageView.topAnchor.constraint(equalTo: topAnchor),
-            backdropImageView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            backdropImageView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            backdropImageView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            backdropImageView.heightAnchor.constraint(equalTo: backdropImageView.widthAnchor, multiplier: 10.0 / 16.0),
-
-            overlayStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            overlayStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            overlayStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
-
-            playButton.heightAnchor.constraint(equalToConstant: 50),
-            playButton.widthAnchor.constraint(equalTo: overlayStack.widthAnchor),
-        ])
-
-        apply()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    deinit { imageTask?.cancel() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        gradientLayer.frame = backdropImageView.bounds
-    }
-
-    private func apply() {
-        guard let config = configuration as? HeroContentConfiguration else { return }
-        let item = config.metadata
-        onPlay = config.onPlay
-        onShowTap = config.onShowTap
-
-        titleLabel.text = item.title
-
-        metadataStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        if let year = item.year {
-            metadataStack.addArrangedSubview(makeMetaLabel("\(year)"))
-        }
-        if let rating = Formatters.rating(item.rating ?? item.audienceRating) {
-            let label = makeMetaLabel("★ \(rating)")
-            label.textColor = .systemYellow
-            metadataStack.addArrangedSubview(label)
-        }
-        metadataStack.addArrangedSubview(makeMetaLabel(Formatters.duration(item.durationSecs)))
-
-        badgeStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        if let res = Formatters.resolution(item.videoWidth, item.videoHeight) {
-            badgeStack.addArrangedSubview(makeBadge(res))
-        }
-        if let profile = item.Media?.first?.videoProfile, profile.lowercased().contains("10") {
-            badgeStack.addArrangedSubview(makeBadge("HDR"))
-        }
-        if let codec = item.videoCodec {
-            badgeStack.addArrangedSubview(makeBadge(codec.uppercased()))
-        }
-
-        var playConfig = Glass.prominentButton {
-            var config = UIButton.Configuration.filled()
-            config.baseBackgroundColor = .systemOrange
-            config.baseForegroundColor = .white
-            return config
-        }
-        playConfig.image = UIImage(systemName: "play.fill")
-        playConfig.imagePadding = 10
-        playConfig.cornerStyle = .large
-        if item.positionSecs > 0 {
-            playConfig.title = "Resume from \(Formatters.timestamp(item.positionSecs))"
-        } else {
-            playConfig.title = "Play"
-        }
-        playButton.configuration = playConfig
-
-        if item.mediaType == "episode" {
-            episodeButton.isHidden = false
-            var parts = [String]()
-            if let code = Formatters.episodeCode(item.parentIndex, item.index) { parts.append(code) }
-            if let show = item.grandparentTitle { parts.append(show) }
-            var btnConfig = episodeButton.configuration ?? .plain()
-            btnConfig.title = parts.joined(separator: " — ")
-            btnConfig.baseForegroundColor = .systemOrange
-            episodeButton.configuration = btnConfig
-            episodeButton.isEnabled = config.onShowTap != nil
-        } else {
-            episodeButton.isHidden = true
-        }
-
-        let imagePath = item.art ?? item.thumb
-        guard let imagePath, !imagePath.isEmpty else { return }
-        guard imagePath != currentImagePath else { return }
-        currentImagePath = imagePath
-
-        imageTask?.cancel()
-        let isBackdrop = item.art != nil
-        imageTask = Task { [weak self] in
-            let image: UIImage?
-            if isBackdrop {
-                image = await ImageLoader.shared.loadBackdrop(path: imagePath, width: 780)
-            } else {
-                image = await ImageLoader.shared.loadImage(path: imagePath, width: 500)
-            }
-            guard !Task.isCancelled, let self else { return }
-            if let image {
-                UIView.transition(with: self.backdropImageView, duration: 0.3, options: .transitionCrossDissolve) {
-                    self.backdropImageView.image = image
-                }
-            }
-        }
-    }
-
-    private func makeMetaLabel(_ text: String) -> UILabel {
-        let label = UILabel()
-        label.text = text
-        label.font = .systemFont(ofSize: 14, weight: .medium)
-        label.textColor = UIColor.white.withAlphaComponent(0.8)
-        return label
-    }
-
-    private func makeBadge(_ text: String) -> UIView {
-        let label = UILabel()
-        label.text = text
-        label.font = .systemFont(ofSize: 10, weight: .bold)
-        label.textColor = UIColor.white.withAlphaComponent(0.9)
-        label.translatesAutoresizingMaskIntoConstraints = false
-
-        let container: UIView
-        let host: UIView
-        if #available(iOS 26.0, tvOS 26.0, *) {
-            let effectView = UIVisualEffectView(effect: UIGlassEffect(style: .regular))
-            effectView.cornerConfiguration = .corners(radius: .containerConcentric())
-            container = effectView
-            host = effectView.contentView
-        } else {
-            let view = UIView()
-            view.backgroundColor = UIColor.white.withAlphaComponent(0.15)
-            view.layer.cornerRadius = 4
-            view.layer.cornerCurve = .continuous
-            view.layer.borderWidth = 0.5
-            view.layer.borderColor = UIColor.white.withAlphaComponent(0.2).cgColor
-            container = view
-            host = view
-        }
-        container.clipsToBounds = true
-        host.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: host.topAnchor, constant: 3),
-            label.bottomAnchor.constraint(equalTo: host.bottomAnchor, constant: -3),
-            label.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: 8),
-            label.trailingAnchor.constraint(equalTo: host.trailingAnchor, constant: -8),
-        ])
-        return container
     }
 }
