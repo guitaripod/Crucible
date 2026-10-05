@@ -8,3 +8,6 @@ DerivedData/
 .netrc
 
 /xtool
+/.dd
+/marketing/shots/out
+/marketing/mock/assets

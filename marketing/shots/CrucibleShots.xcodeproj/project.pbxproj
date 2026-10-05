@@ -1,0 +1,252 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FFFFFFFFFFFFFFFFFFFFFFFF /* Crucible in Frameworks */ = {isa = PBXBuildFile; productRef = 999999999999999999999999 /* Crucible */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		202020202020202020202010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 111111111111111111111111 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 999999999999999999999999;
+			remoteInfo = Crucible;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		777777777777777777777777 /* CrucibleShots.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CrucibleShots.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		121212121212121212121212 /* Sources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CCCCCCCCCCCCCCCCCCCCCCCC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FFFFFFFFFFFFFFFFFFFFFFFF /* Crucible in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		222222222222222222222222 = {
+			isa = PBXGroup;
+			children = (
+				121212121212121212121212 /* Sources */,
+				333333333333333333333333 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		333333333333333333333333 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				777777777777777777777777 /* CrucibleShots.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AAAAAAAAAAAAAAAAAAAAAAAA /* CrucibleShots */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 606060606060606060606060 /* Build configuration list for PBXNativeTarget "CrucibleShots" */;
+			buildPhases = (
+				BBBBBBBBBBBBBBBBBBBBBBBB /* Sources */,
+				CCCCCCCCCCCCCCCCCCCCCCCC /* Frameworks */,
+				DDDDDDDDDDDDDDDDDDDDDDDD /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				121212121212121212121212 /* Sources */,
+			);
+			dependencies = (
+				101010101010101010101010 /* PBXTargetDependency */,
+			);
+			name = CrucibleShots;
+			packageProductDependencies = (
+				999999999999999999999999 /* Crucible */,
+			);
+			productName = CrucibleShots;
+			productReference = 777777777777777777777777 /* CrucibleShots.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		111111111111111111111111 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+			};
+			buildConfigurationList = 303030303030303030303030 /* Build configuration list for PBXProject "CrucibleShots" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 222222222222222222222222;
+			packageReferences = (
+				888888888888888888888888 /* Crucible */,
+			);
+			productRefGroup = 333333333333333333333333 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AAAAAAAAAAAAAAAAAAAAAAAA /* CrucibleShots */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DDDDDDDDDDDDDDDDDDDDDDDD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BBBBBBBBBBBBBBBBBBBBBBBB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		101010101010101010101010 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 999999999999999999999999 /* Crucible */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		404040404040404040404040 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		505050505050505050505050 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_OPTIMIZATION_LEVEL = s;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		707070707070707070707070 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guitaripod.crucible.shots;
+				PRODUCT_NAME = CrucibleShots;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		808080808080808080808080 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.guitaripod.crucible.shots;
+				PRODUCT_NAME = CrucibleShots;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		303030303030303030303030 /* Build configuration list for PBXProject "CrucibleShots" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				404040404040404040404040 /* Debug */,
+				505050505050505050505050 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		606060606060606060606060 /* Build configuration list for PBXNativeTarget "CrucibleShots" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				707070707070707070707070 /* Debug */,
+				808080808080808080808080 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		888888888888888888888888 /* Crucible */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../..";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		999999999999999999999999 /* Crucible */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 888888888888888888888888 /* Crucible */;
+			productName = Crucible;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+	};
+	rootObject = 111111111111111111111111 /* Project object */;
+}
