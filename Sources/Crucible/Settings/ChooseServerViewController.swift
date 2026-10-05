@@ -118,7 +118,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
 
         let serverReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
             guard let self, let choice = choices.first(where: { $0.id == id }) else { return }
-            cell.contentConfiguration = ServerCardContentConfiguration(choice: choice, isSelected: id == selectedID)
+            cell.contentConfiguration = ChooseServerCardConfiguration(choice: choice, isSelected: id == selectedID)
             cell.backgroundConfiguration = .clear()
         }
 

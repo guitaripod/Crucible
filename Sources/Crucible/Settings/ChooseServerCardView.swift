@@ -2,20 +2,20 @@ import UIKit
 
 /// A server card for the Choose Server list. The selected card gets an ember stroke and expands to
 /// list every connection with its probe state, kind, address and measured latency.
-struct ServerCardContentConfiguration: UIContentConfiguration, Hashable {
+struct ChooseServerCardConfiguration: UIContentConfiguration, Hashable {
     var choice: ServerChoice
     var isSelected: Bool
 
     func makeContentView() -> UIView & UIContentView {
-        ServerCardContentView(configuration: self)
+        ChooseServerCardView(configuration: self)
     }
 
-    func updated(for state: UIConfigurationState) -> ServerCardContentConfiguration {
+    func updated(for state: UIConfigurationState) -> ChooseServerCardConfiguration {
         self
     }
 }
 
-final class ServerCardContentView: UIView, UIContentView {
+final class ChooseServerCardView: UIView, UIContentView {
     var configuration: UIContentConfiguration {
         didSet { apply() }
     }
@@ -30,12 +30,12 @@ final class ServerCardContentView: UIView, UIContentView {
     private let separator = UIView()
     private let expandedStack = UIStackView()
 
-    init(configuration: ServerCardContentConfiguration) {
+    init(configuration: ChooseServerCardConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
         buildHierarchy()
         apply()
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: ServerCardContentView, _: UITraitCollection) in
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: ChooseServerCardView, _: UITraitCollection) in
             view.applyBorder()
         }
     }
@@ -43,8 +43,8 @@ final class ServerCardContentView: UIView, UIContentView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    private var current: ServerCardContentConfiguration? {
-        configuration as? ServerCardContentConfiguration
+    private var current: ChooseServerCardConfiguration? {
+        configuration as? ChooseServerCardConfiguration
     }
 
     private func buildHierarchy() {
@@ -150,7 +150,7 @@ final class ServerCardContentView: UIView, UIContentView {
         layer.borderColor = color.resolvedColor(with: traitCollection).cgColor
     }
 
-    private func applyAccessibility(_ config: ServerCardContentConfiguration) {
+    private func applyAccessibility(_ config: ChooseServerCardConfiguration) {
         isAccessibilityElement = true
         let choice = config.choice
         var parts = [choice.name, choice.detailText]

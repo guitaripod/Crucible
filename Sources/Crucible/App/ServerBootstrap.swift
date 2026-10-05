@@ -69,6 +69,7 @@ enum ServerBootstrap {
         UserDefaults.standard.removeObject(forKey: serverNameKey)
         UserDefaults.standard.removeObject(forKey: machineIdKey)
         UserDefaults.standard.removeObject(forKey: candidateURIsKey)
+        UserDefaults.standard.removeObject(forKey: PlexAccountName.defaultsKey)
     }
 
     /// Rewrites the pinned URI after a successful failover, keeping the full candidate list.
