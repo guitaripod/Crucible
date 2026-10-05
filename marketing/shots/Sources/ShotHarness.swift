@@ -23,6 +23,18 @@ enum ShotHarness {
             Preferences.appearance = .dark
         }
 
+        DownloadSeeder.seed(base: base, specs: [
+            .init(ratingKey: "4009", state: .completed, progress: 1, watched: 1.0, gigabytes: 1.3, ageDays: 6),
+            .init(ratingKey: "4010", state: .completed, progress: 1, watched: 1.0, gigabytes: 1.2, ageDays: 6),
+            .init(ratingKey: "4011", state: .completed, progress: 1, watched: 0, gigabytes: 1.4, ageDays: 5),
+            .init(ratingKey: "4012", state: .completed, progress: 1, watched: 0.58, gigabytes: 1.3, ageDays: 5),
+            .init(ratingKey: "4036", state: .completed, progress: 1, watched: 0, gigabytes: 1.1, ageDays: 3),
+            .init(ratingKey: "4037", state: .completed, progress: 1, watched: 0, gigabytes: 1.2, ageDays: 3),
+            .init(ratingKey: "1002", state: .completed, progress: 1, watched: 0.42, gigabytes: 6.4, ageDays: 2),
+            .init(ratingKey: "1001", state: .completed, progress: 1, watched: 1.0, gigabytes: 6.8, ageDays: 9),
+            .init(ratingKey: "4013", state: .paused, progress: 0.64, watched: 0, gigabytes: 1.3, ageDays: 0.1),
+        ])
+
         var started = false
         NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated {
