@@ -50,7 +50,7 @@ deadline=$((SECONDS + ${TIMEOUT:-420}))
 tick=0
 while [ $SECONDS -lt $deadline ]; do
   tick=$((tick + 1))
-  if [ $((tick % 40)) -eq 0 ] && ! xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q "UIKitApplication:$APP_ID"; then
+  if [ $((tick % 40)) -eq 0 ] && ! (xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep "UIKitApplication:$APP_ID" > /dev/null || true; xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -c "UIKitApplication:$APP_ID" | grep -qv '^0$'); then
     echo "app is no longer running (crashed?)" >&2
     ls -t "$HOME"/Library/Logs/DiagnosticReports/CrucibleShots* 2>/dev/null | head -1 >&2
     exit 2
