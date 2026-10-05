@@ -100,7 +100,7 @@ enum ShotScript {
         await ShotHarness.settle(5)
         let debugPath = "\(ShotHarness.signalDirectory)/player-debug.txt"
         var debug = "presented: \(String(describing: tabBar.presentedViewController))\n"
-        if let scene = tabBar.view.window?.windowScene {
+        if let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first {
             scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
                 try? "geometry error: \(error)".write(toFile: debugPath + ".err", atomically: true, encoding: .utf8)
             }
@@ -114,7 +114,7 @@ enum ShotScript {
             player.showsPlaybackControls = false
             player.showsPlaybackControls = true
         }
-        debug += "after: \(tabBar.view.window?.windowScene?.interfaceOrientation.rawValue ?? -1) bounds \(tabBar.view.window?.bounds ?? .zero)\n"
+        debug += "after: \(ShotHarness.rootWindow?.windowScene?.interfaceOrientation.rawValue ?? -1) bounds \(ShotHarness.rootWindow?.bounds ?? .zero)\n"
         try? debug.write(toFile: debugPath, atomically: true, encoding: .utf8)
         await ShotHarness.settle(1.5)
         await ShotHarness.capture("09-player")
