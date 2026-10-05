@@ -13,28 +13,10 @@ extension StatisticsViewController {
         return NSCollectionLayoutBoundarySupplementaryItem(layoutSize: size, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
     }
 
-    private func fullWidth(height: CGFloat, horizontalInset: CGFloat = 16, header: Bool) -> NSCollectionLayoutSection {
-        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(height)))
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(height)), subitems: [item])
-        let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = .init(top: 4, leading: horizontalInset, bottom: 14, trailing: horizontalInset)
-        if header { section.boundarySupplementaryItems = [headerItem()] }
-        return section
-    }
-
-    private func rowList(height: CGFloat) -> NSCollectionLayoutSection {
-        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(height)))
-        let group = NSCollectionLayoutGroup.vertical(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(height)), subitems: [item])
-        let section = NSCollectionLayoutSection(group: group)
-        section.interGroupSpacing = 4
-        section.contentInsets = .init(top: 4, leading: 16, bottom: 14, trailing: 16)
-        section.boundarySupplementaryItems = [headerItem()]
-        return section
-    }
-
     private func posterRail() -> NSCollectionLayoutSection {
-        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .absolute(140), heightDimension: .absolute(210)))
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .absolute(140), heightDimension: .absolute(210)), subitems: [item])
+        let height = Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
+        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .absolute(Theme.Size.posterRailWidth), heightDimension: .estimated(height)))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .absolute(Theme.Size.posterRailWidth), heightDimension: .estimated(height)), subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
         section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
         section.interGroupSpacing = 12
@@ -43,35 +25,34 @@ extension StatisticsViewController {
         return section
     }
 
+    private func cardSection(estimatedHeight: CGFloat = 160, top: CGFloat = 0, bottom: CGFloat = 14) -> NSCollectionLayoutSection {
+        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
+        let item = NSCollectionLayoutItem(layoutSize: size)
+        let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = .init(top: top, leading: 16, bottom: bottom, trailing: 16)
+        return section
+    }
+
     private func layoutSection(_ section: StatSection, environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         switch section {
+        case .range:
+            return cardSection(estimatedHeight: 44, top: 4, bottom: 12)
         case .hero:
-            return fullWidth(height: 210, horizontalInset: 0, header: false)
+            return cardSection(estimatedHeight: 188, bottom: 10)
         case .kpis:
-            let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1)))
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(96)), repeatingSubitem: item, count: 2)
+            let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .estimated(96))
+            let item = NSCollectionLayoutItem(layoutSize: size)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .estimated(96)), repeatingSubitem: item, count: 2)
             group.interItemSpacing = .fixed(10)
             let s = NSCollectionLayoutSection(group: group)
             s.interGroupSpacing = 10
-            s.contentInsets = .init(top: 4, leading: 16, bottom: 14, trailing: 16)
-            s.boundarySupplementaryItems = [headerItem()]
+            s.contentInsets = .init(top: 0, leading: 16, bottom: 14, trailing: 16)
             return s
-        case .heatmap:
-            return fullWidth(height: 140, header: true)
-        case .clock:
-            return fullWidth(height: 224, header: true)
-        case .momentum:
-            return fullWidth(height: 184, header: true)
-        case .topShows:
-            return rowList(height: 76)
+        case .heatmap, .topShows, .clock, .momentum, .libraries, .binges, .genres:
+            return cardSection()
         case .topMovies, .onThisDay:
             return posterRail()
-        case .libraries:
-            return fullWidth(height: 200, header: true)
-        case .binges:
-            return fullWidth(height: 140, horizontalInset: 4, header: true)
-        case .genres:
-            return rowList(height: 56)
         case .superlatives:
             let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1)))
             let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(0.82), heightDimension: .absolute(150)), subitems: [item])
@@ -82,18 +63,26 @@ extension StatisticsViewController {
             s.boundarySupplementaryItems = [headerItem()]
             return s
         case .share:
-            return fullWidth(height: 72, header: false)
+            return cardSection(estimatedHeight: Theme.Size.primaryButtonHeight, top: 2, bottom: 28)
         }
     }
 }
 
 extension StatisticsViewController {
     func configureDataSource() {
+        let rangeReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
+            guard let self else { return }
+            let control = StatsRangeControl()
+            control.select(range)
+            control.onRange = { [weak self] newRange in self?.selectRange(newRange) }
+            host(control, in: cell)
+        }
+
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let hero = StatsHeroView()
-            hero.onRange = { [weak self] newRange in self?.selectRange(newRange) }
-            hero.configure(totalPlays: current.overview.totalPlays, subtitle: subtitleText(), range: range, animate: heroShouldAnimate)
+            let content = heroContent()
+            hero.configure(eyebrow: content.eyebrow, value: content.value, unit: content.unit, detail: content.detail, since: subtitleText(), animate: heroShouldAnimate)
             host(hero, in: cell)
         }
 
@@ -109,40 +98,35 @@ extension StatisticsViewController {
             let heatmap = ContributionHeatmapView()
             heatmap.setModel(heatmapModel)
             heatmap.onSelectDay = { [weak self] dayEpoch in self?.pushDayDetail(dayEpoch: dayEpoch) }
-            host(heatmap, in: cell)
+            host(StatsCardView(title: "Activity", accessory: StatsHeatLegendView(), content: heatmap), in: cell)
+        }
+
+        let showsReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
+            guard let self else { return }
+            host(StatsCardView(title: "Top Shows", content: makeTopShowsView()), in: cell)
         }
 
         let clockReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(makeClockView(), in: cell)
+            host(StatsCardView(title: "When You Watch", content: makeClockView()), in: cell)
         }
 
         let momentumReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let trend = TrendAreaView()
             trend.showsAxes = true
+            var summary = "Plays per month."
             if let peak = current.monthly.max(by: { $0.count < $1.count }) {
                 let (year, month) = StatsTime.monthEpochToYearMonth(peak.monthEpoch)
-                trend.peakAnnotation = "\(StatsStyle.monthSymbols[max(0, min(11, month - 1))]) \(year)"
+                let peakText = "\(StatsStyle.monthSymbols[max(0, min(11, month - 1))]) \(year)"
+                trend.peakAnnotation = peakText
+                summary += " Peak in \(peakText) with \(peak.count) plays."
             }
             trend.setValues(current.monthly.map { Double($0.count) }, animated: true)
-            host(trend, in: cell)
-        }
-
-        let showReg = UICollectionView.CellRegistration<UICollectionViewCell, ShowStat> { [weak self] cell, _, show in
-            guard let self else { return }
-            let row = RankedRowView()
-            let maxCount = current.topShows.first?.count ?? 1
-            let index = current.topShows.firstIndex(of: show) ?? 0
-            var accessory: UIView?
-            if let completion = show.completion {
-                let ring = CompletionRingView()
-                ring.setProgress(completion, animated: true)
-                accessory = ring
-            }
-            let episodes = show.watchedEpisodes ?? show.count
-            row.configure(title: show.title, valueText: episodes == 1 ? "1 ep" : "\(episodes) eps", fraction: Double(show.count) / Double(max(1, maxCount)), colorIndex: index, thumbPath: show.thumb, accessory: accessory)
-            host(row, in: cell, insets: .init(top: 8, leading: 0, bottom: 8, trailing: 0))
+            trend.isAccessibilityElement = true
+            trend.accessibilityTraits = .image
+            trend.accessibilityLabel = summary
+            host(StatsCardView(title: "Your Momentum", content: trend), in: cell)
         }
 
         let movieReg = UICollectionView.CellRegistration<UICollectionViewCell, MovieStat> { cell, _, movie in
@@ -156,28 +140,19 @@ extension StatisticsViewController {
 
         let librariesReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(makeLibrariesView(), in: cell)
+            host(StatsCardView(title: "Your Libraries", content: makeLibrariesView()), in: cell)
         }
 
         let bingesReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let timeline = BingeTimelineView()
             timeline.setSessions(current.binges)
-            host(timeline, in: cell)
+            host(StatsCardView(title: "Binges & Streaks", content: timeline), in: cell)
         }
 
-        let genreReg = UICollectionView.CellRegistration<UICollectionViewCell, GenreStat> { [weak self] cell, _, genre in
+        let genresReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            let row = RankedRowView()
-            let maxCount = current.genres.first?.count ?? 1
-            let index = current.genres.firstIndex(of: genre) ?? 0
-            row.configure(title: genre.genre, valueText: "\(genre.count)", fraction: Double(genre.count) / Double(max(1, maxCount)), colorIndex: index, thumbPath: nil)
-            Self.host(row, in: cell)
-        }
-
-        let genrePendingReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
-            guard let self else { return }
-            Self.host(makePendingView(progress: current.enrichment.genreCoverage), in: cell)
+            host(StatsCardView(title: "Your Taste", content: makeGenresView()), in: cell)
         }
 
         let onThisDayReg = UICollectionView.CellRegistration<UICollectionViewCell, OnThisDayItem> { cell, _, item in
@@ -197,22 +172,22 @@ extension StatisticsViewController {
 
         let shareReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(makeShareButton(), in: cell, insets: .init(top: 4, leading: 0, bottom: 8, trailing: 0))
+            host(makeShareButton(), in: cell)
         }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, row in
             switch row {
+            case .range(let v): return collectionView.dequeueConfiguredReusableCell(using: rangeReg, for: indexPath, item: v)
             case .hero(let v): return collectionView.dequeueConfiguredReusableCell(using: heroReg, for: indexPath, item: v)
             case .kpi(let tile): return collectionView.dequeueConfiguredReusableCell(using: kpiReg, for: indexPath, item: tile)
             case .heatmap(let v): return collectionView.dequeueConfiguredReusableCell(using: heatmapReg, for: indexPath, item: v)
+            case .showsCard(let v): return collectionView.dequeueConfiguredReusableCell(using: showsReg, for: indexPath, item: v)
             case .clock(let v): return collectionView.dequeueConfiguredReusableCell(using: clockReg, for: indexPath, item: v)
             case .momentum(let v): return collectionView.dequeueConfiguredReusableCell(using: momentumReg, for: indexPath, item: v)
-            case .showRow(let show): return collectionView.dequeueConfiguredReusableCell(using: showReg, for: indexPath, item: show)
             case .moviePoster(let movie): return collectionView.dequeueConfiguredReusableCell(using: movieReg, for: indexPath, item: movie)
             case .libraries(let v): return collectionView.dequeueConfiguredReusableCell(using: librariesReg, for: indexPath, item: v)
             case .binges(let v): return collectionView.dequeueConfiguredReusableCell(using: bingesReg, for: indexPath, item: v)
-            case .genreRow(let genre): return collectionView.dequeueConfiguredReusableCell(using: genreReg, for: indexPath, item: genre)
-            case .genrePending(let v): return collectionView.dequeueConfiguredReusableCell(using: genrePendingReg, for: indexPath, item: v)
+            case .genresCard(let v): return collectionView.dequeueConfiguredReusableCell(using: genresReg, for: indexPath, item: v)
             case .onThisDayPoster(let item): return collectionView.dequeueConfiguredReusableCell(using: onThisDayReg, for: indexPath, item: item)
             case .superlative(let s): return collectionView.dequeueConfiguredReusableCell(using: superlativeReg, for: indexPath, item: s)
             case .shareButton(let v): return collectionView.dequeueConfiguredReusableCell(using: shareReg, for: indexPath, item: v)
@@ -233,9 +208,61 @@ extension StatisticsViewController {
 
     // MARK: - Composite subviews
 
+    private func makeTopShowsView() -> UIView {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 0
+        let maxCount = max(1, current.topShows.first?.count ?? 1)
+        for (index, show) in current.topShows.enumerated() {
+            let row = RankedRowView()
+            var accessory: UIView?
+            if let completion = show.completion {
+                let ring = CompletionRingView()
+                ring.setProgress(completion, animated: true)
+                accessory = ring
+            }
+            let episodes = show.watchedEpisodes ?? show.count
+            row.configure(
+                title: show.title,
+                valueText: episodes == 1 ? "1 ep" : "\(episodes) eps",
+                fraction: Double(show.count) / Double(maxCount),
+                colorIndex: 0,
+                thumbPath: show.thumb,
+                rank: index + 1,
+                accessory: accessory
+            )
+            row.onTap = { [weak self] in
+                guard let self else { return }
+                navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: show.ratingKey), animated: true)
+            }
+            stack.addArrangedSubview(row)
+        }
+        return stack
+    }
+
+    private func makeGenresView() -> UIView {
+        guard !current.genres.isEmpty else {
+            return makePendingView(progress: current.enrichment.genreCoverage)
+        }
+        let stack = UIStackView()
+        stack.axis = .vertical
+        let maxCount = max(1, current.genres.first?.count ?? 1)
+        for (index, genre) in current.genres.enumerated() {
+            let row = RankedRowView()
+            row.configure(title: genre.genre, valueText: "\(genre.count)", fraction: Double(genre.count) / Double(maxCount), colorIndex: index, thumbPath: nil)
+            row.isAccessibilityElement = true
+            row.accessibilityLabel = "\(genre.genre), \(genre.count) plays"
+            stack.addArrangedSubview(row)
+        }
+        return stack
+    }
+
     private func makeClockView() -> UIView {
         let clock = RadialClockView()
         clock.setHours(current.hourHistogram)
+        clock.isAccessibilityElement = true
+        clock.accessibilityTraits = .image
+        clock.accessibilityLabel = clockSummary()
         clock.setContentHuggingPriority(.required, for: .horizontal)
         let clockWidth = clock.widthAnchor.constraint(equalToConstant: 150)
         clockWidth.priority = .required
@@ -248,17 +275,30 @@ extension StatisticsViewController {
         charts.axis = .horizontal
         charts.spacing = 12
         charts.alignment = .fill
+        charts.heightAnchor.constraint(equalToConstant: 150).isActive = true
 
         let verdict = UILabel()
         verdict.text = watchVerdict()
-        verdict.font = .systemFont(ofSize: 14, weight: .semibold)
-        verdict.textColor = StatsStyle.accent
+        verdict.font = Theme.Font.scaled(.callout, 14, .semibold)
+        verdict.adjustsFontForContentSizeCategory = true
+        verdict.textColor = Theme.Color.accentText
         verdict.textAlignment = .center
+        verdict.numberOfLines = 0
 
         let stack = UIStackView(arrangedSubviews: [charts, verdict])
         stack.axis = .vertical
-        stack.spacing = 6
+        stack.spacing = 10
         return stack
+    }
+
+    /// VoiceOver summary for the 24-hour clock: the busiest hour and its share of plays.
+    private func clockSummary() -> String {
+        let hours = current.hourHistogram
+        let total = hours.reduce(0, +)
+        guard total > 0, let peak = hours.max(), let hour = hours.firstIndex(of: peak) else { return "Plays by hour of day." }
+        let label = "\(hour % 12 == 0 ? 12 : hour % 12) \(hour < 12 ? "AM" : "PM")"
+        let share = Int((Double(peak) / Double(total) * 100).rounded())
+        return "Plays by hour of day. Busiest at \(label), \(share) percent of plays."
     }
 
     private func makeLibrariesView() -> UIView {
@@ -269,6 +309,9 @@ extension StatisticsViewController {
         donut.setCenter(title: StatsStyle.abbreviatedCount(total), subtitle: "plays")
         donut.setContentHuggingPriority(.required, for: .horizontal)
         donut.widthAnchor.constraint(equalToConstant: 150).isActive = true
+        donut.heightAnchor.constraint(equalToConstant: 150).isActive = true
+        donut.isAccessibilityElement = false
+        donut.accessibilityElementsHidden = true
 
         let legend = UIStackView()
         legend.axis = .vertical
@@ -277,6 +320,9 @@ extension StatisticsViewController {
         for (index, slice) in current.libraries.prefix(6).enumerated() {
             legend.addArrangedSubview(makeLegendRow(color: StatsStyle.categoricalColor(index), title: slice.title, value: StatsStyle.abbreviatedCount(slice.count)))
         }
+        legend.isAccessibilityElement = true
+        legend.accessibilityTraits = .image
+        legend.accessibilityLabel = "Plays by library. " + current.libraries.prefix(6).map { "\($0.title), \($0.count)" }.joined(separator: ". ")
         let legendWrap = UIStackView(arrangedSubviews: [UIView(), legend, UIView()])
         legendWrap.axis = .vertical
         legendWrap.distribution = .equalCentering
@@ -298,14 +344,16 @@ extension StatisticsViewController {
 
         let titleLabel = UILabel()
         titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
-        titleLabel.textColor = .label
+        titleLabel.font = Theme.Font.footnote
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.textColor = Theme.Color.label
         titleLabel.numberOfLines = 1
 
         let valueLabel = UILabel()
         valueLabel.text = value
-        valueLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        valueLabel.textColor = .secondaryLabel
+        valueLabel.font = Theme.Font.footnoteSemibold
+        valueLabel.adjustsFontForContentSizeCategory = true
+        valueLabel.textColor = Theme.Color.labelSecondary
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
 
         let row = UIStackView(arrangedSubviews: [dot, titleLabel, valueLabel])
@@ -318,36 +366,26 @@ extension StatisticsViewController {
     private func makePendingView(progress: Double) -> UIView {
         let label = UILabel()
         label.text = "Analyzing your taste…"
-        label.font = .systemFont(ofSize: 14, weight: .medium)
-        label.textColor = .secondaryLabel
+        label.font = Theme.Font.subheadline
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = Theme.Color.labelSecondary
 
         let bar = UIProgressView(progressViewStyle: .default)
-        bar.progressTintColor = StatsStyle.accent
-        bar.trackTintColor = UIColor.label.withAlphaComponent(0.1)
+        bar.progressTintColor = Theme.Color.accent
+        bar.trackTintColor = StatsStyle.trackBackground
         bar.progress = Float(max(0.02, min(1, progress)))
 
         let stack = UIStackView(arrangedSubviews: [label, bar])
         stack.axis = .vertical
         stack.spacing = 8
         stack.alignment = .fill
-        let wrap = UIStackView(arrangedSubviews: [UIView(), stack, UIView()])
-        wrap.axis = .vertical
-        wrap.distribution = .equalCentering
-        return wrap
+        stack.isAccessibilityElement = true
+        stack.accessibilityLabel = "Analyzing your taste, \(Int((progress * 100).rounded())) percent"
+        return stack
     }
 
     private func makeShareButton() -> UIButton {
-        var config = Glass.prominentButton {
-            var fallback = UIButton.Configuration.filled()
-            fallback.baseBackgroundColor = StatsStyle.accent
-            fallback.baseForegroundColor = .white
-            return fallback
-        }
-        config.title = "Share Your Year"
-        config.image = UIImage(systemName: "square.and.arrow.up")
-        config.imagePadding = 8
-        config.cornerStyle = .large
-        let button = UIButton(configuration: config)
+        let button = ThemeButton.primary(title: "Share Your Year")
         button.addAction(UIAction { [weak self] _ in self?.shareWrapped() }, for: .touchUpInside)
         return button
     }
@@ -376,8 +414,6 @@ extension StatisticsViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let row = dataSource.itemIdentifier(for: indexPath) else { return }
         switch row {
-        case .showRow(let show):
-            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: show.ratingKey), animated: true)
         case .moviePoster(let movie):
             navigationController?.pushViewController(MediaDetailViewController(api: api, ratingKey: movie.ratingKey, mediaType: "movie"), animated: true)
         case .onThisDayPoster(let item):
@@ -448,72 +484,5 @@ extension StatisticsViewController {
 private extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
-    }
-}
-
-private final class StatsHeroView: UIView {
-    private let gradient = CAGradientLayer()
-    private let captionLabel = UILabel()
-    private let odometer = CountUpOdometerView()
-    private let subtitleLabel = UILabel()
-    private let segmented = UISegmentedControl(items: StatsRange.allCases.map(\.title))
-
-    var onRange: ((StatsRange) -> Void)?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-
-        gradient.colors = [StatsStyle.accent.withAlphaComponent(0.28).cgColor, UIColor.clear.cgColor]
-        gradient.startPoint = CGPoint(x: 0.5, y: 0)
-        gradient.endPoint = CGPoint(x: 0.5, y: 1)
-        layer.addSublayer(gradient)
-
-        captionLabel.text = "TOTAL PLAYS"
-        captionLabel.font = .systemFont(ofSize: 12, weight: .semibold)
-        captionLabel.textColor = .secondaryLabel
-        captionLabel.textAlignment = .center
-
-        odometer.textColor = .label
-
-        subtitleLabel.font = .systemFont(ofSize: 13, weight: .medium)
-        subtitleLabel.textColor = .tertiaryLabel
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 1
-
-        segmented.selectedSegmentTintColor = StatsStyle.accent
-        segmented.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
-        segmented.addAction(UIAction { [weak self] _ in
-            guard let self, let selected = StatsRange(rawValue: segmented.selectedSegmentIndex) else { return }
-            onRange?(selected)
-        }, for: .valueChanged)
-
-        let stack = UIStackView(arrangedSubviews: [captionLabel, odometer, subtitleLabel, segmented])
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = 6
-        stack.setCustomSpacing(14, after: subtitleLabel)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
-
-        NSLayoutConstraint.activate([
-            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
-            segmented.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        gradient.frame = bounds
-    }
-
-    func configure(totalPlays: Int, subtitle: String, range: StatsRange, animate: Bool) {
-        odometer.setValue(totalPlays, animated: animate)
-        subtitleLabel.text = subtitle
-        segmented.selectedSegmentIndex = range.rawValue
     }
 }

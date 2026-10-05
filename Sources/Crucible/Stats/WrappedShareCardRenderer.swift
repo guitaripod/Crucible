@@ -11,6 +11,7 @@ struct WrappedShareCardRenderer {
         let posters: [UIImage]
     }
 
+    private static let darkTrait = UITraitCollection(userInterfaceStyle: .dark)
     private let size = CGSize(width: 1080, height: 1920)
 
     func render(_ input: Input) -> UIImage {
@@ -48,14 +49,14 @@ struct WrappedShareCardRenderer {
 
             drawPosters(input.posters, top: min(y, size.height - 440))
 
-            drawText("CRUCIBLE", font: .systemFont(ofSize: 40, weight: .heavy), color: StatsStyle.accent, rect: CGRect(x: 0, y: size.height - 110, width: size.width, height: 60), alignment: .center)
+            drawText("CRUCIBLE", font: .systemFont(ofSize: 40, weight: .heavy), color: StatsStyle.accent.resolvedColor(with: Self.darkTrait), rect: CGRect(x: 0, y: size.height - 110, width: size.width, height: 60), alignment: .center)
         }
     }
 
     private func drawHeatmap(_ cg: CGContext, model: HeatmapModel, rect: CGRect, stride: CGFloat) {
         let edge = stride * 0.82
         let corner = edge * 0.22
-        let darkTrait = UITraitCollection(userInterfaceStyle: .dark)
+        let darkTrait = Self.darkTrait
         var levels = [Int: Int]()
         for cell in model.cells { levels[cell.column * 7 + cell.row] = cell.level }
         for column in 0..<model.columns {
@@ -80,7 +81,7 @@ struct WrappedShareCardRenderer {
         if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
             cg.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: size.width, y: size.height), options: [])
         }
-        StatsStyle.accent.withAlphaComponent(0.9).setFill()
+        StatsStyle.accent.resolvedColor(with: Self.darkTrait).withAlphaComponent(0.9).setFill()
         cg.fill(CGRect(x: 80, y: 130, width: 90, height: 10))
     }
 

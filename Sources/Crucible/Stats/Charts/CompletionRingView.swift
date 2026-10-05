@@ -134,10 +134,10 @@ final class CompletionRingView: UIView {
     }
 
     private func refreshColors() {
-        trackLayer.strokeColor = UIColor.label.resolvedColor(with: traitCollection)
+        trackLayer.strokeColor = Theme.Color.label.resolvedColor(with: traitCollection)
             .withAlphaComponent(0.15).cgColor
         progressLayer.strokeColor = StatsStyle.accent.resolvedColor(with: traitCollection).cgColor
-        percentLabel.textColor = .label
+        percentLabel.textColor = Theme.Color.label
     }
 
     private func updatePercentLabel() {

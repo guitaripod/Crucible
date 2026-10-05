@@ -94,15 +94,15 @@ final class LaunchViewController: UIViewController {
 
         wordmark.text = "Crucible"
         wordmark.font = UIFont.systemFont(ofSize: 34, weight: .bold).rounded()
-        wordmark.textColor = .white
+        wordmark.textColor = Theme.Color.onArt
         wordmark.textAlignment = .center
 
         statusLabel.font = .systemFont(ofSize: 15, weight: .medium)
-        statusLabel.textColor = UIColor.white.withAlphaComponent(0.7)
+        statusLabel.textColor = Theme.Color.onArtSecondary
         statusLabel.textAlignment = .center
         statusLabel.numberOfLines = 2
 
-        spinner.color = UIColor.white.withAlphaComponent(0.7)
+        spinner.color = Theme.Color.onArtSecondary
         spinner.hidesWhenStopped = true
 
         messageLabel.font = .systemFont(ofSize: 14)
@@ -112,8 +112,8 @@ final class LaunchViewController: UIViewController {
 
         var retry = Glass.prominentButton {
             var fallback = UIButton.Configuration.filled()
-            fallback.baseBackgroundColor = .systemOrange
-            fallback.baseForegroundColor = .white
+            fallback.baseBackgroundColor = Theme.Color.accent
+            fallback.baseForegroundColor = Theme.Color.onAccent
             return fallback
         }
         retry.title = "Try Again"
@@ -122,12 +122,12 @@ final class LaunchViewController: UIViewController {
         retry.cornerStyle = .capsule
         retry.buttonSize = .large
         retryButton.configuration = retry
-        retryButton.tintColor = .systemOrange
+        retryButton.tintColor = Theme.Color.accent
         retryButton.addAction(UIAction { [weak self] _ in self?.onRetry?() }, for: .touchUpInside)
 
         var switchConfig = Glass.glassButton {
             var fallback = UIButton.Configuration.gray()
-            fallback.baseForegroundColor = .white
+            fallback.baseForegroundColor = Theme.Color.onArt
             return fallback
         }
         switchConfig.title = "Switch Server"
@@ -136,14 +136,14 @@ final class LaunchViewController: UIViewController {
         switchConfig.cornerStyle = .capsule
         switchConfig.buttonSize = .large
         switchButton.configuration = switchConfig
-        switchButton.tintColor = .white
+        switchButton.tintColor = Theme.Color.onArt
         switchButton.addAction(UIAction { [weak self] _ in self?.onSwitchServer?() }, for: .touchUpInside)
 
         var downloads = UIButton.Configuration.plain()
         downloads.title = "Watch Downloads Offline"
         downloads.image = UIImage(systemName: "arrow.down.circle")
         downloads.imagePadding = 6
-        downloads.baseForegroundColor = UIColor.white.withAlphaComponent(0.7)
+        downloads.baseForegroundColor = Theme.Color.onArtSecondary
         downloadsButton.configuration = downloads
         downloadsButton.addAction(UIAction { [weak self] _ in self?.onOpenDownloads?() }, for: .touchUpInside)
 

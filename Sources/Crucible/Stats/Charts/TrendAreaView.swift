@@ -72,7 +72,7 @@ final class TrendAreaView: UIView {
         layer.addSublayer(dotLayer)
 
         peakLabel.font = .systemFont(ofSize: 11, weight: .semibold)
-        peakLabel.textColor = .label
+        peakLabel.textColor = Theme.Color.label
         peakLabel.textAlignment = .center
         peakLabel.isHidden = true
         addSubview(peakLabel)
@@ -108,7 +108,7 @@ final class TrendAreaView: UIView {
             lineColor.withAlphaComponent(0.0).cgColor,
         ]
         dotLayer.fillColor = lineColor.cgColor
-        dotLayer.strokeColor = UIColor.systemBackground.cgColor
+        dotLayer.strokeColor = Theme.Color.surface.cgColor
         dotLayer.shadowColor = lineColor.cgColor
         setNeedsDisplay()
     }
@@ -314,7 +314,7 @@ final class TrendAreaView: UIView {
         guard showsAxes, !values.isEmpty, let ctx = UIGraphicsGetCurrentContext() else { return }
         let plot = plotRect()
         guard plot.width > 0 else { return }
-        ctx.setStrokeColor(UIColor.separator.cgColor)
+        ctx.setStrokeColor(Theme.Color.separator.cgColor)
         ctx.setLineWidth(1)
         ctx.move(to: CGPoint(x: plot.minX, y: plot.maxY))
         ctx.addLine(to: CGPoint(x: plot.maxX, y: plot.maxY))
