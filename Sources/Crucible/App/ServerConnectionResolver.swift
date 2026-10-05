@@ -45,6 +45,7 @@ enum ServerConnectionResolver {
     /// Probes every candidate concurrently and returns the highest-priority one that answers,
     /// without waiting for lower-priority probes to time out once a better route is known good.
     static func firstReachable(_ candidates: [URL], token: String) async -> URL? {
+        let candidates = applyPreferences(to: candidates)
         guard !candidates.isEmpty else { return nil }
         return await withTaskGroup(of: (Int, Bool).self) { group in
             for (index, candidate) in candidates.enumerated() {
@@ -63,5 +64,21 @@ enum ServerConnectionResolver {
             }
             return nil
         }
+    }
+
+    /// Applies the connection preferences to a priority-ordered candidate list: relay routes are
+    /// dropped unless allowed, and local routes move first when preferred. If filtering would leave
+    /// nothing, the full list is kept so the user is never left without a route to try.
+    static func applyPreferences(to candidates: [URL]) -> [URL] {
+        var ordered = candidates
+        if !Preferences.allowRelayConnection {
+            let direct = ordered.filter { ConnectionRoute.kind(of: $0) != .relay }
+            if !direct.isEmpty { ordered = direct }
+        }
+        if Preferences.preferLocalConnection {
+            let local = ordered.filter { ConnectionRoute.kind(of: $0) == .local }
+            ordered = local + ordered.filter { ConnectionRoute.kind(of: $0) != .local }
+        }
+        return ordered
     }
 }
