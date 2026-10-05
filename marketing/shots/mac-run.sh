@@ -61,6 +61,7 @@ while [ $SECONDS -lt $deadline ]; do
     if [ "$name" = done ]; then
       rm -f "$ready"
       pkill -f "Python server\.py" 2>/dev/null || true
+      cp "$SIGNALS"/*.png "$RAW"/ 2>/dev/null || true
       xcrun simctl status_bar "$UDID" clear
       exit 0
     fi

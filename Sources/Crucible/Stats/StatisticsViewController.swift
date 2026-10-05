@@ -227,7 +227,7 @@ final class StatisticsViewController: UICollectionViewController {
     }
 
     /// The longest session by wall-clock span, formatted as "9 h" / "45 min" plus its start date.
-    private func longestBinge() -> (value: String, date: String)? {
+    func longestBinge() -> (value: String, date: String)? {
         guard let session = current.binges.max(by: { $0.endViewedAt - $0.startViewedAt < $1.endViewedAt - $1.startViewedAt }) else { return nil }
         let seconds = session.endViewedAt - session.startViewedAt
         guard seconds >= 60 else { return nil }

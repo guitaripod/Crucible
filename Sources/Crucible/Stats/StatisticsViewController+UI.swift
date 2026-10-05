@@ -386,7 +386,9 @@ extension StatisticsViewController {
 
     private func makeShareButton() -> UIButton {
         let button = ThemeButton.primary(title: "Share Your Year")
-        button.addAction(UIAction { [weak self] _ in self?.shareWrapped() }, for: .touchUpInside)
+        button.addAction(UIAction { [weak self] action in
+            self?.shareWrapped(from: action.sender as? UIButton)
+        }, for: .touchUpInside)
         return button
     }
 
@@ -441,39 +443,6 @@ extension StatisticsViewController {
         guard let store else { return }
         let date = statsTime.date(forDayEpoch: dayEpoch)
         navigationController?.pushViewController(StatsDayViewController(api: api, store: store, dayEpoch: dayEpoch, date: date), animated: true)
-    }
-
-    // MARK: - Share
-
-    private func shareWrapped() {
-        guard !current.isEmpty else { return }
-        let snapshot = current
-        let heatmap = heatmapModel
-        let subtitle = subtitleText()
-        Task { [weak self] in
-            guard let self else { return }
-            var posters = [UIImage]()
-            let paths = snapshot.topShows.compactMap(\.thumb) + snapshot.topMovies.compactMap(\.thumb)
-            for path in paths.prefix(3) {
-                if let image = await ImageLoader.shared.loadImage(path: path, width: 300) {
-                    posters.append(image)
-                }
-            }
-            let input = WrappedShareCardRenderer.Input(
-                title: "My Year in Crucible",
-                subtitle: subtitle,
-                overview: snapshot.overview,
-                heatmap: heatmap.cells.isEmpty ? nil : heatmap,
-                posters: posters
-            )
-            let image = WrappedShareCardRenderer().render(input)
-            let activity = UIActivityViewController(activityItems: [image], applicationActivities: nil)
-            if let popover = activity.popoverPresentationController {
-                popover.sourceView = view
-                popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.maxY - 60, width: 0, height: 0)
-            }
-            present(activity, animated: true)
-        }
     }
 
     static func titleFor(_ section: StatSection) -> String? {

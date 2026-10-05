@@ -64,6 +64,7 @@ enum ShotScript {
         you?.pushViewController(StatisticsViewController(api: api), animated: false)
         await ShotHarness.settle(14)
         await ShotHarness.capture("07-stats")
+        await captureShare(from: you?.topViewController as? StatisticsViewController)
         scroll(you?.topViewController, to: 620)
         await ShotHarness.settle(1.5)
         await ShotHarness.capture("07b-stats-scrolled")
@@ -91,6 +92,22 @@ enum ShotScript {
 
     private static func navigation(_ tabBar: TabBarController) -> UINavigationController? {
         tabBar.selectedViewController as? UINavigationController
+    }
+
+    /// Saves both share posters at full resolution, then opens the preview sheet for a screenshot.
+    private static func captureShare(from stats: StatisticsViewController?) async {
+        guard let stats else { return }
+        let content = await stats.shareContent()
+        let renderer = WrappedShareCardRenderer()
+        for format in WrappedShareCardRenderer.Format.allCases {
+            let png = renderer.render(content, format: format).pngData()
+            try? png?.write(to: URL(fileURLWithPath: "\(ShotHarness.signalDirectory)/share-\(format.title.lowercased()).png"))
+        }
+        stats.shareWrapped(from: nil)
+        await ShotHarness.settle(3)
+        await ShotHarness.capture("07c-share-preview")
+        stats.dismiss(animated: false)
+        await ShotHarness.settle(1)
     }
 
     /// Scrolls Home far enough that the hero cell is recycled, then back, so the capture shows the
