@@ -668,7 +668,7 @@ class Library:
         rng = random.Random(seed)
         now = self.now
         today = datetime.date.fromtimestamp(now)
-        start = datetime.date(2026, 1, 1)
+        start = datetime.date(2026, 5, 18)
         nd = (today - start).days
         weights = {"The Salt Road": 22, "Meridian": 18, "Ironwood": 12, "Northbound": 6, "Paper Lanterns": 4,
                    "Kestrel Row": 8, "Halftide": 8, "Dry Season": 3}
@@ -755,6 +755,6 @@ class Library:
             else:
                 best = 0
             d += datetime.timedelta(days=1)
-        if cur != 12 or longest != 12 or not (860 <= len(out) <= 960):
+        if cur != 12 or longest != 12 or not (300 <= len(out) <= 470):
             return None
         return out
