@@ -29,6 +29,7 @@ perl -0pi -e 's/let iosStamp: \[LinkerSetting\] = \[.*?\n\]\n/let iosStamp: [Lin
 sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
 sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
 
+rm -rf .dd/Build/Intermediates.noindex/Crucible.build .dd/Build/Intermediates.noindex/CrucibleShots.build
 xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
   -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
   build > /tmp/crucible-xcodebuild.log 2>&1 || { tail -40 /tmp/crucible-xcodebuild.log; exit 1; }

@@ -50,7 +50,7 @@ final class ServerDetailViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
 
-        routes = Self.currentRoutes(activeURL: api.baseURL)
+        routes = Self.currentRoutes(activeURL: activeRouteURL)
 
         configureCollectionView()
         configureDataSource()
@@ -70,6 +70,11 @@ final class ServerDetailViewController: UIViewController {
             probeTask?.cancel()
             probeTask = nil
         }
+    }
+
+    /// The route the app is pinned to; failover repins update the persisted connection.
+    private var activeRouteURL: URL {
+        ServerBootstrap.connection()?.serverURI ?? URL(string: "http://localhost:32400")!
     }
 
     private static func currentRoutes(activeURL: URL) -> [URL] {
@@ -222,7 +227,7 @@ final class ServerDetailViewController: UIViewController {
         if let version { subtitle += " \(version)" }
         if let isOwned { subtitle += isOwned ? " · Owned by you" : " · Shared with you" }
 
-        let activeURL = api.baseURL
+        let activeURL = activeRouteURL
         let status: String
         let color: UIColor
         switch probes[activeURL] {
@@ -257,7 +262,7 @@ final class ServerDetailViewController: UIViewController {
 
         return RouteRowConfiguration(
             kindTitle: routeKind.title,
-            isInUse: url == api.baseURL,
+            isInUse: url == activeRouteURL,
             detail: isRelay ? "Bandwidth limited, may force transcoding" : url.absoluteString,
             detailIsMonospaced: !isRelay,
             latencyText: latency,
@@ -295,7 +300,7 @@ final class ServerDetailViewController: UIViewController {
     private func record(_ probe: ConnectionProbe?, for url: URL) {
         if let probe {
             probes[url] = .reachable(probe.latencyMs)
-            if let found = probe.version, version == nil || url == api.baseURL { version = found }
+            if let found = probe.version, version == nil || url == activeRouteURL { version = found }
         } else {
             probes[url] = .unreachable
         }

@@ -9,6 +9,8 @@ protocol LibraryGridHosting: AnyObject {
 /// A–Z scrubber. Hosted by `LibraryViewController`, or pushed on its own (from Settings), in which
 /// case it installs its own navigation-bar controls.
 class LibraryGridViewController: UIViewController {
+    typealias PageCompletion = @MainActor @Sendable () -> Void
+
     enum Section: Hashable {
         case header, grid
     }
@@ -299,7 +301,7 @@ class LibraryGridViewController: UIViewController {
         loadPage(offset: 0)
     }
 
-    private func loadPage(offset: Int, size: Int = pageSize, then completion: (@MainActor () -> Void)? = nil) {
+    func loadPage(offset: Int, size: Int = pageSize, then completion: PageCompletion? = nil) {
         loadTask?.cancel()
         isLoadingPage = true
         if offset == 0 { showLoadingState() }
