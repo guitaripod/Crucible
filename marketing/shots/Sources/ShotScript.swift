@@ -9,6 +9,7 @@ enum ShotScript {
         let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
         await ShotHarness.settle(4)
         await ShotHarness.capture("01-home")
+        await reuseHero(tabBar)
 
         tabBar.selectedIndex = 1
         await ShotHarness.settle(3.5)
@@ -85,6 +86,24 @@ enum ShotScript {
 
     private static func navigation(_ tabBar: TabBarController) -> UINavigationController? {
         tabBar.selectedViewController as? UINavigationController
+    }
+
+    /// Scrolls Home far enough that the hero cell is recycled, then back, so the capture shows the
+    /// card as it measures when it is dequeued again with its artwork already cached.
+    private static func reuseHero(_ tabBar: TabBarController) async {
+        guard let collection = firstCollectionView(in: navigation(tabBar)?.topViewController?.view) else { return }
+        let bottom = collection.contentSize.height - collection.bounds.height + collection.adjustedContentInset.bottom
+        collection.setContentOffset(CGPoint(x: 0, y: max(-collection.adjustedContentInset.top, bottom)), animated: false)
+        await ShotHarness.settle(1.5)
+        collection.setContentOffset(CGPoint(x: 0, y: -collection.adjustedContentInset.top), animated: false)
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("01b-home-reuse")
+    }
+
+    private static func firstCollectionView(in view: UIView?) -> UICollectionView? {
+        guard let view else { return nil }
+        if let collection = view as? UICollectionView { return collection }
+        return view.subviews.lazy.compactMap { firstCollectionView(in: $0) }.first
     }
 
     private static func scroll(_ viewController: UIViewController?, to offset: CGFloat) {

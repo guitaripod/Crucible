@@ -11,3 +11,15 @@ extension UIView {
         preference.isActive = true
     }
 }
+
+extension UIImageView {
+    /// An aspect-fill image view pinned inside a card must never size the card: its intrinsic size is
+    /// the decoded bitmap's, so once an image is cached a re-dequeue measures the card at the
+    /// artwork's own height instead of the layout's.
+    func ignoreIntrinsicSize() {
+        for axis in [NSLayoutConstraint.Axis.horizontal, .vertical] {
+            setContentHuggingPriority(UILayoutPriority(1), for: axis)
+            setContentCompressionResistancePriority(UILayoutPriority(1), for: axis)
+        }
+    }
+}

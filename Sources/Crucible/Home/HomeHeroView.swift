@@ -95,6 +95,7 @@ final class HomeHeroContentView: UIView, UIContentView {
 
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
+        imageView.ignoreIntrinsicSize()
 
         placeholderView.image = UIImage(systemName: "play.rectangle")
         placeholderView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 40, weight: .light)

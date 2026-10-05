@@ -167,6 +167,34 @@ enum Theme {
         return section
     }
 
+    /// A horizontally scrolling rail; at the largest accessibility sizes it becomes a vertical grid
+    /// of `columns` so captions have room to wrap.
+    @MainActor static func railSection(width: CGFloat, estimatedHeight: CGFloat, columns: Int?) -> NSCollectionLayoutSection {
+        let layoutSection: NSCollectionLayoutSection
+        if let columns {
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / CGFloat(columns)), heightDimension: .estimated(estimatedHeight))
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
+            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: columns)
+            group.interItemSpacing = .fixed(Theme.Space.s)
+            layoutSection = NSCollectionLayoutSection(group: group)
+            layoutSection.interGroupSpacing = Theme.Space.m
+        } else {
+            let size = NSCollectionLayoutSize(widthDimension: .absolute(width), heightDimension: .estimated(estimatedHeight))
+            let item = NSCollectionLayoutItem(layoutSize: size)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
+            layoutSection = NSCollectionLayoutSection(group: group)
+            layoutSection.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
+            layoutSection.interGroupSpacing = Theme.Space.s
+        }
+        layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
+        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(51))
+        layoutSection.boundarySupplementaryItems = [
+            NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top),
+        ]
+        return layoutSection
+    }
+
     @MainActor static func gridColumns(forWidth width: CGFloat) -> Int {
         let preferred = Preferences.libraryColumns
         if width < 500 { return preferred }

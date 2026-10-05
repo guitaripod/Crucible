@@ -262,13 +262,13 @@ final class HomeViewController: UICollectionViewController {
                 layoutSection.contentInsets = NSDirectionalEdgeInsets(top: Theme.Space.m, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
                 return layoutSection
             case .continueWatching:
-                return Self.railSection(
+                return Theme.railSection(
                     width: Theme.Size.landscapeCardWidth,
                     estimatedHeight: Theme.Size.landscapeCardHeight + 52,
                     columns: hugeType ? 1 : nil
                 )
             case .upNext, .recentlyAdded:
-                return Self.railSection(
+                return Theme.railSection(
                     width: Theme.Size.posterRailWidth,
                     estimatedHeight: Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
                     columns: hugeType ? 2 : nil
@@ -282,34 +282,6 @@ final class HomeViewController: UICollectionViewController {
         let item = NSCollectionLayoutItem(layoutSize: size)
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
         return NSCollectionLayoutSection(group: group)
-    }
-
-    /// A horizontally scrolling rail; at the largest accessibility sizes it becomes a vertical grid
-    /// of `columns` so captions have room to wrap.
-    private static func railSection(width: CGFloat, estimatedHeight: CGFloat, columns: Int?) -> NSCollectionLayoutSection {
-        let layoutSection: NSCollectionLayoutSection
-        if let columns {
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / CGFloat(columns)), heightDimension: .estimated(estimatedHeight))
-            let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: columns)
-            group.interItemSpacing = .fixed(Theme.Space.s)
-            layoutSection = NSCollectionLayoutSection(group: group)
-            layoutSection.interGroupSpacing = Theme.Space.m
-        } else {
-            let size = NSCollectionLayoutSize(widthDimension: .absolute(width), heightDimension: .estimated(estimatedHeight))
-            let item = NSCollectionLayoutItem(layoutSize: size)
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
-            layoutSection = NSCollectionLayoutSection(group: group)
-            layoutSection.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
-            layoutSection.interGroupSpacing = Theme.Space.s
-        }
-        layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
-        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(51))
-        layoutSection.boundarySupplementaryItems = [
-            NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top),
-        ]
-        return layoutSection
     }
 
     // MARK: - Cells

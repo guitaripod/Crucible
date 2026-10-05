@@ -12,11 +12,12 @@ class LibraryGridViewController: UIViewController {
     typealias PageCompletion = @MainActor @Sendable () -> Void
 
     enum Section: Hashable {
-        case header, grid
+        case header, recentlyWatched, grid
     }
 
     enum Item: Hashable {
         case header
+        case recent(String)
         case media(String)
     }
 
@@ -39,10 +40,12 @@ class LibraryGridViewController: UIViewController {
     private var hasLoaded = false
     private var isLoadingPage = false
     private var continueItem: PlexMetadata?
+    private var recentItems: [PlexMetadata] = []
     private var alphabet: LibraryAlphabetIndex?
 
     private var loadTask: Task<Void, Never>?
     private var hubsTask: Task<Void, Never>?
+    private var recentTask: Task<Void, Never>?
     private var alphabetTask: Task<Void, Never>?
     private var genresTask: Task<Void, Never>?
     private var downloadObserver: UUID?
@@ -72,6 +75,7 @@ class LibraryGridViewController: UIViewController {
     deinit {
         loadTask?.cancel()
         hubsTask?.cancel()
+        recentTask?.cancel()
         alphabetTask?.cancel()
         genresTask?.cancel()
         if let downloadObserver {
@@ -104,6 +108,7 @@ class LibraryGridViewController: UIViewController {
         installControls()
         observeDownloads()
         loadHubs()
+        loadRecentlyWatched()
         if alphabet == nil { loadAlphabet() }
         if hasLoaded {
             reloadLoadedPages()
@@ -176,6 +181,8 @@ class LibraryGridViewController: UIViewController {
             switch sections[sectionIndex] {
             case .header:
                 return Self.headerSection()
+            case .recentlyWatched:
+                return Self.recentSection(environment: environment)
             case .grid:
                 return Theme.gridLayout(environment: environment)
             }
@@ -187,6 +194,14 @@ class LibraryGridViewController: UIViewController {
         let item = NSCollectionLayoutItem(layoutSize: size)
         let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
         return NSCollectionLayoutSection(group: group)
+    }
+
+    private static func recentSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        Theme.railSection(
+            width: Theme.Size.posterRailWidth,
+            estimatedHeight: Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
+            columns: environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge ? 2 : nil
+        )
     }
 
     /// Re-flows the grid after the column preference changes; the layout reads the preference on
@@ -208,6 +223,14 @@ class LibraryGridViewController: UIViewController {
             cell.contentConfiguration = posterConfiguration(for: item)
         }
 
+        let recentRegistration = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
+            guard let self, let item = recentItems.first(where: { $0.id == id }) else {
+                cell.contentConfiguration = PosterContentConfiguration()
+                return
+            }
+            cell.contentConfiguration = recentConfiguration(for: item)
+        }
+
         let headerRegistration = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
             guard let self else { return }
             cell.contentConfiguration = headerConfiguration()
@@ -217,10 +240,41 @@ class LibraryGridViewController: UIViewController {
             switch item {
             case .header:
                 return collectionView.dequeueConfiguredReusableCell(using: headerRegistration, for: indexPath, item: item)
+            case .recent(let id):
+                return collectionView.dequeueConfiguredReusableCell(using: recentRegistration, for: indexPath, item: id)
             case .media(let id):
                 return collectionView.dequeueConfiguredReusableCell(using: posterRegistration, for: indexPath, item: id)
             }
         }
+
+        let railHeaderRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+            var config = SectionHeaderConfiguration()
+            config.title = "Recently Watched"
+            cell.contentConfiguration = config
+        }
+        dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
+            collectionView.dequeueConfiguredReusableSupplementary(using: railHeaderRegistration, for: indexPath)
+        }
+    }
+
+    /// A movie card names the film; a show card names the series and the episode last played, since
+    /// the rail holds one card per show.
+    private func recentConfiguration(for item: PlexMetadata) -> PosterContentConfiguration {
+        var config = PosterContentConfiguration()
+        config.placeholderIcon = kind.placeholderIcon
+        let when = Formatters.unixRelativeDate(item.viewedAt)
+        switch kind {
+        case .movie:
+            config.posterPath = item.thumb ?? item.grandparentThumb
+            config.title = item.title
+            config.subtitle = when
+        case .show:
+            config.posterPath = item.grandparentThumb ?? item.thumb
+            config.title = item.grandparentTitle ?? item.title
+            let detail = [Formatters.episodeCode(item.parentIndex, item.index), when].compactMap { $0 }.joined(separator: " · ")
+            config.subtitle = detail.isEmpty ? nil : detail
+        }
+        return config
     }
 
     private func posterConfiguration(for item: PlexMetadata) -> PosterContentConfiguration {
@@ -269,13 +323,35 @@ class LibraryGridViewController: UIViewController {
     private func applySnapshot() {
         let previous = Set(dataSource.snapshot().itemIdentifiers)
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-        snapshot.appendSections([.header, .grid])
+        snapshot.appendSections([.header])
         snapshot.appendItems([.header], toSection: .header)
+        let recents = visibleRecents
+        if !recents.isEmpty {
+            snapshot.appendSections([.recentlyWatched])
+            snapshot.appendItems(recents.map { Item.recent($0.id) }, toSection: .recentlyWatched)
+        }
+        snapshot.appendSections([.grid])
         snapshot.appendItems(gridIds.map(Item.media), toSection: .grid)
         snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { $0 != .header && previous.contains($0) })
         dataSource.apply(snapshot, animatingDifferences: false)
         updateScrubberVisibility()
         updateCurrentLetter()
+    }
+
+    /// Hidden while a filter narrows the grid, and without whatever the Continue banner already offers.
+    private var visibleRecents: [PlexMetadata] {
+        guard !options.isFiltering else { return [] }
+        return recentItems.filter { !isInContinueBanner($0) }
+    }
+
+    private func isInContinueBanner(_ item: PlexMetadata) -> Bool {
+        guard let continueItem else { return false }
+        switch kind {
+        case .movie:
+            return item.id == continueItem.id
+        case .show:
+            return (item.grandparentRatingKey ?? item.id) == (continueItem.grandparentRatingKey ?? continueItem.id)
+        }
     }
 
     private func reconfigureHeader() {
@@ -287,7 +363,7 @@ class LibraryGridViewController: UIViewController {
 
     private func reconfigureVisiblePosters() {
         let visible = collectionView.indexPathsForVisibleItems.compactMap { dataSource.itemIdentifier(for: $0) }
-            .filter { $0 != .header }
+            .filter { if case .media = $0 { return true } else { return false } }
         guard !visible.isEmpty else { return }
         var snapshot = dataSource.snapshot()
         snapshot.reconfigureItems(visible)
@@ -297,6 +373,7 @@ class LibraryGridViewController: UIViewController {
 
     private func refreshAll() {
         loadHubs()
+        loadRecentlyWatched()
         loadAlphabet()
         loadPage(offset: 0)
     }
@@ -387,10 +464,22 @@ class LibraryGridViewController: UIViewController {
                 guard next?.id != continueItem?.id || next?.viewOffset != continueItem?.viewOffset else { return }
                 continueItem = next
                 reconfigureHeader()
+                applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("\(kind.logName) hubs fetch failed section=\(sectionId): \(error.localizedDescription)", .networking)
             }
+        }
+    }
+
+    private func loadRecentlyWatched() {
+        recentTask?.cancel()
+        recentTask = Task { [weak self] in
+            guard let self else { return }
+            let items = await RecentlyWatched.load(api: api, sectionId: sectionId, groupingByShow: kind == .show)
+            guard !Task.isCancelled, items.map(\.id) != recentItems.map(\.id) || items.map(\.viewedAt) != recentItems.map(\.viewedAt) else { return }
+            recentItems = items
+            applySnapshot()
         }
     }
 
@@ -673,7 +762,11 @@ class LibraryGridViewController: UIViewController {
         navigationController?.pushViewController(FolderBrowserViewController(api: api, sectionId: sectionId, folderTitle: "Browse Folders"), animated: true)
     }
 
-    private func openDetail(_ item: PlexMetadata, zoomingFrom sourceId: String? = nil) {
+    private func openShow(_ ratingKey: String, zoomingFrom source: Item? = nil) {
+        push(ShowDetailViewController(api: api, showRatingKey: ratingKey), zoomingFrom: source)
+    }
+
+    private func openDetail(_ item: PlexMetadata, zoomingFrom source: Item? = nil) {
         let detail: UIViewController
         if item.mediaType == "show" {
             detail = ShowDetailViewController(api: api, showRatingKey: item.id)
@@ -686,16 +779,20 @@ class LibraryGridViewController: UIViewController {
                 seasonRatingKey: item.parentRatingKey
             )
         }
-        if #available(iOS 18.0, *), let sourceId {
+        push(detail, zoomingFrom: source)
+    }
+
+    private func push(_ detail: UIViewController, zoomingFrom source: Item?) {
+        if #available(iOS 18.0, *), let source {
             detail.preferredTransition = .zoom { [weak self] _ in
-                self?.posterCell(for: sourceId)
+                self?.posterCell(for: source)
             }
         }
         navigationController?.pushViewController(detail, animated: true)
     }
 
-    private func posterCell(for id: String) -> UIView? {
-        guard let indexPath = dataSource.indexPath(for: .media(id)) else { return nil }
+    private func posterCell(for item: Item) -> UIView? {
+        guard let indexPath = dataSource.indexPath(for: item) else { return nil }
         return collectionView.cellForItem(at: indexPath)
     }
 
@@ -721,6 +818,24 @@ class LibraryGridViewController: UIViewController {
             reloadLoadedPages()
             loadHubs()
         }
+    }
+
+    /// A recent card stands for the title, or for the show when the rail holds episodes, so the menu
+    /// offers the destinations and a replay rather than watched-state toggles.
+    private func recentContextMenu(for item: PlexMetadata) -> UIMenu {
+        var actions = [UIMenuElement]()
+        if kind == .show, let showKey = item.grandparentRatingKey {
+            actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
+                self?.openShow(showKey)
+            })
+        }
+        actions.append(UIAction(title: "Play Again", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+            self?.quickPlay(item)
+        })
+        actions.append(UIAction(title: kind == .show ? "Episode Details" : "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+            self?.openDetail(item)
+        })
+        return UIMenu(children: actions)
     }
 
     private func contextMenu(for item: PlexMetadata) -> UIMenu {
@@ -759,8 +874,20 @@ extension LibraryGridViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard case .media(let id) = dataSource.itemIdentifier(for: indexPath), let item = metadataById[id] else { return }
-        openDetail(item, zoomingFrom: id)
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .media(let id):
+            guard let item = metadataById[id] else { return }
+            openDetail(item, zoomingFrom: .media(id))
+        case .recent(let id):
+            guard let item = recentItems.first(where: { $0.id == id }) else { return }
+            if kind == .show {
+                openShow(item.grandparentRatingKey ?? item.id, zoomingFrom: .recent(id))
+            } else {
+                openDetail(item, zoomingFrom: .recent(id))
+            }
+        case .header, nil:
+            return
+        }
     }
 
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
@@ -773,12 +900,21 @@ extension LibraryGridViewController: UICollectionViewDelegate {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        guard let indexPath = indexPaths.first,
-              case .media(let id) = dataSource.itemIdentifier(for: indexPath),
-              let item = metadataById[id] else { return nil }
-        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            self?.contextMenu(for: item)
-        })
+        guard let indexPath = indexPaths.first else { return nil }
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .media(let id):
+            guard let item = metadataById[id] else { return nil }
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                self?.contextMenu(for: item)
+            })
+        case .recent(let id):
+            guard let item = recentItems.first(where: { $0.id == id }) else { return nil }
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                self?.recentContextMenu(for: item)
+            })
+        case .header, nil:
+            return nil
+        }
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
