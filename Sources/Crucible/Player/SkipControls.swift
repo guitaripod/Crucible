@@ -149,25 +149,18 @@ final class SkipPillView: UIView {
 /// The brief "Skipped intro" confirmation with an Undo action.
 @MainActor
 final class SkipToastView: UIView {
-    static let visibleDuration: Duration = .seconds(4)
-
     private let glass = makeCapsuleGlass(height: SkipPillView.height)
-    private var dismissTask: Task<Void, Never>?
     private var isRemoving = false
     private let onUndo: () -> Void
-    private let onExpire: () -> Void
 
-    init(message: String, onUndo: @escaping () -> Void, onExpire: @escaping () -> Void) {
+    init(message: String, onUndo: @escaping () -> Void) {
         self.onUndo = onUndo
-        self.onExpire = onExpire
         super.init(frame: .zero)
         build(message: message)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
-
-    deinit { dismissTask?.cancel() }
 
     private func build(message: String) {
         let label = UILabel()
@@ -215,7 +208,6 @@ final class SkipToastView: UIView {
     }
 
     private func undoTapped() {
-        dismissTask?.cancel()
         onUndo()
     }
 
@@ -223,17 +215,11 @@ final class SkipToastView: UIView {
         anchorAboveTransport(self, in: host)
         fadeIn(self)
         UIAccessibility.post(notification: .announcement, argument: "Skipped intro. Undo available.")
-        dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: Self.visibleDuration)
-            guard !Task.isCancelled, let self else { return }
-            self.onExpire()
-        }
     }
 
     func dismiss(animated: Bool) {
         guard !isRemoving else { return }
         isRemoving = true
-        dismissTask?.cancel()
         fadeOutAndRemove(self, animated: animated)
     }
 }

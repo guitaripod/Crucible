@@ -84,12 +84,11 @@ struct DownloadItem: Codable, Sendable {
     var resumeSecs: Double { isWatched ? 0 : Double(viewOffsetMs) / 1000.0 }
 
     var watchProgress: Double {
-        guard durationMs > 0 else { return 0 }
-        return min(1, Double(viewOffsetMs) / Double(durationMs))
+        WatchedRule.progress(positionMs: viewOffsetMs, durationMs: durationMs)
     }
 
     var isWatched: Bool {
-        durationMs > 0 && viewOffsetMs > 0 && watchProgress >= 0.92
+        WatchedRule.isWatched(positionMs: viewOffsetMs, durationMs: durationMs)
     }
 
     /// Best-effort byte size known for this download: the real total when the server reports one,

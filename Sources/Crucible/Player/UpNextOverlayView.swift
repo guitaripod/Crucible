@@ -62,7 +62,7 @@ final class UpNextOverlayView: UIView {
 
     init(
         content: Content,
-        countdownSeconds: Int = 10,
+        countdownSeconds: Int,
         onPlayNext: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
@@ -83,6 +83,13 @@ final class UpNextOverlayView: UIView {
     deinit {
         countdownTask?.cancel()
         thumbTask?.cancel()
+    }
+
+    /// Stops the countdown and takes the card off screen without choosing either action.
+    func dismiss() {
+        countdownTask?.cancel()
+        countdownTask = nil
+        removeFromSuperview()
     }
 
     func startCountdown() {

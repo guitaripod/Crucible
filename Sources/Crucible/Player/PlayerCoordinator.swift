@@ -2,66 +2,30 @@ import AVKit
 import CrucibleCore
 import CrucibleDesign
 import CrucibleMedia
-import MediaPlayer
-import os
 @preconcurrency import UIKit
 
 @MainActor
 final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
-    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
     private static weak var resolvingCoordinator: PlayerCoordinator?
 
-    struct Metadata: Sendable {
-        let title: String
-        let showName: String?
-        let seasonNumber: Int?
-        let episodeNumber: Int?
-        let posterPath: String?
-        let duration: Double?
-    }
+    typealias Metadata = PlaybackMetadata
 
     private let api: APIClient
-    private let ratingKey: String
-    private let mediaType: String
-    private let showRatingKey: String?
-    private let seasonRatingKey: String?
-    private let resumePosition: Double
-    private let metadata: Metadata?
-    private let selectedSubtitleId: Int?
-    private let selectedAudioStreamId: Int?
-    private let offlineAsset: OfflineAsset?
+    private let request: PlaybackRequest
+    private let session: PlaybackSession
 
-    private var player: AVPlayer?
     private var playerVC: AVPlayerViewController?
-    private var reporter: PlaybackReporter?
     private var nowPlaying: NowPlayingBridge?
     private var resolveTask: Task<Void, Never>?
+    private var eventsTask: Task<Void, Never>?
     private var isPresenting = false
-    private var resolvedStream: ResolvedStream?
-    private var interruptionObserver: (any NSObjectProtocol)?
-    private var endObserver: (any NSObjectProtocol)?
-    private var nowPlayingObserver: Any?
     private var upNextOverlay: UpNextOverlayView?
-    private var pendingUpNext: (next: PlexMetadata, seasonRatingKey: String, playbackEnded: Bool)?
+    private var pendingUpNext: UpNextOffer?
     private var foregroundObserver: (any NSObjectProtocol)?
     private var isFinishing = false
-    private var currentStreamOffset: Double = 0
-    private var restartItemObserver: NSKeyValueObservation?
-    private var offlineResumeObserver: NSKeyValueObservation?
-    private var failureObserver: NSKeyValueObservation?
-    private var failedToPlayObserver: (any NSObjectProtocol)?
-    private var didAttemptTranscodeFallback = false
-    private var pingTask: Task<Void, Never>?
-    private var seekObserver: (any NSObjectProtocol)?
-    private var isRestarting = false
-    private var lastPlayhead: Double = 0
     private var lastOfflineWrite: Double = 0
-    private var markers: [PlexMarker] = []
     private var skipPill: SkipPillView?
     private var skipToast: SkipToastView?
-    private var autoSkippedMarkers: Set<Double> = []
-    private var upNextTriggered = false
-    private var remoteCommandsConfigured = false
     private var isInPiP = false
     private var pipRestoreInProgress = false
     private weak var presentingVC: UIViewController?
@@ -69,7 +33,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private weak var spinnerView: UIActivityIndicatorView?
     var onAdvanceToNext: ((PlayerCoordinator) -> Void)?
 
-    init(
+    convenience init(
         api: APIClient,
         ratingKey: String,
         mediaType: String,
@@ -81,16 +45,30 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         selectedAudioStreamId: Int? = nil,
         offlineAsset: OfflineAsset? = nil
     ) {
+        self.init(
+            api: api,
+            request: PlaybackRequest(
+                ratingKey: ratingKey,
+                mediaType: mediaType,
+                showRatingKey: showRatingKey,
+                seasonRatingKey: seasonRatingKey,
+                resumePosition: resumePosition,
+                metadata: metadata,
+                selectedSubtitleId: selectedSubtitleId,
+                selectedAudioStreamId: selectedAudioStreamId,
+                offline: offlineAsset.map(Self.offlineSource)
+            )
+        )
+    }
+
+    init(api: APIClient, request: PlaybackRequest) {
         self.api = api
-        self.ratingKey = ratingKey
-        self.mediaType = mediaType
-        self.showRatingKey = showRatingKey
-        self.seasonRatingKey = seasonRatingKey
-        self.resumePosition = resumePosition
-        self.metadata = metadata
-        self.selectedSubtitleId = selectedSubtitleId
-        self.selectedAudioStreamId = selectedAudioStreamId
-        self.offlineAsset = offlineAsset
+        self.request = request
+        self.session = PlaybackSession(api: api, request: request)
+    }
+
+    private static func offlineSource(from asset: OfflineAsset) -> OfflinePlaybackSource {
+        OfflinePlaybackSource(fileURL: asset.fileURL, markers: asset.markers, durationSecs: asset.durationSecs)
     }
 
     func present(from viewController: UIViewController) {
@@ -100,20 +78,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         if let resolving = Self.resolvingCoordinator, resolving !== self {
             resolving.cancel()
         }
-        AppLogger.notice("Play requested ratingKey=\(ratingKey) type=\(mediaType) resumeSecs=\(Int(resumePosition))", .playback)
+        AppLogger.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", .playback)
 
-        if let offlineAsset {
-            AppLogger.notice("Playing offline asset for ratingKey=\(ratingKey)", .playback)
-            let stream = ResolvedStream(
-                url: offlineAsset.fileURL,
-                isDirectPlay: true,
-                sessionId: "offline",
-                subtitles: [],
-                audioTracks: [],
-                markers: offlineAsset.markers
-            )
-            resolvedStream = stream
-            startPlayback(stream: stream, from: viewController)
+        if request.offline != nil {
+            AppLogger.notice("Playing offline asset for ratingKey=\(request.ratingKey)", .playback)
+            startPlayback(from: viewController)
             return
         }
 
@@ -135,31 +104,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 if Self.resolvingCoordinator === self { Self.resolvingCoordinator = nil }
             }
             do {
-                let stream = try await StreamResolver.resolve(
-                    api: api,
-                    ratingKey: ratingKey,
-                    startSecs: resumePosition > 0 ? resumePosition : nil,
-                    selectedSubtitleId: selectedSubtitleId,
-                    selectedAudioStreamId: selectedAudioStreamId
-                )
-                guard !Task.isCancelled else {
-                    spinnerView?.removeFromSuperview()
-                    isPresenting = false
-                    discardUnusedStream(stream)
-                    return
-                }
-                resolvedStream = stream
+                let stream = try await session.prepare()
                 AppLogger.notice("Stream resolved directPlay=\(stream.isDirectPlay) subs=\(stream.subtitles.count) audio=\(stream.audioTracks.count)", .playback)
-                startPlayback(stream: stream, from: viewController)
+                startPlayback(from: viewController)
             } catch {
-                guard !Task.isCancelled else {
-                    spinnerView?.removeFromSuperview()
-                    isPresenting = false
-                    return
-                }
                 spinnerView?.removeFromSuperview()
                 isPresenting = false
-                AppLogger.error("Stream resolve failed for ratingKey=\(ratingKey): \(error.localizedDescription)", .playback)
+                guard !Task.isCancelled else { return }
+                AppLogger.error("Stream resolve failed for ratingKey=\(request.ratingKey): \(error.localizedDescription)", .playback)
                 let alert = UIAlertController(title: "Playback Error", message: error.localizedDescription, preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "OK", style: .default))
                 viewController.present(alert, animated: true)
@@ -170,7 +122,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// Aborts a resolve that has not yet produced a player, so a coordinator replaced
     /// mid-resolve does not leak a detached AVPlayer or a live transcode session.
     func cancel() {
-        guard player == nil else { return }
+        guard session.player == nil else { return }
         resolveTask?.cancel()
         resolveTask = nil
         spinnerView?.removeFromSuperview()
@@ -178,27 +130,17 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         if Self.resolvingCoordinator === self { Self.resolvingCoordinator = nil }
     }
 
-    private func discardUnusedStream(_ stream: ResolvedStream) {
-        resolvedStream = nil
-        guard !stream.isDirectPlay else { return }
-        Task { [api] in
-            try? await api.requestVoid(.stopTranscode(session: stream.sessionId))
-        }
-    }
-
-    private func startPlayback(stream: ResolvedStream, from viewController: UIViewController) {
+    private func startPlayback(from viewController: UIViewController) {
         spinnerView?.removeFromSuperview()
 
         guard viewController.presentedViewController == nil, viewController.view.window != nil else {
-            AppLogger.error("Presentation unavailable for ratingKey=\(ratingKey); abandoning playback", .playback)
+            AppLogger.error("Presentation unavailable for ratingKey=\(request.ratingKey); abandoning playback", .playback)
             isPresenting = false
-            discardUnusedStream(stream)
+            session.discard()
             return
         }
 
-        let player = AVPlayer(url: stream.url)
-        player.allowsExternalPlayback = true
-        self.player = player
+        let player = session.begin()
 
         let playerVC = AVPlayerViewController()
         playerVC.player = player
@@ -209,189 +151,72 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC.delegate = self
         self.playerVC = playerVC
 
-        let durationSecs: Double
-        if let offlineAsset, offlineAsset.durationSecs > 0 {
-            durationSecs = offlineAsset.durationSecs
-        } else {
-            durationSecs = metadata?.duration ?? 0
-        }
-        reporter = PlaybackReporter(
-            api: api,
-            ratingKey: ratingKey,
-            sessionId: stream.sessionId,
-            durationMs: Int(durationSecs * 1000),
-            player: player
-        )
         let np = NowPlayingBridge()
         nowPlaying = np
-
-        currentStreamOffset = stream.isDirectPlay ? 0 : resumePosition
-        reporter?.setStreamOffset(currentStreamOffset)
-        markers = stream.markers
-        upNextTriggered = false
-        configureRemoteCommands()
-        if !stream.isDirectPlay {
-            startPingTimer(session: stream.sessionId)
-        }
-
-        if let meta = metadata {
+        if let meta = request.metadata {
             np.update(
                 title: meta.title,
                 showName: meta.showName,
                 seasonNumber: meta.seasonNumber,
                 episodeNumber: meta.episodeNumber,
                 duration: meta.duration ?? 0,
-                elapsed: resumePosition,
+                elapsed: request.resumePosition,
                 rate: 1.0,
                 posterPath: meta.posterPath
             )
         }
 
-        setupInterruptionHandling()
         setupForegroundObserver()
-        setupEndObserver()
-        setupSeekObserver()
-        setupNowPlayingObserver()
-        setupFailureObserver()
-
-        if resumePosition > 0, offlineAsset != nil {
-            seekOfflineResumeWhenReady()
-        } else if resumePosition > 0, stream.isDirectPlay {
-            let time = CMTime(seconds: resumePosition, preferredTimescale: 600)
-            player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
-                Task { @MainActor in
-                    self?.player?.play()
-                }
-            }
-        } else {
-            player.play()
-        }
+        observeEvents()
 
         viewController.present(playerVC, animated: true)
     }
 
-    /// AVPlayer failures are otherwise completely silent (black screen); observe both the item
-    /// entering `.failed` and mid-playback stalls so every failure is logged with its real error and
-    /// direct-play failures can automatically retry via the transcoder.
-    private func setupFailureObserver() {
-        failureObserver?.invalidate()
-        if let failedToPlayObserver { NotificationCenter.default.removeObserver(failedToPlayObserver) }
-        guard let item = player?.currentItem else { return }
-        failureObserver = item.observe(\.status, options: [.new]) { @Sendable observedItem, _ in
-            guard observedItem.status == .failed else { return }
-            let nsError = observedItem.error as NSError?
-            let message = "\(nsError?.domain ?? "?")#\(nsError?.code ?? 0): \(observedItem.error?.localizedDescription ?? "unknown")"
-            Task { @MainActor [weak self] in self?.handlePlaybackFailure(message: message) }
-        }
-        failedToPlayObserver = NotificationCenter.default.addObserver(
-            forName: AVPlayerItem.failedToPlayToEndTimeNotification,
-            object: item,
-            queue: .main
-        ) { [weak self] notification in
-            let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? NSError
-            let message = "\(error?.domain ?? "?")#\(error?.code ?? 0): \(error?.localizedDescription ?? "failed to play to end")"
-            Task { @MainActor [weak self] in self?.handlePlaybackFailure(message: message) }
+    private func observeEvents() {
+        let events = session.events
+        eventsTask = Task { [weak self] in
+            for await event in events {
+                guard let self else { return }
+                handle(event)
+            }
         }
     }
 
-    private func handlePlaybackFailure(message: String) {
-        let wasDirectPlay = resolvedStream?.isDirectPlay ?? false
-        AppLogger.error("Playback failed ratingKey=\(ratingKey) directPlay=\(wasDirectPlay): \(message)", .playback)
-        guard wasDirectPlay, offlineAsset == nil, !didAttemptTranscodeFallback else {
+    private func handle(_ event: PlaybackEvent) {
+        switch event {
+        case .position(let absolute, let rate):
+            nowPlaying?.updateElapsed(absolute, rate: rate)
+            recordOfflineProgress(at: absolute)
+        case .skipAvailable(let marker, let progress):
+            showSkipButton(for: marker, progress: progress)
+        case .skipHidden:
+            removeSkipButton()
+        case .autoSkipped(_, let position):
+            removeSkipButton()
+            Haptics.light()
+            showSkipToast(returningTo: position)
+        case .autoSkipUndoExpired:
+            removeSkipToast(animated: true)
+        case .upNext(let offer):
+            presentUpNext(offer)
+        case .failed(let message):
             showPlaybackError(message)
-            return
+        case .finished(let finish):
+            guard finish == .noNextEpisode, !isInPiP else { return }
+            Task { await dismissPlayer() }
         }
-        didAttemptTranscodeFallback = true
-        AppLogger.notice("Retrying via transcode ratingKey=\(ratingKey)", .playback)
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                let stream = try await StreamResolver.resolve(
-                    api: api,
-                    ratingKey: ratingKey,
-                    startSecs: resumePosition > 0 ? resumePosition : nil,
-                    selectedSubtitleId: selectedSubtitleId,
-                    selectedAudioStreamId: selectedAudioStreamId,
-                    forceTranscode: true
-                )
-                guard let player = self.player else { return }
-                self.resolvedStream = stream
-                self.currentStreamOffset = self.resumePosition
-                self.reporter = PlaybackReporter(
-                    api: self.api,
-                    ratingKey: self.ratingKey,
-                    sessionId: stream.sessionId,
-                    durationMs: Int((self.metadata?.duration ?? 0) * 1000),
-                    player: player
-                )
-                self.reporter?.setStreamOffset(self.currentStreamOffset)
-                self.startPingTimer(session: stream.sessionId)
-                player.replaceCurrentItem(with: AVPlayerItem(url: stream.url))
-                self.setupFailureObserver()
-                player.play()
-                AppLogger.notice("Transcode fallback playing ratingKey=\(self.ratingKey)", .playback)
-            } catch {
-                AppLogger.error("Transcode fallback failed ratingKey=\(self.ratingKey): \(error.localizedDescription)", .playback)
-                self.showPlaybackError(error.localizedDescription)
-            }
-        }
+    }
+
+    private func recordOfflineProgress(at absolute: Double) {
+        guard request.offline != nil, abs(absolute - lastOfflineWrite) >= 10 else { return }
+        lastOfflineWrite = absolute
+        DownloadManager.shared.recordOfflineProgress(ratingKey: request.ratingKey, positionSecs: absolute)
     }
 
     private func showPlaybackError(_ message: String) {
         let alert = UIAlertController(title: "Playback Error", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         (playerVC ?? presentingVC)?.present(alert, animated: true)
-    }
-
-    /// HLS (offline downloads served over the loopback server) only accepts seeks at segment
-    /// boundaries once the item is ready, so resume waits for `.readyToPlay` and seeks with tolerance
-    /// instead of the eager zero-tolerance seek used for true direct-play files.
-    private func seekOfflineResumeWhenReady() {
-        guard let player, let item = player.currentItem else { player?.play(); return }
-        let target = resumePosition
-        offlineResumeObserver?.invalidate()
-        offlineResumeObserver = item.observe(\.status, options: [.new]) { @Sendable observedItem, _ in
-            guard observedItem.status != .unknown else { return }
-            let ready = observedItem.status == .readyToPlay
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.offlineResumeObserver?.invalidate()
-                self.offlineResumeObserver = nil
-                guard ready else { self.player?.play(); return }
-                self.player?.seek(
-                    to: CMTime(seconds: target, preferredTimescale: 600),
-                    toleranceBefore: CMTime(seconds: 3, preferredTimescale: 600),
-                    toleranceAfter: .positiveInfinity
-                ) { @Sendable _ in
-                    Task { @MainActor [weak self] in self?.player?.play() }
-                }
-            }
-        }
-    }
-
-    private func setupInterruptionHandling() {
-        interruptionObserver = NotificationCenter.default.addObserver(
-            forName: AVAudioSession.interruptionNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            let info = notification.userInfo
-            let typeValue = info?[AVAudioSessionInterruptionTypeKey] as? UInt
-            let optionsValue = info?[AVAudioSessionInterruptionOptionKey] as? UInt
-            Task { @MainActor in
-                guard let self,
-                      let typeValue,
-                      let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
-
-                if type == .ended, let optionsValue {
-                    let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
-                    if options.contains(.shouldResume) {
-                        try? AVAudioSession.sharedInstance().setActive(true)
-                        self.player?.play()
-                    }
-                }
-            }
-        }
     }
 
     private func setupForegroundObserver() {
@@ -407,89 +232,21 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
     }
 
-    private func setupEndObserver() {
-        if let endObserver {
-            NotificationCenter.default.removeObserver(endObserver)
-        }
-        endObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: player?.currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handlePlaybackEnded()
-            }
-        }
-    }
-
-    private func setupNowPlayingObserver() {
-        guard let player else { return }
-        nowPlayingObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 1, preferredTimescale: 1),
-            queue: .main
-        ) { [weak self] time in
-            let seconds = time.seconds
-            guard seconds.isFinite, seconds >= 0 else { return }
-            Task { @MainActor in
-                guard let self, let player = self.player else { return }
-                self.lastPlayhead = seconds
-                let absolute = seconds + self.currentStreamOffset
-                self.nowPlaying?.updateElapsed(absolute, rate: Double(player.rate))
-                self.updateSkipUI(absolute: absolute)
-                if self.offlineAsset != nil, abs(absolute - self.lastOfflineWrite) >= 10 {
-                    self.lastOfflineWrite = absolute
-                    DownloadManager.shared.recordOfflineProgress(ratingKey: self.ratingKey, positionSecs: absolute)
-                }
-            }
-        }
-    }
-
-    private func updateSkipUI(absolute: Double) {
-        if !upNextTriggered, mediaType == "episode", let credits = markers.first(where: { $0.isCredits }), absolute >= credits.startSecs {
-            upNextTriggered = true
-            showUpNext(dismissIfLast: false)
-        }
-
-        let mode = Preferences.skipIntroMode
-        let active = markers.first { absolute >= $0.startSecs && absolute < $0.endSecs - 1 }
-        guard mode != .off, let active, upNextOverlay == nil else {
-            removeSkipButton()
-            return
-        }
-        if mode == .automatic, !active.isCredits, !autoSkippedMarkers.contains(active.startSecs) {
-            autoSkip(active, from: absolute)
-            return
-        }
-        guard skipToast == nil else {
-            removeSkipButton()
-            return
-        }
-        showSkipButton(for: active, absolute: absolute)
-    }
-
-    /// Jumps past an intro the first time its marker starts and offers a few seconds to undo it.
-    private func autoSkip(_ marker: PlexMarker, from absolute: Double) {
-        autoSkippedMarkers.insert(marker.startSecs)
-        removeSkipButton()
-        Haptics.light()
-        seekToAbsolute(marker.endSecs)
-        showSkipToast(returningTo: absolute)
-    }
-
     private func showSkipToast(returningTo position: Double) {
         guard let host = playerVC?.contentOverlayView else { return }
         removeSkipToast(animated: false)
-        let toast = SkipToastView(
-            message: "Skipped intro",
-            onUndo: { [weak self] in
-                Haptics.light()
-                self?.removeSkipToast(animated: true)
-                self?.seekToAbsolute(position)
-            },
-            onExpire: { [weak self] in self?.removeSkipToast(animated: true) }
-        )
+        let toast = SkipToastView(message: "Skipped intro") { [weak self] in
+            Haptics.light()
+            self?.undoSkip(returningTo: position)
+        }
         toast.present(in: host)
         skipToast = toast
+    }
+
+    private func undoSkip(returningTo position: Double) {
+        removeSkipToast(animated: true)
+        removeSkipButton()
+        session.undoAutoSkip(returnTo: position)
     }
 
     private func removeSkipToast(animated: Bool) {
@@ -497,11 +254,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         skipToast = nil
     }
 
-    private func showSkipButton(for marker: PlexMarker, absolute: Double) {
+    private func showSkipButton(for marker: SkipMarker, progress: Double) {
         guard let host = playerVC?.contentOverlayView else { return }
-        let title = marker.isCredits ? "Skip Credits" : "Skip Intro"
-        let span = marker.endSecs - marker.startSecs
-        let progress = span > 0 ? (absolute - marker.startSecs) / span : 0
         let pill: SkipPillView
         if let existing = skipPill {
             pill = existing
@@ -513,9 +267,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let target = marker.endSecs
         pill.onTap = { [weak self] in
             Haptics.light()
-            self?.seekToAbsolute(target)
+            self?.skip(to: target)
         }
-        pill.update(title: title, accessibilityTitle: title, progress: progress)
+        pill.update(title: marker.title, accessibilityTitle: marker.title, progress: progress)
+    }
+
+    private func skip(to target: Double) {
+        removeSkipButton()
+        session.seek(toAbsolute: target)
     }
 
     private func removeSkipButton() {
@@ -523,202 +282,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         skipPill = nil
     }
 
-    private func seekToAbsolute(_ target: Double) {
-        removeSkipButton()
-        guard let stream = resolvedStream else { return }
-        if stream.isDirectPlay {
-            player?.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
-                Task { @MainActor in self?.player?.play() }
-            }
-        } else {
-            restartTranscode(atAbsolute: target)
-        }
-    }
-
-    private func setupSeekObserver() {
-        guard let stream = resolvedStream, !stream.isDirectPlay else { return }
-        if let seekObserver {
-            NotificationCenter.default.removeObserver(seekObserver)
-        }
-        seekObserver = NotificationCenter.default.addObserver(
-            forName: AVPlayerItem.timeJumpedNotification,
-            object: player?.currentItem,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleSeek()
-            }
-        }
-    }
-
-    private func handleSeek() {
-        guard !isRestarting, let item = player?.currentItem else { return }
-        let now = item.currentTime().seconds
-        guard now.isFinite else { return }
-        let jump = abs(now - lastPlayhead)
-        lastPlayhead = now
-        guard jump > 5 else { return }
-        restartTranscode(atAbsolute: currentStreamOffset + max(0, now))
-    }
-
-    private func restartTranscode(atAbsolute target: Double) {
-        guard let player, let stream = resolvedStream, !isRestarting else { return }
-        isRestarting = true
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            let url = await StreamResolver.transcodeRestartURL(
-                api: self.api,
-                ratingKey: self.ratingKey,
-                offsetSecs: target,
-                sessionId: stream.sessionId,
-                burnSubtitle: self.selectedSubtitleId != nil
-            )
-            guard let url else {
-                self.isRestarting = false
-                return
-            }
-            self.applyTranscodeRestart(url: url, atAbsolute: target, stream: stream)
-        }
-    }
-
-    private func applyTranscodeRestart(url: URL, atAbsolute target: Double, stream: ResolvedStream) {
-        guard let player else {
-            isRestarting = false
-            return
-        }
-        lastPlayhead = 0
-        currentStreamOffset = target
-        reporter?.setStreamOffset(target)
-
-        let item = AVPlayerItem(url: url)
-        restartItemObserver?.invalidate()
-        restartItemObserver = item.observe(\.status, options: [.new]) { @Sendable observedItem, _ in
-            guard observedItem.status != .unknown else { return }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                if observedItem.status == .readyToPlay {
-                    self.player?.play()
-                }
-                self.isRestarting = false
-                self.restartItemObserver?.invalidate()
-                self.restartItemObserver = nil
-            }
-        }
-        player.replaceCurrentItem(with: item)
-        setupEndObserver()
-        setupSeekObserver()
-    }
-
-    private func configureRemoteCommands() {
-        guard !remoteCommandsConfigured else { return }
-        remoteCommandsConfigured = true
-        let center = MPRemoteCommandCenter.shared()
-
-        center.playCommand.addTarget { [weak self] _ in
-            Task { @MainActor in self?.player?.play() }
-            return .success
-        }
-        center.pauseCommand.addTarget { [weak self] _ in
-            Task { @MainActor in self?.player?.pause() }
-            return .success
-        }
-        center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            Task { @MainActor in
-                guard let player = self?.player else { return }
-                if player.timeControlStatus == .playing { player.pause() } else { player.play() }
-            }
-            return .success
-        }
-        center.skipForwardCommand.preferredIntervals = [10]
-        center.skipForwardCommand.addTarget { [weak self] event in
-            guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
-            let interval = skip.interval
-            Task { @MainActor in
-                guard let player = self?.player else { return }
-                player.seek(to: CMTime(seconds: player.currentTime().seconds + interval, preferredTimescale: 600))
-            }
-            return .success
-        }
-        center.skipBackwardCommand.preferredIntervals = [10]
-        center.skipBackwardCommand.addTarget { [weak self] event in
-            guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
-            let interval = skip.interval
-            Task { @MainActor in
-                guard let player = self?.player else { return }
-                player.seek(to: CMTime(seconds: max(0, player.currentTime().seconds - interval), preferredTimescale: 600))
-            }
-            return .success
-        }
-        center.changePlaybackPositionCommand.addTarget { [weak self] event in
-            guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
-            let position = event.positionTime
-            Task { @MainActor in
-                guard let self else { return }
-                if self.resolvedStream?.isDirectPlay == false {
-                    self.restartTranscode(atAbsolute: position)
-                } else {
-                    self.player?.seek(to: CMTime(seconds: position, preferredTimescale: 600))
-                }
-            }
-            return .success
-        }
-        center.nextTrackCommand.isEnabled = mediaType == "episode"
-        center.nextTrackCommand.addTarget { [weak self] _ in
-            Task { @MainActor in self?.showUpNext(dismissIfLast: false) }
-            return .success
-        }
-    }
-
-    private func tearDownRemoteCommands() {
-        guard remoteCommandsConfigured else { return }
-        remoteCommandsConfigured = false
-        let center = MPRemoteCommandCenter.shared()
-        let commands: [MPRemoteCommand] = [
-            center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
-            center.skipForwardCommand, center.skipBackwardCommand,
-            center.changePlaybackPositionCommand, center.nextTrackCommand,
-        ]
-        commands.forEach { $0.removeTarget(nil) }
-    }
-
-    private func startPingTimer(session: String) {
-        pingTask?.cancel()
-        pingTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 20_000_000_000)
-                guard !Task.isCancelled, let self else { return }
-                try? await self.api.requestVoid(.pingTranscode(session: session))
-            }
-        }
-    }
-
-    private func handlePlaybackEnded() {
-        showUpNext(dismissIfLast: true)
-    }
-
-    private func showUpNext(dismissIfLast: Bool) {
-        guard mediaType == "episode", let seasonRatingKey else { return }
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
-                let episodes = container.Metadata ?? []
-                guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
-                      currentIndex + 1 < episodes.count else {
-                    if dismissIfLast, !isInPiP { await dismissPlayer() }
-                    return
-                }
-                presentUpNext(next: episodes[currentIndex + 1], seasonRatingKey: seasonRatingKey, playbackEnded: dismissIfLast)
-            } catch {
-                if dismissIfLast, !isInPiP { await dismissPlayer() }
-            }
-        }
-    }
-
-    private func presentUpNext(next: PlexMetadata, seasonRatingKey: String, playbackEnded: Bool) {
+    private func presentUpNext(_ offer: UpNextOffer) {
         guard !isFinishing, upNextOverlay == nil else { return }
         if isInPiP || UIApplication.shared.applicationState != .active {
-            pendingUpNext = (next, seasonRatingKey, playbackEnded)
+            pendingUpNext = offer
             return
         }
         guard let playerVC, let host = playerVC.contentOverlayView else {
@@ -726,33 +293,36 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             return
         }
         removeSkipToast(animated: false)
+        let next = offer.episode
         let overlay = UpNextOverlayView(
             content: UpNextOverlayView.Content(
                 seasonNumber: next.parentIndex,
                 episodeNumber: next.index,
                 episodeTitle: next.title,
                 thumbPath: next.thumb,
-                autoplays: Preferences.autoplayNextEpisode
+                autoplays: offer.autoplays
             ),
-            onPlayNext: { [weak self] in self?.playNext(next, seasonRatingKey: seasonRatingKey) },
+            countdownSeconds: UpNextOffer.countdownSeconds,
+            onPlayNext: { [weak self] in self?.playNext(offer) },
             onDismiss: { [weak self] in Task { await self?.dismissPlayer() } }
         )
         overlay.present(in: host)
         upNextOverlay = overlay
+        session.setUpNextVisible(true)
         overlay.startCountdown()
     }
 
     private func flushPendingUpNext() {
         guard let pending = pendingUpNext, !isFinishing else { return }
         pendingUpNext = nil
-        if pending.playbackEnded, Preferences.autoplayNextEpisode {
-            playNext(pending.next, seasonRatingKey: pending.seasonRatingKey)
+        if pending.playbackEnded, pending.autoplays {
+            playNext(pending)
         } else {
-            presentUpNext(next: pending.next, seasonRatingKey: pending.seasonRatingKey, playbackEnded: false)
+            presentUpNext(pending)
         }
     }
 
-    private func playNext(_ next: PlexMetadata, seasonRatingKey: String) {
+    private func playNext(_ offer: UpNextOffer) {
         guard !isFinishing else { return }
         isFinishing = true
         removeUpNextOverlay()
@@ -762,22 +332,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             await self.cleanup()
             pvc?.dismiss(animated: true) {
                 guard let presenting = self.presentingVC else { return }
+                let offline = DownloadManager.shared.offlineAsset(for: offer.episode.id).map(Self.offlineSource)
                 let coordinator = PlayerCoordinator(
                     api: self.api,
-                    ratingKey: next.id,
-                    mediaType: "episode",
-                    showRatingKey: self.showRatingKey,
-                    seasonRatingKey: seasonRatingKey,
-                    resumePosition: 0,
-                    metadata: Metadata(
-                        title: next.title,
-                        showName: next.grandparentTitle,
-                        seasonNumber: next.parentIndex,
-                        episodeNumber: next.index,
-                        posterPath: next.grandparentThumb ?? next.thumb,
-                        duration: next.durationSecs
-                    ),
-                    offlineAsset: DownloadManager.shared.offlineAsset(for: next.id)
+                    request: offer.nextRequest(showRatingKey: self.request.showRatingKey, offline: offline)
                 )
                 if let onAdvanceToNext = self.onAdvanceToNext {
                     coordinator.onAdvanceToNext = onAdvanceToNext
@@ -800,8 +358,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func removeUpNextOverlay() {
-        upNextOverlay?.removeFromSuperview()
+        upNextOverlay?.dismiss()
         upNextOverlay = nil
+        session.setUpNextVisible(false)
     }
 
     func playerViewControllerShouldAutomaticallyDismissAtPictureInPictureStart(
@@ -852,87 +411,29 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func cleanup() async {
-        let offlineFinalPosition: Double?
-        if offlineAsset != nil {
-            let position = player?.currentTime().seconds ?? lastPlayhead
-            offlineFinalPosition = (position.isFinite && position >= 0) ? position : nil
-        } else {
-            offlineFinalPosition = nil
-        }
         removeUpNextOverlay()
         skipPill?.dismiss(animated: false)
         skipPill = nil
         removeSkipToast(animated: false)
-        tearDownRemoteCommands()
         pendingUpNext = nil
-
-        pingTask?.cancel()
-        pingTask = nil
-        restartItemObserver?.invalidate()
-        restartItemObserver = nil
-        offlineResumeObserver?.invalidate()
-        offlineResumeObserver = nil
-        failureObserver?.invalidate()
-        failureObserver = nil
-        if let failedToPlayObserver {
-            NotificationCenter.default.removeObserver(failedToPlayObserver)
-        }
-        failedToPlayObserver = nil
-        if let seekObserver {
-            NotificationCenter.default.removeObserver(seekObserver)
-        }
-        seekObserver = nil
-
-        if let reporter {
-            await reporter.stop()
-        }
-        reporter = nil
-
-        await api.invalidate(ratingKey: ratingKey)
-        if let seasonRatingKey { await api.invalidate(ratingKey: seasonRatingKey) }
-        if let showRatingKey { await api.invalidate(ratingKey: showRatingKey) }
-
-        if let endObserver {
-            NotificationCenter.default.removeObserver(endObserver)
-        }
-        endObserver = nil
-
-        if let interruptionObserver {
-            NotificationCenter.default.removeObserver(interruptionObserver)
-        }
-        interruptionObserver = nil
-
+        eventsTask?.cancel()
+        eventsTask = nil
         if let foregroundObserver {
             NotificationCenter.default.removeObserver(foregroundObserver)
         }
         foregroundObserver = nil
 
-        if let nowPlayingObserver {
-            player?.removeTimeObserver(nowPlayingObserver)
-        }
-        nowPlayingObserver = nil
-
-        if let resolvedStream, !resolvedStream.isDirectPlay {
-            do {
-                try await api.requestVoid(.stopTranscode(session: resolvedStream.sessionId))
-            } catch {
-                Self.log.error("Stop transcode failed: \(error.localizedDescription, privacy: .public)")
-            }
-        }
-
-        player?.replaceCurrentItem(with: nil)
+        let finalPosition = await session.stop()
         playerVC?.player = nil
 
-        if let offlineFinalPosition {
-            DownloadManager.shared.recordOfflineProgress(ratingKey: ratingKey, positionSecs: offlineFinalPosition, deleteIfWatched: true)
+        if request.offline != nil, let finalPosition {
+            DownloadManager.shared.recordOfflineProgress(ratingKey: request.ratingKey, positionSecs: finalPosition, deleteIfWatched: true)
         }
 
         nowPlaying?.clear()
         nowPlaying = nil
 
-        player = nil
         playerVC = nil
-        resolvedStream = nil
         isPresenting = false
     }
 
