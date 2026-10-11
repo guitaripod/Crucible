@@ -63,7 +63,8 @@ final class TVChipRow: UIStackView {
     private func refresh(_ item: TVChipItem) {
         guard let button = buttons[item.id] else { return }
         button.configuration = TVButton.configuration(.chip(selected: item.isSelected), title: item.title, symbol: item.symbol)
-        button.accessibilityLabel = item.title
+        button.accessibilityLabel = item.accessibilityLabel ?? item.title
+        button.accessibilityHint = item.accessibilityHint
         button.accessibilityTraits = item.isSelected ? [.button, .selected] : .button
     }
 }

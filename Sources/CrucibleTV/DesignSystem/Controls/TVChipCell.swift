@@ -5,12 +5,23 @@ struct TVChipItem: Hashable, Sendable {
     var title: String
     var symbol: String?
     var isSelected: Bool
+    var accessibilityLabel: String?
+    var accessibilityHint: String?
 
-    init(id: String, title: String, symbol: String? = nil, isSelected: Bool = false) {
+    init(
+        id: String,
+        title: String,
+        symbol: String? = nil,
+        isSelected: Bool = false,
+        accessibilityLabel: String? = nil,
+        accessibilityHint: String? = nil
+    ) {
         self.id = id
         self.title = title
         self.symbol = symbol
         self.isSelected = isSelected
+        self.accessibilityLabel = accessibilityLabel
+        self.accessibilityHint = accessibilityHint
     }
 }
 
@@ -61,7 +72,8 @@ final class TVChipCell: UICollectionViewCell {
         self.onSelect = onSelect
         button.menu = menu?(item)
         button.configuration = TVButton.configuration(.chip(selected: item.isSelected), title: item.title, symbol: item.symbol)
-        button.accessibilityLabel = item.title
+        button.accessibilityLabel = item.accessibilityLabel ?? item.title
+        button.accessibilityHint = item.accessibilityHint
         button.accessibilityTraits = item.isSelected ? [.button, .selected] : .button
         button.accessibilityIdentifier = "tv.chip.\(item.id)"
         if let identifier = actionIdentifier {
