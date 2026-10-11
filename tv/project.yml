@@ -1,0 +1,115 @@
+name: CrucibleTV
+options:
+  bundleIdPrefix: com.guitaripod
+  createIntermediateGroups: true
+  deploymentTarget:
+    tvOS: "17.0"
+  generateEmptyDirectories: false
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "2.0.1"
+    CURRENT_PROJECT_VERSION: "10"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    CODE_SIGN_STYLE: Automatic
+packages:
+  Crucible:
+    path: ..
+targets:
+  CrucibleTVApp:
+    type: application
+    platform: tvOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: App
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+    dependencies:
+      - package: Crucible
+        product: CrucibleTV
+      - target: CrucibleTVTopShelf
+        embed: true
+        codeSign: true
+    entitlements:
+      path: Generated/CrucibleTV.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.guitaripod.crucible
+    info:
+      path: Generated/CrucibleTV-Info.plist
+      properties:
+        CFBundleDisplayName: Crucible
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations: {}
+    settings:
+      base:
+        PRODUCT_NAME: Crucible
+        PRODUCT_MODULE_NAME: CrucibleTVApp
+        PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  CrucibleTVTopShelf:
+    type: tv-app-extension
+    platform: tvOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: TopShelf
+    dependencies:
+      - package: Crucible
+        product: CrucibleTopShelf
+    entitlements:
+      path: Generated/CrucibleTVTopShelf.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.guitaripod.crucible
+    info:
+      path: Generated/CrucibleTVTopShelf-Info.plist
+      properties:
+        CFBundleDisplayName: Crucible
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.tv-top-shelf
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ContentProvider
+    settings:
+      base:
+        PRODUCT_NAME: CrucibleTopShelf
+        PRODUCT_MODULE_NAME: CrucibleTopShelfExtension
+        PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.topshelf
+  CrucibleTVUITests:
+    type: bundle.ui-testing
+    platform: tvOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: UITests
+    dependencies:
+      - target: CrucibleTVApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  CrucibleTV:
+    build:
+      targets:
+        CrucibleTVApp: all
+        CrucibleTVTopShelf: all
+        CrucibleTVUITests: [test]
+    run:
+      config: Debug
+      executable: CrucibleTVApp
+    test:
+      config: Debug
+      targets:
+        - name: CrucibleTVUITests
+          parallelizable: false

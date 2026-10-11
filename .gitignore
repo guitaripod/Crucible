@@ -11,3 +11,7 @@ DerivedData/
 /.dd
 /marketing/shots/out
 /marketing/mock/assets
+/tv/*.xcodeproj
+/tv/Generated
+/tv/out
+/tv/.gen-hash
