@@ -17,6 +17,8 @@ final class PlayerTests: TVTestCase {
     private static let movie = "1001"
     private static let endOfItemWait: TimeInterval = 180
     private static let dismissalWait: TimeInterval = 45
+    /// Direct play (Original quality), whatever an earlier test class left in the simulator's preferences: a transcode of the mock ignores the resume offset, so an item resumed near the end would not end.
+    private static let defaultQuality = "0"
 
     override func setUp() {
         continueAfterFailure = false
@@ -367,6 +369,9 @@ final class PlayerTests: TVTestCase {
         let app = XCUIApplication()
         app.launchEnvironment.merge(environment) { _, new in new }
         app.launchArguments += arguments
+        if !arguments.contains("-streamingQuality") {
+            app.launchArguments += ["-streamingQuality", Self.defaultQuality]
+        }
         app.launchEnvironment["CRUCIBLE_UITEST"] = "1"
         app.launchEnvironment["CRUCIBLE_OPEN_LINK"] = "crucible://play/\(ratingKey)"
         for (key, value) in ProcessInfo.processInfo.environment where key.hasPrefix("CRUCIBLE_") && key != "CRUCIBLE_OPEN_LINK" {
