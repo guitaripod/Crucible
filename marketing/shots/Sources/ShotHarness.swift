@@ -1,5 +1,6 @@
 import UIKit
 @testable import Crucible
+@testable import CrucibleCore
 
 /// Seeds the app with a mock Plex connection and drives it through the screens used for marketing
 /// captures. Each `capture(_:)` raises a `<name>.ready` file and waits for the outer script to take

@@ -1,5 +1,6 @@
 import Foundation
 @testable import Crucible
+@testable import CrucibleCore
 
 /// Writes a download manifest (plus poster images) before the app starts so the Downloads screens
 /// render a realistic library without running the download engine.

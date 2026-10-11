@@ -1,5 +1,6 @@
 import UIKit
 @testable import Crucible
+@testable import CrucibleCore
 
 @MainActor
 enum LayoutProbe {

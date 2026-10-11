@@ -1,6 +1,9 @@
 import AVKit
 import UIKit
 @testable import Crucible
+@testable import CrucibleCore
+import CrucibleDesign
+@testable import CrucibleStats
 
 @MainActor
 enum ShotScript {

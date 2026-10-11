@@ -31,8 +31,9 @@ sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
 sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
 
 rm -rf .dd/Build/Intermediates.noindex/Crucible.build .dd/Build/Intermediates.noindex/CrucibleShots.build
+PACKAGE_NAME=$(basename "$ROOT" | tr 'A-Z-' 'a-z_')
 xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
-  -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
+  CRUCIBLE_PACKAGE_NAME="$PACKAGE_NAME" -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
   build > /tmp/crucible-xcodebuild.log 2>&1 || { tail -40 /tmp/crucible-xcodebuild.log; exit 1; }
 
 APP=$ROOT/.dd/Build/Products/Debug-iphonesimulator/CrucibleShots.app
