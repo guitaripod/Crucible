@@ -90,6 +90,7 @@ targets:
         PRODUCT_NAME: CrucibleTopShelf
         PRODUCT_MODULE_NAME: CrucibleTopShelfExtension
         PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.topshelf
+        LD_ENTRY_POINT: _NSExtensionMain
   CrucibleTVUITests:
     type: bundle.ui-testing
     platform: tvOS
