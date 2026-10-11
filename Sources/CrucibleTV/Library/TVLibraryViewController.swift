@@ -5,7 +5,7 @@ import UIKit
 /// One library as a screen: a header with the title, count, watch filters and Genre and Sort menus,
 /// a Recently Watched shelf (unfiltered only), and the poster grid with an A-Z rail on the trailing
 /// edge. Everything that is not drawing lives in `LibraryGridModel`.
-final class TVLibraryViewController: UIViewController {
+final class TVLibraryViewController: TVScreenViewController {
     enum Section: Hashable {
         case header, recents, grid
     }
@@ -17,50 +17,42 @@ final class TVLibraryViewController: UIViewController {
     }
 
     /// Where a row of posters is scrolled to on a jump, just under the floating tab bar.
-    private static let jumpClearance: CGFloat = 130
+    private static let jumpClearance = TVMetrics.tabBarClearance
+
+    /// How long the grid waits for Recently Watched before it is shown without the shelf.
+    private static let revealDeadline = Duration.milliseconds(1500)
 
     private let env: TVAppEnvironment
     private let section: LibrarySection
     private let model: LibraryGridModel
-    private let collectionView: TVCollectionView
-    private let stateView = TVStateView()
     private let rail = TVAlphabetRail()
     private let railFade = TVGradientView()
-    private let focusMemory = TVFocusMemory()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var pendingFocus: IndexPath?
     private let recentCells = NSMapTable<NSString, UICollectionViewCell>(keyOptions: .copyIn, valueOptions: .weakMemory)
     private var hasRevealedContent = false
     private var hasPassedRevealDeadline = false
     private var shelfInserted = false
-    private var revealTask: Task<Void, Never>?
+    private var shownState: String?
+    private lazy var revealSlot = makeTaskSlot()
     private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self) { [weak self] item, watched in
         self?.model.setWatched(ratingKey: item.id, watched: watched)
     }
-
-    /// How long the grid waits for Recently Watched before it is shown without the shelf.
-    private static let revealDeadline = Duration.milliseconds(1500)
 
     init(env: TVAppEnvironment, section: LibrarySection) {
         self.env = env
         self.section = section
         model = LibraryGridModel(api: env.api, sectionId: section.id, kind: section.kind, offersContinueBanner: false)
-        collectionView = TVCollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout())
-        super.init(nibName: nil, bundle: nil)
+        super.init(layout: UICollectionViewLayout())
         title = section.title
         model.onUpdate = { [weak self] update in
             self?.modelDidUpdate(update)
         }
     }
 
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Theme.Color.canvas
-        setupCollectionView()
-        setupState()
+        collectionView.prefetchDataSource = self
         setupRail()
         configureDataSource()
         collectionView.collectionViewLayout = makeLayout()
@@ -76,7 +68,6 @@ final class TVLibraryViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        revealTask?.cancel()
         model.disappear()
     }
 
@@ -87,11 +78,11 @@ final class TVLibraryViewController: UIViewController {
     }
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        guard stateView.isHidden else { return [stateView] }
-        if let indexPath = indexPathForPreferredFocusedView(in: collectionView), let cell = visibleCell(at: indexPath) {
-            return [cell]
-        }
-        return [collectionView]
+        guard !isShowingState,
+              let indexPath = indexPathForPreferredFocusedView(in: collectionView),
+              let cell = visibleCell(at: indexPath)
+        else { return super.preferredFocusEnvironments }
+        return [cell]
     }
 
     /// The cell for `indexPath`. A cell inside the horizontally scrolling shelf is not reported by the
@@ -107,32 +98,21 @@ final class TVLibraryViewController: UIViewController {
         return collectionView.cellForItem(at: indexPath)
     }
 
-    private func setupCollectionView() {
-        collectionView.delegate = self
-        collectionView.prefetchDataSource = self
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.onPlayPause = { [weak self] indexPath in
-            self?.playItem(at: indexPath)
+    /// The first poster on screen: the first Recently Watched card when the shelf is shown, otherwise
+    /// the first grid poster.
+    override func initialFocusIndexPath() -> IndexPath? {
+        let snapshot = dataSource.snapshot()
+        if let recents = snapshot.indexOfSection(.recents), snapshot.numberOfItems(inSection: .recents) > 0 {
+            return IndexPath(item: 0, section: recents)
         }
-        view.addSubview(collectionView)
-        NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
+        if let grid = snapshot.indexOfSection(.grid), snapshot.numberOfItems(inSection: .grid) > 0 {
+            return IndexPath(item: 0, section: grid)
+        }
+        return nil
     }
 
-    private func setupState() {
-        stateView.isHidden = true
-        stateView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stateView)
-        NSLayoutConstraint.activate([
-            stateView.topAnchor.constraint(equalTo: view.topAnchor),
-            stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
+    override func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
+        pendingFocus ?? super.indexPathForPreferredFocusedView(in: collectionView)
     }
 
     private func setupRail() {
@@ -184,19 +164,17 @@ final class TVLibraryViewController: UIViewController {
     }
 
     private static func headerSection() -> NSCollectionLayoutSection {
-        let size = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1),
-            heightDimension: .absolute(TVLibraryHeaderContentView.height)
-        )
+        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(180))
         let item = NSCollectionLayoutItem(layoutSize: size)
         let section = NSCollectionLayoutSection(group: NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item]))
-        section.contentInsets = NSDirectionalEdgeInsets(top: TVScreenTitle.topInset, leading: 0, bottom: TVMetrics.shelfVerticalInset, trailing: 0)
+        section.contentInsets = NSDirectionalEdgeInsets(top: TVMetrics.tabBarClearance, leading: 0, bottom: TVMetrics.shelfVerticalInset, trailing: 0)
         return section
     }
 
     private func configureDataSource() {
-        let headerRegistration = UICollectionView.CellRegistration<TVLibraryHeaderCell, Item> { [weak self] cell, _, _ in
-            cell.contentConfiguration = self?.headerConfiguration()
+        let headerRegistration = UICollectionView.CellRegistration<TVHostCell, Item> { [weak self] cell, _, _ in
+            guard let self else { return }
+            cell.showLibraryHeader(headerContent())
         }
         let posterRegistration = TVPosterCell.registration()
         let kind = section.kind
@@ -224,33 +202,28 @@ final class TVLibraryViewController: UIViewController {
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headerViewRegistration, for: indexPath)
         }
+        adopt(dataSource)
     }
 
-    private func headerConfiguration() -> TVLibraryHeaderConfiguration {
+    private func headerContent() -> TVLibraryHeaderContent {
         let options = model.options
-        let genres = model.genres.map {
-            TVLibraryHeaderConfiguration.Choice(key: $0.key, title: $0.title, isSelected: options.genre == $0.key)
-        }
-        let sorts = section.kind.sortOptions.map {
-            TVLibraryHeaderConfiguration.Choice(key: $0.key, title: $0.title, isSelected: options.sort == $0.key)
-        }
-        var configuration = TVLibraryHeaderConfiguration(
+        var content = TVLibraryHeaderContent(
             title: section.title,
             count: countText(),
-            chips: LibraryWatchFilter.allCases.map { .init(filter: $0, isSelected: options.isChipSelected($0)) },
+            chips: LibraryWatchFilter.allCases.map { TVChipItem(id: $0.rawValue, title: $0.title, isSelected: options.isChipSelected($0)) },
             genreTitle: options.genre == nil ? "Genre" : options.genreTitle(in: model.genres),
             isGenreSelected: options.genre != nil,
-            genres: genres,
+            genres: model.genres.map { .init(key: $0.key, title: $0.title, isSelected: options.genre == $0.key) },
             sortTitle: "Sort",
-            sorts: sorts
+            sorts: section.kind.sortOptions.map { .init(key: $0.key, title: $0.title, isSelected: options.sort == $0.key) }
         )
-        configuration.handlers = .init(
+        content.handlers = .init(
             onFilter: { [weak self] in self?.model.selectChip($0) },
             onGenre: { [weak self] in self?.model.setGenre($0) },
             onSort: { [weak self] in self?.model.setSort($0) },
             onBrowseFolders: { [weak self] in self?.browseFolders() }
         )
-        return configuration
+        return content
     }
 
     /// "1,248 movies", or "12 movies · Filtered" while a filter narrows the grid; empty until the first page arrived.
@@ -271,14 +244,15 @@ final class TVLibraryViewController: UIViewController {
             applyContentState()
         case .pageLoaded:
             revealContentIfReady()
-            applyContentState()
             if hasRevealedContent { applySnapshot() }
+            applyContentState()
         case .recents:
             revealContentIfReady()
+            if hasRevealedContent {
+                if !shelfInserted, !isFocusInGrid { shelfInserted = true }
+                applySnapshot()
+            }
             applyContentState()
-            guard hasRevealedContent else { break }
-            if !shelfInserted, !isFocusInGrid { shelfInserted = true }
-            applySnapshot()
         case .pageFailed:
             applyContentState()
         case .continueItem:
@@ -289,7 +263,6 @@ final class TVLibraryViewController: UIViewController {
     }
 
     private func applySnapshot() {
-        let previous = Set(dataSource.snapshot().itemIdentifiers)
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.header])
         snapshot.appendItems([.header], toSection: .header)
@@ -300,8 +273,7 @@ final class TVLibraryViewController: UIViewController {
         }
         snapshot.appendSections([.grid])
         snapshot.appendItems(model.gridIds.map(Item.media), toSection: .grid)
-        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { previous.contains($0) })
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.applyReconfiguringExisting(snapshot)
         updateRail()
     }
 
@@ -320,19 +292,18 @@ final class TVLibraryViewController: UIViewController {
         guard !hasRevealedContent, model.pager.hasLoaded, model.hasLoadedRecents || hasPassedRevealDeadline else { return }
         hasRevealedContent = true
         shelfInserted = model.hasLoadedRecents
-        revealTask?.cancel()
+        revealSlot.cancel()
     }
 
     private func startRevealDeadline() {
         guard !hasRevealedContent else { return }
-        revealTask?.cancel()
-        revealTask = Task { [weak self] in
+        revealSlot.run { [weak self] in
             try? await Task.sleep(for: Self.revealDeadline)
             guard !Task.isCancelled, let self else { return }
             hasPassedRevealDeadline = true
             revealContentIfReady()
-            applyContentState()
             if hasRevealedContent { applySnapshot() }
+            applyContentState()
         }
     }
 
@@ -351,42 +322,50 @@ final class TVLibraryViewController: UIViewController {
         Task { [weak self] in self?.applySnapshot() }
     }
 
+    /// Shows what the model's state calls for. The host is only asked when the state itself changes:
+    /// asking on every page would move the focus off the chip that was just pressed.
     private func applyContentState() {
         let state = model.contentState
-        let showsGrid = state == .content && hasRevealedContent
-        let changedVisibility = collectionView.isHidden == showsGrid
-        collectionView.isHidden = !showsGrid
-        stateView.isHidden = showsGrid
+        let key: String
         switch state {
-        case .content:
-            if !hasRevealedContent { stateView.show(.loading(title: nil)) }
-        case .loading:
-            stateView.show(.loading(title: nil))
-        case .failed(let message):
-            stateView.show(.error(title: "Couldn’t Load Library", message: message, retryTitle: "Try Again") { [weak self] in
-                self?.model.refreshAll()
-            })
-        case .noMatches:
-            stateView.show(.empty(
-                title: "No Matches",
-                message: "Nothing in this library matches the current filters.",
-                symbol: "line.3.horizontal.decrease.circle",
-                action: .init(title: "Clear Filters") { [weak self] in self?.model.clearFilters() }
-            ))
-        case .empty:
-            stateView.show(.empty(
-                title: section.kind.emptyTitle,
-                message: "Add media to this library on your Plex server to see it here.",
-                symbol: section.kind.placeholderIcon,
-                action: .init(title: "Check Again") { [weak self] in self?.model.refreshAll() }
-            ))
+        case .content: key = hasRevealedContent ? "content" : "loading"
+        case .loading: key = "loading"
+        case .failed(let message): key = "failed \(message)"
+        case .noMatches: key = "noMatches"
+        case .empty: key = "empty"
+        }
+        if key != shownState {
+            shownState = key
+            switch state {
+            case .content:
+                if hasRevealedContent { showContent() } else { show(state: .loading(title: nil)) }
+            case .loading:
+                show(state: .loading(title: nil))
+            case .failed(let message):
+                show(state: .error(title: "Couldn’t Load Library", message: message, retryTitle: "Try Again", retry: { [weak self] in
+                    self?.model.refreshAll()
+                }))
+            case .noMatches:
+                show(state: .empty(
+                    title: "No Matches",
+                    message: "Nothing in this library matches the current filters.",
+                    symbol: "line.3.horizontal.decrease.circle",
+                    action: .init(title: "Clear Filters") { [weak self] in self?.model.clearFilters() }
+                ))
+            case .empty:
+                show(state: .empty(
+                    title: section.kind.emptyTitle,
+                    message: "Add media to this library on your Plex server to see it here.",
+                    symbol: section.kind.placeholderIcon,
+                    action: .init(title: "Check Again") { [weak self] in self?.model.refreshAll() }
+                ))
+            }
         }
         updateRail()
-        if changedVisibility { setNeedsFocusUpdate() }
     }
 
     private func updateRail() {
-        let visible = model.contentState == .content && model.offersAlphabetJump
+        let visible = !isShowingState && model.offersAlphabetJump
         rail.isHidden = !visible
         railFade.isHidden = !visible
         guard visible, let alphabet = model.alphabet else { return }
@@ -415,13 +394,11 @@ final class TVLibraryViewController: UIViewController {
     }
 
     private func browseFolders() {
-        let browser = TVFolderBrowserViewController(env: env, source: .section(section.id), title: "Browse Folders", kind: section.kind)
-        navigationController?.pushViewController(browser, animated: true)
+        TVNavigation.push(TVFolderBrowserViewController(env: env, source: .section(section.id), title: "Browse Folders", kind: section.kind), from: self)
     }
 
     private func showAllRecent() {
-        let screen = TVRecentlyWatchedViewController(env: env, section: section, items: model.recentItems)
-        navigationController?.pushViewController(screen, animated: true)
+        TVNavigation.push(TVRecentlyWatchedViewController(env: env, section: section, items: model.recentItems), from: self)
     }
 
     private func libraryItem(at indexPath: IndexPath) -> (item: PlexMetadata, isRecent: Bool)? {
@@ -435,13 +412,11 @@ final class TVLibraryViewController: UIViewController {
         }
     }
 
-    private func playItem(at indexPath: IndexPath) {
-        guard let (item, isRecent) = libraryItem(at: indexPath) else { return }
-        actions.play(item, isRecent: isRecent)
+    override func playFocused(at indexPath: IndexPath) -> Bool {
+        guard let (item, isRecent) = libraryItem(at: indexPath) else { return false }
+        return actions.play(item, isRecent: isRecent)
     }
-}
 
-extension TVLibraryViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let (item, isRecent) = libraryItem(at: indexPath) else { return }
         actions.select(item, isRecent: isRecent)
@@ -461,30 +436,15 @@ extension TVLibraryViewController: UICollectionViewDelegate {
         return TVContextMenu.configuration(menu: actions.menu(for: item, isRecent: isRecent))
     }
 
-    func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
-        if let pendingFocus { return pendingFocus }
-        if let remembered = focusMemory.preferredIndexPath(in: collectionView) { return remembered }
-        let snapshot = dataSource.snapshot()
-        if let recents = snapshot.indexOfSection(.recents), snapshot.numberOfItems(inSection: .recents) > 0 {
-            return IndexPath(item: 0, section: recents)
-        }
-        if let grid = snapshot.indexOfSection(.grid), snapshot.numberOfItems(inSection: .grid) > 0 {
-            return IndexPath(item: 0, section: grid)
-        }
-        return nil
-    }
-
-    func collectionView(
+    override func collectionView(
         _ collectionView: UICollectionView,
         didUpdateFocusIn context: UICollectionViewFocusUpdateContext,
         with coordinator: UIFocusAnimationCoordinator
     ) {
+        super.collectionView(collectionView, didUpdateFocusIn: context, with: coordinator)
         insertDeferredShelfIfSafe(focusedSection: context.nextFocusedIndexPath?.section)
-        guard let next = context.nextFocusedIndexPath, dataSource.itemIdentifier(for: next) != .header else { return }
-        focusMemory.record(context)
-        if case .media = dataSource.itemIdentifier(for: next) {
-            rail.currentLetter = model.letter(atGridIndex: next.item)
-        }
+        guard let next = context.nextFocusedIndexPath, case .media = dataSource.itemIdentifier(for: next) else { return }
+        rail.currentLetter = model.letter(atGridIndex: next.item)
     }
 }
 

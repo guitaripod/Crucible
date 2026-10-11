@@ -4,37 +4,30 @@ import UIKit
 
 /// The More tab: the libraries that did not fit in the tab bar, as tiles with their kind and item
 /// count. Selecting a tile opens that library.
-final class TVMoreViewController: UIViewController {
+final class TVMoreViewController: TVScreenViewController {
     enum Section: Hashable {
         case title, tiles
     }
 
     enum Item: Hashable {
-        case title(TVScreenTitle.Content)
+        case title(TVScreenTitleContent)
         case library(String)
     }
 
     private let env: TVAppEnvironment
-    private let collectionView: TVCollectionView
-    private let stateView = TVStateView()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var libraries: [PlexDirectory] = []
     private var counts: [String: Int] = [:]
-    private var countTasks: [Task<Void, Never>] = []
     private var visibilityObserver: UUID?
+    private lazy var countSlot = makeTaskSlot()
 
     init(env: TVAppEnvironment) {
         self.env = env
-        collectionView = TVCollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout())
-        super.init(nibName: nil, bundle: nil)
+        super.init(layout: UICollectionViewLayout())
         title = "More"
     }
 
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
     deinit {
-        countTasks.forEach { $0.cancel() }
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
         }
@@ -42,21 +35,6 @@ final class TVMoreViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Theme.Color.canvas
-        collectionView.delegate = self
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        stateView.isHidden = true
-        stateView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(collectionView)
-        view.addSubview(stateView)
-        for pinned in [collectionView, stateView] as [UIView] {
-            NSLayoutConstraint.activate([
-                pinned.topAnchor.constraint(equalTo: view.topAnchor),
-                pinned.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                pinned.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                pinned.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            ])
-        }
         configureDataSource()
         collectionView.collectionViewLayout = makeLayout()
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
@@ -70,20 +48,10 @@ final class TVMoreViewController: UIViewController {
         loadCounts()
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        countTasks.forEach { $0.cancel() }
-        countTasks = []
-    }
-
-    override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        stateView.isHidden ? [collectionView] : [stateView]
-    }
-
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, _ in
             guard let self, dataSource.snapshot().sectionIdentifiers.indices.contains(index) else { return Self.tilesSection() }
-            return dataSource.snapshot().sectionIdentifiers[index] == .title ? TVScreenTitle.section() : Self.tilesSection()
+            return dataSource.snapshot().sectionIdentifiers[index] == .title ? TVScreenTitleView.section() : Self.tilesSection()
         }
     }
 
@@ -93,7 +61,7 @@ final class TVMoreViewController: UIViewController {
     }
 
     private func configureDataSource() {
-        let titleRegistration = TVScreenTitle.registration()
+        let titleRegistration = TVScreenTitleView.registration()
         let tileRegistration = TVLibraryTile.registration()
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, item in
             switch item {
@@ -106,6 +74,7 @@ final class TVMoreViewController: UIViewController {
                 return cell
             }
         }
+        adopt(dataSource)
     }
 
     private func tile(for key: String) -> TVTileItem? {
@@ -120,66 +89,50 @@ final class TVMoreViewController: UIViewController {
         libraries = env.libraryLayout.overflow
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.title])
-        snapshot.appendItems([.title(TVScreenTitle.Content(title: "More Libraries"))], toSection: .title)
+        snapshot.appendItems([.title(TVScreenTitleContent(title: "More Libraries"))], toSection: .title)
         snapshot.appendSections([.tiles])
         snapshot.appendItems(libraries.compactMap(\.key).map(Item.library), toSection: .tiles)
-        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { dataSource.snapshot().indexOfItem($0) != nil })
-        dataSource.apply(snapshot, animatingDifferences: false)
-        showEmptyState(libraries.isEmpty)
-        if isViewLoaded, view.window != nil { loadCounts() }
-    }
-
-    private func showEmptyState(_ isEmpty: Bool) {
-        if isEmpty {
-            stateView.show(.empty(
-                title: "No More Libraries",
-                message: "Every library is in the tab bar.",
-                symbol: "rectangle.stack",
-                action: nil
-            ))
+        dataSource.applyReconfiguringExisting(snapshot)
+        if libraries.isEmpty {
+            show(state: .empty(title: "No More Libraries", message: "Every library is in the tab bar.", symbol: "rectangle.stack", action: nil))
+        } else {
+            showContent()
         }
-        let changedVisibility = stateView.isHidden == isEmpty
-        stateView.isHidden = !isEmpty
-        collectionView.isHidden = isEmpty
-        if changedVisibility { setNeedsFocusUpdate() }
+        if isViewLoaded, view.window != nil { loadCounts() }
     }
 
     private func reconfigureTile(_ key: String) {
         var snapshot = dataSource.snapshot()
+        guard snapshot.indexOfItem(.library(key)) != nil else { return }
         snapshot.reconfigureItems([.library(key)])
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     /// Fetches each library's item count with a zero-size page, which carries only the total.
     private func loadCounts() {
-        countTasks.forEach { $0.cancel() }
-        countTasks = libraries.compactMap(\.key).map { key in
-            Task { [weak self] in
-                guard let self else { return }
-                do {
-                    let container = try await env.api.requestContainer(.sectionItems(sectionId: key, size: 0))
-                    guard !Task.isCancelled, let total = container.totalSize, counts[key] != total else { return }
-                    counts[key] = total
-                    reconfigureTile(key)
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    AppLogger.error("More library count failed section=\(key): \(error.localizedDescription)", .networking)
+        let keys = libraries.compactMap(\.key)
+        let api = env.api
+        countSlot.run { [weak self] in
+            await withTaskGroup(of: (String, Int?).self) { group in
+                for key in keys {
+                    group.addTask {
+                        let container = try? await api.requestContainer(.sectionItems(sectionId: key, size: 0))
+                        return (key, container?.totalSize)
+                    }
+                }
+                for await (key, total) in group {
+                    guard !Task.isCancelled, let self, let total, self.counts[key] != total else { continue }
+                    self.counts[key] = total
+                    self.reconfigureTile(key)
                 }
             }
         }
-    }
-}
-
-extension TVMoreViewController: UICollectionViewDelegate {
-    func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
-        if case .title = dataSource.itemIdentifier(for: indexPath) { return false }
-        return true
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard case .library(let key) = dataSource.itemIdentifier(for: indexPath),
               let directory = libraries.first(where: { $0.key == key })
         else { return }
-        navigationController?.pushViewController(TVScreens.library(env, section: directory), animated: true)
+        TVNavigation.push(TVScreens.library(env, section: directory), from: self)
     }
 }

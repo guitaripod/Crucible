@@ -1,15 +1,13 @@
 import XCTest
 
-/// Drives the Library tabs through the real focus engine against the mock Plex server. Run the mock with
-/// `MOCK_LIBRARY_PAD=150 MOCK_FAIL_SECTIONS=3 MOCK_SLOW_HISTORY_SECTIONS=2 MOCK_SLOW_HISTORY_MS=9000`: Movies
-/// grows to 150 items so pagination and the A-Z jump have something to do, Documentaries fails to load and
-/// the TV Shows watch history answers after nine seconds. The other libraries keep their default content;
-/// Anime is empty.
+/// Drives the Library tabs through the real focus engine against the mock Plex server. Every test states the
+/// server it needs through `TVTest.launch(mock:)`.
 @MainActor
 final class LibraryTests: XCTestCase {
     private static let mediaPrefix = "tv.library.media."
     private static let recentPrefix = "tv.library.recent."
     private static let railPrefix = "tv.library.rail."
+    private static let paddedMovies = ["MOCK_LIBRARY_PAD": "150"]
 
     override func setUp() {
         continueAfterFailure = false
@@ -23,11 +21,11 @@ final class LibraryTests: XCTestCase {
         TVTest.capture("01-loaded-first-recent-focused", in: self)
         XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.recentPrefix), "initial focus should land on the first Recently Watched poster")
 
-        step(app, .up, until: "tv.library.chip.all")
+        step(app, .up, until: "tv.chip.all")
         TVTest.capture("02-all-chip-focused", in: self)
 
         TVTest.remote.press(.right)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "tv.library.chip.unwatched"))
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "tv.chip.unwatched"))
         TVTest.remote.press(.select)
         TVTest.settle(1.5)
         XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0, "Recently Watched hides while a filter is active")
@@ -51,7 +49,7 @@ final class LibraryTests: XCTestCase {
         TVTest.settle(1.5)
         TVTest.capture("07-sorted-by-year", in: self)
 
-        step(app, .left, until: "tv.library.chip.all", limit: 6)
+        step(app, .left, until: "tv.chip.all", limit: 6)
         TVTest.remote.press(.select)
         TVTest.settle(1.5)
         TVTest.capture("08-filters-cleared-sort-kept", in: self)
@@ -62,7 +60,7 @@ final class LibraryTests: XCTestCase {
         waitForRecents(in: app)
         enterContent(app)
 
-        step(app, .up, until: "tv.library.chip.all")
+        step(app, .up, until: "tv.chip.all")
         TVTest.remote.press(.down)
         TVTest.settle(0.8)
         TVTest.capture("26-down-from-all-chip", in: self)
@@ -70,7 +68,7 @@ final class LibraryTests: XCTestCase {
 
         TVTest.remote.press(.up)
         TVTest.settle(0.8)
-        XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.library.chip."), "Up from the shelf should return to the chips, got \(focusedIdentifier(app))")
+        XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.chip."), "Up from the shelf should return to the chips, got \(focusedIdentifier(app))")
 
         for identifier in ["tv.library.genre", "tv.library.sort", "tv.library.folders"] {
             step(app, .right, until: identifier, limit: 8)
@@ -80,10 +78,10 @@ final class LibraryTests: XCTestCase {
             XCTAssertTrue(landed.hasPrefix(Self.recentPrefix) || landed.hasPrefix(Self.mediaPrefix), "Down from \(identifier) should leave the header, got \(landed)")
             TVTest.remote.press(.up)
             TVTest.settle(0.8)
-            XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.library.chip.") || focusedIdentifier(app).hasPrefix("tv.library.genre") || focusedIdentifier(app).hasPrefix("tv.library.sort") || focusedIdentifier(app).hasPrefix("tv.library.folders"), "Up should return to the header, got \(focusedIdentifier(app))")
+            XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.chip.") || focusedIdentifier(app).hasPrefix("tv.library.genre") || focusedIdentifier(app).hasPrefix("tv.library.sort") || focusedIdentifier(app).hasPrefix("tv.library.folders"), "Up should return to the header, got \(focusedIdentifier(app))")
         }
 
-        step(app, .right, until: "tv.library.chip.unwatched", limit: 8)
+        step(app, .right, until: "tv.chip.unwatched", limit: 8)
         TVTest.remote.press(.select)
         TVTest.settle(1.5)
         XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0)
@@ -94,11 +92,11 @@ final class LibraryTests: XCTestCase {
         TVTest.remote.press(.up)
         TVTest.settle(0.8)
         TVTest.capture("28-up-from-first-row-back-to-chips", in: self)
-        XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.library.chip."), "Up from the first row should return to the chips, got \(focusedIdentifier(app))")
+        XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.chip."), "Up from the first row should return to the chips, got \(focusedIdentifier(app))")
     }
 
     func testSlowHistoryDoesNotHoldBackTheGridAndTheShelfJoinsWithoutMovingFocus() {
-        let app = openTab("TV Shows")
+        let app = openTab("TV Shows", mock: ["MOCK_SLOW_HISTORY_SECTIONS": "2", "MOCK_SLOW_HISTORY_MS": "9000"])
         waitForPosters(in: app)
         XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0, "the grid should appear before the slow history answers")
         enterContent(app)
@@ -111,7 +109,7 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0, "the shelf waits while the focus is in the grid")
         TVTest.capture("30-focus-kept-while-shelf-waits", in: self)
 
-        step(app, .up, until: "tv.library.chip.", limit: 4)
+        step(app, .up, until: "tv.chip.", limit: 4)
         let shelf = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", Self.recentPrefix)).firstMatch
         XCTAssertTrue(shelf.waitForExistence(timeout: 5), "the shelf should join once the focus is in the header")
         TVTest.settle(1.0)
@@ -123,7 +121,7 @@ final class LibraryTests: XCTestCase {
         let app = openTab("Movies")
         waitForRecents(in: app)
         enterContent(app)
-        step(app, .up, until: "tv.library.chip.all", limit: 4)
+        step(app, .up, until: "tv.chip.all", limit: 4)
         step(app, .right, until: "tv.library.folders", limit: 8)
         TVTest.remote.press(.select)
         let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'tv.folder.row.'")).firstMatch
@@ -251,8 +249,8 @@ final class LibraryTests: XCTestCase {
         let app = openTab("TV Shows")
         waitForPosters(in: app)
         enterContent(app)
-        step(app, .up, until: "tv.library.chip.all", limit: 4)
-        step(app, .right, until: "tv.library.chip.inProgress", limit: 3)
+        step(app, .up, until: "tv.chip.all", limit: 4)
+        step(app, .right, until: "tv.chip.inProgress", limit: 3)
         TVTest.remote.press(.select)
         let clear = app.buttons["Clear Filters"]
         XCTAssertTrue(clear.waitForExistence(timeout: 10), "an empty filter result should offer Clear Filters")
@@ -266,7 +264,7 @@ final class LibraryTests: XCTestCase {
     }
 
     func testFailedLoadOffersTryAgain() {
-        let app = openTab("Documentaries")
+        let app = openTab("Documentaries", mock: ["MOCK_FAIL_SECTIONS": "3"])
         let retry = app.buttons["Try Again"]
         XCTAssertTrue(retry.waitForExistence(timeout: 20), "a failed first page should show the error state")
         enterContent(app)
@@ -292,7 +290,7 @@ final class LibraryTests: XCTestCase {
         let app = openTab("Movies")
         waitForRecents(in: app)
         enterContent(app)
-        step(app, .up, until: "tv.library.chip.all", limit: 4)
+        step(app, .up, until: "tv.chip.all", limit: 4)
         step(app, .right, until: "tv.library.folders", limit: 8)
         TVTest.capture("23-browse-folders-focused", in: self)
         TVTest.remote.press(.select)
@@ -310,6 +308,58 @@ final class LibraryTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "Back should return to the folder list")
     }
 
+    func testMenuPopsTheFolderBrowserWhileItLoads() {
+        let app = openTab("Movies")
+        waitForRecents(in: app)
+        enterContent(app)
+        step(app, .up, until: "tv.chip.all", limit: 4)
+        step(app, .right, until: "tv.library.folders", limit: 8)
+        Self.setLatency(8000)
+        TVTest.remote.press(.select)
+        TVTest.settle(2.0)
+        XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'tv.folder.row.'")).firstMatch.exists, "the folder should still be loading")
+        TVTest.capture("34-folder-loading", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "tv.library.folders", timeout: 10), "Menu while the folder loads should pop to the library, not leave the app")
+        TVTest.capture("35-popped-to-library", in: self)
+    }
+
+    func testMenuPopsALibraryPushedFromMoreWhileItLoads() {
+        let app = openTab("More")
+        let tile = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'tv.more.library.'")).firstMatch
+        XCTAssertTrue(tile.waitForExistence(timeout: 20))
+        enterContent(app)
+        let tileIdentifier = focusedIdentifier(app)
+        XCTAssertTrue(tileIdentifier.hasPrefix("tv.more.library."))
+        Self.setLatency(8000)
+        TVTest.remote.press(.select)
+        TVTest.settle(2.0)
+        TVTest.capture("36-pushed-library-loading", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: tileIdentifier, timeout: 10), "Menu while the pushed library loads should pop to More")
+    }
+
+    func testMenuPopsRecentlyWatchedWhileItsHistoryLoads() {
+        let app = openTab("Movies")
+        waitForRecents(in: app)
+        enterContent(app)
+        TVTest.remote.press(.right)
+        step(app, .up, until: "tv.sectionHeader.seeAll", limit: 3)
+        TVTest.configureMock(["MOCK_SLOW_HISTORY_SECTIONS": "1", "MOCK_SLOW_HISTORY_MS": "8000"])
+        TVTest.remote.press(.select)
+        TVTest.settle(2.0)
+        TVTest.capture("37-recently-watched-loading", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "tv.sectionHeader.seeAll", timeout: 10), "Menu while the history loads should pop back to the shelf")
+        TVTest.configureMock()
+    }
+
+    /// Delays every answer of the mock server, so a screen stays in its loading state long enough to be driven.
+    private nonisolated static func setLatency(_ milliseconds: Int) {
+        guard let mock = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: "\(mock)/mock/flags?latency_ms=\(milliseconds)") else { return }
+        _ = try? Data(contentsOf: url)
+    }
+
     /// Flips an item's watched state on the mock server behind the app's back.
     private func markWatched(_ watched: Bool, key: String) throws {
         let mock = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], "the mock URL was not forwarded")
@@ -317,9 +367,12 @@ final class LibraryTests: XCTestCase {
         _ = try Data(contentsOf: XCTUnwrap(URL(string: "\(mock)/:/\(verb)?identifier=com.plexapp.plugins.library&key=\(key)")))
     }
 
-    private func openTab(_ title: String, environment: [String: String] = [:]) -> XCUIApplication {
-        let app = TVTest.launch(extraEnvironment: environment)
-        addTeardownBlock { app.terminate() }
+    private func openTab(_ title: String, mock: [String: String] = LibraryTests.paddedMovies, environment: [String: String] = [:]) -> XCUIApplication {
+        let app = TVTest.launch(mock: mock, extraEnvironment: environment)
+        addTeardownBlock {
+            app.terminate()
+            LibraryTests.setLatency(0)
+        }
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
         TVTest.settle()
@@ -332,10 +385,13 @@ final class LibraryTests: XCTestCase {
         return app
     }
 
-    /// Moves the focus from the tab bar into the screen. Call it once the screen has content, or the press has nothing to land on.
+    /// Makes sure the focus is inside the screen. Selecting a tab hands the focus to the screen on its own
+    /// once something there can take it, so the press only happens when the focus is still on the tab bar.
     private func enterContent(_ app: XCUIApplication) {
         TVTest.settle(0.8)
-        TVTest.remote.press(.down)
+        if !focusedIdentifier(app).hasPrefix("tv.") {
+            TVTest.remote.press(.down)
+        }
         TVTest.settle(1.0)
         TVTest.capture("00-entered-content", in: self)
     }

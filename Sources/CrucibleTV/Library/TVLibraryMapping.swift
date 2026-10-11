@@ -81,9 +81,12 @@ final class TVLibraryItemActions {
         self.setWatched = setWatched
     }
 
-    func play(_ item: PlexMetadata, isRecent: Bool) {
-        guard HomeMediaRules.isPlayable(item), let presenter else { return }
+    /// Starts playback of a playable item; returns false for anything else (a show), so Play/Pause can pass the press on.
+    @discardableResult
+    func play(_ item: PlexMetadata, isRecent: Bool) -> Bool {
+        guard HomeMediaRules.isPlayable(item), let presenter else { return false }
         TVScreens.play(env, request: TVPlaybackRequest(item: item, resumeSeconds: isRecent ? 0 : nil), from: presenter)
+        return true
     }
 
     func select(_ item: PlexMetadata, isRecent: Bool) {
@@ -111,14 +114,14 @@ final class TVLibraryItemActions {
     }
 
     private func open(_ destination: LibraryDestination?) {
-        guard let destination else { return }
-        TVScreens.open(destination, env: env, on: presenter?.navigationController)
+        guard let destination, let presenter else { return }
+        TVScreens.open(destination, env: env, from: presenter)
     }
 }
 
 extension TVScreens {
-    /// Opens where `destination` leads on `navigation`.
-    static func open(_ destination: LibraryDestination, env: TVAppEnvironment, on navigation: UINavigationController?) {
+    /// Opens where `destination` leads, pushed on `presenter`'s navigation stack.
+    static func open(_ destination: LibraryDestination, env: TVAppEnvironment, from presenter: UIViewController) {
         let screen: UIViewController
         switch destination {
         case .show(let ratingKey):
@@ -126,6 +129,6 @@ extension TVScreens {
         case .media(let item):
             screen = detail(env, ratingKey: item.id, mediaType: item.mediaType)
         }
-        navigation?.pushViewController(screen, animated: true)
+        TVNavigation.push(screen, from: presenter)
     }
 }
