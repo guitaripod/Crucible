@@ -63,6 +63,9 @@ final class TVAddServerViewController: UIViewController {
             return
         }
         form.setBusy(true)
+        view.layoutIfNeeded()
+        setNeedsFocusUpdate()
+        updateFocusIfNeeded()
         let token = env.connection.authToken
         connectTask = Task { [weak self] in
             let found = await AddServerLookup.find(among: candidates, token: token)

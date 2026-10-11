@@ -265,9 +265,7 @@ final class OnboardingTests: XCTestCase {
         AppNavigation.setMockFlags("latency_ms=8000")
         let app = launch()
         signIn(app)
-        let status = element(app, "onboarding.status")
-        XCTAssertTrue(status.waitForExistence(timeout: 10))
-        XCTAssertTrue(status.label.hasPrefix("Requesting"), status.label)
+        XCTAssertTrue(app.staticTexts["Requesting a code…"].waitForExistence(timeout: 10), "the code screen never showed that it is requesting")
         TVTest.capture("21-requesting-a-code", in: self)
 
         TVTest.remote.press(.menu)

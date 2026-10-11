@@ -43,12 +43,13 @@ final class TVAddressForm: UIStackView {
     required init(coder: NSCoder) { fatalError() }
 
     /// Busy disables the field and shows the button's own activity indicator; `status` adds the
-    /// current step under the field.
+    /// current step under the field. The button stays focusable so that focus has somewhere to
+    /// rest on the screen and Menu pops it, instead of focus falling to a tab bar where Menu
+    /// leaves the app; the owner ignores a second submit while it is busy.
     func setBusy(_ busy: Bool, status: String? = nil) {
         var configuration = TVButton.configuration(.primary, title: busy ? "Connecting…" : "Connect")
         configuration.showsActivityIndicator = busy
         connectButton.configuration = configuration
-        connectButton.isEnabled = !busy
         textField.isEnabled = !busy
         statusRow.show(busy ? status : nil)
     }
