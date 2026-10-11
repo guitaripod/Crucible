@@ -29,6 +29,7 @@ sync_tree() {
   rsync -az --delete \
     --exclude .build --exclude '.build-*' --exclude .git --exclude .claude --exclude '.dd*' \
     --exclude xtool --exclude marketing --exclude screenshots.png --exclude .bsp --exclude '*.xcodeproj' \
+    --exclude .tvlogs --exclude /tv/out --exclude /tv/Generated --exclude /tv/.gen-hash \
     "$ROOT/" "$MAC:$REMOTE/"
 }
 
