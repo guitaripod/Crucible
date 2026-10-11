@@ -119,6 +119,29 @@ struct HomeHeroModelTests {
         #expect(hero.spokenLabel == "Resume The Show, season 2 episode 4, 33 minutes left")
     }
 
+    @Test func metaPartsFollowTheMediaType() {
+        #expect(HomeHeroModel(item: resuming, eyebrow: "x").metaParts == ["S2 · E4", "Low Tide", "33 min left"])
+        let movie = F.item("1", fields: ["year": 2021, "duration": 7_500_000])
+        #expect(HomeHeroModel(item: movie, eyebrow: "x").metaParts == ["2021", "2 h 05 m"])
+        let season = F.item("2", type: "season", title: "Season 2", fields: ["year": 2019])
+        #expect(HomeHeroModel(item: season, eyebrow: "x").metaParts == ["Season 2", "2019"])
+        let show = F.item("3", type: "show", fields: ["year": 2019])
+        #expect(HomeHeroModel(item: show, eyebrow: "x").metaParts == ["2019"])
+        #expect(HomeHeroModel(item: F.item("4"), eyebrow: "x").metaParts.isEmpty)
+    }
+
+    @Test func accessibilityTextReadsEyebrowTitleEpisodeTimeAndSynopsis() {
+        let described = F.item("5", type: "episode", title: "Low Tide", fields: [
+            "grandparentTitle": "The Show", "parentIndex": 2, "index": 4,
+            "duration": 2_640_000, "viewOffset": 660_000, "summary": "The tide drops.",
+        ])
+        #expect(
+            HomeHeroModel(item: described, eyebrow: "Continue Watching").accessibilityText
+                == "Continue Watching. The Show. season 2 episode 4. 33 minutes left. The tide drops."
+        )
+        #expect(HomeHeroModel(item: F.item("1", title: "Salt"), eyebrow: "Up Next").accessibilityText == "Up Next. Salt")
+    }
+
     @Test func freshMovieHeroPlaysFromTheStart() {
         let movie = F.item("1", title: "Salt", fields: ["year": 2021, "duration": 7_500_000])
         let hero = HomeHeroModel(item: movie, eyebrow: "Up Next")

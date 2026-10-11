@@ -29,6 +29,15 @@ package enum SurpriseMe {
         case show(String)
     }
 
+    /// The fresh lookup failed and nothing on screen could stand in for it.
+    package struct LookupFailure: Error {
+        package let message: String
+
+        package init(message: String) {
+            self.message = message
+        }
+    }
+
     package static let recentlyAddedPoolSize = 100
 
     /// What a pool item resolves to for a kind: movies and shows themselves, seasons and episodes
@@ -64,6 +73,7 @@ package enum SurpriseMe {
     }
 
     package static let nothingToPickTitle = "Nothing to Pick"
+    package static let lookupFailedTitle = "Couldn't Pick Something"
 
     package static func nothingToPickMessage(for kind: Kind) -> String {
         "There are no recently added \(kind.noun) to choose from."

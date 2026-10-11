@@ -363,6 +363,10 @@ final class HomeViewController: UICollectionViewController {
             let pick: SurpriseMe.Target?
             do {
                 pick = try await feed.surprise(kind)
+            } catch let failure as SurpriseMe.LookupFailure {
+                Haptics.error()
+                presentSurpriseFailure(failure)
+                return
             } catch {
                 return
             }
@@ -378,6 +382,12 @@ final class HomeViewController: UICollectionViewController {
                 navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: ratingKey), animated: true)
             }
         }
+    }
+
+    private func presentSurpriseFailure(_ failure: SurpriseMe.LookupFailure) {
+        let alert = UIAlertController(title: SurpriseMe.lookupFailedTitle, message: failure.message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 
     private func presentNothingToPick(_ kind: SurpriseMe.Kind) {

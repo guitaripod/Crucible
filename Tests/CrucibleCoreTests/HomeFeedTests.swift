@@ -203,7 +203,23 @@ struct HomeFeedTests {
         let feed = harness.makeFeed()
         try await feed.refresh()
         #expect(try await feed.surprise(.any) == .movie("1"))
-        #expect(try await feed.surprise(.show) == nil)
+    }
+
+    @Test func surpriseReportsAFailedLookupOnlyWhenNothingOnScreenCanStandIn() async throws {
+        let harness = Harness()
+        harness.recent = .failure(Offline())
+        await #expect(throws: SurpriseMe.LookupFailure.self) { try await harness.makeFeed().surprise(.any) }
+
+        harness.hubs = .success(F.hubsContainer([F.hub("home.recent", [F.raw("1")])]))
+        let feed = harness.makeFeed()
+        try await feed.refresh()
+        #expect(try await feed.surprise(.any) == .movie("1"))
+        await #expect(throws: SurpriseMe.LookupFailure.self) { try await feed.surprise(.show) }
+    }
+
+    @Test func surpriseWithASuccessfulEmptyLookupPicksNothing() async throws {
+        let harness = Harness()
+        #expect(try await harness.makeFeed().surprise(.any) == nil)
     }
 
     @Test func surpriseFiltersFreshItemsByLibraryVisibility() async throws {

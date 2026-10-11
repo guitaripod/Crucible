@@ -112,17 +112,25 @@ package final class HomeFeed {
     }
 
     /// Picks a title for Surprise Me from a fresh recently-added fetch plus the recent items on
-    /// screen; a failed fetch falls back to the on-screen items alone. Throws if cancelled.
+    /// screen. A failed fetch falls back to the on-screen items alone; when they hold nothing either,
+    /// the failure is thrown as `SurpriseMe.LookupFailure` instead of reporting an empty library.
+    /// Throws `CancellationError` if cancelled.
     package func surprise(_ kind: SurpriseMe.Kind) async throws -> SurpriseMe.Target? {
         var pool = arrangement.recent
+        var lookupError: Error?
         do {
             let container = try await environment.fetchRecentlyAdded()
             pool = HomeBuckets.visible(container.Metadata ?? [], excluding: environment.excludedLibraries()) + pool
         } catch {
+            lookupError = error
             AppLogger.error("Surprise Me fetch failed, using cached Home items: \(error.localizedDescription)", .networking)
         }
         try Task.checkCancellation()
-        return SurpriseMe.pick(from: pool, kind: kind)
+        let pick = SurpriseMe.pick(from: pool, kind: kind)
+        if pick == nil, let lookupError {
+            throw SurpriseMe.LookupFailure(message: ConnectionError.message(for: lookupError))
+        }
+        return pick
     }
 
     @discardableResult
