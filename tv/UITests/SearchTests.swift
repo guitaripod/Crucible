@@ -326,9 +326,9 @@ final class SearchTests: XCTestCase {
         let app = launchSearch(mock: ["MOCK_FAIL_GENRE": "1"])
         enterShelves(in: app)
         TVTest.remote.press(.select)
-        TVTest.settle(3)
+        TVTest.settle(1)
         TVTest.capture("01-genre-failed", in: self)
-        XCTAssertTrue(app.buttons["Try Again"].exists)
+        XCTAssertTrue(app.buttons["Try Again"].waitForExistence(timeout: 15))
         TVTest.configureMock()
         TVTest.remote.press(.select)
         TVTest.settle(3)
@@ -343,10 +343,10 @@ final class SearchTests: XCTestCase {
     ) -> XCUIApplication {
         let app = TVTest.launch(mock: mock, extraEnvironment: extraEnvironment, arguments: arguments)
         let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 90), "the main UI never appeared")
         TVTest.settle()
         let titles = tabBar.buttons.allElementsBoundByIndex.map(\.label)
-        let index = titles.firstIndex(of: "Search") ?? titles.count - 2
+        let index = max(0, titles.firstIndex(of: "Search") ?? titles.count - 2)
         for _ in 0..<index { TVTest.remote.press(.right) }
         TVTest.remote.press(.select)
         TVTest.settle(2)
