@@ -18,8 +18,9 @@ enum TVTest {
     static let remote = Remote()
 
     /// Launches the app with `CRUCIBLE_UITEST=1` and forwards every `CRUCIBLE_*` variable that `tv.sh uitest` handed over as a `TEST_RUNNER_*` variable (`CRUCIBLE_MOCK`, `CRUCIBLE_PLEXTV`, `CRUCIBLE_STYLE`, ...).
-    static func launch(extraEnvironment: [String: String] = [:]) -> XCUIApplication {
+    static func launch(extraEnvironment: [String: String] = [:], arguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments += arguments
         app.launchEnvironment["CRUCIBLE_UITEST"] = "1"
         for (key, value) in ProcessInfo.processInfo.environment where key.hasPrefix("CRUCIBLE_") {
             app.launchEnvironment[key] = value
