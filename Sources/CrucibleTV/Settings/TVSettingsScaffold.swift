@@ -105,11 +105,9 @@ class TVSettingsScaffold: TVScreenViewController {
     func rowDidFocus(_ id: String?) {}
 
     private func makeLayout() -> UICollectionViewLayout {
-        UICollectionViewCompositionalLayout { [weak self] _, environment in
+        UICollectionViewCompositionalLayout { _, environment in
             let section = TVRowList.section(environment: environment)
-            let safe = self?.view.safeAreaInsets ?? .zero
-            section.contentInsets.leading = safe.left + Layout.contextWidth + Layout.columnGap
-            section.contentInsets.trailing = safe.right
+            section.contentInsets.leading = Layout.contextWidth + Layout.columnGap
             return section
         }
     }

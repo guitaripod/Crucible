@@ -476,11 +476,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_empty()
 
         if p == "/library/sections":
+            delay_ms = int(env("MOCK_SECTIONS_DELAY_MS", "0") or 0)
+            if delay_ms:
+                time.sleep(delay_ms / 1000)
             hidden = env_sections("MOCK_HIDDEN_SECTIONS")
             dirs = [{"key": k, "type": t, "title": n, "agent": f"tv.plex.agents.{t}", "language": "en-US",
                      "refreshing": False, "uuid": f"0000{k}-aaaa-4bbb-8ccc-000000000{k}",
                      "hidden": 1 if k in hidden else 0}
                     for k, (n, t) in library.SECTIONS.items()]
+            if env("MOCK_SECTIONS_EMPTY", "0") == "1":
+                dirs = []
             return self.send_json(container(size=len(dirs), allowLibraryOrder=True, title1="Plex Library", Directory=dirs))
 
         m = re.match(r"^/library/sections/(\d+)(?:/(all|genre|folder|firstCharacter)(?:/([A-Za-z0-9-]+))?)?$", p)

@@ -6,13 +6,9 @@ final class SettingsTests: XCTestCase {
         continueAfterFailure = false
     }
 
-    override func tearDown() {
-        Self.setMockLatency(0)
-    }
-
-    private nonisolated static func setMockLatency(_ milliseconds: Int) {
+    private nonisolated static func setMock(_ name: String, _ value: String) {
         guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
-              let url = URL(string: base + "/mock/flags?latency_ms=\(milliseconds)") else { return }
+              let url = URL(string: base + "/mock/env?\(name)=\(value)") else { return }
         TVTest.fetch(url)
     }
 
@@ -119,11 +115,11 @@ final class SettingsTests: XCTestCase {
 
     func testMenuPopsWhileTheLibrariesLoadAndWhenTheyCannotBeLoaded() {
         let app = TVTest.launch(
-            mock: ["MOCK_HIDDEN_SECTIONS": "1,2,3,4,5,6"],
+            mock: ["MOCK_SECTIONS_EMPTY": "1"],
             extraEnvironment: ["CRUCIBLE_FRESH": "1"]
         )
         YouNavigation.openYouTab(app)
-        Self.setMockLatency(4000)
+        Self.setMock("MOCK_SECTIONS_DELAY_MS", "4000")
         YouNavigation.moveFocus(app, to: "you.libraries")
         TVTest.remote.press(.select)
         XCTAssertTrue(app.staticTexts["Loading Libraries"].waitForExistence(timeout: 5), "the screen should show its loading state")
@@ -131,7 +127,7 @@ final class SettingsTests: XCTestCase {
         TVTest.remote.press(.menu)
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.libraries"), "Menu while the libraries load must pop to the You list")
 
-        Self.setMockLatency(0)
+        Self.setMock("MOCK_SECTIONS_DELAY_MS", "0")
         TVTest.remote.press(.select)
         XCTAssertTrue(app.buttons["Try Again"].waitForExistence(timeout: 15), "an empty library list after the request is an error with Try Again")
         TVTest.settle()
