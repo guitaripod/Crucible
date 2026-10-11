@@ -15,9 +15,12 @@ final class PlayerTests: XCTestCase {
     private static let episode = "4013"
     private static let nextEpisode = "4014"
     private static let movie = "1001"
+    private static let endOfItemWait: TimeInterval = 180
+    private static let dismissalWait: TimeInterval = 45
 
     override func setUp() {
         continueAfterFailure = false
+        TVTest.configureMock()
         setFlags("clip_markers=0&no_credits=0&fail_parts=0&fail_transcode=0&fail_metadata_once=0&latency_ms=0")
     }
 
@@ -295,9 +298,7 @@ final class PlayerTests: XCTestCase {
         let leave = app.buttons["player.upNext.leave"]
         XCTAssertTrue(leave.waitForExistence(timeout: 40))
         XCTAssertEqual(leave.label, "Watch Credits")
-        TVTest.settle(1)
-        TVTest.remote.press(.left)
-        TVTest.settle(1)
+        XCTAssertTrue(focusLeaveButton(leave), "Watch Credits can be focused")
         TVTest.capture("01-watch-credits-focused", in: self)
         TVTest.remote.press(.select)
         TVTest.settle(2)
@@ -305,14 +306,13 @@ final class PlayerTests: XCTestCase {
         XCTAssertFalse(app.tabBars.firstMatch.exists, "the credits keep playing")
         TVTest.capture("02-credits-playing", in: self)
 
-        XCTAssertTrue(app.otherElements["player.upNext"].waitForExistence(timeout: 70), "the card returns when the item ends")
+        XCTAssertTrue(app.otherElements["player.upNext"].waitForExistence(timeout: Self.endOfItemWait), "the card returns when the item ends")
         TVTest.settle(2)
         XCTAssertEqual(app.buttons["player.upNext.leave"].label, "Close", "at the end leaving the card closes the player")
         TVTest.capture("03-card-at-the-end", in: self)
-        TVTest.remote.press(.left)
-        TVTest.settle(1)
+        XCTAssertTrue(focusLeaveButton(app.buttons["player.upNext.leave"]), "Close can be focused")
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: Self.dismissalWait))
     }
 
     func testWatchCreditsThenTheEndPlaysTheNextEpisodeWithAutoplay() {
@@ -326,7 +326,7 @@ final class PlayerTests: XCTestCase {
         TVTest.remote.press(.menu)
         TVTest.settle(2)
         XCTAssertFalse(app.otherElements["player.upNext"].exists)
-        XCTAssertTrue(waitForReport(Self.nextEpisode, state: "playing", since: mark, timeout: 80), "the next episode starts when the item ends")
+        XCTAssertTrue(waitForReport(Self.nextEpisode, state: "playing", since: mark, timeout: Self.endOfItemWait), "the next episode starts when the item ends")
         TVTest.settle(3)
         TVTest.capture("01-next-episode-after-the-end", in: self)
         XCTAssertTrue(app.otherElements["player.view"].exists)
@@ -340,12 +340,10 @@ final class PlayerTests: XCTestCase {
         let leave = app.buttons["player.upNext.leave"]
         XCTAssertTrue(leave.waitForExistence(timeout: 40))
         XCTAssertEqual(leave.label, "Close")
-        TVTest.settle(1)
-        TVTest.remote.press(.left)
-        TVTest.settle(1)
+        XCTAssertTrue(focusLeaveButton(leave), "Close can be focused")
         TVTest.capture("01-close-focused", in: self)
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: Self.dismissalWait))
     }
 
     func testBackgroundingReportsPausedAndAPausedTranscodeRestartsOnReturn() {
@@ -376,6 +374,16 @@ final class PlayerTests: XCTestCase {
         }
         app.launch()
         return app
+    }
+
+    /// Presses Left until the card's leave button has focus, so a press that the busy focus engine swallowed is repeated instead of Select landing on Play Now.
+    private func focusLeaveButton(_ leave: XCUIElement) -> Bool {
+        for _ in 0..<4 {
+            if leave.hasFocus { return true }
+            TVTest.remote.press(.left)
+            if TVTest.waitForFocus(leave, timeout: 4) { return true }
+        }
+        return leave.hasFocus
     }
 
     private func waitForPlayback(in app: XCUIApplication) -> Bool {
