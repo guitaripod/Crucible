@@ -13,6 +13,9 @@ final class TVRouter {
     /// Called by the coordinator once the tab bar is on screen; runs a link that arrived earlier.
     func activate(_ tabBar: TVRootTabBarController) {
         self.tabBar = tabBar
+        #if DEBUG
+        TVDebugScreen.openIfRequested(on: tabBar)
+        #endif
         guard let link = pending else { return }
         pending = nil
         handle(link)
