@@ -37,6 +37,11 @@ package struct DetailArtwork: Equatable, Sendable {
 package struct DetailFact: Hashable, Sendable {
     package let key: String
     package let value: String
+
+    package init(key: String, value: String) {
+        self.key = key
+        self.value = value
+    }
 }
 
 /// One audio or subtitle choice for a track menu.

@@ -89,6 +89,23 @@ struct DetailLoaderTests {
         #expect(stale.selectedSeasonKey == "s2")
     }
 
+    @Test func aSeasonPickedWhileLoadingWins() async throws {
+        seasonLists()
+        var reads = 0
+        let model = try #require(await ShowDetailLoader.load(
+            api: server.client,
+            showRatingKey: "show",
+            initialSeasonKey: nil,
+            selectedSeasonKey: {
+                reads += 1
+                return reads == 1 ? nil : "s1"
+            },
+            onShow: { _ in }
+        ))
+        #expect(model.selectedSeasonKey == "s1")
+        #expect(model.episodes.map(\.id) == ["e11"])
+    }
+
     @Test func showArrivesBeforeTheSeasonsAreRequested() async throws {
         seasonLists()
         _ = try await loadShow()

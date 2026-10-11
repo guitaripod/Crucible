@@ -35,6 +35,7 @@ package enum ShowDetailLoader {
     /// show. Returns nil when the server no longer has the show; throws on a failed show or season
     /// request and `CancellationError` when the task was cancelled. A failing season or all-episodes
     /// request does not fail the load: the season shows no episodes and up next falls back to the season.
+    /// A season picked while the load was in flight wins, with its own episodes.
     ///
     /// `onShow` runs as soon as the show itself arrives, so the screen can set its title and artwork
     /// while seasons are still loading. `selectedSeasonKey` is read once the seasons have arrived so a
@@ -56,7 +57,7 @@ package enum ShowDetailLoader {
         try Task.checkCancellation()
         let seasons = (seasonsContainer.Metadata ?? []).filter { $0.mediaType == "season" }
 
-        let selected = ShowDetailModel.resolvedSeasonKey(
+        var selected = ShowDetailModel.resolvedSeasonKey(
             current: await selectedSeasonKey(),
             seasons: seasons,
             preferred: initialSeasonKey
@@ -69,6 +70,11 @@ package enum ShowDetailLoader {
         }
         let allEpisodes = (await leaves)?.Metadata?.filter { $0.mediaType == "episode" } ?? []
         try Task.checkCancellation()
+        if let latest = await selectedSeasonKey(), latest != selected, seasons.contains(where: { $0.id == latest }) {
+            guard let loaded = await episodes(inSeason: latest, api: api) else { throw CancellationError() }
+            selected = latest
+            seasonEpisodes = loaded
+        }
         return ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selected, episodes: seasonEpisodes, allEpisodes: allEpisodes)
     }
 
