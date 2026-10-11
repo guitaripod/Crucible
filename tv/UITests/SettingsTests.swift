@@ -1,7 +1,7 @@
 import XCTest
 
 @MainActor
-final class SettingsTests: XCTestCase {
+final class SettingsTests: TVTestCase {
     override func setUp() {
         continueAfterFailure = false
     }

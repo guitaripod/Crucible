@@ -1,7 +1,7 @@
 import XCTest
 
 @MainActor
-final class HomeTests: XCTestCase {
+final class HomeTests: TVTestCase {
     private static let cardPrefix = "home.card."
     private static let seeAll = "tv.sectionHeader.seeAll"
     private var app: XCUIApplication!

@@ -5,7 +5,7 @@ import XCTest
 /// structure and state, and every step is captured for review. Every launch starts from a fresh
 /// install state (statistics mirror and library choices included) and states the mock it needs.
 @MainActor
-final class StatsTests: XCTestCase {
+final class StatsTests: TVTestCase {
     private static let sectionStops = 12
 
     override func setUp() {

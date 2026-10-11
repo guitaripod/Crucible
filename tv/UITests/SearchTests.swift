@@ -7,7 +7,7 @@ import XCTest
 /// `typeText` fails with "Neither element nor any descendant has keyboard focus" as soon as focus has
 /// moved to the results or the tab bar, so go back to the keyboard first (`focusKeyboard`).
 @MainActor
-final class SearchTests: XCTestCase {
+final class SearchTests: TVTestCase {
     private static let freshRecents = ["-recentSearches", "()"]
 
     override func setUp() {

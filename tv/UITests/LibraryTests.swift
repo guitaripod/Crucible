@@ -3,7 +3,7 @@ import XCTest
 /// Drives the Library tabs through the real focus engine against the mock Plex server. Every test states the
 /// server it needs through `TVTest.launch(mock:)`.
 @MainActor
-final class LibraryTests: XCTestCase {
+final class LibraryTests: TVTestCase {
     private static let mediaPrefix = "tv.library.media."
     private static let recentPrefix = "tv.library.recent."
     private static let railPrefix = "tv.library.rail."

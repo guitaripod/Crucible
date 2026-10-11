@@ -4,7 +4,7 @@ import XCTest
 /// state (`CRUCIBLE_FRESH=1`), and captures every screen. The mock is reconfigured per test through
 /// `/mock/plextv-config`.
 @MainActor
-final class OnboardingTests: XCTestCase {
+final class OnboardingTests: TVTestCase {
     override func setUp() {
         continueAfterFailure = false
     }

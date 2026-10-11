@@ -3,7 +3,7 @@ import XCTest
 /// The app as a whole: every tab shows its real screen, the launch gate offers a way out when the
 /// server is unreachable, and `crucible://` links open the real Detail and player from anywhere.
 @MainActor
-final class TourTests: XCTestCase {
+final class TourTests: TVTestCase {
     private struct Tab {
         let title: String
         let marker: String

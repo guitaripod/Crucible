@@ -1,7 +1,7 @@
 import XCTest
 
 @MainActor
-final class GalleryTests: XCTestCase {
+final class GalleryTests: TVTestCase {
     override func setUp() {
         continueAfterFailure = false
     }

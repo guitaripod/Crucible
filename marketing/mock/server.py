@@ -23,15 +23,22 @@ PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
 REJECT_TOKEN = False
 OVERRIDES = {}
 DEAD_ROUTE = "http://127.0.0.1:9"
-FLAGS = {
-    "latency_ms": int(os.environ.get("MOCK_LATENCY_MS", "0")),
-    "fail_parts": os.environ.get("MOCK_FAIL_PARTS") == "1",
-    "fail_transcode": os.environ.get("MOCK_FAIL_TRANSCODE") == "1",
-    "clip_markers": os.environ.get("MOCK_CLIP_MARKERS") == "1",
-    "fail_metadata_once": os.environ.get("MOCK_FAIL_METADATA_ONCE", ""),
-    "no_credits": os.environ.get("MOCK_NO_CREDITS") == "1",
-}
+
+
+def initial_flags():
+    return {
+        "latency_ms": int(os.environ.get("MOCK_LATENCY_MS", "0")),
+        "fail_parts": os.environ.get("MOCK_FAIL_PARTS") == "1",
+        "fail_transcode": os.environ.get("MOCK_FAIL_TRANSCODE") == "1",
+        "clip_markers": os.environ.get("MOCK_CLIP_MARKERS") == "1",
+        "fail_metadata_once": os.environ.get("MOCK_FAIL_METADATA_ONCE", ""),
+        "no_credits": os.environ.get("MOCK_NO_CREDITS") == "1",
+    }
+
+
+FLAGS = initial_flags()
 REQUEST_LOG = collections.deque(maxlen=3000)
+PATH_LOG = collections.deque(maxlen=3000)
 HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4"}
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
@@ -53,6 +60,27 @@ DETAIL_LONG_KEY = "9407"
 DETAIL_SEASON_MODES = {}
 DETAIL_PROGRESS_KEY = "4095"
 DETAIL_PROGRESS_OFFSET = LIB.items[DETAIL_PROGRESS_KEY].get("viewOffset")
+
+def reset_state():
+    """Returns the mock to how it was started: a fresh library and history, no runtime overrides, and every flag and plex.tv setting at its default."""
+    global LIB, HUBS_MODE, PIN_POLLS, PIN_LIFETIME, PLEXTV_SERVERS, REJECT_TOKEN
+    with LOCK:
+        LIB = library.Library()
+        PINS.clear()
+        DETAIL_SEASON_MODES.clear()
+        DETAIL_FLAKY["left"] = DETAIL_FLAKY_FAILURES
+        OVERRIDES.clear()
+        REQUEST_LOG.clear()
+        PATH_LOG.clear()
+        HUBS_MODE = os.environ.get("MOCK_HUBS_MODE", "ok")
+        PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
+        PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
+        PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
+        REJECT_TOKEN = False
+        FLAGS.clear()
+        FLAGS.update(initial_flags())
+        library.CLIP_MARKERS = FLAGS["clip_markers"]
+
 
 SRT = (
     "1\n00:00:02,000 --> 00:00:05,000\nWe should not be out here.\n\n"
@@ -319,9 +347,6 @@ def resolve_image(path):
     return None
 
 
-REQUEST_LOG = []
-
-
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "Plex Media Server"
@@ -450,12 +475,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if not p.startswith("/mock/"):
             with LOCK:
-                REQUEST_LOG.append(self.path)
+                PATH_LOG.append(self.path)
 
         if p == "/mock/requests":
             needle = one("contains", "")
             with LOCK:
-                return self.send_json({"count": sum(1 for entry in REQUEST_LOG if needle in entry)})
+                return self.send_json({"count": sum(1 for entry in PATH_LOG if needle in entry)})
         if REJECT_TOKEN and p not in ("/identity", "/") and not p.startswith("/mock/") and not p.startswith("/api/v2/pins"):
             return self.send_json({"errors": [{"code": 1001, "message": "User could not be authenticated"}]}, 401)
 
@@ -684,6 +709,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(plextv_resources())
         if p == "/api/v2/user":
             return self.send_json(plextv_user())
+        if p == "/mock/reset":
+            reset_state()
+            return self.send_json({"reset": True})
         if p == "/mock/env":
             if q.get("reset", [""])[0] == "1":
                 OVERRIDES.clear()

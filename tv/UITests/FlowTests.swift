@@ -4,7 +4,7 @@ import XCTest
 /// the focus where it was, and walk the You tab down and up again. Each test drives the real focus
 /// engine and captures every step for review.
 @MainActor
-final class FlowTests: XCTestCase {
+final class FlowTests: TVTestCase {
     override func setUp() {
         continueAfterFailure = false
     }

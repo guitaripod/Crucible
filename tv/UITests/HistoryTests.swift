@@ -1,7 +1,7 @@
 import XCTest
 
 @MainActor
-final class HistoryTests: XCTestCase {
+final class HistoryTests: TVTestCase {
     private static let rowPrefix = "history.row."
     private static let playPrefix = "history.play."
 

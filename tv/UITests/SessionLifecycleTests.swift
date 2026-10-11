@@ -4,7 +4,7 @@ import XCTest
 /// and offer Sign In Again and Sign Out instead of a retry loop. The mock rejects every token on
 /// request (`/mock/plextv-config?reject_token=1`).
 @MainActor
-final class SessionLifecycleTests: XCTestCase {
+final class SessionLifecycleTests: TVTestCase {
     override func setUp() {
         continueAfterFailure = false
     }

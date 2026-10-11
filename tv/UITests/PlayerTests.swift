@@ -11,7 +11,7 @@ import XCTest
 /// - failure: `fail_parts` and `fail_transcode` break direct play and its transcode fallback;
 /// - skip mode and autoplay: launch arguments override `skipIntroMode` and `autoplayNextEpisode`.
 @MainActor
-final class PlayerTests: XCTestCase {
+final class PlayerTests: TVTestCase {
     private static let episode = "4013"
     private static let nextEpisode = "4014"
     private static let movie = "1001"

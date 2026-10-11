@@ -53,7 +53,7 @@ enum YouNavigation {
 }
 
 @MainActor
-final class YouTests: XCTestCase {
+final class YouTests: TVTestCase {
     override func setUp() {
         continueAfterFailure = false
     }

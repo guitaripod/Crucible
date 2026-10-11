@@ -17,6 +17,13 @@ struct Remote {
 enum TVTest {
     static let remote = Remote()
 
+    /// Returns the mock Plex server to how it was started: a fresh library and history, no runtime
+    /// settings, flags and plex.tv switches at their defaults.
+    nonisolated static func resetMock() {
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + "/mock/reset") else { return }
+        fetch(url)
+    }
+
     /// Returns the mock Plex server to its defaults and then applies `settings` (`MOCK_*` names such
     /// as `MOCK_NO_HISTORY` or `MOCK_LIBRARY_PAD`, through the mock's `/mock/env`), so a test states
     /// the server it needs instead of relying on how the mock was started. A flag or number is
@@ -89,5 +96,14 @@ enum TVTest {
         let predicate = NSPredicate(format: "hasFocus == true")
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
         return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+}
+
+/// The base class of every UI test class: the mock starts each class from a pristine library and
+/// history, so what an earlier class played, marked watched or deleted never leaks into the next one.
+class TVTestCase: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        TVTest.resetMock()
     }
 }

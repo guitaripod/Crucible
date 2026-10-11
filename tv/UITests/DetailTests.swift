@@ -2,7 +2,7 @@ import XCTest
 import UIKit
 
 @MainActor
-final class DetailTests: XCTestCase {
+final class DetailTests: TVTestCase {
     private static let halcyon = "1001"
     private static let deepField = "1002"
     private static let saltRoadEpisode = "4012"
