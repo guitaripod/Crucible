@@ -1,12 +1,11 @@
-import CrucibleCore
 import Foundation
 
-enum YouRouteKind: String, Sendable {
+package enum YouRouteKind: String, Sendable {
     case local = "Local"
     case tailscale = "Tailscale"
     case remote = "Remote"
 
-    static func classify(_ url: URL) -> YouRouteKind {
+    package static func classify(_ url: URL) -> YouRouteKind {
         guard let host = url.host?.lowercased() else { return .remote }
         if host.hasSuffix(".ts.net") { return .tailscale }
         if host.hasSuffix(".plex.direct"), let address = embeddedAddress(inPlexDirectHost: host) {
@@ -36,7 +35,7 @@ enum YouRouteKind: String, Sendable {
     }
 }
 
-enum YouConnectionState: Equatable, Sendable {
+package enum YouConnectionState: Equatable, Sendable {
     case connecting
     case reachable(route: YouRouteKind, latencyMs: Int)
     case unreachable
@@ -45,21 +44,25 @@ enum YouConnectionState: Equatable, Sendable {
 /// Session-scoped route and latency probe behind the You hub. One `/identity` round trip per base
 /// URL; a failed probe is retried the next time the hub appears.
 @MainActor
-final class YouConnectionStatus {
-    static let shared = YouConnectionStatus()
+package final class YouConnectionStatus {
+    package static let shared = YouConnectionStatus()
 
-    private(set) var state: YouConnectionState = .connecting
-    var onChange: ((YouConnectionState) -> Void)?
+    package private(set) var state: YouConnectionState = .connecting
+    package var onChange: ((YouConnectionState) -> Void)?
 
+    private(set) var task: Task<Void, Never>?
     private var probedURL: URL?
-    private var task: Task<Void, Never>?
 
-    private init() {}
+    init() {}
 
-    func refresh(api: APIClient) {
+    package func refresh(api: APIClient) {
+        refresh(baseURL: { await api.baseURL }, identityCheck: { await api.identityCheck() })
+    }
+
+    func refresh(baseURL: @escaping @Sendable () async -> URL, identityCheck: @escaping @Sendable () async -> Bool) {
         guard task == nil else { return }
         task = Task { [weak self] in
-            let url = await api.baseURL
+            let url = await baseURL()
             guard let self else { return }
             if url == probedURL, case .reachable = state {
                 task = nil
@@ -68,7 +71,7 @@ final class YouConnectionStatus {
             if url != probedURL { update(.connecting) }
             let clock = ContinuousClock()
             let start = clock.now
-            let ok = await api.identityCheck()
+            let ok = await identityCheck()
             let elapsed = start.duration(to: clock.now)
             probedURL = url
             let milliseconds = Int((Double(elapsed.components.seconds) * 1000 + Double(elapsed.components.attoseconds) / 1e15).rounded())

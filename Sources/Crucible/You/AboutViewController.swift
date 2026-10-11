@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -5,8 +6,6 @@ final class AboutViewController: UICollectionViewController {
     enum Item: Int, Hashable, CaseIterable {
         case version, build, license, source
     }
-
-    static let sourceURL = URL(string: "https://github.com/guitaripod/Crucible")
 
     private var dataSource: UICollectionViewDiffableDataSource<Int, Item>!
 
@@ -36,24 +35,16 @@ final class AboutViewController: UICollectionViewController {
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    static var versionText: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    }
-
-    static var buildText: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-    }
-
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, item in
             var content: IconRowContentConfiguration
             switch item {
             case .version:
-                content = IconRowContentConfiguration(symbol: "info.circle", title: "Version", value: Self.versionText)
+                content = IconRowContentConfiguration(symbol: "info.circle", title: "Version", value: AppInfo.versionText)
             case .build:
-                content = IconRowContentConfiguration(symbol: "hammer", title: "Build", value: Self.buildText)
+                content = IconRowContentConfiguration(symbol: "hammer", title: "Build", value: AppInfo.buildText)
             case .license:
-                content = IconRowContentConfiguration(symbol: "doc.text", title: "License", value: "GPL-3.0")
+                content = IconRowContentConfiguration(symbol: "doc.text", title: "License", value: AppInfo.licenseName)
             case .source:
                 content = IconRowContentConfiguration(symbol: "chevron.left.forwardslash.chevron.right", title: "Source Code", value: "GitHub")
             }
@@ -67,7 +58,7 @@ final class AboutViewController: UICollectionViewController {
 
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
             var content = UIListContentConfiguration.groupedFooter()
-            content.text = "Crucible is free software, released under the GNU General Public License v3.0. You can read, change and share the source."
+            content.text = AppInfo.licenseSummary
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content
@@ -83,7 +74,7 @@ final class AboutViewController: UICollectionViewController {
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        if let url = Self.sourceURL {
+        if let url = AppInfo.sourceURL {
             UIApplication.shared.open(url)
         }
     }

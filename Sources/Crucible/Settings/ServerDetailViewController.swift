@@ -19,22 +19,10 @@ final class ServerDetailViewController: UIViewController {
         case switchServer
     }
 
-    private enum ProbeState {
-        case probing
-        case reachable(Int)
-        case unreachable
-    }
-
     private let api: APIClient
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
-    private var routes: [URL] = []
-    private var probes: [URL: ProbeState] = [:]
-    private var relayRoutes: Set<URL> = []
-    private var version: String?
-    private var isOwned: Bool?
-    private var isTesting = false
-    private var probeTask: Task<Void, Never>?
+    private var model: ServerConnectionModel!
 
     init(api: APIClient) {
         self.api = api
@@ -44,15 +32,15 @@ final class ServerDetailViewController: UIViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit { probeTask?.cancel() }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Server"
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
 
-        routes = Self.currentRoutes(activeURL: activeRouteURL)
+        model = ServerConnectionModel()
+        model.onChange = { [weak self] in self?.reconfigureLive() }
+        model.onFinish = { [weak self] in self?.finishProbing() }
 
         configureCollectionView()
         configureDataSource()
@@ -61,30 +49,14 @@ final class ServerDetailViewController: UIViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        if probeTask == nil && probes.isEmpty {
-            runProbes()
-        }
+        model.startIfNeeded()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         if isMovingFromParent || isBeingDismissed {
-            probeTask?.cancel()
-            probeTask = nil
+            model.stop()
         }
-    }
-
-    /// The route the app is pinned to; failover repins update the persisted connection.
-    private var activeRouteURL: URL {
-        ServerBootstrap.connection()?.serverURI ?? URL(string: "http://localhost:32400")!
-    }
-
-    private static func currentRoutes(activeURL: URL) -> [URL] {
-        var routes = ServerBootstrap.connection()?.candidateURIs ?? []
-        if !routes.contains(activeURL) {
-            routes.insert(activeURL, at: 0)
-        }
-        return routes
     }
 
     private func configureCollectionView() {
@@ -114,7 +86,7 @@ final class ServerDetailViewController: UIViewController {
         ])
 
         let refresh = UIRefreshControl()
-        refresh.addAction(UIAction { [weak self] _ in self?.runProbes() }, for: .valueChanged)
+        refresh.addAction(UIAction { [weak self] _ in self?.model.runTest() }, for: .valueChanged)
         collectionView.refreshControl = refresh
     }
 
@@ -132,23 +104,19 @@ final class ServerDetailViewController: UIViewController {
         }
 
         let toggleCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, item in
-            let isPreferLocal = item == .preferLocal
+            let setting: PreferenceSetting = item == .preferLocal ? .preferLocalConnection : .allowRelayConnection
             var content = UIListContentConfiguration.cell()
-            content.text = isPreferLocal ? "Prefer Local Connection" : "Allow Relay"
+            content.text = setting.title
             content.textProperties.font = Theme.Font.scaled(.body, 16, .regular)
             content.textProperties.color = Theme.Color.label
 
             let toggle = UISwitch()
-            toggle.isOn = isPreferLocal ? Preferences.preferLocalConnection : Preferences.allowRelayConnection
+            toggle.isOn = setting.isOn
             toggle.onTintColor = Theme.Color.accent
             toggle.accessibilityLabel = content.text
             toggle.addAction(UIAction { action in
                 guard let toggle = action.sender as? UISwitch else { return }
-                if isPreferLocal {
-                    Preferences.preferLocalConnection = toggle.isOn
-                } else {
-                    Preferences.allowRelayConnection = toggle.isOn
-                }
+                setting.setOn(toggle.isOn)
                 Haptics.selection()
             }, for: .valueChanged)
 
@@ -159,7 +127,7 @@ final class ServerDetailViewController: UIViewController {
 
         let testCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, _ in
             guard let self else { return }
-            cell.contentConfiguration = TestButtonConfiguration(isTesting: isTesting) { [weak self] in self?.runProbes() }
+            cell.contentConfiguration = TestButtonConfiguration(isTesting: model.isTesting) { [weak self] in self?.model.runTest() }
             cell.backgroundConfiguration = .clear()
         }
 
@@ -206,7 +174,7 @@ final class ServerDetailViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases)
         snapshot.appendItems([.server], toSection: .server)
-        snapshot.appendItems(routes.map { .route($0) }, toSection: .connections)
+        snapshot.appendItems(model.routes.map { .route($0) }, toSection: .connections)
         snapshot.appendItems([.preferLocal, .allowRelay], toSection: .preferences)
         snapshot.appendItems([.test], toSection: .test)
         snapshot.appendItems([.addServer, .switchServer], toSection: .actions)
@@ -215,127 +183,38 @@ final class ServerDetailViewController: UIViewController {
 
     private func reconfigureLive() {
         var snapshot = dataSource.snapshot()
-        let live: [Item] = [.server, .test] + routes.map { .route($0) }
+        let live: [Item] = [.server, .test] + model.routes.map { .route($0) }
         snapshot.reconfigureItems(live.filter { snapshot.indexOfItem($0) != nil })
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    private func kind(of url: URL) -> ConnectionKind {
-        relayRoutes.contains(url) ? .relay : ConnectionRoute.kind(of: url)
-    }
-
     private func serverCardConfiguration() -> ServerCardConfiguration {
-        let connection = ServerBootstrap.connection()
-        var subtitle = "Plex Media Server"
-        if let version { subtitle += " \(version)" }
-        if let isOwned { subtitle += isOwned ? " · Owned by you" : " · Shared with you" }
-
-        let activeURL = activeRouteURL
-        let status: String
-        let color: UIColor
-        switch probes[activeURL] {
-        case .reachable(let milliseconds):
-            let https = ConnectionRoute.isHTTPS(activeURL) ? "HTTPS" : "HTTP"
-            status = "Connected · \(kind(of: activeURL).title) · \(https) · \(milliseconds) ms"
-            color = Theme.Color.statusOK
-        case .unreachable:
-            status = "Unreachable · \(kind(of: activeURL).title)"
-            color = Theme.Color.destructive
-        case .probing, nil:
-            status = "Checking connection…"
-            color = Theme.Color.labelTertiary
-        }
-        return ServerCardConfiguration(name: connection?.serverName ?? "Plex Server", subtitle: subtitle, status: status, statusColor: color)
+        let card = model.card
+        return ServerCardConfiguration(name: card.name, subtitle: card.subtitle, status: card.status, statusColor: card.tone.color)
     }
 
     private func routeConfiguration(for url: URL) -> RouteRowConfiguration {
-        let routeKind = kind(of: url)
-        let isRelay = routeKind == .relay
-        let state = probes[url]
-
-        let latency: String
-        switch state {
-        case .reachable(let milliseconds): latency = "\(milliseconds) ms"
-        case .unreachable: latency = "Unreachable"
-        case .probing, nil: latency = "…"
-        }
-
-        var isUnreachable = false
-        if case .unreachable = state { isUnreachable = true }
-
+        let row = model.routeRow(for: url)
         return RouteRowConfiguration(
-            kindTitle: routeKind.title,
-            isInUse: url == activeRouteURL,
-            detail: isRelay ? "Bandwidth limited, may force transcoding" : url.absoluteString,
-            detailIsMonospaced: !isRelay,
-            latencyText: latency,
-            showsWarning: isRelay,
-            isDimmed: isRelay || isUnreachable
+            kindTitle: row.kindTitle,
+            isInUse: row.isInUse,
+            detail: row.detail,
+            detailIsMonospaced: row.detailIsMonospaced,
+            latencyText: row.latencyText,
+            showsWarning: row.showsWarning,
+            isDimmed: row.isDimmed
         )
     }
 
-    private func runProbes() {
-        probeTask?.cancel()
-        let urls = routes
-        let token = ServerBootstrap.connection()?.authToken ?? ""
-        for url in urls { probes[url] = .probing }
-        isTesting = true
-        reconfigureLive()
-
-        probeTask = Task { [weak self] in
-            async let resources = Self.fetchServerResource(token: token)
-            await withTaskGroup(of: (URL, ConnectionProbe?).self) { group in
-                for url in urls {
-                    group.addTask { (url, await ConnectionProber.probe(baseURL: url, token: token)) }
-                }
-                for await (url, probe) in group {
-                    guard !Task.isCancelled else { return }
-                    self?.record(probe, for: url)
-                }
-            }
-            let resource = await resources
-            guard !Task.isCancelled, let self else { return }
-            apply(resource)
-            finishProbing()
-        }
-    }
-
-    private func record(_ probe: ConnectionProbe?, for url: URL) {
-        if let probe {
-            probes[url] = .reachable(probe.latencyMs)
-            if let found = probe.version, version == nil || url == activeRouteURL { version = found }
-        } else {
-            probes[url] = .unreachable
-        }
-        reconfigureLive()
-    }
-
-    private func apply(_ resource: PlexResource?) {
-        guard let resource else { return }
-        isOwned = resource.owned
-        relayRoutes = Set(resource.connections.filter { $0.relay == true }.compactMap { URL(string: $0.uri) })
-    }
-
     private func finishProbing() {
-        probeTask = nil
-        isTesting = false
-        reconfigureLive()
         if collectionView.refreshControl?.isRefreshing == true {
             collectionView.refreshControl?.endRefreshing()
             Haptics.soft()
         }
-        AppLogger.info("Connection test finished: \(probes.count) routes", .networking)
-    }
-
-    /// The signed-in account's plex.tv record for the connected server, if plex.tv is reachable.
-    private static func fetchServerResource(token: String) async -> PlexResource? {
-        guard let machineIdentifier = ServerBootstrap.connection()?.machineIdentifier else { return nil }
-        let resources: [PlexResource]? = try? await APIClient.plexTVRequest(.resources, token: token)
-        return resources?.first { $0.clientIdentifier == machineIdentifier && $0.provides.contains("server") }
     }
 
     private func presentAddServer() {
-        guard let token = ServerBootstrap.connection()?.authToken else { return }
+        guard let token = model.authToken else { return }
         let sheet = AddServerSheetViewController(token: token)
         sheet.onSaved = { [weak self] in self?.reconfigureRoot() }
         if let presentation = sheet.sheetPresentationController {

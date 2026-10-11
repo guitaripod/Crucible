@@ -127,17 +127,17 @@ final class SettingsViewController: UICollectionViewController {
             switch item {
             case .streamingQuality:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "dial.high", title: "Streaming Quality",
-                    value: Preferences.streamingQuality.title, menu: streamingQualityMenu()
+                    symbol: "dial.high", title: PreferenceSetting.streamingQuality.title,
+                    value: PreferenceSetting.streamingQuality.valueLabel, menu: menu(for: .streamingQuality, item: .streamingQuality)
                 )
             case .skipIntro:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "forward.end", title: "Skip Intro", badge: "NEW",
-                    value: Preferences.skipIntroMode.title, menu: skipIntroMenu()
+                    symbol: "forward.end", title: PreferenceSetting.skipIntro.title, badge: "NEW",
+                    value: PreferenceSetting.skipIntro.valueLabel, menu: menu(for: .skipIntro, item: .skipIntro)
                 )
             case .autoplay:
-                toggleRow(cell, symbol: "play", title: "Autoplay Next Episode", isOn: Preferences.autoplayNextEpisode) { newValue in
-                    Preferences.autoplayNextEpisode = newValue
+                toggleRow(cell, symbol: "play", title: PreferenceSetting.autoplayNextEpisode.title, isOn: PreferenceSetting.autoplayNextEpisode.isOn) { newValue in
+                    PreferenceSetting.autoplayNextEpisode.setOn(newValue)
                 }
             case .downloadQuality:
                 cell.contentConfiguration = IconRowContentConfiguration(
@@ -158,7 +158,7 @@ final class SettingsViewController: UICollectionViewController {
                 cell.accessories = [.disclosureIndicator()]
             case .libraries:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "rectangle.stack", title: "Libraries", value: Self.librariesSummary()
+                    symbol: "rectangle.stack", title: "Libraries", value: LibrariesSettings.summary
                 )
                 cell.accessories = [.disclosureIndicator()]
             case .appearance:
@@ -209,11 +209,11 @@ final class SettingsViewController: UICollectionViewController {
             content.textProperties.color = Theme.Color.labelSecondary
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .playback:
-                content.text = "Skip Intro can show a button, skip automatically, or stay out of the way."
+                content.text = PreferenceSetting.skipIntro.explanation
             case .home:
-                content.text = "Choose which libraries appear on Home and count toward your statistics."
+                content.text = LibrariesSettings.homeFooterText
             case .account:
-                content.text = "Crucible \(AboutViewController.versionText) (\(AboutViewController.buildText))"
+                content.text = "Crucible \(AppInfo.versionSummary)"
                 content.textProperties.alignment = .center
                 content.textProperties.color = Theme.Color.labelTertiary
             default:
@@ -235,35 +235,15 @@ final class SettingsViewController: UICollectionViewController {
         cell.contentConfiguration = content
     }
 
-    private static func librariesSummary() -> String? {
-        let libraries = LibraryVisibility.libraries
-        guard !libraries.isEmpty else { return nil }
-        let included = libraries.filter { LibraryVisibility.isIncluded($0.id) }.count
-        return included == libraries.count ? "All" : "\(included) of \(libraries.count)"
-    }
-
-    private func streamingQualityMenu() -> UIMenu {
-        let current = Preferences.streamingQuality
-        let actions = Preferences.Quality.allCases.map { quality in
-            UIAction(title: quality.title, state: quality == current ? .on : .off) { [weak self] _ in
+    private func menu(for setting: PreferenceSetting, item: Item) -> UIMenu {
+        let actions = setting.choices.map { choice in
+            UIAction(title: choice.title, state: choice.isSelected ? .on : .off) { [weak self] _ in
                 Haptics.selection()
-                Preferences.streamingQuality = quality
-                self?.reconfigure([.streamingQuality])
+                setting.select(choice)
+                self?.reconfigure([item])
             }
         }
-        return UIMenu(title: "Streaming Quality", children: actions)
-    }
-
-    private func skipIntroMenu() -> UIMenu {
-        let current = Preferences.skipIntroMode
-        let actions = Preferences.SkipIntroMode.allCases.map { mode in
-            UIAction(title: mode.title, state: mode == current ? .on : .off) { [weak self] _ in
-                Haptics.selection()
-                Preferences.skipIntroMode = mode
-                self?.reconfigure([.skipIntro])
-            }
-        }
-        return UIMenu(title: "Skip Intro", children: actions)
+        return UIMenu(title: setting.title, children: actions)
     }
 
     private func downloadQualityMenu() -> UIMenu {
@@ -331,7 +311,7 @@ final class SettingsViewController: UICollectionViewController {
         case .clearCache:
             confirmClearCache()
         case .sourceCode:
-            if let url = AboutViewController.sourceURL {
+            if let url = AppInfo.sourceURL {
                 UIApplication.shared.open(url)
             }
         case .signOut:
@@ -343,7 +323,10 @@ final class SettingsViewController: UICollectionViewController {
 
     private func shareLogs(from source: UIView?) {
         Task { [weak self] in
-            let url = await DiagnosticLogExporter.export()
+            let device = UIDevice.current
+            let url = await DiagnosticsReport.export(deviceDescription: DiagnosticsReport.deviceDescription(
+                systemName: device.systemName, systemVersion: device.systemVersion, model: device.model
+            ))
             guard let self else { return }
             guard let url else {
                 let alert = UIAlertController(title: "No Logs Yet", message: "There are no diagnostic logs to share.", preferredStyle: .alert)

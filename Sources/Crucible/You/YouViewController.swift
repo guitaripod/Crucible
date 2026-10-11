@@ -14,7 +14,7 @@ final class YouViewController: UICollectionViewController {
     private let api: APIClient
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var refreshTask: Task<Void, Never>?
-    private var accountName = "Plex User"
+    private var accountName = PlexAccountName.fallbackName
     private var historySubtitle: String?
     private var yearSummary: YouYearSummary?
 
@@ -50,7 +50,7 @@ final class YouViewController: UICollectionViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        accountName = Self.storedAccountName()
+        accountName = PlexAccountName.stored
         applySnapshot()
         YouConnectionStatus.shared.refresh(api: api)
         refreshTask?.cancel()
@@ -64,29 +64,14 @@ final class YouViewController: UICollectionViewController {
         refreshTask?.cancel()
     }
 
-    private static func storedAccountName() -> String {
-        let stored = UserDefaults.standard.string(forKey: "plex_account_name")?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let stored, !stored.isEmpty else { return "Plex User" }
-        return stored
-    }
-
     private func loadRemoteContent() async {
-        async let history = latestHistorySubtitle()
+        async let history = YouHistoryHeadline.latest(api: api)
         async let year = YouYearSummary.load()
         let (newHistory, newYear) = await (history, year)
         guard !Task.isCancelled else { return }
         historySubtitle = newHistory
         yearSummary = newYear
         applySnapshot()
-    }
-
-    private func latestHistorySubtitle() async -> String? {
-        guard let container = try? await api.requestContainer(.history(start: 0, size: 1)),
-              let entry = container.Metadata?.first else { return nil }
-        let title = entry.grandparentTitle ?? entry.title
-        guard !title.isEmpty else { return nil }
-        guard let when = Formatters.unixRelativeDate(entry.lastViewedAt ?? entry.viewedAt) else { return title }
-        return "\(title) · \(when)"
     }
 
     private func makeLayout() -> UICollectionViewLayout {
@@ -130,13 +115,13 @@ final class YouViewController: UICollectionViewController {
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "gearshape", title: "Settings")
                 cell.accessories = [.disclosureIndicator()]
             case .server:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "server.rack", title: "Server & Connection", value: serverRowValue())
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "server.rack", title: "Server & Connection", value: YouConnectionStatus.shared.state.routeSummary)
                 cell.accessories = [.disclosureIndicator()]
             case .about:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "info.circle",
                     title: "About Crucible",
-                    value: "\(AboutViewController.versionText) (\(AboutViewController.buildText))"
+                    value: AppInfo.versionSummary
                 )
                 cell.accessories = [.disclosureIndicator()]
             case .year:
@@ -165,23 +150,8 @@ final class YouViewController: UICollectionViewController {
     }
 
     private func profileConfiguration() -> YouProfileContentConfiguration {
-        let server = ServerBootstrap.connection()?.serverName ?? "Plex Server"
-        switch YouConnectionStatus.shared.state {
-        case .connecting:
-            return YouProfileContentConfiguration(name: accountName, statusText: "\(server) · Connecting…", statusColor: Theme.Color.labelTertiary)
-        case .reachable(let route, let latency):
-            return YouProfileContentConfiguration(name: accountName, statusText: "\(server) · \(route.rawValue) · \(latency) ms", statusColor: Theme.Color.statusOK)
-        case .unreachable:
-            return YouProfileContentConfiguration(name: accountName, statusText: "\(server) · Unreachable", statusColor: Theme.Color.destructive)
-        }
-    }
-
-    private func serverRowValue() -> String? {
-        switch YouConnectionStatus.shared.state {
-        case .connecting: return nil
-        case .reachable(let route, _): return route.rawValue
-        case .unreachable: return "Unreachable"
-        }
+        let profile = YouProfile.make(accountName: accountName, state: YouConnectionStatus.shared.state)
+        return YouProfileContentConfiguration(name: profile.name, statusText: profile.statusText, statusColor: profile.tone.color)
     }
 
     private func applySnapshot() {
