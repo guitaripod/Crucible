@@ -499,18 +499,3 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         return dataSource.indexPath(for: first)
     }
 }
-
-/// An invisible, focusable point that holds focus on the screen while it loads, so Menu goes back
-/// instead of leaving the app from the tab bar.
-final class TVFocusAnchorView: UIView {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        alpha = 0.02
-        isAccessibilityElement = false
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var canBecomeFocused: Bool { !isHidden }
-}

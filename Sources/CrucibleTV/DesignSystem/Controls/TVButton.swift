@@ -51,32 +51,46 @@ enum TVButton {
         return configuration
     }
 
+    /// A button of `style`. `action` is the primary action; leave it nil to attach one later with
+    /// `addAction(_:for:)` (an empty closure would be a second, silent primary action).
     static func make(
         _ style: Style,
         title: String?,
         symbol: String? = nil,
         symbolTrailing: Bool = false,
-        action: @escaping @MainActor () -> Void
+        action: (@MainActor () -> Void)? = nil
     ) -> UIButton {
         let button = UIButton(
             configuration: configuration(style, title: title, symbol: symbol, symbolTrailing: symbolTrailing),
-            primaryAction: UIAction { _ in action() }
+            primaryAction: action.map { action in UIAction { _ in action() } }
         )
         button.setContentCompressionResistancePriority(.required, for: .horizontal)
         button.accessibilityLabel = title
         return button
     }
 
-    /// A glass button that opens a menu (Audio, Subtitles, Genre, Sort) and shows a trailing chevron.
-    static func menuButton(title: String, symbol: String? = nil, menu: UIMenu) -> UIButton {
-        let button = UIButton(configuration: configuration(.glass, title: title, symbol: symbol))
-        button.configuration?.image = UIImage(systemName: "chevron.down")
-        button.configuration?.imagePlacement = .trailing
-        button.configuration?.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(font: labelFont(.glass), scale: .small)
-        button.menu = menu
-        button.showsMenuAsPrimaryAction = true
-        button.accessibilityLabel = title
+    /// A button of `style` (glass or chip) that opens a menu (Audio, Subtitles, Genre, Sort) and
+    /// shows a trailing chevron.
+    static func menuButton(style: Style = .glass, title: String, menu: UIMenu) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        configure(menu: menu, title: title, style: style, on: button)
         return button
+    }
+
+    /// Updates a menu button in place (a reused cell, a header that refreshes its selection): new
+    /// title and menu, chevron kept, no new button. A menu button carries the chevron as its only
+    /// image, so it has no leading symbol.
+    static func configure(menu: UIMenu?, title: String?, style: Style = .glass, on button: UIButton) {
+        var configuration = Self.configuration(style, title: title)
+        configuration.image = UIImage(systemName: "chevron.down")
+        configuration.imagePlacement = .trailing
+        configuration.imagePadding = Theme.Space.xs
+        configuration.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(font: labelFont(style), scale: .small)
+        button.configuration = configuration
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = menu != nil
+        button.accessibilityLabel = title
     }
 
     /// Re-themes `button` after its selection changed, keeping its title and image.
@@ -112,11 +126,10 @@ enum TVButton {
         return configuration
     }
 
-    private static func labelFont(_ style: Style) -> UIFont {
+    static func labelFont(_ style: Style) -> UIFont {
         switch style {
-        case .primary, .glass: Theme.Font.scaled(.callout, 31, .semibold, maximum: 44)
-        case .chip: Theme.Font.scaled(.body, 29, .semibold, maximum: 40)
-        case .plain: Theme.Font.scaled(.callout, 31, .semibold, maximum: 42)
+        case .primary, .glass, .plain: TVFont.control
+        case .chip: TVFont.cardTitle
         }
     }
 
@@ -124,7 +137,7 @@ enum TVButton {
         switch style {
         case .primary, .glass: TVMetrics.Control.primaryHeight
         case .chip: TVMetrics.Control.chipHeight
-        case .plain: 56
+        case .plain: TVMetrics.Control.plainHeight
         }
     }
 
@@ -132,7 +145,7 @@ enum TVButton {
         switch style {
         case .primary, .glass: TVMetrics.Control.horizontalInset
         case .chip: TVMetrics.Control.chipHorizontalInset
-        case .plain: 20
+        case .plain: TVMetrics.Control.plainHorizontalInset
         }
     }
 }

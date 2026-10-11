@@ -4,8 +4,13 @@ import UIKit
 /// remembers the last focused item of each row, and turns Play/Pause on a focused item into a
 /// callback (`onPlayPause`), the way the Apple TV app plays what is under the cursor.
 class TVCollectionView: UICollectionView {
-    /// Called with the index path of the focused item when the user presses Play/Pause.
+    /// Called with the index path of the focused item when the user presses Play/Pause. The press is
+    /// always consumed; prefer `playPauseHandler`, which can decline.
     var onPlayPause: (@MainActor (IndexPath) -> Void)?
+
+    /// Called with the index path of the focused item on Play/Pause; returns whether the screen
+    /// handled it. When it declines, the press continues up the responder chain like any other.
+    final var playPauseHandler: (@MainActor (IndexPath) -> Bool)?
 
     override init(frame: CGRect, collectionViewLayout layout: UICollectionViewLayout) {
         super.init(frame: frame, collectionViewLayout: layout)
@@ -23,13 +28,18 @@ class TVCollectionView: UICollectionView {
 
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         guard presses.contains(where: { $0.type == .playPause }),
-              let onPlayPause,
+              onPlayPause != nil || playPauseHandler != nil,
               let indexPath = TVPlayPauseShortcut.focusedIndexPath(in: self)
         else {
             super.pressesEnded(presses, with: event)
             return
         }
-        onPlayPause(indexPath)
+        if let playPauseHandler, playPauseHandler(indexPath) { return }
+        if let onPlayPause {
+            onPlayPause(indexPath)
+            return
+        }
+        super.pressesEnded(presses, with: event)
     }
 }
 
@@ -50,14 +60,30 @@ enum TVPlayPauseShortcut {
 /// Remembers the last focused item of a screen so coming back (Back from a detail) lands where the
 /// user left. `remembersLastFocusedIndexPath` covers movement inside one screen; this survives the
 /// screen being popped and re-shown.
+///
+/// The identifier API remembers the item, not its position: a refresh that inserts or removes items
+/// before the focused one moves the position, and an index path would then point at a different
+/// item. `TVScreenViewController` uses it; the index-path API stays for screens not yet migrated.
 @MainActor
 final class TVFocusMemory {
     private(set) var indexPath: IndexPath?
+    private(set) var identifier: AnyHashable?
 
     func record(_ context: UICollectionViewFocusUpdateContext) {
         if let next = context.nextFocusedIndexPath {
             indexPath = next
         }
+    }
+
+    func record(_ context: UICollectionViewFocusUpdateContext, identifier: AnyHashable?) {
+        guard let next = context.nextFocusedIndexPath else { return }
+        indexPath = next
+        self.identifier = identifier
+    }
+
+    /// The index path of the remembered item as `resolve` finds it now, or nil if it is gone.
+    func preferredIndexPath(resolving resolve: (AnyHashable) -> IndexPath?) -> IndexPath? {
+        identifier.flatMap(resolve)
     }
 
     /// The remembered item if it still exists, for `indexPathForPreferredFocusedView(in:)`.
@@ -71,6 +97,7 @@ final class TVFocusMemory {
 
     func reset() {
         indexPath = nil
+        identifier = nil
     }
 }
 
