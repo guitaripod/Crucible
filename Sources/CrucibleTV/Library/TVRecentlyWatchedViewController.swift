@@ -18,11 +18,11 @@ final class TVRecentlyWatchedViewController: UIViewController {
     private let env: TVAppEnvironment
     private let section: LibrarySection
     private let collectionView: TVCollectionView
-    private let stateView = TVStateView()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var items: [PlexMetadata]
     private var itemsById: [String: PlexMetadata] = [:]
     private var loadTask: Task<Void, Never>?
+    private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self)
 
     init(env: TVAppEnvironment, section: LibrarySection, items: [PlexMetadata]) {
         self.env = env
@@ -46,18 +46,13 @@ final class TVRecentlyWatchedViewController: UIViewController {
         collectionView.onPlayPause = { [weak self] indexPath in
             self?.playItem(at: indexPath)
         }
-        stateView.isHidden = true
-        stateView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
-        view.addSubview(stateView)
-        for pinned in [collectionView, stateView] as [UIView] {
-            NSLayoutConstraint.activate([
-                pinned.topAnchor.constraint(equalTo: view.topAnchor),
-                pinned.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                pinned.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                pinned.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            ])
-        }
+        NSLayoutConstraint.activate([
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
         configureDataSource()
         collectionView.collectionViewLayout = makeLayout()
         apply(items)
@@ -73,16 +68,10 @@ final class TVRecentlyWatchedViewController: UIViewController {
         loadTask?.cancel()
     }
 
-    override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        stateView.isHidden ? [collectionView] : [stateView]
-    }
-
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, _ in
-            guard let self else { return nil }
-            let sections = dataSource.snapshot().sectionIdentifiers
-            guard sections.indices.contains(index) else { return nil }
-            return sections[index] == .title ? TVScreenTitle.section() : TVShelf.grid()
+            guard let self, dataSource.snapshot().sectionIdentifiers.indices.contains(index) else { return TVShelf.grid() }
+            return dataSource.snapshot().sectionIdentifiers[index] == .title ? TVScreenTitle.section() : TVShelf.grid()
         }
     }
 
@@ -128,28 +117,11 @@ final class TVRecentlyWatchedViewController: UIViewController {
         snapshot.appendItems(ids.map(Item.recent), toSection: .grid)
         snapshot.reconfigureItems(ids.filter { dataSource.snapshot().indexOfItem(.recent($0)) != nil }.map(Item.recent))
         dataSource.apply(snapshot, animatingDifferences: false)
-        showEmptyState(ids.isEmpty)
-    }
-
-    private func showEmptyState(_ isEmpty: Bool) {
-        if isEmpty {
-            stateView.show(.empty(
-                title: "Nothing Watched Yet",
-                message: "Titles you watch from this library appear here.",
-                symbol: section.kind.placeholderIcon,
-                action: nil
-            ))
-        }
-        stateView.isHidden = !isEmpty
-        collectionView.isHidden = isEmpty
-        setNeedsFocusUpdate()
     }
 
     private func playItem(at indexPath: IndexPath) {
-        guard case .recent(let id) = dataSource.itemIdentifier(for: indexPath),
-              let item = itemsById[id], item.mediaType != "show"
-        else { return }
-        TVScreens.play(env, request: TVPlaybackRequest(item: item, resumeSeconds: 0), from: self)
+        guard case .recent(let id) = dataSource.itemIdentifier(for: indexPath), let item = itemsById[id] else { return }
+        actions.play(item, isRecent: true)
     }
 }
 
@@ -161,7 +133,7 @@ extension TVRecentlyWatchedViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard case .recent(let id) = dataSource.itemIdentifier(for: indexPath), let item = itemsById[id] else { return }
-        TVScreens.open(LibraryDestination(recent: item, kind: section.kind), env: env, on: navigationController)
+        actions.select(item, isRecent: true)
     }
 
     func collectionView(
@@ -173,22 +145,6 @@ extension TVRecentlyWatchedViewController: UICollectionViewDelegate {
               case .recent(let id) = dataSource.itemIdentifier(for: indexPath),
               let item = itemsById[id]
         else { return nil }
-        let menu = UIMenu(libraryActions: LibraryItemAction.recent(for: item, kind: section.kind)) { [weak self] action in
-            self?.perform(action, on: item)
-        }
-        return TVContextMenu.configuration(menu: menu)
-    }
-
-    private func perform(_ action: LibraryItemAction, on item: PlexMetadata) {
-        switch action.kind {
-        case .play:
-            TVScreens.play(env, request: TVPlaybackRequest(item: item, resumeSeconds: 0), from: self)
-        case .goToShow(let showKey):
-            TVScreens.open(.show(ratingKey: showKey), env: env, on: navigationController)
-        case .viewDetails:
-            TVScreens.open(.media(item), env: env, on: navigationController)
-        case .setWatched:
-            return
-        }
+        return TVContextMenu.configuration(menu: actions.menu(for: item, isRecent: true))
     }
 }

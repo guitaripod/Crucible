@@ -1,8 +1,9 @@
 import XCTest
 
 /// Drives the Library tabs through the real focus engine against the mock Plex server. Run the mock with
-/// `MOCK_LIBRARY_PAD=150 MOCK_FAIL_SECTIONS=3`: Movies grows to 150 items so pagination and the A-Z jump
-/// have something to do, and Documentaries fails to load. The other libraries keep their default content;
+/// `MOCK_LIBRARY_PAD=150 MOCK_FAIL_SECTIONS=3 MOCK_SLOW_HISTORY_SECTIONS=2 MOCK_SLOW_HISTORY_MS=9000`: Movies
+/// grows to 150 items so pagination and the A-Z jump have something to do, Documentaries fails to load and
+/// the TV Shows watch history answers after nine seconds. The other libraries keep their default content;
 /// Anime is empty.
 @MainActor
 final class LibraryTests: XCTestCase {
@@ -54,6 +55,102 @@ final class LibraryTests: XCTestCase {
         TVTest.remote.press(.select)
         TVTest.settle(1.5)
         TVTest.capture("08-filters-cleared-sort-kept", in: self)
+    }
+
+    func testChipsLeadDownIntoTheShelfAndTheGridAndBackUp() {
+        let app = openTab("Movies")
+        waitForRecents(in: app)
+        enterContent(app)
+
+        step(app, .up, until: "tv.library.chip.all")
+        TVTest.remote.press(.down)
+        TVTest.settle(0.8)
+        TVTest.capture("26-down-from-all-chip", in: self)
+        XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.recentPrefix), "Down from the All chip should reach the Recently Watched shelf, got \(focusedIdentifier(app))")
+
+        TVTest.remote.press(.up)
+        TVTest.settle(0.8)
+        XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.library.chip."), "Up from the shelf should return to the chips, got \(focusedIdentifier(app))")
+
+        for identifier in ["tv.library.genre", "tv.library.sort", "tv.library.folders"] {
+            step(app, .right, until: identifier, limit: 8)
+            TVTest.remote.press(.down)
+            TVTest.settle(0.8)
+            let landed = focusedIdentifier(app)
+            XCTAssertTrue(landed.hasPrefix(Self.recentPrefix) || landed.hasPrefix(Self.mediaPrefix), "Down from \(identifier) should leave the header, got \(landed)")
+            TVTest.remote.press(.up)
+            TVTest.settle(0.8)
+            XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.library.chip.") || focusedIdentifier(app).hasPrefix("tv.library.genre") || focusedIdentifier(app).hasPrefix("tv.library.sort") || focusedIdentifier(app).hasPrefix("tv.library.folders"), "Up should return to the header, got \(focusedIdentifier(app))")
+        }
+
+        step(app, .right, until: "tv.library.chip.unwatched", limit: 8)
+        TVTest.remote.press(.select)
+        TVTest.settle(1.5)
+        XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0)
+        TVTest.remote.press(.down)
+        TVTest.settle(0.8)
+        TVTest.capture("27-down-from-chip-into-filtered-grid", in: self)
+        XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.mediaPrefix), "Down from a chip should reach the first poster of the filtered grid, got \(focusedIdentifier(app))")
+        TVTest.remote.press(.up)
+        TVTest.settle(0.8)
+        TVTest.capture("28-up-from-first-row-back-to-chips", in: self)
+        XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.library.chip."), "Up from the first row should return to the chips, got \(focusedIdentifier(app))")
+    }
+
+    func testSlowHistoryDoesNotHoldBackTheGridAndTheShelfJoinsWithoutMovingFocus() {
+        let app = openTab("TV Shows")
+        waitForPosters(in: app)
+        XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0, "the grid should appear before the slow history answers")
+        enterContent(app)
+        let focused = focusedIdentifier(app)
+        XCTAssertTrue(focused.hasPrefix(Self.mediaPrefix), "without a shelf the first poster of the grid takes the focus, got \(focused)")
+        TVTest.capture("29-grid-before-slow-history", in: self)
+
+        TVTest.settle(10)
+        XCTAssertEqual(focusedIdentifier(app), focused, "a shelf arriving late must not move the focus")
+        XCTAssertEqual(count(app, prefix: Self.recentPrefix), 0, "the shelf waits while the focus is in the grid")
+        TVTest.capture("30-focus-kept-while-shelf-waits", in: self)
+
+        step(app, .up, until: "tv.library.chip.", limit: 4)
+        let shelf = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", Self.recentPrefix)).firstMatch
+        XCTAssertTrue(shelf.waitForExistence(timeout: 5), "the shelf should join once the focus is in the header")
+        TVTest.settle(1.0)
+        TVTest.capture("31-shelf-joined", in: self)
+    }
+
+    func testFolderRefreshesWatchedStateAfterReturning() throws {
+        let app = openTab("Movies")
+        waitForRecents(in: app)
+        enterContent(app)
+        step(app, .up, until: "tv.library.chip.all", limit: 4)
+        step(app, .right, until: "tv.library.folders", limit: 8)
+        TVTest.remote.press(.select)
+        let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'tv.folder.row.'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        TVTest.settle(1.0)
+        TVTest.remote.press(.select)
+        let poster = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'tv.folder.media.'")).firstMatch
+        XCTAssertTrue(poster.waitForExistence(timeout: 10))
+        TVTest.settle(1.5)
+        let id = focusedIdentifier(app)
+        XCTAssertTrue(id.hasPrefix("tv.folder.media."), "the first folder poster should have the focus, got \(id)")
+        XCTAssertEqual(app.descendants(matching: .any)[id].value as? String, "Unwatched")
+        TVTest.capture("32-folder-unwatched-before", in: self)
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.staticTexts.firstMatch.waitForExistence(timeout: 10))
+        TVTest.settle(2.0)
+        let mock = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], "the mock URL was not forwarded")
+        let key = String(id.dropFirst("tv.folder.media.".count))
+        _ = try Data(contentsOf: XCTUnwrap(URL(string: "\(mock)/:/scrobble?identifier=com.plexapp.plugins.library&key=\(key)")))
+
+        TVTest.remote.press(.menu)
+        TVTest.settle(2.5)
+        let cell = app.descendants(matching: .any)[id]
+        XCTAssertTrue(cell.waitForExistence(timeout: 10))
+        let updated = NSPredicate(format: "value == 'Watched'")
+        XCTAssertEqual(XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: updated, object: cell)], timeout: 10), .completed, "the folder should show the new watched state after returning")
+        TVTest.capture("33-folder-watched-after", in: self)
     }
 
     func testPaginationAndAlphabetJump() {

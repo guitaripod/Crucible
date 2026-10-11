@@ -60,6 +60,7 @@ final class TVLibraryHeaderContentView: UIView, UIContentView {
     private let sortButton = UIButton(type: .system)
     private let foldersButton = UIButton(type: .system)
     private let upGuide = UIFocusGuide()
+    private var isFocusInside = false
     private var handlers = TVLibraryHeaderConfiguration.Handlers()
 
     init(configuration: TVLibraryHeaderConfiguration) {
@@ -129,7 +130,8 @@ final class TVLibraryHeaderContentView: UIView, UIContentView {
     }
 
     /// Pressing Up from the first poster of a row would otherwise skip the chips and jump to the tab bar;
-    /// a guide just under the header sends it to the selected chip instead.
+    /// a guide just under the header sends it to the selected chip instead. It is switched off while the
+    /// focus is inside the header: a guide that redirects to the focused chip would trap Down.
     private func installUpGuide() {
         addLayoutGuide(upGuide)
         NSLayoutConstraint.activate([
@@ -138,6 +140,12 @@ final class TVLibraryHeaderContentView: UIView, UIContentView {
             upGuide.topAnchor.constraint(equalTo: bottomAnchor, constant: Theme.Space.xs),
             upGuide.heightAnchor.constraint(equalToConstant: Theme.Space.m),
         ])
+    }
+
+    override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.didUpdateFocus(in: context, with: coordinator)
+        isFocusInside = context.nextFocusedView?.isDescendant(of: self) ?? false
+        upGuide.isEnabled = !isFocusInside
     }
 
     private func apply() {

@@ -82,10 +82,8 @@ final class TVMoreViewController: UIViewController {
 
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, _ in
-            guard let self else { return nil }
-            let sections = dataSource.snapshot().sectionIdentifiers
-            guard sections.indices.contains(index) else { return nil }
-            return sections[index] == .title ? TVScreenTitle.section() : Self.tilesSection()
+            guard let self, dataSource.snapshot().sectionIdentifiers.indices.contains(index) else { return Self.tilesSection() }
+            return dataSource.snapshot().sectionIdentifiers[index] == .title ? TVScreenTitle.section() : Self.tilesSection()
         }
     }
 
@@ -140,9 +138,10 @@ final class TVMoreViewController: UIViewController {
                 action: nil
             ))
         }
+        let changedVisibility = stateView.isHidden == isEmpty
         stateView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
-        setNeedsFocusUpdate()
+        if changedVisibility { setNeedsFocusUpdate() }
     }
 
     private func reconfigureTile(_ key: String) {

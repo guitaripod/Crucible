@@ -30,13 +30,19 @@ extension TVCardItem {
         )
     }
 
+    /// A folder entry. Movies and episodes carry progress, the unwatched dot or the watched check.
     init(folderItem item: PlexMetadata) {
         let poster = LibraryPoster(folderItem: item)
+        let tracksWatched = HomeMediaRules.isPlayable(item)
+        let progress = item.progressPercent
         self.init(
             id: item.id,
             artworkPath: poster.posterPath,
             title: poster.title,
             subtitle: poster.subtitle,
+            progress: tracksWatched && progress > 0 ? progress : nil,
+            isUnwatched: tracksWatched && !item.isWatched && progress <= 0,
+            isWatched: tracksWatched && item.isWatched,
             placeholderSymbol: poster.placeholderIcon
         )
     }
@@ -51,6 +57,62 @@ extension UIMenu {
                 perform(action)
             }
         })
+    }
+}
+
+/// What a library card does when chosen, played or long-pressed, shared by every screen that shows
+/// library cards so Select, Play/Pause and the menu agree. A Recently Watched card always restarts.
+@MainActor
+final class TVLibraryItemActions {
+    private let env: TVAppEnvironment
+    private let kind: LibraryGridKind
+    private weak var presenter: UIViewController?
+    private let setWatched: (@MainActor (PlexMetadata, Bool) -> Void)?
+
+    init(
+        env: TVAppEnvironment,
+        kind: LibraryGridKind,
+        presenter: UIViewController,
+        setWatched: (@MainActor (PlexMetadata, Bool) -> Void)? = nil
+    ) {
+        self.env = env
+        self.kind = kind
+        self.presenter = presenter
+        self.setWatched = setWatched
+    }
+
+    func play(_ item: PlexMetadata, isRecent: Bool) {
+        guard HomeMediaRules.isPlayable(item), let presenter else { return }
+        TVScreens.play(env, request: TVPlaybackRequest(item: item, resumeSeconds: isRecent ? 0 : nil), from: presenter)
+    }
+
+    func select(_ item: PlexMetadata, isRecent: Bool) {
+        open(isRecent ? LibraryDestination(recent: item, kind: kind) : LibraryDestination(browsing: item))
+    }
+
+    func menu(for item: PlexMetadata, isRecent: Bool) -> UIMenu {
+        let actions = isRecent ? LibraryItemAction.recent(for: item, kind: kind) : LibraryItemAction.grid(for: item, kind: kind)
+        return UIMenu(libraryActions: actions) { [weak self] action in
+            self?.perform(action, on: item, isRecent: isRecent)
+        }
+    }
+
+    private func perform(_ action: LibraryItemAction, on item: PlexMetadata, isRecent: Bool) {
+        switch action.kind {
+        case .play:
+            play(item, isRecent: isRecent)
+        case .setWatched(let watched):
+            setWatched?(item, watched)
+        case .goToShow(let showKey):
+            open(.show(ratingKey: showKey))
+        case .viewDetails:
+            open(isRecent ? .media(item) : LibraryDestination(browsing: item))
+        }
+    }
+
+    private func open(_ destination: LibraryDestination?) {
+        guard let destination else { return }
+        TVScreens.open(destination, env: env, on: presenter?.navigationController)
     }
 }
 

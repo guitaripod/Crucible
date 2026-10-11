@@ -18,16 +18,21 @@ final class TVFolderBrowserViewController: UIViewController {
     private let env: TVAppEnvironment
     private let source: LibraryFolderListing.Source
     private let screenTitle: String
+    private let kind: LibraryGridKind
     private let collectionView: TVCollectionView
     private let stateView = TVStateView()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var listing: LibraryFolderListing?
     private var mediaById: [String: PlexMetadata] = [:]
     private var loadTask: Task<Void, Never>?
+    private var refreshTask: Task<Void, Never>?
+    private var needsRefresh = false
+    private lazy var actions = TVLibraryItemActions(env: env, kind: kind, presenter: self)
 
-    init(env: TVAppEnvironment, source: LibraryFolderListing.Source, title: String) {
+    init(env: TVAppEnvironment, source: LibraryFolderListing.Source, title: String, kind: LibraryGridKind) {
         self.env = env
         self.source = source
+        self.kind = kind
         screenTitle = title
         collectionView = TVCollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout())
         super.init(nibName: nil, bundle: nil)
@@ -37,7 +42,10 @@ final class TVFolderBrowserViewController: UIViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit { loadTask?.cancel() }
+    deinit {
+        loadTask?.cancel()
+        refreshTask?.cancel()
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -66,11 +74,17 @@ final class TVFolderBrowserViewController: UIViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        if listing == nil { load() }
+        if listing == nil {
+            load()
+        } else if needsRefresh {
+            needsRefresh = false
+            refresh()
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        refreshTask?.cancel()
         if listing == nil { loadTask?.cancel() }
     }
 
@@ -80,10 +94,8 @@ final class TVFolderBrowserViewController: UIViewController {
 
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, environment in
-            guard let self else { return nil }
-            let sections = dataSource.snapshot().sectionIdentifiers
-            guard sections.indices.contains(index) else { return nil }
-            switch sections[index] {
+            guard let self, dataSource.snapshot().sectionIdentifiers.indices.contains(index) else { return TVShelf.grid() }
+            switch dataSource.snapshot().sectionIdentifiers[index] {
             case .title:
                 return TVScreenTitle.section()
             case .folders:
@@ -110,12 +122,15 @@ final class TVFolderBrowserViewController: UIViewController {
                 return cell
             case .media(let id):
                 let card = self?.mediaById[id].map { TVCardItem(folderItem: $0) } ?? TVCardItem(id: id, title: "")
-                return collectionView.dequeueConfiguredReusableCell(using: posterRegistration, for: indexPath, item: card)
+                let cell = collectionView.dequeueConfiguredReusableCell(using: posterRegistration, for: indexPath, item: card)
+                cell.accessibilityIdentifier = "tv.folder.media.\(id)"
+                return cell
             }
         }
     }
 
     private func applySnapshot() {
+        let previous = Set(dataSource.snapshot().itemIdentifiers)
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.title])
         snapshot.appendItems([.title(TVScreenTitle.Content(title: screenTitle))], toSection: .title)
@@ -129,7 +144,34 @@ final class TVFolderBrowserViewController: UIViewController {
                 snapshot.appendItems(listing.media.map { Item.media($0.id) }, toSection: .media)
             }
         }
+        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { previous.contains($0) })
         dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    /// Re-reads the folder after the user played or opened something, and redraws only what changed.
+    /// A failure keeps what is on screen.
+    private func refresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let fresh = try await LibraryFolderListing.load(source, api: env.api)
+                guard !Task.isCancelled, let current = listing else { return }
+                let unchanged = fresh.media.map(\.id) == current.media.map(\.id)
+                    && fresh.media.map(Self.watchedState) == current.media.map(Self.watchedState)
+                guard !unchanged else { return }
+                listing = fresh
+                mediaById = Dictionary(fresh.media.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+                applySnapshot()
+            } catch {
+                guard !Task.isCancelled else { return }
+                AppLogger.error("Folder refresh failed: \(error.localizedDescription)", .networking)
+            }
+        }
+    }
+
+    private static func watchedState(_ item: PlexMetadata) -> [Int] {
+        [item.viewCount ?? 0, item.viewOffset ?? 0]
     }
 
     private func load() {
@@ -164,15 +206,17 @@ final class TVFolderBrowserViewController: UIViewController {
     }
 
     private func showState(_ state: TVStateView.State?) {
+        let changedVisibility = stateView.isHidden != (state == nil)
         if let state { stateView.show(state) }
         stateView.isHidden = state == nil
         collectionView.isHidden = state != nil
-        setNeedsFocusUpdate()
+        if changedVisibility { setNeedsFocusUpdate() }
     }
 
     private func playItem(at indexPath: IndexPath) {
-        guard case .media(let id) = dataSource.itemIdentifier(for: indexPath), let item = mediaById[id], item.mediaType != "show" else { return }
-        TVScreens.play(env, request: TVPlaybackRequest(item: item), from: self)
+        guard case .media(let id) = dataSource.itemIdentifier(for: indexPath), let item = mediaById[id] else { return }
+        needsRefresh = true
+        actions.play(item, isRecent: false)
     }
 }
 
@@ -186,11 +230,12 @@ extension TVFolderBrowserViewController: UICollectionViewDelegate {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .folder(let key):
             guard let folder = listing?.folders.first(where: { $0.key == key }) else { return }
-            let next = TVFolderBrowserViewController(env: env, source: .folder(folder.key), title: folder.title)
+            let next = TVFolderBrowserViewController(env: env, source: .folder(folder.key), title: folder.title, kind: kind)
             navigationController?.pushViewController(next, animated: true)
         case .media(let id):
             guard let item = mediaById[id] else { return }
-            TVScreens.open(LibraryDestination(browsing: item), env: env, on: navigationController)
+            needsRefresh = true
+            actions.select(item, isRecent: false)
         case .title, nil:
             return
         }

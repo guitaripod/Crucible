@@ -31,11 +31,20 @@ final class TVLibraryViewController: UIViewController {
     private var pendingFocus: IndexPath?
     private let recentCells = NSMapTable<NSString, UICollectionViewCell>(keyOptions: .copyIn, valueOptions: .weakMemory)
     private var hasRevealedContent = false
+    private var hasPassedRevealDeadline = false
+    private var shelfInserted = false
+    private var revealTask: Task<Void, Never>?
+    private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self) { [weak self] item, watched in
+        self?.model.setWatched(ratingKey: item.id, watched: watched)
+    }
+
+    /// How long the grid waits for Recently Watched before it is shown without the shelf.
+    private static let revealDeadline = Duration.milliseconds(1500)
 
     init(env: TVAppEnvironment, section: LibrarySection) {
         self.env = env
         self.section = section
-        model = LibraryGridModel(api: env.api, sectionId: section.id, kind: section.kind)
+        model = LibraryGridModel(api: env.api, sectionId: section.id, kind: section.kind, offersContinueBanner: false)
         collectionView = TVCollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout())
         super.init(nibName: nil, bundle: nil)
         title = section.title
@@ -61,12 +70,20 @@ final class TVLibraryViewController: UIViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        model.appear()
+        startRevealDeadline()
+        model.appear(visibleGridIndex: firstVisibleGridIndex)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        revealTask?.cancel()
         model.disappear()
+    }
+
+    /// The grid position on screen, so a deeply scrolled grid refreshes around it on return.
+    private var firstVisibleGridIndex: Int {
+        guard let grid = dataSource.snapshot().indexOfSection(.grid) else { return 0 }
+        return collectionView.indexPathsForVisibleItems.filter { $0.section == grid }.map(\.item).min() ?? 0
     }
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
@@ -81,7 +98,11 @@ final class TVLibraryViewController: UIViewController {
     /// collection view, so the shelf's cells are tracked as they are configured.
     private func visibleCell(at indexPath: IndexPath) -> UICollectionViewCell? {
         if case .recent(let id) = dataSource.itemIdentifier(for: indexPath) {
-            return recentCells.object(forKey: id as NSString)
+            guard let cell = recentCells.object(forKey: id as NSString),
+                  cell.window != nil,
+                  (cell as? TVCardCell)?.item?.id == id
+            else { return nil }
+            return cell
         }
         return collectionView.cellForItem(at: indexPath)
     }
@@ -150,10 +171,8 @@ final class TVLibraryViewController: UIViewController {
 
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, _ in
-            guard let self else { return nil }
-            let sections = dataSource.snapshot().sectionIdentifiers
-            guard sections.indices.contains(index) else { return nil }
-            switch sections[index] {
+            guard let self, dataSource.snapshot().sectionIdentifiers.indices.contains(index) else { return TVShelf.grid() }
+            switch dataSource.snapshot().sectionIdentifiers[index] {
             case .header:
                 return Self.headerSection()
             case .recents:
@@ -250,10 +269,16 @@ final class TVLibraryViewController: UIViewController {
             updateRail()
         case .contentState:
             applyContentState()
-        case .pageLoaded, .recents:
+        case .pageLoaded:
             revealContentIfReady()
             applyContentState()
             if hasRevealedContent { applySnapshot() }
+        case .recents:
+            revealContentIfReady()
+            applyContentState()
+            guard hasRevealedContent else { break }
+            if !shelfInserted, !isFocusInGrid { shelfInserted = true }
+            applySnapshot()
         case .pageFailed:
             applyContentState()
         case .continueItem:
@@ -268,7 +293,7 @@ final class TVLibraryViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.header])
         snapshot.appendItems([.header], toSection: .header)
-        let recents = model.visibleRecents
+        let recents = shelfInserted ? model.visibleRecents : []
         if !recents.isEmpty {
             snapshot.appendSections([.recents])
             snapshot.appendItems(recents.map { Item.recent($0.id) }, toSection: .recents)
@@ -288,10 +313,42 @@ final class TVLibraryViewController: UIViewController {
     }
 
     /// The first page and the Recently Watched shelf are shown together: a shelf that appeared later would
-    /// push the posters, and the focus on them, down the screen.
+    /// push the posters, and the focus on them, down the screen. A slow history request must not hold the
+    /// grid back, so after `revealDeadline` the grid is shown without the shelf. The shelf then joins only
+    /// while the focus is outside the grid (see `isFocusInGrid`), so nothing moves under the user.
     private func revealContentIfReady() {
-        guard !hasRevealedContent, model.pager.hasLoaded, model.hasLoadedRecents else { return }
+        guard !hasRevealedContent, model.pager.hasLoaded, model.hasLoadedRecents || hasPassedRevealDeadline else { return }
         hasRevealedContent = true
+        shelfInserted = model.hasLoadedRecents
+        revealTask?.cancel()
+    }
+
+    private func startRevealDeadline() {
+        guard !hasRevealedContent else { return }
+        revealTask?.cancel()
+        revealTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.revealDeadline)
+            guard !Task.isCancelled, let self else { return }
+            hasPassedRevealDeadline = true
+            revealContentIfReady()
+            applyContentState()
+            if hasRevealedContent { applySnapshot() }
+        }
+    }
+
+    private func isGrid(_ section: Int?) -> Bool {
+        section.map { dataSource.sectionIdentifier(for: $0) == .grid } ?? false
+    }
+
+    private var isFocusInGrid: Bool {
+        isGrid(TVPlayPauseShortcut.focusedIndexPath(in: collectionView)?.section)
+    }
+
+    /// Adds a shelf that arrived late once the focus has left the grid.
+    private func insertDeferredShelfIfSafe(focusedSection: Int?) {
+        guard hasRevealedContent, !shelfInserted, model.hasLoadedRecents, !model.visibleRecents.isEmpty, !isGrid(focusedSection) else { return }
+        shelfInserted = true
+        Task { [weak self] in self?.applySnapshot() }
     }
 
     private func applyContentState() {
@@ -358,7 +415,7 @@ final class TVLibraryViewController: UIViewController {
     }
 
     private func browseFolders() {
-        let browser = TVFolderBrowserViewController(env: env, source: .section(section.id), title: "Browse Folders")
+        let browser = TVFolderBrowserViewController(env: env, source: .section(section.id), title: "Browse Folders", kind: section.kind)
         navigationController?.pushViewController(browser, animated: true)
     }
 
@@ -379,38 +436,15 @@ final class TVLibraryViewController: UIViewController {
     }
 
     private func playItem(at indexPath: IndexPath) {
-        guard let (item, _) = libraryItem(at: indexPath), item.mediaType != "show" else { return }
-        TVScreens.play(env, request: TVPlaybackRequest(item: item), from: self)
-    }
-
-    private func menu(for item: PlexMetadata, isRecent: Bool) -> UIMenu {
-        let actions = isRecent
-            ? LibraryItemAction.recent(for: item, kind: section.kind)
-            : LibraryItemAction.grid(for: item, kind: section.kind)
-        return UIMenu(libraryActions: actions) { [weak self] action in
-            self?.perform(action, on: item, isRecent: isRecent)
-        }
-    }
-
-    private func perform(_ action: LibraryItemAction, on item: PlexMetadata, isRecent: Bool) {
-        switch action.kind {
-        case .play:
-            TVScreens.play(env, request: TVPlaybackRequest(item: item, resumeSeconds: isRecent ? 0 : nil), from: self)
-        case .setWatched(let watched):
-            model.setWatched(ratingKey: item.id, watched: watched)
-        case .goToShow(let showKey):
-            TVScreens.open(.show(ratingKey: showKey), env: env, on: navigationController)
-        case .viewDetails:
-            TVScreens.open(isRecent ? .media(item) : LibraryDestination(browsing: item), env: env, on: navigationController)
-        }
+        guard let (item, isRecent) = libraryItem(at: indexPath) else { return }
+        actions.play(item, isRecent: isRecent)
     }
 }
 
 extension TVLibraryViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let (item, isRecent) = libraryItem(at: indexPath) else { return }
-        let destination = isRecent ? LibraryDestination(recent: item, kind: section.kind) : LibraryDestination(browsing: item)
-        TVScreens.open(destination, env: env, on: navigationController)
+        actions.select(item, isRecent: isRecent)
     }
 
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
@@ -424,7 +458,7 @@ extension TVLibraryViewController: UICollectionViewDelegate {
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
         guard let indexPath = indexPaths.first, let (item, isRecent) = libraryItem(at: indexPath) else { return nil }
-        return TVContextMenu.configuration(menu: menu(for: item, isRecent: isRecent))
+        return TVContextMenu.configuration(menu: actions.menu(for: item, isRecent: isRecent))
     }
 
     func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
@@ -445,6 +479,7 @@ extension TVLibraryViewController: UICollectionViewDelegate {
         didUpdateFocusIn context: UICollectionViewFocusUpdateContext,
         with coordinator: UIFocusAnimationCoordinator
     ) {
+        insertDeferredShelfIfSafe(focusedSection: context.nextFocusedIndexPath?.section)
         guard let next = context.nextFocusedIndexPath, dataSource.itemIdentifier(for: next) != .header else { return }
         focusMemory.record(context)
         if case .media = dataSource.itemIdentifier(for: next) {
