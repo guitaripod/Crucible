@@ -1,0 +1,398 @@
+import XCTest
+import UIKit
+
+@MainActor
+final class DetailTests: XCTestCase {
+    private static let halcyon = "1001"
+    private static let deepField = "1002"
+    private static let saltRoadEpisode = "4012"
+    private static let saltRoad = "2001"
+
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    func testMovieDetailDark() {
+        let app = openDetail(Self.halcyon, type: "movie", style: "dark")
+        capture("01-movie-primary-focused")
+        XCTAssertEqual(app.buttons["detail.action.primary"].label, "Play Halcyon")
+
+        XCTAssertFalse(app.buttons["detail.synopsis.more"].isHittable, "a short synopsis needs no More")
+        step(app, .down, until: "detail.cast.")
+        capture("04-cast-focused")
+        step(app, .down, until: "detail.related.")
+        capture("05-related-focused")
+        step(app, .down, until: "detail.information")
+        TVTest.settle(0.8)
+        capture("06-information-focused")
+
+        step(app, .up, until: "detail.related.")
+        step(app, .up, until: "detail.cast.")
+        step(app, .up, until: "detail.action.")
+        TVTest.settle(0.8)
+        capture("07-back-at-top")
+    }
+
+    func testMoreOpensTheFullSynopsis() {
+        let app = openDetail("9407", type: "movie", style: "dark")
+        capture("01-long-synopsis-truncated")
+        TVTest.remote.press(.up)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.synopsis.more"))
+        capture("02-more-focused")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.synopsis.close"].waitForExistence(timeout: 5))
+        TVTest.settle(0.8)
+        capture("03-more-modal")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.synopsis.close"))
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.synopsis.more"))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.synopsis.close"].waitForExistence(timeout: 5))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.synopsis.more"), "Close must return focus to More")
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary"))
+    }
+
+    func testPlayAndMarkWatched() {
+        let app = openDetail(Self.halcyon, type: "movie", style: "dark", spy: true)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.alerts["Play \(Self.halcyon)"].waitForExistence(timeout: 5))
+        let message = alertMessage(app)
+        XCTAssertTrue(message.contains("resume=0"), message)
+        XCTAssertTrue(message.contains("audio=10012"), message)
+        XCTAssertTrue(message.contains("subtitle=-"), message)
+        capture("01-play-request")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary"))
+
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.watched"))
+        XCTAssertEqual(app.buttons["detail.action.watched"].label, "Mark Watched")
+        TVTest.remote.press(.select)
+        waitForLabel(app.buttons["detail.action.watched"], "Mark Unwatched")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.watched"), "focus must stay on the toggle")
+        TVTest.settle(0.8)
+        capture("02-marked-watched")
+
+        TVTest.remote.press(.select)
+        waitForLabel(app.buttons["detail.action.watched"], "Mark Watched")
+        capture("03-marked-unwatched-again")
+    }
+
+    func testInProgressMovieAudioAndSubtitles() {
+        let app = openDetail(Self.deepField, type: "movie", style: "dark", spy: true)
+        let primary = app.buttons["detail.action.primary"]
+        XCTAssertTrue(primary.label.hasPrefix("Resume Deep Field"), primary.label)
+        capture("01-resume-start-over")
+
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.startOver"))
+        capture("02-start-over-focused")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.alerts["Play \(Self.deepField)"].waitForExistence(timeout: 5))
+        XCTAssertTrue(alertMessage(app).contains("resume=0"), alertMessage(app))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.startOver"))
+
+        TVTest.remote.press(.right)
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.audio"))
+        capture("03-audio-focused")
+        TVTest.remote.press(.select)
+        TVTest.settle(1.0)
+        capture("04-audio-menu")
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.select)
+        TVTest.settle(0.8)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.audio"))
+        XCTAssertTrue(app.buttons["detail.action.audio"].label.contains("Spanish"), app.buttons["detail.action.audio"].label)
+
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.subtitles"))
+        TVTest.remote.press(.select)
+        TVTest.settle(1.0)
+        capture("05-subtitle-menu")
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.select)
+        TVTest.settle(0.8)
+        XCTAssertTrue(app.buttons["detail.action.subtitles"].label.contains("English"), app.buttons["detail.action.subtitles"].label)
+
+        step(app, .left, until: "detail.action.primary")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.alerts["Play \(Self.deepField)"].waitForExistence(timeout: 5))
+        let message = alertMessage(app)
+        XCTAssertFalse(message.contains("resume=0"), message)
+        XCTAssertTrue(message.contains("audio=10023"), message)
+        XCTAssertFalse(message.contains("subtitle=-"), message)
+        capture("06-play-with-picks")
+    }
+
+    func testEpisodeDetailAndNavigation() {
+        let app = openDetail(Self.saltRoadEpisode, type: "episode", style: "dark", spy: true)
+        capture("01-episode-primary-focused")
+        for identifier in ["startOver", "watched", "audio", "subtitles", "goToShow", "nextEpisode"] {
+            TVTest.remote.press(.right)
+            XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.\(identifier)"), identifier)
+        }
+        capture("02-next-episode-focused")
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.staticTexts["Undertow"].waitForExistence(timeout: 10))
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary"))
+        TVTest.settle(1.0)
+        capture("03-next-episode-opened")
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.nextEpisode"), "focus must return to Next Episode")
+        TVTest.settle(0.5)
+        capture("04-back-restores-focus")
+
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.goToShow"))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["detail.action.primary"].label.hasPrefix("Resume The Salt Road"), app.buttons["detail.action.primary"].label)
+        TVTest.settle(1.0)
+        capture("05-go-to-show")
+    }
+
+    func testMashingDirectionsKeepsFocusOnTheScreen() {
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        let moves: [XCUIRemote.Button] = [.down, .right, .right, .down, .down, .left, .up, .up, .right, .down, .down, .down, .up, .left, .left]
+        for move in moves {
+            TVTest.remote.press(move)
+        }
+        TVTest.settle(1.5)
+        let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
+        XCTAssertTrue(focused.exists)
+        XCTAssertTrue(focused.identifier.hasPrefix("detail.") || focused.identifier.hasPrefix("tv.chip."), "focus escaped to \(focused.identifier)")
+        capture("01-after-mashing")
+    }
+
+    func testShowDetailDark() {
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        XCTAssertTrue(app.buttons["detail.action.primary"].label.hasPrefix("Resume The Salt Road, season 2 episode 4"), app.buttons["detail.action.primary"].label)
+        capture("01-show-primary-focused")
+
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.watched"))
+        TVTest.remote.press(.select)
+        TVTest.settle(1.0)
+        capture("02-mark-watched-menu")
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.watched"))
+
+        step(app, .down, until: "tv.chip.")
+        capture("03-season-chips-focused")
+        TVTest.remote.press(.right)
+        TVTest.settle(0.6)
+        capture("04-season-3-focused-not-selected")
+        TVTest.remote.press(.select)
+        TVTest.settle(1.5)
+        capture("05-season-3-selected")
+
+        step(app, .down, until: "detail.episode.")
+        TVTest.settle(0.8)
+        capture("06-episode-focused")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.alerts.firstMatch.label.hasPrefix("Play "), app.alerts.firstMatch.label)
+        capture("07-episode-play-request")
+        TVTest.remote.press(.select)
+
+        step(app, .down, until: "detail.cast.")
+        capture("08-cast-focused")
+        step(app, .down, until: "detail.related.")
+        capture("09-related-focused")
+    }
+
+    func testEpisodeContextMenuAndFocusRestore() {
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        step(app, .down, until: "tv.chip.")
+        step(app, .down, until: "detail.episode.")
+        TVTest.remote.press(.right)
+        TVTest.settle(0.6)
+        let focused = focusedEpisodeIdentifier(app)
+        XCTAssertNotNil(focused)
+        TVTest.remote.longPress(.select, duration: 1.6)
+        TVTest.settle(1.0)
+        capture("01-episode-menu")
+        XCTAssertTrue(app.descendants(matching: .any)["Episode Details"].waitForExistence(timeout: 3), "context menu did not appear")
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: 10))
+        TVTest.settle(1.0)
+        capture("02-episode-details-opened")
+        TVTest.remote.press(.menu)
+        if let focused {
+            XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: focused), "focus must return to \(focused)")
+        }
+        TVTest.settle(0.5)
+        capture("03-back-restores-episode-focus")
+    }
+
+    func testPlayPauseOnEpisodePlays() {
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        step(app, .down, until: "tv.chip.")
+        step(app, .down, until: "detail.episode.")
+        TVTest.remote.press(.playPause)
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.alerts.firstMatch.label.hasPrefix("Play "))
+    }
+
+    func testLoadingSkeletonThenContent() {
+        let app = openDetail("9406", type: "movie", style: "dark", waitForContent: false)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.loading"].waitForExistence(timeout: 5))
+        TVTest.settle(0.5)
+        capture("01-skeleton")
+        enterContent(app, timeout: 40)
+        capture("02-loaded")
+    }
+
+    func testErrorThenRetryRecovers() {
+        resetMock()
+        let app = openDetail("9405", type: "movie", style: "dark", waitForContent: false)
+        let retry = app.buttons["Retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 15))
+        TVTest.settle(0.8)
+        capture("01-error")
+        TVTest.remote.press(.down)
+        XCTAssertTrue(waitFocus(app.buttons["Retry"]))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary", timeout: 20))
+        TVTest.settle(1.0)
+        capture("02-recovered")
+    }
+
+    func testPermanentErrorKeepsOfferingRetry() {
+        let app = openDetail("9404", type: "movie", style: "dark", waitForContent: false)
+        XCTAssertTrue(app.buttons["Retry"].waitForExistence(timeout: 15))
+        TVTest.remote.press(.down)
+        XCTAssertTrue(waitFocus(app.buttons["Retry"]))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(waitFocus(app.buttons["Retry"], timeout: 20))
+        TVTest.settle(0.8)
+        capture("01-error-after-retry")
+    }
+
+    func testNotAvailable() {
+        let app = openDetail("9410", type: "movie", style: "dark", waitForContent: false)
+        let back = app.buttons["Go Back"]
+        XCTAssertTrue(back.waitForExistence(timeout: 15))
+        TVTest.settle(0.8)
+        capture("01-not-available")
+        TVTest.remote.press(.down)
+        XCTAssertTrue(waitFocus(app.buttons["Go Back"]))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 10))
+    }
+
+    func testMovieDetailLight() {
+        let app = openDetail(Self.deepField, type: "movie", style: "light")
+        capture("01-light-movie-primary")
+        step(app, .down, until: "detail.cast.")
+        capture("02-light-cast")
+        step(app, .down, until: "detail.information")
+        TVTest.settle(0.8)
+        capture("03-light-information")
+    }
+
+    func testShowDetailLight() {
+        let app = openDetail(Self.saltRoad, type: "show", style: "light")
+        capture("01-light-show-primary")
+        step(app, .down, until: "tv.chip.")
+        capture("02-light-chips")
+        step(app, .down, until: "detail.episode.")
+        TVTest.settle(0.8)
+        capture("03-light-episodes")
+    }
+
+    private func openDetail(
+        _ ratingKey: String,
+        type: String,
+        style: String,
+        spy: Bool = false,
+        waitForContent: Bool = true
+    ) -> XCUIApplication {
+        var environment = ["CRUCIBLE_STYLE": style]
+        if spy { environment["CRUCIBLE_DETAIL_SPY"] = "1" }
+        let app = TVTest.launch(extraEnvironment: environment)
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
+        TVTest.settle()
+        openFromOutside("crucible://item/\(ratingKey)?type=\(type)")
+        if waitForContent { enterContent(app) }
+        return app
+    }
+
+    /// A link that opens a screen leaves focus on the tab bar, so the first Down enters the content.
+    private func enterContent(_ app: XCUIApplication, timeout: TimeInterval = 20) {
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: timeout), "detail never appeared")
+        TVTest.settle(1.0)
+        if !TVTest.waitForFocus(on: app, identifier: "detail.action.primary", timeout: 2) {
+            TVTest.remote.press(.down)
+        }
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary", timeout: 10), "primary action never took focus")
+        TVTest.settle(1.0)
+    }
+
+    private func openFromOutside(_ link: String) {
+        let url = URL(string: link)!
+        Task { _ = await UIApplication.shared.open(url) }
+        let prompt = XCUIApplication(bundleIdentifier: "com.apple.PineBoard").buttons["Open"]
+        for _ in 0 ..< 8 {
+            if prompt.exists {
+                TVTest.remote.press(.select)
+                break
+            }
+            TVTest.settle(0.5)
+        }
+        TVTest.settle(0.5)
+    }
+
+    private func resetMock() {
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + "/mock/detail-reset") else { return }
+        let done = expectation(description: "mock reset")
+        URLSession.shared.dataTask(with: url) { _, _, _ in done.fulfill() }.resume()
+        wait(for: [done], timeout: 10)
+    }
+
+    private func step(_ app: XCUIApplication, _ button: XCUIRemote.Button, until prefix: String, limit: Int = 12) {
+        for _ in 0 ..< limit {
+            if focusedIdentifier(app, prefix: prefix) != nil { return }
+            TVTest.remote.press(button)
+            TVTest.settle(0.4)
+        }
+        XCTAssertNotNil(focusedIdentifier(app, prefix: prefix), "focus never reached \(prefix)")
+    }
+
+    private func focusedIdentifier(_ app: XCUIApplication, prefix: String) -> String? {
+        let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true AND identifier BEGINSWITH %@", prefix)).firstMatch
+        return focused.exists ? focused.identifier : nil
+    }
+
+    private func focusedEpisodeIdentifier(_ app: XCUIApplication) -> String? {
+        focusedIdentifier(app, prefix: "detail.episode.")
+    }
+
+    private func alertMessage(_ app: XCUIApplication) -> String {
+        let texts = app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label)
+        return texts.joined(separator: " ")
+    }
+
+    private func waitFocus(_ element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasFocus == true"), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    private func waitForLabel(_ element: XCUIElement, _ label: String, timeout: TimeInterval = 10) {
+        let predicate = NSPredicate(format: "label == %@", label)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: timeout), .completed, "label never became \(label), is \(element.label)")
+    }
+
+    private func capture(_ name: String) {
+        TVTest.capture(name, in: self)
+    }
+}
