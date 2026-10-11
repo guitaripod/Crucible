@@ -34,6 +34,20 @@ final class TVRouter {
               let link = URL(string: text).flatMap(DeepLink.init(url:)) else { return }
         Self.launchLinkConsumed = true
         pending = link
+        scheduleLaterLaunchLink()
+    }
+
+    /// `CRUCIBLE_OPEN_LINK_LATER=<seconds>:<url>` delivers a second link that long after launch, to
+    /// exercise links that arrive while something is already on screen.
+    private func scheduleLaterLaunchLink() {
+        guard let text = ProcessInfo.processInfo.environment["CRUCIBLE_OPEN_LINK_LATER"],
+              let colon = text.firstIndex(of: ":"),
+              let seconds = Double(text[..<colon]),
+              let link = URL(string: String(text[text.index(after: colon)...])).flatMap(DeepLink.init(url:)) else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            self?.handle(link)
+        }
     }
     #endif
 
@@ -149,6 +163,13 @@ final class TVRouter {
             action()
             return
         }
-        tabBar.dismiss(animated: false) { action() }
+        Task {
+            await TVPlayerCoordinator.endActive()
+            guard tabBar.presentedViewController != nil else {
+                action()
+                return
+            }
+            tabBar.dismiss(animated: false) { action() }
+        }
     }
 }

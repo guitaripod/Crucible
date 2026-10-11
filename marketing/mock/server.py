@@ -1,3 +1,4 @@
+import collections
 import json
 import os
 import random
@@ -27,7 +28,10 @@ FLAGS = {
     "fail_parts": os.environ.get("MOCK_FAIL_PARTS") == "1",
     "fail_transcode": os.environ.get("MOCK_FAIL_TRANSCODE") == "1",
     "clip_markers": os.environ.get("MOCK_CLIP_MARKERS") == "1",
+    "fail_metadata_once": os.environ.get("MOCK_FAIL_METADATA_ONCE", ""),
+    "no_credits": os.environ.get("MOCK_NO_CREDITS") == "1",
 }
+REQUEST_LOG = collections.deque(maxlen=3000)
 HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4"}
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
@@ -314,6 +318,7 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "Plex Media Server"
 
     def log_message(self, fmt, *args):
+        REQUEST_LOG.append("%s %s" % (self.command, self.path))
         sys.stderr.write("%s %s\n" % (self.command, self.path))
 
     def send_json(self, payload, status=200):
@@ -480,6 +485,9 @@ class Handler(BaseHTTPRequestHandler):
                 if mode == "fail":
                     return self.not_found()
                 time.sleep(seconds)
+            if sub is None and FLAGS["fail_metadata_once"] == rk:
+                FLAGS["fail_metadata_once"] = ""
+                return self.send_json(container(size=0, error="mock metadata failure"), 404)
             if sub is None and rk in (DETAIL_ERROR_KEY, DETAIL_GONE_KEY, DETAIL_FLAKY_KEY, DETAIL_SLOW_KEY, DETAIL_LONG_KEY):
                 return self.detail_fault(rk)
             with LOCK:
@@ -670,12 +678,21 @@ class Handler(BaseHTTPRequestHandler):
                     else:
                         OVERRIDES[name] = values[0]
             return self.send_json(OVERRIDES)
+        if p == "/mock/log":
+            needle = (q.get("q") or [""])[0]
+            return self.send_json([line for line in list(REQUEST_LOG) if needle in line])
         if p == "/mock/flags":
             for name in FLAGS:
                 if name in q:
                     value = q[name][0]
-                    FLAGS[name] = int(value) if name == "latency_ms" else value == "1"
+                    if name == "latency_ms":
+                        FLAGS[name] = int(value)
+                    elif name == "fail_metadata_once":
+                        FLAGS[name] = "" if value == "0" else value
+                    else:
+                        FLAGS[name] = value == "1"
             library.CLIP_MARKERS = FLAGS["clip_markers"]
+            library.NO_CREDITS = FLAGS["no_credits"]
             return self.send_json(FLAGS)
         if p == "/mock/plextv-config":
             with LOCK:

@@ -20,6 +20,7 @@ SERVER_NAME = "Marcus-PC"
 CLIP_DURATION_MS = 150000
 CLIP_CREDITS_START_MS = 110000
 CLIP_MARKERS = False
+NO_CREDITS = False
 
 FIRST = ["Maren", "Idris", "Tove", "Sam", "Ana", "Tom", "Kasia", "Joel", "Imara", "Luca", "Nia", "Oskar", "Priya", "Dante",
          "Elin", "Rafi", "Wren", "Mateo", "Sana", "Bram", "Linnea", "Kofi", "Ines", "Callum", "Yara", "Teo", "Hanne", "Dario",
@@ -603,7 +604,8 @@ class Library:
                 out["Role"] = self._roles(show["_cast"][:4])
             if "_media" in it:
                 out["Media"] = it["_media"]
-                out["Marker"] = clip_markers(it["_markers"]) if CLIP_MARKERS else it["_markers"]
+                markers = clip_markers(it["_markers"]) if CLIP_MARKERS else it["_markers"]
+                out["Marker"] = [m for m in markers if m["type"] != "credits"] if NO_CREDITS else markers
             if "_related" in it:
                 rel = [self.render(self.items[r]) for r in it["_related"]]
                 label = "Related Movies" if it["type"] == "movie" else "Related Shows"

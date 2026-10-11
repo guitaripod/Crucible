@@ -7,19 +7,36 @@ import UIKit
 extension TVPlayerCoordinator {
     /// Looks up the next episode ahead of time and hands it to the player as a content proposal that
     /// the system presents, as our Up Next card, when the credits begin or at the end of an item
-    /// without credits.
+    /// without credits. The card is installed as soon as the episode is known; its frame arrives
+    /// whenever the image does.
     func prepareUpNext(for session: PlaybackSession) {
         upNextTask?.cancel()
         upNextTask = Task { [weak self] in
             guard let offer = await session.nextEpisodeOffer(), !Task.isCancelled else { return }
+            guard let self, session === self.session else { return }
+            installUpNext(offer, hasCredits: session.creditsStartSecs != nil, session: session)
             let preview = await Self.loadPreview(for: offer.episode)
-            guard let self, !Task.isCancelled, session === self.session else { return }
-            AppLogger.notice("Up Next prepared: \(offer.episode.id) credits=\(String(describing: session.creditsStartSecs)) offset=\(session.streamOffset)", .playback)
-            upNextOffer = offer
-            upNextPreview = preview
-            playerVC.contentProposalViewController = TVUpNextViewController(offer: offer, preview: preview)
-            session.player?.currentItem?.nextContentProposal = makeProposal()
+            guard !Task.isCancelled, session === self.session, let preview else { return }
+            showPreview(preview, on: session)
         }
+    }
+
+    private func installUpNext(_ offer: UpNextOffer, hasCredits: Bool, session: PlaybackSession) {
+        AppLogger.notice("Up Next prepared: \(offer.episode.id) credits=\(String(describing: session.creditsStartSecs)) offset=\(session.streamOffset)", .playback)
+        upNextOffer = offer
+        let card = TVUpNextViewController(offer: offer, hasCredits: hasCredits)
+        card.onDeferred = { [weak self] in self?.upNextCardWasDeferred() }
+        card.isAtEndOfItem = { [weak self] in self?.isItemNearEnd ?? false }
+        upNextCard = card
+        playerVC.contentProposalViewController = card
+        session.player?.currentItem?.nextContentProposal = makeProposal()
+    }
+
+    private func showPreview(_ preview: UIImage, on session: PlaybackSession) {
+        upNextPreview = preview
+        upNextCard?.setPreview(preview)
+        guard !isUpNextCardVisible else { return }
+        session.player?.currentItem?.nextContentProposal = makeProposal()
     }
 
     private static func loadPreview(for episode: PlexMetadata) async -> UIImage? {
@@ -32,17 +49,48 @@ extension TVPlayerCoordinator {
         let transition = session.creditsStartSecs.map {
             CMTime(seconds: max(0, $0 - session.streamOffset), preferredTimescale: 600)
         } ?? .indefinite
-        let proposal = AVContentProposal(
+        return AVContentProposal(
             contentTimeForTransition: transition,
             title: Self.title(of: offer.episode),
             previewImage: upNextPreview
         )
-        proposal.automaticAcceptanceInterval = .nan
-        return proposal
     }
 
     private static func title(of episode: PlexMetadata) -> String {
         [Formatters.episodeCode(episode.parentIndex, episode.index), episode.title].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private var isItemNearEnd: Bool {
+        guard let item = session?.player?.currentItem else { return false }
+        let duration = item.duration.seconds
+        return duration.isFinite && item.currentTime().seconds >= duration - 2
+    }
+
+    private func upNextCardWasDeferred() {
+        isUpNextCardVisible = false
+        session?.setUpNextVisible(false)
+    }
+
+    /// The engine's own Up Next answers. The card handles the credits; the answer for the end of the
+    /// item is the safety net for when no card is on screen (the viewer chose to watch the credits, or
+    /// the card never came): play the next episode with autoplay, otherwise close the player.
+    func handle(_ offer: UpNextOffer) {
+        switch offer.reason {
+        case .requested:
+            advance(to: offer)
+        case .credits:
+            break
+        case .playbackEnded:
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard let self, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
+                if offer.autoplays {
+                    advance(to: offer)
+                } else {
+                    await finish(animated: true)
+                }
+            }
+        }
     }
 
     func playerViewController(
@@ -51,6 +99,7 @@ extension TVPlayerCoordinator {
     ) -> Bool {
         guard !isFinishing else { return false }
         AppLogger.notice("Up Next proposal presented for ratingKey=\(request.ratingKey)", .playback)
+        isUpNextCardVisible = true
         session?.setUpNextVisible(true)
         clearContextualActions()
         return true
@@ -68,6 +117,7 @@ extension TVPlayerCoordinator {
         _ playerViewController: AVPlayerViewController,
         didReject proposal: AVContentProposal
     ) {
-        Task { await finish(dismiss: false) }
+        isUpNextCardVisible = false
+        Task { await finish(animated: false) }
     }
 }

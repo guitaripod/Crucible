@@ -3,30 +3,47 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// The Up Next card the system player presents over the video when the credits begin: the next
-/// episode's frame, number and title with Play Now and Dismiss. With autoplay on it counts down and
-/// plays on its own. Play Now accepts the proposal, Dismiss rejects it (which ends the player) and
-/// Menu defers it, which keeps the credits playing. It always renders dark, like the rest of a
-/// video overlay, so its white text stays legible over the picture in either system appearance.
+/// The Up Next card the system player presents over the video when the credits begin (or when the
+/// item ends, if it has no credits marker): the next episode's frame, number and title with Play
+/// Now and a second button. During credits that button is Watch Credits, which defers the proposal
+/// so the credits keep playing, and Menu does the same; without credits it is Close, which rejects
+/// the proposal and ends the player. With autoplay on and VoiceOver off the card counts down and
+/// plays on its own. It always renders dark, like the rest of a video overlay, so its white text
+/// stays legible over the picture in either system appearance.
 @MainActor
 final class TVUpNextViewController: AVContentProposalViewController {
+    var onDeferred: (() -> Void)?
+    var isAtEndOfItem: (() -> Bool)?
+
     private let episode: PlexMetadata
-    private let preview: UIImage?
     private let autoplays: Bool
+    private let hasCredits: Bool
     private let countdownLabel = UILabel()
+    private let thumb = UIImageView()
     private var countdownTask: Task<Void, Never>?
     private var remaining = UpNextOffer.countdownSeconds
     private var playButton: UIButton?
+    private var leaveButton: UIButton?
 
-    init(offer: UpNextOffer, preview: UIImage?) {
+    init(offer: UpNextOffer, hasCredits: Bool) {
         episode = offer.episode
         autoplays = offer.autoplays
-        self.preview = preview
+        self.hasCredits = hasCredits
         super.init(nibName: nil, bundle: nil)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Counts down only when autoplay is on and VoiceOver is off: a countdown the viewer cannot see
+    /// must not start the next episode under them.
+    private var isCounting: Bool { autoplays && !UIAccessibility.isVoiceOverRunning }
+
+    private var animatesDismissal: Bool { !UIAccessibility.isReduceMotionEnabled }
+
+    func setPreview(_ image: UIImage) {
+        thumb.image = image
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -36,8 +53,14 @@ final class TVUpNextViewController: AVContentProposalViewController {
         buildCard()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        refreshLeaveButton()
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        announce()
         startCountdown()
     }
 
@@ -52,11 +75,44 @@ final class TVUpNextViewController: AVContentProposalViewController {
             super.pressesBegan(presses, with: event)
             return
         }
-        dismissContentProposal(for: .defer, animated: true, completion: nil)
+        leaveCard()
     }
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
         playButton.map { [$0] } ?? super.preferredFocusEnvironments
+    }
+
+    private var code: String? { Formatters.episodeCode(episode.parentIndex, episode.index) }
+
+    /// Whether leaving the card lets the credits play on: only while they are still playing. Deferring
+    /// a card that appears at the end of the item would replay it, so there leaving closes the player.
+    private var leavingKeepsPlaying: Bool {
+        hasCredits && !(isAtEndOfItem?() ?? false)
+    }
+
+    private func refreshLeaveButton() {
+        let keeps = leavingKeepsPlaying
+        leaveButton?.configuration?.title = keeps ? "Watch Credits" : "Close"
+        leaveButton?.accessibilityLabel = keeps ? "Watch Credits" : "Close"
+        leaveButton?.accessibilityHint = keeps ? "Closes this card and keeps the credits playing" : "Ends playback"
+    }
+
+    /// Defers during credits so they keep playing, rejects (ending the player) when there are none.
+    private func leaveCard() {
+        if leavingKeepsPlaying {
+            onDeferred?()
+            dismissContentProposal(for: .defer, animated: animatesDismissal, completion: nil)
+        } else {
+            dismissContentProposal(for: .reject, animated: animatesDismissal, completion: nil)
+        }
+    }
+
+    private func announce() {
+        let seconds = autoplays ? UpNextOffer.countdownSeconds : nil
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: UpNextText.announcement(code: code, title: episode.title, seconds: seconds)
+        )
     }
 
     private func buildCard() {
@@ -79,18 +135,22 @@ final class TVUpNextViewController: AVContentProposalViewController {
 
         countdownLabel.font = Theme.Font.callout
         countdownLabel.textColor = Theme.Color.onArtSecondary
+        countdownLabel.accessibilityTraits = .updatesFrequently
         updateSecondaryText()
 
-        let dismiss = TVButton.make(.glass, title: "Dismiss") { [weak self] in
-            self?.dismissContentProposal(for: .reject, animated: true, completion: nil)
+        let leave = TVButton.make(.glass, title: "Close") { [weak self] in
+            self?.leaveCard()
         }
+        leaveButton = leave
+        refreshLeaveButton()
         let play = TVButton.make(.primary, title: "Play Now", symbol: "play.fill") { [weak self] in
-            self?.dismissContentProposal(for: .accept, animated: true, completion: nil)
+            guard let self else { return }
+            dismissContentProposal(for: .accept, animated: animatesDismissal, completion: nil)
         }
         play.accessibilityIdentifier = "player.upNext.play"
-        dismiss.accessibilityIdentifier = "player.upNext.dismiss"
+        leave.accessibilityIdentifier = "player.upNext.leave"
         playButton = play
-        let buttons = UIStackView(arrangedSubviews: [dismiss, play])
+        let buttons = UIStackView(arrangedSubviews: [leave, play])
         buttons.axis = .horizontal
         buttons.spacing = Theme.Space.m
 
@@ -120,7 +180,6 @@ final class TVUpNextViewController: AVContentProposalViewController {
     }
 
     private func makeThumb() -> UIView {
-        let thumb = UIImageView(image: preview)
         thumb.contentMode = .scaleAspectFill
         thumb.backgroundColor = Theme.Color.surfaceHigh
         thumb.layer.cornerRadius = Theme.Radius.m
@@ -135,18 +194,14 @@ final class TVUpNextViewController: AVContentProposalViewController {
         return thumb
     }
 
-    private func secondaryText() -> String {
-        let code = Formatters.episodeCode(episode.parentIndex, episode.index)
-        let status = autoplays ? "Playing in \(remaining) s" : "Next episode"
-        return [code, status].compactMap { $0 }.joined(separator: " · ")
-    }
-
     private func updateSecondaryText() {
-        countdownLabel.text = secondaryText()
+        countdownLabel.text = UpNextText.secondary(code: code, remaining: remaining, counting: isCounting)
+        countdownLabel.accessibilityLabel = UpNextText.spokenSecondary(code: code, remaining: remaining, counting: isCounting)
     }
 
     private func startCountdown() {
-        guard autoplays, countdownTask == nil else { return }
+        updateSecondaryText()
+        guard isCounting, countdownTask == nil else { return }
         remaining = UpNextOffer.countdownSeconds
         countdownTask = Task { [weak self] in
             while let self, self.remaining > 0 {
@@ -154,7 +209,8 @@ final class TVUpNextViewController: AVContentProposalViewController {
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
                 self.remaining -= 1
             }
-            self?.dismissContentProposal(for: .accept, animated: true, completion: nil)
+            guard let self else { return }
+            dismissContentProposal(for: .accept, animated: animatesDismissal, completion: nil)
         }
     }
 }

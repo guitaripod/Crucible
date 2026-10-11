@@ -27,6 +27,10 @@ Runtime switches for player tests, read from `MOCK_*` environment variables at s
 - `clip_markers=1` (`MOCK_CLIP_MARKERS`): moves every credits marker to 110 s so the 150 s clip reaches it (intro markers at 12 to 58 s already fit).
 - `fail_parts=1` (`MOCK_FAIL_PARTS`): direct-play part URLs answer 500, which forces the direct-play to transcode fallback.
 - `fail_transcode=1` (`MOCK_FAIL_TRANSCODE`): `start.m3u8` answers 500, so a failed fallback reaches the error state.
+- `no_credits=1` (`MOCK_NO_CREDITS`): drops the credits markers, so Up Next comes from the end of the item.
 - `latency_ms=N` (`MOCK_LATENCY_MS`): delays every non-`/mock/` response.
+- `fail_metadata_once=<ratingKey>` (`MOCK_FAIL_METADATA_ONCE`): the next single-item `/library/metadata/<ratingKey>` request answers 404 (a 5xx would be retried by the app's own client), then the flag clears itself (a resolve that fails once, then succeeds on Retry); `0` clears it.
+
+`GET /mock/log?q=<text>` returns the last 3000 request lines containing `<text>` as a JSON array (`GET /:/timeline?...`), so a UI test can assert which timeline states, transcode starts or pings reached the server.
 
 `./make_hls.sh` cuts `assets/clip.mp4` into `assets/hls` (fMP4, 6 s segments). Once it exists, `/video/:/transcode/universal/start.m3u8` serves that playlist whatever the `offset`, so transcode playback, restarts and pings can be exercised; without it the endpoint answers an empty 200. Every request is logged to stderr, so `/:/timeline`, `ping` and `stop` calls can be checked in the server log.

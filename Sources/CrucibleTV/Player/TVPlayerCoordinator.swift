@@ -14,13 +14,22 @@ import UIKit
 final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
     private static var active: TVPlayerCoordinator?
 
+    private static let stopGrace: Duration = .seconds(3)
+
     static func start(api: APIClient, request: PlaybackRequest, from presenter: UIViewController) {
         if let previous = active {
-            Task { await previous.finish(dismiss: false) }
+            Task { await previous.finish(animated: false) }
         }
         let coordinator = TVPlayerCoordinator(api: api, request: request)
         active = coordinator
         coordinator.present(from: presenter)
+    }
+
+    /// Ends the playback on screen, if any, and waits until its session has stopped and it is off
+    /// screen, so a caller that is about to show something else never leaves a session running.
+    static func endActive() async {
+        guard let active else { return }
+        await active.finish(animated: false)
     }
 
     let api: APIClient
@@ -33,14 +42,18 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var prepareTask: Task<Void, Never>?
     var metadataTask: Task<Void, Never>?
     var upNextTask: Task<Void, Never>?
+    var stopTask: Task<Void, Never>?
+    var lifecycleObservers: [any NSObjectProtocol] = []
     var infoItems: [AVMetadataItem] = []
     var upNextOffer: UpNextOffer?
     var upNextPreview: UIImage?
+    var upNextCard: TVUpNextViewController?
     var shownMarker: SkipMarker?
     var isFinishing = false
     var isAdvancing = false
     var isShowingAlert = false
     var isRevealing = false
+    var isUpNextCardVisible = false
     var pendingFailure: (message: String, retry: @MainActor () -> Void)?
 
     private init(api: APIClient, request: PlaybackRequest) {
@@ -51,6 +64,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     private func present(from presenter: UIViewController) {
         configurePlayerController()
+        observeLifecycle()
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
         rootPresenter = top
@@ -69,16 +83,16 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     func startSession() {
         AppLogger.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", .playback)
         isAdvancing = false
-        let session = PlaybackSession(api: api, request: request)
+        let session = PlaybackSession(api: api, request: request, installsRemoteCommands: false)
         session.configureItem = { [weak self] item in self?.configure(item: item) }
         self.session = session
-        showPreroll()
+        if preroll?.presentingViewController == nil { showPreroll() }
         loadInfo()
         prepareTask = Task { [weak self] in
-            #if DEBUG
-            await Self.holdForUITests()
-            #endif
             do {
+                #if DEBUG
+                try await self?.prepareForUITests()
+                #endif
                 _ = try await session.prepare()
             } catch {
                 guard !Task.isCancelled else { return }
@@ -89,21 +103,30 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         }
     }
 
-    /// Puts the pre-roll on screen: over the presenting screen for the first start, over the
-    /// player when the next episode or a retry starts inside an open player.
     #if DEBUG
-    /// UI tests keep the pre-roll up by naming a number of seconds in `CRUCIBLE_PLAYER_HOLD`.
-    private static func holdForUITests() async {
-        guard let text = ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_HOLD"], let seconds = Double(text) else { return }
-        try? await Task.sleep(for: .seconds(seconds))
+    private static var failedResolves: Set<String> = []
+
+    /// UI tests keep the pre-roll up by naming a number of seconds in `CRUCIBLE_PLAYER_HOLD`, and make
+    /// the first resolve of the item named by `CRUCIBLE_PLAYER_FAIL_RESOLVE_ONCE` fail, so Retry runs
+    /// the same path as after a real server error without racing the app's other metadata requests.
+    private func prepareForUITests() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        if let text = environment["CRUCIBLE_PLAYER_HOLD"], let seconds = Double(text) {
+            try? await Task.sleep(for: .seconds(seconds))
+        }
+        let key = request.ratingKey
+        guard environment["CRUCIBLE_PLAYER_FAIL_RESOLVE_ONCE"] == key, Self.failedResolves.insert(key).inserted else { return }
+        throw URLError(.cannotConnectToHost)
     }
     #endif
 
+    /// Puts the pre-roll on screen: over the presenting screen for the first start, over the
+    /// player when the next episode or a retry starts inside an open player.
     private func showPreroll() {
         let headline = TVPlayerMetadata.headline(for: request.metadata)
         let preroll = TVPlayerPrerollViewController(title: headline.title, subtitle: headline.subtitle)
         preroll.onClose = { [weak self] in
-            Task { await self?.finish(dismiss: true) }
+            Task { await self?.finish(animated: true) }
         }
         self.preroll = preroll
         if playerVC.presentingViewController != nil {
@@ -134,7 +157,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         if playerVC.presentingViewController == nil, let host = preroll.presentingViewController {
             preroll.suppressCloseReport()
             isRevealing = true
-            host.dismiss(animated: false) { [playerVC] in
+            host.dismiss(animated: false) { [weak self, playerVC] in
+                guard let self, !isFinishing else { return }
                 host.present(playerVC, animated: false) { [weak self] in
                     self?.playerRevealed()
                 }
@@ -145,7 +169,10 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     }
 
     private func attach(_ session: PlaybackSession) {
-        guard !isFinishing, session === self.session else { return }
+        guard !isFinishing, session === self.session else {
+            session.discard()
+            return
+        }
         guard let player = session.begin() else {
             presentFailure("Playback could not start.", retry: { [weak self] in self?.startSession() })
             return
@@ -179,11 +206,11 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         case .autoSkipped(_, let returnTo):
             showUndo(returningTo: returnTo)
         case .upNext(let offer):
-            if offer.reason == .requested { advance(to: offer) }
+            handle(offer)
         case .failed(let message):
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
         case .finished:
-            Task { await finish(dismiss: true) }
+            Task { await finish(animated: true) }
         }
     }
 
@@ -233,14 +260,22 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         })
         alert.addAction(UIAlertAction(title: "Close", style: .cancel) { [weak self] _ in
             self?.isShowingAlert = false
-            Task { await self?.finish(dismiss: true) }
+            Task { await self?.finish(animated: true) }
         })
         topmost(from: rootPresenter ?? playerVC).present(alert, animated: true)
     }
 
     private func retryFromPlayhead() {
         let position = session?.absolutePosition ?? request.resumePosition
-        request = request.resuming(at: position)
+        if let session {
+            request = request.resuming(
+                at: position,
+                selectedSubtitleId: .some(session.selectedSubtitleId),
+                selectedAudioStreamId: .some(session.selectedAudioStreamId)
+            )
+        } else {
+            request = request.resuming(at: position)
+        }
         restartSession()
     }
 
@@ -248,15 +283,19 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     func restartSession() {
         let old = session
         resetPresentationState()
+        let stop = Task { _ = await old?.stop() }
+        stopTask = stop
         prepareTask = Task { [weak self] in
-            await old?.stop()
-            self?.startSession()
+            await stop.value
+            guard let self, !isFinishing, !Task.isCancelled else { return }
+            startSession()
         }
     }
 
     func advance(to offer: UpNextOffer) {
         guard !isAdvancing, !isFinishing else { return }
         isAdvancing = true
+        isUpNextCardVisible = false
         request = offer.nextRequest(showRatingKey: request.showRatingKey)
         restartSession()
     }
@@ -272,22 +311,43 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         infoItems = []
         upNextOffer = nil
         upNextPreview = nil
+        upNextCard = nil
+        isUpNextCardVisible = false
     }
 
-    /// Stops the engine (final timeline report, transcode, cache invalidation) and, unless the
-    /// system is already dismissing the player, dismisses it once that has finished so the screen
-    /// underneath reloads fresh watched state. Then refreshes the Top Shelf so Continue Watching
-    /// reflects what was just played.
-    func finish(dismiss: Bool) async {
+    /// Pauses at once, stops the engine (final timeline report, transcode, cache invalidation) and, if
+    /// this is still the playback on screen, dismisses it so the screen underneath reloads fresh
+    /// watched state. A slow or unreachable server cannot hold the viewer on a black screen: the
+    /// wait for the stop is bounded and the stop finishes in the background. Then the Top Shelf is
+    /// refreshed so Continue Watching reflects what was just played.
+    func finish(animated: Bool) async {
         guard !isFinishing else { return }
         isFinishing = true
-        AppLogger.notice("Playback finishing ratingKey=\(request.ratingKey) dismiss=\(dismiss)", .playback)
+        AppLogger.notice("Playback finishing ratingKey=\(request.ratingKey) animated=\(animated)", .playback)
+        session?.player?.pause()
+        stopObservingLifecycle()
         let session = self.session
+        let earlier = stopTask
         resetPresentationState()
-        await session?.stop()
-        dismissEverything(animated: dismiss)
-        if Self.active === self { Self.active = nil }
+        let stop = Task {
+            await earlier?.value
+            _ = await session?.stop()
+        }
+        stopTask = stop
+        await waitForStop(stop)
+        if Self.active === self {
+            dismissEverything(animated: animated)
+            Self.active = nil
+        }
         TVTopShelfRefresher.refresh()
+    }
+
+    private func waitForStop(_ stop: Task<Void, Never>) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let gate = ResumeGate(continuation)
+            Task { await stop.value; gate.resume() }
+            Task { try? await Task.sleep(for: Self.stopGrace); gate.resume() }
+        }
     }
 
     /// Takes the pre-roll and the player off screen, back to the screen that started playback.
@@ -298,10 +358,42 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         root.dismiss(animated: animated)
     }
 
+    private func observeLifecycle() {
+        let center = NotificationCenter.default
+        lifecycleObservers = [
+            center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in await self?.session?.suspend() }
+            },
+            center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.session?.recoverAfterSuspension() }
+            },
+        ]
+    }
+
+    private func stopObservingLifecycle() {
+        lifecycleObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        lifecycleObservers.removeAll()
+    }
+
     func playerViewControllerShouldDismiss(_ playerViewController: AVPlayerViewController) -> Bool {
         AppLogger.notice("Player asked to dismiss (finishing=\(isFinishing))", .playback)
         if isFinishing { return true }
-        Task { await finish(dismiss: true) }
+        Task { await finish(animated: true) }
         return false
+    }
+}
+
+/// Resumes a continuation exactly once, whichever of two racing tasks gets there first.
+@MainActor
+private final class ResumeGate {
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    init(_ continuation: CheckedContinuation<Void, Never>) {
+        self.continuation = continuation
+    }
+
+    func resume() {
+        continuation?.resume()
+        continuation = nil
     }
 }
