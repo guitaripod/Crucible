@@ -13,7 +13,7 @@ final class SettingsTests: XCTestCase {
     private func setMockLatency(_ milliseconds: Int) {
         guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
               let url = URL(string: base + "/mock/flags?latency_ms=\(milliseconds)") else { return }
-        _ = try? Data(contentsOf: url)
+        TVTest.fetch(url)
     }
 
     private func restoreDefaultLibraries(_ app: XCUIApplication) {

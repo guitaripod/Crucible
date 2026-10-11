@@ -116,7 +116,7 @@ enum AppNavigation {
     static func setMockFlags(_ query: String) {
         guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
               let url = URL(string: "\(base)/mock/flags?\(query)") else { return }
-        _ = try? Data(contentsOf: url)
+        TVTest.fetch(url)
     }
 
     static func detailPrimary(_ app: XCUIApplication) -> XCUIElement {

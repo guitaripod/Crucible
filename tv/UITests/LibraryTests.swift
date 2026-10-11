@@ -357,14 +357,14 @@ final class LibraryTests: XCTestCase {
     /// Delays every answer of the mock server, so a screen stays in its loading state long enough to be driven.
     private nonisolated static func setLatency(_ milliseconds: Int) {
         guard let mock = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: "\(mock)/mock/flags?latency_ms=\(milliseconds)") else { return }
-        _ = try? Data(contentsOf: url)
+        TVTest.fetch(url)
     }
 
     /// Flips an item's watched state on the mock server behind the app's back.
     private func markWatched(_ watched: Bool, key: String) throws {
         let mock = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], "the mock URL was not forwarded")
         let verb = watched ? "scrobble" : "unscrobble"
-        _ = try Data(contentsOf: XCTUnwrap(URL(string: "\(mock)/:/\(verb)?identifier=com.plexapp.plugins.library&key=\(key)")))
+        TVTest.fetch(try XCTUnwrap(URL(string: "\(mock)/:/\(verb)?identifier=com.plexapp.plugins.library&key=\(key)")))
     }
 
     private func openTab(_ title: String, mock: [String: String] = LibraryTests.paddedMovies, environment: [String: String] = [:]) -> XCUIApplication {

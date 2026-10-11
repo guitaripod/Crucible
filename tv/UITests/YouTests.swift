@@ -176,7 +176,7 @@ final class YouTests: XCTestCase {
         let base = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"])
         var components = try XCTUnwrap(URLComponents(string: base + "/mock/requests"))
         components.queryItems = [URLQueryItem(name: "contains", value: "history/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1&")]
-        let data = try Data(contentsOf: try XCTUnwrap(components.url))
+        let data = try XCTUnwrap(TVTest.fetch(try XCTUnwrap(components.url)))
         let object = try JSONSerialization.jsonObject(with: data) as? [String: Int]
         return try XCTUnwrap(object?["count"])
     }

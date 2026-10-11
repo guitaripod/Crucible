@@ -55,7 +55,7 @@ final class HistoryTests: XCTestCase {
     private func scrobble(_ ratingKey: String) {
         guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
               let url = URL(string: "\(base)/:/scrobble?key=\(ratingKey)&identifier=com.plexapp.plugins.library") else { return }
-        _ = try? Data(contentsOf: url)
+        TVTest.fetch(url)
     }
 
     func testLoadedListFocusesTheFirstRowAndReachesThePlayButton() {

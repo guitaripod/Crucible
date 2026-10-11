@@ -26,7 +26,21 @@ enum TVTest {
               var components = URLComponents(string: base + "/mock/env") else { return }
         components.queryItems = [URLQueryItem(name: "reset", value: "1")] + settings.map { URLQueryItem(name: $0.key, value: $0.value) }
         guard let url = components.url else { return }
-        _ = try? Data(contentsOf: url)
+        fetch(url)
+    }
+
+    /// Loads `url` with a data task and waits for the answer for at most 15 seconds, returning nil on failure. Loading an http URL synchronously through the Foundation convenience initialisers is reported by the system as a runtime issue when it runs on the main thread, and `tv.sh uitest` refuses to start while a test uses them.
+    @discardableResult
+    nonisolated static func fetch(_ url: URL) -> Data? {
+        final class Box: @unchecked Sendable { var data: Data? }
+        let box = Box()
+        let done = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            box.data = data
+            done.signal()
+        }.resume()
+        _ = done.wait(timeout: .now() + 15)
+        return box.data
     }
 
     /// Launches the app with `CRUCIBLE_UITEST=1` and forwards every `CRUCIBLE_*` variable that `tv.sh uitest` handed over as a `TEST_RUNNER_*` variable (`CRUCIBLE_MOCK`, `CRUCIBLE_PLEXTV`, `CRUCIBLE_STYLE`, ...). Every launch first resets the mock to its defaults and then applies `mock`, so tests never inherit what an earlier test switched on; a relaunch inside a test passes `mock` again.
