@@ -10,7 +10,7 @@ final class TVYearCardView: TVFocusableSurface {
     private let primaryLabel = UILabel()
     private let unitLabel = UILabel()
     private let detailLabel = UILabel()
-    private let strip = TVHeatStripView()
+    private let strip = TVYearHeatStripView()
 
     init() {
         super.init(cornerRadius: Theme.Radius.l)
@@ -92,7 +92,7 @@ final class TVYearCardView: TVFocusableSurface {
 }
 
 /// The last 78 days as a three-row strip of ember squares, one column per week-third.
-final class TVHeatStripView: UIView {
+final class TVYearHeatStripView: UIView {
     var levels: [Int] = [] {
         didSet { setNeedsDisplay() }
     }
