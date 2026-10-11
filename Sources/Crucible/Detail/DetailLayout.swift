@@ -61,20 +61,15 @@ enum DetailLayout {
     }
 
     static func posterConfiguration(for item: PlexMetadata) -> PosterContentConfiguration {
-        let subtitle: String?
-        if item.mediaType == "show", let count = item.childCount, count > 0 {
-            subtitle = count == 1 ? "1 season" : "\(count) seasons"
-        } else {
-            subtitle = item.year.map(String.init)
-        }
+        let card = DetailRelatedCard(item: item)
         return PosterContentConfiguration(
-            posterPath: item.posterPath ?? item.grandparentThumb,
-            title: item.title,
-            subtitle: subtitle,
-            progress: item.progressPercent > 0 ? item.progressPercent : nil,
-            placeholderIcon: item.mediaType == "show" ? "tv" : "film",
-            isUnwatched: item.mediaType != "show" && !item.isWatched && item.positionSecs == 0,
-            isDownloaded: DownloadManager.shared.isDownloaded(item.id)
+            posterPath: card.posterPath,
+            title: card.title,
+            subtitle: card.subtitle,
+            progress: card.progress,
+            placeholderIcon: card.isShow ? "tv" : "film",
+            isUnwatched: card.isUnwatched,
+            isDownloaded: DownloadManager.shared.isDownloaded(card.id)
         )
     }
 }
