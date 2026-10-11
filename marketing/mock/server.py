@@ -36,6 +36,17 @@ LOCK = threading.Lock()
 PINS = {}
 FAILING = set()
 
+DETAIL_ERROR_KEY = "9404"
+DETAIL_GONE_KEY = "9410"
+DETAIL_FLAKY_KEY = "9405"
+DETAIL_FLAKY_SOURCE = "1002"
+DETAIL_FLAKY_FAILURES = 1
+DETAIL_FLAKY = {"left": DETAIL_FLAKY_FAILURES}
+DETAIL_SLOW_KEY = "9406"
+DETAIL_SLOW_SOURCE = "1001"
+DETAIL_SLOW_SECONDS = 12
+DETAIL_LONG_KEY = "9407"
+
 SRT = (
     "1\n00:00:02,000 --> 00:00:05,000\nWe should not be out here.\n\n"
     "2\n00:00:06,000 --> 00:00:09,500\nThe tide turns in an hour. Then we go.\n\n"
@@ -402,14 +413,20 @@ class Handler(BaseHTTPRequestHandler):
         if m and m.group(1) in library.SECTIONS:
             return self.section(m.group(1), m.group(2), m.group(3), q)
 
-        m = re.match(r"^/library/metadata/(\d+)(?:/(children))?$", p)
+        m = re.match(r"^/library/metadata/(\d+)(?:/(children|allLeaves))?$", p)
         if m:
             rk, sub = m.groups()
+            if sub is None and rk in (DETAIL_ERROR_KEY, DETAIL_GONE_KEY, DETAIL_FLAKY_KEY, DETAIL_SLOW_KEY, DETAIL_LONG_KEY):
+                return self.detail_fault(rk)
             with LOCK:
                 it = LIB.items.get(rk)
                 if not it:
                     return self.not_found()
-                if sub == "children":
+                if sub == "allLeaves":
+                    leaves = [ep for season in (LIB.children_of(rk) or []) for ep in (LIB.children_of(season["ratingKey"]) or [])]
+                    payload = container(size=len(leaves), totalSize=len(leaves), key=rk, title1=it["title"],
+                                        title2=it["title"], viewGroup="episode", Metadata=[LIB.render(k) for k in leaves])
+                elif sub == "children":
                     kids = LIB.children_of(rk) or []
                     payload = container(size=len(kids), totalSize=len(kids), key=rk, title1=it.get("grandparentTitle") or it["title"],
                                         title2=it["title"], viewGroup=("season" if it["type"] == "show" else "episode"),
@@ -528,6 +545,28 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_file(hls, kind)
         return self.send_empty()
 
+    def detail_fault(self, rk):
+        if rk == DETAIL_ERROR_KEY:
+            return self.not_found()
+        if rk == DETAIL_GONE_KEY:
+            return self.send_json(container(size=0))
+        if rk in (DETAIL_SLOW_KEY, DETAIL_LONG_KEY):
+            if rk == DETAIL_SLOW_KEY:
+                time.sleep(DETAIL_SLOW_SECONDS)
+            with LOCK:
+                payload = LIB.render(LIB.items[DETAIL_SLOW_SOURCE], full=True)
+            if rk == DETAIL_LONG_KEY:
+                payload["summary"] = " ".join([payload["summary"]] * 4)
+            payload["ratingKey"] = rk
+            return self.send_json(container(size=1, Metadata=[payload]))
+        with LOCK:
+            if DETAIL_FLAKY["left"] > 0:
+                DETAIL_FLAKY["left"] -= 1
+                return self.not_found()
+            payload = LIB.render(LIB.items[DETAIL_FLAKY_SOURCE], full=True)
+        payload["ratingKey"] = rk
+        return self.send_json(container(size=1, Metadata=[payload]))
+
     def plextv(self, p, q):
         if p == "/api/v2/pins" and self.command == "POST":
             fields = self.form()
@@ -565,6 +604,10 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/mock/plextv-config":
             with LOCK:
                 return self.send_json(configure_plextv(q))
+        if p == "/mock/detail-reset":
+            with LOCK:
+                DETAIL_FLAKY["left"] = DETAIL_FLAKY_FAILURES
+            return self.send_json({"reset": True})
         if p == "/mock/approve":
             code = (q.get("code", [""])[0]).lower()
             with LOCK:
