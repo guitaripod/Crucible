@@ -20,6 +20,7 @@ package final class ServerConnectionModel {
 
     package struct RouteRow: Equatable, Sendable {
         package let url: URL
+        package let kind: ConnectionKind
         package let kindTitle: String
         package let isInUse: Bool
         package let detail: String
@@ -138,6 +139,7 @@ package final class ServerConnectionModel {
 
         return RouteRow(
             url: url,
+            kind: routeKind,
             kindTitle: routeKind.title,
             isInUse: url == activeRouteURL,
             detail: isRelay ? "Bandwidth limited, may force transcoding" : url.absoluteString,

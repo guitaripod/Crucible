@@ -87,6 +87,7 @@ struct SettingsServerConnectionTests {
         #expect(model.card.subtitle == "Plex Media Server 1.41.0 · Owned by you")
 
         let rows = model.routeRows
+        #expect(rows.map(\.kind) == [.local, .relay, .remote])
         #expect(rows.map(\.kindTitle) == ["Local", "Plex Relay", "Remote"])
         #expect(rows.map(\.latencyText) == ["12 ms", "180 ms", "Unreachable"])
         #expect(rows.map(\.isInUse) == [true, false, false])
