@@ -1,0 +1,78 @@
+# Architecture
+
+Crucible is one SwiftPM package that builds two apps from the same logic: the iPhone app and the Apple TV app. Everything that is not presentation lives in shared modules; each platform owns only its screens.
+
+## Module graph
+
+```
+                       CrucibleCore                Foundation, os, Security. No UIKit, no AVFoundation.
+                      /     |      \               Networking, models, sessions, preferences, logging,
+                     /      |       \              formatting and the feature logic of every screen.
+          CrucibleMedia  CrucibleStats  CrucibleDesign
+          AVFoundation   GRDB           UIKit tokens, glass, image pipeline, brand atoms
+          MediaPlayer        \              /
+          (playback           CrucibleStatsUI     UIKit charts and stats components
+           engine)                 |
+                                   |
+        ┌──────────────────────────┴───────────────────────────┐
+     Crucible (iPhone app)                             CrucibleTV (Apple TV app)
+     @main, screens, downloads, widgets glue           app delegate, screens, focus-driven design system
+                                                            |
+                                                      CrucibleTopShelf (extension logic, depends on Core only)
+     CrucibleWidgets + CrucibleActivity: the iPhone Live Activity extension (unchanged)
+```
+
+Dependencies only point downward. Core never imports UIKit, AVFoundation, MediaPlayer or GRDB, so its logic runs and is tested on the macOS host (`Tests/CrucibleCoreTests`, Swift Testing).
+
+## Rules
+
+- **Access control.** Symbols shared between targets are `package` (SE-0386), never `public`. The only public API is the deliberately tiny entry surface of `CrucibleTV` (`TVAppDelegate`) and `CrucibleTopShelf` (`TopShelfProvider`), because the Xcode project that hosts the tvOS app lives outside the package. Everything else stays `internal`; structs built from another module have an explicit `package init`.
+- **Platform differences live in a few places.** `AppPlatform` (platform name, storage directories), `DeviceModel` (Liquid Glass capable hardware), `Theme.Metrics` (phone and Apple TV values behind one token vocabulary), `Glass.isAvailable` (the single glass gate), `Haptics` (no-ops on tvOS). Screens never branch on the platform.
+- **Features are slices.** A feature's rules (what to load, how to order, filter, group, cap, page, decide) live once in `CrucibleCore/Features/<Feature>`: plain values, pure functions and one async feed/loader per feature. The iPhone screen and the Apple TV screen both render that output with their own cells and focus/touch behaviour. Decoration that only exists on one platform (downloads on iPhone) comes in through a neutral seam.
+- **UIKit style.** Programmatic UIKit only; `UIButton.Configuration`, `UIAction` closures, compositional layout + diffable data sources, `UIContentConfiguration` cells, `UIStackView`; async/await; no inline comments. Closures that AVFoundation, MediaPlayer or KVO may call off-main are `@Sendable`.
+
+## What lives where
+
+| Module | Contents |
+| --- | --- |
+| `CrucibleCore` | `Networking` (APIClient actor, endpoints, Plex models, headers, keychain), `Session` (server bootstrap, route resolution, launch pipeline, library visibility), `Preferences`, `Support` (logging, formatters, error copy), `Snapshots` (cold-launch Home cache), `Features/*` (Home, Library, Detail, Search, History, You, Settings, Auth, Playback rules, Top Shelf snapshot, Navigation: deep links and library tab layout) |
+| `CrucibleMedia` | `PlaybackSession` (stream resolution, resume, timeline reporting, transcode keep-alive and restarts, fallback, skip markers, Up Next, remote commands) and `PlaybackReporter`; driven by both players |
+| `CrucibleStats` | Watch-history SQLite mirror (GRDB), sync and backfill, queries, the pre-formatted Statistics page, Year in Review summary |
+| `CrucibleDesign` | `Theme` tokens (colour, type, space, radius, metrics per platform), `Glass`, `Haptics`, `ProgressBar`, `BadgeChipView`, `ImageLoader` + disk cache, `CrystalGlyphView` |
+| `CrucibleStatsUI` | Charts and stats components driven by `StatsMetrics` (`.phone`, `.tv`) |
+| `Crucible` | iPhone screens, downloads engine, Live Activity glue, `AppDelegate`/`SceneDelegate`. The product name `Crucible` is what `xtool` packages |
+| `CrucibleTV` | `App/` (scene, coordinator, launch gate, debug hooks), `Navigation/` (tab bar, router, `TVScreens` seams, session actions), `DesignSystem/` (cards, shelves, controls, focus helpers, state views, gallery), one folder per feature screen |
+| `CrucibleTopShelf` | Builds Top Shelf content from the snapshot the app writes into the App Group |
+
+`TVScreens` is the single catalogue of tvOS screens: each feature adds its factory in its own `Screens+<Feature>.swift`, so screens open each other without importing each other.
+
+## Apple TV specifics
+
+- One top tab bar: Home, one tab per visible Plex library, Search, You. Libraries excluded in Settings also leave the tab bar.
+- Home is cinematic: a full-screen backdrop that follows focus, a non-focusable hero (title, metadata, synopsis), then shelves. Select acts, Play/Pause plays, long press opens the context menu.
+- Cards are custom `UIContentView`s on `UIImageView.adjustsImageWhenAncestorFocused` (system tvOS 26 focus: lift, glass rim, parallax) with the title outside the scaling artwork. `UIFocusEffect` does not exist on tvOS; custom surfaces animate through the focus animation coordinator.
+- Liquid Glass is used only for controls and navigation, gated by `Glass.isAvailable` (tvOS 26 and Apple TV 4K 2nd generation or later); older systems and boxes get the classic look with the same layout.
+- Playback uses `AVPlayerViewController` with `contextualActions` (Skip Intro / Skip Credits), `AVContentProposal` (Up Next) and `externalMetadata`, on the same `PlaybackSession` as the iPhone.
+- Sign-in uses the Plex PIN flow (code at plex.tv/link plus a QR for the strong PIN). Top Shelf shows Continue Watching and Up Next from a small snapshot in the App Group.
+- tvOS has no persistent app storage: `AppPlatform.persistentDirectory` is Caches there, so the statistics mirror and Home snapshot are rebuilt from the server if the system purges them.
+
+## Building and testing
+
+The Linux box has no Apple SDK for the app targets; the Mac is the build host.
+
+```bash
+scripts/mac.sh ios          # iPhone package scheme on the iPhone simulator
+scripts/mac.sh tvlib        # Apple TV package scheme (compiles Core, Media, Stats, Design, StatsUI, TV)
+scripts/mac.sh core-test    # Core + Stats tests on the macOS host (CRUCIBLE_CORE_ONLY=1 swift test)
+tv/scripts/tv.sh build|run|uitest|shot|logs   # the tvOS app, simulator, mock server and UI tests (see tv/README.md)
+marketing/shots/run.sh      # iPhone screenshot harness, also the iPhone visual regression check
+```
+
+`NAME=<id>` isolates a remote checkout, simulator and mock port so several people (or agents) can work at once. The iPhone app is still packaged and signed with `xtool` from Linux (`scripts/install-ios.sh`); the tvOS app is built with Xcode from the XcodeGen project in `tv/`, because xtool does not support tvOS. The manifest only declares the tvOS targets when it is evaluated on macOS, so the Linux/xtool graph is unchanged.
+
+## Adding a feature
+
+1. Put the rules in `CrucibleCore/Features/<Feature>` with tests; no UIKit.
+2. Render them from the iPhone screen (`Sources/Crucible/<Feature>`).
+3. Add a `Screens+<Feature>.swift` factory and the screens in `Sources/CrucibleTV/<Feature>` using the design system.
+4. Cover the tvOS screens with a UI test that drives the real focus engine and captures screenshots (`tv/UITests`).
