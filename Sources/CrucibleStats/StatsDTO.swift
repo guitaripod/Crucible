@@ -133,7 +133,7 @@ package struct EnrichmentProgress: Hashable, Sendable {
 }
 
 /// The aggregates every Statistics screen renders for one range selection.
-package struct StatsSnapshot: Sendable {
+package struct StatsSnapshot: Equatable, Sendable {
     package var overview = StatsOverview()
     package var weeklySparkline: [Int] = []
     package var heatmap: [DayCount] = []

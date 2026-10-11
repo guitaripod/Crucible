@@ -8,7 +8,7 @@ package enum StatsPageSection: Hashable, Sendable {
 
 /// Everything a Statistics screen draws for one range, assembled once from a ``StatsSnapshot`` so
 /// every platform shows the same numbers, copy and sections. Screens read it; they never recompute it.
-package struct StatsPage: Sendable {
+package struct StatsPage: Equatable, Sendable {
     package struct Hero: Hashable, Sendable {
         package let eyebrow: String
         package let value: Int

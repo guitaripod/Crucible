@@ -12,6 +12,8 @@ enum TVDebugScreen {
         switch name {
         case "history":
             tabBar.showHome().pushViewController(TVScreens.history(environment), animated: false)
+        case "statistics":
+            tabBar.showHome().pushViewController(TVScreens.statistics(environment), animated: false)
         default:
             break
         }

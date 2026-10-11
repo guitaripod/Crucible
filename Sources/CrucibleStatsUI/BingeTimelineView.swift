@@ -101,8 +101,7 @@ package final class BingeTimelineView: UIView {
     }
 
     private func cardWidth(for episodeCount: Int) -> CGFloat {
-        let raw = CGFloat(max(0, episodeCount)) * metrics.pointsPerEpisode
-        return min(metrics.maxCardWidth, max(metrics.minCardWidth, raw))
+        BingeCardView.width(forEpisodes: episodeCount, metrics: metrics)
     }
 
     private func runEntranceAnimation() {
@@ -128,7 +127,9 @@ package final class BingeTimelineView: UIView {
     }
 }
 
-private final class BingeCardView: UIView {
+/// One binge capsule: show title, episode count and when it ended, on a categorical colour. Its width
+/// encodes the episode count (``width(forEpisodes:metrics:)``).
+package final class BingeCardView: UIView {
     let episodeCount: Int
 
     private let titleLabel = UILabel()
@@ -136,6 +137,10 @@ private final class BingeCardView: UIView {
     private let captionLabel = UILabel()
     private let contentStack = UIStackView()
     private let metrics: StatsMetrics.BingeTimeline
+
+    package convenience init(session: BingeSession, colorIndex: Int, metrics: StatsMetrics = .platform) {
+        self.init(session: session, colorIndex: colorIndex, metrics: metrics.bingeTimeline)
+    }
 
     init(session: BingeSession, colorIndex: Int, metrics: StatsMetrics.BingeTimeline) {
         self.episodeCount = session.episodeCount
@@ -156,7 +161,16 @@ private final class BingeCardView: UIView {
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 
-    override func layoutSubviews() {
+    package static func width(forEpisodes episodeCount: Int, metrics: StatsMetrics = .platform) -> CGFloat {
+        width(forEpisodes: episodeCount, metrics: metrics.bingeTimeline)
+    }
+
+    fileprivate static func width(forEpisodes episodeCount: Int, metrics: StatsMetrics.BingeTimeline) -> CGFloat {
+        let raw = CGFloat(max(0, episodeCount)) * metrics.pointsPerEpisode
+        return min(metrics.maxCardWidth, max(metrics.minCardWidth, raw))
+    }
+
+    package override func layoutSubviews() {
         super.layoutSubviews()
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius).cgPath
     }
