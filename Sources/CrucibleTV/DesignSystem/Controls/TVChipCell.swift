@@ -42,17 +42,24 @@ final class TVChipCell: UICollectionViewCell {
 
     override var canBecomeFocused: Bool { false }
 
+    /// `menu` supplies an optional long-press menu for a chip (nil for none).
     static func registration(
-        onSelect: @escaping @MainActor (TVChipItem) -> Void
+        onSelect: @escaping @MainActor (TVChipItem) -> Void,
+        menu: (@MainActor (TVChipItem) -> UIMenu?)? = nil
     ) -> UICollectionView.CellRegistration<TVChipCell, TVChipItem> {
         UICollectionView.CellRegistration<TVChipCell, TVChipItem> { cell, _, item in
-            cell.configure(with: item, onSelect: onSelect)
+            cell.configure(with: item, onSelect: onSelect, menu: menu)
         }
     }
 
-    func configure(with item: TVChipItem, onSelect: @escaping @MainActor (TVChipItem) -> Void) {
+    func configure(
+        with item: TVChipItem,
+        onSelect: @escaping @MainActor (TVChipItem) -> Void,
+        menu: (@MainActor (TVChipItem) -> UIMenu?)? = nil
+    ) {
         self.item = item
         self.onSelect = onSelect
+        button.menu = menu?(item)
         button.configuration = TVButton.configuration(.chip(selected: item.isSelected), title: item.title, symbol: item.symbol)
         button.accessibilityLabel = item.title
         button.accessibilityTraits = item.isSelected ? [.button, .selected] : .button

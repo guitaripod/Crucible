@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -151,13 +152,25 @@ final class TVCardContentView: UIView, UIContentView {
         ])
     }
 
+    /// `text` with the part the search query matched in the accent colour; plain when there is no query.
+    private func highlighted(_ text: String, query: String?, font: UIFont, color: UIColor) -> NSAttributedString {
+        let result = NSMutableAttributedString(string: text, attributes: [.font: font, .foregroundColor: color])
+        guard let query, !query.isEmpty else { return result }
+        for range in SearchHighlight.matchRanges(of: query, in: text) {
+            result.addAttribute(.foregroundColor, value: Theme.Color.accentText, range: range)
+        }
+        return result
+    }
+
     private func apply() {
         guard let configuration = configuration as? TVCardConfiguration else { return }
         let item = configuration.item
         eyebrowLabel.text = item.eyebrow?.uppercased()
         eyebrowLabel.isHidden = !style.showsEyebrow
-        titleLabel.text = item.title
-        subtitleLabel.text = item.subtitle
+        titleLabel.attributedText = highlighted(item.title, query: item.highlight, font: TVCardTypography.title, color: Theme.Color.label)
+        subtitleLabel.attributedText = highlighted(
+            item.subtitle ?? "", query: item.highlight, font: TVCardTypography.subtitle, color: Theme.Color.labelSecondary
+        )
         subtitleLabel.isHidden = (item.subtitle ?? "").isEmpty
 
         let showsProgress = item.hasProgress

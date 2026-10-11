@@ -16,6 +16,7 @@ struct TVCardItem: Hashable, Sendable {
     var badgeText: String?
     var placeholderSymbol = "film"
     var accessibilityHint: String?
+    var highlight: String?
 
     init(
         id: String,
@@ -30,7 +31,8 @@ struct TVCardItem: Hashable, Sendable {
         isDimmed: Bool = false,
         badgeText: String? = nil,
         placeholderSymbol: String = "film",
-        accessibilityHint: String? = nil
+        accessibilityHint: String? = nil,
+        highlight: String? = nil
     ) {
         self.id = id
         self.artworkPath = artworkPath
@@ -45,6 +47,7 @@ struct TVCardItem: Hashable, Sendable {
         self.badgeText = badgeText
         self.placeholderSymbol = placeholderSymbol
         self.accessibilityHint = accessibilityHint
+        self.highlight = highlight
     }
 
     var hasProgress: Bool { (progress ?? 0) > 0 && (progress ?? 0) < 1 }

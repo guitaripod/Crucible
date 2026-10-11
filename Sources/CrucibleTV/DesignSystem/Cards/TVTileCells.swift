@@ -8,14 +8,29 @@ struct TVTileItem: Hashable, Sendable {
     var subtitle: String?
     var symbol: String?
     var accessibilityHint: String?
+    var gradient: TVTileGradient?
 
-    init(id: String, title: String, subtitle: String? = nil, symbol: String? = nil, accessibilityHint: String? = nil) {
+    init(
+        id: String,
+        title: String,
+        subtitle: String? = nil,
+        symbol: String? = nil,
+        accessibilityHint: String? = nil,
+        gradient: TVTileGradient? = nil
+    ) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
         self.symbol = symbol
         self.accessibilityHint = accessibilityHint
+        self.gradient = gradient
     }
+}
+
+/// Explicit tile colours (24-bit hex), for tiles whose palette is decided by shared logic instead of the name hash.
+struct TVTileGradient: Hashable, Sendable {
+    var top: UInt32
+    var bottom: UInt32
 }
 
 enum TVTileStyle: Hashable, Sendable {
@@ -62,10 +77,10 @@ enum TVTilePalette {
 enum TVTileImage {
     private static var cache: [String: UIImage] = [:]
 
-    static func gradient(name: String, size: CGSize) -> UIImage {
-        let key = "\(name)|\(Int(size.width))x\(Int(size.height))"
+    static func gradient(name: String, size: CGSize, override: TVTileGradient? = nil) -> UIImage {
+        let key = "\(name)|\(Int(size.width))x\(Int(size.height))|\(override.map { "\($0.top).\($0.bottom)" } ?? "")"
         if let cached = cache[key] { return cached }
-        let (top, bottom) = TVTilePalette.colors(for: name)
+        let (top, bottom) = override.map { (UIColor(hex: $0.top), UIColor(hex: $0.bottom)) } ?? TVTilePalette.colors(for: name)
         let image = UIGraphicsImageRenderer(size: size).image { context in
             let cg = context.cgContext
             let space = CGColorSpaceCreateDeviceRGB()
@@ -156,7 +171,7 @@ final class TVTileContentView: UIView, UIContentView {
     private func apply() {
         guard let configuration = configuration as? TVTileConfiguration else { return }
         let item = configuration.item
-        artwork.image = TVTileImage.gradient(name: item.title, size: style.size)
+        artwork.image = TVTileImage.gradient(name: item.title, size: style.size, override: item.gradient)
         titleLabel.text = item.title
         subtitleLabel.text = item.subtitle
         subtitleLabel.isHidden = (item.subtitle ?? "").isEmpty
