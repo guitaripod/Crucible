@@ -119,6 +119,7 @@ final class LibraryTests: XCTestCase {
     }
 
     func testFolderRefreshesWatchedStateAfterReturning() throws {
+        try markWatched(false, key: "1008")
         let app = openTab("Movies")
         waitForRecents(in: app)
         enterContent(app)
@@ -140,9 +141,8 @@ final class LibraryTests: XCTestCase {
         TVTest.remote.press(.select)
         XCTAssertTrue(app.staticTexts.firstMatch.waitForExistence(timeout: 10))
         TVTest.settle(2.0)
-        let mock = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], "the mock URL was not forwarded")
-        let key = String(id.dropFirst("tv.folder.media.".count))
-        _ = try Data(contentsOf: XCTUnwrap(URL(string: "\(mock)/:/scrobble?identifier=com.plexapp.plugins.library&key=\(key)")))
+        XCTAssertEqual(id, "tv.folder.media.1008")
+        try markWatched(true, key: "1008")
 
         TVTest.remote.press(.menu)
         TVTest.settle(2.5)
@@ -191,7 +191,7 @@ final class LibraryTests: XCTestCase {
     }
 
     func testContextMenuPlayAndOpen() {
-        let app = openTab("Movies")
+        let app = openTab("Movies", environment: ["CRUCIBLE_PLAYER_HOLD": "6"])
         waitForRecents(in: app)
         enterContent(app)
         step(app, .down, until: Self.mediaPrefix, limit: 3)
@@ -206,14 +206,18 @@ final class LibraryTests: XCTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: poster), "focus not restored after the menu closed")
 
         TVTest.remote.press(.playPause)
-        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5), "Play/Pause should start playback of the focused movie")
-        TVTest.capture("13-play-pause-reaches-player-seam", in: self)
-        TVTest.remote.press(.select)
-        TVTest.settle(0.8)
+        XCTAssertTrue(app.otherElements["player.preroll"].waitForExistence(timeout: 60), "Play/Pause should start playback of the focused movie")
+        TVTest.capture("13-play-pause-starts-the-player", in: self)
+        for _ in 0..<6 where !app.tabBars.firstMatch.exists {
+            TVTest.remote.press(.menu)
+            TVTest.settle(2)
+        }
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15), "Menu leaves the player and returns to the library")
+        TVTest.settle(1.5)
 
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["placeholder.title"].label.hasPrefix("Detail "), "Select should open the movie detail")
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: 15), "Select should open the movie detail")
+        TVTest.settle(1.0)
         TVTest.capture("14-select-opens-detail", in: self)
     }
 
@@ -306,8 +310,15 @@ final class LibraryTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "Back should return to the folder list")
     }
 
-    private func openTab(_ title: String) -> XCUIApplication {
-        let app = TVTest.launch()
+    /// Flips an item's watched state on the mock server behind the app's back.
+    private func markWatched(_ watched: Bool, key: String) throws {
+        let mock = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], "the mock URL was not forwarded")
+        let verb = watched ? "scrobble" : "unscrobble"
+        _ = try Data(contentsOf: XCTUnwrap(URL(string: "\(mock)/:/\(verb)?identifier=com.plexapp.plugins.library&key=\(key)")))
+    }
+
+    private func openTab(_ title: String, environment: [String: String] = [:]) -> XCUIApplication {
+        let app = TVTest.launch(extraEnvironment: environment)
         addTeardownBlock { app.terminate() }
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
