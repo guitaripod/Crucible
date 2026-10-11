@@ -24,6 +24,7 @@ final class TVYouViewController: TVSettingsScaffold {
     private var accountName = PlexAccountName.fallbackName
     private var historySubtitle: String?
     private var loadTask: Task<Void, Never>?
+    private var remoteContentThrottle = ReloadThrottle(interval: 60)
     private var libraryObserver: UUID?
 
     init(env: TVAppEnvironment) {
@@ -58,6 +59,7 @@ final class TVYouViewController: TVSettingsScaffold {
         refreshRows()
         YouConnectionStatus.shared.refresh(api: env.api)
         loadTask?.cancel()
+        guard !remoteContentThrottle.isFresh() else { return }
         loadTask = Task { [weak self] in
             await self?.loadRemoteContent()
         }
@@ -126,6 +128,7 @@ final class TVYouViewController: TVSettingsScaffold {
         historySubtitle = newHeadline
         refreshRows()
         applyYear(newSummary)
+        remoteContentThrottle.markLoaded()
     }
 
     private func applyYear(_ summary: YearInReviewSummary?) {

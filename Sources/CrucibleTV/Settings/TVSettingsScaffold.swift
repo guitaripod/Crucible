@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -19,8 +20,6 @@ class TVSettingsScaffold: UIViewController, UICollectionViewDelegate {
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private var items: [String: TVRowItem] = [:]
     private var isShowingState = false
-
-    var rowIDs: [String] { dataSource.snapshot().itemIdentifiers }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,6 +43,7 @@ class TVSettingsScaffold: UIViewController, UICollectionViewDelegate {
 
     func setRows(_ rows: [TVRowItem]) {
         loadViewIfNeeded()
+        let rows = rows.uniqued(by: \.id)
         let previous = items
         items = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
@@ -83,6 +83,13 @@ class TVSettingsScaffold: UIViewController, UICollectionViewDelegate {
             content.trailingAnchor.constraint(equalTo: contextColumn.trailingAnchor),
             content.bottomAnchor.constraint(equalTo: contextColumn.bottomAnchor),
         ])
+    }
+
+    /// Puts a heading in the context column as one VoiceOver-readable panel.
+    func installHeading(_ heading: TVSettingsHeadingView) {
+        let panel = TVReadOnlyPanel(wrapping: heading) { [weak heading] in heading?.spokenText }
+        panel.accessibilityIdentifier = "settings.context"
+        installContext(panel)
     }
 
     func rowDidSelect(_ id: String) {}
@@ -166,6 +173,10 @@ final class TVSettingsHeadingView: UIStackView {
 
     @available(*, unavailable)
     required init(coder: NSCoder) { fatalError() }
+
+    var spokenText: String {
+        [titleLabel.text, bodyLabel.text].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
+    }
 
     func setBody(_ body: String?) {
         bodyLabel.text = body

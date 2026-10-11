@@ -6,6 +6,15 @@ final class SettingsTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    private func restoreDefaultLibraries(_ app: XCUIApplication) {
+        guard YouNavigation.row(app, "libraries.reset").exists else { return }
+        YouNavigation.openRow(app, "libraries.reset")
+        TVTest.remote.press(.up)
+        XCTAssertFalse(YouNavigation.row(app, "libraries.reset").exists)
+        YouNavigation.moveFocusUp(app, to: "library.1")
+        TVTest.settle()
+    }
+
     private func value(of element: XCUIElement) -> String {
         (element.value as? String) ?? ""
     }
@@ -71,6 +80,31 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(value(of: YouNavigation.row(app, "library.1")), "On")
         XCTAssertFalse(YouNavigation.row(app, "libraries.reset").exists)
         TVTest.capture("03-after-reset", in: self)
+    }
+
+    func testRebuildingTheTabBarDoesNotStealFocusFromTheLibrariesList() {
+        let app = TVTest.launch()
+        YouNavigation.openYouTab(app)
+        YouNavigation.openRow(app, "you.libraries")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "library.1"))
+        restoreDefaultLibraries(app)
+        let tabBar = app.tabBars.firstMatch
+        let tabsBefore = tabBar.buttons.allElementsBoundByIndex.map(\.label)
+        TVTest.settle()
+
+        TVTest.remote.press(.select)
+        TVTest.settle(2)
+        TVTest.capture("01-library-off-tab-removed", in: self)
+        XCTAssertNotEqual(tabBar.buttons.allElementsBoundByIndex.map(\.label), tabsBefore, "switching a library off rebuilds the tab bar")
+        XCTAssertEqual(value(of: YouNavigation.row(app, "library.1")), "Off")
+        XCTAssertTrue(YouNavigation.row(app, "library.1").hasFocus, "the tab rebuild must leave focus in the list")
+
+        TVTest.remote.press(.select)
+        TVTest.settle(2)
+        TVTest.capture("02-library-on-tab-restored", in: self)
+        XCTAssertEqual(tabBar.buttons.allElementsBoundByIndex.map(\.label), tabsBefore)
+        XCTAssertEqual(value(of: YouNavigation.row(app, "library.1")), "On")
+        XCTAssertTrue(YouNavigation.row(app, "library.1").hasFocus)
     }
 
     func testServerShowsRoutesAndConnectionState() {
@@ -163,6 +197,55 @@ final class SettingsTests: XCTestCase {
         app.typeText(address)
         app.typeText("\n")
         TVTest.settle(1)
+    }
+
+    func testServerCardAndContextPanelsAreReachableByFocusWhileVoiceOverRuns() {
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_VOICEOVER": "1"])
+        YouNavigation.openYouTab(app)
+        YouNavigation.openRow(app, "you.server")
+        XCTAssertTrue(YouNavigation.row(app, "server.test").waitForExistence(timeout: 20))
+        TVTest.settle(2)
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "server.card"), "the server card must be a focus stop for VoiceOver")
+        XCTAssertTrue(YouNavigation.row(app, "server.card").label.hasPrefix("Marcus-PC"))
+        TVTest.capture("01-server-card-focused", in: self)
+        TVTest.remote.press(.menu)
+
+        YouNavigation.moveFocusUp(app, to: "you.playback")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(YouNavigation.row(app, "playback.streamingQuality").waitForExistence(timeout: 10))
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.context"))
+        XCTAssertTrue(YouNavigation.row(app, "settings.context").label.hasPrefix("Playback"))
+        TVTest.capture("02-playback-heading-focused", in: self)
+    }
+
+    func testDiagnosticsPanelsAndLogAreReadableByVoiceOver() {
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_VOICEOVER": "1"])
+        YouNavigation.openYouTab(app)
+        YouNavigation.openRow(app, "you.diagnostics")
+        let log = YouNavigation.row(app, "diagnostics.log")
+        XCTAssertTrue(log.waitForExistence(timeout: 15))
+        TVTest.settle(2)
+        XCTAssertTrue((log.value as? String ?? "").contains("[NOTE]"), "the log must expose its text as its accessibility value")
+        TVTest.remote.press(.left)
+        TVTest.settle(1)
+        TVTest.capture("00-after-left-from-log", in: self)
+        YouNavigation.moveFocusUp(app, to: "diagnostics.counts", limit: 4)
+        XCTAssertTrue(YouNavigation.row(app, "diagnostics.counts").label.hasPrefix("Log lines"))
+        TVTest.capture("01-counts-focused", in: self)
+    }
+
+    func testAboutContextIsReachableByFocusWhileVoiceOverRuns() {
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_VOICEOVER": "1"])
+        YouNavigation.openYouTab(app)
+        YouNavigation.openRow(app, "you.about")
+        XCTAssertTrue(YouNavigation.row(app, "about.version").waitForExistence(timeout: 15))
+        TVTest.settle()
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "about.context"))
+        XCTAssertTrue(YouNavigation.row(app, "about.context").label.hasPrefix("Crucible. Version"))
+        TVTest.capture("01-about-context-focused", in: self)
     }
 
     func testDiagnosticsShowsLogAndScrolls() {

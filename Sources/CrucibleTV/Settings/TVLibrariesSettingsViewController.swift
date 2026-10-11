@@ -34,7 +34,7 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
             title: "Libraries",
             body: LibrariesSettings.footerText + " Libraries you switch off also leave the tab bar."
         )
-        installContext(heading)
+        installHeading(heading)
         observer = LibraryVisibility.addObserver { [weak self] in self?.render() }
         render()
     }

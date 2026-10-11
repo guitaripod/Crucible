@@ -35,6 +35,16 @@ enum YouNavigation {
         XCTAssertTrue(row(app, identifier).hasFocus, "focus never reached \(identifier)")
     }
 
+    /// Presses Up until the row with `identifier` has focus (at most `limit` presses).
+    static func moveFocusUp(_ app: XCUIApplication, to identifier: String, limit: Int = 12) {
+        for _ in 0..<limit {
+            if row(app, identifier).hasFocus { return }
+            TVTest.remote.press(.up)
+            TVTest.settle(0.3)
+        }
+        XCTAssertTrue(row(app, identifier).hasFocus, "focus never reached \(identifier)")
+    }
+
     static func openRow(_ app: XCUIApplication, _ identifier: String) {
         moveFocus(app, to: identifier)
         TVTest.remote.press(.select)
@@ -114,6 +124,61 @@ final class YouTests: XCTestCase {
             TVTest.remote.press(.menu)
             XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: row), "Back should return focus to \(row)")
         }
+    }
+
+    func testProfilePanelIsNotADeadFocusStopWithoutVoiceOver() {
+        let app = TVTest.launch()
+        YouNavigation.openYouTab(app)
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.yearCard", timeout: 20))
+        TVTest.remote.press(.up)
+        TVTest.settle(1)
+        XCTAssertFalse(YouNavigation.row(app, "you.profile").hasFocus)
+    }
+
+    func testProfilePanelIsReachableByFocusWhileVoiceOverRuns() {
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_VOICEOVER": "1"])
+        YouNavigation.openYouTab(app)
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.yearCard", timeout: 20))
+        TVTest.remote.press(.up)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.profile"), "VoiceOver follows the focus engine, so the profile must be a focus stop")
+        TVTest.settle()
+        XCTAssertTrue(YouNavigation.row(app, "you.profile").label.hasPrefix("Marcus, Marcus-PC"))
+        TVTest.capture("01-profile-panel-focused", in: self)
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.yearCard"))
+    }
+
+    func testReturningFromSubScreensDoesNotReloadTheHistoryHeadline() throws {
+        let app = TVTest.launch()
+        YouNavigation.openYouTab(app)
+        XCTAssertTrue(YouNavigation.row(app, "you.history").label.contains("Halcyon") || waitForHeadline(app))
+        TVTest.settle(2)
+        let before = try historyHeadlineRequests()
+        for _ in 0..<3 {
+            YouNavigation.openRow(app, "you.playback")
+            XCTAssertTrue(YouNavigation.row(app, "playback.streamingQuality").waitForExistence(timeout: 10))
+            TVTest.remote.press(.menu)
+            XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.playback"))
+            TVTest.settle(1)
+        }
+        XCTAssertEqual(try historyHeadlineRequests(), before, "popping back within a minute must not refetch the headline")
+    }
+
+    private func waitForHeadline(_ app: XCUIApplication) -> Bool {
+        let predicate = NSPredicate(format: "label CONTAINS 'Halcyon'")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: YouNavigation.row(app, "you.history"))
+        return XCTWaiter().wait(for: [expectation], timeout: 20) == .completed
+    }
+
+    private func historyHeadlineRequests() throws -> Int {
+        let base = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"])
+        var components = try XCTUnwrap(URLComponents(string: base + "/mock/requests"))
+        components.queryItems = [URLQueryItem(name: "contains", value: "history/all?X-Plex-Container-Start=0&X-Plex-Container-Size=1&")]
+        let data = try Data(contentsOf: try XCTUnwrap(components.url))
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Int]
+        return try XCTUnwrap(object?["count"])
     }
 
     private func waitForDisappearance(of element: XCUIElement, timeout: TimeInterval = 10) -> Bool {

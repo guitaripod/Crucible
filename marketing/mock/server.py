@@ -294,6 +294,9 @@ def resolve_image(path):
     return None
 
 
+REQUEST_LOG = []
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "Plex Media Server"
@@ -418,6 +421,15 @@ class Handler(BaseHTTPRequestHandler):
 
         if FLAGS["latency_ms"] and not p.startswith("/mock/"):
             time.sleep(FLAGS["latency_ms"] / 1000)
+
+        if not p.startswith("/mock/"):
+            with LOCK:
+                REQUEST_LOG.append(self.path)
+
+        if p == "/mock/requests":
+            needle = one("contains", "")
+            with LOCK:
+                return self.send_json({"count": sum(1 for entry in REQUEST_LOG if needle in entry)})
 
         if p == "/mock/hubs":
             return self.set_hubs_mode(one("mode", "ok"))

@@ -19,7 +19,7 @@ final class TVPlaybackSettingsViewController: TVSettingsScaffold {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Playback"
-        installContext(heading)
+        installHeading(heading)
         refreshRows()
     }
 
@@ -82,7 +82,7 @@ final class TVSettingsChoiceViewController: TVSettingsScaffold {
     override func viewDidLoad() {
         super.viewDidLoad()
         let heading = TVSettingsHeadingView(title: setting.title, body: setting.explanation)
-        installContext(heading)
+        installHeading(heading)
         refreshRows()
     }
 

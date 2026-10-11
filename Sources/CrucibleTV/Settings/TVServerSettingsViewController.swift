@@ -113,7 +113,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
 
 /// The active server: its name, the Plex Media Server version and ownership, and a status line
 /// with a dot coloured by the health of the active route.
-final class TVServerCardView: UIView {
+final class TVServerCardView: TVReadOnlyPanel {
     private let iconWell = UIImageView(image: UIImage(systemName: "server.rack"))
     private let nameLabel = UILabel()
     private let subtitleLabel = UILabel()
@@ -181,14 +181,13 @@ final class TVServerCardView: UIView {
         root.spacing = Theme.Space.m
         root.alignment = .leading
         root.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(root)
+        contentView.addSubview(root)
         NSLayoutConstraint.activate([
-            root.topAnchor.constraint(equalTo: topAnchor),
-            root.bottomAnchor.constraint(equalTo: bottomAnchor),
-            root.leadingAnchor.constraint(equalTo: leadingAnchor),
-            root.trailingAnchor.constraint(equalTo: trailingAnchor),
+            root.topAnchor.constraint(equalTo: contentView.topAnchor),
+            root.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            root.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            root.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
-        isAccessibilityElement = true
         accessibilityIdentifier = "server.card"
     }
 }

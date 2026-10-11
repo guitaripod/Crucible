@@ -61,21 +61,24 @@ final class TVDiagnosticsViewController: UIViewController {
     private func buildHierarchy() {
         let heading = TVSettingsHeadingView(title: "Diagnostics", body: "The newest lines of Crucible's log. Focus the log and swipe to read older entries.")
 
-        let stats = UIStackView(arrangedSubviews: [
-            statRow("Log lines", linesValue, id: "diagnostics.lines"),
-            statRow("Errors", errorsValue, id: "diagnostics.errors"),
-            statRow("Log size", sizeValue, id: "diagnostics.size"),
-            statRow("Image cache", cacheValue, id: "diagnostics.cache"),
+        let statRows = UIStackView(arrangedSubviews: [
+            statRow("Log lines", linesValue),
+            statRow("Errors", errorsValue),
+            statRow("Log size", sizeValue),
+            statRow("Image cache", cacheValue),
         ])
-        stats.axis = .vertical
-        stats.spacing = Theme.Space.xs
+        statRows.axis = .vertical
+        statRows.spacing = Theme.Space.xs
+        let stats = TVReadOnlyPanel(wrapping: statRows) { [weak self] in self?.spokenCounts }
+        stats.accessibilityIdentifier = "diagnostics.counts"
+        let headingPanel = TVReadOnlyPanel(wrapping: heading) { [weak heading] in heading?.spokenText }
 
         let buttons = UIStackView(arrangedSubviews: [refreshButton, clearButton])
         buttons.axis = .vertical
         buttons.alignment = .leading
         buttons.spacing = Theme.Space.s
 
-        let left = UIStackView(arrangedSubviews: [heading, stats, buttons])
+        let left = UIStackView(arrangedSubviews: [headingPanel, stats, buttons])
         left.axis = .vertical
         left.spacing = Theme.Space.l
         left.alignment = .fill
@@ -96,7 +99,13 @@ final class TVDiagnosticsViewController: UIViewController {
         ])
     }
 
-    private func statRow(_ title: String, _ value: UILabel, id: String) -> UIView {
+    private var spokenCounts: String {
+        [("Log lines", linesValue), ("Errors", errorsValue), ("Log size", sizeValue), ("Image cache", cacheValue)]
+            .map { "\($0.0) \($0.1.text ?? "")" }
+            .joined(separator: ", ")
+    }
+
+    private func statRow(_ title: String, _ value: UILabel) -> UIView {
         let label = UILabel()
         label.text = title
         label.font = Theme.Font.callout
@@ -104,7 +113,6 @@ final class TVDiagnosticsViewController: UIViewController {
         value.font = Theme.Font.callout
         value.textColor = Theme.Color.label
         value.textAlignment = .right
-        value.accessibilityIdentifier = id
         let row = UIStackView(arrangedSubviews: [label, UIView(), value])
         row.alignment = .firstBaseline
         return row
@@ -182,6 +190,8 @@ final class TVLogTextView: UIScrollView {
             label.trailingAnchor.constraint(equalTo: frameLayoutGuide.trailingAnchor, constant: -inset),
             contentLayoutGuide.widthAnchor.constraint(equalTo: frameLayoutGuide.widthAnchor),
         ])
+        isAccessibilityElement = true
+        accessibilityTraits = .staticText
         accessibilityIdentifier = "diagnostics.log"
         accessibilityLabel = "Log"
         applyAppearance(focused: false)
@@ -211,17 +221,19 @@ final class TVLogTextView: UIScrollView {
         let font = UIFont.monospacedSystemFont(ofSize: 23, weight: .regular)
         guard !tail.isEmpty else {
             label.attributedText = NSAttributedString(string: Self.emptyText, attributes: [.font: font, .foregroundColor: Theme.Color.labelSecondary])
+            accessibilityValue = Self.emptyText
             return
         }
         let text = NSMutableAttributedString()
         for (index, line) in tail.lines.enumerated() {
-            let isError = line.contains("[ERROR]") || line.contains("[FAULT]")
+            let isError = LogTail.isError(line)
             text.append(NSAttributedString(
                 string: index == 0 ? line : "\n" + line,
                 attributes: [.font: font, .foregroundColor: isError ? Theme.Color.destructive : Theme.Color.label]
             ))
         }
         label.attributedText = text
+        accessibilityValue = tail.lines.joined(separator: "\n")
         layoutIfNeeded()
         setContentOffset(CGPoint(x: 0, y: max(0, contentSize.height - bounds.height)), animated: false)
     }

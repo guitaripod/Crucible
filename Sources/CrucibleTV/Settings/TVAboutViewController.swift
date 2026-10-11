@@ -43,7 +43,11 @@ final class TVAboutViewController: TVSettingsScaffold {
             glyph.widthAnchor.constraint(equalToConstant: 220),
             glyph.heightAnchor.constraint(equalToConstant: 220),
         ])
-        installContext(stack)
+        let panel = TVReadOnlyPanel(wrapping: stack) {
+            "Crucible. Version \(AppInfo.versionSummary). \(AppInfo.licenseSummary)"
+        }
+        panel.accessibilityIdentifier = "about.context"
+        installContext(panel)
     }
 
     private func rows() -> [TVRowItem] {
