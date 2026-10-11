@@ -149,6 +149,50 @@ final class GalleryTests: XCTestCase {
         }
     }
 
+    func testScreenTitleIsOneHeaderBelowTheTabBar() {
+        for (mode, identifier, expected) in [
+            ("title-cell", "title.cell", "Watch History. 12 plays this week · 8h 40m"),
+            ("title-header", "tv.screenTitle", "Genre: Documentary. 94 titles. Everything in your libraries filed under Documentary, newest first."),
+        ] {
+            let app = launchGallery(style: "dark", mode: mode)
+            TVTest.settle(2.5)
+            TVTest.capture("01-\(mode)", in: self)
+            let title = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", expected)).firstMatch
+            XCTAssertTrue(title.exists, "\(mode): no single accessibility element reads \(expected)")
+            let first = app.descendants(matching: .any)["title.poster.0"]
+            XCTAssertTrue(first.waitForExistence(timeout: 10))
+            XCTAssertGreaterThanOrEqual(title.frame.minY, 0)
+            XCTAssertLessThan(title.frame.maxY, first.frame.minY, "\(mode): the title overlaps the shelf")
+            app.terminate()
+        }
+    }
+
+    func testScreenTitleInLight() {
+        let app = launchGallery(style: "light", mode: "title-header")
+        TVTest.settle(2.5)
+        TVTest.capture("01-title-header-light", in: self)
+        XCTAssertTrue(app.descendants(matching: .any)["title.poster.0"].waitForExistence(timeout: 10))
+    }
+
+    func testReadOnlyPanelIsAFocusStopOnlyForVoiceOver() {
+        let plain = TVTest.launch(extraEnvironment: ["CRUCIBLE_GALLERY": "panel", "CRUCIBLE_GALLERY_STYLE": "dark"])
+        XCTAssertTrue(TVTest.waitForFocus(on: plain, identifier: "panel.button"))
+        TVTest.remote.press(.up)
+        TVTest.settle(1.0)
+        XCTAssertTrue(TVTest.waitForFocus(on: plain, identifier: "panel.button", timeout: 2), "the panel took focus without VoiceOver")
+        TVTest.capture("01-without-voiceover", in: self)
+        plain.terminate()
+
+        let spoken = TVTest.launch(extraEnvironment: ["CRUCIBLE_GALLERY": "panel", "CRUCIBLE_GALLERY_STYLE": "dark", "CRUCIBLE_VOICEOVER": "1"])
+        XCTAssertTrue(TVTest.waitForFocus(on: spoken, identifier: "panel.button"))
+        TVTest.remote.press(.up)
+        XCTAssertTrue(TVTest.waitForFocus(on: spoken, identifier: "panel.readonly", timeout: 5), "the panel is not a focus stop while VoiceOver runs")
+        TVTest.settle(1.0)
+        TVTest.capture("02-with-voiceover", in: self)
+        let panel = spoken.descendants(matching: .any)["panel.readonly"]
+        XCTAssertEqual(panel.label, "Marcus, connected locally to Marcus-PC, Plex Pass")
+    }
+
     private func launchGallery(style: String, mode: String = "1") -> XCUIApplication {
         let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_GALLERY": mode, "CRUCIBLE_GALLERY_STYLE": style])
         if mode == "1" {
