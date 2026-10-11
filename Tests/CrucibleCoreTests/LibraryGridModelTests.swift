@@ -286,7 +286,7 @@ final class LibraryGridModelTests {
         #expect(model.visibleRecents.map(\.id) == ["3"])
     }
 
-    @Test func aJumpReadsTheSectionInBoundedChunks() async throws {
+    @Test func aJumpReadsToTheTargetInOneRequest() async throws {
         serveItems(total: 600)
         LibraryStubProtocol.route("/library/sections/1/firstCharacter") { _ in
             .init(body: #"{"MediaContainer":{"Directory":[{"key":"a","size":300},{"key":"z","size":300}]}}"#)
@@ -298,9 +298,7 @@ final class LibraryGridModelTests {
         model.jump(to: "Z") { scrolled.indexes.append($0) }
         try await until { !scrolled.indexes.isEmpty }
         #expect(scrolled.indexes == [300])
-        let sizes = LibraryStubProtocol.requests(to: all).dropFirst(before).compactMap { Int($0.query("X-Plex-Container-Size") ?? "") }
-        #expect(sizes.count >= 3)
-        #expect(sizes.allSatisfy { $0 <= LibraryGridPager.jumpChunkSize })
+        #expect(LibraryStubProtocol.requests(to: all).count - before == 1)
         #expect(model.gridIds.count >= 301)
     }
 

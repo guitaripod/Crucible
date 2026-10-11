@@ -5,7 +5,6 @@ import Foundation
 package struct LibraryGridPager: Sendable {
     package static let pageSize = 50
     package static let prefetchThreshold = 10
-    package static let jumpChunkSize = 100
     package static let reloadCeiling = 300
     package static let refreshWindow = 200
 
@@ -89,7 +88,7 @@ package struct LibraryGridPager: Sendable {
     package func jumpPlan(toOffset offset: Int) -> JumpPlan {
         if offset < ids.count { return .scroll(toIndex: offset) }
         guard serverOffset < totalSize else { return .scroll(toIndex: max(0, ids.count - 1)) }
-        return .loadThenScroll(size: min(offset - serverOffset + Self.pageSize, Self.jumpChunkSize))
+        return .loadThenScroll(size: offset - serverOffset + Self.pageSize)
     }
 
     private mutating func replace(with items: [PlexMetadata]) {

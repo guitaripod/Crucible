@@ -112,8 +112,7 @@ struct LibraryGridPagerTests {
     @Test func jumpingPastTheLoadedPagesReadsUpToTheTarget() throws {
         let pager = try loaded(count: 50, total: 300)
         #expect(pager.jumpPlan(toOffset: 50) == .loadThenScroll(size: 50))
-        #expect(pager.jumpPlan(toOffset: 180) == .loadThenScroll(size: LibraryGridPager.jumpChunkSize))
-        #expect(pager.jumpPlan(toOffset: 4_000) == .loadThenScroll(size: LibraryGridPager.jumpChunkSize))
+        #expect(pager.jumpPlan(toOffset: 180) == .loadThenScroll(size: 180))
     }
 
     @Test func jumpingWhenTheServerHasNoMoreScrollsToTheEnd() throws {

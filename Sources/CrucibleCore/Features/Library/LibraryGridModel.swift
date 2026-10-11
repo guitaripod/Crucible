@@ -235,19 +235,13 @@ package final class LibraryGridModel {
     /// when that part of the section is not loaded yet it is called once the pages up to it have arrived.
     package func jump(to letter: String, scrollTo: @escaping PageIndexAction) {
         guard let alphabet, let offset = alphabet.offset(for: letter) else { return }
-        AppLogger.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset)", .ui)
-        scroll(towards: offset, scrollTo)
-    }
-
-    /// Reads the section in chunks until `offset` is loaded, then scrolls. A chunk that fails, or a
-    /// newer fetch, ends the jump without scrolling.
-    private func scroll(towards offset: Int, _ scrollTo: @escaping PageIndexAction) {
         switch pager.jumpPlan(toOffset: offset) {
         case .scroll(let index):
             scrollTo(index)
         case .loadThenScroll(let size):
-            fetchPage(offset: pager.serverOffset, size: size) { [weak self] in
-                self?.scroll(towards: offset, scrollTo)
+            AppLogger.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset) loading \(size)", .ui)
+            fetchPage(offset: pager.serverOffset, size: size) {
+                scrollTo(offset)
             }
         }
     }
