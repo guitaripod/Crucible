@@ -48,6 +48,9 @@ DETAIL_SLOW_KEY = "9406"
 DETAIL_SLOW_SOURCE = "1001"
 DETAIL_SLOW_SECONDS = 12
 DETAIL_LONG_KEY = "9407"
+DETAIL_SEASON_MODES = {}
+DETAIL_PROGRESS_KEY = "4095"
+DETAIL_PROGRESS_OFFSET = LIB.items[DETAIL_PROGRESS_KEY].get("viewOffset")
 
 SRT = (
     "1\n00:00:02,000 --> 00:00:05,000\nWe should not be out here.\n\n"
@@ -466,6 +469,11 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/library/metadata/(\d+)(?:/(children|allLeaves))?$", p)
         if m:
             rk, sub = m.groups()
+            if sub == "children" and rk in DETAIL_SEASON_MODES:
+                mode, seconds = DETAIL_SEASON_MODES[rk]
+                if mode == "fail":
+                    return self.not_found()
+                time.sleep(seconds)
             if sub is None and rk in (DETAIL_ERROR_KEY, DETAIL_GONE_KEY, DETAIL_FLAKY_KEY, DETAIL_SLOW_KEY, DETAIL_LONG_KEY):
                 return self.detail_fault(rk)
             with LOCK:
@@ -659,7 +667,21 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/mock/detail-reset":
             with LOCK:
                 DETAIL_FLAKY["left"] = DETAIL_FLAKY_FAILURES
+                DETAIL_SEASON_MODES.clear()
+                progress = LIB.items[DETAIL_PROGRESS_KEY]
+                progress.pop("viewCount", None)
+                progress["viewOffset"] = DETAIL_PROGRESS_OFFSET
             return self.send_json({"reset": True})
+        if p == "/mock/detail-season":
+            key = q.get("key", [""])[0]
+            mode = q.get("mode", ["ok"])[0]
+            seconds = float(q.get("seconds", ["5"])[0])
+            with LOCK:
+                if mode == "ok":
+                    DETAIL_SEASON_MODES.pop(key, None)
+                else:
+                    DETAIL_SEASON_MODES[key] = (mode, seconds)
+            return self.send_json({"season": key, "mode": mode})
         if p == "/mock/approve":
             code = (q.get("code", [""])[0]).lower()
             with LOCK:
