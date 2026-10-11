@@ -3,23 +3,24 @@ import CrucibleCore
 import Foundation
 import os
 
+/// Reports the playhead to the server's timeline: `playing` every ten seconds, `playing`/`paused` on
+/// every state change and `stopped` when it is stopped. One reporter serves a whole session; a change
+/// of stream only changes its offset.
 @MainActor
 package final class PlaybackReporter {
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
 
     private let api: APIClient
     private let ratingKey: String
-    private let sessionId: String
     private let durationMs: Int
     private weak var player: AVPlayer?
     private var timeObserverToken: Any?
     private var statusObservation: NSKeyValueObservation?
     private let streamOffset = OSAllocatedUnfairLock<Double>(initialState: 0)
 
-    package init(api: APIClient, ratingKey: String, sessionId: String, durationMs: Int, player: AVPlayer) {
+    package init(api: APIClient, ratingKey: String, durationMs: Int, player: AVPlayer) {
         self.api = api
         self.ratingKey = ratingKey
-        self.sessionId = sessionId
         self.durationMs = durationMs
         self.player = player
         setupObservers()
@@ -38,11 +39,10 @@ package final class PlaybackReporter {
         let offsetLock = self.streamOffset
 
         timeObserverToken = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 10, preferredTimescale: 1),
+            forInterval: CMTime(seconds: PlaybackTiming.timelineInterval, preferredTimescale: 1),
             queue: .main
         ) { time in
-            let position = time.seconds + offsetLock.withLock { $0 }
-            guard position.isFinite, position >= 0 else { return }
+            guard let position = StreamPosition.absolute(playerSeconds: time.seconds, streamOffset: offsetLock.withLock { $0 }) else { return }
             let timeMs = Int(position * 1000)
             Task {
                 await Self.report(api: api, ratingKey: ratingKey, state: "playing", timeMs: timeMs, durationMs: durationMs)
@@ -50,8 +50,10 @@ package final class PlaybackReporter {
         }
 
         statusObservation = player.observe(\.timeControlStatus, options: [.new]) { @Sendable observedPlayer, _ in
-            let position = observedPlayer.currentTime().seconds + offsetLock.withLock { $0 }
-            guard position.isFinite, position >= 0 else { return }
+            guard let position = StreamPosition.absolute(
+                playerSeconds: observedPlayer.currentTime().seconds,
+                streamOffset: offsetLock.withLock { $0 }
+            ) else { return }
             let state: String
             switch observedPlayer.timeControlStatus {
             case .playing: state = "playing"
@@ -73,12 +75,13 @@ package final class PlaybackReporter {
         }
     }
 
-    func sendFinalPosition() async {
-        guard let player else { return }
-        let position = player.currentTime().seconds + streamOffset.withLock { $0 }
-        guard position.isFinite, position >= 0 else { return }
-        let timeMs = Int(position * 1000)
-        await Self.report(api: api, ratingKey: ratingKey, state: "stopped", timeMs: timeMs, durationMs: durationMs)
+    private func sendFinalPosition() async {
+        guard let player,
+              let position = StreamPosition.absolute(
+                playerSeconds: player.currentTime().seconds,
+                streamOffset: streamOffset.withLock { $0 }
+              ) else { return }
+        await Self.report(api: api, ratingKey: ratingKey, state: "stopped", timeMs: Int(position * 1000), durationMs: durationMs)
     }
 
     package func stop() async {
