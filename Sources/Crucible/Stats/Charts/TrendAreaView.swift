@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// A filled area/line chart with a gradient wash under a smoothed curve.

@@ -1,3 +1,4 @@
+import CrucibleDesign
 import CrucibleStats
 import UIKit
 

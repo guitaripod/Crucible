@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 final class GenreBrowseViewController: UICollectionViewController {

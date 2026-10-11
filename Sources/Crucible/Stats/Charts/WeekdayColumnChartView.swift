@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// Seven vertical bars (Sunday…Saturday) charting play counts per weekday, with

@@ -2,8 +2,8 @@ import CrucibleCore
 import os
 @preconcurrency import UIKit
 
-actor ImageLoader {
-    static let shared = ImageLoader()
+package actor ImageLoader {
+    package static let shared = ImageLoader()
 
     private struct Config: Sendable {
         let baseURL: URL
@@ -24,7 +24,7 @@ actor ImageLoader {
     private var disk: DiskImageCache?
     private var diskNamespace: String?
 
-    nonisolated func configure(baseURL: URL, token: String, machineIdentifier: String) {
+    package nonisolated func configure(baseURL: URL, token: String, machineIdentifier: String) {
         config.withLock { $0 = Config(baseURL: baseURL, token: token, machineIdentifier: machineIdentifier) }
         Task { await self.cancelInFlight() }
     }
@@ -45,16 +45,16 @@ actor ImageLoader {
         return disk!
     }
 
-    func clearCache() {
+    package func clearCache() {
         cache.removeAllObjects()
         disk?.clear()
     }
 
-    func loadImage(path: String, width: Int) async -> UIImage? {
+    package func loadImage(path: String, width: Int) async -> UIImage? {
         await load(path: path, width: width, height: Int(Double(width) * 1.5), prefix: "p")
     }
 
-    func loadBackdrop(path: String, width: Int) async -> UIImage? {
+    package func loadBackdrop(path: String, width: Int) async -> UIImage? {
         await load(path: path, width: width, height: Int(Double(width) * 0.56), prefix: "b")
     }
 

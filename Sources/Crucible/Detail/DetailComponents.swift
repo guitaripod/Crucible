@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// Ember primary pill, then a 52pt glass download ring and a 52pt glass watched toggle.

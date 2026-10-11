@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// A 2:3 poster with its caption underneath. Overlay chrome is limited to state badges (unwatched

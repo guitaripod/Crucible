@@ -1,4 +1,5 @@
 import CoreImage.CIFilterBuiltins
+import CrucibleDesign
 import CrucibleStats
 @preconcurrency import UIKit
 

@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// A horizontally scrolling row of capsule chips. A chip either toggles a filter (`onSelect`) or opens

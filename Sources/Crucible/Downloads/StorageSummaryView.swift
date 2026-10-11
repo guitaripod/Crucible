@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 struct StorageSummaryConfiguration: UIContentConfiguration {

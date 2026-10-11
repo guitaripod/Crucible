@@ -1,5 +1,6 @@
 import AVKit
 import CrucibleCore
+import CrucibleDesign
 import CrucibleMedia
 import MediaPlayer
 import os

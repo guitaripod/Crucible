@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 struct ContinueBannerModel: Equatable {

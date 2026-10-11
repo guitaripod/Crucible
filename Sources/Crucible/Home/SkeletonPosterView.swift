@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// A placeholder block for cold-start loading: a raised-surface fill with a 1.4s linear highlight

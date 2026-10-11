@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 import UIKit
 
 enum LibraryGridKind: Sendable {

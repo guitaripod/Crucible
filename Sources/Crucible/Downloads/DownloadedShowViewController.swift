@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// The downloaded episodes of one show. Built only from local download records, so it works offline.

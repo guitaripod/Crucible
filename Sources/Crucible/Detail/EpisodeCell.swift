@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 struct EpisodeContentConfiguration: UIContentConfiguration {

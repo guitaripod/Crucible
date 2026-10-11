@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// The artwork source of a hero card: server backdrop, or a poster saved beside a download.

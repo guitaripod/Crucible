@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// A single ranked row: optional rank number, optional leading 36pt poster, a title with trailing

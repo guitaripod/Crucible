@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// Grouped-list row: a 32pt neutral icon well, title with optional badge and subtitle, and an optional

@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// "See All" for a library's Recently Watched rail: the same play history as a poster grid, with far

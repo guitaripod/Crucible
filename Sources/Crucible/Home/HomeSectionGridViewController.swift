@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// "See All" destination for a Home rail: the rail's items as a poster grid.

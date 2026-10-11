@@ -1,27 +1,27 @@
 import UIKit
 
 /// Small outlined capsule for technical facts such as 4K, HDR10 or Dolby Atmos.
-final class BadgeChipView: UIView {
+package final class BadgeChipView: UIView {
     private let label = UILabel()
 
-    init(text: String) {
+    package init(text: String) {
         super.init(frame: .zero)
         layer.cornerRadius = Theme.Radius.xs
         layer.cornerCurve = .continuous
-        layer.borderWidth = 1
+        layer.borderWidth = Theme.Metric.badgeBorderWidth
         layer.borderColor = Theme.Color.labelTertiary.cgColor
 
         label.text = text
-        label.font = Theme.Font.scaled(.caption2, 11, .bold, maximum: 15)
+        label.font = Theme.Font.badge
         label.adjustsFontForContentSizeCategory = true
         label.textColor = Theme.Color.labelSecondary
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 7),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -7),
-            label.topAnchor.constraint(equalTo: topAnchor, constant: 3),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -3),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Theme.Metric.badgeInsetHorizontal),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Theme.Metric.badgeInsetHorizontal),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: Theme.Metric.badgeInsetVertical),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Theme.Metric.badgeInsetVertical),
         ])
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: BadgeChipView, _: UITraitCollection) in
             view.layer.borderColor = Theme.Color.labelTertiary.cgColor
@@ -29,10 +29,10 @@ final class BadgeChipView: UIView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    package required init?(coder: NSCoder) { fatalError() }
 
     /// A horizontal row of badges that never stretches them.
-    static func row(_ texts: [String]) -> UIStackView {
+    package static func row(_ texts: [String]) -> UIStackView {
         let stack = UIStackView(arrangedSubviews: texts.map { BadgeChipView(text: $0) })
         stack.axis = .horizontal
         stack.spacing = Theme.Space.xs

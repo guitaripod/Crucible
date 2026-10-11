@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// The single download affordance used by episode rows, detail screens and the Downloads list:

@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// Shared glass-capsule construction for the floating player controls.

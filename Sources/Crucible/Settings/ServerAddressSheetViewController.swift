@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 import UIKit
 
 /// A small input sheet for connecting by hostname or IP (for example a Tailscale 100.x address).

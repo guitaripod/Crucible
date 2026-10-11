@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// A 24-spoke polar histogram rendered as a clock face: each hour is a tapered radial bar

@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// A KPI tile: a surface card with an icon-led caption on top, a bold value on the bottom-left,

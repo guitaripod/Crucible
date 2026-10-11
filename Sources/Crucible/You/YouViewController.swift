@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 import UIKit
 
 final class YouViewController: UICollectionViewController {

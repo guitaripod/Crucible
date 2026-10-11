@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 import MediaPlayer
 @preconcurrency import UIKit
 

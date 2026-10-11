@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// A 16:9 backdrop card with its caption underneath, used for Continue Watching and episode rails.

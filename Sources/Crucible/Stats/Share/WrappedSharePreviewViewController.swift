@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// Shows the poster exactly as it will be shared, lets the person pick the format, then hands the

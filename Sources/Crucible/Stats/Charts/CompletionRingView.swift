@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// Circular progress ring: a faint background track with an accent arc that sweeps

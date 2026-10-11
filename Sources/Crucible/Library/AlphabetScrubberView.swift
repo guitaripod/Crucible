@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// The trailing A–Z index. It shows every other letter plus '#', but a drag resolves to the full

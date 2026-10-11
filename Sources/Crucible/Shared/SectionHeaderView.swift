@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 struct SectionHeaderConfiguration: UIContentConfiguration, Hashable {

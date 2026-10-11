@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// Builds a context-menu action that downloads, cancels, or removes a download for a media item,

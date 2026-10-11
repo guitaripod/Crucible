@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// The ember Play Now pill with a darker sweep over its trailing edge that tracks the countdown.

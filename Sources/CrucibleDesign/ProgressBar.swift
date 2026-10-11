@@ -1,28 +1,28 @@
 import UIKit
 
-/// A 4pt ember progress bar. `.onArt` darkens the track for use over artwork; `.onSurface` uses the
-/// raised-surface track for cards and rows.
-final class ProgressBar: UIView {
-    enum Style {
+/// An ember progress bar, 4pt thick on iPhone and 8pt on Apple TV. `.onArt` darkens the track for
+/// use over artwork; `.onSurface` uses the raised-surface track for cards and rows.
+package final class ProgressBar: UIView {
+    package enum Style {
         case onArt
         case onSurface
     }
 
-    var progress: Double = 0 {
+    package var progress: Double = 0 {
         didSet { setNeedsLayout() }
     }
 
-    var style: Style = .onArt {
+    package var style: Style = .onArt {
         didSet { applyColors() }
     }
 
     private let trackLayer = CALayer()
     private let fillLayer = CALayer()
 
-    override init(frame: CGRect) {
+    package override init(frame: CGRect) {
         super.init(frame: frame)
-        trackLayer.cornerRadius = 2
-        fillLayer.cornerRadius = 2
+        trackLayer.cornerRadius = Theme.Metric.progressBarThickness / 2
+        fillLayer.cornerRadius = Theme.Metric.progressBarThickness / 2
         layer.addSublayer(trackLayer)
         layer.addSublayer(fillLayer)
         applyColors()
@@ -33,13 +33,13 @@ final class ProgressBar: UIView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
+    package required init?(coder: NSCoder) { fatalError() }
 
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 4)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: Theme.Metric.progressBarThickness)
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
         trackLayer.frame = bounds
         let clamped = max(0, min(1, progress))

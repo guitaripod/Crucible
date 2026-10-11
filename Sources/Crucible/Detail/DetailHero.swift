@@ -1,3 +1,4 @@
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// Full-bleed artwork that lives in the collection view's `backgroundView`, behind clear cells.

@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDesign
 @preconcurrency import UIKit
 
 /// Compositional sections shared by the movie/episode and show detail screens.

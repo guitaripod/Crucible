@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 final class AboutViewController: UICollectionViewController {
