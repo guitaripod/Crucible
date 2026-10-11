@@ -61,3 +61,4 @@ On the phone, go to Settings > General > VPN & Device Management, tap your Apple
 - `./scripts/install-ios.sh --check` verifies your setup without building.
 - If xtool shows a Trust prompt and then an error, tap Trust and run the script again.
 - Crucible talks straight to your Plex server, so a phone away from home needs a route to it, such as Tailscale.
+- Crucible also has an Apple TV app. xtool cannot build for tvOS, so that one needs a Mac with Xcode; the Apple TV section of the [README](README.md) has the steps.
