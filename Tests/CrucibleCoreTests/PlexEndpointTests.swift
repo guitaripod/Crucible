@@ -45,7 +45,7 @@ struct PlexEndpointTests {
     }
 
     @Test func requestPinPostsAFormBody() throws {
-        let request = try request(.requestPin, token: nil)
+        let request = try request(.requestPin(strong: true), token: nil)
         #expect(request.url?.absoluteString == "https://clients.plex.tv/api/v2/pins")
         #expect(request.httpMethod == "POST")
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/x-www-form-urlencoded")

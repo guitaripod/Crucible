@@ -1,7 +1,7 @@
 import Foundation
 
 package enum PlexEndpoint: Sendable {
-    case requestPin
+    case requestPin(strong: Bool)
     case checkPin(pinId: Int)
     case resources
 
@@ -37,7 +37,7 @@ package enum PlexEndpoint: Sendable {
         }
     }
 
-    static let plexTVBaseURL = URL(string: "https://clients.plex.tv")!
+    static let plexTVBaseURL = PlexTVHost.clients
 
     package var timeout: TimeInterval {
         switch self {
@@ -216,12 +216,18 @@ package enum PlexEndpoint: Sendable {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        if case .requestPin = self {
+        if case .requestPin(let strong) = self {
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            request.httpBody = "strong=true&X-Plex-Product=Crucible&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)".data(using: .utf8)
+            request.httpBody = Self.pinFormBody(strong: strong).data(using: .utf8)
         }
 
         return request
     }
 
+    /// A strong PIN is the long code behind the `app.plex.tv/auth` page; omitting `strong` asks for
+    /// the four character code a person types at plex.tv/link.
+    static func pinFormBody(strong: Bool) -> String {
+        let fields = (strong ? ["strong=true"] : []) + ["X-Plex-Product=Crucible", "X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"]
+        return fields.joined(separator: "&")
+    }
 }

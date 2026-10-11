@@ -644,6 +644,7 @@ package struct PlexPin: Decodable, Sendable {
     package let id: Int
     package let code: String
     package let authToken: String?
+    package let expiresIn: Int?
 }
 
 package struct PlexIdentity: Decodable, Sendable {

@@ -76,6 +76,18 @@ package struct ServerChoice: Hashable, Sendable {
         routes.contains { $0.state == .probing }
     }
 
+    package enum Reachability: Equatable, Sendable {
+        case offline, probing, reachable, unreachable
+    }
+
+    /// Offline when plex.tv says so, reachable once any route answered, probing while routes are
+    /// still being tried, unreachable when every route failed.
+    package var reachability: Reachability {
+        if !isOnline { return .offline }
+        if bestRoute != nil { return .reachable }
+        return isProbing ? .probing : .unreachable
+    }
+
     /// The highest-priority route that answered, following the ranked order of `routes`.
     package var bestRoute: ServerRoute? {
         routes.first { $0.milliseconds != nil }

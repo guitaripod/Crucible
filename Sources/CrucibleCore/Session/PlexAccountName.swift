@@ -12,8 +12,7 @@ package enum PlexAccountName {
 
     /// Stores `title` (falling back to `username`) under `plex_account_name`. Every failure is ignored.
     package static func refresh(token: String) async {
-        guard let url = URL(string: "https://plex.tv/api/v2/user") else { return }
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: PlexTVHost.account.appendingPathComponent("api/v2/user"))
         request.timeoutInterval = 10
         for (key, value) in PlexHeaders.allHeaders(token: token) {
             request.setValue(value, forHTTPHeaderField: key)
