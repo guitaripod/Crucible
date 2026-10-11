@@ -80,6 +80,18 @@ def pin_payload(pin, token=None):
             "newRegistration": None}
 
 
+def configure_plextv(query):
+    global PIN_POLLS, PIN_LIFETIME, PLEXTV_SERVERS
+    if "pin_polls" in query:
+        PIN_POLLS = int(query["pin_polls"][0])
+    if "pin_expires" in query:
+        PIN_LIFETIME = int(query["pin_expires"][0])
+    if "servers" in query:
+        PLEXTV_SERVERS = query["servers"][0]
+    PINS.clear()
+    return {"pin_polls": PIN_POLLS, "pin_expires": PIN_LIFETIME, "servers": PLEXTV_SERVERS}
+
+
 def pin_expired(pin):
     age = (datetime.now(timezone.utc) - pin["createdAt"]).total_seconds()
     return age > PIN_LIFETIME and not pin["approved"]
@@ -115,6 +127,8 @@ def plextv_resources():
         server["connections"] = [dead_connection()]
     if PLEXTV_SERVERS == "multiple":
         return [server, spare_server(seen)]
+    if PLEXTV_SERVERS == "several":
+        return [server, spare_server(seen, reachable=True), spare_server(seen, name="Attic-Pi", machine="e51c7a09b3d84f26a0c9d4e8f1b7a352")]
     player = {"name": "Marcus-iPhone", "product": "Crucible", "productVersion": "2.0.1", "platform": "iOS",
               "platformVersion": "26.5", "device": "iPhone", "clientIdentifier": "3f0b8e4c-0c6a-4d5e-9a67-52f1c1b0a9d2",
               "createdAt": "2025-09-12T08:01:44Z", "lastSeenAt": seen, "provides": "client,player,pubsub-player",
@@ -130,14 +144,16 @@ def dead_connection():
             "IPv6": False}
 
 
-def spare_server(seen):
-    return {"name": "Garage-NAS", "product": "Plex Media Server", "productVersion": "1.41.4.9463-630c9f557",
+def spare_server(seen, name="Garage-NAS", machine="b8a4f01c6d2e4973a5c0e7f19d3b2a64", reachable=False):
+    route = {"protocol": "http", "address": "127.0.0.1", "port": PORT, "uri": f"http://127.0.0.1:{PORT}", "local": True,
+             "relay": False, "IPv6": False} if reachable else dead_connection()
+    return {"name": name, "product": "Plex Media Server", "productVersion": "1.41.4.9463-630c9f557",
             "platform": "Linux", "platformVersion": "6.8.0", "device": "NAS",
-            "clientIdentifier": "b8a4f01c6d2e4973a5c0e7f19d3b2a64", "createdAt": "2024-05-11T18:22:40Z",
+            "clientIdentifier": machine, "createdAt": "2024-05-11T18:22:40Z",
             "lastSeenAt": seen, "provides": "server", "ownerId": 2, "sourceTitle": "Sam", "publicAddress": PUBLIC_ADDRESS,
             "accessToken": "mock-server-token-2", "owned": False, "home": False, "synced": False, "relay": True,
             "presence": True, "httpsRequired": False, "publicAddressMatches": True, "dnsRebindingProtection": False,
-            "natLoopbackSupported": False, "connections": [dead_connection()]}
+            "natLoopbackSupported": False, "connections": [route]}
 
 
 def plextv_user():
@@ -546,6 +562,9 @@ class Handler(BaseHTTPRequestHandler):
                     FLAGS[name] = int(value) if name == "latency_ms" else value == "1"
             library.CLIP_MARKERS = FLAGS["clip_markers"]
             return self.send_json(FLAGS)
+        if p == "/mock/plextv-config":
+            with LOCK:
+                return self.send_json(configure_plextv(q))
         if p == "/mock/approve":
             code = (q.get("code", [""])[0]).lower()
             with LOCK:
