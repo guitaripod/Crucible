@@ -2,29 +2,34 @@ import CrucibleDesign
 import CrucibleStats
 import UIKit
 
-private enum HeatmapMetrics {
-    static let cellEdge: CGFloat = 12
-    static let gap: CGFloat = 3
-    static let corner: CGFloat = 2.5
+private struct HeatmapGeometry {
     static let rows = 7
-    static let monthLabelHeight: CGFloat = 16
-    static var step: CGFloat { cellEdge + gap }
-    static var gridHeight: CGFloat { monthLabelHeight + CGFloat(rows) * step }
+
+    let metrics: StatsMetrics.Heatmap
+
+    var cellEdge: CGFloat { metrics.cellEdge }
+    var corner: CGFloat { metrics.corner }
+    var monthLabelHeight: CGFloat { metrics.monthLabelHeight }
+    var step: CGFloat { metrics.cellEdge + metrics.gap }
+    var gridHeight: CGFloat { metrics.monthLabelHeight + CGFloat(Self.rows) * step }
 }
 
 /// GitHub-style year contribution calendar: 7 rows (row 0 = Sunday) by `model.columns`
 /// week-columns, hosted in a horizontally scrolling canvas that reveals to the most recent week.
-final class ContributionHeatmapView: UIView {
+package final class ContributionHeatmapView: UIView {
     /// Invoked with the derived `dayEpoch` when a rendered day cell is tapped.
-    var onSelectDay: ((Int) -> Void)?
+    package var onSelectDay: ((Int) -> Void)?
 
     private let scrollView = UIScrollView()
-    private let content = GridContentView()
+    private let content: GridContentView
+    private let geometry: HeatmapGeometry
     private var model = HeatmapModel()
     private var pendingReveal = false
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        geometry = HeatmapGeometry(metrics: metrics.heatmap)
+        content = GridContentView(geometry: geometry)
+        super.init(frame: .zero)
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsHorizontalScrollIndicator = false
@@ -53,14 +58,12 @@ final class ContributionHeatmapView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    convenience init() { self.init(frame: .zero) }
-
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: HeatmapMetrics.gridHeight)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: geometry.gridHeight)
     }
 
     /// Replaces the rendered calendar and queues a reveal that pans to the most recent week.
-    func setModel(_ model: HeatmapModel) {
+    package func setModel(_ model: HeatmapModel) {
         self.model = model
         accessibilityLabel = Self.summary(for: model)
         content.model = model
@@ -69,10 +72,10 @@ final class ContributionHeatmapView: UIView {
         setNeedsLayout()
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
-        let width = CGFloat(model.columns) * HeatmapMetrics.step
-        let height = HeatmapMetrics.gridHeight
+        let width = CGFloat(model.columns) * geometry.step
+        let height = geometry.gridHeight
         content.frame = CGRect(x: 0, y: 0, width: width, height: height)
         scrollView.contentSize = CGSize(width: width, height: height)
 
@@ -109,11 +112,11 @@ final class ContributionHeatmapView: UIView {
     }
 
     private func handleTap(at point: CGPoint) {
-        guard model.columns > 0, point.y >= HeatmapMetrics.monthLabelHeight else { return }
-        let column = Int(point.x / HeatmapMetrics.step)
-        let row = Int((point.y - HeatmapMetrics.monthLabelHeight) / HeatmapMetrics.step)
-        guard column >= 0, column < model.columns, row >= 0, row < HeatmapMetrics.rows else { return }
-        let dayEpoch = model.firstDayEpoch + column * HeatmapMetrics.rows + row
+        guard model.columns > 0, point.y >= geometry.monthLabelHeight else { return }
+        let column = Int(point.x / geometry.step)
+        let row = Int((point.y - geometry.monthLabelHeight) / geometry.step)
+        guard column >= 0, column < model.columns, row >= 0, row < HeatmapGeometry.rows else { return }
+        let dayEpoch = model.firstDayEpoch + column * HeatmapGeometry.rows + row
         guard dayEpoch <= model.lastDayEpoch else { return }
         onSelectDay?(dayEpoch)
     }
@@ -124,9 +127,11 @@ private final class GridContentView: UIView {
     var onTap: ((CGPoint) -> Void)?
 
     private var touchOrigin: CGPoint?
+    private let geometry: HeatmapGeometry
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init(geometry: HeatmapGeometry) {
+        self.geometry = geometry
+        super.init(frame: .zero)
         isOpaque = false
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: GridContentView, _: UITraitCollection) in
             view.setNeedsDisplay()
@@ -143,23 +148,23 @@ private final class GridContentView: UIView {
         var occupied = Set<Int>()
         occupied.reserveCapacity(m.cells.count)
         for cell in m.cells {
-            occupied.insert(cell.column * HeatmapMetrics.rows + cell.row)
+            occupied.insert(cell.column * HeatmapGeometry.rows + cell.row)
         }
 
         let baseColor = StatsStyle.heatColor(level: 0)
         for column in 0..<m.columns {
-            for row in 0..<HeatmapMetrics.rows {
-                let dayEpoch = m.firstDayEpoch + column * HeatmapMetrics.rows + row
+            for row in 0..<HeatmapGeometry.rows {
+                let dayEpoch = m.firstDayEpoch + column * HeatmapGeometry.rows + row
                 if dayEpoch > m.lastDayEpoch { continue }
-                if occupied.contains(column * HeatmapMetrics.rows + row) { continue }
+                if occupied.contains(column * HeatmapGeometry.rows + row) { continue }
                 fillCell(column: column, row: row, color: baseColor)
             }
         }
 
         for cell in m.cells {
             guard cell.column >= 0, cell.column < m.columns,
-                  cell.row >= 0, cell.row < HeatmapMetrics.rows else { continue }
-            let dayEpoch = m.firstDayEpoch + cell.column * HeatmapMetrics.rows + cell.row
+                  cell.row >= 0, cell.row < HeatmapGeometry.rows else { continue }
+            let dayEpoch = m.firstDayEpoch + cell.column * HeatmapGeometry.rows + cell.row
             if dayEpoch > m.lastDayEpoch { continue }
             fillCell(column: cell.column, row: cell.row, color: StatsStyle.heatColor(level: cell.level))
         }
@@ -169,26 +174,26 @@ private final class GridContentView: UIView {
 
     private func fillCell(column: Int, row: Int, color: UIColor) {
         let origin = CGPoint(
-            x: CGFloat(column) * HeatmapMetrics.step,
-            y: HeatmapMetrics.monthLabelHeight + CGFloat(row) * HeatmapMetrics.step
+            x: CGFloat(column) * geometry.step,
+            y: geometry.monthLabelHeight + CGFloat(row) * geometry.step
         )
-        let rect = CGRect(origin: origin, size: CGSize(width: HeatmapMetrics.cellEdge, height: HeatmapMetrics.cellEdge))
-        let path = UIBezierPath(roundedRect: rect, cornerRadius: HeatmapMetrics.corner)
+        let rect = CGRect(origin: origin, size: CGSize(width: geometry.cellEdge, height: geometry.cellEdge))
+        let path = UIBezierPath(roundedRect: rect, cornerRadius: geometry.corner)
         color.setFill()
         path.fill()
     }
 
     private func drawMonthLabels(_ m: HeatmapModel) {
         guard !m.monthLabels.isEmpty else { return }
-        let font = UIFont.systemFont(ofSize: 11, weight: .regular)
+        let font = geometry.metrics.monthFont.uiFont
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: Theme.Color.labelTertiary,
         ]
-        let y = max(0, (HeatmapMetrics.monthLabelHeight - font.lineHeight) / 2)
+        let y = max(0, (geometry.monthLabelHeight - font.lineHeight) / 2)
         for (column, label) in m.monthLabels where column >= 0 && column < m.columns {
             let labelWidth = (label as NSString).size(withAttributes: attributes).width
-            let x = min(CGFloat(column) * HeatmapMetrics.step, max(0, bounds.width - labelWidth))
+            let x = min(CGFloat(column) * geometry.step, max(0, bounds.width - labelWidth))
             (label as NSString).draw(at: CGPoint(x: x, y: y), withAttributes: attributes)
         }
     }

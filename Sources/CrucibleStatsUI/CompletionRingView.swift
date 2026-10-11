@@ -3,10 +3,10 @@ import UIKit
 
 /// Circular progress ring: a faint background track with an accent arc that sweeps
 /// clockwise from 12 o'clock. Optionally renders a centred percent label.
-final class CompletionRingView: UIView {
+package final class CompletionRingView: UIView {
 
     /// Shows a centred percentage label inside the ring when `true` (default `false`).
-    var showsPercentLabel: Bool = false {
+    package var showsPercentLabel: Bool = false {
         didSet {
             guard showsPercentLabel != oldValue else { return }
             percentLabel.isHidden = !showsPercentLabel
@@ -15,6 +15,7 @@ final class CompletionRingView: UIView {
 
     private var progress: Double = 0
 
+    private let intrinsicSide: CGFloat
     private let trackLayer = CAShapeLayer()
     private let progressLayer = CAShapeLayer()
 
@@ -29,8 +30,9 @@ final class CompletionRingView: UIView {
         return label
     }()
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        intrinsicSide = metrics.ring.intrinsicSide
+        super.init(frame: .zero)
         backgroundColor = .clear
         isAccessibilityElement = true
         accessibilityTraits = .updatesFrequently
@@ -59,13 +61,11 @@ final class CompletionRingView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    convenience init() { self.init(frame: .zero) }
-
-    override var intrinsicContentSize: CGSize { CGSize(width: 46, height: 46) }
+    package override var intrinsicContentSize: CGSize { CGSize(width: intrinsicSide, height: intrinsicSide) }
 
     /// Sets the ring fill to `fraction` (clamped to 0...1). When `animated` and Reduce
     /// Motion is off, the arc eases to its new length; otherwise it snaps.
-    func setProgress(_ fraction: Double, animated: Bool) {
+    package func setProgress(_ fraction: Double, animated: Bool) {
         let clamped = normalized(fraction)
         let previous = progress
         progress = clamped
@@ -89,7 +89,7 @@ final class CompletionRingView: UIView {
         }
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
         let side = min(bounds.width, bounds.height)
         guard side > 0 else { return }

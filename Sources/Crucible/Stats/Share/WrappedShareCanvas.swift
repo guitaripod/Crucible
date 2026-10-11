@@ -1,6 +1,7 @@
 import CoreImage.CIFilterBuiltins
 import CrucibleDesign
 import CrucibleStats
+import CrucibleStatsUI
 @preconcurrency import UIKit
 
 /// The poster's palette: a warm near-black ground with the app's ember accent, fixed so the shared

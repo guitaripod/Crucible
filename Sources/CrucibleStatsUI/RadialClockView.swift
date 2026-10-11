@@ -4,11 +4,11 @@ import UIKit
 /// A 24-spoke polar histogram rendered as a clock face: each hour is a tapered radial bar
 /// growing from an inner hub ring, its length scaled by that hour's share of the busiest hour.
 /// Hour 0 (midnight) sits at 12 o'clock and hours increase clockwise. Feed data via `setHours(_:)`.
-final class RadialClockView: UIView {
+package final class RadialClockView: UIView {
+    private let metrics: StatsMetrics.Clock
     private let hourCount = 24
     private let innerRadiusRatio: CGFloat = 0.32
     private let outerRadiusRatio: CGFloat = 0.95
-    private let inset: CGFloat = 6
     private let animationDuration: CFTimeInterval = 0.55
 
     private var counts = [Int](repeating: 0, count: 24)
@@ -19,8 +19,9 @@ final class RadialClockView: UIView {
     private var animationStart: CFTimeInterval = 0
     private var pendingGrow = false
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.clock
+        super.init(frame: .zero)
         backgroundColor = .clear
         isOpaque = false
         contentMode = .redraw
@@ -29,16 +30,14 @@ final class RadialClockView: UIView {
         }
     }
 
-    convenience init() { self.init(frame: .zero) }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override var intrinsicContentSize: CGSize { CGSize(width: 200, height: 200) }
+    package override var intrinsicContentSize: CGSize { CGSize(width: metrics.intrinsicSide, height: metrics.intrinsicSide) }
 
     /// Supplies 24 hourly play counts (index 0 == midnight at 12 o'clock, increasing clockwise)
     /// and, unless Reduce Motion is on, animates the bars growing outward.
-    func setHours(_ counts: [Int]) {
+    package func setHours(_ counts: [Int]) {
         var normalized = [Int](repeating: 0, count: hourCount)
         for i in 0..<min(hourCount, counts.count) {
             normalized[i] = max(0, counts[i])
@@ -61,7 +60,7 @@ final class RadialClockView: UIView {
         }
     }
 
-    override func didMoveToWindow() {
+    package override func didMoveToWindow() {
         super.didMoveToWindow()
         if window == nil {
             displayLink?.invalidate()
@@ -95,13 +94,13 @@ final class RadialClockView: UIView {
         }
     }
 
-    override func draw(_ rect: CGRect) {
+    package override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         let w = bounds.width
         let h = bounds.height
         guard w > 1, h > 1 else { return }
         let center = CGPoint(x: w / 2, y: h / 2)
-        let radius = min(w, h) / 2 - inset
+        let radius = min(w, h) / 2 - metrics.inset
         guard radius > 0 else { return }
         let innerR = radius * innerRadiusRatio
         let outerR = radius * outerRadiusRatio
@@ -119,7 +118,7 @@ final class RadialClockView: UIView {
         ctx.setFillColor(StatsStyle.insetBackground.cgColor)
         ctx.fillEllipse(in: CGRect(x: center.x - innerR, y: center.y - innerR, width: innerR * 2, height: innerR * 2))
 
-        ctx.setLineWidth(1)
+        ctx.setLineWidth(metrics.hairline)
         ctx.setStrokeColor(Theme.Color.label.withAlphaComponent(dark ? 0.16 : 0.14).cgColor)
         ctx.strokeEllipse(in: CGRect(x: center.x - innerR, y: center.y - innerR, width: innerR * 2, height: innerR * 2))
 
@@ -135,7 +134,7 @@ final class RadialClockView: UIView {
             let innerEnd = pointOnCircle(center: center, radius: innerR - radius * 0.015 - length, angle: angle)
             let color = cardinal ? StatsStyle.accent.withAlphaComponent(0.55) : Theme.Color.label.withAlphaComponent(0.22)
             ctx.setStrokeColor(color.cgColor)
-            ctx.setLineWidth(cardinal ? 1.5 : 1)
+            ctx.setLineWidth(cardinal ? metrics.hairline * 1.5 : metrics.hairline)
             ctx.beginPath()
             ctx.move(to: outerEnd)
             ctx.addLine(to: innerEnd)

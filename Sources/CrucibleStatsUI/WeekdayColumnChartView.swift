@@ -1,10 +1,14 @@
 import CrucibleDesign
+import CrucibleStats
 import UIKit
 
 /// Seven vertical bars (Sunday…Saturday) charting play counts per weekday, with
 /// rounded tops, faint backing columns, per-bar value chips, and a staggered
 /// grow-from-baseline entrance. Feed it via `setValues(_:)`.
-final class WeekdayColumnChartView: UIView {
+package final class WeekdayColumnChartView: UIView {
+    private let metrics: StatsMetrics.WeekdayChart
+    private let weekdayFont: UIFont
+    private let valueFont: UIFont
     private var values: [Int] = []
     private var trackLayers: [CALayer] = []
     private var barLayers: [CALayer] = []
@@ -13,15 +17,15 @@ final class WeekdayColumnChartView: UIView {
     private var pendingGrowth = false
     private var baselineY: CGFloat = 0
 
-    private let labelRowHeight: CGFloat = 18
-    private let valueRowHeight: CGFloat = 15
-    private let barCornerRadius: CGFloat = 6
+    private var labelRowHeight: CGFloat { metrics.labelRowHeight }
+    private var valueRowHeight: CGFloat { metrics.valueRowHeight }
+    private var barCornerRadius: CGFloat { metrics.barCorner }
 
-    private let weekdayFont = WeekdayColumnChartView.roundedFont(size: 11, weight: .medium)
-    private let valueFont = WeekdayColumnChartView.roundedFont(size: 10, weight: .semibold)
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.weekdayChart
+        weekdayFont = metrics.weekdayChart.weekdayFont.uiFont
+        valueFont = metrics.weekdayChart.valueFont.uiFont
+        super.init(frame: .zero)
         backgroundColor = .clear
         isOpaque = false
         isAccessibilityElement = true
@@ -49,7 +53,7 @@ final class WeekdayColumnChartView: UIView {
             weekday.font = weekdayFont
             weekday.textColor = Theme.Color.labelSecondary
             weekday.textAlignment = .center
-            weekday.text = String(StatsStyle.weekdayShort(i + 1).prefix(1))
+            weekday.text = String(StatsFormat.weekdayShort(i + 1).prefix(1))
             addSubview(weekday)
             weekdayLabels.append(weekday)
 
@@ -70,18 +74,16 @@ final class WeekdayColumnChartView: UIView {
         }
     }
 
-    convenience init() { self.init(frame: .zero) }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 150)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: metrics.intrinsicHeight)
     }
 
     /// Supplies the seven weekday counts (index 0 = Sunday … 6 = Saturday);
     /// any other length clears the chart. Re-animates the entrance unless Reduce Motion is on.
-    func setValues(_ counts: [Int]) {
+    package func setValues(_ counts: [Int]) {
         guard counts.count == 7 else {
             values = []
             pendingGrowth = false
@@ -97,7 +99,7 @@ final class WeekdayColumnChartView: UIView {
         setNeedsDisplay()
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
         applyLayerColors()
 
@@ -113,7 +115,7 @@ final class WeekdayColumnChartView: UIView {
         baselineY = baseline
 
         let slotWidth = bounds.width / 7
-        let barWidth = min(34, max(6, slotWidth * 0.58))
+        let barWidth = min(metrics.maxBarWidth, max(metrics.minBarWidth, slotWidth * 0.58))
         let corner = min(barCornerRadius, barWidth / 2)
 
         let maxCount = values.max() ?? 0
@@ -140,7 +142,7 @@ final class WeekdayColumnChartView: UIView {
 
             let weekday = weekdayLabels[i]
             weekday.isHidden = false
-            weekday.frame = CGRect(x: slotMinX, y: baseline + 3, width: slotWidth, height: labelRowHeight - 3)
+            weekday.frame = CGRect(x: slotMinX, y: baseline + metrics.labelOffset, width: slotWidth, height: labelRowHeight - metrics.labelOffset)
 
             layoutValueLabel(valueLabels[i], count: count, slotMinX: slotMinX, slotWidth: slotWidth, barTop: baseline - barHeight, animate: animate, delay: Double(i) * 0.045, at: now)
         }
@@ -149,11 +151,11 @@ final class WeekdayColumnChartView: UIView {
         setNeedsDisplay()
     }
 
-    override func draw(_ rect: CGRect) {
+    package override func draw(_ rect: CGRect) {
         guard values.count == 7, baselineY > 0, let context = UIGraphicsGetCurrentContext() else { return }
         let y = baselineY.rounded() + 0.5
         context.setStrokeColor(Theme.Color.separator.withAlphaComponent(0.6).cgColor)
-        context.setLineWidth(1)
+        context.setLineWidth(metrics.hairline)
         context.move(to: CGPoint(x: 0, y: y))
         context.addLine(to: CGPoint(x: bounds.width, y: y))
         context.strokePath()
@@ -185,7 +187,7 @@ final class WeekdayColumnChartView: UIView {
             label.isHidden = true
             return
         }
-        let text = StatsStyle.abbreviatedCount(count)
+        let text = StatsFormat.abbreviatedCount(count)
         let textWidth = (text as NSString).size(withAttributes: [.font: valueFont]).width
         guard textWidth + 2 <= slotWidth else {
             label.isHidden = true
@@ -234,12 +236,6 @@ final class WeekdayColumnChartView: UIView {
             accessibilityLabel = "Plays by weekday"
             return
         }
-        accessibilityLabel = "Plays by weekday. Busiest \(StatsStyle.weekdayShort(index + 1)) with \(maxCount)."
-    }
-
-    private static func roundedFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
-        let base = UIFont.systemFont(ofSize: size, weight: weight)
-        guard let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
-        return UIFont(descriptor: descriptor, size: size)
+        accessibilityLabel = "Plays by weekday. Busiest \(StatsFormat.weekdayShort(index + 1)) with \(maxCount)."
     }
 }

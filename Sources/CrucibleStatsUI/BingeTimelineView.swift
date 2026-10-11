@@ -1,4 +1,3 @@
-import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
 import UIKit
@@ -6,18 +5,9 @@ import UIKit
 /// A horizontally scrollable strip of "binge" cards, one per ``BingeSession``, where each
 /// capsule's width encodes how many episodes were watched in the session. Feed it via
 /// ``setSessions(_:)`` with the sessions already sorted biggest-first.
-final class BingeTimelineView: UIView {
-    private enum Metrics {
-        static let intrinsicHeight: CGFloat = 136
-        static let topInset: CGFloat = 4
-        static let axisReserve: CGFloat = 16
-        static let axisBottomMargin: CGFloat = 8
-        static let horizontalInset: CGFloat = 0
-        static let cardSpacing: CGFloat = 12
-        static let minCardWidth: CGFloat = 132
-        static let maxCardWidth: CGFloat = 220
-        static let pointsPerEpisode: CGFloat = 10
-    }
+package final class BingeTimelineView: UIView {
+    private let metrics: StatsMetrics.BingeTimeline
+    private let horizontalInset: CGFloat = 0
 
     private let scrollView: UIScrollView = {
         let view = UIScrollView()
@@ -40,8 +30,9 @@ final class BingeTimelineView: UIView {
     private var cardViews: [BingeCardView] = []
     private var pendingEntrance = false
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.bingeTimeline
+        super.init(frame: .zero)
         backgroundColor = .clear
         contentMode = .redraw
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -54,18 +45,16 @@ final class BingeTimelineView: UIView {
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 
-    convenience init() { self.init(frame: .zero) }
-
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: Metrics.intrinsicHeight)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: metrics.intrinsicHeight)
     }
 
     /// Replaces the strip's content and, unless Reduce Motion is on, springs the new cards in.
-    func setSessions(_ sessions: [BingeSession]) {
+    package func setSessions(_ sessions: [BingeSession]) {
         self.sessions = sessions
         cardViews.forEach { $0.removeFromSuperview() }
         cardViews = sessions.enumerated().map { index, session in
-            let card = BingeCardView(session: session, colorIndex: index)
+            let card = BingeCardView(session: session, colorIndex: index, metrics: metrics)
             scrollView.addSubview(card)
             return card
         }
@@ -75,22 +64,22 @@ final class BingeTimelineView: UIView {
         setNeedsDisplay()
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
 
-        let scrollHeight = max(0, bounds.height - Metrics.topInset - Metrics.axisReserve)
-        scrollView.frame = CGRect(x: 0, y: Metrics.topInset, width: bounds.width, height: scrollHeight)
+        let scrollHeight = max(0, bounds.height - metrics.topInset - metrics.axisReserve)
+        scrollView.frame = CGRect(x: 0, y: metrics.topInset, width: bounds.width, height: scrollHeight)
 
-        var x = Metrics.horizontalInset
+        var x = horizontalInset
         for card in cardViews {
             let width = cardWidth(for: card.episodeCount)
             let rect = CGRect(x: x, y: 0, width: width, height: scrollHeight)
             card.bounds = CGRect(origin: .zero, size: rect.size)
             card.center = CGPoint(x: rect.midX, y: rect.midY)
-            x += width + Metrics.cardSpacing
+            x += width + metrics.cardSpacing
         }
 
-        let contentWidth = cardViews.isEmpty ? 0 : x - Metrics.cardSpacing + Metrics.horizontalInset
+        let contentWidth = cardViews.isEmpty ? 0 : x - metrics.cardSpacing + horizontalInset
         scrollView.contentSize = CGSize(width: max(0, contentWidth), height: scrollHeight)
 
         if pendingEntrance, scrollHeight > 0, bounds.width > 0 {
@@ -99,21 +88,21 @@ final class BingeTimelineView: UIView {
         }
     }
 
-    override func draw(_ rect: CGRect) {
-        guard !cardViews.isEmpty, bounds.width > Metrics.horizontalInset * 2 else { return }
+    package override func draw(_ rect: CGRect) {
+        guard !cardViews.isEmpty, bounds.width > horizontalInset * 2 else { return }
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        let y = (bounds.height - Metrics.axisBottomMargin).rounded() - 0.5
+        let y = (bounds.height - metrics.axisBottomMargin).rounded() - 0.5
         ctx.setStrokeColor(axisColor.resolvedColor(with: traitCollection).cgColor)
-        ctx.setLineWidth(1)
+        ctx.setLineWidth(metrics.axisLineWidth)
         ctx.setLineCap(.round)
-        ctx.move(to: CGPoint(x: Metrics.horizontalInset, y: y))
-        ctx.addLine(to: CGPoint(x: bounds.width - Metrics.horizontalInset, y: y))
+        ctx.move(to: CGPoint(x: horizontalInset, y: y))
+        ctx.addLine(to: CGPoint(x: bounds.width - horizontalInset, y: y))
         ctx.strokePath()
     }
 
     private func cardWidth(for episodeCount: Int) -> CGFloat {
-        let raw = CGFloat(max(0, episodeCount)) * Metrics.pointsPerEpisode
-        return min(Metrics.maxCardWidth, max(Metrics.minCardWidth, raw))
+        let raw = CGFloat(max(0, episodeCount)) * metrics.pointsPerEpisode
+        return min(metrics.maxCardWidth, max(metrics.minCardWidth, raw))
     }
 
     private func runEntranceAnimation() {
@@ -142,44 +131,15 @@ final class BingeTimelineView: UIView {
 private final class BingeCardView: UIView {
     let episodeCount: Int
 
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 15, weight: .semibold)
-        label.textColor = Theme.Color.onArt
-        label.numberOfLines = 2
-        label.lineBreakMode = .byTruncatingTail
-        return label
-    }()
+    private let titleLabel = UILabel()
+    private let epsLabel = UILabel()
+    private let captionLabel = UILabel()
+    private let contentStack = UIStackView()
+    private let metrics: StatsMetrics.BingeTimeline
 
-    private let epsLabel: UILabel = {
-        let label = UILabel()
-        label.font = BingeCardView.roundedFont(size: 20, weight: .bold)
-        label.textColor = Theme.Color.onArt
-        label.numberOfLines = 1
-        label.lineBreakMode = .byTruncatingTail
-        return label
-    }()
-
-    private let captionLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = Theme.Color.onArtSecondary
-        label.numberOfLines = 1
-        label.lineBreakMode = .byTruncatingTail
-        return label
-    }()
-
-    private let contentStack: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .leading
-        stack.spacing = 2
-        return stack
-    }()
-
-    init(session: BingeSession, colorIndex: Int) {
+    init(session: BingeSession, colorIndex: Int, metrics: StatsMetrics.BingeTimeline) {
         self.episodeCount = session.episodeCount
+        self.metrics = metrics
         super.init(frame: .zero)
 
         backgroundColor = StatsStyle.categoricalColor(colorIndex).withAlphaComponent(0.9)
@@ -187,8 +147,8 @@ private final class BingeCardView: UIView {
         layer.cornerCurve = .continuous
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.16
-        layer.shadowRadius = 6
-        layer.shadowOffset = CGSize(width: 0, height: 2)
+        layer.shadowRadius = metrics.cardShadowRadius
+        layer.shadowOffset = CGSize(width: 0, height: metrics.cardShadowOffset)
 
         configureLabels(with: session)
         assembleStack()
@@ -202,10 +162,25 @@ private final class BingeCardView: UIView {
     }
 
     private func configureLabels(with session: BingeSession) {
+        titleLabel.font = metrics.titleFont.uiFont
+        titleLabel.textColor = Theme.Color.onArt
+        titleLabel.numberOfLines = 2
+        titleLabel.lineBreakMode = .byTruncatingTail
+
+        epsLabel.font = metrics.episodesFont.uiFont
+        epsLabel.textColor = Theme.Color.onArt
+        epsLabel.numberOfLines = 1
+        epsLabel.lineBreakMode = .byTruncatingTail
+
+        captionLabel.font = metrics.captionFont.uiFont
+        captionLabel.textColor = Theme.Color.onArtSecondary
+        captionLabel.numberOfLines = 1
+        captionLabel.lineBreakMode = .byTruncatingTail
+
         titleLabel.text = session.showTitle
         let epsText = episodeCount == 1 ? "1 ep" : "\(episodeCount) eps"
         epsLabel.text = epsText
-        let captionText = Formatters.unixRelativeDate(session.endViewedAt) ?? ""
+        let captionText = session.endedCaption ?? ""
         captionLabel.text = captionText
         captionLabel.isHidden = captionText.isEmpty
 
@@ -224,6 +199,10 @@ private final class BingeCardView: UIView {
     }
 
     private func assembleStack() {
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.axis = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = metrics.cardStackSpacing
         contentStack.addArrangedSubview(titleLabel)
         let spacer = UIView()
         spacer.translatesAutoresizingMaskIntoConstraints = false
@@ -234,16 +213,10 @@ private final class BingeCardView: UIView {
         addSubview(contentStack)
 
         NSLayoutConstraint.activate([
-            contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            contentStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            contentStack.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            contentStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
+            contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: metrics.cardInsetHorizontal),
+            contentStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -metrics.cardInsetHorizontal),
+            contentStack.topAnchor.constraint(equalTo: topAnchor, constant: metrics.cardInsetVertical),
+            contentStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -metrics.cardInsetVertical),
         ])
-    }
-
-    private static func roundedFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
-        let base = UIFont.systemFont(ofSize: size, weight: weight)
-        guard let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
-        return UIFont(descriptor: descriptor, size: size)
     }
 }

@@ -4,9 +4,8 @@ import UIKit
 
 /// A ring/donut breakdown chart: proportional stroked arcs around a hole that holds
 /// two centred labels. Slices sweep in clockwise from 12 o'clock unless Reduce Motion is on.
-final class DonutChartView: UIView {
+package final class DonutChartView: UIView {
     private static let widthFactor: CGFloat = 0.22
-    private static let edgePadding: CGFloat = 3
     private static let gapAngle: CGFloat = 2.2 * .pi / 180
     private static let sweepDuration: CFTimeInterval = 0.9
     private static let startAngle: CGFloat = -.pi / 2
@@ -15,6 +14,7 @@ final class DonutChartView: UIView {
     private let trackLayer = CAShapeLayer()
     private var segmentLayers: [CAShapeLayer] = []
 
+    private let metrics: StatsMetrics.Donut
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let labelStack = UIStackView()
@@ -24,8 +24,9 @@ final class DonutChartView: UIView {
     private var totalValue: Double = 0
     private var pendingAnimation = false
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.donut
+        super.init(frame: .zero)
         backgroundColor = .clear
 
         layer.addSublayer(ringContainer)
@@ -33,21 +34,21 @@ final class DonutChartView: UIView {
         trackLayer.lineCap = .round
         ringContainer.addSublayer(trackLayer)
 
-        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        titleLabel.font = metrics.donut.titleFont.uiFont
         titleLabel.textColor = Theme.Color.label
         titleLabel.textAlignment = .center
         titleLabel.adjustsFontSizeToFitWidth = true
         titleLabel.minimumScaleFactor = 0.5
         titleLabel.numberOfLines = 1
 
-        subtitleLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        subtitleLabel.font = metrics.donut.subtitleFont.uiFont
         subtitleLabel.textColor = Theme.Color.labelSecondary
         subtitleLabel.textAlignment = .center
         subtitleLabel.numberOfLines = 2
 
         labelStack.axis = .vertical
         labelStack.alignment = .fill
-        labelStack.spacing = 2
+        labelStack.spacing = metrics.donut.labelSpacing
         labelStack.translatesAutoresizingMaskIntoConstraints = false
         labelStack.addArrangedSubview(titleLabel)
         labelStack.addArrangedSubview(subtitleLabel)
@@ -69,15 +70,13 @@ final class DonutChartView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    convenience init() { self.init(frame: .zero) }
-
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: 220, height: 220)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: metrics.intrinsicSide, height: metrics.intrinsicSide)
     }
 
     /// Replaces the ring's slices; zero-value segments are ignored and a zero total renders only
     /// the faint track. Slices animate in unless Reduce Motion is enabled.
-    func setSegments(_ segments: [DonutSegment]) {
+    package func setSegments(_ segments: [DonutSegment]) {
         drawSegments = segments.filter { $0.value > 0 }
         totalValue = drawSegments.reduce(0.0) { $0 + Double($1.value) }
         rebuildSegmentLayers()
@@ -87,12 +86,12 @@ final class DonutChartView: UIView {
     }
 
     /// Sets the two labels shown inside the ring's hole.
-    func setCenter(title: String, subtitle: String) {
+    package func setCenter(title: String, subtitle: String) {
         titleLabel.text = title
         subtitleLabel.text = subtitle
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
         updateGeometry()
         guard min(bounds.width, bounds.height) > 0 else { return }
@@ -139,7 +138,7 @@ final class DonutChartView: UIView {
         defer { CATransaction.commit() }
 
         ringContainer.frame = bounds
-        let outer = side / 2 - Self.edgePadding
+        let outer = side / 2 - metrics.edgePadding
         guard outer > 0 else { return }
 
         let radius = outer / (1 + Self.widthFactor / 2)

@@ -6,14 +6,14 @@ import CrucibleStats
 /// The heatmap drill-down: a poster grid of everything watched on one local day.
 final class StatsDayViewController: UICollectionViewController {
     private let api: APIClient
-    private let store: StatsStore
+    private let loader: StatsPageLoader
     private let dayEpoch: Int
-    private var dataSource: UICollectionViewDiffableDataSource<Int, OnThisDayItem>!
+    private var dataSource: UICollectionViewDiffableDataSource<Int, StatsPoster>!
     private var loadTask: Task<Void, Never>?
 
-    init(api: APIClient, store: StatsStore, dayEpoch: Int, date: Date) {
+    init(api: APIClient, loader: StatsPageLoader, dayEpoch: Int, date: Date) {
         self.api = api
-        self.store = store
+        self.loader = loader
         self.dayEpoch = dayEpoch
         super.init(collectionViewLayout: UICollectionViewLayout())
         let formatter = DateFormatter()
@@ -36,21 +36,11 @@ final class StatsDayViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, OnThisDayItem> { cell, _, item in
-            var config = PosterContentConfiguration()
-            config.posterPath = item.thumb ?? item.grandparentThumb
-            if item.type == "episode" {
-                config.title = item.grandparentTitle ?? item.title
-                config.subtitle = item.title
-                config.placeholderIcon = "tv"
-            } else {
-                config.title = item.title
-                config.placeholderIcon = "film"
-            }
-            cell.contentConfiguration = config
+        let cellReg = UICollectionView.CellRegistration<UICollectionViewCell, StatsPoster> { cell, _, poster in
+            cell.contentConfiguration = StatisticsViewController.posterConfiguration(poster)
         }
-        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
-            cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: item)
+        dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, poster in
+            cv.dequeueConfiguredReusableCell(using: cellReg, for: indexPath, item: poster)
         }
     }
 
@@ -59,13 +49,11 @@ final class StatsDayViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let rows = try await store.plays(onDayEpoch: dayEpoch)
+                let posters = try await loader.playedOnDay(dayEpoch)
                 guard !Task.isCancelled else { return }
-                var seen = Set<String>()
-                let items = rows.filter { seen.insert($0.ratingKey).inserted }
-                var snapshot = NSDiffableDataSourceSnapshot<Int, OnThisDayItem>()
+                var snapshot = NSDiffableDataSourceSnapshot<Int, StatsPoster>()
                 snapshot.appendSections([0])
-                snapshot.appendItems(items, toSection: 0)
+                snapshot.appendItems(posters, toSection: 0)
                 await dataSource.apply(snapshot, animatingDifferences: false)
             } catch {}
         }
@@ -78,17 +66,7 @@ final class StatsDayViewController: UICollectionViewController {
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
-        switch item.type {
-        case "episode":
-            navigationController?.pushViewController(
-                MediaDetailViewController(api: api, ratingKey: item.ratingKey, mediaType: "episode", showRatingKey: item.grandparentRatingKey),
-                animated: true
-            )
-        case "show":
-            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: item.ratingKey), animated: true)
-        default:
-            navigationController?.pushViewController(MediaDetailViewController(api: api, ratingKey: item.ratingKey, mediaType: "movie"), animated: true)
-        }
+        guard let poster = dataSource.itemIdentifier(for: indexPath) else { return }
+        navigationController?.pushViewController(poster.destination.makeViewController(api: api), animated: true)
     }
 }

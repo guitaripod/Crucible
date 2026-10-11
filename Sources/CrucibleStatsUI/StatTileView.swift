@@ -3,28 +3,38 @@ import UIKit
 
 /// A KPI tile: a surface card with an icon-led caption on top, a bold value on the bottom-left,
 /// an optional inline suffix ("days · best 31") and an optional sparkline on the bottom-right.
-final class StatTileView: UIView {
+package final class StatTileView: UIView {
 
     /// The content a `StatTileView` renders. `caption` is the inline suffix next to the value.
-    struct Model {
-        var title: String
-        var value: String
-        var systemImage: String
-        var caption: String?
+    package struct Model {
+        package var title: String
+        package var value: String
+        package var systemImage: String
+        package var caption: String?
+
+        package init(title: String, value: String, systemImage: String, caption: String?) {
+            self.title = title
+            self.value = value
+            self.systemImage = systemImage
+            self.caption = caption
+        }
     }
 
+    private let metrics: StatsMetrics.Tile
     private let valueLabel = UILabel()
     private let titleLabel = UILabel()
     private let suffixLabel = UILabel()
     private let symbolImageView = UIImageView()
-    private let sparkline = SparklineView()
+    private let sparkline: SparklineView
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.tile
+        sparkline = SparklineView(lineWidth: metrics.tile.sparklineLineWidth)
+        super.init(frame: .zero)
         backgroundColor = StatsStyle.cardBackground
         layer.cornerRadius = StatsStyle.tileCornerRadius
         layer.cornerCurve = .continuous
-        layer.borderWidth = 0.5
+        layer.borderWidth = metrics.tile.borderWidth
         applyLayerColors()
 
         configureLabels()
@@ -35,14 +45,10 @@ final class StatTileView: UIView {
         }
     }
 
-    convenience init() {
-        self.init(frame: .zero)
-    }
-
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(_ model: Model) {
+    package func configure(_ model: Model) {
         valueLabel.text = model.value
         titleLabel.attributedText = Self.kernedTitle(model.title)
         symbolImageView.image = UIImage(systemName: model.systemImage)
@@ -63,7 +69,7 @@ final class StatTileView: UIView {
             .joined(separator: ", ")
     }
 
-    func setSparkline(_ values: [Int]) {
+    package func setSparkline(_ values: [Int]) {
         sparkline.setValues(values)
     }
 
@@ -72,7 +78,7 @@ final class StatTileView: UIView {
     }
 
     private func configureLabels() {
-        valueLabel.font = Theme.Font.scaled(.title1, 30, .bold, maximum: 40)
+        valueLabel.font = metrics.valueFont.uiFont
         valueLabel.adjustsFontForContentSizeCategory = true
         valueLabel.textColor = Theme.Color.label
         valueLabel.adjustsFontSizeToFitWidth = true
@@ -92,7 +98,7 @@ final class StatTileView: UIView {
         suffixLabel.numberOfLines = 1
         suffixLabel.isHidden = true
 
-        symbolImageView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        symbolImageView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: metrics.symbolPointSize, weight: .semibold)
         symbolImageView.contentMode = .scaleAspectFit
         symbolImageView.tintColor = Theme.Color.labelTertiary
         symbolImageView.setContentHuggingPriority(.required, for: .horizontal)
@@ -102,14 +108,14 @@ final class StatTileView: UIView {
     private func configureLayout() {
         let captionRow = UIStackView(arrangedSubviews: [symbolImageView, titleLabel])
         captionRow.axis = .horizontal
-        captionRow.spacing = 6
+        captionRow.spacing = metrics.captionSpacing
         captionRow.alignment = .center
 
         let spacer = UIView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let valueRow = UIStackView(arrangedSubviews: [valueLabel, suffixLabel, spacer, sparkline])
         valueRow.axis = .horizontal
-        valueRow.spacing = 6
+        valueRow.spacing = metrics.valueSpacing
         valueRow.alignment = .lastBaseline
 
         let stack = UIStackView(arrangedSubviews: [captionRow, valueRow])
@@ -120,13 +126,13 @@ final class StatTileView: UIView {
 
         sparkline.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 96),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 14),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
-            sparkline.widthAnchor.constraint(equalToConstant: 64),
-            sparkline.heightAnchor.constraint(equalToConstant: 26),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.minHeight),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: metrics.insetVertical),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -metrics.insetVertical),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: metrics.insetHorizontal),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -metrics.insetHorizontal),
+            sparkline.widthAnchor.constraint(equalToConstant: metrics.sparklineSize.width),
+            sparkline.heightAnchor.constraint(equalToConstant: metrics.sparklineSize.height),
         ])
     }
 
@@ -135,17 +141,17 @@ final class StatTileView: UIView {
     }
 }
 
-/// A 64x26 ember polyline that draws itself in unless Reduce Motion is on. Hidden when the series
+/// A small ember polyline that draws itself in unless Reduce Motion is on. Hidden when the series
 /// is empty, flat-zero, or too short to form a line.
 private final class SparklineView: UIView {
     private let shape = CAShapeLayer()
     private var values: [Int] = []
     private var pendingAnimation = false
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init(lineWidth: CGFloat) {
+        super.init(frame: .zero)
         shape.fillColor = nil
-        shape.lineWidth = 2
+        shape.lineWidth = lineWidth
         shape.lineCap = .round
         shape.lineJoin = .round
         layer.addSublayer(shape)

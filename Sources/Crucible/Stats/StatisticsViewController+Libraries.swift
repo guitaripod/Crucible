@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleStats
 @preconcurrency import UIKit
 
 extension StatisticsViewController {
@@ -18,30 +19,27 @@ extension StatisticsViewController {
 
     private func updateLibrariesMenu() {
         guard let item = navigationItem.rightBarButtonItem else { return }
-        let libraries = LibraryVisibility.libraries
-        item.isHidden = libraries.count < 2
-        item.image = UIImage(systemName: LibraryVisibility.isCustomized ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
-        item.accessibilityValue = LibraryVisibility.isCustomized ? "Filtered" : "All libraries"
+        let filter = StatsLibraryFilter.current()
+        item.isHidden = !filter.isAvailable
+        item.image = UIImage(systemName: filter.symbol)
+        item.accessibilityValue = filter.accessibilityValue
 
-        let includedCount = libraries.filter { LibraryVisibility.isIncluded($0.id) }.count
-        let toggles = libraries.map { library -> UIAction in
-            let isOn = LibraryVisibility.isIncluded(library.id)
-            let isLast = isOn && includedCount <= 1
-            return UIAction(
-                title: library.title,
-                subtitle: library.hiddenOnPlex ? "Hidden from Home in Plex" : nil,
-                image: UIImage(systemName: library.symbol),
-                attributes: isLast ? [.keepsMenuPresented, .disabled] : .keepsMenuPresented,
-                state: isOn ? .on : .off
+        let toggles = filter.entries.map { entry -> UIAction in
+            UIAction(
+                title: entry.title,
+                subtitle: entry.subtitle,
+                image: UIImage(systemName: entry.symbol),
+                attributes: entry.isLocked ? [.keepsMenuPresented, .disabled] : .keepsMenuPresented,
+                state: entry.isIncluded ? .on : .off
             ) { _ in
                 Haptics.selection()
-                LibraryVisibility.setIncluded(library.id, !isOn)
+                filter.toggle(entry)
             }
         }
         var children: [UIMenuElement] = [UIMenu(title: "Include in Statistics", options: .displayInline, children: toggles)]
-        if LibraryVisibility.hasOverrides {
+        if filter.hasOverrides {
             children.append(UIAction(title: "Reset to Plex Defaults", image: UIImage(systemName: "arrow.counterclockwise")) { _ in
-                LibraryVisibility.resetToPlexDefaults()
+                filter.resetToPlexDefaults()
             })
         }
         item.menu = UIMenu(children: children)

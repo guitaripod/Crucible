@@ -6,9 +6,9 @@ import UIKit
 /// Renders in two modes: a compact axis-less sparkline (default) or a fuller
 /// chart (`showsAxes == true`) that adds a baseline, a highlighted peak dot and
 /// an optional annotation. Feed it via `setValues(_:animated:)`.
-final class TrendAreaView: UIView {
+package final class TrendAreaView: UIView {
     /// When `true`, draws a baseline and a highlighted dot + annotation at the peak.
-    var showsAxes: Bool = false {
+    package var showsAxes: Bool = false {
         didSet {
             guard showsAxes != oldValue else { return }
             invalidateIntrinsicContentSize()
@@ -18,7 +18,7 @@ final class TrendAreaView: UIView {
     }
 
     /// Stroke colour of the curve and hue of the gradient fill.
-    var lineColor: UIColor = StatsStyle.accent {
+    package var lineColor: UIColor = StatsStyle.accent {
         didSet {
             applyColors()
             setNeedsLayout()
@@ -26,7 +26,7 @@ final class TrendAreaView: UIView {
     }
 
     /// Text shown near the peak dot; only rendered when `showsAxes` is on and data exists.
-    var peakAnnotation: String? {
+    package var peakAnnotation: String? {
         didSet {
             peakLabel.text = peakAnnotation
             setNeedsLayout()
@@ -42,12 +42,15 @@ final class TrendAreaView: UIView {
     private let dotLayer = CAShapeLayer()
     private let peakLabel = UILabel()
 
-    private let lineWidth: CGFloat = 2
-    private let dotRadius: CGFloat = 4
+    private let metrics: StatsMetrics.Trend
     private let lineDrawDuration: CFTimeInterval = 0.9
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    private var lineWidth: CGFloat { metrics.lineWidth }
+    private var dotRadius: CGFloat { metrics.dotRadius }
+
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.trend
+        super.init(frame: .zero)
         backgroundColor = .clear
         isOpaque = false
         contentMode = .redraw
@@ -65,14 +68,14 @@ final class TrendAreaView: UIView {
         lineLayer.strokeEnd = 1
         layer.addSublayer(lineLayer)
 
-        dotLayer.lineWidth = 1.5
+        dotLayer.lineWidth = metrics.trend.dotBorderWidth
         dotLayer.shadowOpacity = 0.5
-        dotLayer.shadowRadius = 3
+        dotLayer.shadowRadius = metrics.trend.dotShadowRadius
         dotLayer.shadowOffset = CGSize(width: 0, height: 1)
         dotLayer.isHidden = true
         layer.addSublayer(dotLayer)
 
-        peakLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        peakLabel.font = metrics.trend.peakFont.uiFont
         peakLabel.textColor = Theme.Color.label
         peakLabel.textAlignment = .center
         peakLabel.isHidden = true
@@ -88,14 +91,12 @@ final class TrendAreaView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    convenience init() { self.init(frame: .zero) }
-
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: showsAxes ? 160 : 44)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: showsAxes ? metrics.axesHeight : metrics.compactHeight)
     }
 
     /// Replaces the plotted series, animating the stroke and fill in unless Reduce Motion is on.
-    func setValues(_ values: [Double], animated: Bool) {
+    package func setValues(_ values: [Double], animated: Bool) {
         self.values = values
         pendingAnimate = animated
         setNeedsLayout()
@@ -115,9 +116,9 @@ final class TrendAreaView: UIView {
     }
 
     private func plotRect() -> CGRect {
-        let hInset: CGFloat = showsAxes ? 6 : lineWidth
-        let topInset: CGFloat = showsAxes ? 14 : lineWidth
-        let bottomInset: CGFloat = showsAxes ? 8 : lineWidth
+        let hInset: CGFloat = showsAxes ? metrics.axesInsetHorizontal : lineWidth
+        let topInset: CGFloat = showsAxes ? metrics.axesInsetTop : lineWidth
+        let bottomInset: CGFloat = showsAxes ? metrics.axesInsetBottom : lineWidth
         let w = max(0, bounds.width - hInset * 2)
         let h = max(0, bounds.height - topInset - bottomInset)
         return CGRect(x: hInset, y: topInset, width: w, height: h)
@@ -175,7 +176,7 @@ final class TrendAreaView: UIView {
         return path
     }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
         guard bounds.width > 0, bounds.height > 0 else { return }
 
@@ -227,7 +228,7 @@ final class TrendAreaView: UIView {
         let showDot = showsAxes
         dotLayer.isHidden = !showDot
         guard showDot else { return }
-        let padding: CGFloat = 4
+        let padding = metrics.dotPadding
         let side = dotRadius * 2 + padding * 2
         dotLayer.bounds = CGRect(x: 0, y: 0, width: side, height: side)
         dotLayer.position = peak
@@ -245,12 +246,12 @@ final class TrendAreaView: UIView {
         peakLabel.sizeToFit()
         let size = peakLabel.bounds.size
         let halfW = size.width / 2
-        let minX = halfW + 2
-        let maxX = max(minX, bounds.width - halfW - 2)
+        let minX = halfW + metrics.labelEdgeMargin
+        let maxX = max(minX, bounds.width - halfW - metrics.labelEdgeMargin)
         let centerX = min(maxX, max(minX, peak.x))
-        var centerY = peak.y - dotRadius - 4 - size.height / 2
+        var centerY = peak.y - dotRadius - metrics.labelGap - size.height / 2
         if centerY - size.height / 2 < 0 {
-            centerY = peak.y + dotRadius + 4 + size.height / 2
+            centerY = peak.y + dotRadius + metrics.labelGap + size.height / 2
         }
         peakLabel.center = CGPoint(x: centerX, y: centerY)
     }
@@ -311,7 +312,7 @@ final class TrendAreaView: UIView {
         peakLabel.isHidden = true
     }
 
-    override func draw(_ rect: CGRect) {
+    package override func draw(_ rect: CGRect) {
         guard showsAxes, !values.isEmpty, let ctx = UIGraphicsGetCurrentContext() else { return }
         let plot = plotRect()
         guard plot.width > 0 else { return }

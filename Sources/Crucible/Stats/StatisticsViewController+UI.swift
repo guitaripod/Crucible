@@ -1,5 +1,6 @@
 import CrucibleDesign
 import CrucibleStats
+import CrucibleStatsUI
 @preconcurrency import UIKit
 
 extension StatisticsViewController {
@@ -83,12 +84,12 @@ extension StatisticsViewController {
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let hero = StatsHeroView()
-            let content = heroContent()
-            hero.configure(eyebrow: content.eyebrow, value: content.value, unit: content.unit, detail: content.detail, since: subtitleText(), animate: heroShouldAnimate)
+            let content = page.hero
+            hero.configure(eyebrow: content.eyebrow, value: content.value, unit: content.unit, detail: content.detail, since: content.since, animate: heroShouldAnimate)
             host(hero, in: cell)
         }
 
-        let kpiReg = UICollectionView.CellRegistration<UICollectionViewCell, KPITile> { cell, _, tile in
+        let kpiReg = UICollectionView.CellRegistration<UICollectionViewCell, StatsPage.Tile> { cell, _, tile in
             let tileView = StatTileView()
             tileView.configure(.init(title: tile.title, value: tile.value, systemImage: tile.systemImage, caption: tile.caption))
             tileView.setSparkline(tile.sparkline)
@@ -98,7 +99,7 @@ extension StatisticsViewController {
         let heatmapReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let heatmap = ContributionHeatmapView()
-            heatmap.setModel(heatmapModel)
+            heatmap.setModel(page.heatmap)
             heatmap.onSelectDay = { [weak self] dayEpoch in self?.pushDayDetail(dayEpoch: dayEpoch) }
             host(StatsCardView(title: "Activity", accessory: StatsHeatLegendView(), content: heatmap), in: cell)
         }
@@ -114,30 +115,19 @@ extension StatisticsViewController {
         }
 
         let momentumReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
-            guard let self else { return }
+            guard let self, let momentum = page.momentum else { return }
             let trend = TrendAreaView()
             trend.showsAxes = true
-            var summary = "Plays per month."
-            if let peak = current.monthly.max(by: { $0.count < $1.count }) {
-                let (year, month) = StatsTime.monthEpochToYearMonth(peak.monthEpoch)
-                let peakText = "\(StatsStyle.monthSymbols[max(0, min(11, month - 1))]) \(year)"
-                trend.peakAnnotation = peakText
-                summary += " Peak in \(peakText) with \(peak.count) plays."
-            }
-            trend.setValues(current.monthly.map { Double($0.count) }, animated: true)
+            trend.peakAnnotation = momentum.peakText
+            trend.setValues(momentum.values, animated: true)
             trend.isAccessibilityElement = true
             trend.accessibilityTraits = .image
-            trend.accessibilityLabel = summary
+            trend.accessibilityLabel = momentum.summary
             host(StatsCardView(title: "Your Momentum", content: trend), in: cell)
         }
 
-        let movieReg = UICollectionView.CellRegistration<UICollectionViewCell, MovieStat> { cell, _, movie in
-            var config = PosterContentConfiguration()
-            config.posterPath = movie.thumb
-            config.title = movie.title
-            config.placeholderIcon = "film"
-            if movie.count > 1 { config.subtitle = "\(movie.count)× watched" }
-            cell.contentConfiguration = config
+        let movieReg = UICollectionView.CellRegistration<UICollectionViewCell, StatsPoster> { cell, _, poster in
+            cell.contentConfiguration = Self.posterConfiguration(poster)
         }
 
         let librariesReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
@@ -148,7 +138,7 @@ extension StatisticsViewController {
         let bingesReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let timeline = BingeTimelineView()
-            timeline.setSessions(current.binges)
+            timeline.setSessions(page.binges)
             host(StatsCardView(title: "Binges & Streaks", content: timeline), in: cell)
         }
 
@@ -157,13 +147,8 @@ extension StatisticsViewController {
             host(StatsCardView(title: "Your Taste", content: makeGenresView()), in: cell)
         }
 
-        let onThisDayReg = UICollectionView.CellRegistration<UICollectionViewCell, OnThisDayItem> { cell, _, item in
-            var config = PosterContentConfiguration()
-            config.posterPath = item.thumb ?? item.grandparentThumb
-            config.title = item.grandparentTitle ?? item.title
-            config.subtitle = item.yearsAgo == 1 ? "1 year ago" : "\(item.yearsAgo) years ago"
-            config.placeholderIcon = item.type == "episode" ? "tv" : "film"
-            cell.contentConfiguration = config
+        let onThisDayReg = UICollectionView.CellRegistration<UICollectionViewCell, StatsPoster> { cell, _, poster in
+            cell.contentConfiguration = Self.posterConfiguration(poster)
         }
 
         let superlativeReg = UICollectionView.CellRegistration<UICollectionViewCell, Superlative> { cell, _, superlative in
@@ -214,8 +199,7 @@ extension StatisticsViewController {
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 0
-        let maxCount = max(1, current.topShows.first?.count ?? 1)
-        for (index, show) in current.topShows.enumerated() {
+        for show in page.topShows {
             let row = RankedRowView()
             var accessory: UIView?
             if let completion = show.completion {
@@ -223,19 +207,18 @@ extension StatisticsViewController {
                 ring.setProgress(completion, animated: true)
                 accessory = ring
             }
-            let episodes = show.watchedEpisodes ?? show.count
             row.configure(
                 title: show.title,
-                valueText: episodes == 1 ? "1 ep" : "\(episodes) eps",
-                fraction: Double(show.count) / Double(maxCount),
+                valueText: show.valueText,
+                fraction: show.fraction,
                 colorIndex: 0,
                 thumbPath: show.thumb,
-                rank: index + 1,
+                rank: show.rank,
                 accessory: accessory
             )
             row.onTap = { [weak self] in
                 guard let self else { return }
-                navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: show.ratingKey), animated: true)
+                pushDestination(.show(ratingKey: show.ratingKey))
             }
             stack.addArrangedSubview(row)
         }
@@ -243,35 +226,36 @@ extension StatisticsViewController {
     }
 
     private func makeGenresView() -> UIView {
-        guard !current.genres.isEmpty else {
-            return makePendingView(progress: current.enrichment.genreCoverage)
+        switch page.genres {
+        case .pending(let pending):
+            return makePendingView(pending)
+        case .ranked(let genres):
+            let stack = UIStackView()
+            stack.axis = .vertical
+            for genre in genres {
+                let row = RankedRowView()
+                row.configure(title: genre.title, valueText: genre.valueText, fraction: genre.fraction, colorIndex: genre.colorIndex, thumbPath: nil)
+                row.isAccessibilityElement = true
+                row.accessibilityLabel = genre.accessibilityLabel
+                stack.addArrangedSubview(row)
+            }
+            return stack
         }
-        let stack = UIStackView()
-        stack.axis = .vertical
-        let maxCount = max(1, current.genres.first?.count ?? 1)
-        for (index, genre) in current.genres.enumerated() {
-            let row = RankedRowView()
-            row.configure(title: genre.genre, valueText: "\(genre.count)", fraction: Double(genre.count) / Double(maxCount), colorIndex: index, thumbPath: nil)
-            row.isAccessibilityElement = true
-            row.accessibilityLabel = "\(genre.genre), \(genre.count) plays"
-            stack.addArrangedSubview(row)
-        }
-        return stack
     }
 
     private func makeClockView() -> UIView {
         let clock = RadialClockView()
-        clock.setHours(current.hourHistogram)
+        clock.setHours(page.clock.hours)
         clock.isAccessibilityElement = true
         clock.accessibilityTraits = .image
-        clock.accessibilityLabel = clockSummary()
+        clock.accessibilityLabel = page.clock.accessibilitySummary
         clock.setContentHuggingPriority(.required, for: .horizontal)
         let clockWidth = clock.widthAnchor.constraint(equalToConstant: 150)
         clockWidth.priority = .required
         clockWidth.isActive = true
 
         let weekday = WeekdayColumnChartView()
-        weekday.setValues(current.weekdayHistogram)
+        weekday.setValues(page.clock.weekdays)
 
         let charts = UIStackView(arrangedSubviews: [clock, weekday])
         charts.axis = .horizontal
@@ -280,7 +264,7 @@ extension StatisticsViewController {
         charts.heightAnchor.constraint(equalToConstant: 150).isActive = true
 
         let verdict = UILabel()
-        verdict.text = watchVerdict()
+        verdict.text = page.clock.verdict
         verdict.font = Theme.Font.scaled(.callout, 14, .semibold)
         verdict.adjustsFontForContentSizeCategory = true
         verdict.textColor = Theme.Color.accentText
@@ -293,22 +277,11 @@ extension StatisticsViewController {
         return stack
     }
 
-    /// VoiceOver summary for the 24-hour clock: the busiest hour and its share of plays.
-    private func clockSummary() -> String {
-        let hours = current.hourHistogram
-        let total = hours.reduce(0, +)
-        guard total > 0, let peak = hours.max(), let hour = hours.firstIndex(of: peak) else { return "Plays by hour of day." }
-        let label = "\(hour % 12 == 0 ? 12 : hour % 12) \(hour < 12 ? "AM" : "PM")"
-        let share = Int((Double(peak) / Double(total) * 100).rounded())
-        return "Plays by hour of day. Busiest at \(label), \(share) percent of plays."
-    }
-
     private func makeLibrariesView() -> UIView {
+        let libraries = page.libraries
         let donut = DonutChartView()
-        let segments = current.libraries.enumerated().map { DonutSegment(label: $0.element.title, value: $0.element.count, colorIndex: $0.offset) }
-        donut.setSegments(segments)
-        let total = current.libraries.reduce(0) { $0 + $1.count }
-        donut.setCenter(title: StatsStyle.abbreviatedCount(total), subtitle: "plays")
+        donut.setSegments(libraries.segments)
+        donut.setCenter(title: libraries.centerTitle, subtitle: libraries.centerSubtitle)
         donut.setContentHuggingPriority(.required, for: .horizontal)
         donut.widthAnchor.constraint(equalToConstant: 150).isActive = true
         donut.heightAnchor.constraint(equalToConstant: 150).isActive = true
@@ -319,12 +292,12 @@ extension StatisticsViewController {
         legend.axis = .vertical
         legend.spacing = 8
         legend.alignment = .fill
-        for (index, slice) in current.libraries.prefix(6).enumerated() {
-            legend.addArrangedSubview(makeLegendRow(color: StatsStyle.categoricalColor(index), title: slice.title, value: StatsStyle.abbreviatedCount(slice.count)))
+        for row in libraries.legend {
+            legend.addArrangedSubview(makeLegendRow(color: StatsStyle.categoricalColor(row.colorIndex), title: row.title, value: row.value))
         }
         legend.isAccessibilityElement = true
         legend.accessibilityTraits = .image
-        legend.accessibilityLabel = "Plays by library. " + current.libraries.prefix(6).map { "\($0.title), \($0.count)" }.joined(separator: ". ")
+        legend.accessibilityLabel = libraries.accessibilitySummary
         let legendWrap = UIStackView(arrangedSubviews: [UIView(), legend, UIView()])
         legendWrap.axis = .vertical
         legendWrap.distribution = .equalCentering
@@ -365,9 +338,9 @@ extension StatisticsViewController {
         return row
     }
 
-    private func makePendingView(progress: Double) -> UIView {
+    private func makePendingView(_ pending: StatsPage.GenresPending) -> UIView {
         let label = UILabel()
-        label.text = "Analyzing your taste…"
+        label.text = pending.title
         label.font = Theme.Font.subheadline
         label.adjustsFontForContentSizeCategory = true
         label.textColor = Theme.Color.labelSecondary
@@ -375,14 +348,14 @@ extension StatisticsViewController {
         let bar = UIProgressView(progressViewStyle: .default)
         bar.progressTintColor = Theme.Color.accent
         bar.trackTintColor = StatsStyle.trackBackground
-        bar.progress = Float(max(0.02, min(1, progress)))
+        bar.progress = Float(pending.barFraction)
 
         let stack = UIStackView(arrangedSubviews: [label, bar])
         stack.axis = .vertical
         stack.spacing = 8
         stack.alignment = .fill
         stack.isAccessibilityElement = true
-        stack.accessibilityLabel = "Analyzing your taste, \(Int((progress * 100).rounded())) percent"
+        stack.accessibilityLabel = pending.accessibilityLabel
         return stack
     }
 
@@ -418,33 +391,30 @@ extension StatisticsViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let row = dataSource.itemIdentifier(for: indexPath) else { return }
         switch row {
-        case .moviePoster(let movie):
-            navigationController?.pushViewController(MediaDetailViewController(api: api, ratingKey: movie.ratingKey, mediaType: "movie"), animated: true)
-        case .onThisDayPoster(let item):
-            openOnThisDay(item)
+        case .moviePoster(let poster), .onThisDayPoster(let poster):
+            pushDestination(poster.destination)
         default:
             break
         }
     }
 
-    private func openOnThisDay(_ item: OnThisDayItem) {
-        switch item.type {
-        case "episode":
-            navigationController?.pushViewController(
-                MediaDetailViewController(api: api, ratingKey: item.ratingKey, mediaType: "episode", showRatingKey: item.grandparentRatingKey),
-                animated: true
-            )
-        case "show":
-            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: item.ratingKey), animated: true)
-        default:
-            navigationController?.pushViewController(MediaDetailViewController(api: api, ratingKey: item.ratingKey, mediaType: "movie"), animated: true)
-        }
+    func pushDestination(_ destination: StatsDestination) {
+        navigationController?.pushViewController(destination.makeViewController(api: api), animated: true)
     }
 
     func pushDayDetail(dayEpoch: Int) {
-        guard let store else { return }
+        guard let loader else { return }
         let date = statsTime.date(forDayEpoch: dayEpoch)
-        navigationController?.pushViewController(StatsDayViewController(api: api, store: store, dayEpoch: dayEpoch, date: date), animated: true)
+        navigationController?.pushViewController(StatsDayViewController(api: api, loader: loader, dayEpoch: dayEpoch, date: date), animated: true)
+    }
+
+    static func posterConfiguration(_ poster: StatsPoster) -> PosterContentConfiguration {
+        var config = PosterContentConfiguration()
+        config.posterPath = poster.posterPath
+        config.title = poster.title
+        config.subtitle = poster.subtitle
+        config.placeholderIcon = poster.placeholderSymbol
+        return config
     }
 
     static func titleFor(_ section: StatSection) -> String? {

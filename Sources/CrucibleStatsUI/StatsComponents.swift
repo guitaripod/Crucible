@@ -4,13 +4,13 @@ import UIKit
 
 /// The shared card language of the Statistics screen: a surface card with a hairline, a headline
 /// title, an optional trailing accessory and one content view.
-final class StatsCardView: UIView {
-    init(title: String?, accessory: UIView? = nil, content: UIView, contentHeight: CGFloat? = nil, accessibilityLabelText: String? = nil) {
+package final class StatsCardView: UIView {
+    package init(title: String?, accessory: UIView? = nil, content: UIView, contentHeight: CGFloat? = nil, accessibilityLabelText: String? = nil, metrics: StatsMetrics = .platform) {
         super.init(frame: .zero)
         backgroundColor = StatsStyle.cardBackground
         layer.cornerRadius = StatsStyle.cornerRadius
         layer.cornerCurve = .continuous
-        layer.borderWidth = 0.5
+        layer.borderWidth = metrics.card.borderWidth
         applyBorderColor()
 
         var arranged = [UIView]()
@@ -27,7 +27,7 @@ final class StatsCardView: UIView {
             let header = UIStackView(arrangedSubviews: [titleLabel] + (accessory.map { [$0] } ?? []))
             header.axis = .horizontal
             header.alignment = .firstBaseline
-            header.spacing = 8
+            header.spacing = metrics.card.headerSpacing
             arranged.append(header)
         }
         arranged.append(content)
@@ -38,16 +38,16 @@ final class StatsCardView: UIView {
 
         let stack = UIStackView(arrangedSubviews: arranged)
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = metrics.card.spacing
         stack.setCustomSpacing(0, after: content)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 16),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: metrics.card.inset),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -metrics.card.inset),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: metrics.card.inset),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -metrics.card.inset),
         ])
         if let contentHeight {
             content.heightAnchor.constraint(equalToConstant: contentHeight).isActive = true
@@ -72,22 +72,23 @@ final class StatsCardView: UIView {
 }
 
 /// Full-width Week / Month / Year / All segmented control on raised surface tokens.
-final class StatsRangeControl: UIView {
-    var onRange: ((StatsRange) -> Void)?
+package final class StatsRangeControl: UIView {
+    package var onRange: ((StatsRange) -> Void)?
 
     private let segmented = UISegmentedControl(items: StatsRange.allCases.map(\.title))
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        super.init(frame: .zero)
+        let font = metrics.rangeControl.font.uiFont
         segmented.backgroundColor = Theme.Color.surfaceRaised
         segmented.selectedSegmentTintColor = Theme.Color.surfaceHigh
         segmented.setTitleTextAttributes([
             .foregroundColor: Theme.Color.labelSecondary,
-            .font: Theme.Font.scaled(.subheadline, 14, .semibold, maximum: 20),
+            .font: font,
         ], for: .normal)
         segmented.setTitleTextAttributes([
             .foregroundColor: Theme.Color.label,
-            .font: Theme.Font.scaled(.subheadline, 14, .semibold, maximum: 20),
+            .font: font,
         ], for: .selected)
         segmented.accessibilityLabel = "Time range"
         segmented.addAction(UIAction { [weak self] _ in
@@ -103,20 +104,20 @@ final class StatsRangeControl: UIView {
             segmented.bottomAnchor.constraint(equalTo: bottomAnchor),
             segmented.leadingAnchor.constraint(equalTo: leadingAnchor),
             segmented.trailingAnchor.constraint(equalTo: trailingAnchor),
-            segmented.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.minTarget),
+            segmented.heightAnchor.constraint(greaterThanOrEqualToConstant: metrics.rangeControl.minHeight),
         ])
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    func select(_ range: StatsRange) {
+    package func select(_ range: StatsRange) {
         segmented.selectedSegmentIndex = range.rawValue
     }
 }
 
 /// The ember hero: verdict eyebrow, a huge count-up number with its unit, and two quiet lines.
-final class StatsHeroView: UIView {
+package final class StatsHeroView: UIView {
     private let gradient = CAGradientLayer()
     private let eyebrowLabel = UILabel()
     private let odometer = CountUpOdometerView()
@@ -124,12 +125,12 @@ final class StatsHeroView: UIView {
     private let detailLabel = UILabel()
     private let sinceLabel = UILabel()
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    package init(metrics: StatsMetrics = .platform) {
+        super.init(frame: .zero)
         layer.cornerRadius = StatsStyle.heroCornerRadius
         layer.cornerCurve = .continuous
         layer.masksToBounds = true
-        layer.borderWidth = 1
+        layer.borderWidth = metrics.hero.borderWidth
         layer.borderColor = Theme.Color.artHairline.cgColor
 
         gradient.colors = [UIColor(hex: 0x2B1708).cgColor, UIColor(hex: 0x6E3510).cgColor, UIColor(hex: 0xC96A14).cgColor]
@@ -142,12 +143,12 @@ final class StatsHeroView: UIView {
         eyebrowLabel.textColor = UIColor(hex: 0xFFD08A)
         eyebrowLabel.numberOfLines = 0
 
-        odometer.font = Theme.Font.scaled(.largeTitle, 68, .heavy, maximum: 96)
+        odometer.font = metrics.hero.odometerFont.uiFont
         odometer.textColor = Theme.Color.onArt
         odometer.setContentHuggingPriority(.required, for: .horizontal)
         odometer.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        unitLabel.font = Theme.Font.scaled(.title2, 24, .semibold, maximum: 32)
+        unitLabel.font = metrics.hero.unitFont.uiFont
         unitLabel.adjustsFontForContentSizeCategory = true
         unitLabel.textColor = UIColor.white.withAlphaComponent(0.85)
 
@@ -170,7 +171,7 @@ final class StatsHeroView: UIView {
             odometer.topAnchor.constraint(equalTo: numberRow.topAnchor),
             odometer.bottomAnchor.constraint(equalTo: numberRow.bottomAnchor),
             odometer.leadingAnchor.constraint(equalTo: numberRow.leadingAnchor),
-            unitLabel.leadingAnchor.constraint(equalTo: odometer.trailingAnchor, constant: 8),
+            unitLabel.leadingAnchor.constraint(equalTo: odometer.trailingAnchor, constant: metrics.hero.unitSpacing),
             unitLabel.trailingAnchor.constraint(lessThanOrEqualTo: numberRow.trailingAnchor),
             unitLabel.lastBaselineAnchor.constraint(equalTo: odometer.textBaselineAnchor),
         ])
@@ -178,16 +179,16 @@ final class StatsHeroView: UIView {
         let stack = UIStackView(arrangedSubviews: [eyebrowLabel, numberRow, detailLabel, sinceLabel])
         stack.axis = .vertical
         stack.alignment = .fill
-        stack.spacing = 2
-        stack.setCustomSpacing(6, after: eyebrowLabel)
+        stack.spacing = metrics.hero.stackSpacing
+        stack.setCustomSpacing(metrics.hero.eyebrowSpacing, after: eyebrowLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 18),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: metrics.hero.inset),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -metrics.hero.inset),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: metrics.hero.inset),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -metrics.hero.inset),
         ])
 
         isAccessibilityElement = true
@@ -197,7 +198,7 @@ final class StatsHeroView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override func layoutSubviews() {
+    package override func layoutSubviews() {
         super.layoutSubviews()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -206,7 +207,7 @@ final class StatsHeroView: UIView {
     }
 
     /// Fills the hero and, unless Reduce Motion is on or `animate` is false, counts the number up.
-    func configure(eyebrow: String, value: Int, unit: String, detail: String, since: String, animate: Bool) {
+    package func configure(eyebrow: String, value: Int, unit: String, detail: String, since: String, animate: Bool) {
         eyebrowLabel.attributedText = NSAttributedString(string: eyebrow.uppercased(), attributes: [.kern: 1.0])
         eyebrowLabel.isHidden = eyebrow.isEmpty
         unitLabel.text = unit
@@ -218,20 +219,20 @@ final class StatsHeroView: UIView {
 }
 
 /// "less ▪▪▪ more" legend that sits on the right of the Activity card title.
-final class StatsHeatLegendView: UIView {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+package final class StatsHeatLegendView: UIView {
+    package init(metrics: StatsMetrics = .platform) {
+        super.init(frame: .zero)
 
         let less = Self.caption("less")
         let more = Self.caption("more")
-        let swatches = [StatsStyle.heatColor(level: 0), StatsStyle.heatColor(level: 2), StatsStyle.heatColor(level: 5)].map(Self.swatch)
+        let swatches = [StatsStyle.heatColor(level: 0), StatsStyle.heatColor(level: 2), StatsStyle.heatColor(level: 5)].map { Self.swatch($0, metrics: metrics.heatLegend) }
 
         let stack = UIStackView(arrangedSubviews: [less] + swatches + [more])
         stack.axis = .horizontal
         stack.alignment = .center
-        stack.spacing = 2
-        stack.setCustomSpacing(6, after: less)
-        stack.setCustomSpacing(6, after: swatches[2])
+        stack.spacing = metrics.heatLegend.spacing
+        stack.setCustomSpacing(metrics.heatLegend.captionGap, after: less)
+        stack.setCustomSpacing(metrics.heatLegend.captionGap, after: swatches[2])
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -258,14 +259,14 @@ final class StatsHeatLegendView: UIView {
         return label
     }
 
-    private static func swatch(_ color: UIColor) -> UIView {
+    private static func swatch(_ color: UIColor, metrics: StatsMetrics.HeatLegend) -> UIView {
         let view = UIView()
         view.backgroundColor = color
-        view.layer.cornerRadius = 2
+        view.layer.cornerRadius = metrics.swatchCorner
         view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            view.widthAnchor.constraint(equalToConstant: 9),
-            view.heightAnchor.constraint(equalToConstant: 9),
+            view.widthAnchor.constraint(equalToConstant: metrics.swatch),
+            view.heightAnchor.constraint(equalToConstant: metrics.swatch),
         ])
         return view
     }

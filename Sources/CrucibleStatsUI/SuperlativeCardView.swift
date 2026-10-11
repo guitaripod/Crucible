@@ -4,60 +4,20 @@ import UIKit
 
 /// A gradient "wrapped"-style hero card that presents a single ``Superlative`` inside a
 /// paged carousel cell (roughly full-width by 150pt). Configure it with ``configure(_:)``.
-final class SuperlativeCardView: UIView {
+package final class SuperlativeCardView: UIView {
+    private let metrics: StatsMetrics.WrappedCard
     private let gradientLayer = CAGradientLayer()
+    private let symbolView = UIImageView()
+    private let headlineLabel = UILabel()
+    private let titleLabel = UILabel()
+    private let captionLabel = UILabel()
+    private let contentStack = UIStackView()
 
-    private let symbolView: UIImageView = {
-        let view = UIImageView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.contentMode = .scaleAspectFit
-        view.tintColor = Theme.Color.onArt
-        view.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
-        view.setContentHuggingPriority(.required, for: .vertical)
-        view.setContentCompressionResistancePriority(.required, for: .vertical)
-        return view
-    }()
+    package init(metrics: StatsMetrics = .platform) {
+        self.metrics = metrics.wrappedCard
+        super.init(frame: .zero)
 
-    private let headlineLabel: UILabel = {
-        let label = UILabel()
-        label.font = SuperlativeCardView.roundedFont(size: 40, weight: .heavy)
-        label.textColor = Theme.Color.onArt
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.5
-        label.numberOfLines = 1
-        label.lineBreakMode = .byTruncatingTail
-        return label
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 15, weight: .semibold)
-        label.textColor = Theme.Color.onArt
-        label.numberOfLines = 1
-        label.lineBreakMode = .byTruncatingTail
-        return label
-    }()
-
-    private let captionLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 12, weight: .regular)
-        label.textColor = Theme.Color.onArtSecondary
-        label.numberOfLines = 2
-        label.lineBreakMode = .byTruncatingTail
-        return label
-    }()
-
-    private let contentStack: UIStackView = {
-        let stack = UIStackView()
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.alignment = .leading
-        stack.spacing = 4
-        return stack
-    }()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+        configureViews()
 
         layer.cornerRadius = StatsStyle.cornerRadius
         layer.cornerCurve = .continuous
@@ -69,9 +29,9 @@ final class SuperlativeCardView: UIView {
         layer.insertSublayer(gradientLayer, at: 0)
 
         contentStack.addArrangedSubview(symbolView)
-        contentStack.setCustomSpacing(10, after: symbolView)
+        contentStack.setCustomSpacing(self.metrics.spacingAfterSymbol, after: symbolView)
         contentStack.addArrangedSubview(headlineLabel)
-        contentStack.setCustomSpacing(2, after: headlineLabel)
+        contentStack.setCustomSpacing(self.metrics.spacingAfterHeadline, after: headlineLabel)
         contentStack.addArrangedSubview(titleLabel)
         let spacer = UIView()
         spacer.translatesAutoresizingMaskIntoConstraints = false
@@ -80,7 +40,7 @@ final class SuperlativeCardView: UIView {
         contentStack.addArrangedSubview(captionLabel)
         addSubview(contentStack)
 
-        let padding: CGFloat = 18
+        let padding = self.metrics.padding
         NSLayoutConstraint.activate([
             contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: padding),
             contentStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -padding),
@@ -95,13 +55,42 @@ final class SuperlativeCardView: UIView {
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
 
-    convenience init() { self.init(frame: .zero) }
-
-    override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 150)
+    package override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: metrics.intrinsicHeight)
     }
 
-    override func layoutSubviews() {
+    private func configureViews() {
+        symbolView.translatesAutoresizingMaskIntoConstraints = false
+        symbolView.contentMode = .scaleAspectFit
+        symbolView.tintColor = Theme.Color.onArt
+        symbolView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: metrics.symbolPointSize, weight: .semibold)
+        symbolView.setContentHuggingPriority(.required, for: .vertical)
+        symbolView.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        headlineLabel.font = metrics.headlineFont.uiFont
+        headlineLabel.textColor = Theme.Color.onArt
+        headlineLabel.adjustsFontSizeToFitWidth = true
+        headlineLabel.minimumScaleFactor = 0.5
+        headlineLabel.numberOfLines = 1
+        headlineLabel.lineBreakMode = .byTruncatingTail
+
+        titleLabel.font = metrics.titleFont.uiFont
+        titleLabel.textColor = Theme.Color.onArt
+        titleLabel.numberOfLines = 1
+        titleLabel.lineBreakMode = .byTruncatingTail
+
+        captionLabel.font = metrics.captionFont.uiFont
+        captionLabel.textColor = Theme.Color.onArtSecondary
+        captionLabel.numberOfLines = 2
+        captionLabel.lineBreakMode = .byTruncatingTail
+
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.axis = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = metrics.stackSpacing
+    }
+
+    package override func layoutSubviews() {
         super.layoutSubviews()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -110,7 +99,7 @@ final class SuperlativeCardView: UIView {
     }
 
     /// Populates the card with a superlative and, unless Reduce Motion is on, gently fades the content in.
-    func configure(_ superlative: Superlative) {
+    package func configure(_ superlative: Superlative) {
         symbolView.image = UIImage(systemName: superlative.symbol)
         headlineLabel.text = superlative.headline
         titleLabel.text = superlative.title
@@ -138,11 +127,5 @@ final class SuperlativeCardView: UIView {
             StatsStyle.accentBright.resolvedColor(with: traitCollection).cgColor,
             bottomTrailing.resolvedColor(with: traitCollection).cgColor,
         ]
-    }
-
-    private static func roundedFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
-        let base = UIFont.systemFont(ofSize: size, weight: weight)
-        guard let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
-        return UIFont(descriptor: descriptor, size: size)
     }
 }

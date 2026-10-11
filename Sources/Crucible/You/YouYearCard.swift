@@ -2,68 +2,7 @@ import CrucibleDesign
 import CrucibleStats
 import UIKit
 
-struct YouYearSummary: Equatable {
-    var caption: String
-    var primary: String
-    var unit: String
-    var detail: String
-    var strip: [Int]
-
-    static let stripColumns = 26
-    static let stripRows = 3
-
-    static var stripCount: Int { stripColumns * stripRows }
-
-    var spokenText: String {
-        "\(caption.capitalized). \(primary) \(unit). \(detail). Statistics"
-    }
-
-    /// Builds the card from the stats mirror; nil when there is no store or nothing watched yet.
-    @MainActor static func load() async -> YouYearSummary? {
-        guard let store = StatsManager.shared.store else { return nil }
-        guard let snapshot = try? await store.snapshot(range: .year), !snapshot.isEmpty else { return nil }
-        let overview = snapshot.overview
-        let year = Calendar.current.component(.year, from: Date())
-
-        let primary: String
-        let unit: String
-        if let hours = overview.estHours {
-            let rounded = Int(hours.rounded())
-            primary = rounded == 0 ? "<1" : "\(rounded)"
-            unit = rounded == 1 ? "hour" : "hours"
-        } else {
-            primary = "\(overview.totalPlays)"
-            unit = overview.totalPlays == 1 ? "play" : "plays"
-        }
-
-        var parts = [String]()
-        if overview.moviesWatched > 0 { parts.append("\(overview.moviesWatched) \(overview.moviesWatched == 1 ? "movie" : "movies")") }
-        if overview.episodes > 0 { parts.append("\(overview.episodes) \(overview.episodes == 1 ? "episode" : "episodes")") }
-        if overview.currentStreak > 0 { parts.append("\(overview.currentStreak)-day streak") }
-
-        return YouYearSummary(
-            caption: "\(year) SO FAR",
-            primary: primary,
-            unit: unit,
-            detail: parts.joined(separator: " · "),
-            strip: stripLevels(from: snapshot.heatmap)
-        )
-    }
-
-    /// Last 78 days, three days per column, bucketed into 0...5 by quantile so light watchers still get contrast.
-    private static func stripLevels(from days: [DayCount]) -> [Int] {
-        let today = StatsTime().todayDayEpoch()
-        var counts = [Int: Int]()
-        for day in days { counts[day.dayEpoch] = day.count }
-        let window = (0..<stripCount).map { counts[today - (stripCount - 1) + $0] ?? 0 }
-        let positives = window.filter { $0 > 0 }.sorted()
-        guard !positives.isEmpty else { return Array(repeating: 0, count: stripCount) }
-        let thresholds = [0.2, 0.4, 0.6, 0.8].map { positives[min(positives.count - 1, Int(Double(positives.count - 1) * $0))] }
-        return window.map { count in
-            count == 0 ? 0 : min(5, 1 + thresholds.filter { count > $0 }.count)
-        }
-    }
-}
+typealias YouYearSummary = YearInReviewSummary
 
 struct YouYearCardContentConfiguration: UIContentConfiguration {
     var summary: YouYearSummary
