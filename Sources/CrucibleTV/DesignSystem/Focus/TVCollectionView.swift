@@ -6,7 +6,7 @@ import UIKit
 class TVCollectionView: UICollectionView {
     /// Called with the index path of the focused item when the user presses Play/Pause. The press is
     /// always consumed; prefer `playPauseHandler`, which can decline.
-    var onPlayPause: (@MainActor (IndexPath) -> Void)?
+    final var onPlayPause: (@MainActor (IndexPath) -> Void)?
 
     /// Called with the index path of the focused item on Play/Pause; returns whether the screen
     /// handled it. When it declines, the press continues up the responder chain like any other.
