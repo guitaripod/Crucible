@@ -157,6 +157,7 @@ package struct PlexPinAuth: Sendable {
 
     private func poll(_ code: PlexPinCode, into continuation: AsyncStream<PlexPinState>.Continuation) async {
         var consecutiveFailures = 0
+        var consecutiveUnknown = 0
         while true {
             do {
                 try await clock.sleep(timing.pollInterval)
@@ -167,6 +168,7 @@ package struct PlexPinAuth: Sendable {
             do {
                 let checked = try await transport.check(code.id)
                 consecutiveFailures = 0
+                consecutiveUnknown = 0
                 if let token = checked.authToken, !token.isEmpty {
                     continuation.yield(.claimed(token: token))
                     return
@@ -174,8 +176,13 @@ package struct PlexPinAuth: Sendable {
             } catch {
                 guard !Task.isCancelled else { return }
                 if Self.isUnknownPin(error) {
-                    continuation.yield(.expired)
-                    return
+                    consecutiveUnknown += 1
+                    if consecutiveUnknown >= Self.unknownPollsBeforeExpiry {
+                        continuation.yield(.expired)
+                        return
+                    }
+                } else {
+                    consecutiveUnknown = 0
                 }
                 consecutiveFailures += 1
                 AppLogger.error("PIN poll failed (\(consecutiveFailures)): \(error.localizedDescription)", .networking)
@@ -190,6 +197,9 @@ package struct PlexPinAuth: Sendable {
             }
         }
     }
+
+    /// A single 404 can be a transient plex.tv hiccup: the PIN counts as gone after this many in a row.
+    private static let unknownPollsBeforeExpiry = 3
 
     /// plex.tv answers 404 once a PIN has expired or never existed.
     private static func isUnknownPin(_ error: Error) -> Bool {

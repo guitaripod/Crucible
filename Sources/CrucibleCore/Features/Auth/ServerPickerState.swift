@@ -115,6 +115,13 @@ package struct ServerPickerState: Sendable {
         return true
     }
 
+    /// Marks every route of an online server as untested again and returns the probes to run for it.
+    package mutating func restartProbing(of id: String) -> [RouteProbeTarget] {
+        guard let position = choices.firstIndex(where: { $0.id == id }), choices[position].isOnline else { return [] }
+        choices[position].resetProbes()
+        return probeTargets.filter { $0.serverID == id }
+    }
+
     package func connectAction(isConnecting: Bool) -> ConnectAction {
         if isConnecting { return .connecting }
         guard let choice = selectedChoice else { return .chooseServer }
@@ -123,11 +130,12 @@ package struct ServerPickerState: Sendable {
         return .noRoute(serverName: choice.name)
     }
 
-    /// The server to continue with automatically: exactly one online server answered and nothing
-    /// is still being probed. Nil while probes are running or when there is a real choice to make.
+    /// The server to continue with automatically: exactly one online server answered and every
+    /// online server's best route is settled. Nil while that is open or when there is a real
+    /// choice to make.
     package var autoContinue: (choice: ServerChoice, route: ServerRoute)? {
         let online = choices.filter(\.isOnline)
-        guard !online.contains(where: \.isProbing) else { return nil }
+        guard online.allSatisfy(\.isSettled) else { return nil }
         let reachable = online.filter { $0.bestRoute != nil }
         guard reachable.count == 1, let choice = reachable.first, let route = choice.bestRoute else { return nil }
         return (choice, route)

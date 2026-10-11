@@ -28,6 +28,26 @@ package enum DeepLink: Equatable, Sendable {
         }
     }
 
+    package static func isItemType(_ type: String) -> Bool {
+        itemTypes.contains(type)
+    }
+
+    /// The link in its `crucible://` form, the inverse of `init?(url:)`.
+    package var url: URL {
+        var components = URLComponents()
+        components.scheme = Self.scheme
+        switch self {
+        case .item(let ratingKey, let mediaType):
+            components.host = "item"
+            components.path = "/" + ratingKey
+            components.queryItems = mediaType.map { [URLQueryItem(name: "type", value: $0)] }
+        case .play(let ratingKey):
+            components.host = "play"
+            components.path = "/" + ratingKey
+        }
+        return components.url ?? URL(string: "\(Self.scheme)://")!
+    }
+
     /// Plex rating keys are numeric; anything else would end up verbatim in a server path.
     private static func ratingKey(from path: String) -> String? {
         let key = path.hasPrefix("/") ? String(path.dropFirst()) : path

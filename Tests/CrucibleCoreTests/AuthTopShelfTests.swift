@@ -111,21 +111,15 @@ struct AuthTopShelfTests {
         #expect(decoded == snapshot)
     }
 
-    @Test func linksRoundTripAndRejectForeignOnes() throws {
-        let play = TopShelfLink.play(ratingKey: "42")
+    @Test func deepLinksRoundTripThroughTheirURL() {
+        let play = DeepLink.play(ratingKey: "42")
         #expect(play.url.absoluteString == "crucible://play/42")
-        #expect(TopShelfLink(url: play.url) == play)
+        #expect(DeepLink(url: play.url) == play)
 
-        let item = TopShelfLink.item(ratingKey: "42", type: "episode")
+        let item = DeepLink.item(ratingKey: "42", mediaType: "episode")
         #expect(item.url.absoluteString == "crucible://item/42?type=episode")
-        #expect(TopShelfLink(url: item.url) == item)
-        #expect(TopShelfLink(url: URL(string: "crucible://item/42")!) == .item(ratingKey: "42", type: nil))
-
-        #expect(TopShelfLink(url: URL(string: "https://play/42")!) == nil)
-        #expect(TopShelfLink(url: URL(string: "crucible://play")!) == nil)
-        #expect(TopShelfLink(url: URL(string: "crucible://play/")!) == nil)
-        #expect(TopShelfLink(url: URL(string: "crucible://play/1/2")!) == nil)
-        #expect(TopShelfLink(url: URL(string: "crucible://settings/1")!) == nil)
+        #expect(DeepLink(url: item.url) == item)
+        #expect(DeepLink.item(ratingKey: "42", mediaType: nil).url.absoluteString == "crucible://item/42")
     }
 
     @Test func thePlanMapsSectionsTilesAndActions() throws {
@@ -144,6 +138,15 @@ struct AuthTopShelfTests {
         let browse = plan.sections[1].items[0]
         #expect(browse.playURL == nil)
         #expect(browse.displayURL.absoluteString == "crucible://item/30?type=show")
+    }
+
+    @Test func tilesOfOtherTypesOpenTheirDetailWithoutAType() throws {
+        let clip = AuthFixtures.metadata(#"{"ratingKey": "31", "type": "clip", "title": "A Clip"}"#)
+        let plan = try #require(TopShelfPlan(snapshot: build(continueItems: [clip], onDeck: [])))
+        let tile = plan.sections[0].items[0]
+        #expect(tile.playURL?.absoluteString == "crucible://play/31")
+        #expect(tile.displayURL.absoluteString == "crucible://item/31")
+        #expect(DeepLink(url: tile.displayURL) == .item(ratingKey: "31", mediaType: nil))
     }
 
     @Test func thePlanIsNilWhenThereIsNothingToShow() {

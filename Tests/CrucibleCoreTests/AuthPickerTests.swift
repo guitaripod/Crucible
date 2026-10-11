@@ -141,6 +141,24 @@ struct AuthPickerTests {
         #expect(none.autoContinue == nil)
     }
 
+    @Test func aSlowLowerRankedRouteDoesNotHoldBackAutoContinue() {
+        var state = picker([home, office])
+        state.record(server: "a", route: 0, milliseconds: 6)
+        state.record(server: "b", route: 0, milliseconds: nil)
+        #expect(state.choices[0].isSettled)
+        #expect(state.autoContinue?.choice.id == "a")
+        #expect(state.autoContinue?.route.uri == "http://192.168.1.5:32400")
+    }
+
+    @Test func aBetterRouteStillInFlightKeepsAServerUnsettled() {
+        var state = picker([home])
+        state.record(server: "a", route: 1, milliseconds: 40)
+        #expect(!state.choices[0].isSettled)
+        state.record(server: "a", route: 0, milliseconds: nil)
+        #expect(state.choices[0].isSettled)
+        #expect(state.autoContinue?.route.uri == "http://203.0.113.7:32400")
+    }
+
     @Test func aServerStillBeingProbedHoldsBackAutoContinue() {
         var state = picker([home, office])
         state.record(server: "b", route: 0, milliseconds: 9)
@@ -157,5 +175,39 @@ struct AuthPickerTests {
         #expect(state.choices[0].reachability == .unreachable)
         state.record(server: "a", route: 1, milliseconds: 12)
         #expect(state.choices[0].reachability == .reachable)
+    }
+
+    @Test func rowTextNamesTheBestRouteAndItsLatency() {
+        var state = picker([home, offline])
+        #expect(state.choices[0].routeValue == "Testing…")
+        #expect(state.choices[0].statusLine == "Owned by you · 2 connections")
+        #expect(state.choices[1].routeValue == "Offline")
+
+        state.record(server: "a", route: 0, milliseconds: 4)
+        #expect(state.choices[0].routeValue == "Local · 4 ms")
+        #expect(state.choices[0].routes[1].badgeText == "Remote")
+    }
+
+    @Test func anUnreachableServerSaysSoAndInvitesATest() {
+        var state = picker([office])
+        state.record(server: "b", route: 0, milliseconds: nil)
+        #expect(state.choices[0].routeValue == "Unreachable")
+        #expect(state.choices[0].statusLine == "This server is unreachable. Select to test again.")
+    }
+
+    @Test func restartingProbesClearsOneServerAndReturnsItsTargets() {
+        var state = picker([home, office])
+        state.record(server: "a", route: 0, milliseconds: nil)
+        state.record(server: "a", route: 1, milliseconds: nil)
+        state.record(server: "b", route: 0, milliseconds: 9)
+
+        let targets = state.restartProbing(of: "a")
+        #expect(targets.map(\.routeIndex) == [0, 1])
+        #expect(targets.allSatisfy { $0.serverID == "a" })
+        #expect(state.choices[0].reachability == .probing)
+        #expect(state.choices[1].reachability == .reachable)
+        #expect(state.restartProbing(of: "zzz").isEmpty)
+        var onlyOffline = picker([offline])
+        #expect(onlyOffline.restartProbing(of: "c").isEmpty)
     }
 }

@@ -95,7 +95,16 @@ struct AuthPinTests {
         let states = await authCollect(PlexPinAuth(strong: false, transport: script.transport, clock: AuthStubClock().clock).states())
 
         #expect(states.last == .expired)
-        #expect(script.checked.value.count == 2)
+        #expect(script.checked.value.count == 4)
+    }
+
+    @Test func aSingleStrayNotFoundDoesNotEndTheSignIn() async {
+        let missing = AuthScriptedPins.Reply.failure(APIError.httpError(statusCode: 404, message: "Not Found"))
+        let script = AuthScriptedPins(create: .success(AuthFixtures.pin()), checks: [missing, missing, pending, missing, missing, claimed])
+        let states = await authCollect(PlexPinAuth(strong: false, transport: script.transport, clock: AuthStubClock().clock).states())
+
+        #expect(states.last == .claimed(token: "secret"))
+        #expect(script.checked.value.count == 6)
     }
 
     @Test func pollFailuresAreRiddenOutUntilTheyPileUp() async {
