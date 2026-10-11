@@ -1,13 +1,9 @@
 import UIKit
 
 extension TVScreens {
+    /// Plays an item in the system player on top of `presenter` and returns to it, with fresh
+    /// watched state, when the viewer leaves.
     static func play(_ env: TVAppEnvironment, request: TVPlaybackRequest, from presenter: UIViewController) {
-        let alert = UIAlertController(
-            title: request.display?.title ?? "Player",
-            message: "Playback for item \(request.ratingKey) isn't available yet.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
-        presenter.present(alert, animated: true)
+        TVPlayerCoordinator.start(api: env.api, request: request.playbackRequest, from: presenter)
     }
 }

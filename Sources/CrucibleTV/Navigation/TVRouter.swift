@@ -9,17 +9,33 @@ final class TVRouter {
     private weak var tabBar: TVRootTabBarController?
     private var pending: DeepLink?
     private var resolveTask: Task<Void, Never>?
+    #if DEBUG
+    private static var launchLinkConsumed = false
+    #endif
 
     /// Called by the coordinator once the tab bar is on screen; runs a link that arrived earlier.
     func activate(_ tabBar: TVRootTabBarController) {
         self.tabBar = tabBar
         #if DEBUG
         TVDebugScreen.openIfRequested(on: tabBar)
+        queueLaunchLink()
         #endif
         guard let link = pending else { return }
         pending = nil
         handle(link)
     }
+
+    #if DEBUG
+    /// UI tests start from a link without the system's "Open in Crucible?" prompt: the environment
+    /// variable `CRUCIBLE_OPEN_LINK` names a `crucible://` URL that runs once the main UI is up.
+    private func queueLaunchLink() {
+        guard !Self.launchLinkConsumed, pending == nil,
+              let text = ProcessInfo.processInfo.environment["CRUCIBLE_OPEN_LINK"],
+              let link = URL(string: text).flatMap(DeepLink.init(url:)) else { return }
+        Self.launchLinkConsumed = true
+        pending = link
+    }
+    #endif
 
     /// Called when the main UI goes away (sign out, relaunch); drops anything still queued.
     func deactivate() {
