@@ -276,15 +276,11 @@ final class PlayerTests: XCTestCase {
         setProgress(Self.movie, seconds: 1)
         let app = launch(playing: Self.movie)
         XCTAssertTrue(waitForPlayback(in: app))
-        TVTest.settle(4)
+        TVTest.settle(9)
         setFlags("latency_ms=9000")
-        var started = Date()
-        var back = false
-        for _ in 0..<3 where !back {
-            started = Date()
-            TVTest.remote.press(.menu)
-            back = app.tabBars.firstMatch.waitForExistence(timeout: 8)
-        }
+        let started = Date()
+        TVTest.remote.press(.menu)
+        let back = app.otherElements["player.view"].waitForNonExistence(timeout: 12) && app.tabBars.firstMatch.exists
         let elapsed = Date().timeIntervalSince(started)
         TVTest.capture("01-back-while-the-server-is-slow", in: self)
         XCTAssertTrue(back)
