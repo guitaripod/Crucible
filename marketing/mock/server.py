@@ -567,6 +567,8 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/status/sessions/history/all":
             if os.environ.get("MOCK_HISTORY_ERROR") == "1":
                 return self.send_json(container(size=0), 404)
+            if one("librarySectionID") in env_sections("MOCK_SLOW_HISTORY_SECTIONS"):
+                time.sleep(int(os.environ.get("MOCK_SLOW_HISTORY_MS", "0")) / 1000)
             with LOCK:
                 rows = list(LIB.history)
                 if os.environ.get("MOCK_NO_HISTORY") == "1":
