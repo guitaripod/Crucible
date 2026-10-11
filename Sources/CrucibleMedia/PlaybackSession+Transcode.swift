@@ -62,8 +62,8 @@ extension PlaybackSession {
                 api: api,
                 ratingKey: request.ratingKey,
                 startSecs: start > 0 ? start : nil,
-                selectedSubtitleId: request.selectedSubtitleId,
-                selectedAudioStreamId: request.selectedAudioStreamId,
+                selectedSubtitleId: selectedSubtitleId,
+                selectedAudioStreamId: selectedAudioStreamId,
                 forceTranscode: true
             )
             guard !isStopped, !Task.isCancelled, let player else {
@@ -75,7 +75,9 @@ extension PlaybackSession {
             lastPlayhead = 0
             reporter?.setStreamOffset(start)
             startPing(session: resolved.sessionId)
-            player.replaceCurrentItem(with: AVPlayerItem(url: resolved.url))
+            let item = AVPlayerItem(url: resolved.url)
+            configureItem?(item)
+            player.replaceCurrentItem(with: item)
             watchCurrentItem()
             player.play()
             AppLogger.notice("Transcode fallback playing ratingKey=\(request.ratingKey)", .playback)
@@ -90,7 +92,11 @@ extension PlaybackSession {
     /// Restarts the transcode at a new absolute offset under the same session: the server re-keys the
     /// encode and the new item replaces the old one once built.
     func restartTranscode(atAbsolute target: Double) {
-        guard let stream, player != nil, !isRestarting, !isStopped else { return }
+        guard let stream, player != nil, !isStopped else { return }
+        guard !isRestarting else {
+            pendingRestartTarget = target
+            return
+        }
         isRestarting = true
         Task { [weak self] in
             guard let self else { return }
@@ -99,10 +105,11 @@ extension PlaybackSession {
                 ratingKey: request.ratingKey,
                 offsetSecs: target,
                 sessionId: stream.sessionId,
-                burnSubtitle: request.selectedSubtitleId != nil
+                burnSubtitle: selectedSubtitleId != nil
             )
             guard let url, !isStopped else {
                 isRestarting = false
+                pendingRestartTarget = nil
                 return
             }
             applyTranscodeRestart(url: url, atAbsolute: target)
@@ -119,6 +126,7 @@ extension PlaybackSession {
         reporter?.setStreamOffset(target)
 
         let item = AVPlayerItem(url: url)
+        configureItem?(item)
         restartItemObserver?.invalidate()
         restartItemObserver = item.observe(\.status, options: [.new]) { @Sendable [weak self] observedItem, _ in
             guard observedItem.status != .unknown else { return }
@@ -134,6 +142,10 @@ extension PlaybackSession {
         isRestarting = false
         restartItemObserver?.invalidate()
         restartItemObserver = nil
+        if let target = pendingRestartTarget {
+            pendingRestartTarget = nil
+            restartTranscode(atAbsolute: target)
+        }
     }
 
     /// Keeps the server's transcode session alive; it reaps sessions that stop pinging.

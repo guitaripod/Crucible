@@ -106,6 +106,21 @@ package struct PlaybackRequest: Sendable {
         )
     }
 
+    /// The same request starting at `position`, for a retry that should continue where playback stopped.
+    package func resuming(at position: Double) -> PlaybackRequest {
+        PlaybackRequest(
+            ratingKey: ratingKey,
+            mediaType: mediaType,
+            showRatingKey: showRatingKey,
+            seasonRatingKey: seasonRatingKey,
+            resumePosition: position,
+            metadata: metadata,
+            selectedSubtitleId: selectedSubtitleId,
+            selectedAudioStreamId: selectedAudioStreamId,
+            offline: offline
+        )
+    }
+
     package var isEpisode: Bool { mediaType == "episode" }
 
     /// The URL offset the transcoder is asked to start at, or nil when playback starts at the beginning.

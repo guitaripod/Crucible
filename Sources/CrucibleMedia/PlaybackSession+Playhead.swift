@@ -34,9 +34,9 @@ extension PlaybackSession {
         loadUpNext(reason: .requested)
     }
 
-    func startPlayback(player: AVPlayer, stream: ResolvedStream) {
+    func startPlayback(player: AVPlayer, stream: ResolvedStream, resumePosition: Double) {
         switch ResumeStrategy.make(
-            resumePosition: request.resumePosition,
+            resumePosition: resumePosition,
             isDirectPlay: stream.isDirectPlay,
             isOffline: request.offline != nil
         ) {
@@ -152,7 +152,9 @@ extension PlaybackSession {
             if reason == .playbackEnded { emit(.finished(.standalone)) }
             return
         }
+        if upNextReason == .playbackEnded, reason != .playbackEnded { return }
         upNextTask?.cancel()
+        upNextReason = reason
         let resolver = upNext
         upNextTask = Task { [weak self] in
             guard let self else { return }

@@ -9,10 +9,11 @@ struct PlaybackRulesTests {
         #expect(policy.decide(wasDirectPlay: false, isOffline: false) == .fail)
     }
 
-    @Test func aSecondDirectPlayFailureIsReportedNotRetried() {
+    @Test func aDirectPlayFailureWhileTheFallbackResolvesIsIgnored() {
         var policy = PlaybackFailurePolicy()
         _ = policy.decide(wasDirectPlay: true, isOffline: false)
-        #expect(policy.decide(wasDirectPlay: true, isOffline: false) == .fail)
+        #expect(policy.decide(wasDirectPlay: true, isOffline: false) == .ignore)
+        #expect(policy.decide(wasDirectPlay: false, isOffline: false) == .fail)
     }
 
     @Test func transcodeAndOfflineFailuresAreReportedAtOnce() {
@@ -120,6 +121,20 @@ struct PlaybackRulesTests {
         #expect(request.durationSecs == 2_700)
         #expect(request.metadata == PlaybackMetadata(title: "Low Tide", showName: "The Show", seasonNumber: 2, episodeNumber: 4, posterPath: "/show/thumb", duration: 2_700))
         #expect(PlaybackRequest(item: item, resumePosition: 0).transcodeStartSecs == nil)
+    }
+
+    @Test func aRetryKeepsTheRequestButResumesWherePlaybackStopped() {
+        let request = PlaybackRequest(
+            ratingKey: "5", mediaType: "episode", showRatingKey: "1", seasonRatingKey: "2",
+            resumePosition: 10, selectedSubtitleId: 4, selectedAudioStreamId: 3
+        )
+        let retry = request.resuming(at: 321)
+        #expect(retry.resumePosition == 321)
+        #expect(retry.ratingKey == "5")
+        #expect(retry.showRatingKey == "1")
+        #expect(retry.seasonRatingKey == "2")
+        #expect(retry.selectedSubtitleId == 4)
+        #expect(retry.selectedAudioStreamId == 3)
     }
 
     @Test func anOfflineDurationWinsOverTheMetadataDuration() {

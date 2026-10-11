@@ -52,7 +52,7 @@ package struct UpNextResolver: Sendable {
     private let ratingKey: String
     private let isEpisode: Bool
     private let seasonRatingKey: String?
-    private let creditsStartSecs: Double?
+    package let creditsStartSecs: Double?
     private var creditsTriggered = false
 
     package init(ratingKey: String, isEpisode: Bool, seasonRatingKey: String?, markers: [PlexMarker]) {

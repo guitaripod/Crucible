@@ -140,7 +140,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             return
         }
 
-        let player = session.begin()
+        guard let player = session.begin() else {
+            AppLogger.error("Playback session unusable for ratingKey=\(request.ratingKey); abandoning playback", .playback)
+            isPresenting = false
+            return
+        }
 
         let playerVC = AVPlayerViewController()
         playerVC.player = player

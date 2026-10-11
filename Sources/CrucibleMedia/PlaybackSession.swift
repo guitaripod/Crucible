@@ -8,7 +8,9 @@ import Foundation
 /// decides whether it can present, then either `begin()`s playback and hosts the returned player or
 /// `discard()`s the stream. While it runs the session reports through `events`; `stop()` ends it.
 /// Resume follows `ResumeStrategy`: a transcode starts at the stored position through its URL offset
-/// and is never seeked again.
+/// and is never seeked again. A session plays exactly once: after `stop()` or `discard()` it is
+/// spent (`prepare()` throws `CancellationError`, `begin()` returns nil), so a retry or a second
+/// presentation makes a new session.
 @MainActor
 package final class PlaybackSession {
     package let request: PlaybackRequest
@@ -16,6 +18,14 @@ package final class PlaybackSession {
     package internal(set) var player: AVPlayer?
     package internal(set) var stream: ResolvedStream?
     package internal(set) var streamOffset: Double = 0
+    package internal(set) var selectedSubtitleId: Int?
+    package internal(set) var selectedAudioStreamId: Int?
+
+    /// Called with every `AVPlayerItem` the session puts in the player (the first, a restarted
+    /// transcode, a fallback, a re-resolved stream) so the surface can attach item-level state
+    /// such as external metadata or a content proposal. The session's `streamOffset` already
+    /// describes the item when it runs.
+    package var configureItem: (@MainActor (AVPlayerItem) -> Void)?
 
     let api: APIClient
     let continuation: AsyncStream<PlaybackEvent>.Continuation
@@ -31,6 +41,9 @@ package final class PlaybackSession {
     var failurePolicy = PlaybackFailurePolicy()
     var lastPlayhead: Double = 0
     var isRestarting = false
+    var pendingRestartTarget: Double?
+    var upNextReason: UpNextOffer.Reason?
+    var isChangingStreams = false
     var isStopped = false
     var isUpNextVisible = false
     var isUndoVisible = false
@@ -42,6 +55,8 @@ package final class PlaybackSession {
     package init(api: APIClient, request: PlaybackRequest) {
         self.api = api
         self.request = request
+        selectedSubtitleId = request.selectedSubtitleId
+        selectedAudioStreamId = request.selectedAudioStreamId
         let pair = AsyncStream.makeStream(of: PlaybackEvent.self)
         events = pair.stream
         continuation = pair.continuation
@@ -72,13 +87,14 @@ package final class PlaybackSession {
     /// Resolves the stream to play. A cancelled caller gets `CancellationError` and any transcode the
     /// server already started is stopped. A downloaded item is ready without a network round trip.
     package func prepare() async throws -> ResolvedStream {
+        if isStopped { throw CancellationError() }
         if let stream { return stream }
         let resolved = try await StreamResolver.resolve(
             api: api,
             ratingKey: request.ratingKey,
             startSecs: request.transcodeStartSecs,
-            selectedSubtitleId: request.selectedSubtitleId,
-            selectedAudioStreamId: request.selectedAudioStreamId
+            selectedSubtitleId: selectedSubtitleId,
+            selectedAudioStreamId: selectedAudioStreamId
         )
         guard !Task.isCancelled else {
             discardTranscode(of: resolved)
@@ -98,16 +114,15 @@ package final class PlaybackSession {
     }
 
     /// Creates the player and starts playback at the resume position. The caller hosts the returned
-    /// player in its own surface; the session keeps driving it until `stop()`.
-    package func begin() -> AVPlayer {
-        guard let stream, player == nil, !isStopped else {
-            preconditionFailure("begin() needs a prepared stream and a session that has not started or stopped")
-        }
+    /// player in its own surface; the session keeps driving it until `stop()`. Returns nil when there
+    /// is no prepared stream, playback already began, or the session is spent.
+    package func begin() -> AVPlayer? {
+        guard let stream, player == nil, !isStopped else { return nil }
+        streamOffset = ResumeStrategy.streamOffset(resumePosition: request.resumePosition, isDirectPlay: stream.isDirectPlay)
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
         self.player = player
-
-        streamOffset = ResumeStrategy.streamOffset(resumePosition: request.resumePosition, isDirectPlay: stream.isDirectPlay)
+        if let item = player.currentItem { configureItem?(item) }
         let reporter = PlaybackReporter(
             api: api,
             ratingKey: request.ratingKey,
@@ -129,7 +144,7 @@ package final class PlaybackSession {
         observeInterruptions()
         observePlayhead(of: player)
         watchCurrentItem()
-        startPlayback(player: player, stream: stream)
+        startPlayback(player: player, stream: stream, resumePosition: request.resumePosition)
         return player
     }
 

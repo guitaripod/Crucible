@@ -17,7 +17,8 @@ package struct PlaybackFailurePolicy: Sendable {
 
     package mutating func decide(wasDirectPlay: Bool, isOffline: Bool) -> Decision {
         guard !hasFailed else { return .ignore }
-        guard wasDirectPlay, !isOffline, !hasFallenBack else {
+        if wasDirectPlay, !isOffline, hasFallenBack { return .ignore }
+        guard wasDirectPlay, !isOffline else {
             hasFailed = true
             return .fail
         }
