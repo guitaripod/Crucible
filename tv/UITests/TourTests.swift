@@ -11,9 +11,10 @@ final class TourTests: XCTestCase {
 
     private static let tabs = [
         Tab(title: "Home", marker: AppNavigation.homeCardPrefix),
-        Tab(title: "Movies", marker: "tv.library.chip.all"),
-        Tab(title: "TV Shows", marker: "tv.library.chip.all"),
-        Tab(title: "Documentaries", marker: "tv.library.chip.all"),
+        Tab(title: "Movies", marker: "tv.chip.all"),
+        Tab(title: "TV Shows", marker: "tv.chip.all"),
+        Tab(title: "Documentaries", marker: "tv.chip.all"),
+        Tab(title: "More", marker: "tv.more.library."),
         Tab(title: "Search", marker: ""),
         Tab(title: "You", marker: "you.history"),
     ]
@@ -97,7 +98,7 @@ final class TourTests: XCTestCase {
     func testDeepLinksOpenTheRealDetailOnHomeAndTheRealPlayer() {
         let app = AppNavigation.launchHome(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "6"])
         AppNavigation.selectTab("Movies", in: app)
-        XCTAssertTrue(AppNavigation.element(app, "tv.library.chip.all").waitForExistence(timeout: 30))
+        XCTAssertTrue(AppNavigation.element(app, "tv.chip.all").waitForExistence(timeout: 30))
 
         AppNavigation.openFromOutside("crucible://item/4009?type=episode", in: self)
         XCTAssertTrue(AppNavigation.detailPrimary(app).waitForExistence(timeout: 30), "an item link must open the real Detail")
