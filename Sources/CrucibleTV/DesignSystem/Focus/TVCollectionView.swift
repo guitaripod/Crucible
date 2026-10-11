@@ -3,7 +3,7 @@ import UIKit
 /// The collection view every tvOS screen uses. It lets focus-grown cards draw outside their cells,
 /// remembers the last focused item of each row, and turns Play/Pause on a focused item into a
 /// callback (`onPlayPause`), the way the Apple TV app plays what is under the cursor.
-final class TVCollectionView: UICollectionView {
+class TVCollectionView: UICollectionView {
     /// Called with the index path of the focused item when the user presses Play/Pause.
     var onPlayPause: (@MainActor (IndexPath) -> Void)?
 

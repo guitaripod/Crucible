@@ -9,7 +9,7 @@ import UIKit
 /// press on Select shows `contextMenuProvider`'s menu. Subclasses add their views to `contentView`.
 class TVFocusableSurface: UIControl {
     let contentView = UIView()
-    var contextMenuProvider: (@MainActor () -> UIMenu?)?
+    var contextMenuProvider: (() -> UIMenu?)?
 
     var cornerRadius: CGFloat = Theme.Radius.m {
         didSet { applyShape() }
