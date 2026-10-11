@@ -45,6 +45,10 @@ package actor ImageLoader {
         return disk!
     }
 
+    package func purgeMemoryCache() {
+        cache.removeAllObjects()
+    }
+
     package func clearCache() {
         cache.removeAllObjects()
         disk?.clear()
