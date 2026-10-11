@@ -134,7 +134,7 @@ build() {
   timed generate generate
   udid=$(sim_ensure)
   timed xcodebuild xcodebuild_remote "$udid" build build.log
-  log "app: $(app_path)"
+  remote_raw "cd $(app_path) && pwd"
 }
 
 mock_pidfile() {
