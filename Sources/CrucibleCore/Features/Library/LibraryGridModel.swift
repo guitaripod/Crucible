@@ -30,6 +30,7 @@ package final class LibraryGridModel {
 
     package let kind: LibraryGridKind
     package let sectionId: String
+    package let offersContinueBanner: Bool
     package var onUpdate: (@MainActor (Update) -> Void)?
 
     package private(set) var options = LibraryGridOptions()
@@ -49,10 +50,13 @@ package final class LibraryGridModel {
     private var genresTask: Task<Void, Never>?
     private var isLoadingGenres = false
 
-    package init(api: APIClient, sectionId: String, kind: LibraryGridKind) {
+    /// `offersContinueBanner` is false for a screen that draws no Continue banner, so Recently Watched
+    /// keeps the in-progress title instead of leaving it out.
+    package init(api: APIClient, sectionId: String, kind: LibraryGridKind, offersContinueBanner: Bool = true) {
         self.api = api
         self.sectionId = sectionId
         self.kind = kind
+        self.offersContinueBanner = offersContinueBanner
     }
 
     deinit {
@@ -75,7 +79,12 @@ package final class LibraryGridModel {
 
     /// Hidden while a filter narrows the grid, and without whatever the Continue banner already offers.
     package var visibleRecents: [PlexMetadata] {
-        RecentlyWatched.visible(recentItems, continueItem: continueItem, kind: kind, isFiltering: options.isFiltering)
+        RecentlyWatched.visible(
+            recentItems,
+            continueItem: offersContinueBanner ? continueItem : nil,
+            kind: kind,
+            isFiltering: options.isFiltering
+        )
     }
 
     /// Whether the A–Z index lines up with what is loaded: title-ascending, unfiltered, and the
@@ -88,13 +97,14 @@ package final class LibraryGridModel {
         alphabet?.letter(atOffset: index)
     }
 
-    package func appear() {
+    /// `visibleGridIndex` is where the user is in the grid; a deeply scrolled grid refreshes around it.
+    package func appear(visibleGridIndex: Int = 0) {
         if genres.isEmpty { loadGenres() }
         loadHubs()
         loadRecentlyWatched()
         if alphabet == nil { loadAlphabet() }
         if pager.hasLoaded {
-            reloadLoadedPages()
+            reloadLoadedPages(anchor: visibleGridIndex)
         } else {
             loadPage(offset: 0)
         }
@@ -143,10 +153,35 @@ package final class LibraryGridModel {
         }
     }
 
-    /// Refetches every page already loaded in one request so the grid picks up watched/progress
-    /// changes on return without collapsing pagination or scroll position.
-    package func reloadLoadedPages() {
-        fetchPage(offset: 0, size: pager.reloadSize, then: nil)
+    /// Brings watched and progress state up to date on return without collapsing pagination or the
+    /// scroll position: see `LibraryGridPager.reloadPlan(anchor:)`.
+    package func reloadLoadedPages(anchor: Int = 0) {
+        switch pager.reloadPlan(anchor: anchor) {
+        case .refetchLoaded(let size):
+            fetchPage(offset: 0, size: size, then: nil)
+        case .refreshWindow(let offset, let size):
+            refreshWindow(offset: offset, size: size)
+        }
+    }
+
+    private func refreshWindow(offset: Int, size: Int) {
+        loadTask?.cancel()
+        pager.beginFetch()
+        let endpoint = options.endpoint(sectionId: sectionId, start: offset, size: size)
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let container = try await api.requestContainer(endpoint)
+                guard !Task.isCancelled else { return }
+                pager.merge(items: container.Metadata ?? [])
+                onUpdate?(.pageLoaded)
+            } catch {
+                guard !Task.isCancelled else { return }
+                AppLogger.error("\(kind.logName) window refresh failed section=\(sectionId) offset=\(offset): \(error.localizedDescription)", .networking)
+                pager.endFetch()
+                onUpdate?(.pageFailed)
+            }
+        }
     }
 
     package func loadNextPageIfNeeded(near index: Int) {
@@ -200,18 +235,25 @@ package final class LibraryGridModel {
     /// when that part of the section is not loaded yet it is called once the pages up to it have arrived.
     package func jump(to letter: String, scrollTo: @escaping PageIndexAction) {
         guard let alphabet, let offset = alphabet.offset(for: letter) else { return }
+        AppLogger.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset)", .ui)
+        scroll(towards: offset, scrollTo)
+    }
+
+    /// Reads the section in chunks until `offset` is loaded, then scrolls. A chunk that fails, or a
+    /// newer fetch, ends the jump without scrolling.
+    private func scroll(towards offset: Int, _ scrollTo: @escaping PageIndexAction) {
         switch pager.jumpPlan(toOffset: offset) {
         case .scroll(let index):
             scrollTo(index)
         case .loadThenScroll(let size):
-            AppLogger.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset) loading \(size)", .ui)
-            fetchPage(offset: pager.serverOffset, size: size) {
-                scrollTo(offset)
+            fetchPage(offset: pager.serverOffset, size: size) { [weak self] in
+                self?.scroll(towards: offset, scrollTo)
             }
         }
     }
 
     package func setWatched(ratingKey: String, watched: Bool) {
+        let anchor = pager.ids.firstIndex(of: ratingKey) ?? 0
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -224,7 +266,7 @@ package final class LibraryGridModel {
                 AppLogger.error("\(kind.logName) mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
             }
             await api.invalidateCache()
-            reloadLoadedPages()
+            reloadLoadedPages(anchor: anchor)
             loadHubs()
         }
     }

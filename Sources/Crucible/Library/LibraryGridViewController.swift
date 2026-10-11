@@ -87,7 +87,7 @@ class LibraryGridViewController: UIViewController {
         AppLogger.info("\(kind.logName) appeared section=\(sectionId)", .ui)
         installControls()
         observeDownloads()
-        model.appear()
+        model.appear(visibleGridIndex: firstVisibleGridIndex)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -102,6 +102,12 @@ class LibraryGridViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateScrubberVisibility()
+    }
+
+    /// The grid position the user is at, so a deeply scrolled grid refreshes around it.
+    private var firstVisibleGridIndex: Int {
+        guard let section = dataSource.snapshot().indexOfSection(.grid) else { return 0 }
+        return collectionView.indexPathsForVisibleItems.filter { $0.section == section }.map(\.item).min() ?? 0
     }
 
     private func setupCollectionView() {
@@ -535,7 +541,8 @@ class LibraryGridViewController: UIViewController {
     }
 
     private func openDetail(_ item: PlexMetadata, zoomingFrom source: Item? = nil) {
-        push(LibraryDestination(browsing: item).viewController(api: api), zoomingFrom: source)
+        guard let destination = LibraryDestination(browsing: item) else { return }
+        push(destination.viewController(api: api), zoomingFrom: source)
     }
 
     private func push(_ detail: UIViewController, zoomingFrom source: Item?) {

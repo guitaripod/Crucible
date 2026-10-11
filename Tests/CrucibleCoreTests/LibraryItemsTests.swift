@@ -126,6 +126,19 @@ struct LibraryItemsTests {
         #expect(LibraryDestination(recent: orphan, kind: .show) == .show(ratingKey: "9"))
     }
 
+    @Test func browsingOpensSeasonsThroughTheirShowAndSkipsEntriesWithoutAScreen() throws {
+        let season = try LibraryFixtures.item(#"{"ratingKey":"50","type":"season","title":"Season 1","parentRatingKey":"5"}"#)
+        let orphanSeason = try LibraryFixtures.item(#"{"ratingKey":"51","type":"season","title":"Season 2"}"#)
+        let episode = try LibraryFixtures.item(#"{"ratingKey":"52","type":"episode","title":"E"}"#)
+        let collection = try LibraryFixtures.item(#"{"ratingKey":"53","type":"collection","title":"C"}"#)
+        let untyped = try LibraryFixtures.item(#"{"ratingKey":"54","title":"U"}"#)
+        #expect(LibraryDestination(browsing: season) == .show(ratingKey: "5"))
+        #expect(LibraryDestination(browsing: orphanSeason) == .show(ratingKey: "51"))
+        #expect(LibraryDestination(browsing: episode) == .media(episode))
+        #expect(LibraryDestination(browsing: collection) == nil)
+        #expect(LibraryDestination(browsing: untyped) == .media(untyped))
+    }
+
     @Test func sectionsKeepOnlyMoviesAndShowsInServerOrder() throws {
         let json = #"""
         {"MediaContainer":{"Directory":[

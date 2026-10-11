@@ -5,10 +5,18 @@ import Foundation
 package struct LibraryGridPager: Sendable {
     package static let pageSize = 50
     package static let prefetchThreshold = 10
+    package static let jumpChunkSize = 100
+    package static let reloadCeiling = 300
+    package static let refreshWindow = 200
 
     package enum JumpPlan: Equatable, Sendable {
         case scroll(toIndex: Int)
         case loadThenScroll(size: Int)
+    }
+
+    package enum ReloadPlan: Equatable, Sendable {
+        case refetchLoaded(size: Int)
+        case refreshWindow(offset: Int, size: Int)
     }
 
     package private(set) var ids: [String] = []
@@ -28,6 +36,26 @@ package struct LibraryGridPager: Sendable {
     /// scroll position and pagination.
     package var reloadSize: Int {
         max(serverOffset, Self.pageSize)
+    }
+
+    /// How to bring watched and progress state up to date after the screen was away. Up to
+    /// `reloadCeiling` loaded items are refetched in one request, which also picks up new titles at the
+    /// front. Beyond that (after a deep scroll or an A–Z jump) only a window around `anchor` is read and
+    /// merged in place, so the cost does not grow with how far the grid was scrolled.
+    package func reloadPlan(anchor: Int) -> ReloadPlan {
+        guard serverOffset > Self.reloadCeiling else { return .refetchLoaded(size: reloadSize) }
+        let latest = max(0, ids.count - Self.refreshWindow)
+        let offset = min(max(0, anchor - Self.refreshWindow / 2), latest)
+        return .refreshWindow(offset: offset, size: Self.refreshWindow)
+    }
+
+    /// Replaces the data of items that are already loaded, leaving the order, the offsets and the
+    /// paging position alone.
+    package mutating func merge(items: [PlexMetadata]) {
+        for item in items where itemsById[item.id] != nil {
+            itemsById[item.id] = item
+        }
+        isLoading = false
     }
 
     package mutating func beginFetch() {
@@ -61,7 +89,7 @@ package struct LibraryGridPager: Sendable {
     package func jumpPlan(toOffset offset: Int) -> JumpPlan {
         if offset < ids.count { return .scroll(toIndex: offset) }
         guard serverOffset < totalSize else { return .scroll(toIndex: max(0, ids.count - 1)) }
-        return .loadThenScroll(size: offset - serverOffset + Self.pageSize)
+        return .loadThenScroll(size: min(offset - serverOffset + Self.pageSize, Self.jumpChunkSize))
     }
 
     private mutating func replace(with items: [PlexMetadata]) {

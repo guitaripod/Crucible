@@ -261,6 +261,68 @@ final class LibraryGridModelTests {
         #expect(updates.contains(.recents))
     }
 
+    @Test func aScreenWithoutABannerKeepsTheContinueItemOnTheShelf() async throws {
+        LibraryStubProtocol.route("/hubs/sections/1") { _ in
+            .init(body: #"{"MediaContainer":{"Hub":[{"hubIdentifier":"movie.inprogress.1","Metadata":[{"ratingKey":"2","type":"movie","title":"Halfway","viewOffset":5000,"duration":60000}]}]}}"#)
+        }
+        LibraryStubProtocol.route("/status/sessions/history/all") { _ in
+            .init(body: #"{"MediaContainer":{"Metadata":[{"ratingKey":"2","type":"movie","title":"Halfway","viewedAt":20},{"ratingKey":"3","type":"movie","title":"Third","viewedAt":10}]}}"#)
+        }
+        serveItems(total: 3)
+        let bannerless = LibraryGridModel(
+            api: APIClient(baseURL: URL(string: "http://plex.test:32400")!, token: "token"),
+            sectionId: "1",
+            kind: .movie,
+            offersContinueBanner: false
+        )
+        bannerless.appear()
+        try await until { bannerless.continueItem != nil && !bannerless.recentItems.isEmpty }
+        #expect(bannerless.visibleRecents.map(\.id) == ["2", "3"])
+        bannerless.setWatch(.unwatched)
+        #expect(bannerless.visibleRecents.isEmpty)
+
+        model.appear()
+        try await until { self.model.continueItem != nil && !self.model.recentItems.isEmpty }
+        #expect(model.visibleRecents.map(\.id) == ["3"])
+    }
+
+    @Test func aJumpReadsTheSectionInBoundedChunks() async throws {
+        serveItems(total: 600)
+        LibraryStubProtocol.route("/library/sections/1/firstCharacter") { _ in
+            .init(body: #"{"MediaContainer":{"Directory":[{"key":"a","size":300},{"key":"z","size":300}]}}"#)
+        }
+        model.appear()
+        try await until { self.model.contentState == .content && self.model.offersAlphabetJump }
+        let before = LibraryStubProtocol.requests(to: all).count
+        let scrolled = ScrollLog()
+        model.jump(to: "Z") { scrolled.indexes.append($0) }
+        try await until { !scrolled.indexes.isEmpty }
+        #expect(scrolled.indexes == [300])
+        let sizes = LibraryStubProtocol.requests(to: all).dropFirst(before).compactMap { Int($0.query("X-Plex-Container-Size") ?? "") }
+        #expect(sizes.count >= 3)
+        #expect(sizes.allSatisfy { $0 <= LibraryGridPager.jumpChunkSize })
+        #expect(model.gridIds.count >= 301)
+    }
+
+    @Test func aDeepGridRefreshesAWindowOnReturnAndKeepsEverythingLoaded() async throws {
+        serveItems(total: 900)
+        model.appear()
+        try await until { self.model.contentState == .content }
+        while self.model.gridIds.count < 400 {
+            model.loadNextPageIfNeeded(near: self.model.gridIds.count - 1)
+            try await until { !self.model.pager.isLoading }
+        }
+        let loaded = model.gridIds.count
+        model.disappear()
+        model.appear(visibleGridIndex: 350)
+        try await until { LibraryStubProtocol.requests(to: self.all).last?.query("X-Plex-Container-Size") == "200" }
+        let request = try #require(LibraryStubProtocol.requests(to: all).last)
+        #expect(request.query("X-Plex-Container-Start") == "200")
+        try await until { !self.model.pager.isLoading }
+        #expect(model.gridIds.count == loaded)
+        #expect(model.pager.serverOffset == loaded)
+    }
+
     @Test func genresAreListedFromTheSection() async throws {
         LibraryStubProtocol.route("/library/sections/1/genre") { _ in
             .init(body: #"{"MediaContainer":{"Directory":[{"key":"7","title":"Drama"},{"title":"No key"},{"key":"8","title":"Comedy"}]}}"#)

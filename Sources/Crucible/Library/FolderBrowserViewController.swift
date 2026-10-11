@@ -167,7 +167,8 @@ final class FolderBrowserViewController: UICollectionViewController {
             let vc = FolderBrowserViewController(api: api, source: .folder(key), folderTitle: title)
             navigationController?.pushViewController(vc, animated: true)
         case .media(let m):
-            navigationController?.pushViewController(LibraryDestination(browsing: m).viewController(api: api), animated: true)
+            guard let destination = LibraryDestination(browsing: m) else { return }
+            navigationController?.pushViewController(destination.viewController(api: api), animated: true)
         }
     }
 }

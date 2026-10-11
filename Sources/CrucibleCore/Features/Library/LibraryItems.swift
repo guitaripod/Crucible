@@ -147,9 +147,19 @@ package enum LibraryDestination: Equatable, Sendable {
     case show(ratingKey: String)
     case media(PlexMetadata)
 
-    /// A grid or folder entry opens the show for a show, and the item itself otherwise.
-    package init(browsing item: PlexMetadata) {
-        self = item.mediaType == "show" ? .show(ratingKey: item.id) : .media(item)
+    /// A grid or folder entry opens the show for a show or one of its seasons, and the item itself for
+    /// anything playable. Entries that have no screen (collections, playlists, photos, music) open nothing.
+    package init?(browsing item: PlexMetadata) {
+        switch item.mediaType {
+        case "show":
+            self = .show(ratingKey: item.id)
+        case "season":
+            self = .show(ratingKey: item.parentRatingKey ?? item.id)
+        case "collection", "playlist", "photo", "photoalbum", "artist", "album", "track":
+            return nil
+        default:
+            self = .media(item)
+        }
     }
 
     /// A Recently Watched card opens the series for a show library, and the film for a movie library.

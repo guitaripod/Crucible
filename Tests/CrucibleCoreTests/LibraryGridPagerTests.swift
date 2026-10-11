@@ -112,12 +112,40 @@ struct LibraryGridPagerTests {
     @Test func jumpingPastTheLoadedPagesReadsUpToTheTarget() throws {
         let pager = try loaded(count: 50, total: 300)
         #expect(pager.jumpPlan(toOffset: 50) == .loadThenScroll(size: 50))
-        #expect(pager.jumpPlan(toOffset: 180) == .loadThenScroll(size: 180))
+        #expect(pager.jumpPlan(toOffset: 180) == .loadThenScroll(size: LibraryGridPager.jumpChunkSize))
+        #expect(pager.jumpPlan(toOffset: 4_000) == .loadThenScroll(size: LibraryGridPager.jumpChunkSize))
     }
 
     @Test func jumpingWhenTheServerHasNoMoreScrollsToTheEnd() throws {
         let pager = try loaded(count: 30, total: 30)
         #expect(pager.jumpPlan(toOffset: 31) == .scroll(toIndex: 29))
+    }
+
+    @Test func aShallowGridIsRefetchedWholeOnReturn() throws {
+        let pager = try loaded(count: 50, total: 300)
+        #expect(pager.reloadPlan(anchor: 40) == .refetchLoaded(size: 50))
+        #expect(LibraryGridPager().reloadPlan(anchor: 0) == .refetchLoaded(size: 50))
+    }
+
+    @Test func aDeepGridRefreshesOnlyAWindowAroundTheUser() throws {
+        var pager = LibraryGridPager()
+        pager.apply(items: try items(1...400), offset: 0, totalSize: 5_000)
+        #expect(pager.reloadPlan(anchor: 250) == .refreshWindow(offset: 150, size: 200))
+        #expect(pager.reloadPlan(anchor: 0) == .refreshWindow(offset: 0, size: 200))
+        #expect(pager.reloadPlan(anchor: 399) == .refreshWindow(offset: 200, size: 200))
+        #expect(pager.reloadPlan(anchor: 9_999) == .refreshWindow(offset: 200, size: 200))
+    }
+
+    @Test func mergingRefreshesLoadedItemsWithoutMovingAnything() throws {
+        var pager = try loaded(count: 3, total: 10)
+        let fresh = try LibraryFixtures.items(#"[{"ratingKey":"2","type":"movie","title":"Renamed","viewCount":1},{"ratingKey":"99","type":"movie","title":"Stranger"}]"#)
+        pager.beginFetch()
+        pager.merge(items: fresh)
+        #expect(pager.ids == ["1", "2", "3"])
+        #expect(pager.item(withId: "2")?.title == "Renamed")
+        #expect(pager.item(withId: "99") == nil)
+        #expect(pager.serverOffset == 3)
+        #expect(!pager.isLoading)
     }
 
     @Test func jumpingInAnEmptyGridNeverAimsBelowZero() {
