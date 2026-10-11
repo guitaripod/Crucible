@@ -211,6 +211,7 @@ final class LibraryTests: XCTestCase {
 
     private func openTab(_ title: String) -> XCUIApplication {
         let app = TVTest.launch()
+        addTeardownBlock { app.terminate() }
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
         TVTest.settle()
