@@ -139,7 +139,7 @@ final class DetailTests: XCTestCase {
         capture("02-next-episode-focused")
 
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.staticTexts["Undertow"].waitForExistence(timeout: 10))
+        XCTAssertTrue(heroTitle(app, "Undertow").waitForExistence(timeout: 10))
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary"))
         TVTest.settle(1.0)
         capture("03-next-episode-opened")
@@ -255,6 +255,20 @@ final class DetailTests: XCTestCase {
         capture("01-after-mashing")
     }
 
+    func testMenuPopsWhileTheShowIsLoading() {
+        let app = openDetail(Self.saltRoadEpisode, type: "episode", style: "dark")
+        step(app, .right, until: "detail.action.goToShow")
+        TVTest.configureMock(["MOCK_LATENCY_MS": "8000"])
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.loading"].waitForExistence(timeout: 10))
+        TVTest.settle(1.0)
+        capture("01-show-loading-pushed")
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(waitFocus(app.buttons["detail.action.goToShow"], timeout: 10), "Menu while loading must pop back to the episode")
+        TVTest.configureMock()
+        capture("02-popped-back")
+    }
+
     func testShowDetailDark() {
         let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
         XCTAssertTrue(app.buttons["detail.action.primary"].label.hasPrefix("Resume The Salt Road, season 2 episode 4"), app.buttons["detail.action.primary"].label)
@@ -339,12 +353,8 @@ final class DetailTests: XCTestCase {
     func testErrorThenRetryRecovers() {
         resetMock()
         let app = openDetail("9405", type: "movie", style: "dark", waitForContent: false)
-        let retry = app.buttons["Retry"]
-        XCTAssertTrue(retry.waitForExistence(timeout: 15))
-        TVTest.settle(0.8)
+        enterState(app, button: "Retry")
         capture("01-error")
-        TVTest.remote.press(.down)
-        XCTAssertTrue(waitFocus(app.buttons["Retry"]))
         TVTest.remote.press(.select)
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.primary", timeout: 20))
         TVTest.settle(1.0)
@@ -353,9 +363,7 @@ final class DetailTests: XCTestCase {
 
     func testPermanentErrorKeepsOfferingRetry() {
         let app = openDetail("9404", type: "movie", style: "dark", waitForContent: false)
-        XCTAssertTrue(app.buttons["Retry"].waitForExistence(timeout: 15))
-        TVTest.remote.press(.down)
-        XCTAssertTrue(waitFocus(app.buttons["Retry"]))
+        enterState(app, button: "Retry")
         TVTest.remote.press(.select)
         XCTAssertTrue(waitFocus(app.buttons["Retry"], timeout: 20))
         TVTest.settle(0.8)
@@ -364,12 +372,8 @@ final class DetailTests: XCTestCase {
 
     func testNotAvailable() {
         let app = openDetail("9410", type: "movie", style: "dark", waitForContent: false)
-        let back = app.buttons["Go Back"]
-        XCTAssertTrue(back.waitForExistence(timeout: 15))
-        TVTest.settle(0.8)
+        enterState(app, button: "Go Back")
         capture("01-not-available")
-        TVTest.remote.press(.down)
-        XCTAssertTrue(waitFocus(app.buttons["Go Back"]))
         TVTest.remote.press(.select)
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.buttons["Go Back"])
         XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 10), .completed, "Go Back must leave the screen")
@@ -408,7 +412,7 @@ final class DetailTests: XCTestCase {
         let app = TVTest.launch(extraEnvironment: environment)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
         TVTest.settle()
-        openFromOutside("crucible://item/\(ratingKey)?type=\(type)")
+        openFromOutside("crucible://item/\(ratingKey)?type=\(type)", in: app)
         if waitForContent { enterContent(app) }
         return app
     }
@@ -424,18 +428,38 @@ final class DetailTests: XCTestCase {
         TVTest.settle(1.0)
     }
 
-    private func openFromOutside(_ link: String) {
+    /// Opens `link` through the system and answers the "Open in Crucible?" prompt. Under load the prompt
+    /// and the screen can arrive late, so this waits until a detail screen or one of its states is
+    /// there rather than for a fixed time, and a link opened late can never land on the next test.
+    private func openFromOutside(_ link: String, in app: XCUIApplication) {
         let url = URL(string: link)!
         Task { _ = await UIApplication.shared.open(url) }
         let prompt = XCUIApplication(bundleIdentifier: "com.apple.PineBoard").buttons["Open"]
-        for _ in 0 ..< 8 {
+        let deadline = Date().addingTimeInterval(40)
+        while Date() < deadline {
             if prompt.exists {
                 TVTest.remote.press(.select)
                 break
             }
+            if detailHasArrived(app) { break }
             TVTest.settle(0.5)
         }
         TVTest.settle(0.5)
+    }
+
+    private func detailHasArrived(_ app: XCUIApplication) -> Bool {
+        ["detail.action.primary", "Retry", "Go Back"].contains { app.buttons[$0].exists }
+            || app.descendants(matching: .any)["detail.loading"].exists
+    }
+
+    /// A link that opens a screen leaves focus on the tab bar, so a state with a button takes focus on the first Down.
+    private func enterState(_ app: XCUIApplication, button: String) {
+        XCTAssertTrue(app.buttons[button].waitForExistence(timeout: 15), "\(button) never appeared")
+        TVTest.settle(0.8)
+        if !waitFocus(app.buttons[button], timeout: 2) {
+            TVTest.remote.press(.down)
+        }
+        XCTAssertTrue(waitFocus(app.buttons[button], timeout: 5), "\(button) must take focus on the first Down from the tab bar")
     }
 
     /// Moves focus to the season chip with rating key `season` and presses it. Down from the action row lands on the first chip.
@@ -481,9 +505,7 @@ final class DetailTests: XCTestCase {
 
     private nonisolated static func callMock(_ path: String) {
         guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + path) else { return }
-        let done = DispatchSemaphore(value: 0)
-        URLSession.shared.dataTask(with: url) { _, _, _ in done.signal() }.resume()
-        _ = done.wait(timeout: .now() + 10)
+        TVTest.fetch(url)
     }
 
     private func step(_ app: XCUIApplication, _ button: XCUIRemote.Button, until prefix: String, limit: Int = 12) {
@@ -507,6 +529,11 @@ final class DetailTests: XCTestCase {
     private func alertMessage(_ app: XCUIApplication) -> String {
         let texts = app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label)
         return texts.joined(separator: " ")
+    }
+
+    /// The hero reads as one accessibility element whose label starts with the title.
+    private func heroTitle(_ app: XCUIApplication, _ title: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
     }
 
     private func waitFocus(_ element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
