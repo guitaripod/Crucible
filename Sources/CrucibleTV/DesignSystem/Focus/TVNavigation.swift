@@ -5,15 +5,15 @@ import UIKit
 @MainActor
 enum TVNavigation {
     /// Pushes `controller` on the navigation stack that holds `presenter`. A second push while the
-    /// first is still in flight, or from a screen that is no longer on top, is ignored: two quick
-    /// clicks of the Siri Remote must not stack two identical detail screens. Returns whether the
-    /// push happened.
+    /// first is still in flight, from a screen that is no longer on top, or under an alert or menu,
+    /// is ignored: two quick clicks of the Siri Remote must not stack two identical detail screens.
+    /// Returns whether the push happened.
     @discardableResult
     static func push(_ controller: UIViewController, from presenter: UIViewController) -> Bool {
         guard let navigation = presenter.navigationController,
               isOnTop(presenter, in: navigation),
               navigation.transitionCoordinator == nil,
-              presenter.presentedViewController == nil
+              !blocksPush(presenter.presentedViewController)
         else { return false }
         navigation.pushViewController(controller, animated: TVMotion.animationsEnabled)
         return true
@@ -33,6 +33,13 @@ enum TVNavigation {
         let navigation = UINavigationController(rootViewController: root)
         navigation.setNavigationBarHidden(true, animated: false)
         return navigation
+    }
+
+    /// An alert, menu or sheet over the presenter blocks a push. The search controller of the Search
+    /// tab is always "presented" by its container and does not.
+    private static func blocksPush(_ presented: UIViewController?) -> Bool {
+        guard let presented else { return false }
+        return !(presented is UISearchController)
     }
 
     private static func isOnTop(_ presenter: UIViewController, in navigation: UINavigationController) -> Bool {
