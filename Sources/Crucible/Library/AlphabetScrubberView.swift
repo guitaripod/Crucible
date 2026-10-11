@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -80,18 +81,13 @@ final class AlphabetScrubberView: UIControl {
     }
 
     private func step(by delta: Int) {
-        let letters = LibraryAlphabetIndex.letters
-        let current = currentLetter.flatMap { letters.firstIndex(of: $0) } ?? -delta
-        let next = min(max(current + delta, 0), letters.count - 1)
-        commit(letters[next], haptic: false)
+        commit(LibraryAlphabetIndex.letter(from: currentLetter, offsetBy: delta), haptic: false)
     }
 
     private func select(at point: CGPoint) {
         let frame = stack.frame
         guard frame.height > 0 else { return }
-        let fraction = min(max((point.y - frame.minY) / frame.height, 0), 0.9999)
-        let letters = LibraryAlphabetIndex.letters
-        commit(letters[Int(fraction * CGFloat(letters.count))], haptic: true)
+        commit(LibraryAlphabetIndex.letter(atFraction: Double((point.y - frame.minY) / frame.height)), haptic: true)
     }
 
     private func commit(_ letter: String, haptic: Bool) {

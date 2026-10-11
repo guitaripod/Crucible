@@ -28,17 +28,15 @@ final class FolderBrowserViewController: UICollectionViewController {
     }
 
     private let api: APIClient
-    private let sectionId: String?
-    private let folderPath: String?
+    private let source: LibraryFolderListing.Source
     private let folderTitle: String?
     private var dataSource: UICollectionViewDiffableDataSource<SectionKind, Item>!
     private var loadTask: Task<Void, Never>?
     private var playerCoordinator: PlayerCoordinator?
 
-    init(api: APIClient, sectionId: String? = nil, folderPath: String? = nil, folderTitle: String? = nil) {
+    init(api: APIClient, source: LibraryFolderListing.Source, folderTitle: String? = nil) {
         self.api = api
-        self.sectionId = sectionId
-        self.folderPath = folderPath
+        self.source = source
         self.folderTitle = folderTitle
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
@@ -98,19 +96,7 @@ final class FolderBrowserViewController: UICollectionViewController {
         }
 
         let mediaReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [unowned self] cell, _, item in
-            var config = PosterContentConfiguration()
-            config.posterPath = item.thumb ?? item.grandparentThumb
-            config.title = item.title
-            if let year = item.year { config.subtitle = "\(year)" }
-            else if let show = item.grandparentTitle {
-                var sub = [String]()
-                if let code = Formatters.episodeCode(item.parentIndex, item.index) { sub.append(code) }
-                sub.append(show)
-                config.subtitle = sub.joined(separator: " · ")
-            }
-            if item.mediaType == "show" || item.mediaType == "episode" {
-                config.placeholderIcon = "tv"
-            }
+            var config = LibraryPoster(folderItem: item).configuration
             config.showPlayButton = item.ratingKey != nil
             config.onQuickPlay = { [weak self] in
                 self?.quickPlay(item)
@@ -133,30 +119,9 @@ final class FolderBrowserViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let container: PlexMediaContainer
-                if let folderPath {
-                    container = try await api.requestContainer(.folderPath(folderPath))
-                } else if let sectionId {
-                    container = try await api.requestContainer(.sectionFolder(sectionId: sectionId))
-                } else {
-                    return
-                }
-
-                var folders = [Item]()
-                var media = [Item]()
-
-                for dir in container.Directory ?? [] {
-                    guard let key = dir.key else { continue }
-                    folders.append(.folder(key: key, title: dir.title ?? key.components(separatedBy: "/").last ?? key))
-                }
-
-                for meta in container.Metadata ?? [] {
-                    if meta.ratingKey != nil {
-                        media.append(.media(meta))
-                    } else if let key = meta.key {
-                        folders.append(.folder(key: key, title: meta.title))
-                    }
-                }
+                let listing = try await LibraryFolderListing.load(source, api: api)
+                let folders = listing.folders.map { Item.folder(key: $0.key, title: $0.title) }
+                let media = listing.media.map(Item.media)
 
                 var snapshot = NSDiffableDataSourceSnapshot<SectionKind, Item>()
                 if !folders.isEmpty {
@@ -170,7 +135,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 await dataSource.apply(snapshot, animatingDifferences: false)
                 collectionView.collectionViewLayout.invalidateLayout()
 
-                if folders.isEmpty && media.isEmpty {
+                if listing.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "folder")
                     config.text = "Empty folder"
@@ -199,22 +164,10 @@ final class FolderBrowserViewController: UICollectionViewController {
 
         switch item {
         case .folder(let key, let title):
-            let vc = FolderBrowserViewController(api: api, folderPath: key, folderTitle: title)
+            let vc = FolderBrowserViewController(api: api, source: .folder(key), folderTitle: title)
             navigationController?.pushViewController(vc, animated: true)
         case .media(let m):
-            if m.mediaType == "show" {
-                let vc = ShowDetailViewController(api: api, showRatingKey: m.id)
-                navigationController?.pushViewController(vc, animated: true)
-            } else {
-                let vc = MediaDetailViewController(
-                    api: api,
-                    ratingKey: m.id,
-                    mediaType: m.mediaType,
-                    showRatingKey: m.grandparentRatingKey,
-                    seasonRatingKey: m.parentRatingKey
-                )
-                navigationController?.pushViewController(vc, animated: true)
-            }
+            navigationController?.pushViewController(LibraryDestination(browsing: m).viewController(api: api), animated: true)
         }
     }
 }

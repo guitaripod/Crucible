@@ -1,12 +1,6 @@
+import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
-
-struct ContinueBannerModel: Equatable {
-    let itemId: String
-    let detail: String
-    let artPath: String?
-    let spokenLabel: String
-}
 
 /// The block that scrolls above the poster grid: filter chips and, when something in the library
 /// is part-watched, the compact Continue banner.

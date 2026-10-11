@@ -77,15 +77,12 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
 
     private func install(sections container: PlexMediaContainer) {
         contentUnavailableConfiguration = nil
-        libraries = (container.Directory ?? []).compactMap { dir in
-            guard let key = dir.key else { return nil }
-            switch dir.type {
-            case "movie":
-                return Library(title: dir.title ?? "Movies", kind: .movie, grid: MovieGridViewController(api: api, sectionId: key))
-            case "show":
-                return Library(title: dir.title ?? "TV Shows", kind: .show, grid: ShowGridViewController(api: api, sectionId: key))
-            default:
-                return nil
+        libraries = LibrarySection.sections(in: container).map { section in
+            switch section.kind {
+            case .movie:
+                return Library(title: section.title, kind: .movie, grid: MovieGridViewController(api: api, sectionId: section.id))
+            case .show:
+                return Library(title: section.title, kind: .show, grid: ShowGridViewController(api: api, sectionId: section.id))
             }
         }
         currentIndex = 0
