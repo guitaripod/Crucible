@@ -1,10 +1,31 @@
 import XCTest
-import UIKit
 
+/// The app as a whole: every tab shows its real screen, the launch gate offers a way out when the
+/// server is unreachable, and `crucible://` links open the real Detail and player from anywhere.
 @MainActor
 final class TourTests: XCTestCase {
-    private static let requiredTabs = ["Home", "Movies", "TV Shows", "Documentaries", "Search", "You"]
+    private struct Tab {
+        let title: String
+        let marker: String
+    }
+
+    private static let tabs = [
+        Tab(title: "Home", marker: AppNavigation.homeCardPrefix),
+        Tab(title: "Movies", marker: "tv.library.chip.all"),
+        Tab(title: "TV Shows", marker: "tv.library.chip.all"),
+        Tab(title: "Documentaries", marker: "tv.library.chip.all"),
+        Tab(title: "Search", marker: ""),
+        Tab(title: "You", marker: "you.history"),
+    ]
     private static let deadServer = "http://127.0.0.1:1"
+
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    override func tearDown() async throws {
+        await MainActor.run { AppNavigation.setMockFlags("latency_ms=0") }
+    }
 
     /// Points the unreachable-server scenario at the mock's plex.tv: a token plex.tv accepts and no
     /// other server to heal onto, so the launch gate is the plain "server unreachable" one.
@@ -15,33 +36,27 @@ final class TourTests: XCTestCase {
         _ = done.wait(timeout: .now() + 10)
     }
 
-    override func setUp() {
-        continueAfterFailure = false
+    private func waitForMarker(_ tab: Tab, in app: XCUIApplication) -> Bool {
+        if tab.title == "Search" {
+            return app.searchFields.firstMatch.waitForExistence(timeout: 20)
+        }
+        if tab.marker.hasSuffix(".") {
+            return AppNavigation.firstElement(app, prefix: tab.marker).waitForExistence(timeout: 30)
+        }
+        return AppNavigation.element(app, tab.marker).waitForExistence(timeout: 30)
     }
 
-    func testEveryTabShowsItsScreen() {
-        let app = TVTest.launch()
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
-        TVTest.settle()
+    func testEveryTabShowsItsRealScreen() {
+        let app = AppNavigation.launchHome()
+        let titles = app.tabBars.firstMatch.buttons.allElementsBoundByIndex.map(\.label)
+        XCTAssertEqual(titles, Self.tabs.map(\.title), "tab bar: \(titles)")
 
-        let titles = tabBar.buttons.allElementsBoundByIndex.map(\.label)
-        for required in Self.requiredTabs {
-            XCTAssertTrue(titles.contains(required), "tab \(required) missing from \(titles)")
-        }
-        XCTAssertEqual(titles.first, "Home")
-        XCTAssertEqual(titles.last, "You")
-
-        for (index, title) in titles.enumerated() {
-            if index > 0 {
-                TVTest.remote.press(.right)
-            }
-            TVTest.remote.press(.select)
-            TVTest.settle()
-            XCTAssertTrue(tabBar.buttons[title].hasFocus, "focus should be on \(title)")
-            XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 5))
-            XCTAssertEqual(app.staticTexts["placeholder.title"].label, title)
-            TVTest.capture(String(format: "%02d-%@", index + 1, Self.slug(title)), in: self)
+        for (index, tab) in Self.tabs.enumerated() {
+            AppNavigation.selectTab(tab.title, in: app)
+            XCTAssertTrue(waitForMarker(tab, in: app), "\(tab.title) never showed its screen")
+            XCTAssertFalse(app.staticTexts["placeholder.title"].exists, "\(tab.title) still shows a placeholder")
+            TVTest.settle(1.0)
+            TVTest.capture(String(format: "%02d-%@", index + 1, tab.title.lowercased().replacingOccurrences(of: " ", with: "-")), in: self)
         }
     }
 
@@ -49,17 +64,17 @@ final class TourTests: XCTestCase {
         let mock = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""
         Self.configurePlexTV(mock, query: "servers=none&reject_token=0")
         let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_MOCK": Self.deadServer, "CRUCIBLE_PLEXTV": mock])
-        let retry = app.buttons["launch.retry"]
-        let switchServer = app.buttons["launch.switchServer"]
-        XCTAssertTrue(retry.waitForExistence(timeout: 90))
+        let retry = app.buttons["Try Again"]
+        let switchServer = app.buttons["Switch Server"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 150))
         XCTAssertTrue(switchServer.exists)
         XCTAssertFalse(app.tabBars.firstMatch.exists)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.retry"))
+        XCTAssertTrue(TVTest.waitForFocus(retry))
         TVTest.settle()
         TVTest.capture("01-failure-try-again-focused", in: self)
 
-        TVTest.remote.press(.right)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.switchServer"))
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(switchServer))
         TVTest.settle()
         TVTest.capture("02-failure-switch-server-focused", in: self)
 
@@ -69,70 +84,56 @@ final class TourTests: XCTestCase {
         TVTest.capture("03-switch-server-presented", in: self)
 
         TVTest.remote.press(.menu)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.switchServer"))
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Switch Server"]))
 
-        TVTest.remote.press(.left)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.retry"))
+        TVTest.remote.press(.up)
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Try Again"]))
         TVTest.remote.press(.select)
         TVTest.settle(0.3)
         TVTest.capture("04-retrying", in: self)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.retry", timeout: 90))
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Try Again"], timeout: 90))
     }
 
-    func testDeepLinksSelectHomeAndOpenDetailOrPlay() {
-        let app = TVTest.launch()
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
-        TVTest.settle()
-        TVTest.remote.press(.right)
-        TVTest.remote.press(.select)
-        TVTest.settle()
-        XCTAssertTrue(tabBar.buttons["Movies"].hasFocus)
-        XCTAssertEqual(app.staticTexts["placeholder.title"].label, "Movies")
+    func testDeepLinksOpenTheRealDetailOnHomeAndTheRealPlayer() {
+        let app = AppNavigation.launchHome(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "6"])
+        AppNavigation.selectTab("Movies", in: app)
+        XCTAssertTrue(AppNavigation.element(app, "tv.library.chip.all").waitForExistence(timeout: 30))
 
-        openFromOutside("crucible://item/4009?type=episode")
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 10))
-        TVTest.settle()
-        XCTAssertEqual(app.staticTexts["placeholder.title"].label, "Detail 4009")
+        AppNavigation.openFromOutside("crucible://item/4009?type=episode", in: self)
+        XCTAssertTrue(AppNavigation.detailPrimary(app).waitForExistence(timeout: 30), "an item link must open the real Detail")
+        TVTest.settle(1.5)
+        XCTAssertFalse(app.staticTexts["placeholder.title"].exists)
         TVTest.capture("01-item-link-opened-detail-on-home", in: self)
+        AppNavigation.expectHomeUnderDetail(app)
 
-        openFromOutside("crucible://item/1002")
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 10))
-        TVTest.settle()
-        XCTAssertEqual(app.staticTexts["placeholder.title"].label, "Detail 1002")
+        AppNavigation.openFromOutside("crucible://item/1002", in: self)
+        let deepField = NSPredicate(format: "label CONTAINS 'Deep Field'")
+        let primary = AppNavigation.detailPrimary(app)
+        XCTAssertEqual(XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: deepField, object: primary)], timeout: 30), .completed, "a link without a type resolves the item first, then opens its Detail: \(primary.label)")
+        TVTest.settle(1.0)
+        TVTest.capture("02-untyped-item-link-opened-detail", in: self)
 
-        openFromOutside("crucible://play/1002")
-        XCTAssertTrue(app.alerts["Deep Field"].waitForExistence(timeout: 10))
-        TVTest.capture("02-play-link-reached-the-player-seam", in: self)
+        AppNavigation.openFromOutside("crucible://play/1002", in: self)
+        XCTAssertTrue(app.otherElements["player.preroll"].waitForExistence(timeout: 60), "a play link must reach the player pre-roll")
+        TVTest.capture("03-play-link-reached-the-player", in: self)
+        XCTAssertTrue(app.otherElements["player.view"].waitForExistence(timeout: 60), "the pre-roll must hand over to playback")
+        TVTest.settle(2)
+        TVTest.capture("04-playing", in: self)
+        AppNavigation.leavePlayer(app)
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 15))
     }
 
     func testLinkThatLaunchesTheAppWaitsForTheMainUI() {
-        let app = TVTest.launch()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
+        let app = AppNavigation.launchHome()
         app.terminate()
+        AppNavigation.setMockFlags("latency_ms=2500")
 
-        openFromOutside("crucible://item/4009?type=episode")
+        AppNavigation.openFromOutside("crucible://item/4009?type=episode", in: self)
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 15))
-        XCTAssertEqual(app.staticTexts["placeholder.title"].label, "Detail 4009")
-        TVTest.settle()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 90), "the launch gate must hand over to the main UI")
+        XCTAssertTrue(AppNavigation.detailPrimary(app).waitForExistence(timeout: 60), "the link that launched the app must open its Detail once the main UI is up")
+        TVTest.settle(1.5)
         TVTest.capture("01-launch-link-opened-detail", in: self)
-    }
-
-    /// Hands a URL to the system the way Top Shelf does. The first time the system asks "Open in
-    /// Crucible?" and the prompt is confirmed with Select; later links go straight through.
-    private func openFromOutside(_ link: String) {
-        let url = URL(string: link)!
-        Task { _ = await UIApplication.shared.open(url) }
-        let prompt = XCUIApplication(bundleIdentifier: "com.apple.springboard").buttons["Open"]
-        if prompt.waitForExistence(timeout: 3) {
-            TVTest.remote.press(.select)
-        }
-        TVTest.settle(1.0)
-    }
-
-    private static func slug(_ title: String) -> String {
-        title.lowercased().replacingOccurrences(of: " ", with: "-")
+        AppNavigation.expectHomeUnderDetail(app)
     }
 }

@@ -9,6 +9,10 @@ final class SessionLifecycleTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDown() async throws {
+        await MainActor.run { configureMock(rejectToken: false) }
+    }
+
     private var mockURL: String {
         ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""
     }
@@ -33,18 +37,18 @@ final class SessionLifecycleTests: XCTestCase {
 
     func testARevokedSignInSaysSoAndOffersSignInAgainAndSignOut() {
         let app = launchWithRevokedToken()
-        XCTAssertTrue(app.buttons["launch.signInAgain"].waitForExistence(timeout: 90))
-        XCTAssertTrue(app.buttons["launch.signOut"].exists)
-        XCTAssertFalse(app.buttons["launch.retry"].isHittable, "an expired sign-in must not offer a retry loop")
+        XCTAssertTrue(app.buttons["Sign In Again"].waitForExistence(timeout: 90))
+        XCTAssertTrue(app.buttons["Sign Out"].firstMatch.exists)
+        XCTAssertFalse(app.buttons["Try Again"].exists, "an expired sign-in must not offer a retry loop")
         XCTAssertTrue(app.staticTexts["Your Plex sign-in expired"].exists)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.signInAgain"))
         TVTest.settle()
         TVTest.capture("01-sign-in-expired", in: self)
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Sign In Again"]))
     }
 
     func testSigningInAgainKeepsTheServerAndRelaunches() {
         let app = launchWithRevokedToken()
-        XCTAssertTrue(app.buttons["launch.signInAgain"].waitForExistence(timeout: 90))
+        XCTAssertTrue(app.buttons["Sign In Again"].waitForExistence(timeout: 90))
         configureMock(rejectToken: false)
         TVTest.remote.press(.select)
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "onboarding.code").firstMatch.waitForExistence(timeout: 20), "Sign In Again must open the link code")
@@ -55,9 +59,9 @@ final class SessionLifecycleTests: XCTestCase {
 
     func testSigningOutFromTheGateAsksFirstThenReturnsToWelcome() {
         let app = launchWithRevokedToken()
-        XCTAssertTrue(app.buttons["launch.signOut"].waitForExistence(timeout: 90))
-        TVTest.remote.press(.right)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.signOut"))
+        XCTAssertTrue(app.buttons["Sign Out"].firstMatch.waitForExistence(timeout: 90))
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Sign Out"].firstMatch))
         TVTest.remote.press(.select)
         XCTAssertTrue(app.alerts["Sign Out?"].waitForExistence(timeout: 10))
         TVTest.settle()

@@ -9,6 +9,10 @@ final class OnboardingTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDown() async throws {
+        await MainActor.run { AppNavigation.setMockFlags("latency_ms=0") }
+    }
+
     private var mockURL: String {
         ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""
     }
@@ -30,6 +34,11 @@ final class OnboardingTests: XCTestCase {
         var environment = ["CRUCIBLE_MOCK": "", "CRUCIBLE_PLEXTV": mockURL, "CRUCIBLE_FRESH": "1"]
         if let style { environment["CRUCIBLE_STYLE"] = style }
         return TVTest.launch(extraEnvironment: environment)
+    }
+
+    /// A screen title is one accessibility element whose label is "title. detail".
+    private func titleElement(_ app: XCUIApplication, startingWith title: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
     }
 
     private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
@@ -149,7 +158,7 @@ final class OnboardingTests: XCTestCase {
         configureMock(polls: 1, servers: "unreachable")
         let app = launch()
         signIn(app)
-        XCTAssertTrue(app.staticTexts["Couldn’t Reach Marcus-PC"].waitForExistence(timeout: 40))
+        XCTAssertTrue(titleElement(app, startingWith: "Couldn’t Reach Marcus-PC").waitForExistence(timeout: 40))
         TVTest.settle(2)
         TVTest.capture("10-server-unreachable", in: self)
 
@@ -174,7 +183,7 @@ final class OnboardingTests: XCTestCase {
         configureMock(polls: 1, servers: "unreachable")
         let app = launch()
         signIn(app)
-        XCTAssertTrue(app.staticTexts["Couldn’t Reach Marcus-PC"].waitForExistence(timeout: 40))
+        XCTAssertTrue(titleElement(app, startingWith: "Couldn’t Reach Marcus-PC").waitForExistence(timeout: 40))
         TVTest.remote.press(.select)
         XCTAssertTrue(app.textFields["onboarding.address"].waitForExistence(timeout: 10))
         TVTest.remote.press(.select)
@@ -191,7 +200,7 @@ final class OnboardingTests: XCTestCase {
         configureMock(polls: 1, servers: "none")
         let app = launch()
         signIn(app)
-        XCTAssertTrue(app.staticTexts["No Plex Server Found"].waitForExistence(timeout: 30))
+        XCTAssertTrue(titleElement(app, startingWith: "No Plex Server Found").waitForExistence(timeout: 30))
         TVTest.settle(2)
         TVTest.capture("15-no-servers", in: self)
 
@@ -243,11 +252,92 @@ final class OnboardingTests: XCTestCase {
     func testSwitchServerFromTheFailureScreenRelaunchesOnTheNewServer() {
         configureMock(servers: "none")
         let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_MOCK": "http://127.0.0.1:1", "CRUCIBLE_PLEXTV": mockURL])
-        XCTAssertTrue(app.buttons["launch.switchServer"].waitForExistence(timeout: 150))
+        XCTAssertTrue(app.buttons["Switch Server"].waitForExistence(timeout: 150))
         configureMock(servers: "default")
-        TVTest.remote.press(.right)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "launch.switchServer"))
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Switch Server"]))
         TVTest.remote.press(.select)
         waitForMainApp(app, timeout: 90)
+    }
+
+    func testMenuPopsTheCodeScreenWhileTheCodeIsRequested() {
+        configureMock(polls: 1000)
+        AppNavigation.setMockFlags("latency_ms=8000")
+        let app = launch()
+        signIn(app)
+        let status = element(app, "onboarding.status")
+        XCTAssertTrue(status.waitForExistence(timeout: 10))
+        XCTAssertTrue(status.label.hasPrefix("Requesting"), status.label)
+        TVTest.capture("21-requesting-a-code", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.buttons["onboarding.signIn"].waitForExistence(timeout: 10), "Menu while the code is requested left the screen or the app instead of popping")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "onboarding.signIn"))
+        TVTest.capture("22-popped-to-welcome", in: self)
+    }
+
+    func testMenuPopsTheServerListWhileItIsLoading() {
+        configureMock(polls: 1, servers: "several")
+        AppNavigation.setMockFlags("latency_ms=6000")
+        let app = launch()
+        signIn(app)
+        let finding = app.staticTexts["Finding your servers…"]
+        XCTAssertTrue(finding.waitForExistence(timeout: 120), "the server list never showed its loading state")
+        TVTest.capture("23-finding-servers", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.buttons["onboarding.signIn"].waitForExistence(timeout: 10), "Menu while the servers load left the screen or the app instead of popping")
+        TVTest.capture("24-popped-to-welcome", in: self)
+    }
+
+    func testMenuPopsTheAddressScreenWhileItConnectsAndStopsTheConnection() {
+        configureMock(polls: 1, servers: "unreachable")
+        let app = launch()
+        signIn(app)
+        XCTAssertTrue(titleElement(app, startingWith: "Couldn’t Reach Marcus-PC").waitForExistence(timeout: 40))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.textFields["onboarding.address"].waitForExistence(timeout: 10))
+        TVTest.remote.press(.select)
+        TVTest.settle(2)
+        let host = URL(string: mockURL).map { "\($0.host ?? "127.0.0.1"):\($0.port ?? 32400)" } ?? "127.0.0.1:32400"
+        app.typeText(host)
+        TVTest.settle(1)
+        AppNavigation.setMockFlags("latency_ms=8000")
+        pressGo()
+        let connecting = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Connecting to'")).firstMatch
+        XCTAssertTrue(connecting.waitForExistence(timeout: 10))
+        TVTest.capture("25-connecting", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(titleElement(app, startingWith: "Couldn’t Reach Marcus-PC").waitForExistence(timeout: 10), "Menu while connecting left the screen or the app instead of popping")
+        TVTest.capture("26-popped-to-the-server-screen", in: self)
+        TVTest.settle(14)
+        XCTAssertFalse(app.tabBars.firstMatch.exists, "the connection that was abandoned must not finish the sign-in")
+    }
+
+    func testMenuPopsTheAddServerScreenWhileItConnects() {
+        let app = TVTest.launch()
+        waitForMainApp(app)
+        TVTest.settle(1)
+        AppNavigation.selectTab("You", in: app)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        YouNavigation.openRow(app, "you.server")
+        YouNavigation.openRow(app, "server.addServer")
+        XCTAssertTrue(app.textFields["addServer.address"].waitForExistence(timeout: 15))
+        TVTest.settle()
+        if !YouNavigation.row(app, "addServer.address").hasFocus { TVTest.remote.press(.up) }
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "addServer.address"))
+        TVTest.remote.press(.select)
+        TVTest.settle(2)
+        let host = URL(string: mockURL).map { "\($0.host ?? "127.0.0.1"):\($0.port ?? 32400)" } ?? "127.0.0.1:32400"
+        app.typeText(host)
+        AppNavigation.setMockFlags("latency_ms=8000")
+        app.typeText("\n")
+        TVTest.settle(1.5)
+        TVTest.capture("27-add-server-connecting", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "server.addServer", timeout: 10), "Menu while connecting must pop to the Server screen")
+        TVTest.capture("28-popped-to-server", in: self)
     }
 }

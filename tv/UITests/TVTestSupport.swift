@@ -57,6 +57,13 @@ enum TVTest {
         XCTWaiter().wait(for: [pause], timeout: seconds + 5)
     }
 
+    /// Waits until `element` has focus; for buttons that have a label but no accessibility identifier, such as the ones of a `TVStateView`.
+    @discardableResult
+    static func waitForFocus(_ element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasFocus == true"), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     /// Waits until the element with the accessibility `identifier` has focus; returns whether it did within `timeout`.
     @discardableResult
     static func waitForFocus(
