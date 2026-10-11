@@ -39,7 +39,6 @@ library.CLIP_MARKERS = FLAGS["clip_markers"]
 LIB = library.Library()
 LOCK = threading.Lock()
 PINS = {}
-FAILING = set()
 
 DETAIL_ERROR_KEY = "9404"
 DETAIL_GONE_KEY = "9410"
@@ -470,6 +469,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(container(size=0, claimed=True, machineIdentifier=library.MACHINE_ID,
                                             version="1.41.4.9463-630c9f557", friendlyName=library.SERVER_NAME))
 
+        if p in ("/:/scrobble", "/:/unscrobble") and env("MOCK_FAIL_WATCHED") == "1":
+            return self.not_found()
+
         if p.startswith("/:/"):
             with LOCK:
                 self.handle_state(p, q)
@@ -599,7 +601,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"MediaContainer": c})
 
         if p == "/hubs/search":
-            if "search" in FAILING:
+            if env("MOCK_FAIL_SEARCH") == "1":
                 return self.not_found()
             hubs = search_hubs(one("query", ""))
             return self.send_json(container(size=len(hubs), Hub=hubs))
@@ -678,11 +680,6 @@ class Handler(BaseHTTPRequestHandler):
                 if pin_expired(pin):
                     return self.send_json({"errors": [{"code": 1020, "message": "Code not found or expired"}]}, 404)
                 return self.send_json(poll_pin(pin))
-        if p == "/mock/fail":
-            for name in ("search", "genre"):
-                if name in q:
-                    (FAILING.add if q[name][0] == "1" else FAILING.discard)(name)
-            return self.send_json({"failing": sorted(FAILING)})
         if p == "/api/v2/resources":
             return self.send_json(plextv_resources())
         if p == "/api/v2/user":
@@ -771,7 +768,7 @@ class Handler(BaseHTTPRequestHandler):
             if what is None:
                 return self.send_json(container(size=1, Directory=[{"key": sid, "type": kind, "title": title}]))
             if what == "all":
-                if "genre" in FAILING and q.get("genre"):
+                if env("MOCK_FAIL_GENRE") == "1" and q.get("genre"):
                     return self.not_found()
                 items = filter_genre(items, (q.get("genre") or [None])[0])
                 if sid in env_sections("MOCK_FAIL_SECTIONS"):

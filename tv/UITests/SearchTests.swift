@@ -52,6 +52,41 @@ final class SearchTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Browse Genres"].exists)
     }
 
+    func testMenuPopsWhileAGenreLoads() {
+        let app = launchSearch()
+        Self.setLatency(milliseconds: 8000)
+        addTeardownBlock { Self.setLatency(milliseconds: 0) }
+        enterShelves(in: app)
+        XCTAssertTrue(app.cells["Action"].hasFocus)
+        TVTest.remote.press(.select)
+        TVTest.settle(1.5)
+        TVTest.capture("01-genre-loading", in: self)
+        XCTAssertFalse(app.staticTexts["Browse Genres"].exists, "the genre screen replaced Search")
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.staticTexts["Browse Genres"].waitForExistence(timeout: 10), "Menu while loading popped back to Search instead of leaving the app")
+        TVTest.capture("02-popped", in: self)
+    }
+
+    func testTheGenreGridReadsPagesAsFocusNearsTheEnd() throws {
+        let app = launchSearch(mock: ["MOCK_LIBRARY_PAD": "600"])
+        enterShelves(in: app)
+        let before = try genrePageRequests()
+        TVTest.remote.press(.select)
+        let count = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'titles'")).firstMatch
+        XCTAssertTrue(count.waitForExistence(timeout: 20))
+        TVTest.settle(1.5)
+        let firstPaint = try genrePageRequests() - before
+        TVTest.capture("01-first-page", in: self)
+        XCTAssertGreaterThan(firstPaint, 0)
+        XCTAssertLessThanOrEqual(firstPaint, 2, "the first paint reads one page per library, not the whole genre")
+        for _ in 0..<12 {
+            TVTest.remote.press(.down)
+        }
+        TVTest.settle(2)
+        TVTest.capture("02-after-scrolling", in: self)
+        XCTAssertGreaterThan(try genrePageRequests() - before, firstPaint, "scrolling down reads more pages")
+    }
+
     func testTypingShowsGroupedResultsAndScopeChips() {
         let app = launchSearch()
         type("hal", in: app)
@@ -109,16 +144,14 @@ final class SearchTests: XCTestCase {
     }
 
     func testSearchFailureOffersTryAgain() {
-        let app = launchSearch()
-        setMock(failing: "search", on: true)
+        let app = launchSearch(mock: ["MOCK_FAIL_SEARCH": "1"])
         type("hal", in: app)
         TVTest.settle(3)
         TVTest.capture("01-failed", in: self)
         XCTAssertTrue(app.staticTexts["Search Failed"].exists)
-        let retry = app.buttons["Try Again"]
-        XCTAssertTrue(retry.exists)
+        XCTAssertTrue(app.buttons["Try Again"].exists)
 
-        setMock(failing: "search", on: false)
+        TVTest.configureMock()
         TVTest.remote.press(.down)
         TVTest.settle(1)
         TVTest.capture("02-failed-try-again-focused", in: self)
@@ -129,7 +162,7 @@ final class SearchTests: XCTestCase {
     }
 
     func testTopResultPlayAndOpen() {
-        let app = launchSearch()
+        let app = launchSearch(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "6"])
         type("halcyon", in: app)
         TVTest.settle(2)
         TVTest.remote.press(.down)
@@ -138,52 +171,73 @@ final class SearchTests: XCTestCase {
         TVTest.settle(0.8)
         XCTAssertTrue(app.buttons["search.top.play"].hasFocus)
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.alerts["Halcyon"].waitForExistence(timeout: 5), "Play reaches the player seam")
-        TVTest.capture("01-play-request", in: self)
-        TVTest.remote.press(.select)
-        TVTest.settle(1)
+        XCTAssertTrue(app.otherElements["player.preroll"].waitForExistence(timeout: 20), "Play opens the player")
+        TVTest.capture("01-play-preroll", in: self)
+        leavePlayer(in: app, until: app.buttons["search.top.play"])
 
         TVTest.remote.press(.right)
         TVTest.settle(0.5)
         XCTAssertTrue(app.buttons["search.top.open"].hasFocus)
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["placeholder.title"].label.hasPrefix("Detail"))
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: 20), "Open Movie shows the detail screen")
+        TVTest.capture("02-detail", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.buttons["search.top.open"].waitForExistence(timeout: 10), "Back from the detail returns to the results")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "search.top.open"), "and restores focus on Open Movie")
     }
 
-    func testPlayPauseAndLongPressMenuOnAPoster() {
-        let app = launchSearch()
+    func testPlayPauseStartsPlaybackAndTheLongPressMenuMarksWatched() {
+        let app = launchSearch(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "6"])
         type("hal", in: app)
         TVTest.settle(2)
-        TVTest.remote.press(.down)
-        TVTest.remote.press(.down)
-        TVTest.remote.press(.down)
-        TVTest.settle(1.2)
+        focusFirstPoster(in: app)
         TVTest.capture("01-poster-focused", in: self)
+        XCTAssertEqual(focusedElement(in: app).value as? String, "Unwatched", "the chosen poster starts unwatched")
+
         TVTest.remote.press(.playPause)
-        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5), "Play/Pause plays the focused title")
-        TVTest.capture("02-play-pause-request", in: self)
-        TVTest.remote.press(.select)
-        TVTest.settle(1)
+        XCTAssertTrue(app.otherElements["player.preroll"].waitForExistence(timeout: 20), "Play/Pause plays the focused title")
+        TVTest.capture("02-play-pause-preroll", in: self)
+        leavePlayer(in: app, until: app.buttons["search.top.play"])
 
         TVTest.remote.longPress(.select, duration: 1.6)
         TVTest.settle(1.2)
         TVTest.capture("03-context-menu", in: self)
         TVTest.remote.press(.down)
-        TVTest.remote.press(.down)
         TVTest.settle(0.5)
         TVTest.capture("04-context-menu-mark-watched", in: self)
         TVTest.remote.press(.select)
         TVTest.settle(1.2)
+        XCTAssertEqual(focusedElement(in: app).value as? String, "Watched")
         TVTest.capture("05-marked-watched", in: self)
 
         TVTest.remote.longPress(.select, duration: 1.6)
         TVTest.settle(1.2)
         TVTest.remote.press(.down)
-        TVTest.remote.press(.down)
         TVTest.remote.press(.select)
         TVTest.settle(1.2)
+        XCTAssertEqual(focusedElement(in: app).value as? String, "Unwatched")
         TVTest.capture("06-marked-unwatched-again", in: self)
+    }
+
+    func testAFailedWatchedMarkRollsBackAndTellsTheViewer() {
+        let app = launchSearch(mock: ["MOCK_FAIL_WATCHED": "1"])
+        type("hal", in: app)
+        TVTest.settle(2)
+        focusFirstPoster(in: app)
+        XCTAssertEqual(focusedElement(in: app).value as? String, "Unwatched")
+
+        TVTest.remote.longPress(.select, duration: 1.6)
+        TVTest.settle(1)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.select)
+        let alert = app.alerts["Couldn\u{2019}t Mark Watched"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 10), "a refused mark must be reported")
+        TVTest.capture("01-failure-alert", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(waitForDisappearance(of: alert), "Menu dismisses the alert")
+        TVTest.settle(0.8)
+        XCTAssertEqual(focusedElement(in: app).value as? String, "Unwatched", "the card goes back to what the server says")
+        TVTest.capture("02-rolled-back", in: self)
     }
 
     func testRecentSearchesAreSavedOnOpenAndCanBeReusedRemovedAndCleared() {
@@ -198,7 +252,7 @@ final class SearchTests: XCTestCase {
         TVTest.remote.press(.down)
         TVTest.remote.press(.right)
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: 20))
         app.terminate()
 
         app = launchSearch(arguments: [])
@@ -239,24 +293,25 @@ final class SearchTests: XCTestCase {
     }
 
     func testGenreFailureOffersTryAgain() {
-        let app = launchSearch()
-        setMock(failing: "genre", on: true)
+        let app = launchSearch(mock: ["MOCK_FAIL_GENRE": "1"])
         enterShelves(in: app)
         TVTest.remote.press(.select)
         TVTest.settle(3)
         TVTest.capture("01-genre-failed", in: self)
         XCTAssertTrue(app.buttons["Try Again"].exists)
-        setMock(failing: "genre", on: false)
+        TVTest.configureMock()
         TVTest.remote.press(.select)
         TVTest.settle(3)
         TVTest.capture("02-genre-recovered", in: self)
         XCTAssertFalse(app.buttons["Try Again"].exists)
     }
 
-    private func launchSearch(extraEnvironment: [String: String] = [:], arguments: [String] = freshRecents) -> XCUIApplication {
-        setMock(failing: "search", on: false)
-        setMock(failing: "genre", on: false)
-        let app = TVTest.launch(extraEnvironment: extraEnvironment, arguments: arguments)
+    private func launchSearch(
+        mock: [String: String] = [:],
+        extraEnvironment: [String: String] = [:],
+        arguments: [String] = freshRecents
+    ) -> XCUIApplication {
+        let app = TVTest.launch(mock: mock, extraEnvironment: extraEnvironment, arguments: arguments)
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
         TVTest.settle()
@@ -286,6 +341,12 @@ final class SearchTests: XCTestCase {
         TVTest.settle(0.8)
     }
 
+    /// Moves focus from the keyboard to the first poster of the results: scope chip, top result, poster.
+    private func focusFirstPoster(in app: XCUIApplication) {
+        for _ in 0..<3 { TVTest.remote.press(.down) }
+        TVTest.settle(1.2)
+    }
+
     /// Presses the Clear chip when recent searches are showing; returns whether it did.
     private func clearRecentsIfShown(in app: XCUIApplication) -> Bool {
         guard app.staticTexts["Recent Searches"].exists else { return false }
@@ -296,16 +357,38 @@ final class SearchTests: XCTestCase {
         return true
     }
 
+    /// Menu until Search's own screen is back (the pre-roll and the player take a few presses).
+    private func leavePlayer(in app: XCUIApplication, until screen: XCUIElement) {
+        for _ in 0..<6 where !screen.exists {
+            TVTest.remote.press(.menu)
+            TVTest.settle(2)
+        }
+        XCTAssertTrue(screen.waitForExistence(timeout: 15), "Menu leaves the player and returns to Search")
+    }
+
     private func focusedElement(in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
     }
 
-    private func setMock(failing name: String, on: Bool) {
-        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
-              let url = URL(string: "\(base)/mock/fail?\(name)=\(on ? 1 : 0)")
-        else { return }
-        let done = expectation(description: "mock \(name)")
-        URLSession.shared.dataTask(with: url) { _, _, _ in done.fulfill() }.resume()
-        wait(for: [done], timeout: 10)
+    private func waitForDisappearance(of element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
+        let predicate = NSPredicate(format: "exists == false")
+        return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
+    }
+
+    private nonisolated static var mock: URL {
+        URL(string: ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? "http://127.0.0.1:32467")!
+    }
+
+    private nonisolated static func setLatency(milliseconds: Int) {
+        _ = try? Data(contentsOf: URL(string: "\(mock.absoluteString)/mock/flags?latency_ms=\(milliseconds)")!)
+    }
+
+    /// How many genre pages the app has requested so far (a library `all` request of 50 with a sort).
+    private func genrePageRequests() throws -> Int {
+        var components = try XCTUnwrap(URLComponents(string: Self.mock.absoluteString + "/mock/requests"))
+        components.queryItems = [URLQueryItem(name: "contains", value: "Container-Size=50&sort=")]
+        let data = try Data(contentsOf: try XCTUnwrap(components.url))
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Int]
+        return try XCTUnwrap(object?["count"])
     }
 }
