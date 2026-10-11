@@ -18,6 +18,13 @@ enum TVFont {
 
     static var eyebrow: UIFont { Theme.Font.scaled(.caption2, 23, .bold, maximum: 31) }
 
+    /// The title of a pushed screen (title2 57 bold), its summary beside it and its description below.
+    static var screenTitle: UIFont { Theme.Font.title2 }
+
+    static var screenSummary: UIFont { Theme.Font.callout }
+
+    static var screenDetail: UIFont { Theme.Font.body }
+
     /// Fixed-size monospaced text (pairing codes, log lines); it does not scale with Dynamic Type.
     static func mono(size: CGFloat, weight: UIFont.Weight = .regular) -> UIFont {
         UIFont.monospacedSystemFont(ofSize: size, weight: weight)
