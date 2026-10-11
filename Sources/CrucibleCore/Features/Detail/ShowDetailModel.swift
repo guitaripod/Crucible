@@ -40,6 +40,7 @@ package struct ShowDetailModel: Sendable {
     package let selectedSeasonKey: String?
     package let episodes: [PlexMetadata]
     package let allEpisodes: [PlexMetadata]
+    package let episodesFailed: Bool
     package let upNext: UpNext?
 
     package init(
@@ -47,18 +48,20 @@ package struct ShowDetailModel: Sendable {
         seasons: [PlexMetadata] = [],
         selectedSeasonKey: String? = nil,
         episodes: [PlexMetadata] = [],
-        allEpisodes: [PlexMetadata] = []
+        allEpisodes: [PlexMetadata] = [],
+        episodesFailed: Bool = false
     ) {
         self.show = show
         self.seasons = seasons
         self.selectedSeasonKey = selectedSeasonKey
         self.episodes = episodes
         self.allEpisodes = allEpisodes
+        self.episodesFailed = episodesFailed
         self.upNext = Self.computeUpNext(in: allEpisodes.isEmpty ? episodes : allEpisodes)
     }
 
     package func replacingShow(_ show: PlexMetadata) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed)
     }
 
     package func selectingSeason(_ key: String) -> ShowDetailModel {
@@ -67,6 +70,17 @@ package struct ShowDetailModel: Sendable {
 
     package func replacingEpisodes(_ episodes: [PlexMetadata]) -> ShowDetailModel {
         ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes)
+    }
+
+    /// Selects `key` and clears the episode list, for screens that show a loading state until the
+    /// new season's episodes arrive instead of the previous season's.
+    package func loadingSeason(_ key: String) -> ShowDetailModel {
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: [], allEpisodes: allEpisodes)
+    }
+
+    /// The selected season's episodes could not be fetched: no episodes, flagged so a screen can offer Retry instead of "empty".
+    package func failingEpisodes() -> ShowDetailModel {
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: [], allEpisodes: allEpisodes, episodesFailed: true)
     }
 
     package var selectedSeason: PlexMetadata? {

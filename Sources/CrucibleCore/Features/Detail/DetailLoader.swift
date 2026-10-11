@@ -64,30 +64,64 @@ package enum ShowDetailLoader {
         )
 
         var seasonEpisodes: [PlexMetadata] = []
+        var seasonFailed = false
         if let selected {
-            guard let loaded = await episodes(inSeason: selected, api: api) else { throw CancellationError() }
-            seasonEpisodes = loaded
+            switch await loadSeason(selected, api: api) {
+            case .loaded(let loaded): seasonEpisodes = loaded
+            case .failed: seasonFailed = true
+            case .cancelled: throw CancellationError()
+            }
         }
         let allEpisodes = (await leaves)?.Metadata?.filter { $0.mediaType == "episode" } ?? []
         try Task.checkCancellation()
         if let latest = await selectedSeasonKey(), latest != selected, seasons.contains(where: { $0.id == latest }) {
-            guard let loaded = await episodes(inSeason: latest, api: api) else { throw CancellationError() }
+            seasonFailed = false
+            switch await loadSeason(latest, api: api) {
+            case .loaded(let loaded): seasonEpisodes = loaded
+            case .failed:
+                seasonEpisodes = []
+                seasonFailed = true
+            case .cancelled: throw CancellationError()
+            }
             selected = latest
-            seasonEpisodes = loaded
         }
-        return ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selected, episodes: seasonEpisodes, allEpisodes: allEpisodes)
+        return ShowDetailModel(
+            show: show,
+            seasons: seasons,
+            selectedSeasonKey: selected,
+            episodes: seasonEpisodes,
+            allEpisodes: allEpisodes,
+            episodesFailed: seasonFailed
+        )
+    }
+
+    /// How fetching one season's episodes ended: with episodes (possibly none), with a failed request, or cancelled.
+    package enum SeasonResult: Sendable {
+        case loaded([PlexMetadata])
+        case failed
+        case cancelled
+    }
+
+    /// The episodes of one season. A failed request is logged and reported as `.failed`, which a
+    /// screen can tell apart from a season that genuinely has no episodes.
+    package static func loadSeason(_ seasonKey: String, api: APIClient) async -> SeasonResult {
+        do {
+            let container = try await api.requestContainer(.children(ratingKey: seasonKey))
+            guard !Task.isCancelled else { return .cancelled }
+            return .loaded(container.Metadata ?? [])
+        } catch {
+            guard !Task.isCancelled else { return .cancelled }
+            AppLogger.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", .networking)
+            return .failed
+        }
     }
 
     /// The episodes of one season. A failed request is logged and yields no episodes; nil means the task was cancelled.
     package static func episodes(inSeason seasonKey: String, api: APIClient) async -> [PlexMetadata]? {
-        do {
-            let container = try await api.requestContainer(.children(ratingKey: seasonKey))
-            guard !Task.isCancelled else { return nil }
-            return container.Metadata ?? []
-        } catch {
-            guard !Task.isCancelled else { return nil }
-            AppLogger.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", .networking)
-            return []
+        switch await loadSeason(seasonKey, api: api) {
+        case .loaded(let episodes): return episodes
+        case .failed: return []
+        case .cancelled: return nil
         }
     }
 }

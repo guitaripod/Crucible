@@ -126,6 +126,30 @@ struct DetailLoaderTests {
         #expect(model.upNext?.episode.id == "e22")
     }
 
+    @Test func loadSeasonTellsFailureFromAnEmptySeason() async {
+        server.reply(path: "/library/metadata/empty/children", items: [])
+        server.reply(path: "/library/metadata/full/children", items: [DetailFixtures.episode(1)])
+        server.reply(path: "/library/metadata/bad/children", status: 404)
+        let api = server.client
+        guard case .loaded(let none) = await ShowDetailLoader.loadSeason("empty", api: api) else { Issue.record("empty season should load"); return }
+        #expect(none.isEmpty)
+        guard case .loaded(let some) = await ShowDetailLoader.loadSeason("full", api: api) else { Issue.record("full season should load"); return }
+        #expect(some.map(\.id) == ["e11"])
+        guard case .failed = await ShowDetailLoader.loadSeason("bad", api: api) else { Issue.record("a 404 should be a failure"); return }
+    }
+
+    @Test func showLoadFlagsAFailedSelectedSeason() async throws {
+        seasonLists()
+        server.reply(path: "/library/metadata/s2/children", status: 404)
+        let failed = try #require(await loadShow())
+        #expect(failed.episodesFailed)
+        #expect(failed.episodes.isEmpty)
+
+        seasonLists()
+        let fine = try #require(await loadShow())
+        #expect(!fine.episodesFailed)
+    }
+
     @Test func showLoadSurvivesAFailingSeasonRequest() async throws {
         seasonLists()
         server.reply(path: "/library/metadata/s2/children", status: 404)

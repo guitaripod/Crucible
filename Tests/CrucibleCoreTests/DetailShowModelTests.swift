@@ -277,6 +277,26 @@ struct DetailShowModelTests {
         #expect(reloaded.upNext?.kind == .start)
     }
 
+    @Test func loadingASeasonClearsTheOldEpisodesAndKeepsUpNext() {
+        let all = [DetailFixtures.episode(1, watched: true), DetailFixtures.episode(2)]
+        let base = model(seasons: [DetailFixtures.season(1, watched: 1, total: 2)], selected: "s1", episodes: all, all: all)
+        let loading = base.loadingSeason("s2")
+        #expect(loading.selectedSeasonKey == "s2")
+        #expect(loading.episodes.isEmpty)
+        #expect(!loading.episodesFailed)
+        #expect(loading.upNext?.episode.id == "e12")
+    }
+
+    @Test func failingEpisodesIsFlaggedAndClearedByAReload() {
+        let failed = model(selected: "s1", episodes: [DetailFixtures.episode(1)]).failingEpisodes()
+        #expect(failed.episodesFailed)
+        #expect(failed.episodes.isEmpty)
+        #expect(failed.replacingShow(show).episodesFailed)
+        #expect(!failed.replacingEpisodes([DetailFixtures.episode(1)]).episodesFailed)
+        #expect(!failed.loadingSeason("s2").episodesFailed)
+        #expect(!failed.selectingSeason("s2").episodesFailed)
+    }
+
     @Test func summaryPresence() {
         #expect(!model().hasSummary)
         #expect(model(show: DetailFixtures.item(["summary": "Plot"])).hasSummary)
