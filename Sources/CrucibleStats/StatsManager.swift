@@ -16,13 +16,16 @@ package final class StatsManager {
 
     var isAvailable: Bool { store != nil }
 
+    /// The loader every Statistics screen builds its page with; nil while the store is unavailable.
+    package var pageLoader: StatsPageLoader? { store.map { StatsPageLoader(store: $0) } }
+
     private init() {}
 
     package func configure(api: APIClient) {
         self.api = api
         if store == nil {
             do {
-                store = StatsStore(database: try StatsDatabase())
+                store = StatsStore(database: try StatsDatabase.openOrRebuild())
             } catch {
                 AppLogger.error("Stats DB init failed: \(error.localizedDescription)", .stats)
             }

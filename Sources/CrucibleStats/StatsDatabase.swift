@@ -3,13 +3,14 @@ import Foundation
 import GRDB
 import os
 
-/// Owns the on-disk GRDB queue for the local watch-history mirror. Lives in Application Support
-/// (survives Caches purges) and is excluded from backup — it is a rebuildable server mirror.
+/// Owns the on-disk GRDB queue for the local watch-history mirror. It lives in
+/// ``AppPlatform/persistentDirectory`` (Application Support on iOS, Caches on tvOS, where nothing else
+/// is writable) and is excluded from backup: it is a rebuildable server mirror, so losing it to a
+/// purge only costs a fresh backfill.
 final class StatsDatabase: Sendable {
     let dbQueue: DatabaseQueue
 
-    init() throws {
-        let url = Self.databaseURL()
+    init(url: URL = StatsDatabase.databaseURL()) throws {
         let directory = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
@@ -27,9 +28,20 @@ final class StatsDatabase: Sendable {
             .appendingPathComponent("stats.sqlite")
     }
 
-    static func destroy() {
-        let directory = databaseURL().deletingLastPathComponent()
-        try? FileManager.default.removeItem(at: directory)
+    /// Opens the mirror, starting over when the file cannot be opened or migrated (a purge can leave
+    /// a truncated file behind). A fresh mirror begins with an unfinished backfill from the first page.
+    static func openOrRebuild(at url: URL = databaseURL()) throws -> StatsDatabase {
+        do {
+            return try StatsDatabase(url: url)
+        } catch {
+            AppLogger.error("Stats DB unreadable, rebuilding: \(error.localizedDescription)", .stats)
+            destroy(at: url)
+            return try StatsDatabase(url: url)
+        }
+    }
+
+    static func destroy(at url: URL = databaseURL()) {
+        try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
     }
 
     private static func excludeFromBackup(_ url: URL) {

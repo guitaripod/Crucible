@@ -188,7 +188,7 @@ package struct StatsTime {
     }
 }
 
-package enum StatsRange: Int, CaseIterable {
+package enum StatsRange: Int, CaseIterable, Sendable {
     case week
     case month
     case year
