@@ -8,11 +8,11 @@ final class TVHomeWeekSurface: TVFocusableSurface {
     private static let barAreaHeight: CGFloat = 120
     private static let barWidth: CGFloat = 26
     private static let minimumBarHeight: CGFloat = 8
-    private static let dayInitials = ["M", "T", "W", "T", "F", "S", "S"]
 
     private let totalLabel = UILabel()
     private let deltaLabel = UILabel()
     private var barViews: [UIView] = []
+    private var initialLabels: [UILabel] = []
     private var barHeights: [NSLayoutConstraint] = []
 
     init() {
@@ -30,6 +30,7 @@ final class TVHomeWeekSurface: TVFocusableSurface {
         deltaLabel.isHidden = model.delta == nil
         for (index, bar) in model.bars.enumerated() where index < barViews.count {
             barHeights[index].constant = max(Self.minimumBarHeight, (Self.barAreaHeight * CGFloat(bar.ratio)).rounded())
+            initialLabels[index].text = bar.initial
             barViews[index].backgroundColor = bar.isToday ? Theme.Color.accent : Theme.Color.labelTertiary.withAlphaComponent(0.45)
         }
         accessibilityLabel = model.accessibilityLabel
@@ -74,7 +75,7 @@ final class TVHomeWeekSurface: TVFocusableSurface {
     }
 
     private func makeBars() -> UIView {
-        let columns = Self.dayInitials.map { initial -> UIView in
+        let columns = (0..<HomeWeekCardModel.barCount).map { _ -> UIView in
             let bar = UIView()
             bar.layer.cornerRadius = 6
             bar.layer.cornerCurve = .continuous
@@ -85,7 +86,7 @@ final class TVHomeWeekSurface: TVFocusableSurface {
             barHeights.append(height)
 
             let label = UILabel()
-            label.text = initial
+            initialLabels.append(label)
             label.font = Theme.Font.caption2
             label.textColor = Theme.Color.labelTertiary
             label.textAlignment = .center

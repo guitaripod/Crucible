@@ -6,7 +6,11 @@ package struct HomeWeekCardModel: Hashable, Sendable {
     package struct Bar: Hashable, Sendable {
         package let ratio: Double
         package let isToday: Bool
+        package let initial: String
     }
+
+    /// The week runs Monday to Sunday, the same order as `HomeWeekSummary.dailySeconds`.
+    package static let dayInitials = ["M", "T", "W", "T", "F", "S", "S"]
 
     package static let barCount = 7
 
@@ -21,7 +25,7 @@ package struct HomeWeekCardModel: Hashable, Sendable {
         let peak = max(dailySeconds.max() ?? 0, 1)
         bars = (0..<Self.barCount).map { index in
             let seconds = dailySeconds.indices.contains(index) ? dailySeconds[index] : 0
-            return Bar(ratio: Double(seconds) / Double(peak), isToday: index == todayIndex)
+            return Bar(ratio: Double(seconds) / Double(peak), isToday: index == todayIndex, initial: Self.dayInitials[index])
         }
         accessibilityLabel = HomeFormat.joined([
             "This week",

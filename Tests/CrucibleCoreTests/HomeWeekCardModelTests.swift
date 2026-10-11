@@ -24,6 +24,12 @@ struct HomeWeekCardModelTests {
         #expect(model.bars.map(\.isToday) == [false, false, false, true, false, false, false])
     }
 
+    @Test func barsCarryTheirMondayFirstInitials() {
+        let model = HomeWeekCardModel(dailySeconds: [], todayIndex: 0, thisWeekSeconds: 0, deltaPercent: nil)
+        #expect(model.bars.map(\.initial) == ["M", "T", "W", "T", "F", "S", "S"])
+        #expect(HomeWeekCardModel.dayInitials.count == HomeWeekCardModel.barCount)
+    }
+
     @Test func allZeroDaysGiveFlatBarsWithoutDividingByZero() {
         let model = HomeWeekCardModel(dailySeconds: Array(repeating: 0, count: 7), todayIndex: 2, thisWeekSeconds: 0, deltaPercent: nil)
         #expect(model.bars.allSatisfy { $0.ratio == 0 })
