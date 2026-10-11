@@ -18,7 +18,9 @@ ASSETS = os.path.join(HERE, "assets")
 PORT = int(os.environ.get("PORT", "32400"))
 LATENCY = int(os.environ.get("MOCK_LATENCY_MS", "0")) / 1000
 PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
-PIN_LIFETIME = 900
+PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
+PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
+DEAD_ROUTE = "http://127.0.0.1:9"
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
 LIB = library.Library()
@@ -69,6 +71,11 @@ def pin_payload(pin, token=None):
             "newRegistration": None}
 
 
+def pin_expired(pin):
+    age = (datetime.now(timezone.utc) - pin["createdAt"]).total_seconds()
+    return age > PIN_LIFETIME and not pin["approved"]
+
+
 def poll_pin(pin):
     pin["polls"] += 1
     approved = pin["approved"] or pin["polls"] > PIN_POLLS
@@ -93,6 +100,12 @@ def plextv_resources():
                   {"protocol": "http", "address": PUBLIC_ADDRESS, "port": PORT,
                    "uri": f"http://{PUBLIC_ADDRESS}:{PORT}", "local": False, "relay": False, "IPv6": False},
               ]}
+    if PLEXTV_SERVERS == "none":
+        return []
+    if PLEXTV_SERVERS == "unreachable":
+        server["connections"] = [dead_connection()]
+    if PLEXTV_SERVERS == "multiple":
+        return [server, spare_server(seen)]
     player = {"name": "Marcus-iPhone", "product": "Crucible", "productVersion": "2.0.1", "platform": "iOS",
               "platformVersion": "26.5", "device": "iPhone", "clientIdentifier": "3f0b8e4c-0c6a-4d5e-9a67-52f1c1b0a9d2",
               "createdAt": "2025-09-12T08:01:44Z", "lastSeenAt": seen, "provides": "client,player,pubsub-player",
@@ -101,6 +114,21 @@ def plextv_resources():
               "publicAddressMatches": True, "dnsRebindingProtection": False, "natLoopbackSupported": False,
               "connections": []}
     return [server, player]
+
+
+def dead_connection():
+    return {"protocol": "http", "address": "127.0.0.1", "port": 9, "uri": DEAD_ROUTE, "local": True, "relay": False,
+            "IPv6": False}
+
+
+def spare_server(seen):
+    return {"name": "Garage-NAS", "product": "Plex Media Server", "productVersion": "1.41.4.9463-630c9f557",
+            "platform": "Linux", "platformVersion": "6.8.0", "device": "NAS",
+            "clientIdentifier": "b8a4f01c6d2e4973a5c0e7f19d3b2a64", "createdAt": "2024-05-11T18:22:40Z",
+            "lastSeenAt": seen, "provides": "server", "ownerId": 2, "sourceTitle": "Sam", "publicAddress": PUBLIC_ADDRESS,
+            "accessToken": "mock-server-token-2", "owned": False, "home": False, "synced": False, "relay": True,
+            "presence": True, "httpsRequired": False, "publicAddressMatches": True, "dnsRebindingProtection": False,
+            "natLoopbackSupported": False, "connections": [dead_connection()]}
 
 
 def plextv_user():
@@ -455,6 +483,8 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 pin = PINS.get(int(m.group(1)))
                 if not pin:
+                    return self.send_json({"errors": [{"code": 1020, "message": "Code not found or expired"}]}, 404)
+                if pin_expired(pin):
                     return self.send_json({"errors": [{"code": 1020, "message": "Code not found or expired"}]}, 404)
                 return self.send_json(poll_pin(pin))
         if p == "/api/v2/resources":
