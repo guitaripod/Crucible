@@ -16,7 +16,8 @@ enum TVSearchCards {
             isUnwatched: isPlayable(item) ? !watched && !hasProgress : false,
             isWatched: isPlayable(item) && watched,
             badgeText: model.unwatchedCount.map(String.init),
-            placeholderSymbol: model.placeholderIcon
+            placeholderSymbol: model.placeholderIcon,
+            accessibilityHint: opensDetails
         )
     }
 
@@ -32,9 +33,25 @@ enum TVSearchCards {
             progress: watchedOverride == true ? nil : model.progress,
             isWatched: watched,
             placeholderSymbol: "tv",
+            accessibilityHint: opensDetails,
             highlight: query
         )
     }
+
+    /// The top result's poster, type line and highlighted title, as the design system's card data.
+    static func topResult(_ item: PlexMetadata, query: String?) -> TVCardItem {
+        let model = SearchTopResultModel(item: item)
+        return TVCardItem(
+            id: item.id,
+            artworkPath: model.posterPath,
+            title: model.title,
+            subtitle: model.meta,
+            placeholderSymbol: model.placeholderIcon,
+            highlight: query
+        )
+    }
+
+    private static let opensDetails = "Opens details"
 
     static func genre(_ genre: SearchGenre) -> TVTileItem {
         let pair = GenrePalette.pair(for: genre.title)

@@ -130,7 +130,7 @@ struct GenreGridModelTests {
         return (model, recorder)
     }
 
-    private static func page(_ range: ClosedRange<Int>, total: Int) throws -> PlexMediaContainer {
+    private nonisolated static func page(_ range: ClosedRange<Int>, total: Int) throws -> PlexMediaContainer {
         try SearchFixtures.page(try range.map { try SearchFixtures.item("m\($0)", "movie", "Title \(String(format: "%04d", $0))") }, total: total)
     }
 

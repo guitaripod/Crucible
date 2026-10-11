@@ -24,4 +24,11 @@ package enum SearchCopy {
     package static func genreFailureTitle(_ genre: String) -> String {
         "Couldn\u{2019}t Load \(genre)"
     }
+
+    package static let topResultEyebrow = "Top Result"
+
+    /// The alert title when marking a title watched (`true`) or unwatched (`false`) failed.
+    package static func watchedFailureTitle(watched: Bool) -> String {
+        watched ? "Couldn\u{2019}t Mark Watched" : "Couldn\u{2019}t Mark Unwatched"
+    }
 }

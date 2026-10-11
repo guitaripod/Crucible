@@ -4,19 +4,20 @@ import UIKit
 
 /// Everything under the system search field: the idle shelves (recent searches, genres, recently
 /// added) and, once the query is long enough, the scope chips with the grouped results. The shared
-/// `SearchSession` decides what to show; this controller only renders its states.
-final class TVSearchResultsViewController: UIViewController, UISearchResultsUpdating, UICollectionViewDelegate {
+/// `SearchSession` decides what to show; this controller only renders its states on the shared
+/// screen host.
+final class TVSearchResultsViewController: TVScreenViewController, UISearchResultsUpdating {
     private typealias DataSource = UICollectionViewDiffableDataSource<TVSearchSection, TVSearchItem>
     private typealias Snapshot = NSDiffableDataSourceSnapshot<TVSearchSection, TVSearchItem>
 
     private let env: TVAppEnvironment
     private let session: SearchSession
-    private lazy var collectionView = TVCollectionView(frame: .zero, collectionViewLayout: makeLayout())
-    private let stateView = TVStateView()
     private var dataSource: DataSource!
     private var scope: SearchScope = .all
     private var resultsQuery: String?
+    private var renderedKey: String?
     private var watchedOverrides: [String: Bool] = [:]
+    private var pendingWatched = Set<String>()
 
     weak var searchController: UISearchController?
     weak var host: UIViewController?
@@ -24,32 +25,13 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
     init(env: TVAppEnvironment) {
         self.env = env
         session = SearchSession(loader: SearchLoader(api: env.api))
-        super.init(nibName: nil, bundle: nil)
+        super.init(layout: UICollectionViewLayout())
+        collectionView.collectionViewLayout = makeLayout()
     }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
-        collectionView.delegate = self
-        collectionView.onPlayPause = { [weak self] indexPath in self?.playFocused(at: indexPath) }
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        stateView.translatesAutoresizingMaskIntoConstraints = false
-        stateView.isHidden = true
-        view.addSubview(collectionView)
-        view.addSubview(stateView)
-        NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
-            stateView.topAnchor.constraint(equalTo: view.topAnchor),
-            stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
         configureDataSource()
         session.onChange = { [weak self] state in self?.render(state) }
         session.start()
@@ -65,10 +47,6 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         session.suspend()
     }
 
-    override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        stateView.isHidden ? [collectionView] : [stateView]
-    }
-
     func updateSearchResults(for searchController: UISearchController) {
         session.update(query: searchController.searchBar.text, scope: scope)
     }
@@ -77,49 +55,54 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         searchController?.searchBar.text
     }
 
+    private var presenter: UIViewController {
+        tabBarController ?? host ?? self
+    }
+
+    private var navigator: UIViewController {
+        host ?? self
+    }
+
     private func render(_ state: SearchState) {
         switch state {
         case .idle(let content):
+            discardOverrides(for: "idle")
             resultsQuery = nil
             renderIdle(content)
         case .loading:
-            showState(.loading(title: nil))
+            showMessage(.loading(title: nil))
         case .results(let query, let parts):
+            discardOverrides(for: query)
             resultsQuery = query
             renderResults(parts)
         case .empty(let query, let emptyScope):
+            discardOverrides(for: query)
             resultsQuery = query
             renderEmpty(query: query, scope: emptyScope)
         case .failed(let query, let message):
-            showState(.error(title: SearchCopy.failureTitle, message: message, retryTitle: SearchCopy.retry) { [weak self] in
+            showMessage(.error(title: SearchCopy.failureTitle, message: message, retryTitle: SearchCopy.retry) { [weak self] in
                 self?.session.retry(query)
             })
         }
     }
 
-    private func showState(_ state: TVStateView.State) {
+    /// A watched mark the user just made stands in for the server's answer until the next query
+    /// brings fresh data, so each query starts without any.
+    private func discardOverrides(for key: String) {
+        if renderedKey != key { watchedOverrides = [:] }
+        renderedKey = key
+    }
+
+    private func showMessage(_ state: TVStateView.State) {
+        show(state: state)
         dataSource.apply(Snapshot(), animatingDifferences: false)
-        stateView.show(state)
-        stateView.isHidden = false
-        collectionView.isHidden = true
-        refreshFocus()
-    }
-
-    private func showCollection() {
-        stateView.isHidden = true
-        collectionView.isHidden = false
-    }
-
-    private func refreshFocus() {
-        setNeedsFocusUpdate()
     }
 
     private func renderIdle(_ content: SearchIdleContent) {
         guard !content.isEmpty else {
-            showState(.empty(title: SearchCopy.idleTitle, message: SearchCopy.idleMessage, symbol: "magnifyingglass", action: nil))
+            showMessage(.empty(title: SearchCopy.idleTitle, message: SearchCopy.idleMessage, symbol: "magnifyingglass", action: nil))
             return
         }
-        showCollection()
         var snapshot = Snapshot()
         if !content.recents.isEmpty {
             snapshot.appendSections([.recent])
@@ -133,11 +116,11 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
             snapshot.appendSections([.recentlyAdded])
             snapshot.appendItems(content.recentlyAdded.map { .recentlyAdded($0) }, toSection: .recentlyAdded)
         }
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.applyReconfiguringExisting(snapshot)
+        showContent()
     }
 
     private func renderResults(_ parts: SearchResults.Parts) {
-        showCollection()
         var snapshot = Snapshot()
         snapshot.appendSections([.scopes])
         snapshot.appendItems(SearchScope.allCases.map { .scope($0) }, toSection: .scopes)
@@ -157,16 +140,16 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
             snapshot.appendSections([.episodes])
             snapshot.appendItems(parts.episodes.map { .episode($0) }, toSection: .episodes)
         }
-        snapshot.reconfigureItems(snapshot.itemIdentifiers)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.applyReconfiguringExisting(snapshot)
         collectionView.collectionViewLayout.invalidateLayout()
+        showContent()
     }
 
     private func renderEmpty(query: String, scope emptyScope: SearchScope) {
         let action = emptyScope == .all ? nil : TVStateView.Action(title: "Search All") { [weak self] in
             self?.select(scope: .all)
         }
-        showState(.empty(
+        showMessage(.empty(
             title: SearchCopy.noResultsTitle(query: query),
             message: SearchCopy.noResultsHint(scope: emptyScope),
             symbol: "magnifyingglass",
@@ -189,7 +172,7 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
 
     private func section(at index: Int) -> TVSearchSection? {
         let sections = dataSource?.snapshot().sectionIdentifiers ?? []
-        return sections.indices.contains(index) ? sections[index] : nil
+        return sections[safe: index]
     }
 
     private func layout(for section: TVSearchSection) -> NSCollectionLayoutSection {
@@ -241,9 +224,8 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         let genres = TVGenreCell.registration()
         let posters = TVPosterCell.registration()
         let landscapes = TVLandscapeCell.registration()
-        let top = UICollectionView.CellRegistration<TVSearchTopResultCell, PlexMetadata> { [weak self] cell, _, item in
-            guard let self else { return }
-            cell.contentConfiguration = self.topResultConfiguration(for: item)
+        let top = TVHostCell.registration { [weak self] (item: PlexMetadata) -> UIView in
+            self?.topResultView(for: item) ?? UIView()
         }
 
         dataSource = DataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, item in
@@ -264,6 +246,7 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
                 return collectionView.dequeueConfiguredReusableCell(using: landscapes, for: indexPath, item: card)
             }
         }
+        adopt(dataSource)
 
         let headers = TVSectionHeaderView.registration { [weak self] indexPath in
             guard let title = self?.section(at: indexPath.section)?.title else { return nil }
@@ -277,11 +260,28 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
     private func chip(for item: TVSearchItem) -> TVChipItem? {
         switch item {
         case .scope(let chipScope):
-            return TVChipItem(id: "scope.\(chipScope.rawValue)", title: chipScope.title, isSelected: chipScope == scope)
+            return TVChipItem(
+                id: "scope.\(chipScope.rawValue)",
+                title: chipScope.title,
+                isSelected: chipScope == scope,
+                accessibilityHint: "Filters the results"
+            )
         case .recent(let query):
-            return TVChipItem(id: "recent.\(query)", title: query, symbol: "clock.arrow.circlepath")
+            return TVChipItem(
+                id: "recent.\(query)",
+                title: query,
+                symbol: "clock.arrow.circlepath",
+                accessibilityLabel: "Recent search, \(query)",
+                accessibilityHint: "Searches again"
+            )
         case .clearRecents:
-            return TVChipItem(id: "recent.clear", title: "Clear", symbol: "xmark")
+            return TVChipItem(
+                id: "recent.clear",
+                title: SearchCopy.clearRecents,
+                symbol: "xmark",
+                accessibilityLabel: "Clear recent searches",
+                accessibilityHint: "Removes every recent search"
+            )
         default:
             return nil
         }
@@ -310,25 +310,21 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         return UIMenu(children: [remove])
     }
 
-    private func topResultConfiguration(for item: PlexMetadata) -> TVSearchTopResultConfiguration {
+    private func topResultView(for item: PlexMetadata) -> UIView {
         let model = SearchTopResultModel(item: item)
-        var config = TVSearchTopResultConfiguration()
-        config.posterPath = model.posterPath
-        config.placeholderSymbol = model.placeholderIcon
-        config.title = model.title
-        config.meta = model.meta
-        config.query = resultsQuery
-        config.playTitle = model.canPlay ? SearchItemActions.playTitle(for: item) : nil
-        config.openTitle = Self.openTitle(for: item)
-        config.onPlay = { [weak self] in
-            self?.session.rememberCurrentQuery()
-            self?.play(item)
-        }
-        config.onOpen = { [weak self] in
-            self?.session.rememberCurrentQuery()
-            self?.open(item)
-        }
-        return config
+        return TVSearchTopResultView(
+            card: TVSearchCards.topResult(item, query: resultsQuery),
+            playTitle: model.canPlay ? SearchItemActions.playTitle(for: item) : nil,
+            openTitle: Self.openTitle(for: item),
+            onPlay: { [weak self] in
+                self?.session.rememberCurrentQuery()
+                self?.play(item)
+            },
+            onOpen: { [weak self] in
+                self?.session.rememberCurrentQuery()
+                self?.open(item)
+            }
+        )
     }
 
     private static func openTitle(for item: PlexMetadata) -> String {
@@ -343,7 +339,7 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
         case .genre(let genre):
-            navigator?.pushViewController(TVGenreBrowseViewController(env: env, genre: genre), animated: true)
+            TVNavigation.push(TVGenreBrowseViewController(env: env, genre: genre), from: navigator)
         case .recentlyAdded(let metadata):
             open(metadata)
         case .movie(let metadata), .show(let metadata), .episode(let metadata):
@@ -372,16 +368,16 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         return TVContextMenu.configuration(menu: menu)
     }
 
-    private func playFocused(at indexPath: IndexPath) {
-        guard let metadata = dataSource.itemIdentifier(for: indexPath)?.metadata, SearchItemActions.isPlayable(metadata) else { return }
-        if dataSource.itemIdentifier(for: indexPath)?.isSearchResult == true {
+    override func playFocused(at indexPath: IndexPath) -> Bool {
+        guard let item = dataSource.itemIdentifier(for: indexPath),
+              let metadata = item.metadata,
+              SearchItemActions.isPlayable(metadata)
+        else { return false }
+        if item.isSearchResult {
             session.rememberCurrentQuery()
         }
         play(metadata)
-    }
-
-    private var navigator: UINavigationController? {
-        host?.navigationController ?? navigationController
+        return true
     }
 
     private func open(_ item: PlexMetadata) {
@@ -394,29 +390,45 @@ final class TVSearchResultsViewController: UIViewController, UISearchResultsUpda
         case .episode(let ratingKey, _, _):
             screen = TVScreens.movieDetail(env, ratingKey: ratingKey, mediaType: "episode")
         }
-        navigator?.pushViewController(screen, animated: true)
+        TVNavigation.push(screen, from: navigator)
     }
 
     private func openShow(_ showKey: String) {
-        navigator?.pushViewController(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), animated: true)
+        TVNavigation.push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), from: navigator)
     }
 
     private func play(_ item: PlexMetadata) {
-        TVScreens.play(env, request: TVPlaybackRequest(item: item), from: tabBarController ?? host ?? self)
+        TVScreens.play(env, request: TVPlaybackRequest(item: item), from: presenter)
     }
 
+    /// Shows the new watched state at once and tells the server; if the server refuses, the card goes
+    /// back to what it showed and an alert says so. A second toggle of the same title waits for the first.
     private func toggleWatched(_ item: PlexMetadata) {
-        let watched = !(watchedOverrides[item.id] ?? item.isWatched)
-        watchedOverrides[item.id] = watched
-        reconfigure(item)
-        let api = env.api
         let ratingKey = item.id
-        Task { await SearchItemActions.setWatched(watched, ratingKey: ratingKey, api: api) }
+        guard pendingWatched.insert(ratingKey).inserted else { return }
+        let previous = watchedOverrides[ratingKey]
+        let watched = !(previous ?? item.isWatched)
+        watchedOverrides[ratingKey] = watched
+        reconfigure(ratingKey)
+        let api = env.api
+        Task { [weak self] in
+            do {
+                try await WatchedService.setWatched(watched, ratingKey: ratingKey, api: api)
+                self?.pendingWatched.remove(ratingKey)
+            } catch {
+                guard let self else { return }
+                pendingWatched.remove(ratingKey)
+                watchedOverrides[ratingKey] = previous
+                reconfigure(ratingKey)
+                presenter.presentAlert(title: SearchCopy.watchedFailureTitle(watched: watched), message: error.localizedDescription)
+            }
+        }
     }
 
-    private func reconfigure(_ item: PlexMetadata) {
+    private func reconfigure(_ ratingKey: String) {
         var snapshot = dataSource.snapshot()
-        let affected = snapshot.itemIdentifiers.filter { $0.metadata?.id == item.id }
+        let affected = snapshot.itemIdentifiers.filter { $0.metadata?.id == ratingKey }
+        guard !affected.isEmpty else { return }
         snapshot.reconfigureItems(affected)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
