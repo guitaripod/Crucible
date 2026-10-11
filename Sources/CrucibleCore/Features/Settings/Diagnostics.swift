@@ -75,12 +75,17 @@ package struct LogTail: Equatable, Sendable {
         }.value
     }
 
+    /// Whether `line` was logged at error or fault level.
+    package static func isError(_ line: String) -> Bool {
+        line.contains("[ERROR]") || line.contains("[FAULT]")
+    }
+
     /// Previous log first, then the current one, so a log that just rotated still shows context.
     static func read(files: LogFiles, maxLines: Int) -> LogTail {
         let previous = (try? String(contentsOf: files.previous, encoding: .utf8)) ?? ""
         let current = (try? String(contentsOf: files.current, encoding: .utf8)) ?? ""
         let all = (previous + "\n" + current).split(whereSeparator: \.isNewline).map(String.init)
-        let errors = all.filter { $0.contains("[ERROR]") || $0.contains("[FAULT]") }.count
+        let errors = all.filter(isError).count
         return LogTail(
             lines: Array(all.suffix(max(0, maxLines))),
             totalLineCount: all.count,

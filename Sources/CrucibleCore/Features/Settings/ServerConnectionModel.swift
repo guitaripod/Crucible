@@ -69,7 +69,7 @@ package final class ServerConnectionModel {
         if !known.contains(active) {
             known.insert(active, at: 0)
         }
-        routes = known
+        routes = known.uniqued(by: \.self)
     }
 
     deinit { probeTask?.cancel() }
