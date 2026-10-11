@@ -56,6 +56,15 @@ Dependencies only point downward. Core never imports UIKit, AVFoundation, MediaP
 - Sign-in uses the Plex PIN flow (code at plex.tv/link plus a QR for the strong PIN). Top Shelf shows Continue Watching and Up Next from a small snapshot in the App Group.
 - tvOS has no persistent app storage: `AppPlatform.persistentDirectory` is Caches there, so the statistics mirror and Home snapshot are rebuilt from the server if the system purges them.
 
+## tvOS design system
+
+`Sources/CrucibleTV/DesignSystem` is the only place that decides how an Apple TV screen looks and behaves under focus; feature folders only arrange its pieces.
+
+- **Foundation.** `TVMetrics` (columns, tab bar clearance, hero, focus lift numbers), `TVFont` (type recipes), `TVMotion` (animation that honours Reduce Motion and the UI-test switch, pulsing), `TVStatusDot`, the image pipeline.
+- **Content.** Cards on `adjustsImageWhenAncestorFocused`, shelf layouts, `TVHeroInfoView`, `TVBackdropView`, `TVArtworkView`, `TVScreenTitleView`, `TVChipRow`, `TVStatusRow`, `TVButton` recipes, `MonogramView` (shared with the iPhone).
+- **Screen host.** `TVScreenViewController` owns the collection view, the loading/empty/error `TVStateView` and the focus rules: identifier-keyed focus memory, an anchor that holds focus while a screen loads, `playFocused(at:)` for Play/Pause, task slots cancelled on disappear. `TVNavigation` guards pushes, `TVHostCell` hosts any view in a cell, `TVFocusableSurface` sends Select exactly once, `TVReadOnlyPanel` makes read-only information reachable with VoiceOver.
+- **Rules.** Menu while a pushed screen loads pops it. Every alert goes through `presentAlert` or `presentConfirmation`, because tvOS dismisses an alert with Menu only when it has a cancel action. Sizes, fonts and clearances come from tokens, never from literals in a screen. Nothing branches on the platform or the OS version outside `Glass`. Every new piece gets an entry in the debug gallery (`CRUCIBLE_GALLERY=1`) with a UI test.
+
 ## Building and testing
 
 The Linux box has no Apple SDK for the app targets; the Mac is the build host.
@@ -69,6 +78,13 @@ marketing/shots/run.sh      # iPhone screenshot harness, also the iPhone visual 
 ```
 
 `NAME=<id>` isolates a remote checkout, simulator and mock port so several people (or agents) can work at once. The iPhone app is still packaged and signed with `xtool` from Linux (`scripts/install-ios.sh`); the tvOS app is built with Xcode from the XcodeGen project in `tv/`, because xtool does not support tvOS. The manifest only declares the tvOS targets when it is evaluated on macOS, so the Linux/xtool graph is unchanged.
+
+### Tests
+
+- Core and statistics logic: Swift Testing in `Tests/CrucibleCoreTests`, run on the macOS host (`scripts/mac.sh core-test`).
+- Apple TV screens: XCUITest through the real focus engine (`XCUIRemote`) against the mock Plex server in `marketing/mock`, with screenshots exported to `tv/out/ui`. A test states the mock it needs with `TVTest.launch(mock: [...])`; every launch first resets the mock, so a test never inherits another's state, and a single run executes every test.
+- DEBUG launch switches for simulator work: `CRUCIBLE_MOCK` (connect to the mock), `CRUCIBLE_FRESH` (first launch), `CRUCIBLE_OPEN` and `CRUCIBLE_OPEN_LINK` (start on a screen or a deep link), `CRUCIBLE_STYLE=light|dark`, `CRUCIBLE_MODEL_IDENTIFIER=AppleTV6,2` (render the classic look on a glass-capable simulator), `CRUCIBLE_VOICEOVER=1` (VoiceOver focus stops without VoiceOver), `CRUCIBLE_GALLERY` (the design-system gallery).
+- iPhone regression: `marketing/shots/run.sh` captures the app against the mock; run it on a baseline checkout and on the working tree with the same simulator and compare the images.
 
 ## Security notes
 
