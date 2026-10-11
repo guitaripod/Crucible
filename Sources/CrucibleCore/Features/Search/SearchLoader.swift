@@ -73,19 +73,25 @@ package struct SearchLoader: Sendable {
             .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
+    /// One page of a genre's titles in one library section, in the server's title order, with the
+    /// section's total for that genre.
+    package func genrePage(source: GenreSource, start: Int, size: Int) async throws -> (items: [PlexMetadata], total: Int?) {
+        let container = try await fetch(
+            .sectionItems(sectionId: source.sectionId, sort: "titleSort:asc", genre: source.key, start: start, size: size)
+        )
+        return (container.Metadata ?? [], container.totalSize)
+    }
+
     private func allItems(source: GenreSource) async throws -> [PlexMetadata] {
         var collected = [PlexMetadata]()
         var start = 0
         while start < Self.maxItemsPerSource {
             try Task.checkCancellation()
-            let container = try await fetch(
-                .sectionItems(sectionId: source.sectionId, sort: "titleSort:asc", genre: source.key, start: start, size: Self.pageSize)
-            )
-            let page = container.Metadata ?? []
-            collected.append(contentsOf: page)
-            let total = container.totalSize ?? 0
+            let page = try await genrePage(source: source, start: start, size: Self.pageSize)
+            collected.append(contentsOf: page.items)
+            let total = page.total ?? 0
             start += Self.pageSize
-            if page.count < Self.pageSize || (total > 0 && start >= total) { break }
+            if page.items.count < Self.pageSize || (total > 0 && start >= total) { break }
         }
         return collected
     }
