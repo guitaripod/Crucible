@@ -150,6 +150,7 @@ package struct StatsMetrics: Sendable {
         package var cardStackSpacing: CGFloat
         package var cardShadowRadius: CGFloat
         package var cardShadowOffset: CGFloat
+        package var labelShadowOpacity: CGFloat
         package var titleFont: StatsFont
         package var episodesFont: StatsFont
         package var captionFont: StatsFont
@@ -288,6 +289,7 @@ package struct StatsMetrics: Sendable {
             cardStackSpacing: 2,
             cardShadowRadius: 6,
             cardShadowOffset: 2,
+            labelShadowOpacity: 0.25,
             titleFont: .fixed(size: 15, weight: .semibold),
             episodesFont: .rounded(size: 20, weight: .bold),
             captionFont: .fixed(size: 11, weight: .medium)
@@ -394,6 +396,7 @@ package struct StatsMetrics: Sendable {
             cardStackSpacing: 4,
             cardShadowRadius: 14,
             cardShadowOffset: 4,
+            labelShadowOpacity: 0.55,
             titleFont: .fixed(size: 31, weight: .semibold),
             episodesFont: .rounded(size: 52, weight: .bold),
             captionFont: .fixed(size: 25, weight: .medium)

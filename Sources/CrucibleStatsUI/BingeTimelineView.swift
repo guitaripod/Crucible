@@ -199,7 +199,7 @@ package final class BingeCardView: UIView {
         captionLabel.isHidden = captionText.isEmpty
 
         for label in [titleLabel, epsLabel, captionLabel] {
-            label.shadowColor = UIColor.black.withAlphaComponent(0.25)
+            label.shadowColor = UIColor.black.withAlphaComponent(metrics.labelShadowOpacity)
             label.shadowOffset = CGSize(width: 0, height: 1)
             label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
             label.setContentHuggingPriority(.defaultLow, for: .horizontal)
