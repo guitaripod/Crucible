@@ -33,7 +33,10 @@ sync_tree() {
 }
 
 summarize() {
-  grep -E "error:|BUILD (SUCCEEDED|FAILED)|Test run|Test .* (passed|failed)|Executed [0-9]+ tests" | sed -E 's#/Users/[^/]+/Dev/ios/[^/]+/##' | head -${LINES_MAX:-60}
+  grep -E "error:|BUILD (SUCCEEDED|FAILED)|Test run with|Test .* failed|✘" \
+    | sed -E 's#/Users/[^/]+/Dev/ios/[^/]+/##' \
+    | awk '!seen[$0]++' \
+    | head -${LINES_MAX:-60}
 }
 
 xcode_build() {
