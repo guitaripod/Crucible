@@ -106,8 +106,14 @@ package struct PlaybackRequest: Sendable {
         )
     }
 
-    /// The same request starting at `position`, for a retry that should continue where playback stopped.
-    package func resuming(at position: Double) -> PlaybackRequest {
+    /// The same request starting at `position`, for a retry that should continue where playback
+    /// stopped. The audio and subtitle streams default to the ones this request chose; pass the ones
+    /// the viewer switched to since.
+    package func resuming(
+        at position: Double,
+        selectedSubtitleId: Int?? = nil,
+        selectedAudioStreamId: Int?? = nil
+    ) -> PlaybackRequest {
         PlaybackRequest(
             ratingKey: ratingKey,
             mediaType: mediaType,
@@ -115,8 +121,8 @@ package struct PlaybackRequest: Sendable {
             seasonRatingKey: seasonRatingKey,
             resumePosition: position,
             metadata: metadata,
-            selectedSubtitleId: selectedSubtitleId,
-            selectedAudioStreamId: selectedAudioStreamId,
+            selectedSubtitleId: selectedSubtitleId ?? self.selectedSubtitleId,
+            selectedAudioStreamId: selectedAudioStreamId ?? self.selectedAudioStreamId,
             offline: offline
         )
     }

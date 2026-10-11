@@ -75,6 +75,16 @@ package final class PlaybackReporter {
         }
     }
 
+    /// Reports `state` ("paused", for instance) at the current position right away.
+    package func send(state: String) async {
+        guard let player,
+              let position = StreamPosition.absolute(
+                playerSeconds: player.currentTime().seconds,
+                streamOffset: streamOffset.withLock { $0 }
+              ) else { return }
+        await Self.report(api: api, ratingKey: ratingKey, state: state, timeMs: Int(position * 1000), durationMs: durationMs)
+    }
+
     private func sendFinalPosition() async {
         guard let player,
               let position = StreamPosition.absolute(

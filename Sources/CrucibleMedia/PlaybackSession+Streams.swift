@@ -22,6 +22,7 @@ extension PlaybackSession {
         isChangingStreams = true
         defer { isChangingStreams = false }
         let position = absolutePosition ?? request.resumePosition
+        let wasPlaying = player.rate > 0
         let resolved = try await StreamResolver.resolve(
             api: api,
             ratingKey: request.ratingKey,
@@ -38,7 +39,11 @@ extension PlaybackSession {
         selectedAudioStreamId = audioStreamId
         stream = resolved
         streamOffset = ResumeStrategy.streamOffset(resumePosition: position, isDirectPlay: resolved.isDirectPlay)
-        lastPlayhead = 0
+        lastPlayhead = resolved.isDirectPlay ? position : 0
+        isRestarting = false
+        pendingRestartTarget = nil
+        restartItemObserver?.invalidate()
+        restartItemObserver = nil
         reporter?.setStreamOffset(streamOffset)
         if resolved.isDirectPlay {
             pingTask?.cancel()
@@ -50,6 +55,6 @@ extension PlaybackSession {
         configureItem?(item)
         player.replaceCurrentItem(with: item)
         watchCurrentItem()
-        startPlayback(player: player, stream: resolved, resumePosition: position)
+        startPlayback(player: player, stream: resolved, resumePosition: position, autoplay: wasPlaying)
     }
 }

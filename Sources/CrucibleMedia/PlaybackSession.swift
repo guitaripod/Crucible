@@ -42,7 +42,9 @@ package final class PlaybackSession {
     var lastPlayhead: Double = 0
     var isRestarting = false
     var pendingRestartTarget: Double?
-    var upNextReason: UpNextOffer.Reason?
+    var restartResumesPlayback = true
+    var upNextGate = UpNextLookupGate()
+    let installsRemoteCommands: Bool
     var isChangingStreams = false
     var isStopped = false
     var isUpNextVisible = false
@@ -52,9 +54,12 @@ package final class PlaybackSession {
     var upNextTask: Task<Void, Never>?
     var fallbackTask: Task<Void, Never>?
 
-    package init(api: APIClient, request: PlaybackRequest) {
+    /// `installsRemoteCommands` is false for a player whose system UI already owns the remote
+    /// commands (the tvOS player): a second set of handlers would double-toggle play and pause.
+    package init(api: APIClient, request: PlaybackRequest, installsRemoteCommands: Bool = true) {
         self.api = api
         self.request = request
+        self.installsRemoteCommands = installsRemoteCommands
         selectedSubtitleId = request.selectedSubtitleId
         selectedAudioStreamId = request.selectedAudioStreamId
         let pair = AsyncStream.makeStream(of: PlaybackEvent.self)
@@ -139,12 +144,12 @@ package final class PlaybackSession {
             seasonRatingKey: request.seasonRatingKey,
             markers: stream.markers
         )
-        configureRemoteCommands()
+        if installsRemoteCommands { configureRemoteCommands() }
         if !stream.isDirectPlay { startPing(session: stream.sessionId) }
         observeInterruptions()
         observePlayhead(of: player)
         watchCurrentItem()
-        startPlayback(player: player, stream: stream, resumePosition: request.resumePosition)
+        startPlayback(player: player, stream: stream, resumePosition: request.resumePosition, autoplay: true)
         return player
     }
 
@@ -166,9 +171,9 @@ package final class PlaybackSession {
         offlineResumeObserver?.invalidate()
         offlineResumeObserver = nil
 
+        await invalidateCaches()
         await reporter?.stop()
         reporter = nil
-        await invalidateCaches()
         removePlayheadObservers()
         await stopTranscodeIfNeeded()
 

@@ -24,7 +24,7 @@ extension PlaybackSession {
     }
 
     private func handleJump() {
-        guard !isRestarting, let item = player?.currentItem else { return }
+        guard let item = player?.currentItem else { return }
         let now = item.currentTime().seconds
         guard now.isFinite else { return }
         let previous = lastPlayhead
@@ -91,13 +91,14 @@ extension PlaybackSession {
 
     /// Restarts the transcode at a new absolute offset under the same session: the server re-keys the
     /// encode and the new item replaces the old one once built.
-    func restartTranscode(atAbsolute target: Double) {
+    func restartTranscode(atAbsolute target: Double, resumesPlayback: Bool = true) {
         guard let stream, player != nil, !isStopped else { return }
         guard !isRestarting else {
             pendingRestartTarget = target
             return
         }
         isRestarting = true
+        restartResumesPlayback = resumesPlayback
         Task { [weak self] in
             guard let self else { return }
             let url = await StreamResolver.transcodeRestartURL(
@@ -138,7 +139,7 @@ extension PlaybackSession {
     }
 
     private func finishRestart(ready: Bool) {
-        if ready { player?.play() }
+        if ready, restartResumesPlayback { player?.play() }
         isRestarting = false
         restartItemObserver?.invalidate()
         restartItemObserver = nil

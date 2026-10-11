@@ -34,16 +34,17 @@ extension PlaybackSession {
         loadUpNext(reason: .requested)
     }
 
-    func startPlayback(player: AVPlayer, stream: ResolvedStream, resumePosition: Double) {
+    func startPlayback(player: AVPlayer, stream: ResolvedStream, resumePosition: Double, autoplay: Bool) {
         switch ResumeStrategy.make(
             resumePosition: resumePosition,
             isDirectPlay: stream.isDirectPlay,
             isOffline: request.offline != nil
         ) {
         case .none:
-            player.play()
+            if autoplay { player.play() }
         case .seekExact(let position):
             player.seek(to: CMTime(seconds: position, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
+                guard autoplay else { return }
                 Task { @MainActor in self?.player?.play() }
             }
         case .seekWhenReady(let position):
@@ -152,12 +153,12 @@ extension PlaybackSession {
             if reason == .playbackEnded { emit(.finished(.standalone)) }
             return
         }
-        if upNextReason == .playbackEnded, reason != .playbackEnded { return }
+        guard upNextGate.begin(reason) else { return }
         upNextTask?.cancel()
-        upNextReason = reason
         let resolver = upNext
         upNextTask = Task { [weak self] in
             guard let self else { return }
+            defer { if !Task.isCancelled { upNextGate.end(reason) } }
             let offer: UpNextOffer?
             do {
                 offer = try await resolver.loadOffer(api: api, reason: reason)
