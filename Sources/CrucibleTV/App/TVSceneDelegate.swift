@@ -14,6 +14,9 @@ final class TVSceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         window.tintColor = Theme.Color.accent
         window.backgroundColor = CrystalGlyphView.canvas
+        #if DEBUG
+        TVDebugSession.applyAppearance(to: window)
+        #endif
         self.window = window
         window.makeKeyAndVisible()
 

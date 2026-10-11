@@ -235,6 +235,10 @@ uitest() {
   if mock_alive; then
     mock_env="TEST_RUNNER_CRUCIBLE_MOCK=http://127.0.0.1:$MOCK_PORT"
   fi
+  local var
+  for var in $(compgen -e | grep '^CRUCIBLE_' | grep -vx 'CRUCIBLE_MOCK'); do
+    mock_env+=$(printf ' TEST_RUNNER_%s=%q' "$var" "${!var}")
+  done
   local extra="-resultBundlePath .tvlogs/uitest.xcresult"
   [[ -z $only ]] || extra+=" -only-testing:CrucibleTVUITests/$only"
   remote "rm -rf .tvlogs/uitest.xcresult .tvlogs/attachments"
