@@ -12,4 +12,15 @@ struct AppPlatformTests {
         #expect(FileManager.default.fileExists(atPath: AppPlatform.persistentDirectory.path, isDirectory: &isDirectory))
         #expect(isDirectory.boolValue)
     }
+
+    @Test func logsDirectoryIsNamedLogsUnderTheLibraryOrCaches() {
+        let directory = AppPlatform.logsDirectory
+        #expect(directory.lastPathComponent == "Logs")
+        let parent = directory.deletingLastPathComponent().lastPathComponent
+        #expect(parent == (AppPlatform.isTV ? "Caches" : "Library"))
+    }
+
+    @Test func fallbackDeviceNameMatchesPlatform() {
+        #expect(AppPlatform.fallbackDeviceName == (AppPlatform.isTV ? "Apple TV" : "iPhone"))
+    }
 }

@@ -138,7 +138,7 @@ package enum StreamResolver {
         )
     }
 
-    private static func isDirectPlayable(container: String?, videoCodec: String?, audioCodec: String?) -> Bool {
+    static func isDirectPlayable(container: String?, videoCodec: String?, audioCodec: String?) -> Bool {
         guard let container, directPlayContainers.contains(container) else { return false }
         guard let videoCodec = videoCodec?.lowercased(), directPlayVideoCodecs.contains(videoCodec) else { return false }
         guard let audioCodec = audioCodec?.lowercased(), directPlayAudioCodecs.contains(audioCodec) else { return false }
@@ -176,7 +176,7 @@ package enum StreamResolver {
         }
     }
 
-    private static func transcodeURL(
+    static func transcodeURL(
         baseURL: URL,
         token: String,
         ratingKey: String,
