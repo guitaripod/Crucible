@@ -72,7 +72,7 @@ final class TVAppCoordinator: TVSessionActions {
             guard let presenter else { return }
             presenter.dismiss(animated: true) { self?.reconnect() }
         }
-        let navigation = Self.navigationController(root: onboarding)
+        let navigation = TVNavigation.makeNavigationController(root: onboarding)
         navigation.modalPresentationStyle = .fullScreen
         presenter.present(navigation, animated: true)
     }
@@ -175,7 +175,7 @@ final class TVAppCoordinator: TVSessionActions {
             self?.launch(connection: connection)
         }
         window.backgroundColor = Theme.Color.canvas
-        window.rootViewController = Self.navigationController(root: onboarding)
+        window.rootViewController = TVNavigation.makeNavigationController(root: onboarding)
     }
 
     private var topViewController: UIViewController? {
@@ -184,11 +184,5 @@ final class TVAppCoordinator: TVSessionActions {
             top = presented
         }
         return top
-    }
-
-    private static func navigationController(root: UIViewController) -> UINavigationController {
-        let navigation = UINavigationController(rootViewController: root)
-        navigation.setNavigationBarHidden(true, animated: false)
-        return navigation
     }
 }

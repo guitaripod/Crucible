@@ -2,8 +2,8 @@ import CrucibleDesign
 import UIKit
 
 /// Full-screen gate shown from the first frame until the main UI is fully loaded: the crystal
-/// glyph and a status line while the launch pipeline runs, a failure panel with Try Again and
-/// Switch Server when it cannot reach the server.
+/// glyph and a status line while the launch pipeline runs, and the system-style error state with
+/// its two actions when the server cannot be reached or the Plex sign-in expired.
 final class TVLaunchViewController: UIViewController {
     var onRetry: (() -> Void)?
     var onSwitchServer: (() -> Void)?
@@ -11,27 +11,15 @@ final class TVLaunchViewController: UIViewController {
     var onSignOut: (() -> Void)?
 
     private static let glyphSide: CGFloat = 300
-    private static let messageWidth: CGFloat = 900
 
     private let glyph = CrystalGlyphView()
-    private let spinner = UIActivityIndicatorView(style: .large)
-    private let statusLabel = UILabel()
-    private let statusRow = UIStackView()
-    private let failureTitleLabel = UILabel()
-    private let failureMessageLabel = UILabel()
-    private let retryButton = UIButton(configuration: .plain())
-    private let switchButton = UIButton(configuration: .plain())
-    private let signInButton = UIButton(configuration: .plain())
-    private let signOutButton = UIButton(configuration: .plain())
-    private let reachButtons = UIStackView()
-    private let expiredButtons = UIStackView()
-    private var isSignInExpired = false
-    private let failurePanel = UIStackView()
+    private let statusRow = TVStatusRow()
+    private let loadingStack = UIStackView()
+    private let stateView = TVStateView()
     private var isShowingFailure = false
 
     override var preferredFocusEnvironments: [any UIFocusEnvironment] {
-        guard isShowingFailure else { return [] }
-        return [isSignInExpired ? signInButton : retryButton]
+        isShowingFailure ? [stateView] : []
     }
 
     override func viewDidLoad() {
@@ -54,7 +42,7 @@ final class TVLaunchViewController: UIViewController {
     }
 
     /// Updates the status line of a pipeline that is still running; a late progress report must
-    /// never replace a failure panel that is already showing.
+    /// never replace a failure that is already showing.
     func showProgress(_ status: String) {
         guard !isShowingFailure else { return }
         showLoading(status: status)
@@ -62,13 +50,9 @@ final class TVLaunchViewController: UIViewController {
 
     func showLoading(status: String) {
         isShowingFailure = false
-        isSignInExpired = false
-        reachButtons.isHidden = false
-        expiredButtons.isHidden = true
-        statusLabel.text = status
-        spinner.startAnimating()
-        statusRow.isHidden = false
-        failurePanel.isHidden = true
+        statusRow.show(status, isBusy: true)
+        loadingStack.isHidden = false
+        stateView.isHidden = true
         glyph.setDimmed(false)
         applyAmbientAnimation()
     }
@@ -76,46 +60,52 @@ final class TVLaunchViewController: UIViewController {
     /// The saved Plex sign-in is no longer accepted: the way forward is to sign in again, or to
     /// sign out, not to retry.
     func showSignInExpired() {
-        showFailure(title: "Your Plex sign-in expired", message: "Sign in again to keep using Crucible, or sign out to remove this account from this Apple TV.")
-        isSignInExpired = true
-        reachButtons.isHidden = true
-        expiredButtons.isHidden = false
-        setNeedsFocusUpdate()
-        updateFocusIfNeeded()
+        show(.error(
+            title: "Your Plex sign-in expired",
+            message: "Sign in again to keep using Crucible, or sign out to remove this account from this Apple TV.",
+            retryTitle: "Sign In Again",
+            retry: { [weak self] in self?.onSignInAgain?() },
+            secondary: TVStateView.Action(title: "Sign Out") { [weak self] in self?.onSignOut?() }
+        ))
     }
 
     func showFailure(title: String, message: String) {
-        isShowingFailure = true
-        isSignInExpired = false
-        reachButtons.isHidden = false
-        expiredButtons.isHidden = true
-        spinner.stopAnimating()
-        statusRow.isHidden = true
-        failureTitleLabel.text = title
-        failureMessageLabel.text = message
-        failurePanel.isHidden = false
-        glyph.setDimmed(true)
-        setNeedsFocusUpdate()
-        updateFocusIfNeeded()
-        UIAccessibility.post(notification: .screenChanged, argument: failureMessageLabel)
+        show(.error(
+            title: title,
+            message: message,
+            retryTitle: "Try Again",
+            retry: { [weak self] in self?.onRetry?() },
+            secondary: TVStateView.Action(title: "Switch Server") { [weak self] in self?.onSwitchServer?() }
+        ))
     }
 
     /// Flares the crystal before the cross-dissolve so the hand-off reads as ignition rather than a
     /// cut; with Reduce Motion the hand-off is immediate.
     func playSuccess(completion: @escaping () -> Void) {
-        spinner.stopAnimating()
-        guard !UIAccessibility.isReduceMotionEnabled else {
+        statusRow.show(nil)
+        guard TVMotion.animationsEnabled else {
             completion()
             return
         }
         glyph.flare(completion: completion)
     }
 
+    private func show(_ state: TVStateView.State) {
+        isShowingFailure = true
+        statusRow.show(nil)
+        loadingStack.isHidden = true
+        stateView.show(state)
+        stateView.isHidden = false
+        glyph.stopBreathing()
+        view.layoutIfNeeded()
+        setNeedsFocusUpdate()
+        updateFocusIfNeeded()
+    }
+
     /// The glyph's breathing is decoration: it stays off under Reduce Motion and in UI tests, where
     /// an endless animation would keep the test runner from ever seeing the app idle.
     private func applyAmbientAnimation() {
-        let allowed = !UIAccessibility.isReduceMotionEnabled && !TVDebugSession.disablesAmbientAnimation
-        if allowed && !isShowingFailure && glyph.window != nil {
+        if TVMotion.ambientAllowed && !isShowingFailure && glyph.window != nil {
             glyph.startBreathing()
         } else {
             glyph.stopBreathing()
@@ -146,98 +136,31 @@ final class TVLaunchViewController: UIViewController {
         glyph.accessibilityLabel = "Crucible"
         glyph.accessibilityTraits = .image
 
-        statusLabel.font = Theme.Font.callout
-        statusLabel.textColor = Theme.Color.onArtSecondary
-        statusLabel.textAlignment = .center
-        statusLabel.numberOfLines = 2
-        spinner.color = Theme.Color.onArtSecondary
-        spinner.hidesWhenStopped = true
-        statusRow.axis = .horizontal
-        statusRow.alignment = .center
-        statusRow.spacing = Theme.Space.m
-        statusRow.addArrangedSubview(spinner)
-        statusRow.addArrangedSubview(statusLabel)
+        loadingStack.axis = .vertical
+        loadingStack.alignment = .center
+        loadingStack.spacing = Theme.Space.l
+        loadingStack.addArrangedSubview(glyph)
+        loadingStack.addArrangedSubview(statusRow)
+        loadingStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(loadingStack)
 
-        failureTitleLabel.font = Theme.Font.title2
-        failureTitleLabel.textColor = Theme.Color.onArt
-        failureTitleLabel.textAlignment = .center
-        failureTitleLabel.numberOfLines = 2
-        failureTitleLabel.accessibilityTraits = .header
-        failureMessageLabel.font = Theme.Font.callout
-        failureMessageLabel.textColor = Theme.Color.onArtSecondary
-        failureMessageLabel.textAlignment = .center
-        failureMessageLabel.numberOfLines = 0
-
-        retryButton.configuration = Self.buttonConfiguration(title: "Try Again", symbol: "arrow.clockwise", isPrimary: true)
-        retryButton.accessibilityIdentifier = "launch.retry"
-        retryButton.addAction(UIAction { [weak self] _ in self?.onRetry?() }, for: .primaryActionTriggered)
-        switchButton.configuration = Self.buttonConfiguration(title: "Switch Server", symbol: "arrow.left.arrow.right", isPrimary: false)
-        switchButton.accessibilityIdentifier = "launch.switchServer"
-        switchButton.addAction(UIAction { [weak self] _ in self?.onSwitchServer?() }, for: .primaryActionTriggered)
-
-        signInButton.configuration = Self.buttonConfiguration(title: "Sign In Again", symbol: "person.crop.circle", isPrimary: true)
-        signInButton.accessibilityIdentifier = "launch.signInAgain"
-        signInButton.addAction(UIAction { [weak self] _ in self?.onSignInAgain?() }, for: .primaryActionTriggered)
-        signOutButton.configuration = Self.buttonConfiguration(title: "Sign Out", symbol: "rectangle.portrait.and.arrow.right", isPrimary: false)
-        signOutButton.accessibilityIdentifier = "launch.signOut"
-        signOutButton.addAction(UIAction { [weak self] _ in self?.onSignOut?() }, for: .primaryActionTriggered)
-
-        for (stack, buttons) in [(reachButtons, [retryButton, switchButton]), (expiredButtons, [signInButton, signOutButton])] {
-            buttons.forEach(stack.addArrangedSubview)
-            stack.axis = .horizontal
-            stack.spacing = Theme.Space.m
-        }
-        expiredButtons.isHidden = true
-        let buttons = UIStackView(arrangedSubviews: [reachButtons, expiredButtons])
-        buttons.axis = .vertical
-
-        failurePanel.axis = .vertical
-        failurePanel.alignment = .center
-        failurePanel.spacing = Theme.Space.m
-        failurePanel.addArrangedSubview(failureTitleLabel)
-        failurePanel.addArrangedSubview(failureMessageLabel)
-        failurePanel.addArrangedSubview(buttons)
-        failurePanel.setCustomSpacing(Theme.Space.l, after: failureMessageLabel)
-
-        let stack = UIStackView(arrangedSubviews: [glyph, statusRow, failurePanel])
-        stack.axis = .vertical
-        stack.alignment = .center
-        stack.spacing = Theme.Space.l
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
+        stateView.translatesAutoresizingMaskIntoConstraints = false
+        stateView.isHidden = true
+        view.addSubview(stateView)
 
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
             glyph.widthAnchor.constraint(equalToConstant: Self.glyphSide),
             glyph.heightAnchor.constraint(equalToConstant: Self.glyphSide),
-            stack.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
-            stack.leadingAnchor.constraint(greaterThanOrEqualTo: guide.leadingAnchor),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: guide.trailingAnchor),
-            failureMessageLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Self.messageWidth),
-            statusLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Self.messageWidth),
+            loadingStack.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
+            loadingStack.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
+            loadingStack.leadingAnchor.constraint(greaterThanOrEqualTo: guide.leadingAnchor),
+            loadingStack.trailingAnchor.constraint(lessThanOrEqualTo: guide.trailingAnchor),
+            statusRow.widthAnchor.constraint(lessThanOrEqualToConstant: TVMetrics.Column.message),
+            stateView.topAnchor.constraint(equalTo: view.topAnchor),
+            stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
-    }
-
-    /// Glass for both buttons, because the focused prominent glass style is unreadable on tvOS 26;
-    /// without glass the primary action is filled with the ember accent.
-    private static func buttonConfiguration(title: String, symbol: String, isPrimary: Bool) -> UIButton.Configuration {
-        var configuration = Glass.glassButton {
-            var fallback = isPrimary ? UIButton.Configuration.filled() : UIButton.Configuration.gray()
-            fallback.baseBackgroundColor = isPrimary ? Theme.Color.accent : nil
-            fallback.baseForegroundColor = isPrimary ? Theme.Color.onAccent : Theme.Color.onArt
-            return fallback
-        }
-        configuration.title = title
-        configuration.image = UIImage(systemName: symbol)
-        configuration.imagePadding = Theme.Space.xs
-        configuration.cornerStyle = .capsule
-        configuration.buttonSize = .large
-        configuration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attributes in
-            var attributes = attributes
-            attributes.font = Theme.Font.buttonLabel
-            return attributes
-        }
-        return configuration
     }
 }

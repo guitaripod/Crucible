@@ -67,7 +67,7 @@ final class TVCodeTilesView: UIStackView {
             effectView.clipsToBounds = true
             addSubview(effectView)
 
-            label.font = UIFont.monospacedSystemFont(ofSize: 124, weight: .bold)
+            label.font = TVFont.mono(size: 124, weight: .bold)
             label.textColor = Theme.Color.label
             label.textAlignment = .center
             label.adjustsFontSizeToFitWidth = true

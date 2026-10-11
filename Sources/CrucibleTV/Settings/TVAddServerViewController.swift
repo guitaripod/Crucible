@@ -6,8 +6,6 @@ import UIKit
 /// the first one that answers `/identity` is pinned as the server, and the app reconnects to it.
 /// Connecting to a different server resets what was bound to the old one when the launch starts.
 final class TVAddServerViewController: UIViewController {
-    private static let fieldWidth: CGFloat = 1000
-
     private let env: TVAppEnvironment
     private let form = TVAddressForm(identifierPrefix: "addServer", layout: .leading, initialText: nil)
     private var connectTask: Task<Void, Never>?
@@ -47,7 +45,7 @@ final class TVAddServerViewController: UIViewController {
             heading.topAnchor.constraint(equalTo: view.topAnchor, constant: TVSettingsScaffold.Layout.contentTop),
             form.leadingAnchor.constraint(equalTo: heading.trailingAnchor, constant: TVSettingsScaffold.Layout.columnGap),
             form.topAnchor.constraint(equalTo: view.topAnchor, constant: TVSettingsScaffold.Layout.contentTop),
-            form.widthAnchor.constraint(equalToConstant: Self.fieldWidth),
+            form.widthAnchor.constraint(equalToConstant: TVMetrics.Column.form),
         ])
     }
 

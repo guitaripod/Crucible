@@ -14,7 +14,6 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case signInAgain
     }
 
-    private static let columnWidth: CGFloat = 1100
     private static let addAddressID = "action.addAddress"
     private static let retryID = "action.retry"
     private static let signInAgainID = "action.signInAgain"
@@ -31,8 +30,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     private var probeTasks: [Task<Void, Never>] = []
     private var connectTask: Task<Void, Never>?
 
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
+    private let titleView = TVScreenTitleView(clearsTabBar: false, column: TVMetrics.Column.wide)
     private let errorLabel = UILabel()
     private let headerStack = UIStackView()
     private let stateView = TVStateView()
@@ -232,15 +230,14 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         isConnecting = false
         rows = newRows
         errorLabel.isHidden = true
-        titleLabel.text = title
-        subtitleLabel.text = subtitle
+        titleView.configure(TVScreenTitleContent(title: title, detail: subtitle))
         stateView.isHidden = true
         collectionView.isHidden = false
         headerStack.isHidden = false
         applyRows(reload: true)
         setNeedsFocusUpdate()
         updateFocusIfNeeded()
-        UIAccessibility.post(notification: .screenChanged, argument: titleLabel)
+        UIAccessibility.post(notification: .screenChanged, argument: titleView)
     }
 
     private func setBusy(_ status: String) {
@@ -267,25 +264,14 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     }
 
     private func installHeader() {
-        titleLabel.font = Theme.Font.title2
-        titleLabel.textColor = Theme.Color.label
-        titleLabel.textAlignment = .center
-        titleLabel.numberOfLines = 2
-        titleLabel.accessibilityTraits = .header
-        subtitleLabel.font = Theme.Font.callout
-        subtitleLabel.textColor = Theme.Color.labelSecondary
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 3
         errorLabel.font = Theme.Font.callout
         errorLabel.textColor = Theme.Color.destructive
-        errorLabel.textAlignment = .center
         errorLabel.numberOfLines = 3
         errorLabel.isHidden = true
         errorLabel.accessibilityIdentifier = "onboarding.error"
 
         let header = headerStack
-        header.addArrangedSubview(titleLabel)
-        header.addArrangedSubview(subtitleLabel)
+        header.addArrangedSubview(titleView)
         header.addArrangedSubview(errorLabel)
         header.axis = .vertical
         header.alignment = .fill
@@ -296,7 +282,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         NSLayoutConstraint.activate([
             header.topAnchor.constraint(equalTo: guide.topAnchor, constant: Theme.Space.l),
             header.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
-            header.widthAnchor.constraint(equalToConstant: Self.columnWidth),
+            header.widthAnchor.constraint(equalToConstant: TVMetrics.Column.wide),
         ])
     }
 
@@ -311,7 +297,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
             collectionView.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: Theme.Space.m),
             collectionView.bottomAnchor.constraint(equalTo: guide.bottomAnchor),
             collectionView.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
-            collectionView.widthAnchor.constraint(equalToConstant: Self.columnWidth),
+            collectionView.widthAnchor.constraint(equalToConstant: TVMetrics.Column.wide),
         ])
     }
 

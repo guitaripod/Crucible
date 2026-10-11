@@ -103,8 +103,7 @@ final class TVRootTabBarController: UITabBarController {
 
     private func navigation(for entry: Entry) -> UINavigationController {
         if let existing = navigations[entry.identifier] { return existing }
-        let navigation = UINavigationController(rootViewController: entry.makeRoot())
-        navigation.setNavigationBarHidden(true, animated: false)
+        let navigation = TVNavigation.makeNavigationController(root: entry.makeRoot())
         navigations[entry.identifier] = navigation
         return navigation
     }

@@ -17,7 +17,7 @@ final class TVAddressForm: UIStackView {
 
     let textField = UITextField()
     private let errorLabel = UILabel()
-    private let statusLabel = UILabel()
+    private let statusRow = TVStatusRow()
     private lazy var connectButton = TVButton.make(.primary, title: "Connect") { [weak self] in
         self?.submit()
     }
@@ -32,11 +32,10 @@ final class TVAddressForm: UIStackView {
         configureField(identifierPrefix: identifierPrefix, layout: layout, initialText: initialText)
         configureLabels(identifierPrefix: identifierPrefix, layout: layout)
         connectButton.accessibilityIdentifier = "\(identifierPrefix).connect"
-        [textField, errorLabel, statusLabel, connectButton].forEach(addArrangedSubview)
+        [textField, errorLabel, statusRow, connectButton].forEach(addArrangedSubview)
         NSLayoutConstraint.activate([
             textField.widthAnchor.constraint(equalTo: widthAnchor),
             errorLabel.widthAnchor.constraint(equalTo: widthAnchor),
-            statusLabel.widthAnchor.constraint(equalTo: widthAnchor),
         ])
     }
 
@@ -51,8 +50,7 @@ final class TVAddressForm: UIStackView {
         connectButton.configuration = configuration
         connectButton.isEnabled = !busy
         textField.isEnabled = !busy
-        statusLabel.text = busy ? status : nil
-        statusLabel.isHidden = !busy || (status ?? "").isEmpty
+        statusRow.show(busy ? status : nil)
     }
 
     func showError(_ message: String) {
@@ -62,7 +60,7 @@ final class TVAddressForm: UIStackView {
     }
 
     func updateStatus(_ status: String) {
-        statusLabel.text = status
+        statusRow.show(status)
     }
 
     private func submit() {
@@ -95,10 +93,5 @@ final class TVAddressForm: UIStackView {
         errorLabel.numberOfLines = 3
         errorLabel.isHidden = true
         errorLabel.accessibilityIdentifier = "\(identifierPrefix).error"
-        statusLabel.font = Theme.Font.callout
-        statusLabel.textColor = Theme.Color.labelSecondary
-        statusLabel.textAlignment = textAlignment
-        statusLabel.numberOfLines = 2
-        statusLabel.isHidden = true
     }
 }

@@ -16,18 +16,13 @@ final class TVLinkViewController: TVOnboardingViewController {
 
     private static let qrSide: CGFloat = 420
     private static let qrPadding: CGFloat = 28
-    private static let columnWidth: CGFloat = 760
 
-    private let titleLabel = UILabel()
+    private let titleView = TVScreenTitleView(clearsTabBar: false, column: TVMetrics.Column.message)
     private let tiles = TVCodeTilesView()
     private let qrImageView = UIImageView()
     private let qrCard = UIView()
     private let qrCaption = UILabel()
-    private let statusLabel = UILabel()
-    private let spinner = UIActivityIndicatorView(style: .medium)
-    private let statusRow = UIStackView()
-    private let retryPanel = UIStackView()
-    private let retryLabel = UILabel()
+    private let statusRow = TVStatusRow()
     private lazy var retryButton = TVButton.make(.primary, title: "Get a New Code", symbol: "arrow.clockwise") { [weak self] in
         self?.startSession()
     }
@@ -116,45 +111,35 @@ final class TVLinkViewController: TVOnboardingViewController {
         let offersRetry: Bool
         switch phase {
         case .requesting:
-            statusLabel.text = "Requesting a code…"
+            statusRow.show("Requesting a code…", isBusy: true)
             offersRetry = false
         case .waiting:
-            statusLabel.text = "Waiting for approval…"
+            statusRow.show("Waiting for approval…", isBusy: true)
             offersRetry = false
         case .signedIn:
-            statusLabel.text = "Signed in. Finding your servers…"
+            statusRow.show("Signed in. Finding your servers…", isBusy: true)
             offersRetry = false
         case .expired:
-            retryLabel.text = "This code has expired."
+            statusRow.show("This code has expired.")
             retryButton.configuration = TVButton.configuration(.primary, title: "Get a New Code", symbol: "arrow.clockwise")
             offersRetry = true
         case .failed(let message):
-            retryLabel.text = message
+            statusRow.show(message, tone: .error)
             retryButton.configuration = TVButton.configuration(.primary, title: "Try Again", symbol: "arrow.clockwise")
             offersRetry = true
         }
-        let dimsCodes = offersRetry
-        statusRow.isHidden = offersRetry
-        retryPanel.isHidden = !offersRetry
-        tiles.alpha = dimsCodes ? 0.3 : 1
-        qrCard.alpha = dimsCodes ? 0.3 : 1
+        retryButton.isHidden = !offersRetry
+        tiles.alpha = offersRetry ? 0.3 : 1
+        qrCard.alpha = offersRetry ? 0.3 : 1
         if offersRetry {
-            spinner.stopAnimating()
             view.layoutIfNeeded()
             setNeedsFocusUpdate()
             updateFocusIfNeeded()
-            UIAccessibility.post(notification: .announcement, argument: retryLabel.text)
-        } else {
-            spinner.startAnimating()
         }
     }
 
     private func installContent() {
-        titleLabel.text = "Link your Plex account"
-        titleLabel.font = Theme.Font.title2
-        titleLabel.textColor = Theme.Color.label
-        titleLabel.numberOfLines = 2
-        titleLabel.accessibilityTraits = .header
+        titleView.configure(TVScreenTitleContent(title: "Link your Plex account"))
 
         let steps = UIStackView(arrangedSubviews: [
             Self.stepRow(number: 1, text: Self.linkInstruction()),
@@ -165,30 +150,11 @@ final class TVLinkViewController: TVOnboardingViewController {
         steps.alignment = .leading
         steps.spacing = Theme.Space.s
 
-        statusLabel.font = Theme.Font.callout
-        statusLabel.textColor = Theme.Color.labelSecondary
-        statusLabel.numberOfLines = 2
-        spinner.color = Theme.Color.labelSecondary
-        spinner.hidesWhenStopped = true
-        statusRow.axis = .horizontal
-        statusRow.alignment = .center
-        statusRow.spacing = Theme.Space.m
-        statusRow.addArrangedSubview(spinner)
-        statusRow.addArrangedSubview(statusLabel)
         statusRow.accessibilityIdentifier = "onboarding.status"
-
-        retryLabel.font = Theme.Font.callout
-        retryLabel.textColor = Theme.Color.labelSecondary
-        retryLabel.numberOfLines = 3
         retryButton.accessibilityIdentifier = "onboarding.newCode"
-        retryPanel.axis = .vertical
-        retryPanel.alignment = .leading
-        retryPanel.spacing = Theme.Space.m
-        retryPanel.addArrangedSubview(retryLabel)
-        retryPanel.addArrangedSubview(retryButton)
-        retryPanel.isHidden = true
+        retryButton.isHidden = true
 
-        let left = UIStackView(arrangedSubviews: [titleLabel, steps, tiles, statusRow, retryPanel])
+        let left = UIStackView(arrangedSubviews: [titleView, steps, tiles, statusRow, retryButton])
         left.axis = .vertical
         left.alignment = .leading
         left.spacing = Theme.Space.l
@@ -215,7 +181,7 @@ final class TVLinkViewController: TVOnboardingViewController {
 
         let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            left.widthAnchor.constraint(equalToConstant: Self.columnWidth),
+            left.widthAnchor.constraint(equalToConstant: TVMetrics.Column.message),
             qrCaption.widthAnchor.constraint(equalTo: qrCard.widthAnchor),
             columns.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
             columns.centerYAnchor.constraint(equalTo: guide.centerYAnchor),

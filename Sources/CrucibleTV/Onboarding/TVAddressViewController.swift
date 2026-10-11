@@ -6,8 +6,6 @@ import UIKit
 /// system keyboard. Crucible tries https first, then http, and keeps the server's identity when
 /// it is the one the person was already choosing.
 final class TVAddressViewController: TVOnboardingViewController {
-    private static let columnWidth: CGFloat = 1000
-
     private let token: String
     private let known: ServerChoice?
     private let introMessage: String?
@@ -75,26 +73,17 @@ final class TVAddressViewController: TVOnboardingViewController {
     }
 
     private func installContent() {
-        let title = UILabel()
-        title.text = "Add by Address"
-        title.font = Theme.Font.title2
-        title.textColor = Theme.Color.label
-        title.textAlignment = .center
-        title.accessibilityTraits = .header
+        let title = TVScreenTitleView(clearsTabBar: false, column: TVMetrics.Column.form)
+        title.configure(TVScreenTitleContent(
+            title: "Add by Address",
+            detail: "Enter your server’s IP address or hostname, such as 192.168.1.20 or a Tailscale name. The default port is 32400."
+        ))
 
-        let hint = UILabel()
-        hint.text = "Enter your server’s IP address or hostname, such as 192.168.1.20 or a Tailscale name. The default port is 32400."
-        hint.font = Theme.Font.callout
-        hint.textColor = Theme.Color.labelSecondary
-        hint.textAlignment = .center
-        hint.numberOfLines = 3
-
-        let stack = UIStackView(arrangedSubviews: [title, hint, form])
+        let stack = UIStackView(arrangedSubviews: [title, form])
         stack.axis = .vertical
         stack.alignment = .center
         stack.spacing = Theme.Space.l
-        stack.setCustomSpacing(Theme.Space.s, after: title)
-        stack.setCustomSpacing(Theme.Space.xl, after: hint)
+        stack.setCustomSpacing(Theme.Space.xl, after: title)
         stack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stack)
 
@@ -102,8 +91,7 @@ final class TVAddressViewController: TVOnboardingViewController {
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: guide.centerYAnchor),
-            stack.widthAnchor.constraint(equalToConstant: Self.columnWidth),
-            hint.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            stack.widthAnchor.constraint(equalToConstant: TVMetrics.Column.form),
             form.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
