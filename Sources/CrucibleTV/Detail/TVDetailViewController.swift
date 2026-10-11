@@ -32,6 +32,8 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         case related(String)
         case information
         case emptyEpisodes
+        case episodePlaceholder(Int)
+        case episodesFailed
     }
 
     static let heroHeight: CGFloat = 400
@@ -39,7 +41,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
     let env: TVAppEnvironment
     private(set) var content: TVDetailContent?
     private(set) var hasContent = false
-    var isShowingState: Bool { stateView.superview != nil && !stateView.isHidden }
+    private var isShowingState: Bool { stateView.superview != nil && !stateView.isHidden }
 
     private let collectionView: TVCollectionView
     private let backdrop = TVBackdropView()
@@ -51,7 +53,6 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
     private var loadTask: Task<Void, Never>?
     private var backdropTask: Task<Void, Never>?
     private var shownBackdropPath: String?
-    private var hasAppeared = false
 
     init(env: TVAppEnvironment) {
         self.env = env
@@ -116,11 +117,6 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         reload()
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        hasAppeared = true
-    }
-
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
@@ -139,6 +135,8 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
     func didSelect(_ item: Item) {}
 
     func contextMenu(for item: Item) -> UIMenu? { nil }
+
+    func retryEpisodes() {}
 
     /// Starts a fresh load, cancelling one in flight. While content is on screen it is refreshed in place.
     func reload() {
@@ -280,19 +278,19 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         snapshot.appendItems(content.actions.map { .action($0.kind) }, toSection: .actions)
         if !content.seasons.isEmpty {
             snapshot.appendSections([.seasons])
-            snapshot.appendItems(content.seasons.map { .season($0.id) }, toSection: .seasons)
+            snapshot.appendItems(Self.unique(content.seasons.map { .season($0.id) }), toSection: .seasons)
         }
         if content.showsEpisodes {
             snapshot.appendSections([.episodes])
-            snapshot.appendItems(content.episodes.isEmpty ? [.emptyEpisodes] : content.episodes.map { .episode($0.id) }, toSection: .episodes)
+            snapshot.appendItems(Self.episodeItems(for: content), toSection: .episodes)
         }
         if !content.cast.isEmpty {
             snapshot.appendSections([.cast])
-            snapshot.appendItems(content.cast.map { .person($0.id) }, toSection: .cast)
+            snapshot.appendItems(Self.unique(content.cast.map { .person($0.id) }), toSection: .cast)
         }
         if !content.related.isEmpty {
             snapshot.appendSections([.related])
-            snapshot.appendItems(content.related.map { .related($0.id) }, toSection: .related)
+            snapshot.appendItems(Self.unique(content.related.map { .related($0.id) }), toSection: .related)
         }
         if !content.facts.isEmpty {
             snapshot.appendSections([.information])
@@ -302,6 +300,20 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { previous.contains($0) })
         dataSource.apply(snapshot, animatingDifferences: false)
         refreshHeaders()
+    }
+
+    private static func episodeItems(for content: TVDetailContent) -> [Item] {
+        switch content.episodesState {
+        case .loading: (0 ..< 4).map { .episodePlaceholder($0) }
+        case .failed: [.episodesFailed]
+        case .loaded: content.episodes.isEmpty ? [.emptyEpisodes] : unique(content.episodes.map { .episode($0.id) })
+        }
+    }
+
+    /// A diffable snapshot traps on a repeated identifier, so a server that lists an item twice shows it once.
+    private static func unique(_ items: [Item]) -> [Item] {
+        var seen = Set<Item>()
+        return items.filter { seen.insert($0).inserted }
     }
 
     /// Headers are supplementary views, which a snapshot does not reconfigure, so a new season title
@@ -315,7 +327,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
 
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, _ in
-            guard let section = self?.dataSource?.sectionIdentifier(for: index) else { return nil }
+            guard let section = self?.dataSource?.sectionIdentifier(for: index) else { return Self.block(top: 0, bottom: 0) }
             switch section {
             case .header: return TVShelf.hero(height: Self.heroHeight)
             case .synopsis: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
@@ -382,6 +394,10 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         let person = TVPersonCell.registration()
         let related = TVPosterCell.registration()
         let information = TVDetailInformationCell.registration { [weak self] in self?.content?.facts ?? [] }
+        let placeholder = UICollectionView.CellRegistration<TVDetailEpisodePlaceholderCell, Int> { cell, _, index in
+            cell.configure(index: index)
+        }
+        let failed = TVDetailEpisodesFailedCell.registration { [weak self] in self?.retryEpisodes() }
         let empty = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
             var configuration = UIListContentConfiguration.cell()
             configuration.text = "No episodes in this season"
@@ -408,7 +424,9 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: episode, for: indexPath, item: card), id)
             case .person(let id):
                 let card = content?.cast.first { $0.id == id } ?? TVCardItem(id: id, title: "")
-                return Self.identified(collectionView.dequeueConfiguredReusableCell(using: person, for: indexPath, item: card), id)
+                let cell = Self.identified(collectionView.dequeueConfiguredReusableCell(using: person, for: indexPath, item: card), id)
+                cell.accessibilityTraits = .staticText
+                return cell
             case .related(let id):
                 let card = content?.related.first { $0.id == id } ?? TVCardItem(id: id, title: "")
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: related, for: indexPath, item: card), id)
@@ -416,6 +434,10 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
                 return collectionView.dequeueConfiguredReusableCell(using: information, for: indexPath, item: 0)
             case .emptyEpisodes:
                 return collectionView.dequeueConfiguredReusableCell(using: empty, for: indexPath, item: 0)
+            case .episodePlaceholder(let index):
+                return collectionView.dequeueConfiguredReusableCell(using: placeholder, for: indexPath, item: index)
+            case .episodesFailed:
+                return collectionView.dequeueConfiguredReusableCell(using: failed, for: indexPath, item: 0)
             }
         }
 
@@ -485,6 +507,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView === collectionView else { return }
         backdrop.dimming = scrollView.contentOffset.y / Self.heroHeight
     }
 

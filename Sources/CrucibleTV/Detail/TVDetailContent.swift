@@ -32,6 +32,13 @@ struct TVDetailAction {
 /// Everything a detail screen shows, as plain values. The screens map their models onto it; the
 /// base class turns it into sections, so movie, episode and show detail share one layout.
 struct TVDetailContent {
+    /// Where the selected season's episodes stand: shown, still being fetched, or not fetchable.
+    enum EpisodesState: Equatable, Sendable {
+        case loaded
+        case loading
+        case failed
+    }
+
     var artwork: DetailArtwork
     var header: TVHeroInfo
     var synopsis: String?
@@ -41,6 +48,7 @@ struct TVDetailContent {
     var episodesHeader: TVSectionHeader?
     var episodes: [TVCardItem] = []
     var showsEpisodes = false
+    var episodesState = EpisodesState.loaded
     var cast: [TVCardItem] = []
     var related: [TVCardItem] = []
     var facts: [DetailFact] = []

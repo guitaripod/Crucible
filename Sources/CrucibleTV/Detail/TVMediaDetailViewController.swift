@@ -52,7 +52,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private func rebuild() {
         guard let model else { return }
         let related = model.related
-        relatedByID = Dictionary(uniqueKeysWithValues: zip(TVDetailMapping.related(related).map(\.id), related))
+        relatedByID = Dictionary(zip(TVDetailMapping.related(related).map(\.id), related), uniquingKeysWith: { first, _ in first })
         present(content(for: model, related: related))
     }
 

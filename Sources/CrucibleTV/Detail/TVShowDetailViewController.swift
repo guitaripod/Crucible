@@ -10,6 +10,7 @@ final class TVShowDetailViewController: TVDetailViewController {
     private let initialSeasonKey: String?
     private var model: ShowDetailModel?
     private var seasonTask: Task<Void, Never>?
+    private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
     private var relatedByID: [String: PlexMetadata] = [:]
 
@@ -44,6 +45,8 @@ final class TVShowDetailViewController: TVDetailViewController {
                 if !hasContent { showUnavailable(DetailMessage.showUnavailable) }
                 return
             }
+            seasonTask?.cancel()
+            loadingSeasonKey = nil
             model = loaded
             rebuild()
         } catch {
@@ -64,6 +67,11 @@ final class TVShowDetailViewController: TVDetailViewController {
         default:
             break
         }
+    }
+
+    override func retryEpisodes() {
+        guard let key = model?.selectedSeasonKey else { return }
+        loadSeason(key)
     }
 
     override func playPause(at indexPath: IndexPath) {
@@ -100,10 +108,11 @@ final class TVShowDetailViewController: TVDetailViewController {
         guard let model else { return }
         let episodes = model.episodes
         let episodeCards = episodes.map { TVDetailMapping.episode($0, status: model.status(for: $0)) }
-        episodesByID = Dictionary(uniqueKeysWithValues: zip(episodeCards.map(\.id), episodes))
+        episodesByID = Dictionary(zip(episodeCards.map(\.id), episodes), uniquingKeysWith: { first, _ in first })
         let related = model.related
         let relatedCards = TVDetailMapping.related(related)
-        relatedByID = Dictionary(uniqueKeysWithValues: zip(relatedCards.map(\.id), related))
+        relatedByID = Dictionary(zip(relatedCards.map(\.id), related), uniquingKeysWith: { first, _ in first })
+        let episodesState: TVDetailContent.EpisodesState = model.episodesFailed ? .failed : (loadingSeasonKey == nil ? .loaded : .loading)
 
         present(TVDetailContent(
             artwork: model.heroArtwork,
@@ -114,9 +123,10 @@ final class TVShowDetailViewController: TVDetailViewController {
             seasons: model.seasonChips.map {
                 TVChipItem(id: $0.id, title: [$0.title, $0.watchedText].compactMap { $0 }.joined(separator: "  ·  "), isSelected: $0.isSelected)
             },
-            episodesHeader: TVSectionHeader(title: model.selectedSeasonTitle, secondaryText: Self.episodeCount(episodes.count)),
+            episodesHeader: TVSectionHeader(title: model.selectedSeasonTitle, secondaryText: episodesState == .loaded ? Self.episodeCount(episodes.count) : nil),
             episodes: episodeCards,
             showsEpisodes: model.selectedSeason != nil,
+            episodesState: episodesState,
             cast: TVDetailMapping.people(MovieDetailModel(item: model.show).castAndCrew),
             related: relatedCards
         ))
@@ -165,15 +175,31 @@ final class TVShowDetailViewController: TVDetailViewController {
         play(TVPlaybackRequest(item: episode))
     }
 
+    /// Selecting the season already shown does nothing unless its fetch failed, in which case it is the retry.
     private func selectSeason(_ key: String) {
-        guard let current = model, current.selectedSeasonKey != key else { return }
-        model = current.selectingSeason(key)
+        guard let current = model else { return }
+        guard current.selectedSeasonKey != key || current.episodesFailed else { return }
+        loadSeason(key)
+    }
+
+    /// Shows `key` with a loading shelf at once and fills it when its episodes arrive. A response for a
+    /// season that is no longer selected is dropped, so a slow earlier pick cannot replace a later one.
+    private func loadSeason(_ key: String) {
+        guard let current = model else { return }
+        model = current.loadingSeason(key)
+        loadingSeasonKey = key
         rebuild()
         seasonTask?.cancel()
         seasonTask = Task { [weak self] in
             guard let self else { return }
-            guard let episodes = await ShowDetailLoader.episodes(inSeason: key, api: env.api), model?.selectedSeasonKey == key else { return }
-            model = model?.replacingEpisodes(episodes)
+            let result = await ShowDetailLoader.loadSeason(key, api: env.api)
+            guard model?.selectedSeasonKey == key, loadingSeasonKey == key else { return }
+            switch result {
+            case .loaded(let episodes): model = model?.replacingEpisodes(episodes)
+            case .failed: model = model?.failingEpisodes()
+            case .cancelled: return
+            }
+            loadingSeasonKey = nil
             rebuild()
         }
     }

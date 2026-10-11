@@ -33,12 +33,35 @@ final class TVDetailActionCell: UICollectionViewCell {
         actions: @escaping @MainActor (TVDetailAction.Kind) -> TVDetailAction?
     ) -> UICollectionView.CellRegistration<TVDetailActionCell, TVDetailAction.Kind> {
         UICollectionView.CellRegistration<TVDetailActionCell, TVDetailAction.Kind> { cell, _, kind in
-            guard let action = actions(kind) else { return }
+            guard let action = actions(kind) else {
+                cell.clear()
+                return
+            }
             cell.configure(with: action)
         }
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        clear()
+    }
+
+    /// Empties the button so a reused cell never shows the title, menu or handler of the action it had before.
+    private func clear() {
+        if let identifier = actionIdentifier {
+            button.removeAction(identifiedBy: identifier, for: .primaryActionTriggered)
+            actionIdentifier = nil
+        }
+        button.menu = nil
+        button.showsMenuAsPrimaryAction = false
+        button.configuration = nil
+        button.accessibilityLabel = nil
+        button.accessibilityIdentifier = nil
+        button.isHidden = true
+    }
+
     func configure(with action: TVDetailAction) {
+        button.isHidden = false
         if let menu = action.menu {
             configureMenu(action, menu: menu)
         } else {

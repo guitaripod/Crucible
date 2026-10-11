@@ -27,6 +27,7 @@ final class TVDetailSynopsisCell: UICollectionViewCell {
         moreButton.configuration = TVButton.configuration(.plain, title: "More")
         moreButton.accessibilityIdentifier = "detail.synopsis.more"
         moreButton.accessibilityLabel = "More"
+        moreButton.accessibilityHint = "Shows the full synopsis"
 
         [label, moreButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
