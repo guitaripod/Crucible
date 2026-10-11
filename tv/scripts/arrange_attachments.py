@@ -34,7 +34,7 @@ def main(raw, out):
     for test in manifest:
         directory = os.path.join(out, test_directory(test["testIdentifier"]))
         os.makedirs(directory, exist_ok=True)
-        for attachment in sorted(test["attachments"], key=lambda a: a["timestamp"]):
+        for attachment in sorted(test["attachments"], key=lambda a: a.get("timestamp", 0)):
             target = os.path.join(directory, readable_name(attachment))
             shutil.move(os.path.join(raw, attachment["exportedFileName"]), target)
             exported.append(target)
