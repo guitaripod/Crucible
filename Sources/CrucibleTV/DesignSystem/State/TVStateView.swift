@@ -29,6 +29,7 @@ final class TVStateView: UIView {
         anchor.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stateView)
         addSubview(anchor)
+        anchor.isNeeded = { [weak self] in self?.hasButton == false }
         NSLayoutConstraint.activate([
             anchor.centerXAnchor.constraint(equalTo: centerXAnchor),
             anchor.centerYAnchor.constraint(equalTo: centerYAnchor),

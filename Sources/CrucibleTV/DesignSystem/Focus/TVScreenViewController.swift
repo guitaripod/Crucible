@@ -42,6 +42,10 @@ class TVScreenViewController: UIViewController, UICollectionViewDelegate {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.canvas
         collectionView.delegate = self
+        hostAnchor.isNeeded = { [weak self] in
+            guard let self else { return false }
+            return !isShowingState && !(hasItems?() ?? true)
+        }
         collectionView.playPauseHandler = { [weak self] indexPath in self?.playFocused(at: indexPath) ?? false }
         installViews()
         stateView.isHidden = true
