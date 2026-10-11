@@ -3,24 +3,81 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 ROOT=$PWD
-UDID=${UDID:?}
+NAME=${NAME:-CrucibleSim}
+PORT=${PORT:-$((32400 + $(printf %s "$NAME" | cksum | cut -d' ' -f1) % 500))}
 MODE=${MODE:-dark}
-SIGNALS=/tmp/crucible-shots
+SIGNALS=/tmp/crucible-shots-$NAME
 RAW=$ROOT/marketing/shots/out/raw-$MODE
 APP_ID=com.guitaripod.crucible.shots
-PORT=32400
+DEVICE_NAME=CrucibleShots-$NAME
+PIDFILE=/tmp/crucible-mock-$PORT.pid
+MOCK_LOG=/tmp/crucible-mock-$PORT.log
+XCODE_LOG=/tmp/crucible-xcodebuild-$NAME.log
+PACKAGE_NAME=$(basename "$ROOT" | tr 'A-Z-' 'a-z_')
+OWN_DEVICE=0
+BOOTED_HERE=0
 
+stop_mock() {
+  if [ -f "$PIDFILE" ]; then
+    kill "$(cat "$PIDFILE")" 2>/dev/null || true
+    rm -f "$PIDFILE"
+  fi
+}
+
+cleanup() {
+  stop_mock
+  if [ "$OWN_DEVICE" = 1 ] && [ "${CLEAN:-0}" = 1 ]; then
+    xcrun simctl shutdown "$UDID" 2>/dev/null || true
+    xcrun simctl delete "$UDID" 2>/dev/null || true
+  elif [ "$OWN_DEVICE" = 1 ] && [ "$BOOTED_HERE" = 1 ]; then
+    xcrun simctl shutdown "$UDID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+find_device() {
+  xcrun simctl list devices | grep -F "    $DEVICE_NAME (" \
+    | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1 || true
+}
+
+create_device() {
+  local devtype runtime udid
+  devtype=$(xcrun simctl list devicetypes | grep -F 'iPhone 17 Pro Max (' \
+    | grep -oE 'com\.apple\.CoreSimulator\.SimDeviceType\.[^)]+' | head -1)
+  for runtime in $(xcrun simctl list runtimes | grep -E '^iOS [0-9]' | grep -v unavailable \
+    | awk '{print $2, $0}' | sort -rV | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
+    udid=$(xcrun simctl create "$DEVICE_NAME" "$devtype" "$runtime" 2>/dev/null) || continue
+    echo "$udid"
+    return 0
+  done
+  echo "no installed iOS runtime can host $devtype" >&2
+  return 1
+}
+
+if [ -z "${UDID:-}" ]; then
+  UDID=$(find_device)
+  if [ -z "$UDID" ]; then UDID=$(create_device); fi
+  OWN_DEVICE=1
+fi
+
+stop_mock
 mkdir -p "$RAW" "$SIGNALS"
 rm -f "$RAW"/*.png "$SIGNALS"/*
 
-pkill -f "Python server\.py" 2>/dev/null || true
-sleep 0.5
-(cd marketing/mock && PORT=$PORT nohup python3 server.py > /tmp/crucible-mock.log 2>&1 &)
+PORT=$PORT nohup python3 "$ROOT/marketing/mock/server.py" > "$MOCK_LOG" 2>&1 < /dev/null &
+echo $! > "$PIDFILE"
+mock_up=0
 for _ in $(seq 1 50); do
-  if curl -fs -H 'Accept: application/json' "http://127.0.0.1:$PORT/identity" > /dev/null; then break; fi
+  if curl -fs -H 'Accept: application/json' "http://127.0.0.1:$PORT/identity" > /dev/null; then mock_up=1; break; fi
   sleep 0.2
 done
+sleep 0.5
+if [ "$mock_up" != 1 ] || ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+  echo "mock server did not start on port $PORT (port taken?), see $MOCK_LOG" >&2
+  exit 1
+fi
 
+if [ "$OWN_DEVICE" = 1 ] && ! xcrun simctl list devices | grep -F "$UDID" | grep -q Booted; then BOOTED_HERE=1; fi
 xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b > /dev/null
 xcrun simctl ui "$UDID" appearance "$MODE"
@@ -31,10 +88,9 @@ sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
 sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
 
 rm -rf .dd/Build/Intermediates.noindex/Crucible.build .dd/Build/Intermediates.noindex/CrucibleShots.build
-PACKAGE_NAME=$(basename "$ROOT" | tr 'A-Z-' 'a-z_')
 xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
   CRUCIBLE_PACKAGE_NAME="$PACKAGE_NAME" -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
-  build > /tmp/crucible-xcodebuild.log 2>&1 || { tail -40 /tmp/crucible-xcodebuild.log; exit 1; }
+  build > "$XCODE_LOG" 2>&1 || { tail -40 "$XCODE_LOG"; exit 1; }
 
 APP=$ROOT/.dd/Build/Products/Debug-iphonesimulator/CrucibleShots.app
 xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
@@ -61,7 +117,6 @@ while [ $SECONDS -lt $deadline ]; do
     name=$(basename "$ready" .ready)
     if [ "$name" = done ]; then
       rm -f "$ready"
-      pkill -f "Python server\.py" 2>/dev/null || true
       cp "$SIGNALS"/*.png "$RAW"/ 2>/dev/null || true
       xcrun simctl status_bar "$UDID" clear
       exit 0

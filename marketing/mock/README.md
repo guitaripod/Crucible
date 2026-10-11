@@ -2,6 +2,8 @@
 
 Fictional library ("Marcus-PC", Movies / TV Shows / Documentaries) served as Plex JSON. Stdlib-only Python 3.
 
+The screenshot harness (`marketing/shots/run.sh`) starts its own copy per `NAME` on a port derived from it (`PORT=` overrides), so parallel runs never share a server or a simulator.
+
 Run (port 32400 by default, override with `PORT=`; stop any real Plex server first):
 
     python3 server.py
