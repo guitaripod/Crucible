@@ -70,21 +70,19 @@ final class SearchTests: XCTestCase {
     func testTheGenreGridReadsPagesAsFocusNearsTheEnd() throws {
         let app = launchSearch(mock: ["MOCK_LIBRARY_PAD": "600"])
         enterShelves(in: app)
-        let before = try genrePageRequests()
+        let before = try moviePageRequests(startingAt: 50)
         TVTest.remote.press(.select)
-        let count = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'titles'")).firstMatch
+        let count = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'titles'")).firstMatch
         XCTAssertTrue(count.waitForExistence(timeout: 20))
         TVTest.settle(1.5)
-        let firstPaint = try genrePageRequests() - before
         TVTest.capture("01-first-page", in: self)
-        XCTAssertGreaterThan(firstPaint, 0)
-        XCTAssertLessThanOrEqual(firstPaint, 2, "the first paint reads one page per library, not the whole genre")
+        XCTAssertEqual(try moviePageRequests(startingAt: 50) - before, 0, "the first paint reads the first page only, not the whole genre")
         for _ in 0..<12 {
             TVTest.remote.press(.down)
         }
         TVTest.settle(2)
         TVTest.capture("02-after-scrolling", in: self)
-        XCTAssertGreaterThan(try genrePageRequests() - before, firstPaint, "scrolling down reads more pages")
+        XCTAssertGreaterThan(try moviePageRequests(startingAt: 50) - before, 0, "scrolling down reads the next page")
     }
 
     func testTypingShowsGroupedResultsAndScopeChips() {
@@ -383,10 +381,10 @@ final class SearchTests: XCTestCase {
         _ = try? Data(contentsOf: URL(string: "\(mock.absoluteString)/mock/flags?latency_ms=\(milliseconds)")!)
     }
 
-    /// How many genre pages the app has requested so far (a library `all` request of 50 with a sort).
-    private func genrePageRequests() throws -> Int {
+    /// How many requests for the Movies library listing starting at `offset` the mock has seen.
+    private func moviePageRequests(startingAt offset: Int) throws -> Int {
         var components = try XCTUnwrap(URLComponents(string: Self.mock.absoluteString + "/mock/requests"))
-        components.queryItems = [URLQueryItem(name: "contains", value: "Container-Size=50&sort=")]
+        components.queryItems = [URLQueryItem(name: "contains", value: "/library/sections/1/all?X-Plex-Container-Start=\(offset)&")]
         let data = try Data(contentsOf: try XCTUnwrap(components.url))
         let object = try JSONSerialization.jsonObject(with: data) as? [String: Int]
         return try XCTUnwrap(object?["count"])
