@@ -23,6 +23,9 @@ def test_directory(identifier):
     return ".".join(parts[-2:]) if len(parts) > 1 else parts[0]
 
 
+ISSUE_ATTACHMENT = "Complete Issue Description"
+
+
 def main(raw, out):
     with open(os.path.join(raw, "manifest.json")) as f:
         manifest = json.load(f)
@@ -31,17 +34,23 @@ def main(raw, out):
         if path != raw and os.path.isdir(path):
             shutil.rmtree(path)
     exported = []
+    issues = []
     for test in manifest:
         directory = os.path.join(out, test_directory(test["testIdentifier"]))
         os.makedirs(directory, exist_ok=True)
         for attachment in sorted(test["attachments"], key=lambda a: a.get("timestamp", 0)):
             target = os.path.join(directory, readable_name(attachment))
+            if os.path.basename(target).startswith(ISSUE_ATTACHMENT):
+                issues.append(test_directory(test["testIdentifier"]))
             shutil.move(os.path.join(raw, attachment["exportedFileName"]), target)
             exported.append(target)
     shutil.rmtree(raw)
     print(f"exported {len(exported)} attachments:")
     for path in exported:
         print(path)
+    if issues:
+        print("runtime issues reported during: " + ", ".join(sorted(set(issues))), file=sys.stderr)
+        sys.exit(3)
 
 
 if __name__ == "__main__":

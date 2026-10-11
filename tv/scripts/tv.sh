@@ -233,6 +233,7 @@ uitest() {
       *) log "uitest: unknown argument $1"; return 2 ;;
     esac
   done
+  forbid_blocking_loads_in_tests || return 1
   timed generate generate
   udid=$(sim_up)
   if mock_alive; then
@@ -247,7 +248,7 @@ uitest() {
   remote "rm -rf .tvlogs/uitest.xcresult .tvlogs/attachments"
   local rc=0
   timed uitest-run xcodebuild_remote "$udid" test uitest.log "$extra" "$mock_env" || rc=$?
-  export_attachments
+  export_attachments || rc=$?
   return $rc
 }
 
@@ -258,6 +259,13 @@ export_attachments() {
   remote "test -d .tvlogs/uitest.xcresult && xcrun xcresulttool export attachments --path .tvlogs/uitest.xcresult --output-path .tvlogs/attachments" > /dev/null || { log "no xcresult to export"; return 0; }
   rsync -a -e "${SSH[*]}" "$MAC:$REMOTE/.tvlogs/attachments/" "$raw/"
   python3 -I "$ROOT/tv/scripts/arrange_attachments.py" "$raw" "$OUT/ui"
+}
+
+forbid_blocking_loads_in_tests() {
+  if grep -n 'Data(contentsOf:\|String(contentsOf:' "$ROOT"/tv/UITests/*.swift; then
+    log "UI tests must not load URLs synchronously (a runtime issue on the main thread); use a dataTask"
+    return 1
+  fi
 }
 
 logs() {
