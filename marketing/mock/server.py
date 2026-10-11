@@ -16,13 +16,20 @@ import library
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, "assets")
 PORT = int(os.environ.get("PORT", "32400"))
-LATENCY = int(os.environ.get("MOCK_LATENCY_MS", "0")) / 1000
 PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
 PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
 PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
 DEAD_ROUTE = "http://127.0.0.1:9"
+FLAGS = {
+    "latency_ms": int(os.environ.get("MOCK_LATENCY_MS", "0")),
+    "fail_parts": os.environ.get("MOCK_FAIL_PARTS") == "1",
+    "fail_transcode": os.environ.get("MOCK_FAIL_TRANSCODE") == "1",
+    "clip_markers": os.environ.get("MOCK_CLIP_MARKERS") == "1",
+}
+HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4"}
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
+library.CLIP_MARKERS = FLAGS["clip_markers"]
 LIB = library.Library()
 LOCK = threading.Lock()
 PINS = {}
@@ -340,8 +347,8 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         one = lambda k, d=None: q.get(k, [d])[0]
 
-        if LATENCY and not p.startswith("/mock/"):
-            time.sleep(LATENCY)
+        if FLAGS["latency_ms"] and not p.startswith("/mock/"):
+            time.sleep(FLAGS["latency_ms"] / 1000)
 
         if p.startswith("/api/v2/") or p.startswith("/mock/"):
             return self.plextv(p, q)
@@ -391,6 +398,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_file(resolve_image(one("url", "")), "image/jpeg")
 
         if re.match(r"^/library/parts/\d+/\d+/file\.\w+$", p):
+            if FLAGS["fail_parts"]:
+                return self.send_json(container(size=0, error="mock part failure"), 500)
             return self.send_file(os.path.join(ASSETS, "clip.mp4"), "video/mp4", ranged=True)
 
         if re.match(r"^/library/parts/\d+$", p):
@@ -465,9 +474,19 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"MediaContainer": c})
 
         if p.startswith("/video/:/transcode/universal/"):
-            return self.send_empty()
+            return self.transcode(p)
 
         self.not_found()
+
+    def transcode(self, p):
+        name = p.rsplit("/", 1)[-1]
+        if FLAGS["fail_transcode"] and name == "start.m3u8":
+            return self.send_json(container(size=0, error="mock transcode failure"), 500)
+        hls = os.path.join(ASSETS, "hls", "index.m3u8" if name == "start.m3u8" else name)
+        kind = HLS_TYPES.get(os.path.splitext(hls)[1])
+        if kind and os.path.isfile(hls):
+            return self.send_file(hls, kind)
+        return self.send_empty()
 
     def plextv(self, p, q):
         if p == "/api/v2/pins" and self.command == "POST":
@@ -491,6 +510,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(plextv_resources())
         if p == "/api/v2/user":
             return self.send_json(plextv_user())
+        if p == "/mock/flags":
+            for name in FLAGS:
+                if name in q:
+                    value = q[name][0]
+                    FLAGS[name] = int(value) if name == "latency_ms" else value == "1"
+            library.CLIP_MARKERS = FLAGS["clip_markers"]
+            return self.send_json(FLAGS)
         if p == "/mock/approve":
             code = (q.get("code", [""])[0]).lower()
             with LOCK:

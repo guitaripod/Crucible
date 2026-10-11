@@ -18,6 +18,8 @@ GENRE_ID = {g: str(i + 1) for i, g in enumerate(GENRES)}
 MACHINE_ID = "7c1e5d2a9b304f68a1d7e3c05b92f4a8"
 SERVER_NAME = "Marcus-PC"
 CLIP_DURATION_MS = 150000
+CLIP_CREDITS_START_MS = 110000
+CLIP_MARKERS = False
 
 FIRST = ["Maren", "Idris", "Tove", "Sam", "Ana", "Tom", "Kasia", "Joel", "Imara", "Luca", "Nia", "Oskar", "Priya", "Dante",
          "Elin", "Rafi", "Wren", "Mateo", "Sana", "Bram", "Linnea", "Kofi", "Ines", "Callum", "Yara", "Teo", "Hanne", "Dario",
@@ -308,6 +310,16 @@ STREAM_SUBS = [
 ]
 
 
+def clip_markers(markers):
+    """Moves credits markers inside the 150 s clip so playback can reach them (mock flag clip_markers)."""
+    out = []
+    for m in markers:
+        if m["type"] == "credits":
+            m = dict(m, startTimeOffset=CLIP_CREDITS_START_MS, endTimeOffset=CLIP_DURATION_MS)
+        out.append(m)
+    return out
+
+
 class Library:
     def __init__(self, now=None):
         self.now = int(now or time.time())
@@ -591,7 +603,7 @@ class Library:
                 out["Role"] = self._roles(show["_cast"][:4])
             if "_media" in it:
                 out["Media"] = it["_media"]
-                out["Marker"] = it["_markers"]
+                out["Marker"] = clip_markers(it["_markers"]) if CLIP_MARKERS else it["_markers"]
             if "_related" in it:
                 rel = [self.render(self.items[r]) for r in it["_related"]]
                 label = "Related Movies" if it["type"] == "movie" else "Related Shows"
