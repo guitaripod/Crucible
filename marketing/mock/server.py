@@ -445,8 +445,9 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         one = lambda k, d=None: q.get(k, [d])[0]
 
-        if FLAGS["latency_ms"] and not p.startswith("/mock/"):
-            time.sleep(FLAGS["latency_ms"] / 1000)
+        latency_ms = int(env("MOCK_LATENCY_MS", str(FLAGS["latency_ms"])))
+        if latency_ms and not p.startswith("/mock/"):
+            time.sleep(latency_ms / 1000)
 
         if not p.startswith("/mock/"):
             with LOCK:
