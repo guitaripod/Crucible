@@ -44,6 +44,10 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.guitaripod.crucible
+            CFBundleURLSchemes:
+              - crucible
         UILaunchScreen:
           UIColorName: LaunchBackground
         UIApplicationSceneManifest:
