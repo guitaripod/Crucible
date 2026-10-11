@@ -19,4 +19,22 @@ extension UIViewController {
         present(alert, animated: TVMotion.animationsEnabled)
         return alert
     }
+
+    /// Presents a two-button confirmation: a cancel button, which Menu also triggers, and a destructive
+    /// confirm button. Does nothing when another controller is already presented.
+    @discardableResult
+    @MainActor
+    func presentConfirmation(
+        title: String,
+        message: String? = nil,
+        confirmTitle: String,
+        handler: @escaping @MainActor () -> Void
+    ) -> UIAlertController? {
+        guard presentedViewController == nil else { return nil }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: confirmTitle, style: .destructive) { _ in handler() })
+        present(alert, animated: TVMotion.animationsEnabled)
+        return alert
+    }
 }
