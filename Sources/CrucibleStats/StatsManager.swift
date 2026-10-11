@@ -45,9 +45,13 @@ package final class StatsManager {
     }
 
     /// Awaited incremental sync for pull-to-refresh; coalesces with any in-flight sync and does
-    /// NOT block on the (much slower) enrichment pass.
-    package func refreshNow() async {
-        await startSync(initialDelay: .zero)?.value
+    /// NOT block on the (much slower) enrichment pass. Returns whether a sync ran: false while there
+    /// is no store or API (before `configure(api:)`, after sign-out).
+    @discardableResult
+    package func refreshNow() async -> Bool {
+        guard let task = startSync(initialDelay: .zero) else { return false }
+        await task.value
+        return true
     }
 
     @discardableResult

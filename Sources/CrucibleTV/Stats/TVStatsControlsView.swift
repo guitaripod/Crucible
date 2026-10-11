@@ -2,42 +2,29 @@ import CrucibleDesign
 import CrucibleStats
 import UIKit
 
-/// The top of the Statistics screen: the title with the "watching since" line, the Week / Month /
-/// Year / All chips, and the Libraries filter menu. Selection is a press, never focus.
+/// The top of the Statistics screen: the shared screen title with the "watching since" line, the
+/// Week / Month / Year / All chips and the Libraries filter menu. Selection is a press, never focus.
 final class TVStatsControlsView: UIView {
     var onRange: (@MainActor (StatsRange) -> Void)?
 
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    private var chips: [StatsRange: UIButton] = [:]
-    private let chipRow = UIStackView()
+    private let title = TVScreenTitleView(clearsTabBar: false)
+    private let chipRow = TVChipRow()
     private let librariesSlot = UIView()
     private var librariesButton: UIButton?
-    private var range: StatsRange = .year
+    private var range = StatsRange.year
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        titleLabel.text = "Statistics"
-        titleLabel.font = Theme.Font.title2
-        titleLabel.textColor = Theme.Color.label
-        titleLabel.accessibilityTraits = .header
-        subtitleLabel.font = Theme.Font.callout
-        subtitleLabel.textColor = Theme.Color.labelSecondary
+        title.configure(TVScreenTitleContent(title: "Statistics"))
 
-        let titles = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        titles.axis = .vertical
-        titles.spacing = Theme.Space.xxs
-
-        chipRow.axis = .horizontal
         chipRow.spacing = Theme.Space.s
-        chipRow.alignment = .center
+        chipRow.setItems(chipItems())
         for candidate in StatsRange.allCases {
-            let chip = TVButton.make(.chip(selected: false), title: candidate.title) { [weak self] in
-                self?.choose(candidate)
-            }
-            chip.accessibilityIdentifier = "stats.range.\(candidate.title.lowercased())"
-            chips[candidate] = chip
-            chipRow.addArrangedSubview(chip)
+            chipRow.button(for: Self.chipID(candidate))?.accessibilityIdentifier = "stats.range.\(candidate.title.lowercased())"
+        }
+        chipRow.onSelect = { [weak self] item in
+            guard let chosen = StatsRange.allCases.first(where: { Self.chipID($0) == item.id }) else { return }
+            self?.choose(chosen)
         }
 
         let controls = UIStackView(arrangedSubviews: [chipRow, librariesSlot])
@@ -45,7 +32,7 @@ final class TVStatsControlsView: UIView {
         controls.spacing = Theme.Space.m
         controls.alignment = .center
 
-        let row = UIStackView(arrangedSubviews: [titles, UIView(), controls])
+        let row = UIStackView(arrangedSubviews: [title, UIView(), controls])
         row.axis = .horizontal
         row.alignment = .bottom
         row.spacing = Theme.Space.m
@@ -57,39 +44,35 @@ final class TVStatsControlsView: UIView {
             row.leadingAnchor.constraint(equalTo: leadingAnchor),
             row.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
-        applySelection()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        [chips[range]].compactMap { $0 }
+        [chipRow.button(for: Self.chipID(range))].compactMap { $0 }
     }
 
-    func configure(range: StatsRange, subtitle: String?, filter: StatsLibraryFilter) {
+    func configure(range: StatsRange, since: String?, filter: StatsLibraryFilter) {
         self.range = range
-        subtitleLabel.text = subtitle
-        subtitleLabel.isHidden = (subtitle ?? "").isEmpty
-        applySelection()
+        title.configure(TVScreenTitleContent(title: "Statistics", summary: since))
+        chipRow.setItems(chipItems())
         updateLibraries(filter)
     }
 
-    func select(_ range: StatsRange) {
-        self.range = range
-        applySelection()
+    private static func chipID(_ range: StatsRange) -> String {
+        "stats-\(range.title.lowercased())"
+    }
+
+    private func chipItems() -> [TVChipItem] {
+        StatsRange.allCases.map { TVChipItem(id: Self.chipID($0), title: $0.title, isSelected: $0 == range) }
     }
 
     private func choose(_ chosen: StatsRange) {
         guard chosen != range else { return }
-        select(chosen)
+        range = chosen
+        chipRow.select(id: Self.chipID(chosen))
         onRange?(chosen)
-    }
-
-    private func applySelection() {
-        for (candidate, chip) in chips {
-            TVButton.setChipSelected(candidate == range, on: chip)
-        }
     }
 
     /// Brings the Libraries menu up to date in place, so a menu that is open survives a toggle; the
@@ -102,13 +85,13 @@ final class TVStatsControlsView: UIView {
             return
         }
         let menu = Self.menu(for: filter)
+        let title = Self.librariesTitle(filter)
         if let button = librariesButton {
-            button.menu = menu
-            button.configuration?.title = Self.librariesTitle(filter)
+            TVButton.configure(menu: menu, title: title, style: .glass, on: button)
             button.accessibilityValue = filter.accessibilityValue
             return
         }
-        let button = TVButton.menuButton(title: Self.librariesTitle(filter), menu: menu)
+        let button = TVButton.menuButton(style: .glass, title: title, menu: menu)
         button.accessibilityValue = filter.accessibilityValue
         button.accessibilityIdentifier = "stats.libraries"
         button.translatesAutoresizingMaskIntoConstraints = false

@@ -14,12 +14,12 @@ enum TVStatsContent {
         let content = page.hero
         hero.configure(eyebrow: content.eyebrow, value: content.value, unit: content.unit, detail: content.detail, since: content.since, animate: animate)
         addHeatStrip(for: page, to: hero)
-        return hero
+        return TVReadOnlyPanel(wrapping: hero, label: { [weak hero] in hero?.accessibilityLabel })
     }
 
     private static func addHeatStrip(for page: StatsPage, to hero: UIView) {
-        let levels = YearInReviewSummary.stripLevels(from: page.snapshot.heatmap, today: StatsTime().todayDayEpoch())
-        let strip = TVHeatStripView(levels: levels)
+        let strip = HeatStripView(strip: metrics.heroStrip)
+        strip.levels = YearInReviewSummary.stripLevels(from: page.snapshot.heatmap, today: StatsTime().todayDayEpoch())
         strip.translatesAutoresizingMaskIntoConstraints = false
         hero.addSubview(strip)
         NSLayoutConstraint.activate([

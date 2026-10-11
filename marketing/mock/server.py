@@ -602,7 +602,8 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/status/sessions/history/all":
             if env("MOCK_HISTORY_ERROR") == "1":
                 return self.send_json(container(size=0), 404)
-            if one("librarySectionID") in env_sections("MOCK_SLOW_HISTORY_SECTIONS"):
+            slow_sections = env_sections("MOCK_SLOW_HISTORY_SECTIONS")
+            if one("librarySectionID") in slow_sections or ("all" in slow_sections and not one("librarySectionID")):
                 time.sleep(int(env("MOCK_SLOW_HISTORY_MS", "0") or 0) / 1000)
             with LOCK:
                 rows = list(LIB.history)
