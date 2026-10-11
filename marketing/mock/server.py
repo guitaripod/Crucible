@@ -30,6 +30,7 @@ HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segmen
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
 library.CLIP_MARKERS = FLAGS["clip_markers"]
+HUBS_MODE = os.environ.get("MOCK_HUBS_MODE", "ok")
 LIB = library.Library()
 LOCK = threading.Lock()
 PINS = {}
@@ -249,6 +250,13 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def set_hubs_mode(self, mode):
+        global HUBS_MODE
+        if mode not in ("ok", "empty", "error", "slow"):
+            return self.send_json(container(size=0, error="unknown mode"), 400)
+        HUBS_MODE = mode
+        self.send_json(container(size=0, mode=mode))
+
     def send_empty(self, status=200):
         self.send_response(status)
         self.send_header("Content-Length", "0")
@@ -351,6 +359,9 @@ class Handler(BaseHTTPRequestHandler):
         if FLAGS["latency_ms"] and not p.startswith("/mock/"):
             time.sleep(FLAGS["latency_ms"] / 1000)
 
+        if p == "/mock/hubs":
+            return self.set_hubs_mode(one("mode", "ok"))
+
         if p.startswith("/api/v2/") or p.startswith("/mock/"):
             return self.plextv(p, q)
 
@@ -418,6 +429,12 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if p == "/hubs":
+            if HUBS_MODE == "error":
+                return self.send_json(container(size=0, error="mock hubs error"), 404)
+            if HUBS_MODE == "slow":
+                time.sleep(4)
+            if HUBS_MODE == "empty":
+                return self.send_json(container(size=0, allowSync=True, identifier="com.plexapp.plugins.library", Hub=[]))
             count = int(one("count", "20"))
             with LOCK:
                 hubs = [hub("home.continue", "Continue Watching", LIB.continue_watching()[:count]),
