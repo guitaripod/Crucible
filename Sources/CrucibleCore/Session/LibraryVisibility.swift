@@ -85,6 +85,15 @@ package enum LibraryVisibility {
         return true
     }
 
+    /// Forgets the remembered library list and every choice: section ids belong to one server, so
+    /// they mean nothing against another.
+    @MainActor
+    package static func forgetServerLibraries() {
+        UserDefaults.standard.removeObject(forKey: librariesKey)
+        UserDefaults.standard.removeObject(forKey: overridesKey)
+        notify()
+    }
+
     @MainActor
     package static func resetToPlexDefaults() {
         store([:])

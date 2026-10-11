@@ -57,6 +57,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// The main UI is never on screen with a broken connection: the launch screen holds until the
     /// route is validated (healing it if needed) and both Home and Library payloads are in hand.
     private func launch(connection: PlexConnection) {
+        AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, .phone)
         let gate = (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
         gate.showLoading(status: "Connecting to \(connection.serverName)…")
         launchTask = Task { @MainActor [weak self, weak gate] in

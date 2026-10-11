@@ -80,6 +80,14 @@ package final class YouConnectionStatus {
         }
     }
 
+    /// Forgets the last probe, so the next server is measured from scratch.
+    package func reset() {
+        task?.cancel()
+        task = nil
+        probedURL = nil
+        update(.connecting)
+    }
+
     private func update(_ newState: YouConnectionState) {
         guard newState != state else { return }
         state = newState

@@ -8,6 +8,10 @@ package enum RememberedServerAddress {
         UserDefaults.standard.string(forKey: key)
     }
 
+    package static func forget(in defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: key)
+    }
+
     package static func remember(_ address: ServerAddress, in defaults: UserDefaults = .standard) {
         defaults.set(displayText(for: address), forKey: key)
     }

@@ -32,6 +32,11 @@ package enum DeepLink: Equatable, Sendable {
         itemTypes.contains(type)
     }
 
+    /// Only these have something to play; a `play` link to anything else is ignored.
+    package static func isPlayableType(_ type: String) -> Bool {
+        type == "movie" || type == "episode" || type == "clip"
+    }
+
     /// The link in its `crucible://` form, the inverse of `init?(url:)`.
     package var url: URL {
         var components = URLComponents()

@@ -40,7 +40,7 @@ package struct TopShelfStore: Sendable {
         }
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try JSONEncoder().encode(snapshot).write(to: url, options: .atomic)
+            try JSONEncoder().encode(snapshot).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             return true
         } catch {
             AppLogger.error("Top Shelf snapshot save failed: \(error.localizedDescription)", .persistence)

@@ -26,18 +26,25 @@ package enum TopShelfUpdater {
             AppLogger.error("Top Shelf refresh skipped: \(error.localizedDescription)", .networking)
             return false
         }
-        let source = TopShelfBuilder.Source(serverURL: await api.baseURL, token: api.token, machineIdentifier: machineIdentifier)
+        let serverURL = await api.baseURL
+        guard !Task.isCancelled else { return false }
+        let source = TopShelfBuilder.Source(serverURL: serverURL, token: api.token, machineIdentifier: machineIdentifier)
         let snapshot = TopShelfBuilder.snapshot(
             buckets: HomeBuckets(hubs: container.Hub),
             source: source,
             excludedLibraries: excludedLibraries ?? LibraryVisibility.excluded,
             now: now
         )
-        return write(snapshot, to: store, notify: notify)
+        return await MainActor.run {
+            guard !Task.isCancelled else { return false }
+            return write(snapshot, to: store, notify: notify)
+        }
     }
 
     /// Writes the snapshot unless it matches what is already there, then signals the change. An
-    /// empty snapshot removes the file so the Top Shelf shows its static image.
+    /// empty snapshot removes the file so the Top Shelf shows its static image. `refresh` calls it
+    /// on the main actor right after checking for cancellation, so a refresh cancelled by a
+    /// sign-out or server change can never write after the clear that cancelled it.
     static func write(_ snapshot: TopShelfSnapshot, to store: TopShelfStore, notify: @Sendable () -> Void) -> Bool {
         let existing = store.load()
         if snapshot.isEmpty {
@@ -53,8 +60,11 @@ package enum TopShelfUpdater {
         return true
     }
 
-    /// Signing out must not leave watch history and server URLs behind for the Top Shelf.
-    package static func clear(store: TopShelfStore = .shared, notify: @Sendable () -> Void) {
+    /// Signing out or changing server must not leave watch history and server URLs behind for the
+    /// Top Shelf. Only tvOS has a Top Shelf; elsewhere this does nothing.
+    @MainActor
+    package static func clear(store: TopShelfStore? = nil, notify: () -> Void) {
+        let store = store ?? (AppPlatform.isTV ? .shared : TopShelfStore(directory: nil))
         guard store.load() != nil else { return }
         store.clear()
         notify()

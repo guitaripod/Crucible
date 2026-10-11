@@ -124,6 +124,29 @@ struct AuthDiscoveryTests {
         #expect(stub.saved.value.isEmpty)
     }
 
+    @Test func backingOutBeforeTheSaveLeavesNoServerBehind() async {
+        let stub = DiscoveryStub()
+        stub.reachable = [url(lan)]
+        let server = AuthFixtures.choice(name: "Home", id: "m1", uris: [lan])
+        let environment = stub.environment
+        let cancelling = ServerDiscoveryEnvironment(
+            resources: environment.resources,
+            probe: { _, _ in
+                withUnsafeCurrentTask { $0?.cancel() }
+                return true
+            },
+            firstReachable: environment.firstReachable,
+            machineIdentifier: environment.machineIdentifier,
+            measure: environment.measure,
+            save: environment.save
+        )
+
+        let outcome = await ServerDiscovery(token: "tok", environment: cancelling).connect(toOnly: server) { _ in }
+
+        guard case .cancelled = outcome else { Issue.record("expected cancelled, got \(outcome)"); return }
+        #expect(stub.saved.value.isEmpty)
+    }
+
     @Test func aSaveThatYieldsNoConnectionFails() async {
         let stub = DiscoveryStub()
         stub.reachable = [url(lan)]

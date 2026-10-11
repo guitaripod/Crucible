@@ -200,7 +200,9 @@ package struct ServerDiscovery: Sendable {
         return resources?.first { $0.clientIdentifier == machineIdentifier }?.name
     }
 
-    /// Re-checks the route, persists the server and returns the connection for the app.
+    /// Re-checks the route, persists the server and returns the connection for the app. The save
+    /// happens right after the last cancellation check and with nothing awaited in between, so a
+    /// person who backed out never ends up with a server they did not choose.
     private func finish(
         url: URL,
         name: String,
@@ -212,9 +214,11 @@ package struct ServerDiscovery: Sendable {
         guard await environment.probe(url, token) else {
             return .failed("Could not reach server at \(url.absoluteString)")
         }
-        let connection = environment.save(url, name, machineIdentifier, candidates.filter { $0 != url })
         await progress(.connected(serverName: name))
-        guard let connection else { return .failed("Failed to save connection") }
+        guard !Task.isCancelled else { return .cancelled }
+        guard let connection = environment.save(url, name, machineIdentifier, candidates.filter { $0 != url }) else {
+            return .failed("Failed to save connection")
+        }
         return .connected(connection)
     }
 }

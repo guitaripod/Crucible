@@ -365,11 +365,7 @@ final class SettingsViewController: UICollectionViewController {
         let alert = UIAlertController(title: "Sign Out", message: "Are you sure you want to sign out?", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            DownloadManager.shared.handleSignOut()
-            StatsManager.shared.handleSignOut()
-            HomeSnapshotStore.destroy()
-            Task { await ImageLoader.shared.clearCache() }
-            ServerBootstrap.clear()
+            AccountSessionReset.signOut(.phone)
             if let scene = view.window?.windowScene?.delegate as? SceneDelegate {
                 scene.reconfigureRoot()
             }

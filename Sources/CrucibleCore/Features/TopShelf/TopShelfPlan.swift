@@ -35,12 +35,8 @@ package struct TopShelfPlan: Equatable, Sendable {
             title: item.title,
             imageURL: item.imageURL,
             progress: item.progress,
-            playURL: isPlayable(type: item.type) ? DeepLink.play(ratingKey: item.ratingKey).url : nil,
+            playURL: DeepLink.isPlayableType(item.type) ? DeepLink.play(ratingKey: item.ratingKey).url : nil,
             displayURL: DeepLink.item(ratingKey: item.ratingKey, mediaType: DeepLink.isItemType(item.type) ? item.type : nil).url
         )
-    }
-
-    private static func isPlayable(type: String) -> Bool {
-        type == "movie" || type == "episode" || type == "clip"
     }
 }

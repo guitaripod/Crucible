@@ -70,6 +70,12 @@ marketing/shots/run.sh      # iPhone screenshot harness, also the iPhone visual 
 
 `NAME=<id>` isolates a remote checkout, simulator and mock port so several people (or agents) can work at once. The iPhone app is still packaged and signed with `xtool` from Linux (`scripts/install-ios.sh`); the tvOS app is built with Xcode from the XcodeGen project in `tv/`, because xtool does not support tvOS. The manifest only declares the tvOS targets when it is evaluated on macOS, so the Linux/xtool graph is unchanged.
 
+## Security notes
+
+- The Plex account token lives in the Keychain. The only other place it appears is the Top Shelf snapshot (`topshelf.json` in the `group.com.guitaripod.crucible` App Group container): every artwork URL in it carries the account token as `X-Plex-Token`, because the system fetches Top Shelf images itself and the extension does no networking. That is a trade-off, accepted for now: the file is readable only by this team's apps in the group, it is written with `.completeUntilFirstUserAuthentication` file protection, it is removed on sign-out and whenever the server changes (`AccountSessionReset`), and an Apple TV on a plain-HTTP LAN sends the token over that LAN like every other request the app makes. No scoped or delegated token is used because no endpoint for one has been verified against a real Plex server; if Plex documents a short-lived image token, switch `TopShelfBuilder.imageURL` to it.
+- Signing out and connecting to a different server both go through `AccountSessionReset` (Core): statistics, the Home cache, library choices, recent searches, the You route status, the image cache and the Top Shelf snapshot are forgotten together, so nothing of one server or account is ever shown against another. Sign-out also forgets the remembered address and the saved account and server.
+- The tvOS app and its Top Shelf extension set `NSAllowsArbitraryLoads` because Plex servers on a home network are usually plain `http://` at a LAN address. `NSLocalNetworkUsageDescription` explains the local network access.
+
 ## Adding a feature
 
 1. Put the rules in `CrucibleCore/Features/<Feature>` with tests; no UIKit.

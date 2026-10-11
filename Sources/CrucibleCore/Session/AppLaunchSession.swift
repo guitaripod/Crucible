@@ -11,15 +11,25 @@ package struct LaunchPayload: Sendable {
 
 package enum LaunchFailure: Error, Sendable {
     case unreachable
+    case signInExpired
     case fetch(any Error)
 
     package var message: String {
         switch self {
         case .unreachable:
             return "None of the server's known addresses answered. Check that it's online and reachable from this network."
+        case .signInExpired:
+            return ConnectionError.message(for: APIError.unauthorized)
         case .fetch(let error):
             return ConnectionError.message(for: error)
         }
+    }
+
+    /// A fetch that failed because Plex no longer accepts the saved token is an expired sign-in,
+    /// not a server problem.
+    static func fetchFailure(_ error: any Error) -> LaunchFailure {
+        if case APIError.unauthorized = error { return .signInExpired }
+        return .fetch(error)
     }
 }
 
@@ -30,13 +40,27 @@ package enum AppLaunchSession {
         connection saved: PlexConnection,
         progress: @escaping @Sendable (String) -> Void
     ) async -> Result<LaunchPayload, LaunchFailure> {
+        await run(
+            connection: saved,
+            progress: progress,
+            validate: { await ServerConnectionResolver.validate(connection: $0, progress: progress) },
+            tokenRejected: { await PlexTokenCheck.isRejected(token: $0) }
+        )
+    }
+
+    static func run(
+        connection saved: PlexConnection,
+        progress: @escaping @Sendable (String) -> Void,
+        validate: (PlexConnection) async -> ServerConnectionResolver.Outcome,
+        tokenRejected: (String) async -> Bool
+    ) async -> Result<LaunchPayload, LaunchFailure> {
         progress("Connecting to \(saved.serverName)…")
         let connection: PlexConnection
-        switch await ServerConnectionResolver.validate(connection: saved, progress: progress) {
+        switch await validate(saved) {
         case .connection(let validated):
             connection = validated
         case .needsSetup:
-            return .failure(.unreachable)
+            return .failure(await tokenRejected(saved.authToken) ? .signInExpired : .unreachable)
         }
 
         progress("Loading your library…")
@@ -50,7 +74,7 @@ package enum AppLaunchSession {
             return .success(payload)
         } catch {
             AppLogger.error("Launch fetch failed: \(String(describing: error))", .networking)
-            return .failure(.fetch(error))
+            return .failure(.fetchFailure(error))
         }
     }
 }

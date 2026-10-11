@@ -21,7 +21,13 @@ package final class StatsManager {
 
     private init() {}
 
+    /// Binds the manager to the API client of the current session. A different client (another
+    /// server, or a healed route) invalidates any sync or enrichment started against the old one,
+    /// so a new session never inherits an in-flight task.
     package func configure(api: APIClient) {
+        if let current = self.api, current !== api {
+            invalidateRunningTasks()
+        }
         self.api = api
         if store == nil {
             do {
@@ -70,12 +76,18 @@ package final class StatsManager {
         }
     }
 
-    package func handleSignOut() {
+    private func invalidateRunningTasks() {
         generation &+= 1
         syncTask?.cancel()
         enrichTask?.cancel()
         syncTask = nil
         enrichTask = nil
+    }
+
+    package var hasRunningSync: Bool { syncTask != nil || enrichTask != nil }
+
+    package func handleSignOut() {
+        invalidateRunningTasks()
         store = nil
         api = nil
         StatsDatabase.destroy()

@@ -2,18 +2,7 @@ import Foundation
 
 /// One advertised route to a server, with its measured probe state.
 package struct ServerRoute: Hashable, Sendable {
-    package enum Kind: Hashable, Sendable {
-        case local, tailscale, remote, relay
-
-        package var title: String {
-            switch self {
-            case .local: return "Local"
-            case .tailscale: return "Tailscale"
-            case .remote: return "Remote"
-            case .relay: return "Plex Relay"
-            }
-        }
-    }
+    package typealias Kind = ConnectionKind
 
     package enum State: Hashable, Sendable {
         case probing

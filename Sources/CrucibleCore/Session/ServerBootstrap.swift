@@ -36,7 +36,7 @@ package enum ServerBootstrap {
         let name = UserDefaults.standard.string(forKey: serverNameKey) ?? "Plex Server"
         let candidates = UserDefaults.standard.stringArray(forKey: candidateURIsKey)?
             .compactMap(URL.init(string:)) ?? []
-        let ordered = [uri] + candidates.filter { $0 != uri }
+        let ordered = orderedRoutes(primary: uri, others: candidates)
         return PlexConnection(
             serverURI: uri,
             serverName: name,
@@ -63,8 +63,7 @@ package enum ServerBootstrap {
         UserDefaults.standard.set(uri.absoluteString, forKey: serverURIKey)
         UserDefaults.standard.set(name, forKey: serverNameKey)
         UserDefaults.standard.set(machineIdentifier, forKey: machineIdKey)
-        let stored = [uri] + candidates.filter { $0 != uri }
-        UserDefaults.standard.set(stored.map(\.absoluteString), forKey: candidateURIsKey)
+        UserDefaults.standard.set(orderedRoutes(primary: uri, others: candidates).map(\.absoluteString), forKey: candidateURIsKey)
     }
 
     package static func clear() {
@@ -76,14 +75,19 @@ package enum ServerBootstrap {
         UserDefaults.standard.removeObject(forKey: PlexAccountName.defaultsKey)
     }
 
+    /// The pinned route first, then every other route once, in the order given.
+    static func orderedRoutes(primary: URL, others: [URL]) -> [URL] {
+        var seen: Set<URL> = [primary]
+        return [primary] + others.filter { seen.insert($0).inserted }
+    }
+
     /// Rewrites the pinned URI after a successful failover, keeping the full candidate list.
     static func repin(uri: URL) {
         guard var candidates = UserDefaults.standard.stringArray(forKey: candidateURIsKey)?.compactMap(URL.init(string:)) else {
             saveServer(uri: uri, name: UserDefaults.standard.string(forKey: serverNameKey) ?? "Plex Server", machineIdentifier: UserDefaults.standard.string(forKey: machineIdKey) ?? "")
             return
         }
-        candidates.removeAll { $0 == uri }
         UserDefaults.standard.set(uri.absoluteString, forKey: serverURIKey)
-        UserDefaults.standard.set(([uri] + candidates).map(\.absoluteString), forKey: candidateURIsKey)
+        UserDefaults.standard.set(orderedRoutes(primary: uri, others: candidates).map(\.absoluteString), forKey: candidateURIsKey)
     }
 }

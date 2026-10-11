@@ -231,6 +231,7 @@ struct AuthTopShelfTests {
         #expect(announcements.value == 1)
     }
 
+    @MainActor
     @Test func clearingOnSignOutAnnouncesOnlyWhenThereWasSomethingToClear() {
         let (store, directory) = temporaryStore()
         defer { try? FileManager.default.removeItem(at: directory) }

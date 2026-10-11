@@ -14,6 +14,16 @@ package enum ConnectionKind: Sendable, Hashable {
         case .relay: return "Plex Relay"
         }
     }
+
+    /// The SF Symbol every screen uses for a route of this kind.
+    package var symbolName: String {
+        switch self {
+        case .local: return "house"
+        case .tailscale: return "network"
+        case .remote: return "globe"
+        case .relay: return "arrow.triangle.swap"
+        }
+    }
 }
 
 /// Classifies Plex routes from their URL alone. Deliberately conservative: a route is only called a
