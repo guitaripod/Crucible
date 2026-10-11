@@ -15,11 +15,14 @@ final class TVOnboardingFlow {
     }
 
     /// Sign-in starts at Welcome. Switching servers starts at the server list for the saved
-    /// account, or at Welcome when there is no account to list servers for.
+    /// account, or at Welcome when there is no account to list servers for. Signing in again
+    /// starts at the link code.
     func makeRoot() -> UIViewController {
         switch mode {
         case .signIn:
             return TVWelcomeViewController(flow: self)
+        case .reauthenticate:
+            return TVLinkViewController(flow: self)
         case .switchServer:
             guard let token = ServerBootstrap.connection()?.authToken else {
                 return TVWelcomeViewController(flow: self)
@@ -47,8 +50,11 @@ final class TVOnboardingFlow {
         screen.navigationController?.pushViewController(address, animated: true)
     }
 
-    func signInAgain(from screen: UIViewController) {
-        beginSignIn(from: screen)
+    /// The person backed out of the server list before any server was connected: the account
+    /// token saved when the code was approved must not outlive the sign-in they walked away from.
+    func abandonSignIn() {
+        guard mode == .signIn else { return }
+        AccountSessionReset.signOut(.tv)
     }
 
     func didConnect(_ connection: PlexConnection) {

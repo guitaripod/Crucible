@@ -61,10 +61,11 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        guard isMovingFromParent || isBeingDismissed || navigationController == nil else { return }
+        guard isMovingFromParent || navigationController?.isBeingDismissed == true else { return }
         loadTask?.cancel()
         cancelProbes()
         connectTask?.cancel()
+        if isMovingFromParent { flow.abandonSignIn() }
     }
 
     private func load() {
@@ -80,7 +81,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
                 case .none:
                     show(
                         title: "No Plex Server Found",
-                        subtitle: "This account doesn't own or share a Plex Media Server. Sign in with the account that has your server, or add one by its address.",
+                        subtitle: "This account doesn’t own or share a Plex Media Server. Sign in with the account that has your server, or add one by its address.",
                         rows: [Self.addAddressID, Self.retryID]
                     )
                 case .single(let server):
@@ -105,7 +106,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
             )
         } else {
             show(
-                title: "Couldn't Load Your Servers",
+                title: "Couldn’t Load Your Servers",
                 subtitle: ConnectionError.message(for: error),
                 rows: [Self.retryID, Self.addAddressID]
             )
@@ -122,12 +123,12 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
             flow.didConnect(connection)
         case .needsAddress(let message):
             show(
-                title: "Couldn't Reach \(server.name)",
+                title: "Couldn’t Reach \(server.name)",
                 subtitle: message ?? "Crucible found no route to this server. Enter its address instead.",
                 rows: [Self.addAddressID, Self.retryID]
             )
         case .failed(let message):
-            show(title: "Couldn't Connect to \(server.name)", subtitle: message, rows: [Self.retryID, Self.addAddressID])
+            show(title: "Couldn’t Connect to \(server.name)", subtitle: message, rows: [Self.retryID, Self.addAddressID])
         case .cancelled:
             break
         }
@@ -369,12 +370,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case .unreachable: return "exclamationmark.triangle"
         case .probing: return "server.rack"
         case .reachable:
-            switch choice.bestRoute?.kind {
-            case .local: return "wifi"
-            case .tailscale: return "network"
-            case .relay: return "arrow.triangle.swap"
-            case .remote, nil: return "globe"
-            }
+            return (choice.bestRoute?.kind ?? .remote).symbolName
         }
     }
 
@@ -426,7 +422,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case .retry:
             load()
         case .signInAgain:
-            flow.signInAgain(from: self)
+            flow.beginSignIn(from: self)
         }
     }
 

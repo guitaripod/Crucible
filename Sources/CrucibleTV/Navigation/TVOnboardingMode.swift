@@ -6,4 +6,8 @@ enum TVOnboardingMode: Sendable {
     /// The user is already signed in and chose Switch Server: presented full screen over the
     /// current UI, dismissed by Back without changes, relaunches the app once a server is chosen.
     case switchServer
+
+    /// The saved account's token is no longer accepted: presented full screen straight on the
+    /// link code, then the server list for the new token. Back dismisses it without changes.
+    case reauthenticate
 }

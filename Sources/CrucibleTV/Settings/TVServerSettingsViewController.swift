@@ -91,7 +91,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
             title: route.kindTitle,
             subtitle: route.isInUse ? "In use · \(route.detail)" : route.detail,
             value: route.latencyText,
-            symbol: Self.symbol(for: route.kind),
+            symbol: route.kind.symbolName,
             accessory: route.isInUse ? .checkmark : .none,
             isEnabled: !route.isDimmed
         )
@@ -99,15 +99,6 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
 
     private func toggleRow(_ id: String, _ setting: PreferenceSetting, symbol: String) -> TVRowItem {
         TVRowItem(id: id, title: setting.title, value: setting.valueLabel, symbol: symbol)
-    }
-
-    private static func symbol(for kind: ConnectionKind) -> String {
-        switch kind {
-        case .local: "house"
-        case .tailscale: "network"
-        case .remote: "globe"
-        case .relay: "exclamationmark.triangle"
-        }
     }
 }
 

@@ -35,12 +35,11 @@ enum TVDebugSession {
     /// snapshot, so every launch starts as a new install. With `CRUCIBLE_MOCK=<url>` replaces the
     /// stored connection with the mock Plex server, signed in as Marcus, exactly like the
     /// marketing capture harness. The real launch pipeline then runs against it.
+    @MainActor
     static func bootstrapIfRequested() {
         let environment = ProcessInfo.processInfo.environment
         if environment["CRUCIBLE_FRESH"] == "1" {
-            ServerBootstrap.clear()
-            UserDefaults.standard.removeObject(forKey: "last_server_ip")
-            TopShelfStore.shared.clear()
+            AccountSessionReset.signOut(.tv)
             AppLogger.notice("Debug session: fresh install state", .lifecycle)
         }
         guard let value = environment["CRUCIBLE_MOCK"], let base = URL(string: value) else { return }

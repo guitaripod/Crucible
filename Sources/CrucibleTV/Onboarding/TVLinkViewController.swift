@@ -38,6 +38,7 @@ final class TVLinkViewController: TVOnboardingViewController {
     override var preferredFocusEnvironments: [any UIFocusEnvironment] {
         switch phase {
         case .expired, .failed: return [retryButton]
+        case .waiting where tiles.canBecomeFocused: return [tiles]
         default: return []
         }
     }
@@ -86,6 +87,7 @@ final class TVLinkViewController: TVOnboardingViewController {
             tiles.setCode(codes.shortCode)
             qrImageView.image = TVQRCode.image(for: codes.authURL.absoluteString, side: Self.qrSide, scale: traitCollection.displayScale)
             phase = .waiting
+            announce(codes.shortCode)
         case .claimed(let token):
             phase = .signedIn
             render()
@@ -98,6 +100,16 @@ final class TVLinkViewController: TVOnboardingViewController {
             phase = .failed(message)
         }
         render()
+    }
+
+    /// VoiceOver follows focus and nothing here is focusable while waiting, so the code is spoken
+    /// the moment it arrives and, with VoiceOver on, the code row can be focused to hear it again.
+    private func announce(_ code: String) {
+        let spoken = code.uppercased().map(String.init).joined(separator: " ")
+        UIAccessibility.post(notification: .announcement, argument: "Link code \(spoken). Go to plex dot tv slash link and enter it.")
+        guard tiles.canBecomeFocused else { return }
+        setNeedsFocusUpdate()
+        updateFocusIfNeeded()
     }
 
     private func render() {

@@ -14,7 +14,7 @@ final class OnboardingTests: XCTestCase {
     }
 
     private func configureMock(polls: Int = 3, expires: Int = 900, servers: String = "default") {
-        guard let url = URL(string: "\(mockURL)/mock/plextv-config?pin_polls=\(polls)&pin_expires=\(expires)&servers=\(servers)") else {
+        guard let url = URL(string: "\(mockURL)/mock/plextv-config?pin_polls=\(polls)&pin_expires=\(expires)&servers=\(servers)&reject_token=0") else {
             XCTFail("CRUCIBLE_MOCK is not set: start the mock with tv.sh mock-up")
             return
         }
@@ -149,7 +149,7 @@ final class OnboardingTests: XCTestCase {
         configureMock(polls: 1, servers: "unreachable")
         let app = launch()
         signIn(app)
-        XCTAssertTrue(app.staticTexts["Couldn't Reach Marcus-PC"].waitForExistence(timeout: 40))
+        XCTAssertTrue(app.staticTexts["Couldn’t Reach Marcus-PC"].waitForExistence(timeout: 40))
         TVTest.settle(2)
         TVTest.capture("10-server-unreachable", in: self)
 
@@ -174,7 +174,7 @@ final class OnboardingTests: XCTestCase {
         configureMock(polls: 1, servers: "unreachable")
         let app = launch()
         signIn(app)
-        XCTAssertTrue(app.staticTexts["Couldn't Reach Marcus-PC"].waitForExistence(timeout: 40))
+        XCTAssertTrue(app.staticTexts["Couldn’t Reach Marcus-PC"].waitForExistence(timeout: 40))
         TVTest.remote.press(.select)
         XCTAssertTrue(app.textFields["onboarding.address"].waitForExistence(timeout: 10))
         TVTest.remote.press(.select)

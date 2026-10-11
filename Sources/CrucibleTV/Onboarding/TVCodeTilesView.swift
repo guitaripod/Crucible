@@ -26,6 +26,20 @@ final class TVCodeTilesView: UIStackView {
     @available(*, unavailable)
     required init(coder: NSCoder) { fatalError() }
 
+    /// Only VoiceOver needs to land here: the code is information, not a control, so for everyone
+    /// else the row is not a focus stop.
+    override var canBecomeFocused: Bool {
+        UIAccessibility.isVoiceOverRunning
+    }
+
+    override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.didUpdateFocus(in: context, with: coordinator)
+        let focused = context.nextFocusedView === self
+        coordinator.addCoordinatedAnimations({
+            self.transform = focused ? CGAffineTransform(scaleX: 1.04, y: 1.04) : .identity
+        })
+    }
+
     func setCode(_ code: String?) {
         let characters = Array((code ?? "").uppercased())
         for (index, tile) in tiles.enumerated() {

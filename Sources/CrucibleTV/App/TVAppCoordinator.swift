@@ -40,7 +40,7 @@ final class TVAppCoordinator: TVSessionActions {
         launchTask?.cancel()
         launchTask = nil
         router.deactivate()
-        TVTopShelfRefresher.deactivate(clearing: false)
+        TVTopShelfRefresher.deactivate()
     }
 
     func sceneWillEnterForeground() {
@@ -58,7 +58,17 @@ final class TVAppCoordinator: TVSessionActions {
 
     func switchServer() {
         guard let presenter = topViewController else { return }
-        let onboarding = TVScreens.onboarding(mode: .switchServer) { [weak presenter, weak self] _ in
+        presentOnboarding(.switchServer, over: presenter)
+    }
+
+    /// Signing in again keeps the saved server and replaces only the account token.
+    private func signInAgain() {
+        guard let presenter = topViewController else { return }
+        presentOnboarding(.reauthenticate, over: presenter)
+    }
+
+    private func presentOnboarding(_ mode: TVOnboardingMode, over presenter: UIViewController) {
+        let onboarding = TVScreens.onboarding(mode: mode) { [weak presenter, weak self] _ in
             guard let presenter else { return }
             presenter.dismiss(animated: true) { self?.reconnect() }
         }
@@ -71,13 +81,22 @@ final class TVAppCoordinator: TVSessionActions {
         AppLogger.notice("Signing out", .lifecycle)
         launchTask?.cancel()
         router.deactivate()
-        TVTopShelfRefresher.deactivate(clearing: true)
-        StatsManager.shared.handleSignOut()
-        HomeSnapshotStore.destroy()
-        Task { await ImageLoader.shared.clearCache() }
+        TVTopShelfRefresher.deactivate()
         APIClient.onBaseURLChanged.withLock { $0 = nil }
-        ServerBootstrap.clear()
+        AccountSessionReset.signOut(.tv)
         showOnboarding()
+    }
+
+    private func confirmSignOut() {
+        guard let presenter = topViewController else { return }
+        let alert = UIAlertController(
+            title: "Sign Out?",
+            message: "This removes your Plex account from this Apple TV.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in self?.signOut() })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        presenter.present(alert, animated: true)
     }
 
     /// The main UI is never on screen with a broken connection: the launch gate holds until the
@@ -86,11 +105,13 @@ final class TVAppCoordinator: TVSessionActions {
         if window.rootViewController is TVRootTabBarController {
             router.deactivate()
         }
+        TVTopShelfRefresher.deactivate()
+        AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, .tv)
         let gate = (window.rootViewController as? TVLaunchViewController) ?? installLaunchGate()
         gate.showLoading(status: "Connecting to \(connection.serverName)…")
         launchTask = Task { @MainActor [weak self, weak gate] in
             let outcome = await AppLaunchSession.run(connection: connection) { message in
-                Task { @MainActor in gate?.showLoading(status: message) }
+                Task { @MainActor in gate?.showProgress(message) }
             }
             guard !Task.isCancelled, let self, let gate else { return }
             switch outcome {
@@ -99,8 +120,10 @@ final class TVAppCoordinator: TVSessionActions {
                 gate.playSuccess { [weak self] in
                     self?.present(root: tabBar)
                 }
+            case .failure(.signInExpired):
+                gate.showSignInExpired()
             case .failure(let failure):
-                gate.showFailure(title: "Couldn't Reach \(connection.serverName)", message: failure.message)
+                gate.showFailure(title: "Couldn’t Reach \(connection.serverName)", message: failure.message)
             }
         }
     }
@@ -109,6 +132,8 @@ final class TVAppCoordinator: TVSessionActions {
         let gate = TVLaunchViewController()
         gate.onRetry = { [weak self] in self?.reconnect() }
         gate.onSwitchServer = { [weak self] in self?.switchServer() }
+        gate.onSignInAgain = { [weak self] in self?.signInAgain() }
+        gate.onSignOut = { [weak self] in self?.confirmSignOut() }
         window.backgroundColor = CrystalGlyphView.canvas
         window.rootViewController = gate
         return gate
@@ -127,7 +152,7 @@ final class TVAppCoordinator: TVSessionActions {
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
         TVTopShelfRefresher.activate(api: api, machineIdentifier: connection.machineIdentifier)
-        let environment = TVAppEnvironment(payload: payload, router: router, session: self)
+        let environment = TVAppEnvironment(payload: payload, router: router, session: TVWeakSession(self))
         return TVRootTabBarController(environment: environment)
     }
 

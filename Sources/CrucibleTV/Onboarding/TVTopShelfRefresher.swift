@@ -26,15 +26,11 @@ enum TVTopShelfRefresher {
         }
     }
 
-    /// Ends the session. With `clearing` the snapshot goes too, so a signed-out Apple TV shows the
-    /// static Top Shelf image and no watch history.
-    static func deactivate(clearing: Bool) {
+    /// Ends the session and cancels a refresh in flight, so it cannot write after the snapshot is
+    /// cleared. Clearing the snapshot itself is part of `AccountSessionReset`.
+    static func deactivate() {
         task?.cancel()
         task = nil
         session = nil
-        guard clearing else { return }
-        TopShelfUpdater.clear {
-            TVTopShelfContentProvider.topShelfContentDidChange()
-        }
     }
 }

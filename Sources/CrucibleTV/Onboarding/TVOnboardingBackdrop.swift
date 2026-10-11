@@ -70,13 +70,4 @@ class TVOnboardingViewController: UIViewController {
     var allowsAmbientMotion: Bool {
         !UIAccessibility.isReduceMotionEnabled && !TVDebugSession.disablesAmbientAnimation
     }
-
-    /// Cross-dissolves `changes` unless Reduce Motion asks for instant updates.
-    func transition(_ changes: @escaping () -> Void) {
-        guard !UIAccessibility.isReduceMotionEnabled, view.window != nil else {
-            changes()
-            return
-        }
-        UIView.transition(with: view, duration: TVMetrics.Duration.fade, options: [.transitionCrossDissolve, .allowUserInteraction], animations: changes)
-    }
 }

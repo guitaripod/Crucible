@@ -7,6 +7,8 @@ import UIKit
 final class TVLaunchViewController: UIViewController {
     var onRetry: (() -> Void)?
     var onSwitchServer: (() -> Void)?
+    var onSignInAgain: (() -> Void)?
+    var onSignOut: (() -> Void)?
 
     private static let glyphSide: CGFloat = 300
     private static let messageWidth: CGFloat = 900
@@ -19,11 +21,17 @@ final class TVLaunchViewController: UIViewController {
     private let failureMessageLabel = UILabel()
     private let retryButton = UIButton(configuration: .plain())
     private let switchButton = UIButton(configuration: .plain())
+    private let signInButton = UIButton(configuration: .plain())
+    private let signOutButton = UIButton(configuration: .plain())
+    private let reachButtons = UIStackView()
+    private let expiredButtons = UIStackView()
+    private var isSignInExpired = false
     private let failurePanel = UIStackView()
     private var isShowingFailure = false
 
     override var preferredFocusEnvironments: [any UIFocusEnvironment] {
-        isShowingFailure ? [retryButton] : []
+        guard isShowingFailure else { return [] }
+        return [isSignInExpired ? signInButton : retryButton]
     }
 
     override func viewDidLoad() {
@@ -45,8 +53,18 @@ final class TVLaunchViewController: UIViewController {
         glyph.stopBreathing()
     }
 
+    /// Updates the status line of a pipeline that is still running; a late progress report must
+    /// never replace a failure panel that is already showing.
+    func showProgress(_ status: String) {
+        guard !isShowingFailure else { return }
+        showLoading(status: status)
+    }
+
     func showLoading(status: String) {
         isShowingFailure = false
+        isSignInExpired = false
+        reachButtons.isHidden = false
+        expiredButtons.isHidden = true
         statusLabel.text = status
         spinner.startAnimating()
         statusRow.isHidden = false
@@ -55,8 +73,22 @@ final class TVLaunchViewController: UIViewController {
         applyAmbientAnimation()
     }
 
+    /// The saved Plex sign-in is no longer accepted: the way forward is to sign in again, or to
+    /// sign out, not to retry.
+    func showSignInExpired() {
+        showFailure(title: "Your Plex sign-in expired", message: "Sign in again to keep using Crucible, or sign out to remove this account from this Apple TV.")
+        isSignInExpired = true
+        reachButtons.isHidden = true
+        expiredButtons.isHidden = false
+        setNeedsFocusUpdate()
+        updateFocusIfNeeded()
+    }
+
     func showFailure(title: String, message: String) {
         isShowingFailure = true
+        isSignInExpired = false
+        reachButtons.isHidden = false
+        expiredButtons.isHidden = true
         spinner.stopAnimating()
         statusRow.isHidden = true
         failureTitleLabel.text = title
@@ -143,9 +175,21 @@ final class TVLaunchViewController: UIViewController {
         switchButton.accessibilityIdentifier = "launch.switchServer"
         switchButton.addAction(UIAction { [weak self] _ in self?.onSwitchServer?() }, for: .primaryActionTriggered)
 
-        let buttons = UIStackView(arrangedSubviews: [retryButton, switchButton])
-        buttons.axis = .horizontal
-        buttons.spacing = Theme.Space.m
+        signInButton.configuration = Self.buttonConfiguration(title: "Sign In Again", symbol: "person.crop.circle", isPrimary: true)
+        signInButton.accessibilityIdentifier = "launch.signInAgain"
+        signInButton.addAction(UIAction { [weak self] _ in self?.onSignInAgain?() }, for: .primaryActionTriggered)
+        signOutButton.configuration = Self.buttonConfiguration(title: "Sign Out", symbol: "rectangle.portrait.and.arrow.right", isPrimary: false)
+        signOutButton.accessibilityIdentifier = "launch.signOut"
+        signOutButton.addAction(UIAction { [weak self] _ in self?.onSignOut?() }, for: .primaryActionTriggered)
+
+        for (stack, buttons) in [(reachButtons, [retryButton, switchButton]), (expiredButtons, [signInButton, signOutButton])] {
+            buttons.forEach(stack.addArrangedSubview)
+            stack.axis = .horizontal
+            stack.spacing = Theme.Space.m
+        }
+        expiredButtons.isHidden = true
+        let buttons = UIStackView(arrangedSubviews: [reachButtons, expiredButtons])
+        buttons.axis = .vertical
 
         failurePanel.axis = .vertical
         failurePanel.alignment = .center

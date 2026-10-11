@@ -49,7 +49,7 @@ final class TVRouter {
     @discardableResult
     func handle(_ url: URL) -> Bool {
         guard let link = DeepLink(url: url) else {
-            AppLogger.notice("Ignored unrecognised URL \(url.absoluteString)", .lifecycle)
+            AppLogger.notice("Ignored unrecognised URL \(Self.redacted(url))", .lifecycle)
             return false
         }
         handle(link)
@@ -57,7 +57,7 @@ final class TVRouter {
     }
 
     func handle(_ link: DeepLink) {
-        AppLogger.notice("Deep link \(link), main UI \(tabBar == nil ? "not ready" : "ready")", .lifecycle)
+        AppLogger.notice("Deep link \(Self.describe(link)), main UI \(tabBar == nil ? "not ready" : "ready")", .lifecycle)
         guard tabBar != nil else {
             pending = link
             return
@@ -75,6 +75,10 @@ final class TVRouter {
             }
         case .play(let ratingKey):
             resolve(ratingKey: ratingKey) { router, item in
+                guard DeepLink.isPlayableType(item.mediaType) else {
+                    AppLogger.error("Deep link item \(item.id) is a \(item.mediaType), which cannot be played", .lifecycle)
+                    return
+                }
                 router.play(TVPlaybackRequest(item: item))
             }
         }
@@ -125,6 +129,18 @@ final class TVRouter {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("Deep link lookup for \(ratingKey) failed: \(String(describing: error))", .networking)
             }
+        }
+    }
+
+    /// An outside URL reduced to scheme and host: its path and query are not ours to keep in a log.
+    private static func redacted(_ url: URL) -> String {
+        "\(url.scheme ?? "?")://\(url.host ?? "")"
+    }
+
+    private static func describe(_ link: DeepLink) -> String {
+        switch link {
+        case .item(_, let mediaType): return "item(\(mediaType ?? "any type"))"
+        case .play: return "play"
         }
     }
 
