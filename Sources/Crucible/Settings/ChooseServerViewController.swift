@@ -16,10 +16,8 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     var onAddByAddress: (() -> Void)?
     var onConnect: ((ServerChoice, ServerRoute) async -> String?)?
 
-    private let token: String
-    private var choices: [ServerChoice]
-    private var selectedID: String?
-    private var userChoseServer = false
+    private let discovery: ServerDiscovery
+    private var picker: ServerPickerState
     private var isConnecting = false
 
     private let backButton = ThemeButton.icon(symbol: "chevron.left", label: "Back")
@@ -33,8 +31,8 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     private var connectTask: Task<Void, Never>?
 
     init(choices: [ServerChoice], token: String) {
-        self.choices = choices
-        self.token = token
+        self.picker = ServerPickerState(choices: choices)
+        self.discovery = ServerDiscovery(token: token)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -44,7 +42,6 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.canvas
-        selectedID = choices.first(where: \.isOnline)?.id
         configureHeader()
         configureCollectionView()
         configureFooter()
@@ -119,8 +116,8 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         ])
 
         let serverReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
-            guard let self, let choice = choices.first(where: { $0.id == id }) else { return }
-            cell.contentConfiguration = ChooseServerCardConfiguration(choice: choice, isSelected: id == selectedID)
+            guard let self, let choice = picker.choice(withID: id) else { return }
+            cell.contentConfiguration = ChooseServerCardConfiguration(choice: choice, isSelected: id == picker.selectedID)
             cell.backgroundConfiguration = .clear()
         }
 
@@ -183,7 +180,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     private func applySnapshot(animated: Bool, reconfigure: [String] = []) {
         var snapshot = NSDiffableDataSourceSnapshot<Int, Item>()
         snapshot.appendSections([0])
-        snapshot.appendItems(choices.map { .server($0.id) } + [.addByAddress, .hint], toSection: 0)
+        snapshot.appendItems(picker.choices.map { .server($0.id) } + [.addByAddress, .hint], toSection: 0)
         snapshot.reconfigureItems(reconfigure.map { .server($0) })
         dataSource.apply(snapshot, animatingDifferences: animated && !UIAccessibility.isReduceMotionEnabled)
     }
@@ -191,7 +188,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         guard !isConnecting, let item = dataSource.itemIdentifier(for: indexPath) else { return false }
         switch item {
-        case .server(let id): return choices.first(where: { $0.id == id })?.isOnline == true
+        case .server(let id): return picker.isSelectable(id)
         case .addByAddress: return true
         case .hint: return false
         }
@@ -202,10 +199,10 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
         case .server(let id):
-            guard id != selectedID else { return }
+            let previous = picker.selectedID
+            guard picker.choose(id) else { return }
             Haptics.selection()
-            userChoseServer = true
-            select(id)
+            selectionChanged(from: previous)
         case .addByAddress:
             onAddByAddress?()
         case .hint:
@@ -213,40 +210,22 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         }
     }
 
-    private func select(_ id: String) {
-        let previous = selectedID
-        selectedID = id
+    private func selectionChanged(from previous: String?) {
         errorLabel.isHidden = true
-        applySnapshot(animated: true, reconfigure: [previous, id].compactMap { $0 })
+        applySnapshot(animated: true, reconfigure: [previous, picker.selectedID].compactMap { $0 })
         updateConnectButton()
     }
 
-    private var selectedChoice: ServerChoice? {
-        choices.first { $0.id == selectedID }
-    }
-
     private func startProbing() {
-        let token = token
-        let targets: [(server: String, index: Int, url: URL)] = choices.filter(\.isOnline).flatMap { choice in
-            choice.routes.enumerated().compactMap { index, route in
-                URL(string: route.uri).map { (choice.id, index, $0) }
-            }
-        }
-        for choice in choices where choice.isOnline {
-            for (index, route) in choice.routes.enumerated() where URL(string: route.uri) == nil {
-                record(server: choice.id, route: index, milliseconds: nil)
-            }
+        for (server, route) in picker.unprobeableRoutes {
+            record(server: server, route: route, milliseconds: nil)
         }
 
+        let measurements = discovery.measureRoutes(picker.probeTargets)
         probeTask = Task { [weak self] in
-            await withTaskGroup(of: (String, Int, Int?).self) { group in
-                for target in targets {
-                    group.addTask { (target.server, target.index, await ServerRouteProbe.measure(target.url, token: token)) }
-                }
-                for await (server, index, milliseconds) in group {
-                    guard !Task.isCancelled else { return }
-                    self?.record(server: server, route: index, milliseconds: milliseconds)
-                }
+            for await measurement in measurements {
+                guard !Task.isCancelled else { return }
+                self?.record(server: measurement.serverID, route: measurement.routeIndex, milliseconds: measurement.milliseconds)
             }
             guard !Task.isCancelled else { return }
             self?.probingFinished()
@@ -254,26 +233,21 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     }
 
     private func record(server: String, route: Int, milliseconds: Int?) {
-        guard let position = choices.firstIndex(where: { $0.id == server }) else { return }
-        choices[position].record(routeAt: route, milliseconds: milliseconds)
+        guard picker.record(server: server, route: route, milliseconds: milliseconds) else { return }
         applySnapshot(animated: true, reconfigure: [server])
         updateConnectButton()
     }
 
     /// Preselects the lowest-latency server once every probe has settled, unless the user already chose.
     private func probingFinished() {
-        guard !userChoseServer else { return }
-        let fastest = choices
-            .filter(\.isOnline)
-            .compactMap { choice in choice.fastestMilliseconds.map { (choice.id, $0) } }
-            .min { $0.1 < $1.1 }
-        if let fastest, fastest.0 != selectedID {
-            select(fastest.0)
+        let previous = picker.selectedID
+        if picker.finishProbing() {
+            selectionChanged(from: previous)
         }
     }
 
     private func connectTapped() {
-        guard !isConnecting, let choice = selectedChoice, let route = choice.bestRoute else { return }
+        guard !isConnecting, let choice = picker.selectedChoice, let route = choice.bestRoute else { return }
         isConnecting = true
         errorLabel.isHidden = true
         updateConnectButton()
@@ -293,25 +267,10 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     }
 
     private func updateConnectButton() {
-        var config = ThemeButton.primaryConfiguration(title: "Connect")
-        var enabled = false
-        if isConnecting {
-            config.title = "Connecting…"
-            config.showsActivityIndicator = true
-        } else if let choice = selectedChoice {
-            if choice.bestRoute != nil {
-                config.title = "Connect to \(choice.name)"
-                enabled = true
-            } else if choice.isProbing {
-                config.title = "Testing connections…"
-                config.showsActivityIndicator = true
-            } else {
-                config.title = "No route to \(choice.name)"
-            }
-        } else {
-            config.title = "Choose a Server"
-        }
+        let action = picker.connectAction(isConnecting: isConnecting)
+        var config = ThemeButton.primaryConfiguration(title: action.title)
+        config.showsActivityIndicator = action.showsActivity
         connectButton.configuration = config
-        connectButton.isEnabled = enabled
+        connectButton.isEnabled = action.isEnabled
     }
 }

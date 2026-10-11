@@ -5,12 +5,6 @@ import os
 import WebKit
 
 final class ServerSetupViewController: UIViewController {
-    private struct KnownServer {
-        let name: String
-        let machineId: String
-        let advertised: [URL]
-    }
-
     var onConnected: ((PlexConnection) -> Void)?
     var allowsCancel = false
 
@@ -200,30 +194,9 @@ final class ServerSetupViewController: UIViewController {
         authTask = Task { [weak self] in
             guard let self else { return }
             do {
-                showStatus("Requesting PIN...", color: Theme.Color.labelSecondary)
-                let pin: PlexPin = try await APIClient.plexTVRequest(.requestPin)
-                guard !Task.isCancelled else { return }
-
-                let clientId = PlexHeaders.clientIdentifier
-                let authURLString = "https://app.plex.tv/auth#?clientID=\(clientId)&code=\(pin.code)&context%5Bdevice%5D%5Bproduct%5D=Crucible"
-                guard let authURL = URL(string: authURLString) else {
-                    showError("Failed to build auth URL")
-                    setBusy(false)
-                    return
-                }
-
-                let webVC = PlexWebAuthViewController(url: authURL)
-                let nav = UINavigationController(rootViewController: webVC)
-                present(nav, animated: true)
-
-                showStatus("Waiting for authorization...", color: Theme.Color.labelSecondary)
-                let token = try await pollForToken(pinId: pin.id)
-                guard !Task.isCancelled else { return }
-
-                nav.dismiss(animated: true)
-                ServerBootstrap.saveToken(token)
+                guard let token = try await authorize(), !Task.isCancelled else { return }
+                PlexSignIn.complete(token: token)
                 signedInToken = token
-                Task { await PlexAccountName.refresh(token: token) }
                 showStatus("Signed in! Discovering servers...", color: Theme.Color.statusOK)
 
                 if let address = pendingManualAddress {
@@ -246,69 +219,72 @@ final class ServerSetupViewController: UIViewController {
         }
     }
 
-    private func pollForToken(pinId: Int) async throws -> String {
-        for i in 0..<150 {
-            try await Task.sleep(for: .seconds(2))
-            try Task.checkCancellation()
-            do {
-                let pin: PlexPin = try await APIClient.plexTVRequest(.checkPin(pinId: pinId))
-                if let token = pin.authToken {
-                    return token
+    private struct SignInFailure: LocalizedError {
+        let message: String
+        var errorDescription: String? { message }
+    }
+
+    /// Requests a PIN, shows plex.tv's approval page in a web sheet and waits for the token.
+    /// Returns nil when the task was cancelled.
+    private func authorize() async throws -> String? {
+        var sheet: UINavigationController?
+        for await state in PlexPinAuth(strong: true, timing: .phoneWeb).states() {
+            guard !Task.isCancelled else { return nil }
+            switch state {
+            case .requesting:
+                showStatus("Requesting PIN...", color: Theme.Color.labelSecondary)
+            case .waiting(let pin):
+                guard let authURL = PlexAuthURL.url(clientIdentifier: PlexHeaders.clientIdentifier, code: pin.code) else {
+                    throw SignInFailure(message: "Failed to build auth URL")
                 }
-            } catch {
-                log.error("Poll \(i) error: \(error)")
+                let nav = UINavigationController(rootViewController: PlexWebAuthViewController(url: authURL))
+                present(nav, animated: true)
+                sheet = nav
+                showStatus("Waiting for authorization...", color: Theme.Color.labelSecondary)
+            case .claimed(let token):
+                sheet?.dismiss(animated: true)
+                return token
+            case .expired:
+                throw APIError.httpError(statusCode: 408, message: "Authentication timed out. Please try again.")
+            case .failed(let message):
+                throw SignInFailure(message: message)
             }
         }
-        throw APIError.httpError(statusCode: 408, message: "Authentication timed out. Please try again.")
+        return nil
     }
 
     private func discoverServers(token: String) async throws {
-        let resources: [PlexResource] = try await APIClient.plexTVRequest(.resources, token: token)
-        let servers = resources.filter { $0.provides.contains("server") }
-        guard let first = servers.first else {
+        let discovery = ServerDiscovery(token: token)
+        switch try await discovery.listing() {
+        case .none:
             showError("No Plex server found on your account")
             setBusy(false)
-            return
+        case .single(let server):
+            await connectToOnlyServer(server, discovery: discovery)
+        case .several(let servers):
+            guard !Task.isCancelled else { return }
+            showChooser(choices: servers, token: token)
         }
-
-        guard servers.count > 1 else {
-            await connectToOnlyServer(first, token: token)
-            return
-        }
-        guard !Task.isCancelled else { return }
-        showChooser(choices: servers.map(ServerChoice.init(resource:)), token: token)
     }
 
     /// Single-server accounts skip the picker: probe every route (progress shown on the Welcome
     /// screen), pin the best one, and fall back to the address sheet when nothing answers.
-    private func connectToOnlyServer(_ server: PlexResource, token: String) async {
-        let ranked = ServerChoice.ranked(server.connections)
-        let advertised = ranked.compactMap { URL(string: $0.uri) }
-        let known = KnownServer(name: server.name, machineId: server.clientIdentifier, advertised: advertised)
-
-        guard !advertised.isEmpty else {
+    private func connectToOnlyServer(_ server: ServerChoice, discovery: ServerDiscovery) async {
+        let outcome = await discovery.connect(toOnly: server, progress: { [weak self] in self?.show($0) })
+        if case .needsAddress(let message) = outcome {
+            if let message { showError(message) }
             setBusy(false)
-            presentAddressSheet(known: known)
+            presentAddressSheet(known: server)
             return
         }
-
-        showStatus("Finding the best route to \(server.name)…", color: Theme.Color.labelSecondary)
-        let best = await ServerConnectionResolver.firstReachable(advertised, token: token)
-        guard !Task.isCancelled else { return }
-        guard let best else {
-            showError("Could not reach \(server.name). Enter its address instead.")
-            setBusy(false)
-            presentAddressSheet(known: known)
-            return
-        }
-        if let failure = await finishConnect(url: best, name: server.name, machineId: server.clientIdentifier, token: token, candidates: advertised) {
+        if let failure = await deliver(outcome) {
             showError(failure)
             setBusy(false)
         }
     }
 
-    private func presentAddressSheet(known: KnownServer?) {
-        let sheet = ServerAddressSheetViewController(prefill: UserDefaults.standard.string(forKey: "last_server_ip")) { [weak self] address in
+    private func presentAddressSheet(known: ServerChoice?) {
+        let sheet = ServerAddressSheetViewController(prefill: RememberedServerAddress.text) { [weak self] address in
             await self?.handleSubmitted(address, known: known)
         }
         sheet.onDidDismiss = { [weak self] in self?.beginPendingAuthIfNeeded() }
@@ -322,9 +298,8 @@ final class ServerSetupViewController: UIViewController {
     }
 
     /// Signed-out users authenticate first and the address is connected right after sign-in.
-    private func handleSubmitted(_ address: ServerAddress, known: KnownServer?) async -> String? {
-        let remembered = address.port == ServerAddress.defaultPort ? address.host : "\(address.host):\(address.port)"
-        UserDefaults.standard.set(remembered, forKey: "last_server_ip")
+    private func handleSubmitted(_ address: ServerAddress, known: ServerChoice?) async -> String? {
+        RememberedServerAddress.remember(address)
         guard let token = signedInToken else {
             pendingManualAddress = address
             return nil
@@ -334,37 +309,13 @@ final class ServerSetupViewController: UIViewController {
         return failure
     }
 
-    private func connectManually(_ address: ServerAddress, token: String, known: KnownServer?) async -> String? {
-        showStatus("Connecting to \(address.host)…", color: Theme.Color.labelSecondary)
-        guard let url = await ServerConnectionResolver.firstReachable(address.candidateURLs, token: token) else {
-            return "Couldn't reach \(address.host). Check the address and that the server is online."
-        }
-        let machineId: String
-        let name: String
-        if let known {
-            machineId = known.machineId
-            name = known.name
-        } else {
-            let identified = await Self.machineIdentifier(at: url, token: token)
-            machineId = identified ?? address.host
-            let resolvedName = await Self.serverName(machineId: machineId, token: token)
-            name = resolvedName ?? address.host
-        }
-        let advertised = (known?.advertised ?? []).filter { $0 != url }
-        return await finishConnect(url: url, name: name, machineId: machineId, token: token, candidates: advertised)
+    private func connectManually(_ address: ServerAddress, token: String, known: ServerChoice?) async -> String? {
+        let outcome = await ServerDiscovery(token: token).connect(toAddress: address, known: known, progress: { [weak self] in self?.show($0) })
+        return await deliver(outcome)
     }
 
-    private static func machineIdentifier(at url: URL, token: String) async -> String? {
-        guard let request = try? PlexEndpoint.identity.urlRequest(baseURL: url, token: token),
-              let (data, _) = try? await URLSession.shared.data(for: request),
-              let identity = try? JSONDecoder().decode(PlexIdentity.self, from: data)
-        else { return nil }
-        return identity.MediaContainer.machineIdentifier
-    }
-
-    private static func serverName(machineId: String, token: String) async -> String? {
-        let resources: [PlexResource]? = try? await APIClient.plexTVRequest(.resources, token: token)
-        return resources?.first { $0.clientIdentifier == machineId }?.name
+    private func show(_ progress: ConnectProgress) {
+        showStatus(progress.message, color: progress.isSuccess ? Theme.Color.statusOK : Theme.Color.labelSecondary)
     }
 
     private func showChooser(choices: [ServerChoice], token: String) {
@@ -410,30 +361,27 @@ final class ServerSetupViewController: UIViewController {
     }
 
     private func connectFromChooser(_ choice: ServerChoice, route: ServerRoute) async -> String? {
-        guard let token = signedInToken, let url = URL(string: route.uri) else { return "Invalid server address" }
-        let advertised = choice.routes.compactMap { URL(string: $0.uri) }.filter { $0 != url }
-        return await finishConnect(url: url, name: choice.name, machineId: choice.id, token: token, candidates: advertised)
+        guard let token = signedInToken else { return "Invalid server address" }
+        let outcome = await ServerDiscovery(token: token).connect(to: choice, route: route, progress: { [weak self] in self?.show($0) })
+        return await deliver(outcome)
     }
 
-    /// Re-checks the route, persists the server and hands the connection to the app. Returns a
+    /// Hands a saved connection to the app once "Connected" has had a moment on screen. Returns a
     /// user-facing message on failure and nil once the connection has been delivered.
-    private func finishConnect(url: URL, name: String, machineId: String, token: String, candidates: [URL]) async -> String? {
-        showStatus("Connecting to \(url.absoluteString)...", color: Theme.Color.labelSecondary)
-        guard await APIClient.probe(baseURL: url, token: token) else {
-            return "Could not reach server at \(url.absoluteString)"
+    private func deliver(_ outcome: ServerConnectOutcome) async -> String? {
+        switch outcome {
+        case .connected(let connection):
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return nil }
+            onConnected?(connection)
+            return nil
+        case .failed(let message):
+            return message
+        case .needsAddress(let message):
+            return message
+        case .cancelled:
+            return nil
         }
-
-        ServerBootstrap.saveServer(uri: url, name: name, machineIdentifier: machineId, candidates: candidates.filter { $0 != url })
-        showStatus("Connected to \(name)", color: Theme.Color.statusOK)
-
-        guard let plexConnection = ServerBootstrap.connection() else {
-            return "Failed to save connection"
-        }
-
-        try? await Task.sleep(for: .milliseconds(500))
-        guard !Task.isCancelled else { return nil }
-        onConnected?(plexConnection)
-        return nil
     }
 
     private func showError(_ message: String) {
