@@ -10,6 +10,7 @@ final class DetailTests: XCTestCase {
 
     override func setUp() {
         continueAfterFailure = false
+        Self.callMock("/mock/detail-reset")
     }
 
     func testMovieDetailDark() {
@@ -157,6 +158,90 @@ final class DetailTests: XCTestCase {
         capture("05-go-to-show")
     }
 
+    func testSeasonSwitchShowsLoadingInsteadOfTheOldEpisodes() {
+        resetMock()
+        setSeason("3003", mode: "slow", seconds: 8)
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        pressSeasonChip(app, season: "3003")
+        TVTest.settle(1.5)
+        capture("01-season-loading")
+        XCTAssertTrue(app.staticTexts["Season 3"].exists, "header should already name the new season")
+        XCTAssertEqual(episodeCardCount(app), 0, "the previous season's episodes must not stay under the new header")
+        XCTAssertTrue(app.descendants(matching: .any)["detail.episodes.loading"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.episode.4019"].waitForExistence(timeout: 20))
+        TVTest.settle(1.0)
+        capture("02-season-loaded")
+        XCTAssertFalse(app.descendants(matching: .any)["detail.episodes.loading"].exists)
+    }
+
+    func testFailedSeasonOffersRetryAndRecovers() {
+        resetMock()
+        setSeason("3004", mode: "fail")
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        pressSeasonChip(app, season: "3004")
+        XCTAssertTrue(app.buttons["detail.episodes.retry"].waitForExistence(timeout: 15))
+        TVTest.settle(0.8)
+        capture("01-season-failed")
+        XCTAssertEqual(episodeCardCount(app), 0)
+        XCTAssertFalse(app.staticTexts["No episodes in this season"].exists, "a failed fetch is not an empty season")
+
+        setSeason("3004", mode: "ok")
+        TVTest.remote.press(.down)
+        XCTAssertTrue(waitFocus(app.buttons["detail.episodes.retry"]))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.episode.4027"].waitForExistence(timeout: 15))
+        TVTest.settle(0.8)
+        capture("02-season-recovered")
+        XCTAssertFalse(app.buttons["detail.episodes.retry"].exists)
+    }
+
+    func testLateSeasonResponseIsIgnored() {
+        resetMock()
+        setSeason("3003", mode: "slow", seconds: 7)
+        let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
+        pressSeasonChip(app, season: "3003")
+        pressSeasonChip(app, season: "3004", entering: false)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.episode.4027"].waitForExistence(timeout: 15))
+        TVTest.settle(9.0)
+        XCTAssertTrue(app.staticTexts["Season 4"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["detail.episode.4019"].exists, "the slow season 3 response must not replace season 4")
+        capture("01-season-4-after-late-response")
+    }
+
+    func testBackdropStaysDimmedWhileAShelfScrollsHorizontally() {
+        let app = openDetail(Self.deepField, type: "movie", style: "dark")
+        step(app, .down, until: "detail.cast.")
+        TVTest.settle(1.2)
+        let region = CGRect(x: 1650, y: 140, width: 240, height: 200)
+        let before = meanLuminance(in: region)
+        capture("01-cast-focused")
+        for _ in 0 ..< 9 {
+            TVTest.remote.press(.right)
+            TVTest.settle(0.4)
+        }
+        TVTest.settle(1.0)
+        let after = meanLuminance(in: region)
+        capture("02-cast-scrolled-sideways")
+        XCTAssertLessThanOrEqual(after, before + 0.02, "scrolling a shelf sideways must not brighten the backdrop (before \(before), after \(after))")
+    }
+
+    func testPrimaryActionFollowsProgressWhenMarkedWatched() {
+        let app = openDetail("4095", type: "episode", style: "dark", spy: true)
+        let primary = app.buttons["detail.action.primary"]
+        XCTAssertTrue(primary.label.hasPrefix("Resume "), primary.label)
+        XCTAssertTrue(app.buttons["detail.action.startOver"].exists)
+        capture("01-in-progress")
+
+        step(app, .right, until: "detail.action.watched")
+        TVTest.remote.press(.select)
+        waitForLabel(app.buttons["detail.action.watched"], "Mark Unwatched")
+        TVTest.settle(1.0)
+        XCTAssertTrue(primary.label.hasPrefix("Play "), "the primary action must follow the new state, got \(primary.label)")
+        XCTAssertFalse(app.buttons["detail.action.startOver"].exists)
+        XCTAssertTrue(waitFocus(app.buttons["detail.action.watched"]))
+        capture("02-after-marking-watched")
+    }
+
     func testMashingDirectionsKeepsFocusOnTheScreen() {
         let app = openDetail(Self.saltRoad, type: "show", style: "dark", spy: true)
         let moves: [XCUIRemote.Button] = [.down, .right, .right, .down, .down, .left, .up, .up, .right, .down, .down, .down, .up, .left, .left]
@@ -286,7 +371,9 @@ final class DetailTests: XCTestCase {
         TVTest.remote.press(.down)
         XCTAssertTrue(waitFocus(app.buttons["Go Back"]))
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 10))
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: app.buttons["Go Back"])
+        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 10), .completed, "Go Back must leave the screen")
+        XCTAssertTrue(app.tabBars.firstMatch.exists)
     }
 
     func testMovieDetailLight() {
@@ -351,11 +438,52 @@ final class DetailTests: XCTestCase {
         TVTest.settle(0.5)
     }
 
+    /// Moves focus to the season chip with rating key `season` and presses it. Down from the action row lands on the first chip.
+    private func pressSeasonChip(_ app: XCUIApplication, season: String, entering: Bool = true) {
+        if entering { step(app, .down, until: "tv.chip.") }
+        TVTest.settle(0.6)
+        step(app, .right, until: "tv.chip.\(season)")
+        capture("00-chip-\(season)-before-select")
+        TVTest.remote.press(.select)
+    }
+
+    private func meanLuminance(in rect: CGRect) -> Double {
+        guard let image = XCUIScreen.main.screenshot().image.cgImage else { return 0 }
+        let scale = Double(image.width) / 1920
+        let crop = CGRect(x: rect.minX * scale, y: rect.minY * scale, width: rect.width * scale, height: rect.height * scale)
+        guard let part = image.cropping(to: crop) else { return 0 }
+        var pixel = [UInt8](repeating: 0, count: 4)
+        guard let context = CGContext(
+            data: &pixel,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return 0 }
+        context.interpolationQuality = .medium
+        context.draw(part, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        return (0.2126 * Double(pixel[0]) + 0.7152 * Double(pixel[1]) + 0.0722 * Double(pixel[2])) / 255
+    }
+
+    private func setSeason(_ key: String, mode: String, seconds: Int = 5) {
+        Self.callMock("/mock/detail-season?key=\(key)&mode=\(mode)&seconds=\(seconds)")
+    }
+
+    private func episodeCardCount(_ app: XCUIApplication) -> Int {
+        app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "detail.episode.")).count
+    }
+
     private func resetMock() {
-        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + "/mock/detail-reset") else { return }
-        let done = expectation(description: "mock reset")
-        URLSession.shared.dataTask(with: url) { _, _, _ in done.fulfill() }.resume()
-        wait(for: [done], timeout: 10)
+        Self.callMock("/mock/detail-reset")
+    }
+
+    private nonisolated static func callMock(_ path: String) {
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + path) else { return }
+        let done = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: url) { _, _, _ in done.signal() }.resume()
+        _ = done.wait(timeout: .now() + 10)
     }
 
     private func step(_ app: XCUIApplication, _ button: XCUIRemote.Button, until prefix: String, limit: Int = 12) {
