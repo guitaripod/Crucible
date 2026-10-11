@@ -6,9 +6,15 @@ BASE="${BASE:-http://127.0.0.1:${PORT:-32400}}"
 TC=$(ls -d ~/.local/share/swiftly/toolchains/*/usr/lib/swift/linux 2>/dev/null | tail -1)
 [ -n "$TC" ] && export LD_LIBRARY_PATH="$TC:$LD_LIBRARY_PATH"
 W="$(mktemp -d)"
-cp "$ROOT/Sources/Crucible/Networking/APIModels.swift" "$W/APIModels.swift"
+MODELS=$(find "$ROOT/Sources" -name APIModels.swift | head -1)
+cp "$MODELS" "$W/APIModels.swift"
 cat > "$W/Stubs.swift" <<'SW'
 import Foundation
+struct PlexAccountProbe: Decodable {
+    let username: String?
+    let title: String?
+    let friendlyName: String?
+}
 struct HomeCardSnapshot: Codable, Sendable {
     let ratingKey: String
     let type: String?
@@ -25,6 +31,9 @@ struct HomeCardSnapshot: Codable, Sendable {
     let duration: Int?
     let viewCount: Int?
     let bucket: String
+    var art: String? = nil
+    var grandparentArt: String? = nil
+    var librarySectionID: Int? = nil
 }
 enum Formatters {
     static func channelDescription(_ channels: Int?) -> String { "\(channels ?? 0)" }
@@ -57,7 +66,17 @@ func fetch(_ path: String) -> Data? {
 for path in paths {
     guard let data = fetch(path) else { print("FAIL fetch \(path)"); failures += 1; continue }
     do {
-        if path.hasPrefix("/identity") {
+        if path.hasPrefix("/api/v2/resources") {
+            let r = try JSONDecoder().decode([PlexResource].self, from: data)
+            let server = r.first { $0.provides.contains("server") }
+            print("ok   \(path) resources=\(r.count) server=\(server?.name ?? "-") connections=\(server?.connections.count ?? 0)")
+        } else if path.hasPrefix("/api/v2/pins") {
+            let r = try JSONDecoder().decode(PlexPin.self, from: data)
+            print("ok   \(path) pin=\(r.id) code=\(r.code) token=\(r.authToken ?? "nil")")
+        } else if path.hasPrefix("/api/v2/user") {
+            let r = try JSONDecoder().decode(PlexAccountProbe.self, from: data)
+            print("ok   \(path) title=\(r.title ?? "-") username=\(r.username ?? "-")")
+        } else if path.hasPrefix("/identity") {
             let r = try JSONDecoder().decode(PlexIdentity.self, from: data)
             print("ok   \(path) machine=\(r.MediaContainer.machineIdentifier ?? "-")")
         } else if path.hasPrefix("/status/sessions/history") {
@@ -92,7 +111,8 @@ print(' '.join('/library/metadata/%s/children /library/metadata/%s'%(x['ratingKe
 EPS=$(j "/library/metadata/3002/children" | python3 -c "
 import json,sys
 print(' '.join('/library/metadata/%s'%x['ratingKey'] for x in json.load(sys.stdin)['MediaContainer']['Metadata']))")
-"$W/decode" "$BASE" /identity /library/sections \
+PIN=$(curl -s -X POST "$BASE/api/v2/pins?strong=true" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+"$W/decode" "$BASE" /identity "/api/v2/pins/$PIN" /api/v2/resources /api/v2/user /library/sections \
   "/library/sections/1/all?X-Plex-Container-Start=0&X-Plex-Container-Size=50&sort=titleSort:asc" \
   "/library/sections/1/all?sort=addedAt:desc" "/library/sections/1/all?sort=year:desc&genre=6" \
   "/library/sections/2/all?sort=rating:desc" "/library/sections/3/all" \

@@ -1,9 +1,13 @@
 import json
 import os
+import random
 import re
+import socketserver
+import string
 import sys
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -12,8 +16,14 @@ import library
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, "assets")
 PORT = int(os.environ.get("PORT", "32400"))
+LATENCY = int(os.environ.get("MOCK_LATENCY_MS", "0")) / 1000
+PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
+PIN_LIFETIME = 900
+MOCK_TOKEN = "mock-token"
+PUBLIC_ADDRESS = "203.0.113.7"
 LIB = library.Library()
 LOCK = threading.Lock()
+PINS = {}
 
 SRT = (
     "1\n00:00:02,000 --> 00:00:05,000\nWe should not be out here.\n\n"
@@ -31,6 +41,72 @@ SORT_KEYS = {
     "lastViewedAt": lambda i: i.get("lastViewedAt", 0),
     "originallyAvailableAt": lambda i: i.get("originallyAvailableAt", ""),
 }
+
+
+def iso(moment):
+    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def new_pin(strong, product, client_id):
+    pin_id = 1000000 + len(PINS) + 1
+    alphabet = string.ascii_lowercase + string.digits if strong else string.ascii_uppercase
+    code = "".join(random.choice(alphabet) for _ in range(24 if strong else 4))
+    created = datetime.now(timezone.utc)
+    PINS[pin_id] = {"id": pin_id, "code": code, "product": product, "clientIdentifier": client_id,
+                    "createdAt": created, "polls": 0, "approved": False}
+    return PINS[pin_id]
+
+
+def pin_payload(pin, token=None):
+    return {"id": pin["id"], "code": pin["code"], "product": pin["product"], "trusted": False,
+            "qr": f"https://plex.tv/api/v2/pins/qr/{pin['code']}", "clientIdentifier": pin["clientIdentifier"],
+            "location": {"code": "FI", "european_union_member": True, "continent_code": "EU", "country": "Finland",
+                         "city": "Helsinki", "time_zone": "Europe/Helsinki", "postal_code": "00100",
+                         "in_privacy_restricted_country": False, "in_privacy_restricted_region": False,
+                         "subdivisions": "Uusimaa", "coordinates": "60.1699, 24.9384"},
+            "expiresIn": PIN_LIFETIME, "createdAt": iso(pin["createdAt"]),
+            "expiresAt": iso(pin["createdAt"] + timedelta(seconds=PIN_LIFETIME)), "authToken": token,
+            "newRegistration": None}
+
+
+def poll_pin(pin):
+    pin["polls"] += 1
+    approved = pin["approved"] or pin["polls"] > PIN_POLLS
+    return pin_payload(pin, MOCK_TOKEN if approved else None)
+
+
+def plextv_resources():
+    machine = library.MACHINE_ID
+    seen = iso(datetime.now(timezone.utc))
+    server = {"name": library.SERVER_NAME, "product": "Plex Media Server", "productVersion": "1.41.4.9463-630c9f557",
+              "platform": "Linux", "platformVersion": "6.8.0", "device": "PC", "clientIdentifier": machine,
+              "createdAt": "2024-03-02T10:14:09Z", "lastSeenAt": seen, "provides": "server", "ownerId": 1,
+              "sourceTitle": None, "publicAddress": PUBLIC_ADDRESS, "accessToken": "mock-server-token",
+              "owned": True, "home": True, "synced": False, "relay": True, "presence": True, "httpsRequired": False,
+              "publicAddressMatches": True, "dnsRebindingProtection": False, "natLoopbackSupported": False,
+              "connections": [
+                  {"protocol": "http", "address": "127.0.0.1", "port": PORT, "uri": f"http://127.0.0.1:{PORT}",
+                   "local": True, "relay": False, "IPv6": False},
+                  {"protocol": "https", "address": "172.16.2.9", "port": 8443,
+                   "uri": f"https://172-16-2-9.{machine}.plex.direct:8443", "local": False, "relay": True,
+                   "IPv6": False},
+                  {"protocol": "http", "address": PUBLIC_ADDRESS, "port": PORT,
+                   "uri": f"http://{PUBLIC_ADDRESS}:{PORT}", "local": False, "relay": False, "IPv6": False},
+              ]}
+    player = {"name": "Marcus-iPhone", "product": "Crucible", "productVersion": "2.0.1", "platform": "iOS",
+              "platformVersion": "26.5", "device": "iPhone", "clientIdentifier": "3f0b8e4c-0c6a-4d5e-9a67-52f1c1b0a9d2",
+              "createdAt": "2025-09-12T08:01:44Z", "lastSeenAt": seen, "provides": "client,player,pubsub-player",
+              "ownerId": None, "sourceTitle": None, "publicAddress": PUBLIC_ADDRESS, "owned": True, "home": False,
+              "synced": False, "relay": False, "presence": False, "httpsRequired": False,
+              "publicAddressMatches": True, "dnsRebindingProtection": False, "natLoopbackSupported": False,
+              "connections": []}
+    return [server, player]
+
+
+def plextv_user():
+    return {"id": 1, "uuid": "9d1c5b7a3e2f4a60", "username": "marcus", "title": "Marcus", "friendlyName": "Marcus",
+            "email": "marcus@example.test", "locale": None, "confirmed": True, "emailOnlyAuth": False,
+            "hasPassword": True, "protected": False, "thumb": "", "authToken": MOCK_TOKEN}
 
 
 def container(**fields):
@@ -204,13 +280,19 @@ class Handler(BaseHTTPRequestHandler):
         self.drain()
         self.route()
 
+    def form(self):
+        fields = parse_qs(self.body.decode("utf-8", "replace"))
+        fields.update(parse_qs(urlparse(self.path).query))
+        return fields
+
     def do_DELETE(self):
         self.route()
 
+    body = b""
+
     def drain(self):
         n = int(self.headers.get("Content-Length") or 0)
-        if n:
-            self.rfile.read(n)
+        self.body = self.rfile.read(n) if n else b""
 
     def route(self):
         try:
@@ -229,6 +311,12 @@ class Handler(BaseHTTPRequestHandler):
         p = u.path.rstrip("/") or "/"
         q = parse_qs(u.query)
         one = lambda k, d=None: q.get(k, [d])[0]
+
+        if LATENCY and not p.startswith("/mock/"):
+            time.sleep(LATENCY)
+
+        if p.startswith("/api/v2/") or p.startswith("/mock/"):
+            return self.plextv(p, q)
 
         if p in ("/identity", "/"):
             return self.send_json(container(size=0, claimed=True, machineIdentifier=library.MACHINE_ID,
@@ -353,6 +441,36 @@ class Handler(BaseHTTPRequestHandler):
 
         self.not_found()
 
+    def plextv(self, p, q):
+        if p == "/api/v2/pins" and self.command == "POST":
+            fields = self.form()
+            strong = fields.get("strong", ["false"])[0].lower() == "true"
+            product = fields.get("X-Plex-Product", ["Crucible"])[0]
+            client_id = fields.get("X-Plex-Client-Identifier", [self.headers.get("X-Plex-Client-Identifier", "")])[0]
+            with LOCK:
+                pin = new_pin(strong, product, client_id)
+                return self.send_json(pin_payload(pin), 201)
+        m = re.match(r"^/api/v2/pins/(\d+)$", p)
+        if m and self.command == "GET":
+            with LOCK:
+                pin = PINS.get(int(m.group(1)))
+                if not pin:
+                    return self.send_json({"errors": [{"code": 1020, "message": "Code not found or expired"}]}, 404)
+                return self.send_json(poll_pin(pin))
+        if p == "/api/v2/resources":
+            return self.send_json(plextv_resources())
+        if p == "/api/v2/user":
+            return self.send_json(plextv_user())
+        if p == "/mock/approve":
+            code = (q.get("code", [""])[0]).lower()
+            with LOCK:
+                pin = next((x for x in PINS.values() if x["code"].lower() == code), None)
+                if not pin:
+                    return self.send_json({"approved": False, "error": "unknown code"}, 404)
+                pin["approved"] = True
+            return self.send_json({"approved": True, "id": pin["id"]})
+        self.not_found()
+
     def handle_state(self, p, q):
         one = lambda k, d=None: q.get(k, [d])[0]
         if p == "/:/scrobble":
@@ -412,9 +530,16 @@ class Handler(BaseHTTPRequestHandler):
         self.not_found()
 
 
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = "localhost", self.server_address[1]
+
+
 def main():
-    ThreadingHTTPServer.daemon_threads = True
-    srv = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
+    srv = Server(("0.0.0.0", PORT), Handler)
     sys.stderr.write(f"Mock Plex server '{library.SERVER_NAME}' on :{PORT}, {len(LIB.items)} items, {len(LIB.history)} history rows\n")
     try:
         srv.serve_forever()
