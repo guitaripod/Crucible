@@ -85,6 +85,10 @@ enum TVMetrics {
         static let titleLines = 2
         static let blockSpacing: CGFloat = 14
         static let bottomClearance: CGFloat = 36
+
+        /// Where a hero section starts: the backdrop runs under the tab bar, so the hero's text
+        /// begins higher than `tabBarClearance`, which would push the first shelf down by 50pt.
+        static let topClearance: CGFloat = 100
     }
 
     enum Control {

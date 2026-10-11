@@ -26,8 +26,10 @@ class TVScreenViewController: UIViewController, UICollectionViewDelegate {
     private var indexPathForIdentifier: ((AnyHashable) -> IndexPath?)?
     private var hasItems: (() -> Bool)?
 
-    init(layout: UICollectionViewLayout) {
-        collectionView = TVCollectionView(frame: .zero, collectionViewLayout: layout)
+    /// A screen that has to constrain its scrolling passes its own `TVCollectionView` subclass,
+    /// created with the same `layout`.
+    init(layout: UICollectionViewLayout, collectionView: TVCollectionView? = nil) {
+        self.collectionView = collectionView ?? TVCollectionView(frame: .zero, collectionViewLayout: layout)
         super.init(nibName: nil, bundle: nil)
     }
 
