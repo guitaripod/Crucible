@@ -120,6 +120,11 @@ struct LibraryGridPagerTests {
         #expect(pager.jumpPlan(toOffset: 31) == .scroll(toIndex: 29))
     }
 
+    @Test func jumpingInAnEmptyGridNeverAimsBelowZero() {
+        let pager = LibraryGridPager()
+        #expect(pager.jumpPlan(toOffset: 5) == .scroll(toIndex: 0))
+    }
+
     @Test func endingAFetchClearsTheLoadingFlag() {
         var pager = LibraryGridPager()
         pager.beginFetch()

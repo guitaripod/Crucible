@@ -252,6 +252,15 @@ final class LibraryGridModelTests {
         #expect(model.visibleRecents.isEmpty)
     }
 
+    @Test func anEmptyRailStillReportsThatItLoaded() async throws {
+        serveItems(total: 3)
+        #expect(!model.hasLoadedRecents)
+        model.appear()
+        try await until { self.model.hasLoadedRecents }
+        #expect(model.recentItems.isEmpty)
+        #expect(updates.contains(.recents))
+    }
+
     @Test func genresAreListedFromTheSection() async throws {
         LibraryStubProtocol.route("/library/sections/1/genre") { _ in
             .init(body: #"{"MediaContainer":{"Directory":[{"key":"7","title":"Drama"},{"title":"No key"},{"key":"8","title":"Comedy"}]}}"#)
@@ -337,6 +346,57 @@ final class LibraryGridModelTests {
         #expect(!updates.contains(.pageLoaded))
         #expect(model.gridIds.isEmpty)
         #expect(!model.pager.hasLoaded)
+    }
+
+    @Test func leavingWhileTheFirstPageLoadsDropsTheLoadingState() async throws {
+        LibraryStubProtocol.route(all) { _ in
+            .init(body: #"{"MediaContainer":{"totalSize":1,"Metadata":[{"ratingKey":"1","type":"movie","title":"Late"}]}}"#, delay: 0.3)
+        }
+        model.appear()
+        #expect(model.contentState == .loading)
+        model.disappear()
+        #expect(model.contentState == .content)
+        #expect(!model.pager.isLoading)
+    }
+
+    @Test func leavingKeepsTheStateOfAGridThatAlreadyLoaded() async throws {
+        serveItems(total: 0)
+        model.appear()
+        try await until { self.model.contentState == .empty }
+        model.disappear()
+        #expect(model.contentState == .empty)
+    }
+
+    @Test func appearingRetriesTheGenresOnlyWhileTheListIsEmpty() async throws {
+        let genre = "/library/sections/1/genre"
+        serveItems(total: 3)
+        fail(genre)
+        model.appear()
+        try await until { !LibraryStubProtocol.requests(to: genre).isEmpty }
+        try await settle()
+        #expect(model.genres.isEmpty)
+
+        LibraryStubProtocol.route(genre) { _ in
+            .init(body: #"{"MediaContainer":{"Directory":[{"key":"7","title":"Drama"}]}}"#)
+        }
+        model.appear()
+        try await until { !self.model.genres.isEmpty }
+        let requests = LibraryStubProtocol.requests(to: genre).count
+
+        model.appear()
+        try await settle()
+        #expect(LibraryStubProtocol.requests(to: genre).count == requests)
+    }
+
+    @Test func overlappingGenreReadsShareOneRequest() async throws {
+        let genre = "/library/sections/1/genre"
+        LibraryStubProtocol.route(genre) { _ in
+            .init(body: #"{"MediaContainer":{"Directory":[{"key":"7","title":"Drama"}]}}"#, delay: 0.1)
+        }
+        model.loadGenres()
+        model.loadGenres()
+        try await until { !self.model.genres.isEmpty }
+        #expect(LibraryStubProtocol.requests(to: genre).count == 1)
     }
 
     @Test func markingWatchedInvalidatesThenReloadsThePagesAndHubs() async throws {

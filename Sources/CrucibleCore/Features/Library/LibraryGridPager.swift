@@ -60,7 +60,7 @@ package struct LibraryGridPager: Sendable {
     /// loaded, scroll to the end when the server has nothing more, otherwise read up to it first.
     package func jumpPlan(toOffset offset: Int) -> JumpPlan {
         if offset < ids.count { return .scroll(toIndex: offset) }
-        guard serverOffset < totalSize else { return .scroll(toIndex: ids.count - 1) }
+        guard serverOffset < totalSize else { return .scroll(toIndex: max(0, ids.count - 1)) }
         return .loadThenScroll(size: offset - serverOffset + Self.pageSize)
     }
 

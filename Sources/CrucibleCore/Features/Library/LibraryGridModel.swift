@@ -38,6 +38,7 @@ package final class LibraryGridModel {
     package private(set) var contentState = ContentState.content
     package private(set) var continueItem: PlexMetadata?
     package private(set) var recentItems: [PlexMetadata] = []
+    package private(set) var hasLoadedRecents = false
     package private(set) var alphabet: LibraryAlphabetIndex?
 
     private let api: APIClient
@@ -46,6 +47,7 @@ package final class LibraryGridModel {
     private var recentTask: Task<Void, Never>?
     private var alphabetTask: Task<Void, Never>?
     private var genresTask: Task<Void, Never>?
+    private var isLoadingGenres = false
 
     package init(api: APIClient, sectionId: String, kind: LibraryGridKind) {
         self.api = api
@@ -87,6 +89,7 @@ package final class LibraryGridModel {
     }
 
     package func appear() {
+        if genres.isEmpty { loadGenres() }
         loadHubs()
         loadRecentlyWatched()
         if alphabet == nil { loadAlphabet() }
@@ -97,9 +100,12 @@ package final class LibraryGridModel {
         }
     }
 
+    /// Cancels the page fetch in flight. A first page that never arrived leaves nothing to show, so
+    /// the loading state is dropped rather than left spinning until the next `appear()`.
     package func disappear() {
         loadTask?.cancel()
         pager.endFetch()
+        if contentState == .loading { contentState = .content }
     }
 
     package func refreshAll() {
@@ -148,10 +154,13 @@ package final class LibraryGridModel {
         loadPage(offset: pager.serverOffset)
     }
 
+    /// Reads the section's genres unless a read is already in flight; `appear()` retries it while the list is empty.
     package func loadGenres() {
-        genresTask?.cancel()
+        guard !isLoadingGenres else { return }
+        isLoadingGenres = true
         genresTask = Task { [weak self] in
             guard let self else { return }
+            defer { isLoadingGenres = false }
             do {
                 let container = try await api.requestContainer(.sectionGenres(sectionId: sectionId))
                 guard !Task.isCancelled else { return }
@@ -264,7 +273,10 @@ package final class LibraryGridModel {
         recentTask = Task { [weak self] in
             guard let self else { return }
             let items = await RecentlyWatched.load(api: api, sectionId: sectionId, groupingByShow: kind.groupsHistoryByShow)
-            guard !Task.isCancelled, RecentlyWatched.differs(items, from: recentItems) else { return }
+            guard !Task.isCancelled else { return }
+            let isFirstLoad = !hasLoadedRecents
+            hasLoadedRecents = true
+            guard isFirstLoad || RecentlyWatched.differs(items, from: recentItems) else { return }
             recentItems = items
             onUpdate?(.recents)
         }
