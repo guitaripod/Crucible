@@ -6,6 +6,16 @@ final class SettingsTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    override func tearDown() {
+        setMockLatency(0)
+    }
+
+    private func setMockLatency(_ milliseconds: Int) {
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
+              let url = URL(string: base + "/mock/flags?latency_ms=\(milliseconds)") else { return }
+        _ = try? Data(contentsOf: url)
+    }
+
     private func restoreDefaultLibraries(_ app: XCUIApplication) {
         guard YouNavigation.row(app, "libraries.reset").exists else { return }
         YouNavigation.openRow(app, "libraries.reset")
@@ -107,6 +117,30 @@ final class SettingsTests: XCTestCase {
         XCTAssertTrue(YouNavigation.row(app, "library.1").hasFocus)
     }
 
+    func testMenuPopsWhileTheLibrariesLoadAndWhenTheyCannotBeLoaded() {
+        let app = TVTest.launch(
+            mock: ["MOCK_HIDDEN_SECTIONS": "1,2,3,4,5,6"],
+            extraEnvironment: ["CRUCIBLE_FRESH": "1"]
+        )
+        YouNavigation.openYouTab(app)
+        setMockLatency(4000)
+        YouNavigation.moveFocus(app, to: "you.libraries")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.staticTexts["Loading Libraries"].waitForExistence(timeout: 5), "the screen should show its loading state")
+        TVTest.capture("01-libraries-loading", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.libraries"), "Menu while the libraries load must pop to the You list")
+
+        setMockLatency(0)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.buttons["Try Again"].waitForExistence(timeout: 15), "an empty library list after the request is an error with Try Again")
+        TVTest.settle()
+        TVTest.capture("02-libraries-error", in: self)
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Try Again"]))
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.libraries"), "Menu on the error state must pop to the You list")
+    }
+
     func testServerShowsRoutesAndConnectionState() {
         let app = TVTest.launch()
         YouNavigation.openYouTab(app)
@@ -160,7 +194,7 @@ final class SettingsTests: XCTestCase {
     func testAddServerByAddressPinsTheServerAndReconnects() throws {
         let mock = try XCTUnwrap(ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"].flatMap(URL.init(string:)))
         let address = "\(mock.host ?? "127.0.0.1"):\(mock.port ?? 32400)"
-        let app = TVTest.launch()
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_PLEXTV": mock.absoluteString])
         openAddServer(app)
         enterAddress(address, in: app)
         TVTest.settle(5)
