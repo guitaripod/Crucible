@@ -482,8 +482,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(container(size=len(hubs), Hub=hubs))
 
         if p == "/status/sessions/history/all":
+            if os.environ.get("MOCK_HISTORY_ERROR") == "1":
+                return self.send_json(container(size=0), 404)
             with LOCK:
                 rows = list(LIB.history)
+                if os.environ.get("MOCK_NO_HISTORY") == "1":
+                    rows = []
                 sid = one("librarySectionID")
                 if sid:
                     rows = [r for r in rows if str(r["librarySectionID"]) == sid]
