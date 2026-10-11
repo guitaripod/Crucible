@@ -37,12 +37,19 @@ def initial_flags():
 
 
 FLAGS = initial_flags()
+
+
+def apply_flags():
+    library.CLIP_MARKERS = FLAGS["clip_markers"]
+    library.NO_CREDITS = FLAGS["no_credits"]
+
+
+apply_flags()
 REQUEST_LOG = collections.deque(maxlen=3000)
 PATH_LOG = collections.deque(maxlen=3000)
 HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4"}
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
-library.CLIP_MARKERS = FLAGS["clip_markers"]
 LIB = library.Library()
 LOCK = threading.Lock()
 PINS = {}
@@ -79,7 +86,7 @@ def reset_state():
         REJECT_TOKEN = False
         FLAGS.clear()
         FLAGS.update(initial_flags())
-        library.CLIP_MARKERS = FLAGS["clip_markers"]
+        apply_flags()
 
 
 SRT = (
@@ -735,8 +742,7 @@ class Handler(BaseHTTPRequestHandler):
                         FLAGS[name] = "" if value == "0" else value
                     else:
                         FLAGS[name] = value == "1"
-            library.CLIP_MARKERS = FLAGS["clip_markers"]
-            library.NO_CREDITS = FLAGS["no_credits"]
+            apply_flags()
             return self.send_json(FLAGS)
         if p == "/mock/plextv-config":
             with LOCK:
