@@ -17,8 +17,21 @@ struct Remote {
 enum TVTest {
     static let remote = Remote()
 
-    /// Launches the app with `CRUCIBLE_UITEST=1` and forwards every `CRUCIBLE_*` variable that `tv.sh uitest` handed over as a `TEST_RUNNER_*` variable (`CRUCIBLE_MOCK`, `CRUCIBLE_PLEXTV`, `CRUCIBLE_STYLE`, ...).
-    static func launch(extraEnvironment: [String: String] = [:], arguments: [String] = []) -> XCUIApplication {
+    /// Returns the mock Plex server to its defaults and then applies `settings` (`MOCK_*` names such
+    /// as `MOCK_NO_HISTORY` or `MOCK_LIBRARY_PAD`, through the mock's `/mock/env`), so a test states
+    /// the server it needs instead of relying on how the mock was started. A flag or number is
+    /// switched off by "0".
+    static func configureMock(_ settings: [String: String] = [:]) {
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
+              var components = URLComponents(string: base + "/mock/env") else { return }
+        components.queryItems = [URLQueryItem(name: "reset", value: "1")] + settings.map { URLQueryItem(name: $0.key, value: $0.value) }
+        guard let url = components.url else { return }
+        _ = try? Data(contentsOf: url)
+    }
+
+    /// Launches the app with `CRUCIBLE_UITEST=1` and forwards every `CRUCIBLE_*` variable that `tv.sh uitest` handed over as a `TEST_RUNNER_*` variable (`CRUCIBLE_MOCK`, `CRUCIBLE_PLEXTV`, `CRUCIBLE_STYLE`, ...). Every launch first resets the mock to its defaults and then applies `mock`, so tests never inherit what an earlier test switched on; a relaunch inside a test passes `mock` again.
+    static func launch(mock settings: [String: String] = [:], extraEnvironment: [String: String] = [:], arguments: [String] = []) -> XCUIApplication {
+        configureMock(settings)
         let app = XCUIApplication()
         app.launchArguments += arguments
         app.launchEnvironment["CRUCIBLE_UITEST"] = "1"

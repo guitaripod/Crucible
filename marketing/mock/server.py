@@ -20,7 +20,7 @@ PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
 PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
 PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
 REJECT_TOKEN = False
-LIBRARY_PAD = int(os.environ.get("MOCK_LIBRARY_PAD", "0"))
+OVERRIDES = {}
 DEAD_ROUTE = "http://127.0.0.1:9"
 FLAGS = {
     "latency_ms": int(os.environ.get("MOCK_LATENCY_MS", "0")),
@@ -184,8 +184,13 @@ def container(**fields):
     return {"MediaContainer": fields}
 
 
+def env(name, default=""):
+    """A MOCK_* setting: the runtime override from /mock/env when there is one, else the process environment."""
+    return OVERRIDES.get(name, os.environ.get(name, default))
+
+
 def env_sections(name):
-    return set(os.environ.get(name, "").split(","))
+    return set(env(name).split(","))
 
 
 def padded(items, count):
@@ -209,8 +214,9 @@ def section_items(section_id):
     kind = library.SECTIONS[section_id][1]
     pool = LIB.movies if kind == "movie" else LIB.shows
     items = [i for i in pool if str(i["librarySectionID"]) == section_id]
-    if LIBRARY_PAD and section_id == "1" and items:
-        items = padded(items, LIBRARY_PAD)
+    pad = int(env("MOCK_LIBRARY_PAD", "0") or 0)
+    if pad and section_id == "1" and items:
+        items = padded(items, pad)
     return items
 
 
@@ -455,7 +461,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_empty()
 
         if p == "/library/sections":
-            hidden = set(os.environ.get("MOCK_HIDDEN_SECTIONS", "").split(","))
+            hidden = env_sections("MOCK_HIDDEN_SECTIONS")
             dirs = [{"key": k, "type": t, "title": n, "agent": f"tv.plex.agents.{t}", "language": "en-US",
                      "refreshing": False, "uuid": f"0000{k}-aaaa-4bbb-8ccc-000000000{k}",
                      "hidden": 1 if k in hidden else 0}
@@ -573,13 +579,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(container(size=len(hubs), Hub=hubs))
 
         if p == "/status/sessions/history/all":
-            if os.environ.get("MOCK_HISTORY_ERROR") == "1":
+            if env("MOCK_HISTORY_ERROR") == "1":
                 return self.send_json(container(size=0), 404)
             if one("librarySectionID") in env_sections("MOCK_SLOW_HISTORY_SECTIONS"):
-                time.sleep(int(os.environ.get("MOCK_SLOW_HISTORY_MS", "0")) / 1000)
+                time.sleep(int(env("MOCK_SLOW_HISTORY_MS", "0") or 0) / 1000)
             with LOCK:
                 rows = list(LIB.history)
-                if os.environ.get("MOCK_NO_HISTORY") == "1":
+                if env("MOCK_NO_HISTORY") == "1":
                     rows = []
                 sid = one("librarySectionID")
                 if sid:
@@ -654,6 +660,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(plextv_resources())
         if p == "/api/v2/user":
             return self.send_json(plextv_user())
+        if p == "/mock/env":
+            if q.get("reset", [""])[0] == "1":
+                OVERRIDES.clear()
+            for name, values in q.items():
+                if name.startswith("MOCK_"):
+                    if values[0] == "":
+                        OVERRIDES.pop(name, None)
+                    else:
+                        OVERRIDES[name] = values[0]
+            return self.send_json(OVERRIDES)
         if p == "/mock/flags":
             for name in FLAGS:
                 if name in q:
