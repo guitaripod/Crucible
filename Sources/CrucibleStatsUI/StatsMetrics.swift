@@ -168,6 +168,32 @@ package struct StatsMetrics: Sendable {
         package var captionFont: StatsFont
     }
 
+    package struct HeatStrip: Sendable {
+        package var cellWidth: CGFloat?
+        package var cellHeight: CGFloat
+        package var gap: CGFloat
+        package var corner: CGFloat
+    }
+
+    package struct YearCard: Sendable {
+        package var inset: CGFloat
+        package var stripBottomInset: CGFloat
+        package var stripGap: CGFloat
+        package var minHeight: CGFloat
+        package var afterTopRow: CGFloat
+        package var lineSpacing: CGFloat
+        package var bigRowSpacing: CGFloat
+        package var linkSpacing: CGFloat
+        package var chevronPointSize: CGFloat
+        package var captionKern: CGFloat
+        package var detailLines: Int
+        package var captionFont: StatsFont
+        package var linkFont: StatsFont
+        package var primaryFont: StatsFont
+        package var unitFont: StatsFont
+        package var detailFont: StatsFont
+    }
+
     package var card: Card
     package var rangeControl: RangeControl
     package var hero: Hero
@@ -182,6 +208,9 @@ package struct StatsMetrics: Sendable {
     package var donut: Donut
     package var bingeTimeline: BingeTimeline
     package var wrappedCard: WrappedCard
+    package var yearStrip: HeatStrip
+    package var heroStrip: HeatStrip
+    package var yearCard: YearCard
 
     package static var platform: StatsMetrics {
         #if os(tvOS)
@@ -304,6 +333,26 @@ package struct StatsMetrics: Sendable {
             headlineFont: .rounded(size: 40, weight: .heavy),
             titleFont: .fixed(size: 15, weight: .semibold),
             captionFont: .fixed(size: 12, weight: .regular)
+        ),
+        yearStrip: HeatStrip(cellWidth: nil, cellHeight: 8, gap: 3, corner: 2),
+        heroStrip: HeatStrip(cellWidth: 8, cellHeight: 8, gap: 3, corner: 2),
+        yearCard: YearCard(
+            inset: 18,
+            stripBottomInset: 16,
+            stripGap: 12,
+            minHeight: 176,
+            afterTopRow: 6,
+            lineSpacing: 0,
+            bigRowSpacing: 6,
+            linkSpacing: 2,
+            chevronPointSize: 11,
+            captionKern: 1.0,
+            detailLines: 0,
+            captionFont: .scaled(.caption2, size: 11, weight: .bold, maximum: 16),
+            linkFont: .scaled(.footnote, size: 13, weight: .regular),
+            primaryFont: .scaled(largeTitleStyle, size: 52, weight: .heavy, maximum: 72),
+            unitFont: .scaled(.title2, size: 22, weight: .semibold, maximum: 30),
+            detailFont: .scaled(.subheadline, size: 14, weight: .regular)
         )
     )
 
@@ -411,6 +460,26 @@ package struct StatsMetrics: Sendable {
             headlineFont: .rounded(size: 88, weight: .heavy),
             titleFont: .fixed(size: 35, weight: .semibold),
             captionFont: .fixed(size: 27, weight: .regular)
+        ),
+        yearStrip: HeatStrip(cellWidth: nil, cellHeight: 14, gap: 5, corner: 3),
+        heroStrip: HeatStrip(cellWidth: 26, cellHeight: 26, gap: 7, corner: 6),
+        yearCard: YearCard(
+            inset: 32,
+            stripBottomInset: 32,
+            stripGap: 24,
+            minHeight: 0,
+            afterTopRow: 16,
+            lineSpacing: 16,
+            bigRowSpacing: 16,
+            linkSpacing: 8,
+            chevronPointSize: 22,
+            captionKern: 1.5,
+            detailLines: 2,
+            captionFont: .scaled(.caption2, size: 23, weight: .bold, maximum: 30),
+            linkFont: .scaled(.caption1, size: 25, weight: .regular, maximum: 32),
+            primaryFont: .scaled(.title1, size: 76, weight: .heavy, maximum: 96),
+            unitFont: .scaled(.title3, size: 48, weight: .semibold),
+            detailFont: .scaled(.callout, size: 31, weight: .regular)
         )
     )
 }

@@ -118,7 +118,7 @@ package final class StatsRangeControl: UIView {
 
 /// The ember hero: verdict eyebrow, a huge count-up number with its unit, and two quiet lines.
 package final class StatsHeroView: UIView {
-    private let gradient = CAGradientLayer()
+    private let gradient = CAGradientLayer.ember()
     private let eyebrowLabel = UILabel()
     private let odometer = CountUpOdometerView()
     private let unitLabel = UILabel()
@@ -133,14 +133,10 @@ package final class StatsHeroView: UIView {
         layer.borderWidth = metrics.hero.borderWidth
         layer.borderColor = Theme.Color.artHairline.cgColor
 
-        gradient.colors = [UIColor(hex: 0x2B1708).cgColor, UIColor(hex: 0x6E3510).cgColor, UIColor(hex: 0xC96A14).cgColor]
-        gradient.locations = [0, 0.55, 1]
-        gradient.startPoint = CGPoint(x: 0, y: 0)
-        gradient.endPoint = CGPoint(x: 1, y: 1)
         layer.insertSublayer(gradient, at: 0)
 
         eyebrowLabel.font = Theme.Font.caption2
-        eyebrowLabel.textColor = UIColor(hex: 0xFFD08A)
+        eyebrowLabel.textColor = Theme.Color.emberEyebrow
         eyebrowLabel.numberOfLines = 0
 
         odometer.font = metrics.hero.odometerFont.uiFont
@@ -150,11 +146,11 @@ package final class StatsHeroView: UIView {
 
         unitLabel.font = metrics.hero.unitFont.uiFont
         unitLabel.adjustsFontForContentSizeCategory = true
-        unitLabel.textColor = UIColor.white.withAlphaComponent(0.85)
+        unitLabel.textColor = Theme.Color.onArtMuted
 
         detailLabel.font = Theme.Font.subheadline
         detailLabel.adjustsFontForContentSizeCategory = true
-        detailLabel.textColor = UIColor.white.withAlphaComponent(0.85)
+        detailLabel.textColor = Theme.Color.onArtMuted
         detailLabel.numberOfLines = 0
 
         sinceLabel.font = Theme.Font.footnote

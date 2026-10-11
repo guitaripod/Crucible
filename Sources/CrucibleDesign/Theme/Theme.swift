@@ -37,7 +37,23 @@ package enum Theme {
 
         package static let onArt = UIColor.white
         package static let onArtSecondary = UIColor.white.withAlphaComponent(0.78)
+        package static let onArtMuted = UIColor.white.withAlphaComponent(0.85)
         package static let artHairline = UIColor.white.withAlphaComponent(0.10)
+
+        package static let emberTop = UIColor(hex: 0x2B1708)
+        package static let emberMid = UIColor(hex: 0x6E3510)
+        package static let emberBottom = UIColor(hex: 0xC96A14)
+        package static let emberEyebrow = UIColor(hex: 0xFFD08A)
+
+        /// Six steps for a heat strip drawn on the ember gradient (index 0 is an empty day).
+        package static let emberStripRamp: [UIColor] = [
+            onArt.withAlphaComponent(0.14),
+            UIColor(red: 1, green: 0.72, blue: 0.30, alpha: 0.38),
+            UIColor(red: 1, green: 0.72, blue: 0.30, alpha: 0.56),
+            UIColor(red: 1, green: 0.75, blue: 0.35, alpha: 0.76),
+            UIColor(red: 1, green: 0.78, blue: 0.43, alpha: 0.92),
+            UIColor(hex: 0xFFE0A6),
+        ]
 
         private static func dynamic(dark: UInt32, light: UInt32) -> UIColor {
             UIColor { trait in
