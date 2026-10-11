@@ -9,18 +9,13 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     private let api: APIClient
     private var dataSource: DataSource!
     private let searchController = UISearchController(searchResultsController: nil)
-    private var searchTask: Task<Void, Never>?
-    private var idleTask: Task<Void, Never>?
-    private var genres: [SearchGenre] = []
-    private var recentlyAdded: [PlexMetadata] = []
-    private var results: SearchResults?
-    private var resultsQuery: String?
-    private var activeQuery: String?
+    private let session: SearchSession
     private var downloadObserver: UUID?
     private var playerCoordinator: PlayerCoordinator?
 
     init(api: APIClient) {
         self.api = api
+        session = SearchSession(loader: SearchLoader(api: api))
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -31,14 +26,6 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         if let downloadObserver {
             Task { @MainActor in DownloadManager.shared.removeObserver(downloadObserver) }
         }
-    }
-
-    private var currentQuery: String {
-        (searchController.searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var isSearching: Bool {
-        currentQuery.count >= 2
     }
 
     private var scope: SearchScope {
@@ -65,30 +52,25 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             vc.collectionView.collectionViewLayout.invalidateLayout()
         }
 
-        showIdle()
-        loadIdleContent()
+        session.onChange = { [weak self] state in self?.render(state) }
+        session.start()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if !isSearching {
-            showIdle()
-            loadIdleContent()
-        }
+        session.resume()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        searchTask?.cancel()
-        idleTask?.cancel()
-        if activeQuery != resultsQuery { activeQuery = nil }
+        session.suspend()
     }
 
     private func configureSearchController() {
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
         let searchBar = searchController.searchBar
-        searchBar.placeholder = "Movies, shows, episodes"
+        searchBar.placeholder = SearchCopy.placeholder
         searchBar.tintColor = Theme.Color.accentText
         searchBar.autocapitalizationType = .none
         searchBar.autocorrectionType = .no
@@ -218,12 +200,13 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             SearchCellEffects.installPressEffect(on: cell)
         }
         let episodeReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [weak self] cell, _, item in
+            let model = SearchEpisodeModel(item: item)
             var config = SearchEpisodeConfiguration()
-            config.thumbPath = item.thumb ?? item.grandparentThumb
-            config.title = item.grandparentTitle ?? item.title
-            config.subtitle = [SearchFormat.episodeCode(item), item.title].compactMap { $0 }.joined(separator: " · ")
-            config.query = self?.resultsQuery
-            config.progress = item.progressPercent > 0 ? item.progressPercent : nil
+            config.thumbPath = model.thumbPath
+            config.title = model.title
+            config.subtitle = model.subtitle
+            config.query = self?.session.resultsQuery
+            config.progress = model.progress
             cell.contentConfiguration = config
             SearchCellEffects.installPressEffect(on: cell)
         }
@@ -248,7 +231,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             var config = SearchHeaderConfiguration()
             config.title = section.title ?? ""
             if section == .recent {
-                config.actionTitle = "Clear"
+                config.actionTitle = SearchCopy.clearRecents
                 config.onAction = { [weak self] in self?.clearRecents() }
             }
             cell.contentConfiguration = config
@@ -259,13 +242,14 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     }
 
     private func topResultConfiguration(for item: PlexMetadata) -> TopResultConfiguration {
+        let model = SearchTopResultModel(item: item)
         var config = TopResultConfiguration()
-        config.posterPath = item.mediaType == "episode" ? (item.grandparentThumb ?? item.thumb) : item.thumb
-        config.title = item.mediaType == "episode" ? (item.grandparentTitle ?? item.title) : item.title
-        config.meta = SearchFormat.typeLine(for: item)
-        config.query = resultsQuery
-        config.canPlay = item.mediaType != "show"
-        config.placeholderIcon = item.mediaType == "movie" ? "film" : "tv"
+        config.posterPath = model.posterPath
+        config.title = model.title
+        config.meta = model.meta
+        config.query = session.resultsQuery
+        config.canPlay = model.canPlay
+        config.placeholderIcon = model.placeholderIcon
         config.downloadState = SearchDownloadState(item: item)
         config.onPlay = { [weak self] in
             Haptics.light()
@@ -293,41 +277,36 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    private func loadIdleContent() {
-        idleTask?.cancel()
-        idleTask = Task { [weak self] in
-            guard let self else { return }
-            async let loadedGenres = SearchLoader.genres(api: api)
-            async let loadedRecent = SearchLoader.recentlyAdded(api: api)
-            let (newGenres, newRecent) = await (loadedGenres, loadedRecent)
-            guard !Task.isCancelled else { return }
-            genres = newGenres
-            recentlyAdded = newRecent
-            if !isSearching { showIdle() }
+    private func render(_ state: SearchState) {
+        switch state {
+        case .idle(let content): showIdle(content)
+        case .loading: showLoading()
+        case .results(_, let parts): renderResults(parts)
+        case .empty(let query, let scope): renderEmpty(query: query, scope: scope)
+        case .failed(let query, let message): showFailure(message: message, query: query)
         }
     }
 
-    private func showIdle() {
+    private func showIdle(_ content: SearchIdleContent) {
         var snapshot = Snapshot()
-        let recents = Preferences.recentSearches
-        if !recents.isEmpty {
+        if !content.recents.isEmpty {
             snapshot.appendSections([.recent])
-            snapshot.appendItems(recents.map { .recent($0) }, toSection: .recent)
+            snapshot.appendItems(content.recents.map { .recent($0) }, toSection: .recent)
         }
-        if !genres.isEmpty {
+        if !content.genres.isEmpty {
             snapshot.appendSections([.browse])
-            snapshot.appendItems(genres.map { .genre($0) }, toSection: .browse)
+            snapshot.appendItems(content.genres.map { .genre($0) }, toSection: .browse)
         }
-        if !recentlyAdded.isEmpty {
+        if !content.recentlyAdded.isEmpty {
             snapshot.appendSections([.recentlyAdded])
-            snapshot.appendItems(recentlyAdded.map { .recentlyAdded($0) }, toSection: .recentlyAdded)
+            snapshot.appendItems(content.recentlyAdded.map { .recentlyAdded($0) }, toSection: .recentlyAdded)
         }
         dataSource.apply(snapshot, animatingDifferences: false)
 
-        if snapshot.itemIdentifiers.isEmpty {
+        if content.isEmpty {
             var config = UIContentUnavailableConfiguration.search()
-            config.text = "Search your library"
-            config.secondaryText = "Find movies, shows and episodes."
+            config.text = SearchCopy.idleTitle
+            config.secondaryText = SearchCopy.idleMessage
             contentUnavailableConfiguration = config
         } else {
             contentUnavailableConfiguration = nil
@@ -335,57 +314,12 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     }
 
     private func clearRecents() {
-        Preferences.recentSearches = []
         Haptics.light()
-        showIdle()
-    }
-
-    private func remember(query: String) {
-        guard query.count >= 2 else { return }
-        var recents = Preferences.recentSearches.filter { $0.caseInsensitiveCompare(query) != .orderedSame }
-        recents.insert(query, at: 0)
-        Preferences.recentSearches = recents
+        session.clearRecents()
     }
 
     func updateSearchResults(for searchController: UISearchController) {
-        let query = currentQuery
-        guard query.count >= 2 else {
-            searchTask?.cancel()
-            activeQuery = nil
-            results = nil
-            resultsQuery = nil
-            showIdle()
-            return
-        }
-        if query == resultsQuery {
-            renderResults()
-        } else if query != activeQuery {
-            performSearch(query: query, debounce: true)
-        }
-    }
-
-    private func performSearch(query: String, debounce: Bool) {
-        searchTask?.cancel()
-        activeQuery = query
-        if resultsQuery == nil { showLoading() }
-        searchTask = Task { [weak self] in
-            if debounce {
-                try? await Task.sleep(for: .milliseconds(300))
-            }
-            guard !Task.isCancelled, let self else { return }
-            do {
-                let container = try await api.requestContainer(.search(query: query))
-                guard !Task.isCancelled else { return }
-                results = SearchResults(hubs: container.Hub ?? [])
-                resultsQuery = query
-                renderResults()
-            } catch {
-                guard !Task.isCancelled, (error as? URLError)?.code != .cancelled else { return }
-                AppLogger.error("Search failed query=\(query): \(error.localizedDescription)", .networking)
-                activeQuery = nil
-                showFailure(error, query: query)
-            }
-        }
+        session.update(query: searchController.searchBar.text, scope: scope)
     }
 
     private func showLoading() {
@@ -393,30 +327,25 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
     }
 
-    private func showFailure(_ error: Error, query: String) {
+    private func showFailure(message: String, query: String) {
         dataSource.apply(Snapshot(), animatingDifferences: false)
-        results = nil
-        resultsQuery = nil
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "wifi.exclamationmark")
-        config.text = "Search Failed"
-        config.secondaryText = error.localizedDescription
+        config.text = SearchCopy.failureTitle
+        config.secondaryText = message
         var button = UIButton.Configuration.filled()
-        button.title = "Try Again"
+        button.title = SearchCopy.retry
         button.cornerStyle = .capsule
         button.baseBackgroundColor = Theme.Color.accent
         button.baseForegroundColor = Theme.Color.onAccent
         config.button = button
         config.buttonProperties.primaryAction = UIAction { [weak self] _ in
-            guard let self, self.currentQuery == query else { return }
-            self.performSearch(query: query, debounce: false)
+            self?.session.retry(query)
         }
         contentUnavailableConfiguration = config
     }
 
-    private func renderResults() {
-        guard let results, let query = resultsQuery else { return }
-        let parts = results.parts(for: scope)
+    private func renderResults(_ parts: SearchResults.Parts) {
         var snapshot = Snapshot()
         if let top = parts.top {
             snapshot.appendSections([.topResult])
@@ -437,15 +366,15 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
         dataSource.apply(snapshot, animatingDifferences: false)
         collectionView.collectionViewLayout.invalidateLayout()
+        contentUnavailableConfiguration = nil
+    }
 
-        if parts.isEmpty {
-            var config = UIContentUnavailableConfiguration.search()
-            config.text = "No results for \u{201C}\(query)\u{201D}"
-            config.secondaryText = scope == .all ? "Check the spelling or try a different search." : "Try the All scope."
-            contentUnavailableConfiguration = config
-        } else {
-            contentUnavailableConfiguration = nil
-        }
+    private func renderEmpty(query: String, scope: SearchScope) {
+        renderResults(.empty)
+        var config = UIContentUnavailableConfiguration.search()
+        config.text = SearchCopy.noResultsTitle(query: query)
+        config.secondaryText = SearchCopy.noResultsHint(scope: scope)
+        contentUnavailableConfiguration = config
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -461,7 +390,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         case .recentlyAdded(let metadata):
             open(metadata)
         case .top(let metadata), .movie(let metadata), .show(let metadata), .episode(let metadata):
-            remember(query: currentQuery)
+            session.rememberCurrentQuery()
             open(metadata)
         }
     }
@@ -470,30 +399,24 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         searchController.isActive = true
         searchController.searchBar.text = query
         searchController.searchBar.selectedScopeButtonIndex = SearchScope.all.rawValue
-        if query == resultsQuery {
-            renderResults()
-        } else {
-            performSearch(query: query, debounce: false)
-        }
+        session.select(recent: query)
     }
 
     private func open(_ item: PlexMetadata) {
         let controller: UIViewController
-        switch item.mediaType {
-        case "show":
-            controller = ShowDetailViewController(api: api, showRatingKey: item.id)
-        case "season":
-            controller = ShowDetailViewController(api: api, showRatingKey: item.parentRatingKey ?? item.id, initialSeasonKey: item.id)
-        case "episode":
+        switch SearchDestination(item: item) {
+        case .show(let ratingKey, let initialSeasonKey):
+            controller = ShowDetailViewController(api: api, showRatingKey: ratingKey, initialSeasonKey: initialSeasonKey)
+        case .episode(let ratingKey, let showRatingKey, let seasonRatingKey):
             controller = MediaDetailViewController(
                 api: api,
-                ratingKey: item.id,
+                ratingKey: ratingKey,
                 mediaType: "episode",
-                showRatingKey: item.grandparentRatingKey,
-                seasonRatingKey: item.parentRatingKey
+                showRatingKey: showRatingKey,
+                seasonRatingKey: seasonRatingKey
             )
-        default:
-            controller = MediaDetailViewController(api: api, ratingKey: item.id, mediaType: "movie")
+        case .movie(let ratingKey):
+            controller = MediaDetailViewController(api: api, ratingKey: ratingKey, mediaType: "movie")
         }
         navigationController?.pushViewController(controller, animated: true)
     }
@@ -516,9 +439,8 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     private func recentMenu(for query: String) -> UIContextMenuConfiguration {
         UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            let remove = UIAction(title: "Remove", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
-                Preferences.recentSearches = Preferences.recentSearches.filter { $0 != query }
-                self?.showIdle()
+            let remove = UIAction(title: SearchCopy.removeRecent, image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+                self?.session.removeRecent(query)
             }
             return UIMenu(children: [remove])
         })
@@ -526,14 +448,14 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     private func menuActions(for item: PlexMetadata) -> [UIMenuElement] {
         var actions = [UIMenuElement]()
-        let isPlayable = item.mediaType == "movie" || item.mediaType == "episode"
+        let isPlayable = SearchItemActions.isPlayable(item)
         if isPlayable {
-            actions.append(UIAction(title: item.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+            actions.append(UIAction(title: SearchItemActions.playTitle(for: item), image: UIImage(systemName: "play.fill")) { [weak self] _ in
                 Haptics.light()
                 self?.quickPlay(item)
             })
         }
-        if let showKey = Self.showKey(for: item) {
+        if let showKey = SearchItemActions.showKey(for: item) {
             actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
                 guard let self else { return }
                 self.navigationController?.pushViewController(ShowDetailViewController(api: self.api, showRatingKey: showKey), animated: true)
@@ -546,28 +468,15 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         return actions
     }
 
-    private static func showKey(for item: PlexMetadata) -> String? {
-        switch item.mediaType {
-        case "episode": return item.grandparentRatingKey
-        case "season": return item.parentRatingKey
-        default: return nil
-        }
-    }
-
     private func watchedAction(for item: PlexMetadata) -> UIAction {
         UIAction(
-            title: item.isWatched ? "Mark Unwatched" : "Mark Watched",
+            title: SearchItemActions.watchedTitle(for: item),
             image: UIImage(systemName: item.isWatched ? "eye.slash" : "eye")
         ) { [weak self] _ in
             guard let self else { return }
             Haptics.light()
             Task {
-                if item.isWatched {
-                    try? await self.api.requestVoid(.unscrobble(ratingKey: item.id))
-                } else {
-                    try? await self.api.requestVoid(.scrobble(ratingKey: item.id))
-                }
-                await self.api.invalidateCache()
+                await SearchItemActions.toggleWatched(item, api: self.api)
             }
         }
     }

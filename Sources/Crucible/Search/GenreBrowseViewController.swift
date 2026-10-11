@@ -5,21 +5,19 @@ import CrucibleDesign
 final class GenreBrowseViewController: UICollectionViewController {
     private let api: APIClient
     private let genre: SearchGenre
+    private let session: GenreBrowseSession
     private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
-    private var loadTask: Task<Void, Never>?
-    private var items: [PlexMetadata] = []
     private var playerCoordinator: PlayerCoordinator?
 
     init(api: APIClient, genre: SearchGenre) {
         self.api = api
         self.genre = genre
+        session = GenreBrowseSession(genre: genre, loader: SearchLoader(api: api))
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
-
-    deinit { loadTask?.cancel() }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,7 +29,8 @@ final class GenreBrowseViewController: UICollectionViewController {
             Theme.gridLayout(environment: environment)
         }
         configureDataSource()
-        load()
+        session.onChange = { [weak self] state in self?.render(state) }
+        session.load()
     }
 
     private func configureDataSource() {
@@ -44,25 +43,16 @@ final class GenreBrowseViewController: UICollectionViewController {
         }
     }
 
-    private func load() {
-        loadTask?.cancel()
-        contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
-        loadTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                let loaded = try await SearchLoader.items(api: api, genre: genre)
-                guard !Task.isCancelled else { return }
-                items = loaded
-                applySnapshot()
-            } catch {
-                guard !Task.isCancelled, (error as? URLError)?.code != .cancelled else { return }
-                AppLogger.error("Genre browse failed genre=\(genre.title): \(error.localizedDescription)", .networking)
-                showFailure(error)
-            }
+    private func render(_ state: GenreBrowseState) {
+        switch state {
+        case .loading: contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+        case .loaded(let items): applySnapshot(items)
+        case .empty: applySnapshot([])
+        case .failed(let message): showFailure(message: message)
         }
     }
 
-    private func applySnapshot() {
+    private func applySnapshot(_ items: [PlexMetadata]) {
         var snapshot = NSDiffableDataSourceSnapshot<Int, PlexMetadata>()
         snapshot.appendSections([0])
         snapshot.appendItems(items, toSection: 0)
@@ -71,26 +61,26 @@ final class GenreBrowseViewController: UICollectionViewController {
         if items.isEmpty {
             var config = UIContentUnavailableConfiguration.empty()
             config.image = UIImage(systemName: "film.stack")
-            config.text = "No \(genre.title) Titles"
-            config.secondaryText = "Nothing in your libraries is tagged with this genre."
+            config.text = SearchCopy.genreEmptyTitle(genre.title)
+            config.secondaryText = SearchCopy.genreEmptyMessage
             contentUnavailableConfiguration = config
         } else {
             contentUnavailableConfiguration = nil
         }
     }
 
-    private func showFailure(_ error: Error) {
+    private func showFailure(message: String) {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "wifi.exclamationmark")
-        config.text = "Couldn\u{2019}t Load \(genre.title)"
-        config.secondaryText = error.localizedDescription
+        config.text = SearchCopy.genreFailureTitle(genre.title)
+        config.secondaryText = message
         var button = UIButton.Configuration.filled()
-        button.title = "Try Again"
+        button.title = SearchCopy.retry
         button.cornerStyle = .capsule
         button.baseBackgroundColor = Theme.Color.accent
         button.baseForegroundColor = Theme.Color.onAccent
         config.button = button
-        config.buttonProperties.primaryAction = UIAction { [weak self] _ in self?.load() }
+        config.buttonProperties.primaryAction = UIAction { [weak self] _ in self?.session.load() }
         contentUnavailableConfiguration = config
     }
 
@@ -115,7 +105,7 @@ final class GenreBrowseViewController: UICollectionViewController {
             return nil
         }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            let play = UIAction(title: item.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { _ in
+            let play = UIAction(title: SearchItemActions.playTitle(for: item), image: UIImage(systemName: "play.fill")) { _ in
                 Haptics.light()
                 guard let self else { return }
                 self.playerCoordinator = Theme.quickPlay(api: self.api, item: item, from: self)
