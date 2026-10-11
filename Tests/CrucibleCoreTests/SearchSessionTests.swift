@@ -257,6 +257,53 @@ struct SearchSessionTests {
         #expect(await harness.log.searchQueries == ["halo"])
     }
 
+    @Test func selectingTheCachedRecentCancelsASearchStillInFlight() async {
+        let gate = SearchGate()
+        let harness = Harness(debounce: .zero) { endpoint in
+            guard case .search(let query) = endpoint else { return try SearchFixtures.container([:]) }
+            if query == "halo 2" { await gate.wait() }
+            return SearchFixtures.allHits
+        }
+        harness.session.update(query: "halo", scope: .all)
+        await harness.waitFor("results")
+        harness.session.update(query: "halo 2", scope: .all)
+        while !(await gate.hasWaiter) { try? await Task.sleep(for: .milliseconds(2)) }
+
+        harness.session.select(recent: "halo")
+        await gate.open()
+        try? await Task.sleep(for: .milliseconds(60))
+
+        #expect(harness.session.resultsQuery == "halo")
+        #expect(harness.kinds == ["loading", "results", "results"])
+        harness.session.update(query: "halo", scope: .all)
+        #expect(await harness.log.searchQueries == ["halo", "halo 2"])
+    }
+
+    @Test func resumeRunsAgainASearchThatSuspendInterrupted() async {
+        let harness = Harness(debounce: .seconds(5), handler: Self.serving(SearchFixtures.allHits))
+        harness.session.update(query: "halo", scope: .all)
+        harness.session.suspend()
+        harness.session.resume()
+        await harness.waitFor("results")
+        #expect(await harness.log.searchQueries == ["halo"])
+    }
+
+    @Test func resumeRendersChangedResultsOnlyWhenTheyChanged() async {
+        let harness = Harness(handler: Self.serving(SearchFixtures.allHits))
+        harness.session.update(query: "halo", scope: .all)
+        await harness.waitFor("results")
+        harness.session.suspend()
+        harness.session.resume()
+        #expect(harness.kinds == ["loading", "results"])
+
+        harness.session.update(query: "halo", scope: .movies)
+        #expect(harness.kinds == ["loading", "results", "results"])
+        harness.session.suspend()
+        harness.session.resume()
+        #expect(harness.kinds == ["loading", "results", "results"])
+        #expect(await harness.log.searchQueries == ["halo"])
+    }
+
     @Test func suspendCancelsADebouncingSearchAndLetsItRunAgain() async {
         let harness = Harness(debounce: .milliseconds(80), handler: Self.serving(SearchFixtures.allHits))
         harness.session.update(query: "halo", scope: .all)

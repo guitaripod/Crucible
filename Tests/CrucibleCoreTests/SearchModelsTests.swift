@@ -276,6 +276,11 @@ struct SearchItemActionsTests {
         #expect(SearchItemActions.watchedTitle(for: try SearchFixtures.item("1", "movie", "M", ["viewCount": 1])) == "Mark Unwatched")
     }
 
+    @Test func watchedTitleFollowsAnExplicitState() {
+        #expect(SearchItemActions.watchedTitle(isWatched: false) == "Mark Watched")
+        #expect(SearchItemActions.watchedTitle(isWatched: true) == "Mark Unwatched")
+    }
+
     @Test func destinationsFollowTheItemType() throws {
         #expect(SearchDestination(item: try SearchFixtures.item("1", "movie", "M")) == .movie(ratingKey: "1"))
         #expect(SearchDestination(item: try SearchFixtures.item("2", "show", "S")) == .show(ratingKey: "2", initialSeasonKey: nil))

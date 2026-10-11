@@ -41,9 +41,13 @@ package final class SearchSession {
         loadIdle()
     }
 
-    /// Refreshes the idle content when the screen comes back, unless a query is still on screen.
+    /// Refreshes the idle content when the screen comes back. A query still in the field is restored instead: a search that
+    /// `suspend()` interrupted runs again, and results that changed in the meantime are rendered again.
     package func resume() {
-        guard !isSearching else { return }
+        guard !isSearching else {
+            restoreSearch()
+            return
+        }
         showIdle()
         loadIdle()
     }
@@ -81,6 +85,8 @@ package final class SearchSession {
         query = recentQuery
         scope = .all
         if recentQuery == resultsQuery {
+            searchTask?.cancel()
+            activeQuery = recentQuery
             renderResults()
         } else {
             performSearch(query: recentQuery, debounce: false)
@@ -156,9 +162,19 @@ package final class SearchSession {
         }
     }
 
-    private func renderResults() {
+    private func restoreSearch() {
+        if query == resultsQuery {
+            renderResults(onlyIfChanged: true)
+        } else if query != activeQuery {
+            performSearch(query: query, debounce: false)
+        }
+    }
+
+    private func renderResults(onlyIfChanged: Bool = false) {
         guard let results, let query = resultsQuery else { return }
         let parts = results.parts(for: scope)
-        emit(parts.isEmpty ? .empty(query: query, scope: scope) : .results(query: query, parts: parts))
+        let rendered: SearchState = parts.isEmpty ? .empty(query: query, scope: scope) : .results(query: query, parts: parts)
+        guard !onlyIfChanged || rendered != state else { return }
+        emit(rendered)
     }
 }
