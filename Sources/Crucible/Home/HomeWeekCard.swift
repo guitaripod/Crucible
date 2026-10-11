@@ -1,11 +1,10 @@
 import CrucibleCore
 import CrucibleDesign
-import CrucibleStats
 @preconcurrency import UIKit
 
 /// The "This week" watch-time card: total, change against last week and seven daily bars.
 struct HomeWeekConfiguration: UIContentConfiguration, Hashable {
-    var summary: HomeWeekSummary?
+    var model: HomeWeekCardModel?
 
     func makeContentView() -> UIView & UIContentView {
         HomeWeekContentView(configuration: self)
@@ -131,37 +130,17 @@ final class HomeWeekContentView: UIView, UIContentView {
     }
 
     private func apply() {
-        guard let config = configuration as? HomeWeekConfiguration, let summary = config.summary else { return }
-        totalLabel.text = HomeFormat.weekTotal(summary.thisWeekSeconds)
-        let delta = Self.deltaText(summary.deltaPercent)
-        deltaLabel.text = delta
-        deltaLabel.isHidden = delta == nil
+        guard let config = configuration as? HomeWeekConfiguration, let model = config.model else { return }
+        totalLabel.text = model.total
+        deltaLabel.text = model.delta
+        deltaLabel.isHidden = model.delta == nil
 
-        let peak = max(summary.dailySeconds.max() ?? 0, 1)
-        for (index, bar) in bars.enumerated() {
-            let seconds = summary.dailySeconds[safe: index] ?? 0
-            let ratio = CGFloat(seconds) / CGFloat(peak)
-            barHeights[index].constant = max(Self.minimumBarHeight, (Self.barAreaHeight * ratio).rounded())
-            bar.backgroundColor = index == summary.todayIndex ? Theme.Color.accent : Theme.Color.surfaceHigh
+        for (index, view) in bars.enumerated() {
+            let bar = model.bars[index]
+            barHeights[index].constant = max(Self.minimumBarHeight, (Self.barAreaHeight * CGFloat(bar.ratio)).rounded())
+            view.backgroundColor = bar.isToday ? Theme.Color.accent : Theme.Color.surfaceHigh
         }
 
-        accessibilityLabel = HomeFormat.joined([
-            "This week",
-            "\(HomeFormat.spoken(Double(summary.thisWeekSeconds))) watched",
-            delta,
-        ])
-    }
-
-    private static func deltaText(_ percent: Int?) -> String? {
-        guard let percent else { return nil }
-        if percent > 0 { return "\(percent)% more than last week" }
-        if percent < 0 { return "\(-percent)% less than last week" }
-        return "Same as last week"
-    }
-}
-
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
+        accessibilityLabel = model.accessibilityLabel
     }
 }

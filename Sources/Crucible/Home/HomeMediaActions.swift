@@ -2,88 +2,47 @@ import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// Which Home rail a card belongs to; decides its caption copy and tap behaviour.
-enum HomeBucket: String, Hashable, Sendable {
-    case hero
-    case continueWatching
-    case upNext
-    case recentlyAdded
-}
-
 /// Card configuration, navigation and context-menu building shared by Home and its See All grids.
 @MainActor
 enum HomeMediaActions {
     static func posterConfiguration(for item: PlexMetadata, bucket: HomeBucket) -> PosterContentConfiguration {
+        let card = HomeCardModel(item: item, bucket: bucket, layout: .poster)
         var config = PosterContentConfiguration()
-        config.title = HomeFormat.title(for: item)
-        switch item.mediaType {
-        case "episode":
-            config.posterPath = item.grandparentThumb ?? item.thumb
-            config.placeholderIcon = "tv"
-        case "season", "show":
-            config.posterPath = item.thumb ?? item.parentThumb ?? item.grandparentThumb
-            config.placeholderIcon = "tv"
-        default:
-            config.posterPath = item.thumb ?? item.grandparentThumb
-        }
-        switch bucket {
-        case .upNext, .hero, .continueWatching:
-            config.subtitle = HomeFormat.upNextSubtitle(for: item)
-        case .recentlyAdded:
-            config.subtitle = HomeFormat.recentSubtitle(for: item)
-        }
-        if item.positionSecs > 0, item.duration != nil {
-            config.progress = item.progressPercent
-        }
-        config.isUnwatched = bucket == .recentlyAdded && isUnwatched(item)
+        config.title = card.title
+        config.posterPath = card.imagePath
+        if card.usesSeriesPlaceholder { config.placeholderIcon = "tv" }
+        config.subtitle = card.subtitle
+        config.progress = card.progress
+        config.isUnwatched = card.isUnwatched
         config.isDownloaded = DownloadManager.shared.isDownloaded(item.id)
         return config
     }
 
     static func landscapeConfiguration(for item: PlexMetadata) -> LandscapeContentConfiguration {
+        let card = HomeCardModel(item: item, bucket: .continueWatching, layout: .landscape)
         var config = LandscapeContentConfiguration()
-        config.title = HomeFormat.title(for: item)
-        config.subtitle = HomeFormat.continueSubtitle(for: item)
-        config.imagePath = item.mediaType == "episode"
-            ? (item.thumb ?? item.grandparentArt ?? item.art)
-            : (item.art ?? item.thumb)
-        config.placeholderIcon = item.mediaType == "episode" ? "tv" : "film"
-        if item.positionSecs > 0, item.duration != nil {
-            config.progress = item.progressPercent
-        }
-        config.trailingText = HomeFormat.remaining(item) ?? HomeFormat.runtime(item.durationSecs)
-        config.showsPlayChip = item.mediaType != "show"
+        config.title = card.title
+        config.subtitle = card.subtitle
+        config.imagePath = card.imagePath
+        config.placeholderIcon = card.usesSeriesPlaceholder ? "tv" : "film"
+        config.progress = card.progress
+        config.trailingText = card.trailingText
+        config.showsPlayChip = card.showsPlayChip
         return config
     }
 
-    static func isUnwatched(_ item: PlexMetadata) -> Bool {
-        switch item.mediaType {
-        case "show", "season":
-            guard let leaves = item.leafCount, leaves > 0 else { return false }
-            return (item.viewedLeafCount ?? 0) < leaves
-        default:
-            return !item.isWatched && item.positionSecs == 0
-        }
-    }
-
-    static func isPlayable(_ item: PlexMetadata) -> Bool {
-        item.mediaType == "movie" || item.mediaType == "episode" || item.mediaType == "clip"
-    }
-
     static func openDetail(_ item: PlexMetadata, api: APIClient, from navigation: UINavigationController?) {
-        switch item.mediaType {
-        case "show":
-            navigation?.pushViewController(ShowDetailViewController(api: api, showRatingKey: item.id), animated: true)
-        case "season":
-            let showKey = item.parentRatingKey ?? item.id
-            navigation?.pushViewController(ShowDetailViewController(api: api, showRatingKey: showKey, initialSeasonKey: item.id), animated: true)
-        default:
+        switch HomeMediaRules.detailRoute(for: item) {
+        case .show(let ratingKey, let initialSeasonKey):
+            let show = ShowDetailViewController(api: api, showRatingKey: ratingKey, initialSeasonKey: initialSeasonKey)
+            navigation?.pushViewController(show, animated: true)
+        case .media(let ratingKey, let mediaType, let showRatingKey, let seasonRatingKey):
             let detail = MediaDetailViewController(
                 api: api,
-                ratingKey: item.id,
-                mediaType: item.mediaType,
-                showRatingKey: item.grandparentRatingKey,
-                seasonRatingKey: item.parentRatingKey
+                ratingKey: ratingKey,
+                mediaType: mediaType,
+                showRatingKey: showRatingKey,
+                seasonRatingKey: seasonRatingKey
             )
             navigation?.pushViewController(detail, animated: true)
         }
@@ -98,38 +57,30 @@ enum HomeMediaActions {
         didChange: @escaping @MainActor () -> Void
     ) -> UIMenu {
         var actions = [UIMenuElement]()
-        if isPlayable(item) {
-            actions.append(UIAction(title: item.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { _ in
+        if HomeMediaRules.isPlayable(item) {
+            actions.append(UIAction(title: HomeMediaRules.playTitle(for: item), image: UIImage(systemName: "play.fill")) { _ in
                 play(item)
             })
         }
         actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { _ in
             openDetail(item, api: api, from: navigation())
         })
-        let watched = item.mediaType == "show" || item.mediaType == "season" ? !isUnwatched(item) : item.isWatched
-        actions.append(UIAction(title: watched ? "Mark Unwatched" : "Mark Watched", image: UIImage(systemName: watched ? "eye.slash" : "eye")) { _ in
+        let toggle = HomeMediaRules.watchedToggle(for: item)
+        actions.append(UIAction(title: toggle.title, image: UIImage(systemName: toggle.isWatched ? "eye.slash" : "eye")) { _ in
             Haptics.light()
             Task { @MainActor in
                 do {
-                    if watched {
-                        try await api.requestVoid(.unscrobble(ratingKey: item.id))
-                    } else {
-                        try await api.requestVoid(.scrobble(ratingKey: item.id))
-                    }
+                    try await toggle.perform(using: api)
                 } catch {
                     AppLogger.error("Home mark watched failed ratingKey=\(item.id): \(error.localizedDescription)", .networking)
                 }
                 didChange()
             }
         })
-        if item.mediaType != "show" && item.mediaType != "season" {
+        if HomeMediaRules.isDownloadable(item) {
             actions.append(DownloadMenu.action(for: item))
         }
-        if item.mediaType == "episode", let showKey = item.grandparentRatingKey {
-            actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { _ in
-                navigation()?.pushViewController(ShowDetailViewController(api: api, showRatingKey: showKey), animated: true)
-            })
-        } else if item.mediaType == "season", let showKey = item.parentRatingKey {
+        if let showKey = HomeMediaRules.showRatingKey(for: item) {
             actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { _ in
                 navigation()?.pushViewController(ShowDetailViewController(api: api, showRatingKey: showKey), animated: true)
             })

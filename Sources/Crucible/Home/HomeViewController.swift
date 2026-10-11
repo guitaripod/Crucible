@@ -15,44 +15,16 @@ final class HomeViewController: UICollectionViewController {
         case skeleton
     }
 
-    private enum SurpriseKind {
-        case any, movie, show
-    }
-
-    private enum SurpriseTarget: Hashable {
-        case movie(String)
-        case show(String)
-    }
-
-    /// What the Home sections show, derived from the three hub buckets.
-    private struct Arrangement {
-        var hero: PlexMetadata?
-        var heroIsContinue = false
-        var continueRail: [PlexMetadata] = []
-        var upNext: [PlexMetadata] = []
-        var recent: [PlexMetadata] = []
-
-        var isEmpty: Bool { hero == nil && continueRail.isEmpty && upNext.isEmpty && recent.isEmpty }
-    }
-
     private let api: APIClient
+    private let feed: HomeFeed
     private var loadTask: Task<Void, Never>?
     private var weekTask: Task<Void, Never>?
     private var surpriseTask: Task<Void, Never>?
     private let surpriseMenuItem = UIBarButtonItem()
     private let serverMenuItem = UIBarButtonItem()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
-    private var mediaById: [String: PlexMetadata] = [:]
-    private var snapshotArt: [String: String] = [:]
     private var preloaded: PlexMediaContainer?
-    private var continueItems: [PlexMetadata] = []
-    private var onDeckItems: [PlexMetadata] = []
-    private var recentItems: [PlexMetadata] = []
-    private var fetchedContinue: [PlexMetadata] = []
-    private var fetchedOnDeck: [PlexMetadata] = []
-    private var fetchedRecent: [PlexMetadata] = []
     private var visibilityObserver: UUID?
-    private var arrangement = Arrangement()
     private var weekSummary: HomeWeekSummary?
     private var isShowingSkeleton = false
     private var skipNextAppearanceLoad = false
@@ -61,6 +33,7 @@ final class HomeViewController: UICollectionViewController {
 
     init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
+        self.feed = HomeFeed(api: api)
         self.preloaded = preloaded
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
@@ -125,109 +98,30 @@ final class HomeViewController: UICollectionViewController {
 
     @discardableResult
     private func hydrateFromSnapshot() -> Bool {
-        guard let machineId = ServerBootstrap.connection()?.machineIdentifier,
-              let snapshotData = HomeSnapshotStore.loadSync(),
-              snapshotData.machineIdentifier == machineId,
-              !snapshotData.cards.isEmpty else { return false }
-
-        var continueItems = [PlexMetadata]()
-        var onDeckItems = [PlexMetadata]()
-        var recentItems = [PlexMetadata]()
-        var art = [String: String]()
-        for card in snapshotData.cards {
-            let media = PlexMetadata(homeCard: card)
-            if let path = card.grandparentArt ?? card.art { art[media.id] = path }
-            switch card.bucket {
-            case "cw": continueItems.append(media)
-            case "od": onDeckItems.append(media)
-            default: recentItems.append(media)
-            }
-        }
-        snapshotArt = art
-        setContent(continueItems: continueItems, onDeckItems: onDeckItems, recentItems: recentItems)
+        guard feed.hydrateFromSnapshot() else { return false }
         rebuildSnapshot(animated: false)
         return true
     }
 
-    private static func homeCards(continueItems: [PlexMetadata], onDeckItems: [PlexMetadata], recentItems: [PlexMetadata]) -> [HomeCardSnapshot] {
-        let cap = 20
-        func card(_ item: PlexMetadata, _ bucket: String) -> HomeCardSnapshot {
-            var card = item.homeCard(bucket: bucket)
-            card.art = item.art
-            card.grandparentArt = item.grandparentArt
-            return card
-        }
-        return continueItems.prefix(cap).map { card($0, "cw") }
-            + onDeckItems.prefix(cap).map { card($0, "od") }
-            + recentItems.prefix(cap).map { card($0, "ra") }
-    }
-
-    /// Drops items from libraries left out of Home; items with no known library stay.
-    private static func visible(_ items: [PlexMetadata]) -> [PlexMetadata] {
-        let excluded = LibraryVisibility.excluded
-        guard !excluded.isEmpty else { return items }
-        return items.filter { item in item.librarySectionID.map { !excluded.contains($0) } ?? true }
-    }
-
     private func libraryVisibilityChanged() {
         guard !isShowingSkeleton else { return }
-        setContent(continueItems: fetchedContinue, onDeckItems: fetchedOnDeck, recentItems: fetchedRecent)
+        feed.reapplyLibraryVisibility()
         rebuildSnapshot(animated: true)
-        contentUnavailableConfiguration = arrangement.isEmpty ? Self.emptyHomeConfiguration() : nil
-        sectionGrid.map { $0.update(items: items(for: $0.bucket)) }
+        contentUnavailableConfiguration = feed.isEmpty ? Self.emptyHomeConfiguration() : nil
+        sectionGrid.map { $0.update(items: feed.arrangement.items(for: $0.bucket)) }
         loadWeek()
     }
 
     private static func emptyHomeConfiguration() -> UIContentUnavailableConfiguration {
+        let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized)
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "play.rectangle")
-        if LibraryVisibility.isCustomized {
-            config.text = "Nothing From These Libraries"
-            config.secondaryText = "Home is limited to the libraries you chose in Settings."
-        } else {
-            config.text = "Nothing Here Yet"
-            config.secondaryText = "Add media to your Plex libraries to see it here."
-        }
+        config.text = copy.title
+        config.secondaryText = copy.message
         return config
     }
 
-    private static func dedupe(_ items: [PlexMetadata]) -> [PlexMetadata] {
-        var seen = Set<String>()
-        return items.filter { seen.insert($0.id).inserted }
-    }
-
     // MARK: - Content
-
-    private func setContent(continueItems: [PlexMetadata], onDeckItems: [PlexMetadata], recentItems: [PlexMetadata]) {
-        fetchedContinue = continueItems
-        fetchedOnDeck = onDeckItems
-        fetchedRecent = recentItems
-        self.continueItems = Self.dedupe(Self.visible(continueItems))
-        self.onDeckItems = Self.dedupe(Self.visible(onDeckItems))
-        self.recentItems = Self.dedupe(Self.visible(recentItems))
-        mediaById = Dictionary(
-            (self.continueItems + self.onDeckItems + self.recentItems).map { ($0.id, $0) },
-            uniquingKeysWith: { _, latest in latest }
-        )
-        arrangement = Self.arrange(continueItems: self.continueItems, onDeckItems: self.onDeckItems, recentItems: self.recentItems)
-    }
-
-    /// The hero is the first Continue Watching item, else the first On Deck item; it is not repeated
-    /// in the rails below, and Up Next skips anything already in Continue Watching.
-    private static func arrange(continueItems: [PlexMetadata], onDeckItems: [PlexMetadata], recentItems: [PlexMetadata]) -> Arrangement {
-        var result = Arrangement()
-        result.recent = recentItems
-        if let first = continueItems.first {
-            result.hero = first
-            result.heroIsContinue = true
-            result.continueRail = Array(continueItems.dropFirst())
-        } else if let first = onDeckItems.first {
-            result.hero = first
-        }
-        let excluded = Set(continueItems.map(\.id)).union(result.hero.map { [$0.id] } ?? [])
-        result.upNext = onDeckItems.filter { !excluded.contains($0.id) }
-        return result
-    }
 
     private func showSkeleton() {
         isShowingSkeleton = true
@@ -238,7 +132,7 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private func rebuildSnapshot(animated: Bool) {
-        let layout = arrangement
+        let layout = feed.arrangement
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         if let hero = layout.hero {
             snapshot.appendSections([.hero])
@@ -252,7 +146,7 @@ final class HomeViewController: UICollectionViewController {
             snapshot.appendSections([.upNext])
             snapshot.appendItems(layout.upNext.map { .media($0.id, .upNext) }, toSection: .upNext)
         }
-        if !layout.isEmpty, let weekSummary, !weekSummary.isEmpty {
+        if layout.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false) {
             snapshot.appendSections([.week])
             snapshot.appendItems([.week], toSection: .week)
         }
@@ -276,18 +170,9 @@ final class HomeViewController: UICollectionViewController {
         refreshSectionGrid()
     }
 
-    private func items(for bucket: HomeBucket) -> [PlexMetadata] {
-        switch bucket {
-        case .hero: return arrangement.hero.map { [$0] } ?? []
-        case .continueWatching: return arrangement.continueRail
-        case .upNext: return arrangement.upNext
-        case .recentlyAdded: return arrangement.recent
-        }
-    }
-
     private func refreshSectionGrid() {
         guard let sectionGrid else { return }
-        sectionGrid.update(items: items(for: sectionGrid.bucket))
+        sectionGrid.update(items: feed.arrangement.items(for: sectionGrid.bucket))
     }
 
     // MARK: - Layout
@@ -337,22 +222,22 @@ final class HomeViewController: UICollectionViewController {
 
     private func configureDataSource() {
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
-            guard let self, let item = mediaById[id] else { return }
+            guard let self, let item = feed.item(id: id) else { return }
             cell.contentConfiguration = heroConfiguration(for: item)
         }
 
         let landscapeReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
-            guard let item = self?.mediaById[id] else { return }
+            guard let item = self?.feed.item(id: id) else { return }
             cell.contentConfiguration = HomeMediaActions.landscapeConfiguration(for: item)
         }
 
         let posterReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, entry in
-            guard case .media(let id, let bucket) = entry, let item = self?.mediaById[id] else { return }
+            guard case .media(let id, let bucket) = entry, let item = self?.feed.item(id: id) else { return }
             cell.contentConfiguration = HomeMediaActions.posterConfiguration(for: item, bucket: bucket)
         }
 
         let weekReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            cell.contentConfiguration = HomeWeekConfiguration(summary: self?.weekSummary)
+            cell.contentConfiguration = HomeWeekConfiguration(model: self?.weekSummary?.cardModel)
         }
 
         let skeletonReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { cell, _, _ in
@@ -379,15 +264,15 @@ final class HomeViewController: UICollectionViewController {
             var config = SectionHeaderConfiguration()
             switch section {
             case .continueWatching:
-                config.title = "Continue Watching"
+                config.title = feed.arrangement.title(for: .continueWatching)
             case .upNext:
-                config.title = "Up Next"
+                config.title = feed.arrangement.title(for: .upNext)
                 config.actionTitle = "See All"
-                config.onAction = { [weak self] in self?.showAll(.upNext, title: "Up Next") }
+                config.onAction = { [weak self] in self?.showAll(.upNext) }
             case .recentlyAdded:
-                config.title = "Recently Added"
+                config.title = feed.arrangement.title(for: .recentlyAdded)
                 config.actionTitle = "See All"
-                config.onAction = { [weak self] in self?.showAll(.recentlyAdded, title: "Recently Added") }
+                config.onAction = { [weak self] in self?.showAll(.recentlyAdded) }
             case .skeleton, .hero, .week:
                 break
             }
@@ -400,40 +285,20 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private func heroConfiguration(for item: PlexMetadata) -> HomeHeroConfiguration {
+        let model = feed.heroModel(for: item)
         var config = HomeHeroConfiguration()
-        let id = item.id
-        let resuming = item.positionSecs > 0
-        config.artwork = heroBackdropPath(for: item).map { .backdrop($0) } ?? .none
-        config.eyebrow = arrangement.heroIsContinue ? "Continue Watching" : "Up Next"
-        config.title = HomeFormat.title(for: item)
-        config.subtitle = HomeFormat.heroSubtitle(for: item)
-        config.actionTitle = resuming ? "Resume" : "Play"
-        config.trailingText = HomeFormat.remaining(item) ?? HomeFormat.runtime(item.durationSecs)
-        config.progress = resuming ? item.progressPercent : nil
-
-        let timePhrase: String? = {
-            if let left = HomeFormat.remainingSeconds(item) { return "\(HomeFormat.spoken(left)) left" }
-            return item.durationSecs > 0 ? HomeFormat.spoken(item.durationSecs) : nil
-        }()
-        let episode = item.mediaType == "episode" ? HomeFormat.spokenEpisode(season: item.parentIndex, episode: item.index) : nil
-        config.spokenLabel = [
-            "\(config.actionTitle) \(config.title)",
-            episode,
-            timePhrase,
-        ].compactMap { $0 }.joined(separator: ", ")
-
+        let id = model.id
+        config.artwork = model.backdropPath.map { .backdrop($0) } ?? .none
+        config.eyebrow = model.eyebrow
+        config.title = model.title
+        config.subtitle = model.subtitle
+        config.actionTitle = model.actionTitle
+        config.trailingText = model.trailingText
+        config.progress = model.progress
+        config.spokenLabel = model.spokenLabel
         config.onPrimary = { [weak self] in self?.play(id: id) }
         config.onDetails = { [weak self] in self?.openDetail(id: id) }
         return config
-    }
-
-    /// Show backdrop for episodes, the item's own backdrop otherwise; the cached snapshot's art
-    /// stands in on a cold launch, and the thumb is the last resort.
-    private func heroBackdropPath(for item: PlexMetadata) -> String? {
-        if item.mediaType == "episode" {
-            return item.grandparentArt ?? item.art ?? snapshotArt[item.id] ?? item.thumb
-        }
-        return item.art ?? snapshotArt[item.id] ?? item.thumb ?? item.grandparentThumb
     }
 
     // MARK: - Navigation bar
@@ -441,13 +306,13 @@ final class HomeViewController: UICollectionViewController {
     private func configureNavButtons() {
         surpriseMenuItem.image = UIImage(systemName: "shuffle")
         surpriseMenuItem.accessibilityLabel = "Surprise Me"
-        let kinds: [(String, String, SurpriseKind)] = [
-            ("Any", "sparkles", .any),
-            ("Movie", "film", .movie),
-            ("Show", "tv", .show),
+        let kinds: [(SurpriseMe.Kind, String)] = [
+            (.any, "sparkles"),
+            (.movie, "film"),
+            (.show, "tv"),
         ]
-        surpriseMenuItem.menu = UIMenu(title: "Surprise Me", children: kinds.map { title, symbol, kind in
-            UIAction(title: title, image: UIImage(systemName: symbol)) { [weak self] _ in self?.surprise(kind) }
+        surpriseMenuItem.menu = UIMenu(title: "Surprise Me", children: kinds.map { kind, symbol in
+            UIAction(title: kind.menuTitle, image: UIImage(systemName: symbol)) { [weak self] _ in self?.surprise(kind) }
         })
 
         serverMenuItem.image = UIImage(systemName: "server.rack")
@@ -489,22 +354,19 @@ final class HomeViewController: UICollectionViewController {
 
     // MARK: - Surprise Me
 
-    private func surprise(_ kind: SurpriseKind) {
+    private func surprise(_ kind: SurpriseMe.Kind) {
         Haptics.selection()
         guard surpriseTask == nil else { return }
         surpriseTask = Task { [weak self] in
             guard let self else { return }
             defer { surpriseTask = nil }
-            var pool = recentItems
+            let pick: SurpriseMe.Target?
             do {
-                let container = try await api.requestContainer(.recentlyAdded(start: 0, size: 100))
-                pool = Self.visible(container.Metadata ?? []) + pool
+                pick = try await feed.surprise(kind)
             } catch {
-                AppLogger.error("Surprise Me fetch failed, using cached Home items: \(error.localizedDescription)", .networking)
+                return
             }
-            guard !Task.isCancelled else { return }
-            let targets = Set(pool.compactMap { Self.surpriseTarget(for: $0, kind: kind) })
-            guard let pick = targets.randomElement() else {
+            guard let pick else {
                 Haptics.error()
                 presentNothingToPick(kind)
                 return
@@ -518,31 +380,8 @@ final class HomeViewController: UICollectionViewController {
         }
     }
 
-    private static func surpriseTarget(for item: PlexMetadata, kind: SurpriseKind) -> SurpriseTarget? {
-        switch item.mediaType {
-        case "movie":
-            return kind == .show ? nil : .movie(item.id)
-        case "show":
-            return kind == .movie ? nil : .show(item.id)
-        case "season":
-            guard kind != .movie, let key = item.parentRatingKey else { return nil }
-            return .show(key)
-        case "episode":
-            guard kind != .movie, let key = item.grandparentRatingKey else { return nil }
-            return .show(key)
-        default:
-            return nil
-        }
-    }
-
-    private func presentNothingToPick(_ kind: SurpriseKind) {
-        let noun: String
-        switch kind {
-        case .any: noun = "titles"
-        case .movie: noun = "movies"
-        case .show: noun = "shows"
-        }
-        let alert = UIAlertController(title: "Nothing to Pick", message: "There are no recently added \(noun) to choose from.", preferredStyle: .alert)
+    private func presentNothingToPick(_ kind: SurpriseMe.Kind) {
+        let alert = UIAlertController(title: SurpriseMe.nothingToPickTitle, message: SurpriseMe.nothingToPickMessage(for: kind), preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
@@ -554,9 +393,8 @@ final class HomeViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let container = try await api.requestContainer(.hubs())
-                guard !Task.isCancelled else { return }
-                apply(container: container, animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
+                try await feed.refresh()
+                presentLoadedContent(animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
             } catch {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("Home load failed: \(error.localizedDescription)", .networking)
@@ -568,15 +406,16 @@ final class HomeViewController: UICollectionViewController {
 
     /// Keeps cached content on screen when a refresh fails; only an empty Home shows the error.
     private func showLoadError(_ error: Error) {
-        guard arrangement.isEmpty else { return }
+        guard feed.isEmpty else { return }
         if isShowingSkeleton {
             isShowingSkeleton = false
             dataSource.apply(NSDiffableDataSourceSnapshot<Section, Item>(), animatingDifferences: false)
         }
+        let copy = HomeStateCopy.loadFailed(error)
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "wifi.exclamationmark")
-        config.text = "Couldn't Reach Server"
-        config.secondaryText = ConnectionError.message(for: error)
+        config.text = copy.title
+        config.secondaryText = copy.message
         config.button = ThemeButton.primaryConfiguration(title: "Retry")
         config.buttonProperties.primaryAction = UIAction { [weak self] _ in
             guard let self else { return }
@@ -597,52 +436,25 @@ final class HomeViewController: UICollectionViewController {
         }
         weekTask?.cancel()
         weekTask = Task { [weak self] in
-            let summary: HomeWeekSummary?
-            do {
-                summary = try await store.homeWeekSummary()
-            } catch {
-                AppLogger.error("Home week summary failed: \(error.localizedDescription)", .stats)
-                summary = nil
-            }
+            let summary = await store.homeWeekSummaryOrNil()
             guard !Task.isCancelled, let self, summary != weekSummary else { return }
             weekSummary = summary
-            if !isShowingSkeleton && !arrangement.isEmpty {
+            if !isShowingSkeleton && !feed.isEmpty {
                 rebuildSnapshot(animated: true)
             }
         }
     }
 
     private func apply(container: PlexMediaContainer, animated: Bool) {
-        var continueItems = [PlexMetadata]()
-        var onDeckItems = [PlexMetadata]()
-        var recentItems = [PlexMetadata]()
+        feed.apply(container: container)
+        presentLoadedContent(animated: animated)
+    }
 
-        for hub in container.Hub ?? [] {
-            guard let id = hub.hubIdentifier, let items = hub.Metadata, !items.isEmpty else { continue }
-            let lowered = id.lowercased()
-            if lowered.contains("continue") || lowered.contains("inprogress") {
-                continueItems.append(contentsOf: items)
-            } else if lowered.contains("ondeck") {
-                onDeckItems.append(contentsOf: items)
-            } else if lowered.contains("recentlyadded") || lowered.contains("recent") {
-                recentItems.append(contentsOf: items)
-            }
-        }
-
-        setContent(continueItems: continueItems, onDeckItems: onDeckItems, recentItems: recentItems)
-        AppLogger.info("Home loaded: cw=\(self.continueItems.count) od=\(self.onDeckItems.count) ra=\(self.recentItems.count)", .networking)
-
-        HomeSnapshotStore.save(HomeSnapshot(
-            schema: HomeSnapshotStore.schemaVersion,
-            machineIdentifier: ServerBootstrap.connection()?.machineIdentifier ?? "",
-            savedAt: Int(Date().timeIntervalSince1970),
-            cards: Self.homeCards(continueItems: self.continueItems, onDeckItems: self.onDeckItems, recentItems: self.recentItems)
-        ))
-
+    private func presentLoadedContent(animated: Bool) {
         rebuildSnapshot(animated: animated)
         endRefreshing()
 
-        contentUnavailableConfiguration = arrangement.isEmpty ? Self.emptyHomeConfiguration() : nil
+        contentUnavailableConfiguration = feed.isEmpty ? Self.emptyHomeConfiguration() : nil
     }
 
     private func endRefreshing() {
@@ -659,14 +471,10 @@ final class HomeViewController: UICollectionViewController {
 
         switch item {
         case .media(let id, let bucket):
-            guard let media = mediaById[id] else { return }
-            switch bucket {
-            case .hero, .recentlyAdded:
-                openDetail(id: id)
-            case .continueWatching:
-                HomeMediaActions.isPlayable(media) ? play(id: id) : openDetail(id: id)
-            case .upNext:
-                HomeMediaActions.isPlayable(media) && media.positionSecs > 0 ? play(id: id) : openDetail(id: id)
+            guard let media = feed.item(id: id) else { return }
+            switch HomeTapPolicy.action(for: media, in: bucket) {
+            case .play: play(id: id)
+            case .openDetail: openDetail(id: id)
             }
         case .week:
             navigationController?.pushViewController(StatisticsViewController(api: api), animated: true)
@@ -683,7 +491,7 @@ final class HomeViewController: UICollectionViewController {
         guard let indexPath = indexPaths.first,
               let item = dataSource.itemIdentifier(for: indexPath),
               case .media(let id, _) = item,
-              let media = mediaById[id] else { return nil }
+              let media = feed.item(id: id) else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
             return HomeMediaActions.contextMenu(
@@ -696,12 +504,12 @@ final class HomeViewController: UICollectionViewController {
         })
     }
 
-    private func showAll(_ bucket: HomeBucket, title: String) {
+    private func showAll(_ bucket: HomeBucket) {
         let grid = HomeSectionGridViewController(
             api: api,
-            title: title,
+            title: feed.arrangement.title(for: bucket),
             bucket: bucket,
-            items: items(for: bucket),
+            items: feed.arrangement.items(for: bucket),
             onChange: { [weak self] in self?.loadData() }
         )
         sectionGrid = grid
@@ -709,13 +517,13 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private func openDetail(id: String) {
-        guard let media = mediaById[id] else { return }
+        guard let media = feed.item(id: id) else { return }
         HomeMediaActions.openDetail(media, api: api, from: navigationController)
     }
 
     private func play(id: String) {
-        guard let media = mediaById[id] else { return }
-        guard HomeMediaActions.isPlayable(media) else {
+        guard let media = feed.item(id: id) else { return }
+        guard HomeTapPolicy.playOrDetail(for: media) == .play else {
             openDetail(id: id)
             return
         }
