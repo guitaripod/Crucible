@@ -15,53 +15,12 @@ struct YouProfileContentConfiguration: UIContentConfiguration {
     }
 }
 
-private final class AvatarView: UIView {
-    private let gradient = CAGradientLayer()
-    private let initialLabel = UILabel()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        gradient.colors = [UIColor(hex: 0x2B2455).cgColor, UIColor(hex: 0xB0483F).cgColor, UIColor(hex: 0xF2A057).cgColor]
-        gradient.locations = [0, 0.62, 1]
-        gradient.startPoint = CGPoint(x: 0.43, y: 0)
-        gradient.endPoint = CGPoint(x: 0.57, y: 1)
-        layer.insertSublayer(gradient, at: 0)
-        layer.cornerRadius = 28
-        layer.masksToBounds = true
-        layer.borderWidth = 1
-        layer.borderColor = Theme.Color.artHairline.cgColor
-        initialLabel.font = Theme.Font.scaled(.title1, 24, .bold, maximum: 30)
-        initialLabel.textColor = Theme.Color.onArt
-        initialLabel.adjustsFontForContentSizeCategory = true
-        initialLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(initialLabel)
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 56),
-            heightAnchor.constraint(equalToConstant: 56),
-            initialLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            initialLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        gradient.frame = bounds
-    }
-
-    func setInitial(from name: String) {
-        initialLabel.text = name.first.map { String($0).uppercased() } ?? "?"
-    }
-}
-
 final class YouProfileContentView: UIView, UIContentView {
     var configuration: UIContentConfiguration {
         didSet { apply() }
     }
 
-    private let avatar = AvatarView()
+    private let avatar = MonogramView()
     private let nameLabel = UILabel()
     private let statusDot = UIView()
     private let statusLabel = UILabel()
@@ -122,7 +81,7 @@ final class YouProfileContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? YouProfileContentConfiguration else { return }
-        avatar.setInitial(from: config.name)
+        avatar.configure(name: config.name)
         nameLabel.text = config.name
         statusLabel.text = config.statusText
         statusDot.backgroundColor = config.statusColor

@@ -42,6 +42,9 @@ extension Theme {
         package static var badge: UIFont {
             scaled(.caption2, metric(phone: 11, tv: 23), .bold, maximum: metric(phone: 15, tv: 31))
         }
+        package static var monogram: UIFont {
+            scaled(.title1, metric(phone: 24, tv: 76), .bold, maximum: metric(phone: 30, tv: 90))
+        }
 
         package static func scaled(_ style: UIFont.TextStyle, _ size: CGFloat, _ weight: UIFont.Weight, maximum: CGFloat? = nil) -> UIFont {
             let base = UIFont.systemFont(ofSize: size, weight: weight)
@@ -76,5 +79,7 @@ extension Theme {
         package static let badgeBorderWidth: CGFloat = metric(phone: 1, tv: 2)
         package static let badgeInsetHorizontal: CGFloat = metric(phone: 7, tv: 14)
         package static let badgeInsetVertical: CGFloat = metric(phone: 3, tv: 6)
+        package static let monogramDiameter: CGFloat = metric(phone: 56, tv: 150)
+        package static let monogramBorderWidth: CGFloat = metric(phone: 1, tv: 2)
     }
 }
