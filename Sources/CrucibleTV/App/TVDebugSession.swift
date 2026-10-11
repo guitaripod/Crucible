@@ -31,11 +31,18 @@ enum TVDebugSession {
 
     private static let mockMachineIdentifier = "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b"
 
-    /// With `CRUCIBLE_MOCK=<url>` replaces the stored connection with the mock Plex server, signed
-    /// in as Marcus, exactly like the marketing capture harness. The real launch pipeline then
-    /// runs against it.
+    /// With `CRUCIBLE_FRESH=1` first forgets the account, server, remembered address and Top Shelf
+    /// snapshot, so every launch starts as a new install. With `CRUCIBLE_MOCK=<url>` replaces the
+    /// stored connection with the mock Plex server, signed in as Marcus, exactly like the
+    /// marketing capture harness. The real launch pipeline then runs against it.
     static func bootstrapIfRequested() {
         let environment = ProcessInfo.processInfo.environment
+        if environment["CRUCIBLE_FRESH"] == "1" {
+            ServerBootstrap.clear()
+            UserDefaults.standard.removeObject(forKey: "last_server_ip")
+            TopShelfStore.shared.clear()
+            AppLogger.notice("Debug session: fresh install state", .lifecycle)
+        }
         guard let value = environment["CRUCIBLE_MOCK"], let base = URL(string: value) else { return }
         ServerBootstrap.clear()
         ServerBootstrap.saveToken("mock-token")

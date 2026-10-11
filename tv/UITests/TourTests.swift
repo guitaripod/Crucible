@@ -53,7 +53,7 @@ final class TourTests: XCTestCase {
         TVTest.capture("02-failure-switch-server-focused", in: self)
 
         TVTest.remote.press(.select)
-        XCTAssertTrue(app.buttons["onboarding.signIn"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.collectionViews["onboarding.servers"].waitForExistence(timeout: 45), "Switch Server must present the server list for the saved account")
         TVTest.settle()
         TVTest.capture("03-switch-server-presented", in: self)
 

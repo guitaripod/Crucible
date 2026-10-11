@@ -40,6 +40,11 @@ final class TVAppCoordinator: TVSessionActions {
         launchTask?.cancel()
         launchTask = nil
         router.deactivate()
+        TVTopShelfRefresher.deactivate(clearing: false)
+    }
+
+    func sceneWillEnterForeground() {
+        TVTopShelfRefresher.refresh()
     }
 
     func reconnect() {
@@ -66,6 +71,7 @@ final class TVAppCoordinator: TVSessionActions {
         AppLogger.notice("Signing out", .lifecycle)
         launchTask?.cancel()
         router.deactivate()
+        TVTopShelfRefresher.deactivate(clearing: true)
         StatsManager.shared.handleSignOut()
         HomeSnapshotStore.destroy()
         Task { await ImageLoader.shared.clearCache() }
@@ -120,6 +126,7 @@ final class TVAppCoordinator: TVSessionActions {
         ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken, machineIdentifier: connection.machineIdentifier)
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
+        TVTopShelfRefresher.activate(api: api, machineIdentifier: connection.machineIdentifier)
         let environment = TVAppEnvironment(payload: payload, router: router, session: self)
         return TVRootTabBarController(environment: environment)
     }

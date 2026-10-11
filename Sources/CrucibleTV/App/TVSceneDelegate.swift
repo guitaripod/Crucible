@@ -29,6 +29,10 @@ final class TVSceneDelegate: UIResponder, UIWindowSceneDelegate {
         coordinator?.open(urls: URLContexts.map(\.url))
     }
 
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        coordinator?.sceneWillEnterForeground()
+    }
+
     func sceneDidDisconnect(_ scene: UIScene) {
         coordinator?.stop()
         coordinator = nil
