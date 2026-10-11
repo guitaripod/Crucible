@@ -78,7 +78,7 @@ package struct EpisodeStatus: Equatable, Sendable {
         self.download = download
         self.playTitle = position > 0 ? "Resume" : "Play"
         self.canPlayFromBeginning = position > 0
-        self.watchedToggleTitle = isWatched ? "Mark Unwatched" : "Mark Watched"
+        self.watchedToggleTitle = WatchedService.title(isWatched: isWatched)
     }
 
     package var metaText: String {

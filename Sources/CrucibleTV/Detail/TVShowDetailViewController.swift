@@ -143,7 +143,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         if let menu = watchedMenu(for: model) {
             actions.append(TVDetailAction(
                 kind: .watched,
-                title: model.isWatched ? "Watched" : "Mark Watched",
+                title: model.isWatched ? "Watched" : WatchedService.title(isWatched: false),
                 menu: menu,
                 accessibilityLabel: model.watchedAccessibilityLabel
             ))

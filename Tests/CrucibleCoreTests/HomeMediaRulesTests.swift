@@ -60,11 +60,10 @@ struct HomeMediaRulesTests {
     @Test func watchedToggleFlipsTheCurrentState() {
         let unwatched = HomeMediaRules.watchedToggle(for: movie())
         #expect(unwatched.title == "Mark Watched")
-        #expect(unwatched.endpoint.path == PlexEndpoint.scrobble(ratingKey: "1").path)
+        #expect(unwatched.targetWatched)
         let watched = HomeMediaRules.watchedToggle(for: movie(views: 1))
         #expect(watched.title == "Mark Unwatched")
-        #expect(watched.endpoint.path == PlexEndpoint.unscrobble(ratingKey: "1").path)
-        #expect(unwatched.endpoint.path != watched.endpoint.path)
+        #expect(!watched.targetWatched)
     }
 
     @Test func playTitleResumesOnceStarted() {

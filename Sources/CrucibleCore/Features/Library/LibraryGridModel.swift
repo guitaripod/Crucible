@@ -251,15 +251,10 @@ package final class LibraryGridModel {
         Task { [weak self] in
             guard let self else { return }
             do {
-                if watched {
-                    try await api.requestVoid(.scrobble(ratingKey: ratingKey))
-                } else {
-                    try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
-                }
+                try await WatchedService.setWatched(watched, ratingKey: ratingKey, api: api)
             } catch {
-                AppLogger.error("\(kind.logName) mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+                await api.invalidateCache()
             }
-            await api.invalidateCache()
             reloadLoadedPages(anchor: anchor)
             loadHubs()
         }

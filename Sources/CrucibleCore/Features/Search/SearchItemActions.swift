@@ -36,26 +36,4 @@ package enum SearchItemActions {
         }
     }
 
-    package static func watchedTitle(for item: PlexMetadata) -> String {
-        watchedTitle(isWatched: item.isWatched)
-    }
-
-    package static func watchedTitle(isWatched: Bool) -> String {
-        isWatched ? "Mark Unwatched" : "Mark Watched"
-    }
-
-    /// Flips the item's watched state on the server and drops the API cache so lists refetch it.
-    package static func toggleWatched(_ item: PlexMetadata, api: APIClient) async {
-        await setWatched(!item.isWatched, ratingKey: item.id, api: api)
-    }
-
-    /// Marks an item watched or unwatched on the server and drops the API cache so lists refetch it.
-    package static func setWatched(_ watched: Bool, ratingKey: String, api: APIClient) async {
-        if watched {
-            try? await api.requestVoid(.scrobble(ratingKey: ratingKey))
-        } else {
-            try? await api.requestVoid(.unscrobble(ratingKey: ratingKey))
-        }
-        await api.invalidateCache()
-    }
 }

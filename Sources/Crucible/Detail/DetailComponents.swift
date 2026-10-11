@@ -131,7 +131,7 @@ final class DetailActionsContentView: UIView, UIContentView {
         watchedButton.configuration = watched
         watchedButton.menu = config.watchedMenu
         watchedButton.showsMenuAsPrimaryAction = config.watchedMenu != nil
-        watchedButton.accessibilityLabel = config.watchedAccessibilityLabel ?? (config.isWatched ? "Mark Unwatched" : "Mark Watched")
+        watchedButton.accessibilityLabel = config.watchedAccessibilityLabel ?? WatchedService.title(isWatched: config.isWatched)
     }
 }
 

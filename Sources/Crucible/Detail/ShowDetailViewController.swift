@@ -744,7 +744,7 @@ final class ShowDetailViewController: UICollectionViewController {
         action.image = SwipeActionArt.image(
             symbol: markWatched ? "eye" : "eye.slash",
             title: markWatched ? "Watched" : "Unwatched",
-            spokenTitle: markWatched ? "Mark Watched" : "Mark Unwatched",
+            spokenTitle: WatchedService.title(isWatched: !markWatched),
             color: Theme.Color.onAccent,
             traits: traitCollection
         )

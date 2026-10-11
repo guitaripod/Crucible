@@ -470,13 +470,13 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     private func watchedAction(for item: PlexMetadata) -> UIAction {
         UIAction(
-            title: SearchItemActions.watchedTitle(for: item),
+            title: WatchedService.title(isWatched: item.isWatched),
             image: UIImage(systemName: item.isWatched ? "eye.slash" : "eye")
         ) { [weak self] _ in
             guard let self else { return }
             Haptics.light()
             Task {
-                await SearchItemActions.toggleWatched(item, api: self.api)
+                try? await WatchedService.setWatched(!item.isWatched, ratingKey: item.id, api: self.api)
             }
         }
     }

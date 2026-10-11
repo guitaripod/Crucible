@@ -65,7 +65,7 @@ package struct MovieDetailModel: Sendable {
     }
 
     package var watchedToggleTitle: String {
-        item.isWatched ? "Mark Unwatched" : "Mark Watched"
+        WatchedService.title(isWatched: item.isWatched)
     }
 
     /// The position playback starts from: the downloaded copy's own resume point when playing offline, else the server's.

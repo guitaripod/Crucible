@@ -21,7 +21,7 @@ enum TVSearchMenus {
         }
         if isPlayable {
             actions.append(UIAction(
-                title: SearchItemActions.watchedTitle(isWatched: watched),
+                title: WatchedService.title(isWatched: watched),
                 image: UIImage(systemName: watched ? "eye.slash" : "eye")
             ) { _ in toggleWatched() })
         }

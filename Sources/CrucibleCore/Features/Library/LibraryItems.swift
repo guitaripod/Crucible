@@ -110,7 +110,7 @@ package struct LibraryItemAction: Equatable, Sendable {
             actions.append(LibraryItemAction(kind: .play, title: item.positionSecs > 0 ? "Resume" : "Play", symbol: "play.fill"))
             actions.append(LibraryItemAction(
                 kind: .setWatched(!item.isWatched),
-                title: item.isWatched ? "Mark Unwatched" : "Mark Watched",
+                title: WatchedService.title(isWatched: item.isWatched),
                 symbol: item.isWatched ? "eye.slash" : "eye"
             ))
         case .show:

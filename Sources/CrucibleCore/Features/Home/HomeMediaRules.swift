@@ -11,14 +11,13 @@ package struct HomeWatchedToggle: Hashable, Sendable {
     package let ratingKey: String
     package let isWatched: Bool
 
-    package var title: String { isWatched ? "Mark Unwatched" : "Mark Watched" }
+    package var title: String { WatchedService.title(isWatched: isWatched) }
 
-    package var endpoint: PlexEndpoint {
-        isWatched ? .unscrobble(ratingKey: ratingKey) : .scrobble(ratingKey: ratingKey)
-    }
+    /// The state the toggle moves the title to.
+    package var targetWatched: Bool { !isWatched }
 
     package func perform(using api: APIClient) async throws {
-        try await api.requestVoid(endpoint)
+        try await WatchedService.setWatched(targetWatched, ratingKey: ratingKey, api: api)
     }
 }
 
