@@ -5,8 +5,15 @@ package enum DeviceModel {
     private static let firstGlassCapableAppleTV = 11
 
     /// The hardware model identifier: the simulator reports the device it stands in for through
-    /// `SIMULATOR_MODEL_IDENTIFIER`, real devices through `uname`.
+    /// `SIMULATOR_MODEL_IDENTIFIER`, real devices through `uname`. In DEBUG builds
+    /// `CRUCIBLE_MODEL_IDENTIFIER` overrides both, so UI tests can render the classic look on a
+    /// simulator that could draw Liquid Glass.
     package static var identifier: String? {
+        #if DEBUG
+        if let forced = ProcessInfo.processInfo.environment["CRUCIBLE_MODEL_IDENTIFIER"], !forced.isEmpty {
+            return forced
+        }
+        #endif
         if let simulated = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"], !simulated.isEmpty {
             return simulated
         }
