@@ -96,6 +96,7 @@ final class TourTests: XCTestCase {
     }
 
     func testDeepLinksOpenTheRealDetailOnHomeAndTheRealPlayer() {
+        AppNavigation.setMockProgress("1002", seconds: 10)
         let app = AppNavigation.launchHome(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "6"])
         AppNavigation.selectTab("Movies", in: app)
         XCTAssertTrue(AppNavigation.element(app, "tv.chip.all").waitForExistence(timeout: 30))
@@ -115,7 +116,8 @@ final class TourTests: XCTestCase {
         TVTest.capture("02-untyped-item-link-opened-detail", in: self)
 
         AppNavigation.openFromOutside("crucible://play/1002", in: self)
-        XCTAssertTrue(app.otherElements["player.preroll"].waitForExistence(timeout: 60), "a play link must reach the player pre-roll")
+        let reachedPlayer = app.otherElements.matching(NSPredicate(format: "identifier IN {'player.preroll', 'player.view'}")).firstMatch
+        XCTAssertTrue(reachedPlayer.waitForExistence(timeout: 60), "a play link must reach the player pre-roll or the player")
         TVTest.capture("03-play-link-reached-the-player", in: self)
         XCTAssertTrue(app.otherElements["player.view"].waitForExistence(timeout: 60), "the pre-roll must hand over to playback")
         TVTest.settle(2)

@@ -119,6 +119,13 @@ enum AppNavigation {
         TVTest.fetch(url)
     }
 
+    /// Writes the item's resume position to the mock, so a play link starts inside the 150 s clip instead of at the stored 52 minutes, which is past its end and closes the player at once.
+    static func setMockProgress(_ ratingKey: String, seconds: Int) {
+        let path = "/:/timeline?ratingKey=\(ratingKey)&key=/library/metadata/\(ratingKey)&state=stopped&time=\(seconds * 1000)&duration=2700000"
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + path) else { return }
+        TVTest.fetch(url)
+    }
+
     static func detailPrimary(_ app: XCUIApplication) -> XCUIElement {
         app.buttons["detail.action.primary"]
     }
