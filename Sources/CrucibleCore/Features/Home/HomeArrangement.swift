@@ -40,6 +40,17 @@ package struct HomeArrangement: Sendable {
         }
     }
 
+    /// The cards of a rail when the hero cannot take focus: the hero item stays at the head of the rail
+    /// it was lifted from, so every card remains reachable. `.hero` is the hero alone.
+    package func shelf(for bucket: HomeBucket) -> [PlexMetadata] {
+        switch bucket {
+        case .hero: return items(for: .hero)
+        case .continueWatching: return (heroIsContinue ? items(for: .hero) : []) + continueRail
+        case .upNext: return (heroIsContinue ? [] : items(for: .hero)) + upNext
+        case .recentlyAdded: return recent
+        }
+    }
+
     /// Section or eyebrow text for a bucket; the hero reads as whichever rail it was lifted from.
     package func title(for bucket: HomeBucket) -> String {
         switch bucket {

@@ -70,6 +70,20 @@ struct HomeArrangementTests {
         #expect(arrangement.title(for: .recentlyAdded) == "Recently Added")
     }
 
+    @Test func shelvesKeepTheHeroAtTheHeadOfItsOwnRail() {
+        let fromContinue = HomeArrangement(buckets: HomeBuckets(
+            continueWatching: items("1", "2"), onDeck: items("3"), recent: items("4")
+        ))
+        #expect(ids(fromContinue.shelf(for: .continueWatching)) == ["1", "2"])
+        #expect(ids(fromContinue.shelf(for: .upNext)) == ["3"])
+        #expect(ids(fromContinue.shelf(for: .recentlyAdded)) == ["4"])
+        #expect(ids(fromContinue.shelf(for: .hero)) == ["1"])
+
+        let fromOnDeck = HomeArrangement(buckets: HomeBuckets(onDeck: items("3", "5")))
+        #expect(fromOnDeck.shelf(for: .continueWatching).isEmpty)
+        #expect(ids(fromOnDeck.shelf(for: .upNext)) == ["3", "5"])
+    }
+
     @Test func weekCardNeedsContentAndActivity() {
         let filled = HomeArrangement(buckets: HomeBuckets(recent: items("1")))
         #expect(filled.showsWeekCard(hasWeekActivity: true))
