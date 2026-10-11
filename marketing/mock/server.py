@@ -19,6 +19,7 @@ PORT = int(os.environ.get("PORT", "32400"))
 PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
 PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
 PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
+LIBRARY_PAD = int(os.environ.get("MOCK_LIBRARY_PAD", "0"))
 DEAD_ROUTE = "http://127.0.0.1:9"
 FLAGS = {
     "latency_ms": int(os.environ.get("MOCK_LATENCY_MS", "0")),
@@ -177,10 +178,42 @@ def container(**fields):
     return {"MediaContainer": fields}
 
 
+def env_sections(name):
+    return set(os.environ.get(name, "").split(","))
+
+
+def padded(items, count):
+    """Repeats the section's movies as numbered copies (two thirds unwatched) until it holds `count` items."""
+    out = list(items)
+    for n in range(len(items), count):
+        base = items[n % len(items)]
+        clone = dict(base)
+        clone["ratingKey"] = str(900000 + n)
+        clone["key"] = f"/library/metadata/{clone['ratingKey']}"
+        clone["title"] = f"{base['title']} {n // len(items) + 1}"
+        clone["titleSort"] = f"{base['titleSort']} {n // len(items) + 1}"
+        if n % 3:
+            clone.pop("viewCount", None)
+            clone.pop("viewOffset", None)
+        out.append(clone)
+    return out
+
+
 def section_items(section_id):
     kind = library.SECTIONS[section_id][1]
     pool = LIB.movies if kind == "movie" else LIB.shows
-    return [i for i in pool if str(i["librarySectionID"]) == section_id]
+    items = [i for i in pool if str(i["librarySectionID"]) == section_id]
+    if LIBRARY_PAD and section_id == "1" and items:
+        items = padded(items, LIBRARY_PAD)
+    return items
+
+
+def filter_watch(items, q):
+    if (q.get("unwatched") or ["0"])[0] == "1":
+        items = [i for i in items if not i.get("viewCount") and not i.get("viewOffset")]
+    if (q.get("inProgress") or ["0"])[0] == "1":
+        items = [i for i in items if i.get("viewOffset", 0) > 0 and not i.get("viewCount")]
+    return items
 
 
 def paged(items, q, **extra):
@@ -648,6 +681,9 @@ class Handler(BaseHTTPRequestHandler):
                 if "genre" in FAILING and q.get("genre"):
                     return self.not_found()
                 items = filter_genre(items, (q.get("genre") or [None])[0])
+                if sid in env_sections("MOCK_FAIL_SECTIONS"):
+                    return self.not_found()
+                items = filter_watch(filter_genre(items, (q.get("genre") or [None])[0]), q)
                 items = sorted_items(items, (q.get("sort") or [None])[0])
                 c, page = paged(items, q, librarySectionID=int(sid), librarySectionTitle=title, title1=title,
                                 viewGroup=kind)
