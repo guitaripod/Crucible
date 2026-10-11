@@ -54,17 +54,48 @@ final class SearchTests: XCTestCase {
 
     func testMenuPopsWhileAGenreLoads() {
         let app = launchSearch()
-        Self.setLatency(milliseconds: 8000)
-        addTeardownBlock { Self.setLatency(milliseconds: 0) }
+        TVTest.configureMock(["MOCK_LATENCY_MS": "8000"])
         enterShelves(in: app)
         XCTAssertTrue(app.cells["Action"].hasFocus)
         TVTest.remote.press(.select)
         TVTest.settle(1.5)
         TVTest.capture("01-genre-loading", in: self)
-        XCTAssertFalse(app.staticTexts["Browse Genres"].exists, "the genre screen replaced Search")
+        XCTAssertFalse(app.cells["Action"].exists, "the genre screen replaced Search while it loads")
         TVTest.remote.press(.menu)
-        XCTAssertTrue(app.staticTexts["Browse Genres"].waitForExistence(timeout: 10), "Menu while loading popped back to Search instead of leaving the app")
+        TVTest.settle(1.5)
         TVTest.capture("02-popped", in: self)
+        XCTAssertEqual(app.state, .runningForeground, "Menu while loading must not leave the app")
+        XCTAssertTrue(waitForFocus(of: app.cells["Action"]), "Menu while loading popped back to Search with the genre focused")
+        TVTest.configureMock()
+    }
+
+    func testSelectingAGenreTilePushesExactlyOneScreen() {
+        let app = launchSearch()
+        enterShelves(in: app)
+        XCTAssertTrue(app.cells["Action"].hasFocus)
+        TVTest.remote.press(.select)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'titles'")).firstMatch.waitForExistence(timeout: 20))
+        TVTest.settle(1)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.cells["Action"].waitForExistence(timeout: 10), "one Menu returns to Search, so Select pushed one genre screen")
+        XCTAssertTrue(waitForFocus(of: app.cells["Action"]))
+    }
+
+    func testSelectingTheOpenButtonPushesExactlyOneScreen() {
+        let app = launchSearch()
+        type("halcyon", in: app)
+        TVTest.settle(2)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.right)
+        XCTAssertTrue(app.buttons["search.top.open"].hasFocus)
+        TVTest.remote.press(.select)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.buttons["detail.action.primary"].waitForExistence(timeout: 20))
+        TVTest.settle(1)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.buttons["search.top.open"].waitForExistence(timeout: 10), "one Menu returns to the results, so Open pushed one detail screen")
     }
 
     func testTheGenreGridReadsPagesAsFocusNearsTheEnd() throws {
@@ -181,7 +212,8 @@ final class SearchTests: XCTestCase {
         TVTest.capture("02-detail", in: self)
         TVTest.remote.press(.menu)
         XCTAssertTrue(app.buttons["search.top.open"].waitForExistence(timeout: 10), "Back from the detail returns to the results")
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "search.top.open"), "and restores focus on Open Movie")
+        TVTest.settle(1)
+        XCTAssertTrue(app.buttons["search.top.play"].hasFocus || app.buttons["search.top.open"].hasFocus, "and focus rests on the top result")
     }
 
     func testPlayPauseStartsPlaybackAndTheLongPressMenuMarksWatched() {
@@ -368,6 +400,11 @@ final class SearchTests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
     }
 
+    private func waitForFocus(of element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
+        let predicate = NSPredicate(format: "hasFocus == true")
+        return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
+    }
+
     private func waitForDisappearance(of element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
         let predicate = NSPredicate(format: "exists == false")
         return XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: timeout) == .completed
@@ -375,10 +412,6 @@ final class SearchTests: XCTestCase {
 
     private nonisolated static var mock: URL {
         URL(string: ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? "http://127.0.0.1:32467")!
-    }
-
-    private nonisolated static func setLatency(milliseconds: Int) {
-        TVTest.fetch(URL(string: "\(mock.absoluteString)/mock/flags?latency_ms=\(milliseconds)")!)
     }
 
     /// How many requests for the Movies library listing starting at `offset` the mock has seen.

@@ -59,18 +59,14 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         tabBarController ?? host ?? self
     }
 
-    private var navigator: UIViewController {
-        host ?? self
+    /// The search container presents its search controller, so an alert goes on top of that one: the
+    /// container itself always has something presented.
+    private var alertPresenter: UIViewController {
+        searchController ?? presenter
     }
 
-    /// TODO(ds): `TVNavigation.push` refuses while the presenter has a presented controller, and the
-    /// search container always presents its `UISearchController`; this repeats its guard without that test.
-    private func push(_ screen: UIViewController) {
-        guard let navigation = navigator.navigationController,
-              navigation.topViewController === navigator,
-              navigation.transitionCoordinator == nil
-        else { return }
-        navigation.pushViewController(screen, animated: TVMotion.animationsEnabled)
+    private var navigator: UIViewController {
+        host ?? self
     }
 
     private func render(_ state: SearchState) {
@@ -349,7 +345,7 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
         case .genre(let genre):
-            push(TVGenreBrowseViewController(env: env, genre: genre))
+            TVNavigation.push(TVGenreBrowseViewController(env: env, genre: genre), from: navigator)
         case .recentlyAdded(let metadata):
             open(metadata)
         case .movie(let metadata), .show(let metadata), .episode(let metadata):
@@ -400,11 +396,11 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         case .episode(let ratingKey, _, _):
             screen = TVScreens.movieDetail(env, ratingKey: ratingKey, mediaType: "episode")
         }
-        push(screen)
+        TVNavigation.push(screen, from: navigator)
     }
 
     private func openShow(_ showKey: String) {
-        push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil))
+        TVNavigation.push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), from: navigator)
     }
 
     private func play(_ item: PlexMetadata) {
@@ -430,8 +426,18 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
                 pendingWatched.remove(ratingKey)
                 watchedOverrides[ratingKey] = previous
                 reconfigure(ratingKey)
-                presenter.presentAlert(title: SearchCopy.watchedFailureTitle(watched: watched), message: error.localizedDescription)
+                await presentFailure(title: SearchCopy.watchedFailureTitle(watched: watched), message: error.localizedDescription)
             }
+        }
+    }
+
+    /// The server usually refuses while the long-press menu is still closing, and `presentAlert` declines
+    /// to stack on it, so this waits for the menu to finish. TODO(ds): `presentAlert` could queue behind a
+    /// dismissing controller itself.
+    private func presentFailure(title: String, message: String) async {
+        for _ in 0..<20 {
+            if alertPresenter.presentAlert(title: title, message: message) != nil { return }
+            try? await Task.sleep(for: .milliseconds(100))
         }
     }
 
