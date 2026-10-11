@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+MAC=${MAC:-mac}
+NAME=${NAME:-CrucibleTV}
+REMOTE=Dev/ios/$NAME
+
+usage() {
+  cat << 'USAGE'
+Build and test Crucible on the Mac (the only host with the Apple SDKs).
+
+  scripts/mac.sh sync        rsync the working tree to the Mac
+  scripts/mac.sh ios         sync, then build the iOS package scheme (Crucible) for the iPhone simulator
+  scripts/mac.sh tvlib       sync, then build the CrucibleTV package scheme for the Apple TV simulator
+  scripts/mac.sh core-test   sync, then run CrucibleCoreTests on the macOS host (CRUCIBLE_CORE_ONLY=1)
+  scripts/mac.sh sh <cmd>    sync, then run <cmd> inside the remote checkout
+
+NAME=<dir> keeps parallel work apart: it picks the remote checkout (~/Dev/ios/$NAME) and its build products.
+USAGE
+}
+
+remote() {
+  ssh -o BatchMode=yes "$MAC" "cd ~/$REMOTE && export PATH=/opt/homebrew/bin:\$PATH && $*" < /dev/null
+}
+
+sync_tree() {
+  ssh -o BatchMode=yes "$MAC" "mkdir -p ~/$REMOTE" < /dev/null
+  rsync -az --delete \
+    --exclude .build --exclude '.build-*' --exclude .git --exclude .claude --exclude '.dd*' \
+    --exclude xtool --exclude marketing --exclude screenshots.png --exclude .bsp --exclude '*.xcodeproj' \
+    "$ROOT/" "$MAC:$REMOTE/"
+}
+
+summarize() {
+  grep -E "error:|BUILD (SUCCEEDED|FAILED)|Test run|Test .* (passed|failed)|Executed [0-9]+ tests" | sed -E 's#/Users/[^/]+/Dev/ios/[^/]+/##' | head -${LINES_MAX:-60}
+}
+
+xcode_build() {
+  local scheme=$1 destination=$2 derived=$3
+  remote "xcodebuild -scheme $scheme -destination '$destination' -derivedDataPath $derived ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build 2>&1" | summarize
+}
+
+case "${1:-}" in
+  sync) sync_tree ;;
+  ios) sync_tree; xcode_build Crucible "generic/platform=iOS Simulator" .dd-ios ;;
+  tvlib) sync_tree; xcode_build CrucibleTV "generic/platform=tvOS Simulator" .dd-tv ;;
+  core-test) sync_tree; remote "CRUCIBLE_CORE_ONLY=1 swift test --scratch-path .build-core 2>&1" | summarize ;;
+  sh) shift; sync_tree; remote "$*" ;;
+  *) usage; exit 2 ;;
+esac
