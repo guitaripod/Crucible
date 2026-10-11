@@ -16,6 +16,10 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     private static let stopGrace: Duration = .seconds(3)
 
+    /// How long after the end of an item the system's Up Next card may still come before the engine's
+    /// own answer (play the next episode, or close) takes over; a slow Apple TV can need more than a second.
+    static let upNextCardGrace: Duration = .seconds(3)
+
     static func start(api: APIClient, request: PlaybackRequest, from presenter: UIViewController) {
         if let previous = active {
             Task { await previous.finish(animated: false) }

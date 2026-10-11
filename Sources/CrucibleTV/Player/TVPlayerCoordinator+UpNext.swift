@@ -82,7 +82,7 @@ extension TVPlayerCoordinator {
             break
         case .playbackEnded:
             Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: Self.upNextCardGrace)
                 guard let self, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
                 if offer.autoplays {
                     advance(to: offer)
