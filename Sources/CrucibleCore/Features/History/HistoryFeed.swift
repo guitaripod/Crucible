@@ -18,6 +18,7 @@ package final class HistoryFeed {
     private let request: Request
     private let now: @Sendable () -> Date
     private var loadTask: Task<Void, Never>?
+    private var pagerBeforeRefresh: HistoryPager?
 
     package init(request: @escaping Request, now: @escaping @Sendable () -> Date = { Date() }) {
         self.request = request
@@ -47,7 +48,12 @@ package final class HistoryFeed {
         }
     }
 
+    /// Reloads from the top and replaces the list. While it runs the list stays as it was, and if the
+    /// request fails the paging state comes back too, so the old list can still be paged.
     package func refresh() {
+        if pagerBeforeRefresh == nil, !items.isEmpty {
+            pagerBeforeRefresh = pager
+        }
         pager.reset()
         loadPage(offset: 0)
     }
@@ -74,6 +80,7 @@ package final class HistoryFeed {
     package func cancel() {
         loadTask?.cancel()
         loadTask = nil
+        restorePagerAfterFailedRefresh()
         pager.cancelLoading()
     }
 
@@ -92,6 +99,7 @@ package final class HistoryFeed {
                 guard !Task.isCancelled else { return }
                 let page = HistoryItem.items(in: container, offset: offset)
                 pager.finishLoading(offset: offset, count: page.count, total: container.totalSize)
+                pagerBeforeRefresh = nil
                 items = offset == 0 ? page : items + page
                 loadTask = nil
                 onEvent?(.pageLoaded)
@@ -99,9 +107,20 @@ package final class HistoryFeed {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("History page \(offset) failed: \(error.localizedDescription)", .networking)
                 loadTask = nil
-                pager.failLoading()
+                if pagerBeforeRefresh != nil {
+                    restorePagerAfterFailedRefresh()
+                    pager.cancelLoading()
+                } else {
+                    pager.failLoading()
+                }
                 onEvent?(.failed)
             }
         }
+    }
+
+    private func restorePagerAfterFailedRefresh() {
+        guard let saved = pagerBeforeRefresh else { return }
+        pagerBeforeRefresh = nil
+        pager = saved
     }
 }

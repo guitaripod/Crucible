@@ -238,6 +238,55 @@ struct HistoryFeedTests {
         #expect(await server.historyStarts == [0, 0])
     }
 
+    @Test func aFailedRefreshKeepsTheListAndItsPagingState() async {
+        let server = FakeHistoryServer(replies: [
+            .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
+            .fail,
+            .page(HistoryFixtures.container(total: 100, rows: rows(50..<100)))
+        ])
+        let (feed, log) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        feed.refresh()
+        await settle(feed)
+        #expect(log.events == [.pageLoaded, .failed])
+        #expect(feed.items.count == 50)
+        #expect(feed.pager.offset == 50)
+        #expect(feed.pager.total == 100)
+        #expect(!feed.pager.hasFailed)
+        #expect(feed.emptyState(filter: .all) == .populated)
+        feed.prefetchMore()
+        await settle(feed)
+        #expect(feed.items.count == 100)
+        #expect(await server.historyStarts == [0, 0, 50])
+    }
+
+    @Test func aFailedRefreshOfAnEmptyListStillShowsTheFailure() async {
+        let server = FakeHistoryServer(replies: [.fail, .fail])
+        let (feed, _) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        feed.refresh()
+        await settle(feed)
+        #expect(feed.emptyState(filter: .all) == .loadFailed)
+    }
+
+    @Test func cancellingARefreshRestoresThePagingState() async {
+        let server = FakeHistoryServer(replies: [
+            .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
+            .hang
+        ])
+        let (feed, _) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        feed.refresh()
+        await Task.yield()
+        feed.cancel()
+        #expect(feed.pager.offset == 50)
+        #expect(feed.pager.hasMore)
+        #expect(!feed.pager.isLoading)
+    }
+
     @Test func refreshSupersedesALoadInFlight() async {
         let server = FakeHistoryServer(replies: [
             .hang,
