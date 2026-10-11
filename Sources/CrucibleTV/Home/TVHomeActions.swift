@@ -43,7 +43,7 @@ final class TVHomeActions {
         case .media(let ratingKey, let mediaType, _, _):
             destination = TVScreens.movieDetail(env, ratingKey: ratingKey, mediaType: mediaType)
         }
-        screen.navigationController?.pushViewController(destination, animated: true)
+        TVNavigation.push(destination, from: screen)
     }
 
     func open(_ target: SurpriseMe.Target, from screen: UIViewController) {
@@ -52,11 +52,11 @@ final class TVHomeActions {
         case .movie(let ratingKey): destination = TVScreens.movieDetail(env, ratingKey: ratingKey, mediaType: "movie")
         case .show(let ratingKey): destination = TVScreens.showDetail(env, ratingKey: ratingKey, initialSeasonKey: nil)
         }
-        screen.navigationController?.pushViewController(destination, animated: true)
+        TVNavigation.push(destination, from: screen)
     }
 
     func openStatistics(from screen: UIViewController) {
-        screen.navigationController?.pushViewController(TVScreens.statistics(env), animated: true)
+        TVNavigation.push(TVScreens.statistics(env), from: screen)
     }
 
     /// Play/Resume, Play from Beginning, View Details, Go to Show and Mark (Un)Watched; entries that do not apply are omitted.
@@ -81,8 +81,7 @@ final class TVHomeActions {
         if let showKey = HomeMediaRules.showRatingKey(for: media) {
             actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self, weak screen] _ in
                 guard let self, let screen else { return }
-                let show = TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil)
-                screen.navigationController?.pushViewController(show, animated: true)
+                TVNavigation.push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), from: screen)
             })
         }
         actions.append(watchedAction(for: media))

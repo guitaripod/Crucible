@@ -2,22 +2,9 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// A focusable tile that reports Select straight from the remote press, so it does not depend on
-/// control events reaching a control inside a collection cell.
-class TVHomeTileSurface: TVFocusableSurface {
-    var onSelect: (() -> Void)?
-
-    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-        if presses.contains(where: { $0.type == .select }), let onSelect {
-            onSelect()
-        }
-        super.pressesEnded(presses, with: event)
-    }
-}
-
 /// The This Week tile: total watch time, the change against last week and seven daily bars. Select
 /// opens Statistics.
-final class TVHomeWeekSurface: TVHomeTileSurface {
+final class TVHomeWeekSurface: TVFocusableSurface {
     private static let barAreaHeight: CGFloat = 120
     private static let barWidth: CGFloat = 26
     private static let minimumBarHeight: CGFloat = 8
@@ -31,7 +18,6 @@ final class TVHomeWeekSurface: TVHomeTileSurface {
     init() {
         super.init(cornerRadius: Theme.Radius.l)
         accessibilityHint = "Opens statistics"
-        isContextMenuInteractionEnabled = false
         buildHierarchy()
     }
 
@@ -127,44 +113,12 @@ final class TVHomeWeekSurface: TVHomeTileSurface {
     }
 }
 
-/// Hosts the This Week tile in a collection cell; the tile is the focus target, never the cell.
-final class TVHomeWeekCell: UICollectionViewCell {
-    private let surface = TVHomeWeekSurface()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundConfiguration = .clear()
-        clipsToBounds = false
-        contentView.clipsToBounds = false
-        surface.accessibilityIdentifier = "home.week"
-        surface.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(surface)
-        NSLayoutConstraint.activate([
-            surface.topAnchor.constraint(equalTo: contentView.topAnchor),
-            surface.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            surface.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            surface.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var canBecomeFocused: Bool { false }
-
-    func configure(model: HomeWeekCardModel?, onSelect: @escaping () -> Void) {
-        if let model { surface.configure(with: model) }
-        surface.onSelect = onSelect
-    }
-}
-
 /// The last tile of Recently Added: Select offers a random movie, show or either.
-final class TVHomeSurpriseSurface: TVHomeTileSurface {
+final class TVHomeSurpriseSurface: TVFocusableSurface {
     init() {
         super.init(cornerRadius: TVMetrics.Card.cornerRadius)
         accessibilityLabel = "Surprise Me"
         accessibilityHint = "Picks something to watch"
-        isContextMenuInteractionEnabled = false
         buildHierarchy()
     }
 
@@ -203,35 +157,5 @@ final class TVHomeSurpriseSurface: TVHomeTileSurface {
             stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Theme.Space.s),
             stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Theme.Space.s),
         ])
-    }
-}
-
-/// Hosts the Surprise Me tile at poster height so it lines up with the posters beside it.
-final class TVHomeSurpriseCell: UICollectionViewCell {
-    private let surface = TVHomeSurpriseSurface()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundConfiguration = .clear()
-        clipsToBounds = false
-        contentView.clipsToBounds = false
-        surface.accessibilityIdentifier = "home.surprise"
-        surface.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(surface)
-        NSLayoutConstraint.activate([
-            surface.topAnchor.constraint(equalTo: contentView.topAnchor),
-            surface.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            surface.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            surface.heightAnchor.constraint(equalToConstant: TVMetrics.Card.posterSize.height),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var canBecomeFocused: Bool { false }
-
-    func configure(onSelect: @escaping () -> Void) {
-        surface.onSelect = onSelect
     }
 }

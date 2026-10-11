@@ -25,6 +25,13 @@ enum TVHomeItem: Hashable {
     case surprise
 }
 
+/// Numbers only Home uses.
+enum TVHomeMetrics {
+    static let backdropDimmingDistance: CGFloat = 520
+    static let weekTileSize = CGSize(width: 960, height: 260)
+    static let restingBand: CGFloat = 120
+}
+
 /// Maps the shared Home models onto the tvOS design-system data.
 @MainActor
 enum TVHomeContent {
@@ -47,26 +54,11 @@ enum TVHomeContent {
         TVHeroInfo(
             eyebrow: model.eyebrow,
             title: model.title,
-            metaParts: metaParts(for: media, model: model),
+            metaParts: model.metaParts,
             badges: [media.contentRating].compactMap { $0 },
             synopsis: media.summary,
-            progress: model.progress
+            progress: model.progress,
+            accessibilityText: model.accessibilityText
         )
-    }
-
-    private static func metaParts(for media: PlexMetadata, model: HomeHeroModel) -> [String] {
-        let year = media.year.map(String.init)
-        let parts: [String?]
-        switch media.mediaType {
-        case "episode":
-            parts = [HomeFormat.episodeLine(season: media.parentIndex, episode: media.index, tail: nil), media.title, model.trailingText]
-        case "season":
-            parts = [media.title, year]
-        case "show":
-            parts = [year]
-        default:
-            parts = [year, model.trailingText]
-        }
-        return parts.compactMap { $0 }.filter { !$0.isEmpty }
     }
 }

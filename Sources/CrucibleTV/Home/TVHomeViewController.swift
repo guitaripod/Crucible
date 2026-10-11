@@ -8,16 +8,10 @@ import UIKit
 /// (it never takes focus), so every card, including the one the hero starts on, lives in its rail.
 /// Content comes from the shared `HomeFeed`; the launch payload paints the first frame and every
 /// later appearance refreshes it, keeping what is on screen when a refresh fails.
-final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
-    private enum Presentation {
-        case content
-        case loading
-        case empty
-        case error
+final class TVHomeViewController: TVScreenViewController {
+    private final class LayoutSource {
+        weak var screen: TVHomeViewController?
     }
-
-    private static let backdropDimmingDistance: CGFloat = 520
-    private static let weekTileSize = CGSize(width: 960, height: 260)
 
     private let env: TVAppEnvironment
     private let feed: HomeFeed
@@ -26,18 +20,15 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
     }
 
     private let backdrop = TVBackdropView()
-    private lazy var collectionView = TVHomeCollectionView(frame: .zero, collectionViewLayout: makeLayout())
-    private let stateView = TVStateView()
+    private let homeCollectionView: TVHomeCollectionView
     private let skeleton = UIStackView()
     private var dataSource: UICollectionViewDiffableDataSource<TVHomeSection, TVHomeItem>!
 
-    private let focusMemory = TVFocusMemory()
-    private var presentation = Presentation.content
+    private lazy var loadSlot = makeTaskSlot()
+    private lazy var weekSlot = makeTaskSlot()
+    private lazy var surpriseSlot = makeTaskSlot()
     private var currentHero: TVHeroInfo?
     private var weekSummary: HomeWeekSummary?
-    private var loadTask: Task<Void, Never>?
-    private var weekTask: Task<Void, Never>?
-    private var surpriseTask: Task<Void, Never>?
     private var visibilityObserver: UUID?
     private var skipNextAppearanceLoad = true
     private var hasAwaitedFirstSync = false
@@ -46,7 +37,11 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
     init(env: TVAppEnvironment) {
         self.env = env
         feed = HomeFeed(api: env.api)
-        super.init(nibName: nil, bundle: nil)
+        let source = LayoutSource()
+        let layout = Self.makeLayout(source)
+        homeCollectionView = TVHomeCollectionView(frame: .zero, collectionViewLayout: layout)
+        super.init(layout: layout, collectionView: homeCollectionView)
+        source.screen = self
         title = "Home"
         feed.apply(container: env.hubs)
     }
@@ -62,16 +57,35 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Theme.Color.canvas
-        installViews()
         configureDataSource()
         softenTopEdge()
-        collectionView.delegate = self
-        collectionView.onPlayPause = { [weak self] indexPath in self?.playPause(at: indexPath) }
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
             self?.libraryVisibilityChanged()
         }
-        showContent(animated: false)
+        render(animated: false)
+    }
+
+    override func installViews() {
+        super.installViews()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        view.insertSubview(backdrop, at: 0)
+        skeleton.axis = .vertical
+        skeleton.alignment = .fill
+        skeleton.spacing = TVMetrics.sectionSpacing
+        skeleton.isHidden = true
+        skeleton.addArrangedSubview(TVSkeletonShelfView(style: .landscape, count: 4))
+        skeleton.addArrangedSubview(TVSkeletonShelfView(style: .landscape, count: 4))
+        skeleton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(skeleton)
+        NSLayoutConstraint.activate([
+            backdrop.topAnchor.constraint(equalTo: view.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            skeleton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: TVMetrics.topInset + 20),
+            skeleton.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            skeleton.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -84,51 +98,20 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
         }
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        loadTask?.cancel()
+    override func initialFocusIndexPath() -> IndexPath? {
+        let snapshot = dataSource.snapshot()
+        for section in [TVHomeSection.continueWatching, .upNext, .recentlyAdded] {
+            guard let sectionIndex = snapshot.indexOfSection(section),
+                  !snapshot.itemIdentifiers(inSection: section).isEmpty else { continue }
+            return IndexPath(item: 0, section: sectionIndex)
+        }
+        return nil
     }
 
-    override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        switch presentation {
-        case .content: [collectionView]
-        case .empty, .error: [stateView]
-        case .loading: []
-        }
-    }
-
-    func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
-        focusMemory.preferredIndexPath(in: collectionView) ?? firstCardIndexPath()
-    }
-
-    private func installViews() {
-        [backdrop, collectionView, stateView, skeleton].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
-        let backdropScope = [backdrop, collectionView, stateView]
-        var constraints = [NSLayoutConstraint]()
-        for subview in backdropScope {
-            constraints += [
-                subview.topAnchor.constraint(equalTo: view.topAnchor),
-                subview.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-                subview.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                subview.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            ]
-        }
-        skeleton.axis = .vertical
-        skeleton.alignment = .fill
-        skeleton.spacing = TVMetrics.sectionSpacing
-        skeleton.isHidden = true
-        skeleton.addArrangedSubview(TVSkeletonShelfView(style: .landscape, count: 4))
-        skeleton.addArrangedSubview(TVSkeletonShelfView(style: .landscape, count: 4))
-        constraints += [
-            skeleton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: TVMetrics.topInset + 20),
-            skeleton.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            skeleton.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ]
-        NSLayoutConstraint.activate(constraints)
-        stateView.isHidden = true
+    override func playFocused(at indexPath: IndexPath) -> Bool {
+        guard let target = cardTarget(at: indexPath) else { return false }
+        actions.playPause(target.media, from: self)
+        return true
     }
 
     /// Content that scrolls up under the tab bar fades out instead of being cut off by it.
@@ -138,13 +121,13 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
         collectionView.topEdgeEffect.style = .soft
     }
 
-    private func makeLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { [weak self] index, _ in
-            guard let section = self?.dataSource.snapshot().sectionIdentifiers[safe: index] else { return nil }
+    private static func makeLayout(_ source: LayoutSource) -> UICollectionViewCompositionalLayout {
+        UICollectionViewCompositionalLayout { [source] index, _ in
+            guard let section = source.screen?.dataSource.snapshot().sectionIdentifiers[safe: index] else { return nil }
             switch section {
             case .hero:
                 let hero = TVShelf.hero()
-                hero.contentInsets = NSDirectionalEdgeInsets(top: TVMetrics.topInset + 40, leading: 0, bottom: 0, trailing: 0)
+                hero.contentInsets = NSDirectionalEdgeInsets(top: TVMetrics.Hero.topClearance, leading: 0, bottom: 0, trailing: 0)
                 return hero
             case .continueWatching, .upNext:
                 return TVShelf.landscape()
@@ -158,8 +141,8 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
 
     private static func weekSection() -> NSCollectionLayoutSection {
         let size = NSCollectionLayoutSize(
-            widthDimension: .absolute(weekTileSize.width),
-            heightDimension: .absolute(weekTileSize.height)
+            widthDimension: .absolute(TVHomeMetrics.weekTileSize.width),
+            heightDimension: .absolute(TVHomeMetrics.weekTileSize.height)
         )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [NSCollectionLayoutItem(layoutSize: size)])
         let section = NSCollectionLayoutSection(group: group)
@@ -178,15 +161,11 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
         }
         let landscape = TVLandscapeCell.registration()
         let poster = TVPosterCell.registration()
-        let week = UICollectionView.CellRegistration<TVHomeWeekCell, TVHomeItem> { [weak self] cell, _, _ in
-            guard let self else { return }
-            cell.configure(model: weekSummary?.cardModel) { [weak self] in
-                guard let self else { return }
-                actions.openStatistics(from: self)
-            }
+        let weekTile = TVHostCell.registration { [weak self] (_: TVHomeItem) -> UIView in
+            self?.makeWeekTile() ?? UIView()
         }
-        let surprise = UICollectionView.CellRegistration<TVHomeSurpriseCell, TVHomeItem> { [weak self] cell, _, _ in
-            cell.configure { self?.presentSurpriseMenu() }
+        let surpriseTile = TVHostCell.registration { [weak self] (_: TVHomeItem) -> UIView in
+            self?.makeSurpriseTile() ?? UIView()
         }
         let header = TVSectionHeaderView.registration { [weak self] indexPath in
             self?.sectionHeader(at: indexPath)
@@ -207,15 +186,45 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
                 }
                 cell.accessibilityIdentifier = "home.card.\(bucket.rawValue).\(id)"
             case .week:
-                cell = collectionView.dequeueConfiguredReusableCell(using: week, for: indexPath, item: item)
+                cell = collectionView.dequeueConfiguredReusableCell(using: weekTile, for: indexPath, item: item)
             case .surprise:
-                cell = collectionView.dequeueConfiguredReusableCell(using: surprise, for: indexPath, item: item)
+                cell = collectionView.dequeueConfiguredReusableCell(using: surpriseTile, for: indexPath, item: item)
             }
             return cell
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: header, for: indexPath)
         }
+        adopt(dataSource)
+    }
+
+    private func makeWeekTile() -> UIView {
+        let tile = TVHomeWeekSurface()
+        tile.accessibilityIdentifier = "home.week"
+        if let model = weekSummary?.cardModel { tile.configure(with: model) }
+        tile.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            actions.openStatistics(from: self)
+        }, for: .primaryActionTriggered)
+        return tile
+    }
+
+    /// The Surprise Me tile at poster height, so it lines up with the posters beside it.
+    private func makeSurpriseTile() -> UIView {
+        let tile = TVHomeSurpriseSurface()
+        tile.accessibilityIdentifier = "home.surprise"
+        tile.addAction(UIAction { [weak self] _ in self?.presentSurpriseMenu() }, for: .primaryActionTriggered)
+        let captionHeight = TVCardStyle.poster.itemSize.height - TVMetrics.Card.posterSize.height
+        let host = UIView()
+        host.addSubview(tile)
+        tile.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            tile.topAnchor.constraint(equalTo: host.topAnchor),
+            tile.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            tile.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            tile.bottomAnchor.constraint(equalTo: host.bottomAnchor, constant: -captionHeight),
+        ])
+        return host
     }
 
     private func sectionHeader(at indexPath: IndexPath) -> TVSectionHeader? {
@@ -248,24 +257,11 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
             snapshot.appendSections([.recentlyAdded])
             snapshot.appendItems(arrangement.recent.map { .card($0.id, .recentlyAdded) } + [.surprise], toSection: .recentlyAdded)
         }
-        let current = dataSource.snapshot()
-        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { current.indexOfItem($0) != nil })
-        dataSource.apply(snapshot, animatingDifferences: animated && !UIAccessibility.isReduceMotionEnabled)
-    }
-
-    private func firstCardIndexPath() -> IndexPath? {
-        let snapshot = dataSource.snapshot()
-        for section in [TVHomeSection.continueWatching, .upNext, .recentlyAdded] {
-            guard let sectionIndex = snapshot.indexOfSection(section),
-                  !snapshot.itemIdentifiers(inSection: section).isEmpty else { continue }
-            return IndexPath(item: 0, section: sectionIndex)
-        }
-        return nil
+        dataSource.applyReconfiguringExisting(snapshot, animated: animated)
     }
 
     private var firstRailSectionIndex: Int? {
-        let snapshot = dataSource.snapshot()
-        return snapshot.sectionIdentifiers.firstIndex { $0 != .hero }
+        dataSource.snapshot().sectionIdentifiers.firstIndex { $0 != .hero }
     }
 
     private func cardTarget(at indexPath: IndexPath) -> (media: PlexMetadata, bucket: HomeBucket)? {
@@ -274,64 +270,70 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
         return (media, bucket)
     }
 
-    private func present(_ state: Presentation) {
-        guard state != presentation else { return }
-        let hadFocus = holdsFocus
-        presentation = state
-        collectionView.isHidden = state != .content
-        stateView.isHidden = state != .empty && state != .error
-        skeleton.isHidden = state != .loading
-        if state != .content {
-            backdrop.show(path: nil)
-        }
-        if hadFocus {
-            setNeedsFocusUpdate()
-        }
-    }
-
-    private var holdsFocus: Bool {
-        guard let focused = UIFocusSystem.focusSystem(for: self)?.focusedItem as? UIView else { return false }
-        return focused.isDescendant(of: view)
-    }
-
     /// Paints the feed: the grid and hero when there is content, the empty state otherwise.
-    private func showContent(animated: Bool) {
+    private func render(animated: Bool) {
         guard !feed.isEmpty else {
             showEmpty()
             return
         }
-        present(.content)
-        applySnapshot(animated: animated)
+        skeleton.isHidden = true
+        let wasHidden = isShowingState || collectionView.isHidden
+        applySnapshot(animated: animated && !wasHidden)
+        if wasHidden { showContent() }
         syncHero(animated: false)
         seeAll?.update(items: feed.arrangement.shelf(for: seeAll?.bucket ?? .upNext))
     }
 
     private func showEmpty() {
         let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized)
-        stateView.show(.empty(
+        skeleton.isHidden = true
+        applySnapshot(animated: false)
+        backdrop.show(path: nil)
+        show(state: .empty(
             title: copy.title,
             message: copy.message,
             symbol: "play.rectangle",
             action: TVStateView.Action(title: "Refresh") { [weak self] in self?.retry() }
         ))
-        applySnapshot(animated: false)
-        present(.empty)
     }
 
     private func showLoadError(_ error: Error) {
         let copy = HomeStateCopy.loadFailed(error)
-        stateView.show(.error(title: copy.title, message: copy.message, retryTitle: "Retry") { [weak self] in self?.retry() })
-        present(.error)
+        skeleton.isHidden = true
+        backdrop.show(path: nil)
+        show(state: .error(title: copy.title, message: copy.message, retryTitle: "Retry") { [weak self] in self?.retry() })
+    }
+
+    /// The skeleton stands in for the content while a refresh from the empty or error state runs;
+    /// focus waits on the host's anchor, so Menu still pops and the content takes focus back.
+    private func showLoading() {
+        let hadFocus = holdsFocus
+        collectionView.isHidden = true
+        stateView.isHidden = true
+        skeleton.isHidden = false
+        if hadFocus {
+            view.layoutIfNeeded()
+            setNeedsFocusUpdate()
+            updateFocusIfNeeded()
+        }
+    }
+
+    private var holdsFocus: Bool {
+        guard let focused = UIFocusSystem.focusSystem(for: view)?.focusedItem as? UIView else { return false }
+        return focused.isDescendant(of: view)
     }
 
     private func retry() {
-        present(.loading)
+        showLoading()
         reload()
     }
 
     /// The hero follows the focused card, or the arrangement's hero when focus is elsewhere.
     private func syncHero(animated: Bool) {
-        if let indexPath = focusMemory.indexPath, let target = cardTarget(at: indexPath) {
+        let remembered = focusMemory.preferredIndexPath { [dataSource] identifier in
+            (identifier.base as? TVHomeItem).flatMap { dataSource?.indexPath(for: $0) }
+        }
+        if let remembered, let target = cardTarget(at: remembered) {
             showHero(for: target.media, bucket: target.bucket, animated: animated)
         } else if let hero = feed.arrangement.hero {
             showHero(for: hero, bucket: .hero, animated: animated)
@@ -349,19 +351,18 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
     }
 
     private func reload() {
-        loadTask?.cancel()
-        loadTask = Task { [weak self] in
+        loadSlot.run { [weak self] in
             guard let self else { return }
             do {
                 try await feed.refresh()
-                showContent(animated: true)
+                render(animated: true)
             } catch {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("Home load failed: \(error.localizedDescription)", .networking)
                 if feed.isEmpty {
                     showLoadError(error)
-                } else if presentation != .content {
-                    showContent(animated: false)
+                } else if collectionView.isHidden {
+                    render(animated: false)
                 }
             }
         }
@@ -371,12 +372,11 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
         guard let store = StatsManager.shared.store else {
             if weekSummary != nil {
                 weekSummary = nil
-                if presentation == .content { applySnapshot(animated: true) }
+                if !collectionView.isHidden { applySnapshot(animated: true) }
             }
             return
         }
-        weekTask?.cancel()
-        weekTask = Task { [weak self] in
+        weekSlot.run { [weak self] in
             var summary = await store.homeWeekSummaryOrNil()
             if let self, !hasAwaitedFirstSync {
                 hasAwaitedFirstSync = true
@@ -387,52 +387,44 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
             }
             guard !Task.isCancelled, let self, summary != weekSummary else { return }
             weekSummary = summary
-            if presentation == .content { applySnapshot(animated: true) }
+            if !collectionView.isHidden { applySnapshot(animated: true) }
         }
     }
 
     private func libraryVisibilityChanged() {
         feed.reapplyLibraryVisibility()
-        showContent(animated: true)
+        render(animated: true)
         loadWeek()
     }
 
     private func presentSurpriseMenu() {
+        guard presentedViewController == nil else { return }
         let menu = UIAlertController(title: "Surprise Me", message: nil, preferredStyle: .alert)
         for kind in [SurpriseMe.Kind.any, .movie, .show] {
             menu.addAction(UIAlertAction(title: kind.menuTitle, style: .default) { [weak self] _ in self?.surprise(kind) })
         }
         menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(menu, animated: true)
+        present(menu, animated: TVMotion.animationsEnabled)
     }
 
     private func surprise(_ kind: SurpriseMe.Kind) {
-        guard surpriseTask == nil else { return }
-        surpriseTask = Task { [weak self] in
+        surpriseSlot.run { [weak self] in
             guard let self else { return }
-            defer { surpriseTask = nil }
             let pick: SurpriseMe.Target?
             do {
                 pick = try await feed.surprise(kind)
+            } catch let failure as SurpriseMe.LookupFailure {
+                presentAlert(title: SurpriseMe.lookupFailedTitle, message: failure.message)
+                return
             } catch {
                 return
             }
             guard let pick else {
-                presentNothingToPick(kind)
+                presentAlert(title: SurpriseMe.nothingToPickTitle, message: SurpriseMe.nothingToPickMessage(for: kind))
                 return
             }
             actions.open(pick, from: self)
         }
-    }
-
-    private func presentNothingToPick(_ kind: SurpriseMe.Kind) {
-        let alert = UIAlertController(
-            title: SurpriseMe.nothingToPickTitle,
-            message: SurpriseMe.nothingToPickMessage(for: kind),
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
-        present(alert, animated: true)
     }
 
     private func showAll(_ bucket: HomeBucket) {
@@ -442,13 +434,7 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
             title: feed.arrangement.title(for: bucket),
             items: feed.arrangement.shelf(for: bucket)
         ) { [weak self] in self?.reload() }
-        seeAll = grid
-        navigationController?.pushViewController(grid, animated: true)
-    }
-
-    private func playPause(at indexPath: IndexPath) {
-        guard let target = cardTarget(at: indexPath) else { return }
-        actions.playPause(target.media, from: self)
+        if TVNavigation.push(grid, from: self) { seeAll = grid }
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -456,19 +442,19 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
         actions.select(target.media, in: target.bucket, from: self)
     }
 
-    func collectionView(
+    override func collectionView(
         _ collectionView: UICollectionView,
         didUpdateFocusIn context: UICollectionViewFocusUpdateContext,
         with coordinator: UIFocusAnimationCoordinator
     ) {
-        focusMemory.record(context)
+        super.collectionView(collectionView, didUpdateFocusIn: context, with: coordinator)
         guard let next = context.nextFocusedIndexPath, let target = cardTarget(at: next) else { return }
         showHero(for: target.media, bucket: target.bucket, animated: true)
     }
 
     func collectionView(_ collectionView: UICollectionView, shouldUpdateFocusIn context: UICollectionViewFocusUpdateContext) -> Bool {
         if let next = context.nextFocusedIndexPath {
-            self.collectionView.holdsHeroInPlace = next.section == firstRailSectionIndex
+            homeCollectionView.holdsHeroInPlace = next.section == firstRailSectionIndex
         }
         return true
     }
@@ -484,13 +470,7 @@ final class TVHomeViewController: UIViewController, UICollectionViewDelegate {
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === collectionView else { return }
-        backdrop.dimming = scrollView.contentOffset.y / Self.backdropDimmingDistance
-    }
-}
-
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
+        backdrop.dimming = scrollView.contentOffset.y / TVHomeMetrics.backdropDimmingDistance
     }
 }
 
@@ -498,15 +478,13 @@ private extension Array {
 /// would slide the hero text up under the tab bar; while the first rail holds focus the view
 /// therefore stays at its resting offset, and scrolls normally once focus moves to a lower rail.
 final class TVHomeCollectionView: TVCollectionView {
-    private static let restingBand: CGFloat = 120
-
     var holdsHeroInPlace = true
 
     override var contentOffset: CGPoint {
         get { super.contentOffset }
         set {
             var offset = newValue
-            if holdsHeroInPlace, super.contentOffset.y < Self.restingBand, offset.y > 0, offset.y < Self.restingBand {
+            if holdsHeroInPlace, super.contentOffset.y < TVHomeMetrics.restingBand, offset.y > 0, offset.y < TVHomeMetrics.restingBand {
                 offset.y = 0
             }
             super.contentOffset = offset
