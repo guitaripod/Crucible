@@ -153,8 +153,8 @@ mock_assets_source() {
 
 mock_env() {
   local var out="PORT=$MOCK_PORT"
-  for var in MOCK_LATENCY_MS MOCK_PIN_POLLS MOCK_HIDDEN_SECTIONS; do
-    [[ -z ${!var:-} ]] || out+=" $var=${!var}"
+  for var in $(compgen -e | grep '^MOCK_' | grep -vE '^MOCK_(PORT|REMOTE)$'); do
+    out+=$(printf ' %s=%q' "$var" "${!var}")
   done
   printf '%s' "$out"
 }
