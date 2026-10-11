@@ -17,9 +17,6 @@ enum TVMetrics {
     static let shelfHeaderHeight: CGFloat = 84
     static let sectionSpacing: CGFloat = 24
 
-    static let prefetchDistance = 10
-    static let pageSize = 50
-
     static let surfaceFocusedScale: CGFloat = 1.04
     static let imageOversample: CGFloat = 1.1
 
