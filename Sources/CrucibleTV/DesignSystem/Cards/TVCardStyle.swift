@@ -65,8 +65,8 @@ struct TVCardStyle: Hashable, Sendable {
     @MainActor
     var captionHeight: CGFloat {
         let spacing = TVMetrics.Card.captionLabelSpacing
-        var height = TVCardTypography.title.lineHeight * CGFloat(titleLines) + spacing + TVCardTypography.subtitle.lineHeight
-        if showsEyebrow { height += TVCardTypography.eyebrow.lineHeight + spacing }
+        var height = TVFont.cardTitle.lineHeight * CGFloat(titleLines) + spacing + TVFont.cardSubtitle.lineHeight
+        if showsEyebrow { height += TVFont.eyebrow.lineHeight + spacing }
         return ceil(height)
     }
 
@@ -77,11 +77,4 @@ struct TVCardStyle: Hashable, Sendable {
             height: artworkSize.height + TVMetrics.Card.captionSpacing + captionHeight
         )
     }
-}
-
-@MainActor
-enum TVCardTypography {
-    static var title: UIFont { Theme.Font.scaled(.body, 29, .semibold, maximum: 40) }
-    static var subtitle: UIFont { Theme.Font.scaled(.caption1, 25, .regular, maximum: 34) }
-    static var eyebrow: UIFont { Theme.Font.scaled(.caption2, 23, .bold, maximum: 31) }
 }

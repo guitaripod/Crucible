@@ -62,13 +62,13 @@ final class TVCardContentView: UIView, UIContentView {
         captionStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(captionStack)
 
-        eyebrowLabel.font = TVCardTypography.eyebrow
+        eyebrowLabel.font = TVFont.eyebrow
         eyebrowLabel.textColor = Theme.Color.accentText
         eyebrowLabel.isHidden = !style.showsEyebrow
-        titleLabel.font = TVCardTypography.title
+        titleLabel.font = TVFont.cardTitle
         titleLabel.textColor = Theme.Color.label
         titleLabel.numberOfLines = style.titleLines
-        subtitleLabel.font = TVCardTypography.subtitle
+        subtitleLabel.font = TVFont.cardSubtitle
         subtitleLabel.textColor = Theme.Color.labelSecondary
         let alignment: NSTextAlignment = style.centersCaption ? .center : .natural
         [eyebrowLabel, titleLabel, subtitleLabel].forEach {
@@ -113,7 +113,7 @@ final class TVCardContentView: UIView, UIContentView {
 
         watchedBadge.image = UIImage(
             systemName: "checkmark",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .heavy)
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: TVMetrics.Symbol.badge, weight: .heavy)
         )
         watchedBadge.tintColor = Theme.Color.onArt
         watchedBadge.contentMode = .center
@@ -167,9 +167,9 @@ final class TVCardContentView: UIView, UIContentView {
         let item = configuration.item
         eyebrowLabel.text = item.eyebrow?.uppercased()
         eyebrowLabel.isHidden = !style.showsEyebrow
-        titleLabel.attributedText = highlighted(item.title, query: item.highlight, font: TVCardTypography.title, color: Theme.Color.label)
+        titleLabel.attributedText = highlighted(item.title, query: item.highlight, font: TVFont.cardTitle, color: Theme.Color.label)
         subtitleLabel.attributedText = highlighted(
-            item.subtitle ?? "", query: item.highlight, font: TVCardTypography.subtitle, color: Theme.Color.labelSecondary
+            item.subtitle ?? "", query: item.highlight, font: TVFont.cardSubtitle, color: Theme.Color.labelSecondary
         )
         subtitleLabel.isHidden = (item.subtitle ?? "").isEmpty
 

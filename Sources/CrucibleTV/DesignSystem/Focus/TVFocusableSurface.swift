@@ -5,17 +5,26 @@ import UIKit
 /// Focus lifts it: it scales up, gains a soft shadow and brightens, driven through the focus
 /// animation coordinator so it moves in step with the system's own focus animation.
 ///
-/// Select runs the `.primaryActionTriggered` actions (add them with `addAction(_:for:)`); a long
-/// press on Select shows `contextMenuProvider`'s menu. Subclasses add their views to `contentView`.
+/// Select runs the `.primaryActionTriggered` actions (add them with `addAction(_:for:)`). A plain
+/// `UIControl` on tvOS receives the Select press but never sends that event itself (verified in the
+/// simulator: the press arrives, no action fires), so the surface sends it exactly once when Select is
+/// released. A second `.primaryActionTriggered` within 100 ms is dropped, so a subclass that still
+/// sends its own action after Select is not doubled. A long press on Select shows
+/// `contextMenuProvider`'s menu. Subclasses add their views to `contentView`.
 class TVFocusableSurface: UIControl {
     let contentView = UIView()
-    final var contextMenuProvider: (@MainActor () -> UIMenu?)?
+    final var contextMenuProvider: (@MainActor () -> UIMenu?)? {
+        didSet { isContextMenuInteractionEnabled = contextMenuProvider != nil }
+    }
 
     var cornerRadius: CGFloat = Theme.Radius.m {
         didSet { applyShape() }
     }
 
+    private static let repeatWindow: TimeInterval = 0.1
+
     private let sheen = TVGradientView()
+    private var lastPrimaryActionUptime: TimeInterval = -1
     private var showsFocus = false
 
     init(cornerRadius: CGFloat = Theme.Radius.m) {
@@ -23,10 +32,7 @@ class TVFocusableSurface: UIControl {
         super.init(frame: .zero)
         isAccessibilityElement = true
         accessibilityTraits = .button
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0
-        layer.shadowRadius = 36
-        layer.shadowOffset = CGSize(width: 0, height: 22)
+        TVFocusLift.prepare(self)
 
         contentView.clipsToBounds = true
         contentView.isUserInteractionEnabled = false
@@ -56,7 +62,7 @@ class TVFocusableSurface: UIControl {
         sheen.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         contentView.addSubview(sheen)
 
-        isContextMenuInteractionEnabled = true
+        isContextMenuInteractionEnabled = false
         applyShape()
         applyAppearance(focused: false)
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: TVFocusableSurface, _: UITraitCollection) in
@@ -72,20 +78,40 @@ class TVFocusableSurface: UIControl {
     override var isHighlighted: Bool {
         didSet {
             guard isHighlighted != oldValue else { return }
-            UIView.animate(withDuration: TVMetrics.Duration.focus, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
-                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.98, y: 0.98) : self.focusTransform
+            TVMotion.animate(TVMetrics.Duration.focus, options: [.beginFromCurrentState, .allowUserInteraction]) {
+                self.transform = self.isHighlighted ? self.pressedTransform : TVFocusLift.transform(focused: self.showsFocus)
             }
         }
+    }
+
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        super.pressesEnded(presses, with: event)
+        if presses.contains(where: { $0.type == .select }) {
+            sendActions(for: .primaryActionTriggered)
+        }
+    }
+
+    override func sendActions(for controlEvents: UIControl.Event) {
+        if controlEvents.contains(.primaryActionTriggered) {
+            let now = ProcessInfo.processInfo.systemUptime
+            let repeated = now - lastPrimaryActionUptime < Self.repeatWindow
+            lastPrimaryActionUptime = now
+            if repeated {
+                let remaining = controlEvents.subtracting(.primaryActionTriggered)
+                if !remaining.isEmpty { super.sendActions(for: remaining) }
+                return
+            }
+        }
+        super.sendActions(for: controlEvents)
     }
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
         let focused = context.nextFocusedView === self
         showsFocus = focused
-        coordinator.addCoordinatedAnimations({
-            self.transform = self.focusTransform
+        TVFocusLift.animate(self, focused: focused, with: coordinator) {
             self.applyAppearance(focused: focused)
-        })
+        }
     }
 
     override func contextMenuInteraction(
@@ -96,13 +122,13 @@ class TVFocusableSurface: UIControl {
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in menu }
     }
 
-    private var focusTransform: CGAffineTransform {
-        showsFocus ? CGAffineTransform(scaleX: TVMetrics.surfaceFocusedScale, y: TVMetrics.surfaceFocusedScale) : .identity
+    private var pressedTransform: CGAffineTransform {
+        CGAffineTransform(scaleX: TVMetrics.Focus.pressedScale, y: TVMetrics.Focus.pressedScale)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).cgPath
+        TVFocusLift.updateShadowPath(of: self, cornerRadius: cornerRadius)
     }
 
     private func applyShape() {
@@ -116,7 +142,6 @@ class TVFocusableSurface: UIControl {
         contentView.backgroundColor = focused ? Theme.Color.surfaceHigh : Theme.Color.surface
         contentView.layer.borderWidth = 1
         contentView.layer.borderColor = Theme.Color.separator.resolvedColor(with: traitCollection).cgColor
-        layer.shadowOpacity = focused ? 0.4 : 0
         sheen.alpha = focused ? 1 : 0
     }
 }

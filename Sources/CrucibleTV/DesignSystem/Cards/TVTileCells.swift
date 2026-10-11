@@ -136,13 +136,13 @@ final class TVTileContentView: UIView, UIContentView {
         addSubview(artwork)
 
         symbolView.tintColor = Theme.Color.onArtSecondary
-        symbolView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 44, weight: .regular)
+        symbolView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: TVMetrics.Symbol.tile, weight: .regular)
         symbolView.contentMode = .scaleAspectFit
         titleLabel.font = Theme.Font.scaled(.headline, 38, .semibold, maximum: 48)
         titleLabel.textColor = Theme.Color.onArt
         titleLabel.numberOfLines = 2
         titleLabel.adjustsFontSizeToFitWidth = false
-        subtitleLabel.font = TVCardTypography.subtitle
+        subtitleLabel.font = TVFont.cardSubtitle
         subtitleLabel.textColor = Theme.Color.onArtSecondary
 
         let text = UIStackView(arrangedSubviews: [symbolView, UIView(), titleLabel, subtitleLabel])

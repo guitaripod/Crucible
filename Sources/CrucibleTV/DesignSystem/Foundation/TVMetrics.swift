@@ -17,8 +17,42 @@ enum TVMetrics {
     static let shelfHeaderHeight: CGFloat = 84
     static let sectionSpacing: CGFloat = 24
 
-    static let surfaceFocusedScale: CGFloat = 1.04
+    /// Distance from the top of the screen to the first line of content on a pushed screen: the tab
+    /// bar occupies 46...114pt, so this leaves a 36pt gap below it (`shelfVerticalInset` is 40, the
+    /// same rhythm). Every pushed screen starts its first row at this y.
+    static let tabBarClearance: CGFloat = 150
+
     static let imageOversample: CGFloat = 1.1
+
+    /// Widths of centred text and form columns.
+    enum Column {
+        static let form: CGFloat = 1000
+        static let wide: CGFloat = 1100
+        static let message: CGFloat = 900
+    }
+
+    /// The focus lift of custom focusable surfaces and rows (cards use the system effect).
+    enum Focus {
+        static let scale: CGFloat = 1.04
+        static let pressedScale: CGFloat = 0.98
+        static let shadowRadius: CGFloat = 32
+        static let shadowOffset = CGSize(width: 0, height: 20)
+        static let shadowOpacity: Float = 0.4
+    }
+
+    /// SF Symbol point sizes that do not follow Dynamic Type.
+    enum Symbol {
+        static let row: CGFloat = 30
+        static let accessory: CGFloat = 26
+        static let tile: CGFloat = 44
+        static let badge: CGFloat = 18
+        static let state: CGFloat = 80
+    }
+
+    enum Dot {
+        static let small: CGFloat = 16
+        static let large: CGFloat = 24
+    }
 
     enum Duration {
         static let focus: TimeInterval = 0.2
@@ -46,7 +80,7 @@ enum TVMetrics {
 
     enum Hero {
         static let height: CGFloat = 420
-        static let textColumnWidth: CGFloat = 900
+        static let textColumnWidth: CGFloat = Column.message
         static let synopsisLines = 3
         static let titleLines = 2
         static let blockSpacing: CGFloat = 14
@@ -58,6 +92,8 @@ enum TVMetrics {
         static let chipHeight: CGFloat = 66
         static let horizontalInset: CGFloat = 40
         static let chipHorizontalInset: CGFloat = 32
+        static let plainHeight: CGFloat = 56
+        static let plainHorizontalInset: CGFloat = 20
     }
 
     enum Row {
@@ -71,6 +107,7 @@ enum TVMetrics {
         static let topScrimHeight: CGFloat = 220
         static let maximumDimming: CGFloat = 0.82
         static let maximumPixelWidth = 1920
+        static let maximumPosterPixelWidth = 720
     }
 
     /// Pixel width to request for an image shown `points` wide, with a margin for the focus enlargement.

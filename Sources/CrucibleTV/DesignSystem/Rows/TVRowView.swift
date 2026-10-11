@@ -87,12 +87,12 @@ final class TVRowContentView: UIView, UIContentView {
         iconWell.layer.cornerRadius = Theme.Radius.s
         iconWell.layer.cornerCurve = .continuous
         iconView.contentMode = .center
-        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
+        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: TVMetrics.Symbol.row, weight: .semibold)
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconWell.addSubview(iconView)
 
-        titleLabel.font = Theme.Font.scaled(.callout, 31, .semibold, maximum: 42)
-        subtitleLabel.font = TVCardTypography.subtitle
+        titleLabel.font = TVFont.rowTitle
+        subtitleLabel.font = TVFont.cardSubtitle
         let text = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
         text.axis = .vertical
         text.spacing = 2
@@ -102,7 +102,7 @@ final class TVRowContentView: UIView, UIContentView {
         valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
         accessoryView.contentMode = .center
-        accessoryView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 26, weight: .semibold)
+        accessoryView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: TVMetrics.Symbol.accessory, weight: .semibold)
         accessoryView.setContentHuggingPriority(.required, for: .horizontal)
 
         let row = UIStackView(arrangedSubviews: [iconWell, text, UIView(), valueLabel, accessoryView])
@@ -182,10 +182,7 @@ final class TVRowCell: UICollectionViewCell {
         clipsToBounds = false
         contentView.clipsToBounds = false
         isAccessibilityElement = true
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0
-        layer.shadowRadius = 28
-        layer.shadowOffset = CGSize(width: 0, height: 16)
+        TVFocusLift.prepare(self)
     }
 
     @available(*, unavailable)
@@ -207,18 +204,12 @@ final class TVRowCell: UICollectionViewCell {
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
-        let focused = context.nextFocusedView === self
-        coordinator.addCoordinatedAnimations({
-            self.transform = focused
-                ? CGAffineTransform(scaleX: TVMetrics.surfaceFocusedScale, y: TVMetrics.surfaceFocusedScale)
-                : .identity
-            self.layer.shadowOpacity = focused ? 0.35 : 0
-        })
+        TVFocusLift.animate(self, focused: context.nextFocusedView === self, with: coordinator)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: Theme.Radius.m).cgPath
+        TVFocusLift.updateShadowPath(of: self, cornerRadius: Theme.Radius.m)
     }
 }
 

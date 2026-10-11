@@ -2,8 +2,9 @@ import CrucibleDesign
 import UIKit
 
 /// Placeholder shelf shown while a screen loads: static rounded rectangles in the raised-surface
-/// colour that pulse softly. Reduce Motion keeps them still.
-final class TVSkeletonShelfView: UIView {
+/// colour that pulse softly. The pulse stops while the view is hidden, under Reduce Motion and under
+/// the UI-test switch (`TVMotion`).
+final class TVSkeletonShelfView: TVPulsingView {
     private let row = UIStackView()
     private let cardSize: CGSize
 
@@ -31,10 +32,7 @@ final class TVSkeletonShelfView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        window == nil ? stopPulsing() : startPulsing()
-    }
+    override var pulsingLayer: CALayer { row.layer }
 
     private func makeCard(_ style: TVCardStyle) -> UIView {
         let card = UIView()
@@ -47,23 +45,6 @@ final class TVSkeletonShelfView: UIView {
             card.heightAnchor.constraint(equalToConstant: style.artworkSize.height),
         ])
         return card
-    }
-
-    private func startPulsing() {
-        guard !UIAccessibility.isReduceMotionEnabled else { return }
-        row.layer.removeAllAnimations()
-        let pulse = CABasicAnimation(keyPath: "opacity")
-        pulse.fromValue = 1.0
-        pulse.toValue = 0.55
-        pulse.duration = TVMetrics.Duration.skeletonPulse
-        pulse.autoreverses = true
-        pulse.repeatCount = .infinity
-        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        row.layer.add(pulse, forKey: "pulse")
-    }
-
-    private func stopPulsing() {
-        row.layer.removeAllAnimations()
     }
 
     override var intrinsicContentSize: CGSize {
