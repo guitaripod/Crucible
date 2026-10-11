@@ -36,7 +36,6 @@ HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segmen
 MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
 library.CLIP_MARKERS = FLAGS["clip_markers"]
-HUBS_MODE = os.environ.get("MOCK_HUBS_MODE", "ok")
 LIB = library.Library()
 LOCK = threading.Lock()
 PINS = {}
@@ -193,6 +192,17 @@ def env(name, default=""):
     return OVERRIDES.get(name, os.environ.get(name, default))
 
 
+def lengthen_first_continue_item(continue_hub):
+    """MOCK_HOME_LONG_HERO=1: the first Continue Watching item (the Home hero) gets a title and a synopsis
+    long enough to fill every line the hero block allows."""
+    first = continue_hub["Metadata"][0]
+    first["grandparentTitle"] = "The Extraordinarily Long Winded Chronicles of the Salt Road and Everything Beyond It"
+    first["summary"] = ("The tide drops lower than it has in a century and exposes the hull everyone was told was never "
+                        "there, and Mara goes down alone while the harbour lights go out one by one behind her, "
+                        "leaving only the sound of the water and a promise she made to someone who is no longer "
+                        "around to hold her to it, so she keeps walking out across the open seabed.")
+
+
 def env_sections(name):
     return set(env(name).split(","))
 
@@ -331,10 +341,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def set_hubs_mode(self, mode):
-        global HUBS_MODE
         if mode not in ("ok", "empty", "error", "slow"):
             return self.send_json(container(size=0, error="unknown mode"), 400)
-        HUBS_MODE = mode
+        OVERRIDES["MOCK_HUBS_MODE"] = mode
         self.send_json(container(size=0, mode=mode))
 
     def send_empty(self, status=200):
@@ -534,11 +543,12 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if p == "/hubs":
-            if HUBS_MODE == "error":
+            hubs_mode = env("MOCK_HUBS_MODE", "ok")
+            if hubs_mode == "error":
                 return self.send_json(container(size=0, error="mock hubs error"), 404)
-            if HUBS_MODE == "slow":
+            if hubs_mode == "slow":
                 time.sleep(4)
-            if HUBS_MODE == "empty":
+            if hubs_mode == "empty":
                 return self.send_json(container(size=0, allowSync=True, identifier="com.plexapp.plugins.library", Hub=[]))
             count = int(one("count", "20"))
             with LOCK:
@@ -546,6 +556,8 @@ class Handler(BaseHTTPRequestHandler):
                         hub("home.ondeck", "On Deck", [LIB.items[r] for r in LIB.on_deck
                                                        if not LIB.items[r].get("viewCount")][:count]),
                         hub("home.recentlyadded", "Recently Added", LIB.recently_added()[:max(count, 16)])]
+                if env("MOCK_HOME_LONG_HERO") == "1":
+                    lengthen_first_continue_item(hubs[0])
                 payload = container(size=len(hubs), allowSync=True, identifier="com.plexapp.plugins.library", Hub=hubs)
             return self.send_json(payload)
 
