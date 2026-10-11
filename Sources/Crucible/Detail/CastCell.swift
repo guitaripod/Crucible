@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -21,14 +22,6 @@ final class CastContentView: UIView, UIContentView {
     }
 
     private static let avatarSize = Theme.Size.castAvatar
-    private static let palettes: [(UInt32, UInt32)] = [
-        (0x2B2455, 0xB0483F),
-        (0x0F3D3E, 0x1D7A73),
-        (0x3A1A52, 0x8B2F7A),
-        (0x101A33, 0x1F3F7A),
-        (0x26402C, 0x4F7A45),
-        (0x6B2A3A, 0x7E3346),
-    ]
 
     private let avatar = UIView()
     private let gradient = CAGradientLayer()
@@ -130,16 +123,10 @@ final class CastContentView: UIView, UIContentView {
         roleLabel.text = config.role
         roleLabel.isHidden = (config.role ?? "").isEmpty
         initialsLabel.text = DetailFormat.initials(config.name)
-        let palette = Self.palettes[Self.stableIndex(config.name, count: Self.palettes.count)]
-        gradient.colors = [UIColor(hex: palette.0).cgColor, UIColor(hex: palette.1).cgColor]
+        let palette = CastAvatar.gradient(for: config.name)
+        gradient.colors = [UIColor(hex: palette.start).cgColor, UIColor(hex: palette.end).cgColor]
         accessibilityLabel = [config.name, config.role].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
         loadThumb(config.thumbPath)
-    }
-
-    /// Deterministic across launches (unlike `hashValue`), so a person keeps their colour.
-    private static func stableIndex(_ name: String, count: Int) -> Int {
-        let sum = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0x7FFF_FFFF }
-        return sum % count
     }
 
     private func loadThumb(_ path: String?) {

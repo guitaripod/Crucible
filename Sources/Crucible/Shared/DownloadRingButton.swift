@@ -1,17 +1,11 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
 /// The single download affordance used by episode rows, detail screens and the Downloads list:
 /// an idle arrow, a queued clock, a progress ring, a completed check or a retry arrow.
 final class DownloadRingButton: UIButton {
-    enum State: Equatable {
-        case idle
-        case queued
-        case progress(Double)
-        case paused(Double)
-        case completed
-        case failed
-    }
+    typealias State = DownloadBadge
 
     private struct Appearance: Equatable {
         let symbol: String

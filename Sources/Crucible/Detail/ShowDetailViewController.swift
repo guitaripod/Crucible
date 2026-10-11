@@ -16,21 +16,12 @@ final class ShowDetailViewController: UICollectionViewController {
         case related(PlexMetadata)
     }
 
-    private enum UpNextKind {
-        case resume, next, start
-    }
-
     private let api: APIClient
     private let showRatingKey: String
     private let initialSeasonKey: String?
     private var loadTask: Task<Void, Never>?
     private var seasonTask: Task<Void, Never>?
-    private var show: PlexMetadata?
-    private var seasons: [PlexMetadata] = []
-    private var selectedSeasonKey: String?
-    private var episodes: [PlexMetadata] = []
-    private var allEpisodes: [PlexMetadata] = []
-    private var upNext: (episode: PlexMetadata, kind: UpNextKind)?
+    private var model: ShowDetailModel?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var downloadObserver: UUID?
     private var pendingFullReconfigure = false
@@ -74,7 +65,7 @@ final class ShowDetailViewController: UICollectionViewController {
     private func updateBarButtons() {
         var items: [UIBarButtonItem] = []
         if !multiSelect.isEditing { items.append(hero.chrome.playItem) }
-        if multiSelect.isEditing || !episodes.isEmpty { items.append(multiSelect.barButton) }
+        if multiSelect.isEditing || !(model?.episodes.isEmpty ?? true) { items.append(multiSelect.barButton) }
         navigationItem.rightBarButtonItems = items
     }
 
@@ -229,15 +220,15 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func configureDataSource() {
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let show = self.show else { return }
-            cell.contentConfiguration = self.heroConfiguration(show)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.heroConfiguration(model)
         }
         let actionsReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let show = self.show else { return }
-            cell.contentConfiguration = self.actionsConfiguration(show)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.actionsConfiguration(model)
         }
         let overviewReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let summary = self.show?.summary else { return }
+            guard let self, let summary = self.model?.show.summary else { return }
             let lines = 3
             let width = self.collectionView.bounds.width - Theme.Space.m * 2
             cell.contentConfiguration = DetailOverviewConfiguration(
@@ -249,13 +240,13 @@ final class ShowDetailViewController: UICollectionViewController {
             )
         }
         let seasonBarReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self else { return }
-            cell.contentConfiguration = self.seasonBarConfiguration()
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.seasonBarConfiguration(model)
         }
         let episodeReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexMetadata> { [weak self] cell, _, item in
-            guard let self else { return }
-            let episode = self.episodes.first { $0.id == item.id } ?? item
-            cell.contentConfiguration = self.episodeConfiguration(episode)
+            guard let self, let model = self.model else { return }
+            let episode = model.episodes.first { $0.id == item.id } ?? item
+            cell.contentConfiguration = self.episodeConfiguration(episode, model: model)
             cell.accessories = self.collectionView.isEditing ? [.multiselect(displayed: .whenEditing)] : []
             cell.configurationUpdateHandler = { cell, state in
                 var background = UIBackgroundConfiguration.listPlainCell()
@@ -288,144 +279,76 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
-    private var selectedSeason: PlexMetadata? {
-        seasons.first { $0.id == selectedSeasonKey }
-    }
-
-    private static func seasonTitle(_ season: PlexMetadata) -> String {
-        season.title.isEmpty ? "Season \(season.index ?? 0)" : season.title
-    }
-
-    private var isShowWatched: Bool {
-        guard let show, let total = show.leafCount, total > 0 else { return false }
-        return (show.viewedLeafCount ?? 0) >= total
-    }
-
-    private func heroConfiguration(_ show: PlexMetadata) -> DetailHeroConfiguration {
-        var leading: [String] = []
-        if let year = show.year { leading.append(String(year)) }
-        let seasonCount = seasons.isEmpty ? (show.childCount ?? 0) : seasons.count
-        if seasonCount > 0 { leading.append(seasonCount == 1 ? "1 Season" : "\(seasonCount) Seasons") }
-        let rating = DetailFormat.ratingParts(audience: show.audienceRating, critic: show.rating)
-        let meta = DetailFormat.metaLine(leading: leading, star: rating.star, trailing: rating.trailing)
-        let sample = upNext?.episode ?? episodes.first
-        let badges = DetailFormat.technicalBadges(for: sample, contentRating: show.contentRating, audio: nil)
-
-        var spoken = [show.title, "TV show"]
-        spoken.append(contentsOf: leading)
-        if let ratingText = DetailFormat.spokenRating(audience: show.audienceRating, critic: show.rating) { spoken.append(ratingText) }
-        spoken.append(contentsOf: badges)
-
+    private func heroConfiguration(_ model: ShowDetailModel) -> DetailHeroConfiguration {
+        let info = model.heroInfo
         return DetailHeroConfiguration(
-            eyebrow: "TV SHOW",
-            title: show.title,
-            meta: meta.length > 0 ? meta : nil,
-            badges: badges,
+            eyebrow: info.eyebrow,
+            title: info.title,
+            meta: info.meta.isEmpty ? nil : DetailFormat.metaLine(info.meta),
+            badges: info.badges,
             minimumHeight: hero.minimumHeroCellHeight,
-            accessibilityText: spoken.joined(separator: ", ")
+            accessibilityText: info.accessibilityText
         )
     }
 
-    private func primaryTitle() -> String {
-        guard let upNext else { return "Play" }
-        let code = DetailFormat.episodeCode(season: upNext.episode.parentIndex, episode: upNext.episode.index)
-        let verb = upNext.kind == .start ? "Play" : "Continue"
-        return [verb, code].compactMap { $0 }.joined(separator: " ")
-    }
-
-    private func primaryAccessibilityLabel() -> String {
-        guard let upNext, let show else { return "Play" }
-        let episode = upNext.episode
-        let verb: String
-        switch upNext.kind {
-        case .start: verb = "Play"
-        case .resume: verb = "Resume"
-        case .next: verb = "Continue"
-        }
-        var parts = ["\(verb) \(show.title)"]
-        if let season = episode.parentIndex, let number = episode.index { parts.append("season \(season) episode \(number)") }
-        if upNext.kind == .resume, episode.durationSecs > episode.positionSecs,
-           let left = DetailFormat.spokenDuration(episode.durationSecs - episode.positionSecs) {
-            parts.append("\(left) left")
-        }
-        return parts.joined(separator: ", ")
-    }
-
-    private func actionsConfiguration(_ show: PlexMetadata) -> DetailActionsConfiguration {
+    private func actionsConfiguration(_ model: ShowDetailModel) -> DetailActionsConfiguration {
         var config = DetailActionsConfiguration()
-        config.primaryTitle = primaryTitle()
+        config.primaryTitle = model.primaryTitle
         config.primarySymbol = "play.fill"
-        config.primaryAccessibilityLabel = primaryAccessibilityLabel()
-        config.isPrimaryEnabled = upNext != nil
+        config.primaryAccessibilityLabel = model.primaryAccessibilityLabel
+        config.isPrimaryEnabled = model.isPrimaryEnabled
         config.onPrimary = { [weak self] in self?.playUpNext() }
-        config.downloadState = seasonDownloadState()
-        config.downloadMenu = downloadMenu()
+        config.downloadState = seasonDownloadState(model)
+        config.downloadMenu = downloadMenu(model)
         config.downloadMenuIsPrimary = true
-        config.downloadAccessibilityLabel = downloadAccessibilityLabel()
-        config.isWatched = isShowWatched
-        config.watchedMenu = watchedMenu()
-        config.watchedAccessibilityLabel = isShowWatched ? "Watched. Mark unwatched" : "Mark watched"
+        config.downloadAccessibilityLabel = downloadAccessibilityLabel(model)
+        config.isWatched = model.isWatched
+        config.watchedMenu = watchedMenu(model)
+        config.watchedAccessibilityLabel = model.watchedAccessibilityLabel
         return config
     }
 
-    private func seasonBarConfiguration() -> DetailSeasonBarConfiguration {
+    private func seasonBarConfiguration(_ model: ShowDetailModel) -> DetailSeasonBarConfiguration {
         var config = DetailSeasonBarConfiguration()
-        if let season = selectedSeason {
-            config.seasonTitle = Self.seasonTitle(season)
-            if let total = season.leafCount, total > 0 {
-                config.watchedText = "\(season.viewedLeafCount ?? 0) of \(total) watched"
-            }
-        } else {
-            config.seasonTitle = "Season"
-        }
-        config.menu = seasonMenu()
+        config.seasonTitle = model.selectedSeasonTitle
+        config.watchedText = model.selectedSeasonWatchedText
+        config.menu = seasonMenu(model)
         return config
     }
 
-    private func seasonMenu() -> UIMenu? {
-        guard !seasons.isEmpty else { return nil }
-        let actions = seasons.map { season in
-            let action = UIAction(title: Self.seasonTitle(season), state: season.id == selectedSeasonKey ? .on : .off) { [weak self] _ in
-                self?.selectSeason(season.id)
+    private func seasonMenu(_ model: ShowDetailModel) -> UIMenu? {
+        guard !model.seasons.isEmpty else { return nil }
+        let actions = model.seasonChips.map { chip in
+            let action = UIAction(title: chip.title, state: chip.isSelected ? .on : .off) { [weak self] _ in
+                self?.selectSeason(chip.id)
             }
-            if let total = season.leafCount, total > 0 {
-                action.subtitle = "\(season.viewedLeafCount ?? 0) of \(total) watched"
-            }
+            action.subtitle = chip.watchedText
             return action
         }
         return UIMenu(title: "Seasons", options: .singleSelection, children: actions)
     }
 
-    private func episodeConfiguration(_ episode: PlexMetadata) -> EpisodeContentConfiguration {
-        var config = EpisodeContentConfiguration()
-        config.episodeNumber = episode.index
-        config.title = episode.title
+    private func episodeConfiguration(_ episode: PlexMetadata, model: ShowDetailModel) -> EpisodeContentConfiguration {
+        let status = model.status(for: episode, download: DetailDownload.ringState(for: episode.id))
+        var config = EpisodeContentConfiguration(status: status)
         config.summary = episode.summary
         config.thumbPath = episode.thumb
-        config.durationSecs = episode.durationSecs
-        config.positionSecs = episode.positionSecs
-        config.isWatched = episode.isWatched
-        config.isUpNext = upNext?.episode.id == episode.id
-        if !episode.isWatched && episode.positionSecs > 0 && episode.durationSecs > 0 {
-            config.progress = episode.positionSecs / episode.durationSecs
-        }
-        config.downloadState = DetailDownload.ringState(for: episode.id)
         config.showsDownloadControl = !collectionView.isEditing
         config.downloadMenu = DetailDownload.menu(for: episode, onPlayOffline: { [weak self] in self?.quickPlay(episode) })
         config.onDownloadTap = { [weak self] source in
             guard let self else { return }
             DetailDownload.performTap(for: episode, from: self, sourceView: source)
         }
-        config.accessibilityActions = episodeAccessibilityActions(episode)
+        config.accessibilityActions = episodeAccessibilityActions(episode, status: status)
         return config
     }
 
-    private func episodeAccessibilityActions(_ episode: PlexMetadata) -> [UIAccessibilityCustomAction] {
-        let play = UIAccessibilityCustomAction(name: episode.positionSecs > 0 ? "Resume" : "Play") { [weak self] _ in
+    private func episodeAccessibilityActions(_ episode: PlexMetadata, status: EpisodeStatus) -> [UIAccessibilityCustomAction] {
+        let play = UIAccessibilityCustomAction(name: status.playTitle) { [weak self] _ in
             self?.quickPlay(episode)
             return true
         }
-        let watched = UIAccessibilityCustomAction(name: episode.isWatched ? "Mark Unwatched" : "Mark Watched") { [weak self] _ in
+        let watched = UIAccessibilityCustomAction(name: status.watchedToggleTitle) { [weak self] _ in
             self?.setWatched(!episode.isWatched, ratingKey: episode.id)
             return true
         }
@@ -446,8 +369,9 @@ final class ShowDetailViewController: UICollectionViewController {
         return [play, watched, download]
     }
 
-    private func seasonDownloadState() -> DownloadRingButton.State {
+    private func seasonDownloadState(_ model: ShowDetailModel) -> DownloadRingButton.State {
         let manager = DownloadManager.shared
+        let episodes = model.episodes
         let items = episodes.compactMap { manager.item(for: $0.id) }
         guard !episodes.isEmpty, !items.isEmpty else { return .idle }
         if items.count == episodes.count, items.allSatisfy({ $0.state == .completed }) { return .completed }
@@ -462,17 +386,18 @@ final class ShowDetailViewController: UICollectionViewController {
         return .idle
     }
 
-    private func downloadAccessibilityLabel() -> String {
+    private func downloadAccessibilityLabel(_ model: ShowDetailModel) -> String {
         let manager = DownloadManager.shared
-        let completed = episodes.filter { manager.state(for: $0.id) == .completed }.count
+        let completed = model.episodes.filter { manager.state(for: $0.id) == .completed }.count
         guard completed > 0 else { return "Download options" }
-        return "Download options, \(completed) of \(episodes.count) episodes downloaded"
+        return "Download options, \(completed) of \(model.episodes.count) episodes downloaded"
     }
 
-    private func downloadMenu() -> UIMenu {
+    private func downloadMenu(_ model: ShowDetailModel) -> UIMenu {
         let manager = DownloadManager.shared
-        let seasonName = selectedSeason.map(Self.seasonTitle) ?? "Season"
-        let pool = allEpisodes.isEmpty ? episodes : allEpisodes
+        let episodes = model.episodes
+        let seasonName = model.selectedSeasonTitle
+        let pool = model.allEpisodes.isEmpty ? episodes : model.allEpisodes
         var downloads: [UIMenuElement] = []
 
         let seasonRemaining = episodes.filter { manager.item(for: $0.id) == nil }
@@ -493,7 +418,7 @@ final class ShowDetailViewController: UICollectionViewController {
             downloads.append(action)
         }
 
-        if let upNext, let start = pool.firstIndex(where: { $0.id == upNext.episode.id }) {
+        if let upNext = model.upNext, let start = pool.firstIndex(where: { $0.id == upNext.episode.id }) {
             let next = Array(pool[start...].prefix(5)).filter { manager.item(for: $0.id) == nil }
             if !next.isEmpty {
                 let action = UIAction(title: "Download Next 5", image: UIImage(systemName: "text.badge.plus")) { [weak self] _ in
@@ -546,20 +471,20 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func removeSeasonDownloads() {
-        let keys = episodes.map(\.id).filter { DownloadManager.shared.item(for: $0) != nil }
+        let keys = (model?.episodes ?? []).map(\.id).filter { DownloadManager.shared.item(for: $0) != nil }
         guard !keys.isEmpty else { return }
         Haptics.medium()
         DownloadManager.shared.deleteItems(keys)
     }
 
     private func presentDownloadOptions() {
-        guard let show else { return }
+        guard let model else { return }
         let context = DownloadOptionsSheetViewController.Context(
             showRatingKey: showRatingKey,
-            showTitle: show.title,
-            seasonTitle: selectedSeason.map(Self.seasonTitle) ?? "",
-            posterPath: show.thumb,
-            episodes: episodes
+            showTitle: model.show.title,
+            seasonTitle: model.selectedSeason.map(ShowDetailModel.seasonTitle) ?? "",
+            posterPath: model.show.thumb,
+            episodes: model.episodes
         )
         let sheet = DownloadOptionsSheetViewController(context: context) { [weak self] in
             guard let presented = self?.presentedViewController as? DownloadOptionsSheetViewController else { return }
@@ -573,41 +498,21 @@ final class ShowDetailViewController: UICollectionViewController {
         present(sheet, animated: true)
     }
 
-    private func watchedMenu() -> UIMenu {
-        var showActions: [UIMenuElement] = []
-        if !isShowWatched {
-            showActions.append(UIAction(title: "Mark Show Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
-                guard let self else { return }
-                self.setWatched(true, ratingKey: self.showRatingKey)
-            })
-        }
-        if (show?.viewedLeafCount ?? 0) > 0 {
-            showActions.append(UIAction(title: "Mark Show Unwatched", image: UIImage(systemName: "eye.slash")) { [weak self] _ in
-                guard let self else { return }
-                self.setWatched(false, ratingKey: self.showRatingKey)
-            })
-        }
-        var children: [UIMenuElement] = [UIMenu(title: "", options: .displayInline, children: showActions)]
-        if let season = selectedSeason {
-            let name = Self.seasonTitle(season)
-            let viewed = season.viewedLeafCount ?? 0
-            let total = season.leafCount ?? 0
-            var seasonActions: [UIMenuElement] = []
-            if total == 0 || viewed < total {
-                seasonActions.append(UIAction(title: "Mark \(name) Watched", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
-                    self?.setWatched(true, ratingKey: season.id)
-                })
-            }
-            if viewed > 0 {
-                seasonActions.append(UIAction(title: "Mark \(name) Unwatched", image: UIImage(systemName: "eye.slash")) { [weak self] _ in
-                    self?.setWatched(false, ratingKey: season.id)
-                })
-            }
-            if !seasonActions.isEmpty {
-                children.append(UIMenu(title: "", options: .displayInline, children: seasonActions))
-            }
+    private func watchedMenu(_ model: ShowDetailModel) -> UIMenu {
+        let options = model.watchedOptions
+        var children: [UIMenuElement] = [UIMenu(title: "", options: .displayInline, children: watchedActions(options.show))]
+        if !options.season.isEmpty {
+            children.append(UIMenu(title: "", options: .displayInline, children: watchedActions(options.season)))
         }
         return UIMenu(title: "", children: children)
+    }
+
+    private func watchedActions(_ options: [ShowDetailModel.WatchedOption]) -> [UIMenuElement] {
+        options.map { option in
+            UIAction(title: option.title, image: UIImage(systemName: option.watched ? "checkmark.circle" : "eye.slash")) { [weak self] _ in
+                self?.setWatched(option.watched, ratingKey: option.ratingKey)
+            }
+        }
     }
 
     private func setWatched(_ watched: Bool, ratingKey: String) {
@@ -615,15 +520,9 @@ final class ShowDetailViewController: UICollectionViewController {
         Task { [weak self] in
             guard let self else { return }
             do {
-                if watched {
-                    try await api.requestVoid(.scrobble(ratingKey: ratingKey))
-                } else {
-                    try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
-                }
-                await api.invalidateCache()
+                try await WatchedService.setWatched(watched, ratingKey: ratingKey, api: api)
                 loadData()
             } catch {
-                AppLogger.error("Mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
                 Haptics.error()
             }
         }
@@ -631,56 +530,30 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func loadData() {
         loadTask?.cancel()
-        if show == nil {
+        if model == nil {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         }
-        let api = self.api
-        let leavesPath = "/library/metadata/\(showRatingKey)/allLeaves"
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let showContainer = try await api.requestContainer(.metadata(ratingKey: showRatingKey))
-                guard !Task.isCancelled else { return }
-                guard let showMeta = showContainer.Metadata?.first else {
-                    if show == nil { showLoadError(message: "This show is no longer available on the server.") }
+                let loaded = try await ShowDetailLoader.load(
+                    api: api,
+                    showRatingKey: showRatingKey,
+                    initialSeasonKey: initialSeasonKey,
+                    selectedSeasonKey: { self.model?.selectedSeasonKey },
+                    onShow: { self.showArrived($0) }
+                )
+                guard let loaded else {
+                    if model == nil { showLoadError(message: DetailMessage.showUnavailable) }
                     return
                 }
-                show = showMeta
-                title = showMeta.title
-                hero.chrome.setTitle(showMeta.title)
-                hero.backdrop.loadImage(path: showMeta.art ?? showMeta.thumb, isBackdrop: showMeta.art != nil, offlineRatingKey: nil)
-                donateActivity(showMeta)
-
-                async let leaves = try? api.requestContainer(.folderPath(leavesPath))
-                let seasonsContainer = try await api.requestContainer(.children(ratingKey: showRatingKey))
-                guard !Task.isCancelled else { return }
-                seasons = (seasonsContainer.Metadata ?? []).filter { $0.mediaType == "season" }
-
-                if selectedSeasonKey == nil || !seasons.contains(where: { $0.id == selectedSeasonKey }) {
-                    let firstUnwatched = seasons.first {
-                        let watched = $0.viewedLeafCount ?? 0
-                        let total = $0.leafCount ?? 0
-                        return watched < total
-                    }
-                    if let initialSeasonKey, seasons.contains(where: { $0.id == initialSeasonKey }) {
-                        selectedSeasonKey = initialSeasonKey
-                    } else {
-                        selectedSeasonKey = firstUnwatched?.id ?? seasons.first?.id
-                    }
-                }
-
-                if let selectedSeasonKey {
-                    await loadSeason(selectedSeasonKey)
-                }
-                let leafEpisodes = (await leaves)?.Metadata?.filter { $0.mediaType == "episode" } ?? []
-                guard !Task.isCancelled else { return }
-                allEpisodes = leafEpisodes
+                model = loaded
                 contentUnavailableConfiguration = nil
                 await applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("Show load failed ratingKey=\(showRatingKey): \(error.localizedDescription)", .networking)
-                if show == nil {
+                if model == nil {
                     showLoadError(message: error.localizedDescription)
                 } else {
                     contentUnavailableConfiguration = nil
@@ -688,6 +561,16 @@ final class ShowDetailViewController: UICollectionViewController {
                 }
             }
         }
+    }
+
+    private func showArrived(_ show: PlexMetadata) {
+        let model = self.model?.replacingShow(show) ?? ShowDetailModel(show: show)
+        self.model = model
+        title = show.title
+        hero.chrome.setTitle(show.title)
+        let artwork = model.heroArtwork
+        hero.backdrop.loadImage(path: artwork.path, isBackdrop: artwork.isBackdrop, offlineRatingKey: nil)
+        donateActivity(show)
     }
 
     private func showLoadError(message: String) {
@@ -708,57 +591,26 @@ final class ShowDetailViewController: UICollectionViewController {
         contentUnavailableConfiguration = config
     }
 
-    private func loadSeason(_ seasonKey: String) async {
-        do {
-            let container = try await api.requestContainer(.children(ratingKey: seasonKey))
-            guard !Task.isCancelled else { return }
-            episodes = container.Metadata ?? []
-        } catch {
-            guard !Task.isCancelled else { return }
-            AppLogger.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", .networking)
-            episodes = []
-        }
-    }
-
-    /// The episode the primary button plays: an in-progress episode first, then the first unwatched
-    /// episode after the last watched one, otherwise the very first episode.
-    private static func computeUpNext(in episodes: [PlexMetadata]) -> (episode: PlexMetadata, kind: UpNextKind)? {
-        guard let first = episodes.first else { return nil }
-        if let inProgress = episodes.first(where: { !$0.isWatched && $0.positionSecs > 0 }) {
-            return (inProgress, .resume)
-        }
-        guard let lastWatched = episodes.lastIndex(where: \.isWatched) else { return (first, .start) }
-        if let next = episodes[(lastWatched + 1)...].first(where: { !$0.isWatched }) ?? episodes.first(where: { !$0.isWatched }) {
-            return (next, .next)
-        }
-        return (first, .start)
-    }
-
     private func applySnapshot() async {
-        guard let show else { return }
-        upNext = Self.computeUpNext(in: allEpisodes.isEmpty ? episodes : allEpisodes)
+        guard let model else { return }
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.hero, .actions])
         snapshot.appendItems([.hero], toSection: .hero)
         snapshot.appendItems([.actions], toSection: .actions)
 
-        if let summary = show.summary, !summary.isEmpty {
+        if model.hasSummary {
             snapshot.appendSections([.overview])
             snapshot.appendItems([.overview], toSection: .overview)
         }
-        if !seasons.isEmpty {
+        if !model.seasons.isEmpty {
             snapshot.appendSections([.seasonBar])
             snapshot.appendItems([.seasonBar], toSection: .seasonBar)
         }
         snapshot.appendSections([.episodes])
-        snapshot.appendItems(episodes.map { .episode($0) }, toSection: .episodes)
+        snapshot.appendItems(model.episodes.map { .episode($0) }, toSection: .episodes)
 
-        var seenRelated = Set<String>()
-        let related = show.relatedHubs
-            .flatMap { $0.Metadata ?? [] }
-            .filter { $0.id != showRatingKey && seenRelated.insert($0.id).inserted }
-            .prefix(18)
+        let related = model.related
         if !related.isEmpty {
             snapshot.appendSections([.related])
             snapshot.appendItems(related.map { .related($0) }, toSection: .related)
@@ -777,29 +629,29 @@ final class ShowDetailViewController: UICollectionViewController {
             refreshed.reconfigureItems(dynamic)
             await dataSource.apply(refreshed, animatingDifferences: false)
         }
-        hero.chrome.setPlay(label: primaryAccessibilityLabel(), available: upNext != nil)
+        hero.chrome.setPlay(label: model.primaryAccessibilityLabel, available: model.isPrimaryEnabled)
         updateBarButtons()
         hero.scrolled(collectionView)
     }
 
     private func selectSeason(_ key: String) {
-        guard selectedSeasonKey != key else { return }
+        guard let current = model, current.selectedSeasonKey != key else { return }
         Haptics.selection()
         multiSelect.setEditing(false)
-        selectedSeasonKey = key
+        model = current.selectingSeason(key)
         reconfigure([.seasonBar])
         seasonTask?.cancel()
         seasonTask = Task { [weak self] in
             guard let self else { return }
-            await loadSeason(key)
-            guard !Task.isCancelled else { return }
+            guard let episodes = await ShowDetailLoader.episodes(inSeason: key, api: api), model?.selectedSeasonKey == key else { return }
+            model = model?.replacingEpisodes(episodes)
             await applySnapshot()
         }
     }
 
     private func episode(at indexPath: IndexPath) -> PlexMetadata? {
         guard case .episode(let item) = dataSource.itemIdentifier(for: indexPath) else { return nil }
-        return episodes.first { $0.id == item.id } ?? item
+        return model?.episodes.first { $0.id == item.id } ?? item
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -809,14 +661,8 @@ final class ShowDetailViewController: UICollectionViewController {
 
         switch item {
         case .episode(let episode):
-            let detail = MediaDetailViewController(
-                api: api,
-                ratingKey: episode.id,
-                mediaType: "episode",
-                showRatingKey: showRatingKey,
-                seasonRatingKey: selectedSeasonKey
-            )
-            navigationController?.pushViewController(detail, animated: true)
+            let route = DetailRoute.episode(episode, showRatingKey: showRatingKey, seasonRatingKey: model?.selectedSeasonKey)
+            navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
         case .related(let related):
             openRelated(related)
         default:
@@ -825,18 +671,7 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func openRelated(_ related: PlexMetadata) {
-        if related.mediaType == "show" {
-            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: related.id), animated: true)
-        } else {
-            let vc = MediaDetailViewController(
-                api: api,
-                ratingKey: related.id,
-                mediaType: related.mediaType,
-                showRatingKey: related.grandparentRatingKey,
-                seasonRatingKey: related.parentRatingKey
-            )
-            navigationController?.pushViewController(vc, animated: true)
-        }
+        navigationController?.pushViewController(DetailRouter.viewController(for: .related(related), api: api), animated: true)
     }
 
     override func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
@@ -866,7 +701,7 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func playUpNext() {
-        guard let episode = upNext?.episode else { return }
+        guard let episode = model?.upNext?.episode else { return }
         quickPlay(episode)
     }
 
@@ -1020,7 +855,7 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func selectAllEpisodes() {
-        let paths = episodes.compactMap { dataSource.indexPath(for: .episode($0)) }
+        let paths = (model?.episodes ?? []).compactMap { dataSource.indexPath(for: .episode($0)) }
         multiSelect.selectAll(paths)
     }
 
@@ -1046,21 +881,22 @@ final class ShowDetailViewController: UICollectionViewController {
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
         guard !collectionView.isEditing, let indexPath = indexPaths.first, let episode = episode(at: indexPath) else { return nil }
+        let status = EpisodeStatus(episode: episode, isUpNext: false)
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             var children: [UIMenuElement] = [
-                UIAction(title: episode.positionSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                UIAction(title: status.playTitle, image: UIImage(systemName: "play.fill")) { [weak self] _ in
                     Haptics.light()
                     self?.quickPlay(episode)
                 },
                 DownloadMenu.action(for: episode),
                 UIAction(
-                    title: episode.isWatched ? "Mark Unwatched" : "Mark Watched",
+                    title: status.watchedToggleTitle,
                     image: UIImage(systemName: episode.isWatched ? "eye.slash" : "eye")
                 ) { [weak self] _ in
                     self?.setWatched(!episode.isWatched, ratingKey: episode.id)
                 },
             ]
-            if episode.positionSecs > 0 {
+            if status.canPlayFromBeginning {
                 children.insert(UIAction(title: "Play from Beginning", image: UIImage(systemName: "gobackward")) { [weak self] _ in
                     Haptics.light()
                     self?.playFromBeginning(episode)

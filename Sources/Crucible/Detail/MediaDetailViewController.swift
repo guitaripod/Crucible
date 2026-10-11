@@ -7,10 +7,7 @@ final class MediaDetailViewController: UICollectionViewController {
         case hero, actions, progress, links, tracks, overview, genres, cast, details, related
     }
 
-    struct Fact: Hashable {
-        let key: String
-        let value: String
-    }
+    typealias Fact = DetailFact
 
     enum Item: Hashable {
         case hero
@@ -31,7 +28,7 @@ final class MediaDetailViewController: UICollectionViewController {
     private let showRatingKey: String?
     private let seasonRatingKey: String?
     private var loadTask: Task<Void, Never>?
-    private var metadata: PlexMetadata?
+    private var model: MovieDetailModel?
     private var selectedSubtitleId: Int?
     private var selectedAudioTrackId: Int?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
@@ -163,27 +160,27 @@ final class MediaDetailViewController: UICollectionViewController {
 
     private func configureDataSource() {
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let metadata = self.metadata else { return }
-            cell.contentConfiguration = self.heroConfiguration(metadata)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.heroConfiguration(model)
         }
         let actionsReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let metadata = self.metadata else { return }
-            cell.contentConfiguration = self.actionsConfiguration(metadata)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.actionsConfiguration(model)
         }
         let progressReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let metadata = self.metadata else { return }
-            cell.contentConfiguration = Self.progressConfiguration(metadata)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = Self.progressConfiguration(model)
         }
         let linksReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let metadata = self.metadata else { return }
-            cell.contentConfiguration = self.linksConfiguration(metadata)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.linksConfiguration(model)
         }
         let tracksReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let metadata = self.metadata else { return }
-            cell.contentConfiguration = self.tracksConfiguration(metadata)
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.tracksConfiguration(model)
         }
         let overviewReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            guard let self, let summary = self.metadata?.summary else { return }
+            guard let self, let summary = self.model?.item.summary else { return }
             let lines = 4
             let width = self.collectionView.bounds.width - Theme.Space.m * 2
             cell.contentConfiguration = DetailOverviewConfiguration(
@@ -195,7 +192,7 @@ final class MediaDetailViewController: UICollectionViewController {
             )
         }
         let genresReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            cell.contentConfiguration = DetailChipsConfiguration(chips: self?.metadata?.genres ?? [])
+            cell.contentConfiguration = DetailChipsConfiguration(chips: self?.model?.item.genres ?? [])
         }
         let castReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
             cell.contentConfiguration = CastContentConfiguration(thumbPath: role.thumb, name: role.tag ?? "", role: role.role)
@@ -238,98 +235,49 @@ final class MediaDetailViewController: UICollectionViewController {
         }
     }
 
-    private func heroConfiguration(_ item: PlexMetadata) -> DetailHeroConfiguration {
-        let eyebrow: String
-        switch item.mediaType {
-        case "episode":
-            eyebrow = ["EPISODE", DetailFormat.episodeCode(season: item.parentIndex, episode: item.index)]
-                .compactMap { $0 }
-                .joined(separator: " · ")
-        case "movie": eyebrow = "MOVIE"
-        default: eyebrow = item.mediaType == "unknown" ? "" : item.mediaType.uppercased()
-        }
-
-        let dateText: String? = item.mediaType == "episode"
-            ? (Formatters.plexDate(item.originallyAvailableAt) ?? item.year.map(String.init))
-            : item.year.map(String.init)
-        var leading: [String] = dateText.map { [$0] } ?? []
-        if let runtime = DetailFormat.runtime(item.durationSecs) { leading.append(runtime) }
-        let rating = DetailFormat.ratingParts(audience: item.audienceRating, critic: item.rating)
-        let meta = DetailFormat.metaLine(leading: leading, star: rating.star, trailing: rating.trailing)
-
-        let audio = DetailFormat.primaryAudioStream(item)
-        let badges = DetailFormat.technicalBadges(for: item, contentRating: item.contentRating, audio: audio)
-
-        var spoken = [item.title]
-        if item.mediaType == "episode" {
-            if let show = item.grandparentTitle { spoken.append(show) }
-            if let season = item.parentIndex, let episode = item.index { spoken.append("season \(season) episode \(episode)") }
-        } else if !eyebrow.isEmpty {
-            spoken.append(eyebrow.lowercased())
-        }
-        if let dateText { spoken.append(dateText) }
-        if let duration = DetailFormat.spokenDuration(item.durationSecs) { spoken.append(duration) }
-        if let ratingText = DetailFormat.spokenRating(audience: item.audienceRating, critic: item.rating) { spoken.append(ratingText) }
-        spoken.append(contentsOf: badges)
-
+    private func heroConfiguration(_ model: MovieDetailModel) -> DetailHeroConfiguration {
+        let info = model.heroInfo
         return DetailHeroConfiguration(
-            eyebrow: eyebrow,
-            title: item.title,
-            meta: meta.length > 0 ? meta : nil,
-            badges: badges,
+            eyebrow: info.eyebrow,
+            title: info.title,
+            meta: info.meta.isEmpty ? nil : DetailFormat.metaLine(info.meta),
+            badges: info.badges,
             minimumHeight: hero.minimumHeroCellHeight,
-            accessibilityText: spoken.joined(separator: ", ")
+            accessibilityText: info.accessibilityText
         )
     }
 
-    private func actionsConfiguration(_ item: PlexMetadata) -> DetailActionsConfiguration {
-        let resumes = item.positionSecs > 0
+    private func actionsConfiguration(_ model: MovieDetailModel) -> DetailActionsConfiguration {
+        let item = model.item
         var config = DetailActionsConfiguration()
-        config.primaryTitle = resumes ? "Resume" : "Play"
+        config.primaryTitle = model.playTitle
         config.primarySymbol = "play.fill"
-        config.primaryAccessibilityLabel = playAccessibilityLabel(item)
+        config.primaryAccessibilityLabel = model.playAccessibilityLabel
         config.onPrimary = { [weak self] in self?.play() }
         config.downloadState = DetailDownload.ringState(for: ratingKey)
         config.downloadMenu = DetailDownload.menu(for: item, onPlayOffline: { [weak self] in self?.play() })
         config.onDownload = { [weak self] source in
-            guard let self, let metadata = self.metadata else { return }
-            DetailDownload.performTap(for: metadata, from: self, sourceView: source)
+            guard let self, let model = self.model else { return }
+            DetailDownload.performTap(for: model.item, from: self, sourceView: source)
         }
         config.isWatched = item.isWatched
         config.onToggleWatched = { [weak self] in self?.toggleWatched() }
         return config
     }
 
-    private func playAccessibilityLabel(_ item: PlexMetadata) -> String {
-        guard item.positionSecs > 0 else { return "Play \(item.title)" }
-        if let left = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs), item.durationSecs > item.positionSecs {
-            return "Resume \(item.title), \(left) left"
-        }
-        return "Resume \(item.title)"
-    }
-
-    private static func hasProgress(_ item: PlexMetadata) -> Bool {
-        item.positionSecs > 0 && item.durationSecs > item.positionSecs
-    }
-
-    private static func progressConfiguration(_ item: PlexMetadata) -> DetailProgressConfiguration {
-        let fraction = item.durationSecs > 0 ? item.positionSecs / item.durationSecs : 0
-        let text = DetailFormat.remaining(position: item.positionSecs, duration: item.durationSecs) ?? ""
-        let spokenLeft = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs).map { "\($0) left" } ?? ""
+    private static func progressConfiguration(_ model: MovieDetailModel) -> DetailProgressConfiguration {
+        let progress = model.progress
         return DetailProgressConfiguration(
-            progress: fraction,
-            text: text,
-            accessibilityText: "\(Int((fraction * 100).rounded())) percent watched, \(spokenLeft)"
+            progress: progress.fraction,
+            text: progress.text,
+            accessibilityText: progress.accessibilityText
         )
     }
 
-    private var showKey: String? { showRatingKey ?? metadata?.grandparentRatingKey }
-    private var seasonKey: String? { seasonRatingKey ?? metadata?.parentRatingKey }
-
-    private func linksConfiguration(_ item: PlexMetadata) -> DetailPillsConfiguration {
+    private func linksConfiguration(_ model: MovieDetailModel) -> DetailPillsConfiguration {
         var pills: [DetailPillsConfiguration.Pill] = []
-        if showKey != nil {
-            let showTitle = item.grandparentTitle
+        if model.showKey != nil {
+            let showTitle = model.item.grandparentTitle
             pills.append(.init(
                 title: showTitle ?? "Go to Show",
                 symbol: "tv",
@@ -337,7 +285,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 action: { [weak self] in self?.navigateToShow() }
             ))
         }
-        if seasonKey != nil {
+        if model.seasonKey != nil {
             pills.append(.init(title: "Next Episode", symbol: "forward.end.fill", accessibilityLabel: nil, action: { [weak self] in
                 self?.goToNextEpisode()
             }))
@@ -345,126 +293,99 @@ final class MediaDetailViewController: UICollectionViewController {
         return DetailPillsConfiguration(pills: pills)
     }
 
-    private func tracksConfiguration(_ item: PlexMetadata) -> DetailTracksConfiguration {
+    private func tracksConfiguration(_ model: MovieDetailModel) -> DetailTracksConfiguration {
         var config = DetailTracksConfiguration()
-        let audio = item.audioStreams
-        if !audio.isEmpty {
-            let selected = DetailFormat.primaryAudioStream(item, selectedId: selectedAudioTrackId)
-            config.audioValue = selected.map(DetailFormat.audioValue) ?? "Default"
-            config.audioMenu = audioMenu(audio)
+        if let value = model.audioButtonValue(selectedId: selectedAudioTrackId) {
+            config.audioValue = value
+            config.audioMenu = audioMenu(model.audioOptions(selectedId: selectedAudioTrackId))
         }
-        let subtitles = item.subtitleStreams
-        if !subtitles.isEmpty {
-            let selected = subtitles.first { $0.id != nil && $0.id == selectedSubtitleId }
-            config.subtitleValue = selected.map(DetailFormat.subtitleValue) ?? "Off"
-            config.subtitleMenu = subtitleMenu(subtitles)
+        if let value = model.subtitleButtonValue(selectedId: selectedSubtitleId) {
+            config.subtitleValue = value
+            config.subtitleMenu = subtitleMenu(model.subtitleOptions(selectedId: selectedSubtitleId))
         }
         return config
     }
 
-    private func audioMenu(_ streams: [PlexStream]) -> UIMenu {
-        let actions = streams.map { stream in
-            let action = UIAction(title: stream.displayTitle ?? DetailFormat.languageName(stream), state: stream.id == selectedAudioTrackId ? .on : .off) { [weak self] _ in
+    private func audioMenu(_ options: [TrackOption]) -> UIMenu {
+        let actions = options.map { option in
+            let action = UIAction(title: option.title, state: option.isSelected ? .on : .off) { [weak self] _ in
                 Haptics.selection()
-                self?.selectedAudioTrackId = stream.id
+                self?.selectedAudioTrackId = option.id
                 self?.reconfigure([.tracks])
             }
-            let detail = DetailFormat.audioDetail(stream)
-            action.subtitle = detail.isEmpty ? nil : detail
+            action.subtitle = option.detail
             return action
         }
         return UIMenu(title: "Audio", options: .singleSelection, children: actions)
     }
 
-    private func subtitleMenu(_ streams: [PlexStream]) -> UIMenu {
+    private func subtitleMenu(_ options: [TrackOption]) -> UIMenu {
         let off = UIAction(title: "Off", state: selectedSubtitleId == nil ? .on : .off) { [weak self] _ in
             Haptics.selection()
             self?.selectedSubtitleId = nil
             self?.reconfigure([.tracks])
         }
-        let actions = streams.map { stream in
+        let actions = options.map { option in
             let action = UIAction(
-                title: stream.displayTitle ?? DetailFormat.languageName(stream),
-                attributes: stream.isBitmap ? .disabled : [],
-                state: !stream.isBitmap && stream.id != nil && stream.id == selectedSubtitleId ? .on : .off
+                title: option.title,
+                attributes: option.isEnabled ? [] : .disabled,
+                state: option.isSelected ? .on : .off
             ) { [weak self] _ in
-                guard !stream.isBitmap else { return }
+                guard option.isEnabled else { return }
                 Haptics.selection()
-                self?.selectedSubtitleId = stream.id
+                self?.selectedSubtitleId = option.id
                 self?.reconfigure([.tracks])
             }
-            let detail = DetailFormat.subtitleDetail(stream)
-            action.subtitle = detail.isEmpty ? nil : detail
+            action.subtitle = option.detail
             return action
         }
         return UIMenu(title: "Subtitles", options: .singleSelection, children: [off] + actions)
     }
 
-    private func facts(_ item: PlexMetadata) -> [Fact] {
-        var facts: [Fact] = []
-        func add(_ key: String, _ value: String?) {
-            guard let value, !value.isEmpty else { return }
-            facts.append(Fact(key: key, value: value))
-        }
-        let directors = item.directors.prefix(2)
-        add(directors.count > 1 ? "Directors" : "Director", directors.isEmpty ? nil : directors.joined(separator: ", "))
-        let writers = item.writers.prefix(2)
-        add(writers.count > 1 ? "Writers" : "Writer", writers.isEmpty ? nil : writers.joined(separator: ", "))
-        add("Studio", item.studio)
-        if item.mediaType == "episode" {
-            add("Aired", Formatters.plexDate(item.originallyAvailableAt))
-        }
-        add("Added", DetailFormat.addedDate(item.addedAt))
-        add("File", DetailFormat.fileFact(item))
-        add("Audio", DetailFormat.audioFact(DetailFormat.primaryAudioStream(item)))
-        return facts
-    }
-
     private func loadData() {
         loadTask?.cancel()
-        if metadata == nil {
+        if model == nil {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         }
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
-                guard !Task.isCancelled else { return }
-                guard let meta = container.Metadata?.first else {
-                    if metadata == nil { showLoadError(message: "This item is no longer available on the server.") }
+                let loaded = try await MovieDetailLoader.load(
+                    api: api,
+                    ratingKey: ratingKey,
+                    showRatingKey: showRatingKey,
+                    seasonRatingKey: seasonRatingKey
+                )
+                guard let loaded else {
+                    if model == nil { showLoadError(message: DetailMessage.itemUnavailable) }
                     return
                 }
-                donateActivity(meta)
-                await display(meta)
+                donateActivity(loaded.item)
+                await display(loaded)
             } catch {
                 guard !Task.isCancelled else { return }
                 AppLogger.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
-                if metadata == nil, let download = DownloadManager.shared.item(for: ratingKey) {
-                    await display(download.asPlexMetadata)
-                } else if metadata == nil {
+                if model == nil, let download = DownloadManager.shared.item(for: ratingKey) {
+                    await display(MovieDetailModel(item: download.asPlexMetadata, showRatingKey: showRatingKey, seasonRatingKey: seasonRatingKey))
+                } else if model == nil {
                     showLoadError(message: error.localizedDescription)
                 }
             }
         }
     }
 
-    private func display(_ meta: PlexMetadata) async {
-        metadata = meta
-        title = meta.title
-        hero.chrome.setTitle(meta.title)
-        hero.chrome.setPlay(label: playAccessibilityLabel(meta), available: true)
-        let audioStreams = meta.audioStreams
-        if selectedAudioTrackId == nil || !audioStreams.contains(where: { $0.id == selectedAudioTrackId }) {
-            selectedAudioTrackId = (audioStreams.first(where: { $0.isDefault == true }) ?? audioStreams.first)?.id
-        }
-        if let selectedSubtitleId, !meta.subtitleStreams.contains(where: { $0.id == selectedSubtitleId }) {
-            self.selectedSubtitleId = nil
-        }
-        let isBackdrop = meta.mediaType == "episode" ? meta.thumb != nil || meta.art != nil : meta.art != nil
-        let path = meta.mediaType == "episode" ? (meta.thumb ?? meta.art ?? meta.grandparentArt) : (meta.art ?? meta.thumb)
+    private func display(_ model: MovieDetailModel) async {
+        self.model = model
+        title = model.item.title
+        hero.chrome.setTitle(model.item.title)
+        hero.chrome.setPlay(label: model.playAccessibilityLabel, available: true)
+        let tracks = model.reconciledTracks(audioId: selectedAudioTrackId, subtitleId: selectedSubtitleId)
+        selectedAudioTrackId = tracks.audioId
+        selectedSubtitleId = tracks.subtitleId
+        let artwork = model.heroArtwork
         hero.backdrop.loadImage(
-            path: path,
-            isBackdrop: isBackdrop,
+            path: artwork.path,
+            isBackdrop: artwork.isBackdrop,
             offlineRatingKey: DownloadManager.shared.item(for: ratingKey) != nil ? ratingKey : nil
         )
         contentUnavailableConfiguration = nil
@@ -489,67 +410,48 @@ final class MediaDetailViewController: UICollectionViewController {
         contentUnavailableConfiguration = config
     }
 
-    /// Directors and writers as cast-rail entries; a person who does both appears once with both roles.
-    private static func crew(for metadata: PlexMetadata) -> [PlexRole] {
-        var order = [String]()
-        var roles = [String: [String]]()
-        for (name, role) in metadata.directors.prefix(2).map({ ($0, "Director") }) + metadata.writers.prefix(2).map({ ($0, "Writer") }) {
-            if roles[name] == nil { order.append(name) }
-            roles[name, default: []].append(role)
-        }
-        return order.map { PlexRole(id: nil, tag: $0, role: roles[$0]?.joined(separator: ", "), thumb: nil) }
-    }
-
     private func applySnapshot() async {
-        guard let metadata else { return }
+        guard let model else { return }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
 
         snapshot.appendSections([.hero, .actions])
         snapshot.appendItems([.hero], toSection: .hero)
         snapshot.appendItems([.actions], toSection: .actions)
 
-        if Self.hasProgress(metadata) {
+        if model.hasProgress {
             snapshot.appendSections([.progress])
             snapshot.appendItems([.progress], toSection: .progress)
         }
-        if metadata.mediaType == "episode", showKey != nil || seasonKey != nil {
+        if model.hasLinks {
             snapshot.appendSections([.links])
             snapshot.appendItems([.links], toSection: .links)
         }
-        if !metadata.audioStreams.isEmpty || !metadata.subtitleStreams.isEmpty {
+        if model.hasTracks {
             snapshot.appendSections([.tracks])
             snapshot.appendItems([.tracks], toSection: .tracks)
         }
-        if let summary = metadata.summary, !summary.isEmpty {
+        if model.hasSummary {
             snapshot.appendSections([.overview])
             snapshot.appendItems([.overview], toSection: .overview)
         }
-        if !metadata.genres.isEmpty {
+        if !model.item.genres.isEmpty {
             snapshot.appendSections([.genres])
             snapshot.appendItems([.genres], toSection: .genres)
         }
 
-        var seenCast = Set<PlexRole>()
-        let crewAndCast = (Self.crew(for: metadata) + metadata.cast.prefix(20))
-            .filter { seenCast.insert($0).inserted }
-            .map { Item.castMember($0) }
+        let crewAndCast = model.castAndCrew.map { Item.castMember($0) }
         if !crewAndCast.isEmpty {
             snapshot.appendSections([.cast])
             snapshot.appendItems(crewAndCast, toSection: .cast)
         }
 
-        var seenFacts = Set<Fact>()
-        let factItems = facts(metadata).filter { seenFacts.insert($0).inserted }.map { Item.fact($0) }
+        let factItems = model.facts.map { Item.fact($0) }
         if !factItems.isEmpty {
             snapshot.appendSections([.details])
             snapshot.appendItems(factItems, toSection: .details)
         }
 
-        var seenRelated = Set<String>()
-        let relatedItems = metadata.relatedHubs
-            .flatMap { $0.Metadata ?? [] }
-            .filter { $0.id != ratingKey && seenRelated.insert($0.id).inserted }
-            .prefix(18)
+        let relatedItems = model.related
         if !relatedItems.isEmpty {
             snapshot.appendSections([.related])
             snapshot.appendItems(relatedItems.map { .related($0) }, toSection: .related)
@@ -579,19 +481,7 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func openRelated(_ related: PlexMetadata) {
-        let type = related.mediaType
-        if type == "show" {
-            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: related.id), animated: true)
-        } else {
-            let vc = MediaDetailViewController(
-                api: api,
-                ratingKey: related.id,
-                mediaType: type,
-                showRatingKey: related.grandparentRatingKey,
-                seasonRatingKey: related.parentRatingKey
-            )
-            navigationController?.pushViewController(vc, animated: true)
-        }
+        navigationController?.pushViewController(DetailRouter.viewController(for: .related(related), api: api), animated: true)
     }
 
     private func toggleOverview() {
@@ -600,7 +490,8 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func play() {
-        guard let metadata else { return }
+        guard let model else { return }
+        let metadata = model.item
         let meta = PlayerCoordinator.Metadata(
             title: metadata.title,
             showName: metadata.grandparentTitle,
@@ -610,15 +501,14 @@ final class MediaDetailViewController: UICollectionViewController {
             duration: metadata.durationSecs
         )
         let offlineAsset = DownloadManager.shared.offlineAsset(for: ratingKey)
-        let resumePosition = offlineAsset != nil
-            ? (DownloadManager.shared.item(for: ratingKey)?.resumeSecs ?? metadata.positionSecs)
-            : metadata.positionSecs
+        let offlineResume = offlineAsset != nil ? DownloadManager.shared.item(for: ratingKey)?.resumeSecs : nil
+        let resumePosition = model.resumePosition(offlineResumeSecs: offlineResume)
         let coordinator = PlayerCoordinator(
             api: api,
             ratingKey: ratingKey,
             mediaType: mediaType,
-            showRatingKey: showRatingKey ?? metadata.grandparentRatingKey,
-            seasonRatingKey: seasonRatingKey ?? metadata.parentRatingKey,
+            showRatingKey: model.showKey,
+            seasonRatingKey: model.seasonKey,
             resumePosition: resumePosition,
             metadata: meta,
             selectedSubtitleId: selectedSubtitleId,
@@ -631,43 +521,27 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func toggleWatched() {
-        guard let metadata else { return }
-        let wasWatched = metadata.isWatched
+        guard let model else { return }
+        let wasWatched = model.item.isWatched
         Task { [weak self] in
             guard let self else { return }
             do {
-                if wasWatched {
-                    try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
-                } else {
-                    try await api.requestVoid(.scrobble(ratingKey: ratingKey))
-                }
-                await api.invalidateCache()
+                try await WatchedService.setWatched(!wasWatched, ratingKey: ratingKey, api: api)
                 loadData()
             } catch {
-                AppLogger.error("Toggle watched failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
                 Haptics.error()
             }
         }
     }
 
     private func goToNextEpisode() {
-        guard let parentKey = seasonKey else { return }
+        guard let parentKey = model?.seasonKey else { return }
         Task { [weak self] in
             guard let self else { return }
             do {
-                let container = try await api.requestContainer(.children(ratingKey: parentKey))
-                let episodes = container.Metadata ?? []
-                guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
-                      currentIndex + 1 < episodes.count else { return }
-                let next = episodes[currentIndex + 1]
-                let vc = MediaDetailViewController(
-                    api: api,
-                    ratingKey: next.id,
-                    mediaType: "episode",
-                    showRatingKey: showKey,
-                    seasonRatingKey: parentKey
-                )
-                navigationController?.pushViewController(vc, animated: true)
+                guard let next = try await MovieDetailLoader.nextEpisode(after: ratingKey, inSeason: parentKey, api: api),
+                      let route = model?.nextEpisodeRoute(next) else { return }
+                navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
             } catch {
                 AppLogger.error("Next episode lookup failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
             }
@@ -675,8 +549,7 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func navigateToShow() {
-        guard let key = showKey else { return }
-        let vc = ShowDetailViewController(api: api, showRatingKey: key, initialSeasonKey: seasonKey)
-        navigationController?.pushViewController(vc, animated: true)
+        guard let route = model?.showRoute else { return }
+        navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
     }
 }

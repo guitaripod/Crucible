@@ -1,17 +1,11 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
 struct EpisodeContentConfiguration: UIContentConfiguration {
-    var episodeNumber: Int?
-    var title: String = ""
+    var status: EpisodeStatus
     var summary: String?
     var thumbPath: String?
-    var durationSecs: Double = 0
-    var positionSecs: Double = 0
-    var isWatched = false
-    var isUpNext = false
-    var progress: Double?
-    var downloadState: DownloadRingButton.State = .idle
     var showsDownloadControl = true
     var downloadMenu: UIMenu?
     var onDownloadTap: ((UIView) -> Void)?
@@ -175,88 +169,29 @@ final class EpisodeContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? EpisodeContentConfiguration else { return }
-        let inProgress = !config.isWatched && (config.progress ?? 0) > 0
-        let isDownloading: Bool
-        switch config.downloadState {
-        case .progress, .queued: isDownloading = true
-        default: isDownloading = false
-        }
-
-        let number = config.episodeNumber.map { "E\($0)" } ?? "EPISODE"
-        let eyebrowText: String
-        let eyebrowColor: UIColor
-        if config.isWatched {
-            eyebrowText = "\(number) · WATCHED"
-            eyebrowColor = Theme.Color.labelTertiary
-        } else if inProgress {
-            eyebrowText = "\(number) · CONTINUE"
-            eyebrowColor = Theme.Color.accentText
-        } else if isDownloading {
-            eyebrowText = "\(number) · DOWNLOADING"
-            eyebrowColor = Theme.Color.labelTertiary
-        } else if config.isUpNext {
-            eyebrowText = "\(number) · UP NEXT"
-            eyebrowColor = Theme.Color.accentText
-        } else {
-            eyebrowText = number
-            eyebrowColor = Theme.Color.labelTertiary
-        }
-        eyebrowLabel.attributedText = DetailFormat.eyebrow(eyebrowText, color: eyebrowColor)
-        titleLabel.text = config.title
+        let status = config.status
+        let eyebrowColor = status.marker.isEmphasised ? Theme.Color.accentText : Theme.Color.labelTertiary
+        eyebrowLabel.attributedText = DetailFormat.eyebrow(status.eyebrow, color: eyebrowColor)
+        titleLabel.text = status.title
         summaryLabel.text = config.summary
         summaryLabel.isHidden = (config.summary ?? "").isEmpty
 
-        var meta: [String] = []
-        if let runtime = DetailFormat.runtime(config.durationSecs) { meta.append(runtime) }
-        if inProgress, let left = DetailFormat.remaining(position: config.positionSecs, duration: config.durationSecs) {
-            meta.append(left)
-        }
-        switch config.downloadState {
-        case .progress(let value): meta.append("\(Int((value * 100).rounded()))%")
-        case .queued: meta.append("Queued")
-        case .paused(let value): meta.append("Paused · \(Int((value * 100).rounded()))%")
-        case .completed: meta.append("Downloaded")
-        case .failed: meta.append("Download failed")
-        case .idle: break
-        }
-        metaLabel.text = meta.joined(separator: " · ")
-        metaLabel.isHidden = meta.isEmpty
+        metaLabel.text = status.metaText
+        metaLabel.isHidden = status.metaParts.isEmpty
 
-        watchedBadge.isHidden = !config.isWatched
-        thumbProgress.isHidden = !inProgress
-        thumbProgress.progress = config.progress ?? 0
-        rowStack.alpha = config.isWatched ? 0.55 : 1
+        watchedBadge.isHidden = !status.isWatched
+        thumbProgress.isHidden = !status.isInProgress
+        thumbProgress.progress = status.progress ?? 0
+        rowStack.alpha = status.contentAlpha
 
         ring.isHidden = !config.showsDownloadControl
-        ring.set(config.downloadState)
+        ring.set(status.download)
         ring.menu = config.downloadMenu
         ring.showsMenuAsPrimaryAction = false
 
-        accessibilityLabel = Self.spokenDescription(config, inProgress: inProgress)
+        accessibilityLabel = status.spokenText
         accessibilityCustomActions = config.accessibilityActions
         loadThumb(config.thumbPath)
-    }
-
-    private static func spokenDescription(_ config: EpisodeContentConfiguration, inProgress: Bool) -> String {
-        var parts: [String] = []
-        if let number = config.episodeNumber { parts.append("Episode \(number)") }
-        parts.append(config.title)
-        if config.isWatched {
-            parts.append("watched")
-        } else if inProgress, let left = DetailFormat.spokenDuration(config.durationSecs - config.positionSecs) {
-            parts.append("\(left) left")
-        } else if let duration = DetailFormat.spokenDuration(config.durationSecs) {
-            parts.append(duration)
-        }
-        switch config.downloadState {
-        case .progress(let value): parts.append("downloading \(Int((value * 100).rounded())) percent")
-        case .queued: parts.append("download queued")
-        case .paused(let value): parts.append("download paused at \(Int((value * 100).rounded())) percent")
-        case .completed: parts.append("downloaded")
-        case .failed: parts.append("download failed")
-        case .idle: break
-        }
-        return parts.joined(separator: ", ")
     }
 
     private func loadThumb(_ path: String?) {
