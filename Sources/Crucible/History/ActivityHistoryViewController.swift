@@ -2,43 +2,7 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-struct HistoryItem: Hashable, Sendable {
-    let ratingKey: String
-    let title: String
-    let type: String?
-    let viewedAt: Int?
-    let thumb: String?
-    let grandparentThumb: String?
-    let grandparentTitle: String?
-    let grandparentRatingKey: String?
-    let parentRatingKey: String?
-    let parentIndex: Int?
-    let index: Int?
-    let duration: Int?
-    let uniqueId: String
-}
-
 final class ActivityHistoryViewController: UICollectionViewController {
-    private enum Filter: String, CaseIterable {
-        case all, movies, tv
-
-        var title: String {
-            switch self {
-            case .all: return "All"
-            case .movies: return "Movies"
-            case .tv: return "TV"
-            }
-        }
-
-        func includes(_ item: HistoryItem) -> Bool {
-            switch self {
-            case .all: return true
-            case .movies: return item.type == "movie"
-            case .tv: return item.type == "episode" || item.type == "show" || item.type == "season"
-            }
-        }
-    }
-
     private enum Section: Hashable {
         case controls
         case day(Date)
@@ -51,20 +15,15 @@ final class ActivityHistoryViewController: UICollectionViewController {
 
     private let api: APIClient
     private var dataSource: UICollectionViewDiffableDataSource<Section, Entry>!
-    private var loadTask: Task<Void, Never>?
+    private let feed: HistoryFeed
     private var playTask: Task<Void, Never>?
     private var playerCoordinator: PlayerCoordinator?
-    private var allItems: [HistoryItem] = []
-    private var filter: Filter = .all
+    private var filter: HistoryFilter = .all
     private var busyIDs: Set<String> = []
-    private var currentOffset = 0
-    private var totalSize = 0
-    private var isLoadingMore = false
-    private var loadFailed = false
-    private let pageSize = 50
 
     init(api: APIClient) {
         self.api = api
+        self.feed = HistoryFeed(api: api)
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -72,7 +31,6 @@ final class ActivityHistoryViewController: UICollectionViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
-        loadTask?.cancel()
         playTask?.cancel()
     }
 
@@ -87,24 +45,21 @@ final class ActivityHistoryViewController: UICollectionViewController {
         configureDataSource()
 
         let refresh = UIRefreshControl()
-        refresh.addAction(UIAction { [weak self] _ in self?.resetAndLoad() }, for: .valueChanged)
+        refresh.addAction(UIAction { [weak self] _ in self?.feed.refresh() }, for: .valueChanged)
         collectionView.refreshControl = refresh
         collectionView.prefetchDataSource = self
+        feed.onEvent = { [weak self] event in self?.handle(event) }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        if allItems.isEmpty && loadTask == nil {
-            loadPage(offset: 0)
-        }
+        feed.loadFirstPageIfNeeded()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         if isMovingFromParent {
-            loadTask?.cancel()
-            loadTask = nil
-            isLoadingMore = false
+            feed.cancel()
         }
     }
 
@@ -172,36 +127,28 @@ final class ActivityHistoryViewController: UICollectionViewController {
     }
 
     private func controlsConfiguration() -> HistoryControlsConfiguration {
-        let chips = Filter.allCases.map { FilterChipsView.Chip(id: $0.rawValue, title: $0.title, isSelected: $0 == filter) }
-        return HistoryControlsConfiguration(chips: chips, summary: summaryText(for: visibleItems)) { [weak self] id in
-            guard let self, let selected = Filter(rawValue: id), selected != filter else { return }
+        let chips = HistoryFilter.allCases.map { FilterChipsView.Chip(id: $0.rawValue, title: $0.title, isSelected: $0 == filter) }
+        return HistoryControlsConfiguration(chips: chips, summary: HistorySummary.text(for: visibleItems, now: Date())) { [weak self] id in
+            guard let self, let selected = HistoryFilter(rawValue: id), selected != filter else { return }
             filter = selected
             applySnapshot()
         }
     }
 
     private func rowConfiguration(for entry: HistoryItem) -> HistoryRowConfiguration {
-        let isEpisode = entry.type == "episode"
-        var subtitleParts = [String]()
-        if isEpisode {
-            if let season = entry.parentIndex { subtitleParts.append("S\(season)") }
-            if let index = entry.index { subtitleParts.append("E\(index)") }
-            subtitleParts.append(entry.title)
-        } else {
-            subtitleParts.append(entry.type == "show" ? "Show" : "Movie")
-        }
+        let row = entry.row
         return HistoryRowConfiguration(
-            posterPath: isEpisode ? (entry.grandparentThumb ?? entry.thumb) : entry.thumb,
-            title: isEpisode ? (entry.grandparentTitle ?? entry.title) : entry.title,
-            subtitle: subtitleParts.joined(separator: " · "),
-            meta: Self.timeText(entry.viewedAt),
+            posterPath: row.posterPath,
+            title: row.title,
+            subtitle: row.subtitle,
+            meta: row.timeText,
             isPlayEnabled: !busyIDs.contains(entry.uniqueId),
             onPlay: { [weak self] in self?.playAgain(entry) }
         )
     }
 
     private var visibleItems: [HistoryItem] {
-        allItems.filter { filter.includes($0) }
+        feed.items(matching: filter)
     }
 
     private func applySnapshot() {
@@ -211,27 +158,20 @@ final class ActivityHistoryViewController: UICollectionViewController {
         snapshot.appendItems([.controls], toSection: .controls)
 
         let calendar = Calendar.current
-        var order = [Date]()
-        var groups = [Date: [HistoryItem]]()
-        for item in visible {
-            let day = Self.day(for: item.viewedAt, calendar: calendar)
-            if groups[day] == nil { order.append(day) }
-            groups[day, default: []].append(item)
-        }
-        for day in order {
-            snapshot.appendSections([.day(day)])
-            snapshot.appendItems((groups[day] ?? []).map { .item($0) }, toSection: .day(day))
+        for group in HistoryDay.groups(of: visible, calendar: calendar) {
+            snapshot.appendSections([.day(group.day)])
+            snapshot.appendItems(group.items.map { .item($0) }, toSection: .day(group.day))
         }
         let existing = dataSource.snapshot()
         if existing.indexOfItem(.controls) != nil {
             snapshot.reconfigureItems([.controls])
         }
 
-        let animated = !UIAccessibility.isReduceMotionEnabled && !allItems.isEmpty && existing.numberOfItems > 1
+        let animated = !UIAccessibility.isReduceMotionEnabled && !feed.items.isEmpty && existing.numberOfItems > 1
         dataSource.apply(snapshot, animatingDifferences: animated) { [weak self] in
             self?.updateContentUnavailable()
         }
-        loadMoreIfNeeded(visibleCount: visible.count)
+        feed.loadMoreIfNeeded(visibleCount: visible.count)
     }
 
     private func reconfigure(_ item: HistoryItem) {
@@ -241,103 +181,40 @@ final class ActivityHistoryViewController: UICollectionViewController {
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    /// Keeps fetching while the visible list is too short to scroll or the weekly summary could still
-    /// be missing plays from older pages.
-    private func loadMoreIfNeeded(visibleCount: Int) {
-        guard currentOffset < totalSize, !isLoadingMore, loadTask == nil, !loadFailed else { return }
-        let weekAgo = Date().addingTimeInterval(-7 * 24 * 3600).timeIntervalSince1970
-        let oldest = allItems.last?.viewedAt.map(Double.init) ?? 0
-        if visibleCount < 12 || oldest >= weekAgo {
-            isLoadingMore = true
-            loadPage(offset: currentOffset)
+    private func handle(_ event: HistoryFeed.Event) {
+        finishRefreshing()
+        switch event {
+        case .pageLoaded: applySnapshot()
+        case .failed: updateContentUnavailable()
         }
     }
 
     private func updateContentUnavailable() {
-        if allItems.isEmpty {
-            guard loadTask == nil else { return }
-            var config = UIContentUnavailableConfiguration.empty()
-            config.image = UIImage(systemName: loadFailed ? "wifi.exclamationmark" : "clock")
-            config.imageProperties.tintColor = Theme.Color.labelTertiary
-            config.text = loadFailed ? "Couldn't load history" : "No activity yet"
-            config.textProperties.font = Theme.Font.title3
-            config.textProperties.color = Theme.Color.label
-            config.secondaryText = loadFailed ? "Check your connection and try again." : "Movies and episodes you watch will show up here."
+        let state = feed.emptyState(filter: filter)
+        if state == .loading { return }
+        guard let content = state.content else {
+            contentUnavailableConfiguration = nil
+            return
+        }
+        var config = UIContentUnavailableConfiguration.empty()
+        config.image = UIImage(systemName: content.symbolName)
+        config.imageProperties.tintColor = Theme.Color.labelTertiary
+        config.text = content.title
+        config.textProperties.font = Theme.Font.title3
+        config.textProperties.color = Theme.Color.label
+        if let message = content.message {
+            config.secondaryText = message
             config.secondaryTextProperties.font = Theme.Font.subheadline
             config.secondaryTextProperties.color = Theme.Color.labelSecondary
-            if loadFailed {
-                config.button = ThemeButton.primaryConfiguration(title: "Try Again")
-                config.buttonProperties.primaryAction = UIAction { [weak self] _ in
-                    self?.loadFailed = false
-                    self?.contentUnavailableConfiguration = nil
-                    self?.loadPage(offset: 0)
-                }
-            }
-            contentUnavailableConfiguration = config
-        } else if visibleItems.isEmpty && currentOffset >= totalSize {
-            var config = UIContentUnavailableConfiguration.empty()
-            config.image = UIImage(systemName: filter == .movies ? "film" : "tv")
-            config.imageProperties.tintColor = Theme.Color.labelTertiary
-            config.text = filter == .movies ? "No movies watched yet" : "No TV watched yet"
-            config.textProperties.font = Theme.Font.title3
-            config.textProperties.color = Theme.Color.label
-            contentUnavailableConfiguration = config
-        } else {
-            contentUnavailableConfiguration = nil
         }
-    }
-
-    private func resetAndLoad() {
-        currentOffset = 0
-        totalSize = 0
-        isLoadingMore = false
-        loadFailed = false
-        loadPage(offset: 0)
-    }
-
-    private func loadPage(offset: Int) {
-        loadTask?.cancel()
-        loadTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                let container = try await api.requestContainer(.history(start: offset, size: pageSize))
-                guard !Task.isCancelled else { return }
-
-                totalSize = container.totalSize ?? 0
-                let items = (container.Metadata ?? []).enumerated().map { idx, m in
-                    HistoryItem(
-                        ratingKey: m.id,
-                        title: m.title,
-                        type: m.type,
-                        viewedAt: m.viewedAt ?? m.lastViewedAt ?? m.addedAt,
-                        thumb: m.thumb,
-                        grandparentThumb: m.grandparentThumb,
-                        grandparentTitle: m.grandparentTitle,
-                        grandparentRatingKey: m.grandparentRatingKey,
-                        parentRatingKey: m.parentRatingKey,
-                        parentIndex: m.parentIndex,
-                        index: m.index,
-                        duration: m.duration,
-                        uniqueId: "\(m.id)-\(offset + idx)"
-                    )
-                }
-                currentOffset = offset + items.count
-                allItems = offset == 0 ? items : allItems + items
-                loadFailed = false
-                loadTask = nil
-                isLoadingMore = false
-                finishRefreshing()
-                applySnapshot()
-            } catch {
-                guard !Task.isCancelled else { return }
-                AppLogger.error("History page \(offset) failed: \(error.localizedDescription)", .networking)
-                loadTask = nil
-                isLoadingMore = false
-                loadFailed = true
-                finishRefreshing()
-                updateContentUnavailable()
+        if state == .loadFailed {
+            config.button = ThemeButton.primaryConfiguration(title: "Try Again")
+            config.buttonProperties.primaryAction = UIAction { [weak self] _ in
+                self?.contentUnavailableConfiguration = nil
+                self?.feed.retry()
             }
         }
+        contentUnavailableConfiguration = config
     }
 
     private func finishRefreshing() {
@@ -358,9 +235,9 @@ final class ActivityHistoryViewController: UICollectionViewController {
                 reconfigure(entry)
             }
             do {
-                let container = try await api.requestContainer(.metadata(ratingKey: entry.ratingKey))
+                let found = try await feed.metadata(for: entry)
                 guard !Task.isCancelled else { return }
-                guard let metadata = container.Metadata?.first else {
+                guard let metadata = found else {
                     presentPlaybackError()
                     return
                 }
@@ -384,21 +261,21 @@ final class ActivityHistoryViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard case .item(let entry) = dataSource.itemIdentifier(for: indexPath) else { return }
 
-        switch entry.type {
-        case "episode":
+        switch entry.destination {
+        case .episode(let ratingKey, let showRatingKey, let seasonRatingKey):
             let vc = MediaDetailViewController(
                 api: api,
-                ratingKey: entry.ratingKey,
+                ratingKey: ratingKey,
                 mediaType: "episode",
-                showRatingKey: entry.grandparentRatingKey,
-                seasonRatingKey: entry.parentRatingKey
+                showRatingKey: showRatingKey,
+                seasonRatingKey: seasonRatingKey
             )
             navigationController?.pushViewController(vc, animated: true)
-        case "show":
-            let vc = ShowDetailViewController(api: api, showRatingKey: entry.ratingKey)
+        case .show(let ratingKey):
+            let vc = ShowDetailViewController(api: api, showRatingKey: ratingKey)
             navigationController?.pushViewController(vc, animated: true)
-        default:
-            let vc = MediaDetailViewController(api: api, ratingKey: entry.ratingKey, mediaType: "movie")
+        case .movie(let ratingKey):
+            let vc = MediaDetailViewController(api: api, ratingKey: ratingKey, mediaType: "movie")
             navigationController?.pushViewController(vc, animated: true)
         }
     }
@@ -410,61 +287,10 @@ final class ActivityHistoryViewController: UICollectionViewController {
 }
 
 extension ActivityHistoryViewController {
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter
-    }()
-
-    private static let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("EEEMMMd")
-        return formatter
-    }()
-
-    private static let dayWithYearFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("EEEMMMdy")
-        return formatter
-    }()
-
-    fileprivate static func timeText(_ timestamp: Int?) -> String? {
-        guard let timestamp else { return nil }
-        return timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
-    }
-
-    fileprivate static func day(for timestamp: Int?, calendar: Calendar) -> Date {
-        guard let timestamp else { return .distantPast }
-        return calendar.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(timestamp)))
-    }
-
     fileprivate func dayTitle(forSection section: Int) -> String? {
         let identifiers = dataSource.snapshot().sectionIdentifiers
         guard identifiers.indices.contains(section), case .day(let date) = identifiers[section] else { return nil }
-        if date == .distantPast { return "Earlier" }
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Today" }
-        if calendar.isDateInYesterday(date) { return "Yesterday" }
-        let sameYear = calendar.isDate(date, equalTo: Date(), toGranularity: .year)
-        return (sameYear ? Self.dayFormatter : Self.dayWithYearFormatter).string(from: date)
-    }
-
-    /// "14 plays this week · 7 h 20 m". The time is left out unless every play in the week has a
-    /// known duration, so a partial total never reads as a real one.
-    fileprivate func summaryText(for items: [HistoryItem]) -> String? {
-        let weekAgo = Int(Date().addingTimeInterval(-7 * 24 * 3600).timeIntervalSince1970)
-        let week = items.filter { ($0.viewedAt ?? 0) >= weekAgo }
-        guard !week.isEmpty else { return nil }
-        var text = "\(week.count) \(week.count == 1 ? "play" : "plays") this week"
-        let durations = week.compactMap(\.duration)
-        if durations.count == week.count {
-            let minutes = durations.reduce(0, +) / 60_000
-            if minutes > 0 {
-                text += " · " + (minutes >= 60 ? "\(minutes / 60) h \(minutes % 60) m" : "\(minutes) m")
-            }
-        }
-        return text
+        return HistoryDay.title(for: date, now: Date(), calendar: .current)
     }
 }
 
@@ -474,10 +300,9 @@ extension ActivityHistoryViewController: UICollectionViewDataSourcePrefetching {
         let lastSection = snapshot.numberOfSections - 1
         guard lastSection > 0 else { return }
         let lastCount = snapshot.numberOfItems(inSection: snapshot.sectionIdentifiers[lastSection])
-        let reachingEnd = indexPaths.contains { $0.section == lastSection && $0.item >= lastCount - 10 }
-        if reachingEnd, currentOffset < totalSize, !isLoadingMore {
-            isLoadingMore = true
-            loadPage(offset: currentOffset)
+        let reachingEnd = indexPaths.contains { $0.section == lastSection && HistoryPager.isWithinPrefetchWindow(position: $0.item, count: lastCount) }
+        if reachingEnd {
+            feed.prefetchMore()
         }
     }
 }
