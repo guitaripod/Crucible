@@ -21,7 +21,8 @@ enum TVImagePipeline {
 
     static func load(path: String, pointWidth: CGFloat, scale: CGFloat, kind: Kind) async -> UIImage? {
         let width = TVMetrics.pixelWidth(forPoints: pointWidth, scale: scale)
-        return await provider(path, min(width, TVMetrics.Backdrop.maximumPixelWidth), kind)
+        let ceiling = kind == .poster ? TVMetrics.Backdrop.maximumPosterPixelWidth : TVMetrics.Backdrop.maximumPixelWidth
+        return await provider(path, min(width, ceiling), kind)
     }
 }
 

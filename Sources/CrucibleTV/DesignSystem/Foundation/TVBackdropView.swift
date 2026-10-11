@@ -72,16 +72,21 @@ final class TVBackdropView: UIView {
         topScrim.frame = CGRect(x: 0, y: 0, width: bounds.width, height: TVMetrics.Backdrop.topScrimHeight)
     }
 
-    /// Cross-fades to the artwork at `path` after `TVMetrics.Duration.backdropDebounce` of stillness;
-    /// a newer call supersedes an older one that has not finished loading. A nil path fades to canvas.
-    func show(path: String?) {
+    /// Cross-fades to the artwork at `path` after `TVMetrics.Duration.backdropDebounce` of stillness
+    /// (`immediate` skips the wait, for a screen's first paint); a newer call supersedes an older one
+    /// that has not finished loading. A nil path fades to canvas. `kind` says what the path is: a
+    /// poster (a title without art) is requested at a poster-sized width, not a screen-wide one.
+    /// Calling again with a path whose load failed tries it again.
+    func show(path: String?, kind: TVImagePipeline.Kind = .backdrop, immediate: Bool = false) {
         guard path != requestedPath else { return }
         requestedPath = path
         pendingTask?.cancel()
         pendingTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(TVMetrics.Duration.backdropDebounce))
+            if !immediate {
+                try? await Task.sleep(for: .seconds(TVMetrics.Duration.backdropDebounce))
+            }
             guard !Task.isCancelled, let self else { return }
-            await self.load(path)
+            await self.load(path, kind: kind)
         }
     }
 
@@ -93,7 +98,7 @@ final class TVBackdropView: UIView {
         apply(image, animated: animated)
     }
 
-    private func load(_ path: String?) async {
+    private func load(_ path: String?, kind: TVImagePipeline.Kind) async {
         guard let path else {
             apply(nil, animated: true)
             shownPath = nil
@@ -101,8 +106,11 @@ final class TVBackdropView: UIView {
         }
         guard path != shownPath else { return }
         let scale = max(traitCollection.displayScale, 1)
-        let width = max(bounds.width, 1)
-        guard let image = await TVImagePipeline.load(path: path, pointWidth: width, scale: scale, kind: .backdrop) else { return }
+        let width = bounds.width > 0 ? bounds.width : CGFloat(TVMetrics.Backdrop.maximumPixelWidth)
+        guard let image = await TVImagePipeline.load(path: path, pointWidth: width, scale: scale, kind: kind) else {
+            if !Task.isCancelled, requestedPath == path { requestedPath = nil }
+            return
+        }
         guard !Task.isCancelled, requestedPath == path else { return }
         shownPath = path
         apply(image, animated: true)

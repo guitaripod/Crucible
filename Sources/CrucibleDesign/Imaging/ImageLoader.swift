@@ -19,8 +19,7 @@ package actor ImageLoader {
         c.totalCostLimit = 100 * 1024 * 1024
         return c
     }()
-    private var inFlight: [String: (token: Int, task: Task<UIImage?, Never>)] = [:]
-    private var inFlightCounter = 0
+    private let inFlight = InFlightCoalescer<String, UIImage>()
     private var disk: DiskImageCache?
     private var diskNamespace: String?
 
@@ -29,11 +28,8 @@ package actor ImageLoader {
         Task { await self.cancelInFlight() }
     }
 
-    private func cancelInFlight() {
-        for entry in inFlight.values {
-            entry.task.cancel()
-        }
-        inFlight.removeAll()
+    private func cancelInFlight() async {
+        await inFlight.cancelAll()
     }
 
     /// Returns the disk tier for the active server, rebuilding it when the server changes.
@@ -66,53 +62,48 @@ package actor ImageLoader {
         guard let config = config.withLock({ $0 }) else { return nil }
         let diskKey = "\(prefix)\(width)/\(path)"
         let cacheKey = "\(config.machineIdentifier)/\(diskKey)"
-        let nsKey = cacheKey as NSString
 
-        if let cached = cache.object(forKey: nsKey) {
+        if let cached = cache.object(forKey: cacheKey as NSString) {
             return cached
         }
 
-        if let existing = inFlight[cacheKey] {
-            return await existing.task.value
+        return await inFlight.value(for: cacheKey) { [self] in
+            await fetch(config: config, path: path, width: width, height: height, diskKey: diskKey, cacheKey: cacheKey)
         }
+    }
 
+    /// Reads the disk tier, then the server, and stores the result in both caches. Runs once per key
+    /// while requests overlap; it is cancelled when the last caller waiting for it is cancelled.
+    private func fetch(config: Config, path: String, width: Int, height: Int, diskKey: String, cacheKey: String) async -> UIImage? {
         let disk = diskCache(namespace: config.machineIdentifier)
-        inFlightCounter &+= 1
-        let token = inFlightCounter
+        let nsKey = cacheKey as NSString
 
-        let task = Task<UIImage?, Never> {
-            defer { if inFlight[cacheKey]?.token == token { inFlight[cacheKey] = nil } }
-
-            if let cached = await disk.read(key: diskKey), let image = await Self.prepare(cached) {
-                cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
-                return image
-            }
-
-            guard let request = imageRequest(config: config, path: path, width: width, height: height) else {
-                return nil
-            }
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let http = response as? HTTPURLResponse else { return nil }
-                guard http.statusCode == 200 else {
-                    logger.error("Image request \(path, privacy: .public) returned HTTP \(http.statusCode)")
-                    return nil
-                }
-                guard let image = await Self.prepare(data) else {
-                    logger.error("Image request \(path, privacy: .public) returned undecodable data")
-                    return nil
-                }
-                disk.write(data, key: diskKey)
-                cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
-                return image
-            } catch {
-                logger.debug("Image request \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-                return nil
-            }
+        if let cached = await disk.read(key: diskKey), let image = await Self.prepare(cached) {
+            cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
+            return image
         }
 
-        inFlight[cacheKey] = (token, task)
-        return await task.value
+        guard let request = imageRequest(config: config, path: path, width: width, height: height) else {
+            return nil
+        }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return nil }
+            guard http.statusCode == 200 else {
+                logger.error("Image request \(path, privacy: .public) returned HTTP \(http.statusCode)")
+                return nil
+            }
+            guard let image = await Self.prepare(data) else {
+                logger.error("Image request \(path, privacy: .public) returned undecodable data")
+                return nil
+            }
+            disk.write(data, key: diskKey)
+            cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
+            return image
+        } catch {
+            logger.debug("Image request \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     private static func prepare(_ data: Data) async -> UIImage? {

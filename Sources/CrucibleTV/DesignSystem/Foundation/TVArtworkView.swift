@@ -57,7 +57,11 @@ final class TVArtworkView: UIImageView {
         let kind = kind
         loadTask = Task { [weak self] in
             let image = await TVImagePipeline.load(path: path, pointWidth: width, scale: scale, kind: kind)
-            guard !Task.isCancelled, let self, let image else { return }
+            guard !Task.isCancelled, let self else { return }
+            guard let image else {
+                self.loadTask = nil
+                return
+            }
             self.display(image)
         }
     }
