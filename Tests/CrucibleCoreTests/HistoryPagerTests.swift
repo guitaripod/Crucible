@@ -48,6 +48,26 @@ struct HistoryPagerTests {
         #expect(other.claimPrefetchPage() == nil)
     }
 
+    @Test func emptyPageEndsTheListEvenWhenTheTotalPromisesMore() {
+        var pager = loaded(offset: 50, total: 200)
+        _ = pager.claimPrefetchPage()
+        pager.beginLoading()
+        pager.finishLoading(offset: 50, count: 0, total: 200)
+        #expect(pager.offset == 50)
+        #expect(pager.total == 50)
+        #expect(!pager.hasMore)
+        #expect(pager.claimNextPage(visibleCount: 1, oldestViewedAt: nil, now: now) == nil)
+        #expect(pager.claimPrefetchPage() == nil)
+    }
+
+    @Test func emptyFirstPageWithAPromisedTotalShowsNoActivity() {
+        var pager = HistoryPager()
+        pager.beginLoading()
+        pager.finishLoading(offset: 0, count: 0, total: 30)
+        #expect(!pager.hasMore)
+        #expect(pager.emptyState(isEmpty: true, visibleIsEmpty: true, filter: .all) == .noActivity)
+    }
+
     @Test func reachingTheTotalStopsPaging() {
         let pager = loaded(offset: 50, total: 50)
         #expect(!pager.hasMore)

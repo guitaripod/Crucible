@@ -204,6 +204,23 @@ struct HistoryFeedTests {
         #expect(await server.historyStarts == [0])
     }
 
+    @Test func anEmptyLaterPageStopsPagingInsteadOfLoopingOnTheSameOffset() async {
+        let server = FakeHistoryServer(replies: [
+            .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
+            .page(HistoryFixtures.container(total: 100, rows: []))
+        ])
+        let (feed, _) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        feed.prefetchMore()
+        await settle(feed)
+        feed.prefetchMore()
+        feed.loadMoreIfNeeded(visibleCount: 1)
+        #expect(!feed.pager.isLoading)
+        #expect(await server.historyStarts == [0, 50])
+        #expect(feed.items.count == 50)
+    }
+
     @Test func refreshReplacesTheListFromTheTop() async {
         let server = FakeHistoryServer(replies: [
             .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),

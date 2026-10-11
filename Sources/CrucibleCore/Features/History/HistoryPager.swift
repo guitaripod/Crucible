@@ -32,9 +32,11 @@ package struct HistoryPager: Equatable, Sendable {
         isLoading = true
     }
 
+    /// A page with no rows ends the list even when `totalSize` promises more, so paging never refetches
+    /// the same offset forever.
     package mutating func finishLoading(offset pageOffset: Int, count: Int, total: Int?) {
-        self.total = total ?? 0
         offset = pageOffset + count
+        self.total = count == 0 ? offset : (total ?? 0)
         hasFailed = false
         isLoading = false
         isLoadingMore = false
