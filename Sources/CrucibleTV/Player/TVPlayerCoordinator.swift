@@ -276,7 +276,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     /// Stops the engine (final timeline report, transcode, cache invalidation) and, unless the
     /// system is already dismissing the player, dismisses it once that has finished so the screen
-    /// underneath reloads fresh watched state.
+    /// underneath reloads fresh watched state. Then refreshes the Top Shelf so Continue Watching
+    /// reflects what was just played.
     func finish(dismiss: Bool) async {
         guard !isFinishing else { return }
         isFinishing = true
@@ -286,6 +287,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         await session?.stop()
         dismissEverything(animated: dismiss)
         if Self.active === self { Self.active = nil }
+        TVTopShelfRefresher.refresh()
     }
 
     /// Takes the pre-roll and the player off screen, back to the screen that started playback.
