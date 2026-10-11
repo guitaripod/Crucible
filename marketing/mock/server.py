@@ -19,6 +19,7 @@ PORT = int(os.environ.get("PORT", "32400"))
 PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
 PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
 PLEXTV_SERVERS = os.environ.get("MOCK_PLEXTV_SERVERS", "")
+REJECT_TOKEN = False
 LIBRARY_PAD = int(os.environ.get("MOCK_LIBRARY_PAD", "0"))
 DEAD_ROUTE = "http://127.0.0.1:9"
 FLAGS = {
@@ -93,7 +94,9 @@ def pin_payload(pin, token=None):
 
 
 def configure_plextv(query):
-    global PIN_POLLS, PIN_LIFETIME, PLEXTV_SERVERS
+    global PIN_POLLS, PIN_LIFETIME, PLEXTV_SERVERS, REJECT_TOKEN
+    if "reject_token" in query:
+        REJECT_TOKEN = query["reject_token"][0] == "1"
     if "pin_polls" in query:
         PIN_POLLS = int(query["pin_polls"][0])
     if "pin_expires" in query:
@@ -101,7 +104,7 @@ def configure_plextv(query):
     if "servers" in query:
         PLEXTV_SERVERS = query["servers"][0]
     PINS.clear()
-    return {"pin_polls": PIN_POLLS, "pin_expires": PIN_LIFETIME, "servers": PLEXTV_SERVERS}
+    return {"pin_polls": PIN_POLLS, "pin_expires": PIN_LIFETIME, "servers": PLEXTV_SERVERS, "reject_token": REJECT_TOKEN}
 
 
 def pin_expired(pin):
@@ -430,6 +433,8 @@ class Handler(BaseHTTPRequestHandler):
             needle = one("contains", "")
             with LOCK:
                 return self.send_json({"count": sum(1 for entry in REQUEST_LOG if needle in entry)})
+        if REJECT_TOKEN and p not in ("/identity", "/") and not p.startswith("/mock/") and not p.startswith("/api/v2/pins"):
+            return self.send_json({"errors": [{"code": 1001, "message": "User could not be authenticated"}]}, 401)
 
         if p == "/mock/hubs":
             return self.set_hubs_mode(one("mode", "ok"))

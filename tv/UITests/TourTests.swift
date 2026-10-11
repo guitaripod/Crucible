@@ -6,6 +6,15 @@ final class TourTests: XCTestCase {
     private static let requiredTabs = ["Home", "Movies", "TV Shows", "Documentaries", "Search", "You"]
     private static let deadServer = "http://127.0.0.1:1"
 
+    /// Points the unreachable-server scenario at the mock's plex.tv: a token plex.tv accepts and no
+    /// other server to heal onto, so the launch gate is the plain "server unreachable" one.
+    private static func configurePlexTV(_ mock: String, query: String) {
+        guard let url = URL(string: "\(mock)/mock/plextv-config?\(query)") else { return }
+        let done = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: url) { _, _, _ in done.signal() }.resume()
+        _ = done.wait(timeout: .now() + 10)
+    }
+
     override func setUp() {
         continueAfterFailure = false
     }
@@ -37,7 +46,9 @@ final class TourTests: XCTestCase {
     }
 
     func testUnreachableServerOffersTryAgainAndSwitchServer() {
-        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_MOCK": Self.deadServer])
+        let mock = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""
+        Self.configurePlexTV(mock, query: "servers=none&reject_token=0")
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_MOCK": Self.deadServer, "CRUCIBLE_PLEXTV": mock])
         let retry = app.buttons["launch.retry"]
         let switchServer = app.buttons["launch.switchServer"]
         XCTAssertTrue(retry.waitForExistence(timeout: 90))
