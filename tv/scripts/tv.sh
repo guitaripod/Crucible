@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+
+source "$ROOT/scripts/slot-gate.sh"
 MAC=${MAC:-mac}
 NAME=${NAME:-CrucibleTV}
 REMOTE=Dev/ios/$NAME
@@ -116,15 +118,9 @@ sim_down() {
   fi
 }
 
-UITEST_SLOTS=3
-
-uitest_gate() {
-  printf '%s' 'slot=""; waited=""; while [ -z "$slot" ]; do for n in $(seq 1 '"$UITEST_SLOTS"'); do d=/tmp/crucible-uitest-slot-$n; if mkdir "$d" 2>/dev/null; then echo $$ > "$d/pid"; slot=$d; break; fi; p=$(cat "$d/pid" 2>/dev/null); if [ -n "$p" ] && ! kill -0 "$p" 2>/dev/null; then rm -rf "$d"; fi; done; if [ -z "$slot" ]; then [ -n "$waited" ] || echo "waiting for a UI test slot on the Mac" >&2; waited=1; sleep 4; fi; done; trap '"'"'rm -rf "$slot"'"'"' EXIT HUP INT TERM; '
-}
-
 xcodebuild_remote() {
-  local udid=$1 action=$2 logfile=$3 extra=${4:-} env_prefix=${5:-} gate=""
-  [[ $action != test ]] || gate=$(uitest_gate)
+  local udid=$1 action=$2 logfile=$3 extra=${4:-} env_prefix=${5:-} gate
+  if [[ $action == test ]]; then gate=$(uitest_gate); else gate=$(build_gate); fi
   remote "$gate mkdir -p .tvlogs && set +e && $env_prefix xcodebuild -project tv/CrucibleTV.xcodeproj -scheme $SCHEME \
     -destination 'platform=tvOS Simulator,id=$udid' -derivedDataPath $DERIVED ARCHS=arm64 ONLY_ACTIVE_ARCH=YES $extra $action \
     > .tvlogs/$logfile 2>&1; rc=\$?; \

@@ -6,6 +6,8 @@ MAC=${MAC:-mac}
 NAME=${NAME:-CrucibleTV}
 REMOTE=Dev/ios/$NAME
 
+source "$ROOT/scripts/slot-gate.sh"
+
 usage() {
   cat << 'USAGE'
 Build and test Crucible on the Mac (the only host with the Apple SDKs).
@@ -42,14 +44,14 @@ summarize() {
 
 xcode_build() {
   local scheme=$1 destination=$2 derived=$3
-  remote "xcodebuild -scheme $scheme -destination '$destination' -derivedDataPath $derived ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build 2>&1" | summarize
+  remote "$(build_gate) xcodebuild -scheme $scheme -destination '$destination' -derivedDataPath $derived ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build 2>&1" | summarize
 }
 
 case "${1:-}" in
   sync) sync_tree ;;
   ios) sync_tree; xcode_build Crucible "generic/platform=iOS Simulator" .dd-ios ;;
   tvlib) sync_tree; xcode_build CrucibleTV "generic/platform=tvOS Simulator" .dd-tv ;;
-  core-test) sync_tree; remote "CRUCIBLE_CORE_ONLY=1 swift test --scratch-path .build-core 2>&1" | summarize ;;
+  core-test) sync_tree; remote "$(build_gate) CRUCIBLE_CORE_ONLY=1 swift test --scratch-path .build-core 2>&1" | summarize ;;
   sh) shift; sync_tree; remote "$*" ;;
   *) usage; exit 2 ;;
 esac
