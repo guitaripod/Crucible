@@ -118,6 +118,12 @@ package actor APIClient {
         _ = try await requestRaw(endpoint)
     }
 
+    /// Like `requestVoid`, but an answer outside 2xx is a failure too: for calls whose outcome the viewer is told about.
+    package func requestConfirmed(_ endpoint: PlexEndpoint) async throws {
+        let (data, response) = try await requestRaw(endpoint)
+        try Self.validateStatus(response.statusCode, data: data)
+    }
+
     private func cachedContainer(forKey key: String) -> PlexMediaContainer? {
         guard let entry = containerCache[key] else { return nil }
         if Date().timeIntervalSince(entry.at) > Self.cacheTTL {

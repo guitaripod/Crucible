@@ -32,6 +32,22 @@ struct DetailWatchedServiceTests {
         #expect(server.requests == ["/:/unscrobble"])
     }
 
+    @Test func aRefusedMarkIsAFailureEvenWhenTheServerAnswers() async throws {
+        let api = server.client
+        server.reply(path: "/library/metadata/1", items: [DetailFixtures.item()])
+        _ = try await api.requestContainer(.metadata(ratingKey: "1"))
+        server.reply(path: "/:/scrobble", status: 404)
+        await #expect(throws: APIError.self) {
+            try await WatchedService.setWatched(true, ratingKey: "1", api: api)
+        }
+        server.reply(path: "/:/unscrobble", status: 403)
+        await #expect(throws: APIError.self) {
+            try await WatchedService.setWatched(false, ratingKey: "1", api: api)
+        }
+        _ = try await api.requestContainer(.metadata(ratingKey: "1"))
+        #expect(metadataHits() == 1)
+    }
+
     @Test func aFailedRequestRethrowsAndKeepsTheCache() async throws {
         let api = server.client
         server.reply(path: "/library/metadata/1", items: [DetailFixtures.item()])

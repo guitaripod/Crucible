@@ -12,9 +12,9 @@ package enum WatchedService {
     package static func setWatched(_ watched: Bool, ratingKey: String, api: APIClient) async throws {
         do {
             if watched {
-                try await api.requestVoid(.scrobble(ratingKey: ratingKey))
+                try await api.requestConfirmed(.scrobble(ratingKey: ratingKey))
             } else {
-                try await api.requestVoid(.unscrobble(ratingKey: ratingKey))
+                try await api.requestConfirmed(.unscrobble(ratingKey: ratingKey))
             }
             await api.invalidateCache()
         } catch {

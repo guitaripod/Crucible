@@ -63,6 +63,16 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         host ?? self
     }
 
+    /// TODO(ds): `TVNavigation.push` refuses while the presenter has a presented controller, and the
+    /// search container always presents its `UISearchController`; this repeats its guard without that test.
+    private func push(_ screen: UIViewController) {
+        guard let navigation = navigator.navigationController,
+              navigation.topViewController === navigator,
+              navigation.transitionCoordinator == nil
+        else { return }
+        navigation.pushViewController(screen, animated: TVMotion.animationsEnabled)
+    }
+
     private func render(_ state: SearchState) {
         switch state {
         case .idle(let content):
@@ -339,7 +349,7 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
         case .genre(let genre):
-            TVNavigation.push(TVGenreBrowseViewController(env: env, genre: genre), from: navigator)
+            push(TVGenreBrowseViewController(env: env, genre: genre))
         case .recentlyAdded(let metadata):
             open(metadata)
         case .movie(let metadata), .show(let metadata), .episode(let metadata):
@@ -390,11 +400,11 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         case .episode(let ratingKey, _, _):
             screen = TVScreens.movieDetail(env, ratingKey: ratingKey, mediaType: "episode")
         }
-        TVNavigation.push(screen, from: navigator)
+        push(screen)
     }
 
     private func openShow(_ showKey: String) {
-        TVNavigation.push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), from: navigator)
+        push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil))
     }
 
     private func play(_ item: PlexMetadata) {

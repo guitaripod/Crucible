@@ -378,14 +378,14 @@ final class SearchTests: XCTestCase {
     }
 
     private nonisolated static func setLatency(milliseconds: Int) {
-        _ = try? Data(contentsOf: URL(string: "\(mock.absoluteString)/mock/flags?latency_ms=\(milliseconds)")!)
+        TVTest.fetch(URL(string: "\(mock.absoluteString)/mock/flags?latency_ms=\(milliseconds)")!)
     }
 
     /// How many requests for the Movies library listing starting at `offset` the mock has seen.
     private func moviePageRequests(startingAt offset: Int) throws -> Int {
         var components = try XCTUnwrap(URLComponents(string: Self.mock.absoluteString + "/mock/requests"))
         components.queryItems = [URLQueryItem(name: "contains", value: "/library/sections/1/all?X-Plex-Container-Start=\(offset)&")]
-        let data = try Data(contentsOf: try XCTUnwrap(components.url))
+        let data = try XCTUnwrap(TVTest.fetch(try XCTUnwrap(components.url)))
         let object = try JSONSerialization.jsonObject(with: data) as? [String: Int]
         return try XCTUnwrap(object?["count"])
     }
