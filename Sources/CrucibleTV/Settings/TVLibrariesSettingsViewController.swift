@@ -9,12 +9,12 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     private static let resetID = "libraries.reset"
 
     private let api: APIClient
-    private var loadTask: Task<Void, Never>?
+    private lazy var loadSlot = makeTaskSlot()
     private var observer: UUID?
 
     init(api: APIClient) {
         self.api = api
-        super.init(nibName: nil, bundle: nil)
+        super.init()
         title = "Libraries"
     }
 
@@ -22,7 +22,6 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
-        loadTask?.cancel()
         if let observer {
             Task { @MainActor in LibraryVisibility.removeObserver(observer) }
         }
@@ -30,11 +29,10 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let heading = TVSettingsHeadingView(
+        installHeading(TVSettingsHeading(
             title: "Libraries",
             body: LibrariesSettings.footerText + " Libraries you switch off also leave the tab bar."
-        )
-        installHeading(heading)
+        ))
         observer = LibraryVisibility.addObserver { [weak self] in self?.render() }
         render()
     }
@@ -42,11 +40,6 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         load()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        loadTask?.cancel()
     }
 
     override func rowDidSelect(_ id: String) {
@@ -60,11 +53,10 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     }
 
     private func load() {
-        loadTask?.cancel()
         if LibrariesSettings.isLoading {
-            showState(.loading(title: LibrariesSettings.loadingTitle))
+            presentState(.loading(title: LibrariesSettings.loadingTitle))
         }
-        loadTask = Task { [weak self, api] in
+        loadSlot.run { [weak self, api] in
             await LibrariesSettings.refresh(api: api)
             guard !Task.isCancelled else { return }
             self?.render(afterLoad: true)
@@ -74,15 +66,17 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     private func render(afterLoad: Bool = false) {
         guard !LibrariesSettings.isLoading else {
             if afterLoad {
-                showState(.error(
-                    title: "Couldn't Load Libraries",
+                presentState(.error(
+                    title: "Couldn’t Load Libraries",
                     message: "Check the connection to your server and try again.",
-                    retryTitle: "Try Again"
-                ) { [weak self] in self?.load() })
+                    retryTitle: "Try Again",
+                    retry: { [weak self] in self?.load() },
+                    secondary: nil
+                ))
             }
             return
         }
-        showState(nil)
+        presentState(nil)
         var rows = LibrariesSettings.rows.map { row in
             TVRowItem(
                 id: "library.\(row.id)",

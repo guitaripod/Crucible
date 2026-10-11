@@ -7,7 +7,7 @@ import UIKit
 final class TVProfilePanelView: TVReadOnlyPanel {
     private let avatar = MonogramView()
     private let nameLabel = UILabel()
-    private let statusDot = UIView()
+    private let statusDot = TVStatusDot(color: Theme.Color.labelTertiary)
     private let statusLabel = UILabel()
 
     override init(frame: CGRect) {
@@ -22,7 +22,7 @@ final class TVProfilePanelView: TVReadOnlyPanel {
         avatar.configure(name: profile.name)
         nameLabel.text = profile.name
         statusLabel.text = profile.statusText
-        statusDot.backgroundColor = profile.tone.color
+        statusDot.setColor(profile.tone.color)
         accessibilityLabel = "\(profile.name), \(profile.statusText)"
     }
 
@@ -33,12 +33,6 @@ final class TVProfilePanelView: TVReadOnlyPanel {
         nameLabel.adjustsFontSizeToFitWidth = true
         nameLabel.minimumScaleFactor = 0.6
 
-        statusDot.layer.cornerRadius = 8
-        statusDot.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            statusDot.widthAnchor.constraint(equalToConstant: 16),
-            statusDot.heightAnchor.constraint(equalToConstant: 16),
-        ])
         statusLabel.font = Theme.Font.callout
         statusLabel.textColor = Theme.Color.labelSecondary
         statusLabel.numberOfLines = 2

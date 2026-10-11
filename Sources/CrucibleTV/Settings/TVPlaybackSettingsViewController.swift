@@ -6,7 +6,7 @@ import UIKit
 final class TVPlaybackSettingsViewController: TVSettingsScaffold {
     private static let intro = "How Crucible plays what you pick from your server."
 
-    private let heading = TVSettingsHeadingView(title: "Playback", body: TVPlaybackSettingsViewController.intro)
+    private let heading = TVSettingsHeading(title: "Playback", body: TVPlaybackSettingsViewController.intro)
 
     private static let symbols: [PreferenceSetting: String] = [
         .streamingQuality: "dial.high",
@@ -32,7 +32,7 @@ final class TVPlaybackSettingsViewController: TVSettingsScaffold {
         guard let setting = Self.settings.first(where: { Self.rowID($0) == id }) else { return }
         switch setting.control {
         case .choice:
-            navigationController?.pushViewController(TVSettingsChoiceViewController(setting: setting), animated: true)
+            TVNavigation.push(TVSettingsChoiceViewController(setting: setting), from: self)
         case .toggle(let isOn):
             setting.setOn(!isOn)
             refreshRows()
@@ -68,7 +68,7 @@ final class TVSettingsChoiceViewController: TVSettingsScaffold {
 
     init(setting: PreferenceSetting) {
         self.setting = setting
-        super.init(nibName: nil, bundle: nil)
+        super.init()
         title = setting.title
     }
 
@@ -81,7 +81,7 @@ final class TVSettingsChoiceViewController: TVSettingsScaffold {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let heading = TVSettingsHeadingView(title: setting.title, body: setting.explanation)
+        let heading = TVSettingsHeading(title: setting.title, body: setting.explanation)
         installHeading(heading)
         refreshRows()
     }

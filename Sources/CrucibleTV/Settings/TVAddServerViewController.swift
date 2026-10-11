@@ -27,7 +27,7 @@ final class TVAddServerViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.canvas
 
-        let heading = TVSettingsHeadingView(
+        let heading = TVSettingsHeading(
             title: "Add Server by Address",
             body: "Enter an IP address, hostname or full URL. The default port is 32400."
         )

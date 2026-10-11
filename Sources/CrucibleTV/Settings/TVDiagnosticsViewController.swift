@@ -5,14 +5,14 @@ import UIKit
 /// Diagnostics: the newest lines of the app log in a monospaced viewer you scroll by focusing it and
 /// swiping, with the log's counts and the image cache size beside it.
 final class TVDiagnosticsViewController: UIViewController {
-    private let logView = TVLogTextView()
+    private let logView = TVLogView()
     private let linesValue = UILabel()
     private let errorsValue = UILabel()
     private let sizeValue = UILabel()
     private let cacheValue = UILabel()
     private lazy var refreshButton = TVButton.make(.glass, title: "Refresh Log", symbol: "arrow.clockwise") { [weak self] in self?.reload() }
     private lazy var clearButton = TVButton.make(.glass, title: "Clear Image Cache", symbol: "trash") { [weak self] in self?.confirmClearCache() }
-    private var loadTask: Task<Void, Never>?
+    private let loadSlot = TVTaskSlot()
     private var hasShownLog = false
 
     init() {
@@ -23,19 +23,15 @@ final class TVDiagnosticsViewController: UIViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit {
-        loadTask?.cancel()
-    }
-
-    override var preferredFocusEnvironments: [UIFocusEnvironment] { [logView] }
+    override var preferredFocusEnvironments: [UIFocusEnvironment] { [logView.scrollView] }
 
     /// A click Up or Down while the log is focused reads one page further in that direction; only
     /// at the end of the log does the click move the focus on.
     override func shouldUpdateFocus(in context: UIFocusUpdateContext) -> Bool {
-        guard context.previouslyFocusedItem === logView else { return true }
+        guard context.previouslyFocusedItem === logView.scrollView else { return true }
         switch context.focusHeading {
-        case .up: return !logView.scrollPage(towardsStart: true)
-        case .down: return !logView.scrollPage(towardsStart: false)
+        case .up: return !logView.scrollView.scrollPage(towardsStart: true)
+        case .down: return !logView.scrollView.scrollPage(towardsStart: false)
         default: return true
         }
     }
@@ -55,11 +51,11 @@ final class TVDiagnosticsViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        loadTask?.cancel()
+        loadSlot.cancel()
     }
 
     private func buildHierarchy() {
-        let heading = TVSettingsHeadingView(title: "Diagnostics", body: "The newest lines of Crucible's log. Focus the log and swipe to read older entries.")
+        let heading = TVSettingsHeading(title: "Diagnostics", body: "The newest lines of Crucible’s log. Focus the log and swipe to read older entries.")
 
         let statRows = UIStackView(arrangedSubviews: [
             statRow("Log lines", linesValue),
@@ -71,14 +67,13 @@ final class TVDiagnosticsViewController: UIViewController {
         statRows.spacing = Theme.Space.xs
         let stats = TVReadOnlyPanel(wrapping: statRows) { [weak self] in self?.spokenCounts }
         stats.accessibilityIdentifier = "diagnostics.counts"
-        let headingPanel = TVReadOnlyPanel(wrapping: heading) { [weak heading] in heading?.spokenText }
 
         let buttons = UIStackView(arrangedSubviews: [refreshButton, clearButton])
         buttons.axis = .vertical
         buttons.alignment = .leading
         buttons.spacing = Theme.Space.s
 
-        let left = UIStackView(arrangedSubviews: [headingPanel, stats, buttons])
+        let left = UIStackView(arrangedSubviews: [heading, stats, buttons])
         left.axis = .vertical
         left.spacing = Theme.Space.l
         left.alignment = .fill
@@ -95,7 +90,7 @@ final class TVDiagnosticsViewController: UIViewController {
             logView.leadingAnchor.constraint(equalTo: left.trailingAnchor, constant: TVSettingsScaffold.Layout.columnGap),
             logView.trailingAnchor.constraint(equalTo: guide.trailingAnchor),
             logView.topAnchor.constraint(equalTo: view.topAnchor, constant: TVSettingsScaffold.Layout.contentTop),
-            logView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -TVSettingsScaffold.Layout.contentBottom),
+            logView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -TVMetrics.topInset),
         ])
     }
 
@@ -119,8 +114,7 @@ final class TVDiagnosticsViewController: UIViewController {
     }
 
     private func reload() {
-        loadTask?.cancel()
-        loadTask = Task { [weak self] in
+        loadSlot.run { [weak self] in
             async let tail = LogTail.read()
             async let cacheBytes = ImageCacheMeter.totalBytes()
             let (newTail, newBytes) = await (tail, cacheBytes)
@@ -150,35 +144,80 @@ final class TVDiagnosticsViewController: UIViewController {
     }
 
     private func confirmClearCache() {
-        let alert = UIAlertController(
+        presentConfirmation(
             title: "Clear Image Cache?",
             message: "Posters and backdrops will be downloaded again as you browse.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Clear", style: .destructive) { [weak self] _ in
+            confirmTitle: "Clear"
+        ) { [weak self] in
             Task { [weak self] in
                 await ImageLoader.shared.clearCache()
                 self?.reload()
             }
-        })
-        present(alert, animated: true)
+        }
+    }
+}
+
+/// The log's plate: it lifts, brightens and gets an ember rim while the scroll view inside it is
+/// focused, with the same lift as every other focusable plate.
+final class TVLogView: UIView {
+    let scrollView = TVLogScrollView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        layer.cornerRadius = Theme.Radius.m
+        layer.cornerCurve = .continuous
+        layer.borderWidth = 2
+        TVFocusLift.prepare(self)
+        scrollView.layer.cornerRadius = Theme.Radius.m
+        scrollView.layer.cornerCurve = .continuous
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+        ])
+        scrollView.onFocusChange = { [weak self] focused, coordinator in
+            guard let self else { return }
+            TVFocusLift.animate(self, focused: focused, with: coordinator) { self.applyAppearance(focused: focused) }
+        }
+        applyAppearance(focused: false)
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: TVLogView, _: UITraitCollection) in
+            view.applyAppearance(focused: view.scrollView.isFocused)
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    func show(_ tail: LogTail) {
+        scrollView.show(tail)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        TVFocusLift.updateShadowPath(of: self, cornerRadius: Theme.Radius.m)
+    }
+
+    private func applyAppearance(focused: Bool) {
+        backgroundColor = focused ? Theme.Color.surfaceHigh : Theme.Color.surface
+        layer.borderColor = (focused ? Theme.Color.accent : Theme.Color.separator).resolvedColor(with: traitCollection).cgColor
     }
 }
 
 /// A read-only, scrollable log. tvOS scrolls a focused scroll view with the remote's touch surface,
-/// so the log itself takes the focus; the plate brightens and gets an ember rim while focused.
-final class TVLogTextView: UIScrollView {
+/// so the log itself takes the focus.
+final class TVLogScrollView: UIScrollView {
     private static let emptyText = "No log entries yet."
+
+    var onFocusChange: ((Bool, UIFocusAnimationCoordinator) -> Void)?
 
     private let label = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         showsVerticalScrollIndicator = false
-        layer.cornerRadius = Theme.Radius.m
-        layer.cornerCurve = .continuous
-        layer.borderWidth = 2
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
@@ -194,10 +233,6 @@ final class TVLogTextView: UIScrollView {
         accessibilityTraits = .staticText
         accessibilityIdentifier = "diagnostics.log"
         accessibilityLabel = "Log"
-        applyAppearance(focused: false)
-        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: TVLogTextView, _: UITraitCollection) in
-            view.applyAppearance(focused: view.isFocused)
-        }
     }
 
     @available(*, unavailable)
@@ -213,12 +248,12 @@ final class TVLogTextView: UIScrollView {
         let page = bounds.height * 0.85
         let target = towardsStart ? max(minimum, contentOffset.y - page) : min(maximum, contentOffset.y + page)
         guard abs(target - contentOffset.y) > 0.5 else { return false }
-        setContentOffset(CGPoint(x: 0, y: target), animated: !UIAccessibility.isReduceMotionEnabled)
+        setContentOffset(CGPoint(x: 0, y: target), animated: TVMotion.animationsEnabled)
         return true
     }
 
     func show(_ tail: LogTail) {
-        let font = UIFont.monospacedSystemFont(ofSize: 23, weight: .regular)
+        let font = TVFont.mono(size: 23)
         guard !tail.isEmpty else {
             label.attributedText = NSAttributedString(string: Self.emptyText, attributes: [.font: font, .foregroundColor: Theme.Color.labelSecondary])
             accessibilityValue = Self.emptyText
@@ -240,12 +275,6 @@ final class TVLogTextView: UIScrollView {
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
-        let focused = context.nextFocusedView === self
-        coordinator.addCoordinatedAnimations({ self.applyAppearance(focused: focused) })
-    }
-
-    private func applyAppearance(focused: Bool) {
-        backgroundColor = focused ? Theme.Color.surfaceHigh : Theme.Color.surface
-        layer.borderColor = (focused ? Theme.Color.accent : Theme.Color.separator).resolvedColor(with: traitCollection).cgColor
+        onFocusChange?(context.nextFocusedView === self, coordinator)
     }
 }

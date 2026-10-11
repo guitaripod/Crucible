@@ -23,13 +23,13 @@ final class TVYouViewController: TVSettingsScaffold {
     private let yearGuide = UIFocusGuide()
     private var accountName = PlexAccountName.fallbackName
     private var historySubtitle: String?
-    private var loadTask: Task<Void, Never>?
+    private lazy var remoteContentSlot = makeTaskSlot()
     private var remoteContentThrottle = ReloadThrottle(interval: 60)
     private var libraryObserver: UUID?
 
     init(env: TVAppEnvironment) {
         self.env = env
-        super.init(nibName: nil, bundle: nil)
+        super.init()
         title = "You"
     }
 
@@ -37,7 +37,6 @@ final class TVYouViewController: TVSettingsScaffold {
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
-        loadTask?.cancel()
         if let libraryObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(libraryObserver) }
         }
@@ -58,16 +57,10 @@ final class TVYouViewController: TVSettingsScaffold {
         refreshProfile()
         refreshRows()
         YouConnectionStatus.shared.refresh(api: env.api)
-        loadTask?.cancel()
         guard !remoteContentThrottle.isFresh() else { return }
-        loadTask = Task { [weak self] in
+        remoteContentSlot.run { [weak self] in
             await self?.loadRemoteContent()
         }
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        loadTask?.cancel()
     }
 
     override func rowDidSelect(_ id: String) {
@@ -85,7 +78,7 @@ final class TVYouViewController: TVSettingsScaffold {
     }
 
     private func push(_ screen: UIViewController) {
-        navigationController?.pushViewController(screen, animated: true)
+        TVNavigation.push(screen, from: self)
     }
 
     private func buildContextColumn() {
@@ -157,11 +150,8 @@ final class TVYouViewController: TVSettingsScaffold {
     }
 
     private func confirmSignOut() {
-        let alert = UIAlertController(title: "Sign Out", message: "Are you sure you want to sign out?", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [session = env.session] _ in
+        presentConfirmation(title: "Sign Out", message: "Are you sure you want to sign out?", confirmTitle: "Sign Out") { [session = env.session] in
             session.signOut()
-        })
-        present(alert, animated: true)
+        }
     }
 }

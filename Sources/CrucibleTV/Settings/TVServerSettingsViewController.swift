@@ -20,7 +20,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
 
     init(env: TVAppEnvironment) {
         self.env = env
-        super.init(nibName: nil, bundle: nil)
+        super.init()
         title = "Server & Connection"
     }
 
@@ -56,7 +56,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
         case RowID.allowRelay:
             flip(.allowRelayConnection)
         case RowID.addServer:
-            navigationController?.pushViewController(TVAddServerViewController(env: env), animated: true)
+            TVNavigation.push(TVAddServerViewController(env: env), from: self)
         case RowID.switchServer:
             env.session.switchServer()
         default:
@@ -108,7 +108,7 @@ final class TVServerCardView: TVReadOnlyPanel {
     private let iconWell = UIImageView(image: UIImage(systemName: "server.rack"))
     private let nameLabel = UILabel()
     private let subtitleLabel = UILabel()
-    private let statusDot = UIView()
+    private let statusDot = TVStatusDot(color: Theme.Color.labelTertiary)
     private let statusLabel = UILabel()
 
     override init(frame: CGRect) {
@@ -123,7 +123,7 @@ final class TVServerCardView: TVReadOnlyPanel {
         nameLabel.text = card.name
         subtitleLabel.text = card.subtitle
         statusLabel.text = card.status
-        statusDot.backgroundColor = card.tone.color
+        statusDot.setColor(card.tone.color)
         accessibilityLabel = "\(card.name), \(card.subtitle), \(card.status)"
     }
 
@@ -149,12 +149,6 @@ final class TVServerCardView: TVReadOnlyPanel {
         subtitleLabel.textColor = Theme.Color.labelSecondary
         subtitleLabel.numberOfLines = 2
 
-        statusDot.layer.cornerRadius = 8
-        statusDot.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            statusDot.widthAnchor.constraint(equalToConstant: 16),
-            statusDot.heightAnchor.constraint(equalToConstant: 16),
-        ])
         statusLabel.font = Theme.Font.callout
         statusLabel.textColor = Theme.Color.label
         statusLabel.numberOfLines = 0
