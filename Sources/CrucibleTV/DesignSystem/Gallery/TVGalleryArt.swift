@@ -9,11 +9,13 @@ enum TVGalleryArt {
 
     static let provider: TVImagePipeline.Provider = { path, pixelWidth, kind in
         guard path.hasPrefix(scheme) else { return nil }
+        let shouldFail = await TVGalleryRequests.shared.record(path: path, pixelWidth: pixelWidth, kind: kind)
+        if shouldFail { return nil }
         let parts = path.dropFirst(scheme.count).split(separator: "/", maxSplits: 1).map(String.init)
         guard parts.count == 2 else { return nil }
         let width = CGFloat(max(pixelWidth, 64))
         switch parts[0] {
-        case "backdrop": return backdrop(seed: parts[1], size: CGSize(width: width, height: (width * 9 / 16).rounded()))
+        case "backdrop", "flaky-backdrop": return backdrop(seed: parts[1], size: CGSize(width: width, height: (width * 9 / 16).rounded()))
         case "person": return portrait(seed: parts[1], size: CGSize(width: width, height: width))
         default: return poster(seed: parts[1], size: CGSize(width: width, height: (width * 1.5).rounded()))
         }
@@ -150,6 +152,24 @@ enum TVGalleryArt {
             context.addPath(path.cgPath)
             context.fillPath()
         }
+    }
+}
+
+/// Records every fixture image request and fails the first request of each `fixture://flaky-...`
+/// path, so the retry behaviour of artwork and backdrop views can be checked without a server.
+actor TVGalleryRequests {
+    static let shared = TVGalleryRequests()
+
+    private var failedOnce: Set<String> = []
+    private(set) var lines: [String] = []
+
+    func record(path: String, pixelWidth: Int, kind: TVImagePipeline.Kind) -> Bool {
+        let name = path.dropFirst(TVGalleryArt.scheme.count)
+        lines.append("\(kind == .poster ? "poster" : "backdrop") \(pixelWidth)px \(name)")
+        guard name.hasPrefix("flaky-"), !failedOnce.contains(path) else { return false }
+        failedOnce.insert(path)
+        lines[lines.count - 1] += " FAILED"
+        return true
     }
 }
 #endif

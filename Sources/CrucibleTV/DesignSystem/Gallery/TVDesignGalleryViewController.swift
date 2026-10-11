@@ -5,7 +5,7 @@ import UIKit
 /// Every design-system component on one scrolling screen, fed by fixtures only. Launch the app with
 /// `CRUCIBLE_GALLERY=1` (optionally `CRUCIBLE_GALLERY_STYLE=light`). Focus on a Continue Watching card
 /// drives the hero text and the backdrop exactly like Home will.
-final class TVDesignGalleryViewController: UIViewController, UICollectionViewDelegate {
+final class TVDesignGalleryViewController: TVScreenViewController {
     private enum Section: Int, CaseIterable {
         case hero
         case continueWatching
@@ -16,6 +16,7 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         case libraries
         case chips
         case buttons
+        case helpers
         case settings
         case surface
         case grid
@@ -32,6 +33,7 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
             case .libraries: TVSectionHeader(title: "Libraries")
             case .chips: TVSectionHeader(title: "Chips")
             case .buttons: TVSectionHeader(title: "Buttons")
+            case .helpers: TVSectionHeader(title: "Helpers")
             case .settings: TVSectionHeader(title: "Settings Rows")
             case .surface: TVSectionHeader(title: "Focusable Surface")
             case .grid: TVSectionHeader(title: "Grid", secondaryText: "6 columns")
@@ -51,38 +53,42 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         case library(TVTileItem)
         case chip(TVChipItem)
         case buttons
+        case helpers
         case row(TVRowItem)
         case surface
         case state(Int)
     }
 
     private let backdrop = TVBackdropView()
-    private lazy var collectionView = TVCollectionView(frame: .zero, collectionViewLayout: makeLayout())
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var chips = TVGalleryFixtures.chips
     private var rows = TVGalleryFixtures.rows
     private var currentHero = TVGalleryFixtures.continueWatching[0].hero
-    private let focusMemory = TVFocusMemory()
+    private var surfaceSelections = 0
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        TVImagePipeline.provider = TVGalleryArt.provider
-        view.backgroundColor = Theme.Color.canvas
+    init() {
+        super.init(layout: UICollectionViewLayout())
+        collectionView.collectionViewLayout = makeLayout()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func installViews() {
         backdrop.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.delegate = self
         view.addSubview(backdrop)
-        view.addSubview(collectionView)
         NSLayoutConstraint.activate([
             backdrop.topAnchor.constraint(equalTo: view.topAnchor),
             backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
+        super.installViews()
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        TVImagePipeline.provider = TVGalleryArt.provider
         configureDataSource()
         applySnapshot()
         backdrop.show(path: TVGalleryFixtures.continueWatching[0].backdropPath)
@@ -109,6 +115,7 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         case .libraries: return TVShelf.library()
         case .chips: return TVShelf.chips(header: true)
         case .buttons: return fixedShelf(widths: [1760], height: 140, header: true)
+        case .helpers: return fixedShelf(widths: [1760], height: 520, header: true)
         case .settings:
             let list = TVRowList.section(environment: environment)
             let trailing = max(0, environment.container.effectiveContentSize.width - 900)
@@ -160,9 +167,21 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         let genre = TVGenreCell.registration()
         let library = TVLibraryTile.registration()
         let chip = TVChipCell.registration { [weak self] item in self?.select(chip: item) }
-        let buttons = UICollectionView.CellRegistration<GalleryButtonsCell, Int> { _, _, _ in }
+        let buttons = TVHostCell.registration { (_: Int) -> UIView in GalleryButtonsView() }
+        let helpers = TVHostCell.registration { [weak self] (_: Int) -> UIView in
+            GalleryHelpersView(onAlert: { self?.presentAlert(title: "Couldn’t Mark Watched", message: "Marcus-PC didn’t answer.") })
+        }
         let row = TVRowCell.registration()
-        let surface = UICollectionView.CellRegistration<GallerySurfaceCell, Int> { _, _, _ in }
+        let surface = TVHostCell.registration { [weak self] (_: Int) -> UIView in
+            let tile = GalleryStatsTile()
+            tile.accessibilityIdentifier = "gallery.surface.tile"
+            tile.addAction(UIAction { [weak self, weak tile] _ in
+                guard let self else { return }
+                self.surfaceSelections += 1
+                tile?.showSelections(self.surfaceSelections)
+            }, for: .primaryActionTriggered)
+            return tile
+        }
         let state = UICollectionView.CellRegistration<GalleryStateCell, Int> { cell, _, index in cell.configure(index: index) }
         let header = TVSectionHeaderView.registration { indexPath in Section(rawValue: indexPath.section)?.header }
 
@@ -178,6 +197,7 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
             case .library(let data): cell = collectionView.dequeueConfiguredReusableCell(using: library, for: indexPath, item: data)
             case .chip(let data): cell = collectionView.dequeueConfiguredReusableCell(using: chip, for: indexPath, item: data)
             case .buttons: cell = collectionView.dequeueConfiguredReusableCell(using: buttons, for: indexPath, item: 0)
+            case .helpers: cell = collectionView.dequeueConfiguredReusableCell(using: helpers, for: indexPath, item: 0)
             case .row(let data): cell = collectionView.dequeueConfiguredReusableCell(using: row, for: indexPath, item: data)
             case .surface: cell = collectionView.dequeueConfiguredReusableCell(using: surface, for: indexPath, item: 0)
             case .state(let index): cell = collectionView.dequeueConfiguredReusableCell(using: state, for: indexPath, item: index)
@@ -207,11 +227,13 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         snapshot.appendItems(TVGalleryFixtures.libraries.map { .library($0) }, toSection: .libraries)
         snapshot.appendItems(chips.map { .chip($0) }, toSection: .chips)
         snapshot.appendItems([.buttons], toSection: .buttons)
+        snapshot.appendItems([.helpers], toSection: .helpers)
         snapshot.appendItems(rows.map { .row($0) }, toSection: .settings)
         snapshot.appendItems([.surface], toSection: .surface)
         snapshot.appendItems(TVGalleryFixtures.gridPosters.map { .gridPoster($0) }, toSection: .grid)
         snapshot.appendItems([.state(0), .state(1), .state(2)], toSection: .states)
         dataSource.apply(snapshot, animatingDifferences: false)
+        adopt(dataSource)
     }
 
     private func select(chip selected: TVChipItem) {
@@ -219,7 +241,7 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         var snapshot = dataSource.snapshot()
         snapshot.deleteItems(snapshot.itemIdentifiers(inSection: .chips))
         snapshot.appendItems(chips.map { .chip($0) }, toSection: .chips)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.applyReconfiguringExisting(snapshot)
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -230,15 +252,11 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
         var snapshot = dataSource.snapshot()
         snapshot.deleteItems(snapshot.itemIdentifiers(inSection: .settings))
         snapshot.appendItems(rows.map { .row($0) }, toSection: .settings)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.applyReconfiguringExisting(snapshot)
     }
 
-    func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
-        focusMemory.preferredIndexPath(in: collectionView)
-    }
-
-    func collectionView(_ collectionView: UICollectionView, didUpdateFocusIn context: UICollectionViewFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
-        focusMemory.record(context)
+    override func collectionView(_ collectionView: UICollectionView, didUpdateFocusIn context: UICollectionViewFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.collectionView(collectionView, didUpdateFocusIn: context, with: coordinator)
         guard let next = context.nextFocusedIndexPath,
               case .landscape(let card)? = dataSource.itemIdentifier(for: next),
               let feature = TVGalleryFixtures.feature(for: card.id)
@@ -270,65 +288,15 @@ final class TVDesignGalleryViewController: UIViewController, UICollectionViewDel
     }
 }
 
-private final class GalleryButtonsCell: UICollectionViewCell {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundConfiguration = .clear()
-        clipsToBounds = false
-        contentView.clipsToBounds = false
-        let menu = UIMenu(title: "", children: ["English (Atmos 5.1)", "French (Stereo)"].map { UIAction(title: $0) { _ in } })
-        let buttons = [
-            TVButton.make(.primary, title: "Resume · 42m left", symbol: "play.fill") {},
-            TVButton.make(.glass, title: "Start Over", symbol: "gobackward") {},
-            TVButton.make(.glass, title: "Mark Watched", symbol: "checkmark") {},
-            TVButton.menuButton(title: "Audio", menu: menu),
-            TVButton.make(.plain, title: "More", symbol: "chevron.right", symbolTrailing: true) {},
-        ]
-        for (index, button) in buttons.enumerated() { button.accessibilityIdentifier = "gallery.button.\(index)" }
-        let stack = UIStackView(arrangedSubviews: buttons + [UIView()])
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = Theme.Space.m
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            stack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var canBecomeFocused: Bool { false }
-}
-
-private final class GallerySurfaceCell: UICollectionViewCell {
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundConfiguration = .clear()
-        clipsToBounds = false
-        contentView.clipsToBounds = false
-        let tile = GalleryStatsTile()
-        tile.accessibilityIdentifier = "gallery.surface.tile"
-        tile.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(tile)
-        NSLayoutConstraint.activate([
-            tile.topAnchor.constraint(equalTo: contentView.topAnchor),
-            tile.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            tile.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            tile.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var canBecomeFocused: Bool { false }
-}
-
 private final class GalleryStatsTile: TVFocusableSurface {
+    private let selectionsLabel = UILabel()
+
+    func showSelections(_ count: Int) {
+        let text = "Selected \(count) \(count == 1 ? "time" : "times")"
+        selectionsLabel.text = text
+        accessibilityValue = text
+    }
+
     init() {
         super.init(cornerRadius: Theme.Radius.l)
         let eyebrow = UILabel()
@@ -343,7 +311,12 @@ private final class GalleryStatsTile: TVFocusableSurface {
         delta.text = "+2h 05m vs last week"
         delta.font = Theme.Font.callout
         delta.textColor = Theme.Color.labelSecondary
-        let text = UIStackView(arrangedSubviews: [eyebrow, total, delta, UIView()])
+        selectionsLabel.font = TVFont.cardSubtitle
+        selectionsLabel.textColor = Theme.Color.labelTertiary
+        selectionsLabel.accessibilityIdentifier = "gallery.surface.selections"
+        selectionsLabel.text = "Selected 0 times"
+        accessibilityValue = "Selected 0 times"
+        let text = UIStackView(arrangedSubviews: [eyebrow, total, delta, selectionsLabel])
         text.axis = .vertical
         text.spacing = Theme.Space.xxs
 

@@ -37,11 +37,126 @@ final class GalleryTests: XCTestCase {
         }
     }
 
+    func testHostMenuPopsWhileLoading() {
+        let app = launchGallery(style: "dark", mode: "host")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.loading"))
+        TVTest.remote.press(.select)
+        TVTest.settle(1.5)
+        TVTest.capture("01-loading-pushed", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.descendants(matching: .any)["host.row.loading"].waitForExistence(timeout: 5), "Menu while loading left the screen or the app instead of popping")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.loading"))
+        TVTest.capture("02-popped-to-root", in: self)
+    }
+
+    func testHostErrorRecoversThroughRetryAndKeepsFocusOnTheScreen() {
+        let app = launchGallery(style: "dark", mode: "host")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.loading"))
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.error"))
+        TVTest.remote.press(.select)
+        TVTest.settle(1.5)
+        TVTest.capture("01-error", in: self)
+        XCTAssertTrue(app.buttons["Try Again"].waitForExistence(timeout: 5))
+        TVTest.remote.press(.select)
+        TVTest.settle(0.6)
+        TVTest.capture("02-retrying", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.descendants(matching: .any)["host.row.error"].waitForExistence(timeout: 5), "focus left the screen after Try Again, so Menu did not pop")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.buttons["Try Again"].waitForExistence(timeout: 5))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.item.0", timeout: 15), "focus did not return to the content after the retry")
+        TVTest.capture("03-recovered", in: self)
+    }
+
+    func testHostFocusSurvivesAReloadThatShiftsItems() {
+        let app = launchGallery(style: "dark", mode: "host")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.loading"))
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.content"))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.item.0", timeout: 10))
+        for _ in 0..<3 { TVTest.remote.press(.right) }
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.item.3"))
+        TVTest.remote.press(.playPause)
+        TVTest.settle(1.5)
+        XCTAssertTrue(app.descendants(matching: .any)["host.new.0"].exists, "Play/Pause was not handled by the screen")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.staticTexts["host.depth"].waitForExistence(timeout: 5))
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.item.3", timeout: 8), "focus came back to a different item after the list shifted")
+        TVTest.capture("01-restored", in: self)
+    }
+
+    func testDoublePushMakesOneScreen() {
+        let app = launchGallery(style: "dark", mode: "host")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.loading"))
+        for _ in 0..<3 { TVTest.remote.press(.down) }
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "host.row.doublePush"))
+        TVTest.remote.press(.select)
+        let depth = app.staticTexts["host.depth"]
+        XCTAssertTrue(depth.waitForExistence(timeout: 5))
+        XCTAssertEqual(depth.label, "Depth 2")
+    }
+
+    func testImagesRetryAfterAFailedLoad() {
+        let app = launchGallery(style: "dark", mode: "images")
+        XCTAssertTrue(app.descendants(matching: .any)["images.card.0"].waitForExistence(timeout: 15))
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "images.card.0"))
+        TVTest.settle(2.5)
+        TVTest.capture("01-first-load-failed", in: self)
+        let log = app.staticTexts["images.log"]
+        XCTAssertTrue(log.label.contains("flaky-poster/dawn FAILED"), log.label)
+        TVTest.remote.press(.playPause)
+        TVTest.settle(3.0)
+        TVTest.capture("02-after-retry", in: self)
+        let lines = log.label.split(separator: "\n").filter { $0.contains("flaky-poster/dawn") }
+        XCTAssertEqual(lines.count, 2, "the poster was not requested again: \(log.label)")
+        XCTAssertFalse(lines.last?.contains("FAILED") ?? true)
+        XCTAssertEqual(log.label.split(separator: "\n").filter { $0.contains("flaky-backdrop/dawn") }.count, 2, "the backdrop was not requested again: \(log.label)")
+        TVTest.remote.press(.playPause)
+        TVTest.settle(3.0)
+        TVTest.capture("03-poster-as-backdrop", in: self)
+        XCTAssertTrue(log.label.contains("poster 720px poster/solo"), log.label)
+    }
+
+    func testHeroFitsItsBlockAndIsOneAccessibilityElement() {
+        let app = launchGallery(style: "dark", mode: "hero-long")
+        let info = app.descendants(matching: .any)["hero.info"]
+        XCTAssertTrue(info.waitForExistence(timeout: 15))
+        TVTest.settle(2.0)
+        TVTest.capture("01-hero-long", in: self)
+        let header = app.staticTexts["Recently Added"]
+        XCTAssertTrue(header.exists)
+        XCTAssertLessThanOrEqual(info.frame.maxY, header.frame.minY, "hero block overlaps the shelf header: \(info.frame) vs \(header.frame)")
+        XCTAssertGreaterThanOrEqual(info.frame.minY, 0)
+        XCTAssertTrue(info.label.contains("Extraordinarily"))
+        XCTAssertEqual(info.value as? String, "38 percent watched")
+    }
+
+    func testHeroVariants() {
+        for (mode, name) in [("hero-short", "01-short"), ("hero-title1", "02-title1")] {
+            let app = launchGallery(style: "dark", mode: mode)
+            XCTAssertTrue(app.descendants(matching: .any)["hero.info"].waitForExistence(timeout: 15))
+            TVTest.settle(2.0)
+            TVTest.capture(name, in: self)
+            let info = app.descendants(matching: .any)["hero.info"]
+            let header = app.staticTexts["Recently Added"]
+            XCTAssertLessThanOrEqual(info.frame.maxY, header.frame.minY, "\(mode): \(info.frame) vs \(header.frame)")
+            app.terminate()
+        }
+    }
+
     private func launchGallery(style: String, mode: String = "1") -> XCUIApplication {
         let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_GALLERY": mode, "CRUCIBLE_GALLERY_STYLE": style])
         if mode == "1" {
             XCTAssertTrue(app.descendants(matching: .any)["gallery.continueWatching.0"].waitForExistence(timeout: 20))
             TVTest.settle(2.0)
+        } else if mode == "host" {
+            XCTAssertTrue(app.descendants(matching: .any)["host.row.loading"].waitForExistence(timeout: 20))
+            TVTest.settle(1.0)
         }
         return app
     }
@@ -91,6 +206,30 @@ final class GalleryTests: XCTestCase {
         focus(app, "gallery.button.1")
         TVTest.capture("14-glass-button-focused", in: self)
 
+        step(app, .down, until: "tv.chip.helpers")
+        TVTest.remote.press(.right)
+        TVTest.settle(0.6)
+        TVTest.remote.press(.select)
+        TVTest.settle(0.9)
+        TVTest.capture("14b-helpers-chip-row", in: self)
+        step(app, .down, until: "gallery.helpers.menu")
+        TVTest.capture("14c-helpers-menu-button", in: self)
+        TVTest.remote.press(.select)
+        TVTest.settle(1.0)
+        TVTest.capture("14d-helpers-menu-open", in: self)
+        let year = app.descendants(matching: .any)["Year"]
+        XCTAssertTrue(year.waitForExistence(timeout: 3))
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.select)
+        TVTest.settle(1.0)
+        XCTAssertTrue(app.buttons["Sort: Year"].exists || app.descendants(matching: .any)["Sort: Year"].exists, "menu selection did not update the button in place")
+        step(app, .down, until: "gallery.helpers.alert")
+        TVTest.remote.press(.select)
+        TVTest.settle(1.0)
+        TVTest.capture("14e-helpers-alert", in: self)
+        TVTest.remote.press(.menu)
+        TVTest.settle(1.0)
+        TVTest.capture("14f-after-alert", in: self)
         step(app, .down, until: "gallery.settings.")
         TVTest.remote.press(.down)
         TVTest.remote.press(.down)
@@ -98,7 +237,11 @@ final class GalleryTests: XCTestCase {
         TVTest.capture("15-row-focused", in: self)
 
         step(app, .down, until: "gallery.surface.tile", attempts: 6)
+        TVTest.remote.press(.select)
+        TVTest.settle(0.8)
         TVTest.capture("16-surface-focused", in: self)
+        let tile = app.descendants(matching: .any)["gallery.surface.tile"]
+        XCTAssertEqual(tile.value as? String, "Selected 1 time", "Select did not trigger the surface action exactly once")
 
         step(app, .down, until: "gallery.grid.")
         TVTest.capture("17-grid-focused", in: self)
@@ -126,7 +269,7 @@ final class GalleryTests: XCTestCase {
             TVTest.remote.press(button)
             TVTest.settle(0.6)
             let identifier = focusedIdentifier(app)
-            trail.append(identifier)
+            trail.append("\(identifier)|\(app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch.label)")
             if identifier.hasPrefix(prefix) {
                 reached = true
                 break
