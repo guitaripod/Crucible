@@ -9,7 +9,7 @@ final class TVShowDetailViewController: TVDetailViewController {
     private let showKey: String
     private let initialSeasonKey: String?
     private var model: ShowDetailModel?
-    private var seasonTask: Task<Void, Never>?
+    private lazy var seasonSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
     private var relatedByID: [String: PlexMetadata] = [:]
@@ -22,15 +22,6 @@ final class TVShowDetailViewController: TVDetailViewController {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
-
-    deinit {
-        seasonTask?.cancel()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        seasonTask?.cancel()
-    }
 
     override func fetch() async {
         do {
@@ -45,7 +36,7 @@ final class TVShowDetailViewController: TVDetailViewController {
                 if !hasContent { showUnavailable(DetailMessage.showUnavailable) }
                 return
             }
-            seasonTask?.cancel()
+            seasonSlot.cancel()
             loadingSeasonKey = nil
             model = loaded
             rebuild()
@@ -74,9 +65,14 @@ final class TVShowDetailViewController: TVDetailViewController {
         loadSeason(key)
     }
 
-    override func playPause(at indexPath: IndexPath) {
-        guard case .episode(let id)? = itemIdentifier(at: indexPath), let episode = episodesByID[id] else { return }
-        play(TVPlaybackRequest(item: episode))
+    override func playFocused(at indexPath: IndexPath) -> Bool {
+        if case .episode(let id)? = itemIdentifier(at: indexPath), let episode = episodesByID[id] {
+            play(TVPlaybackRequest(item: episode))
+            return true
+        }
+        guard model?.upNext != nil else { return false }
+        playUpNext()
+        return true
     }
 
     override func contextMenu(for item: Item) -> UIMenu? {
@@ -189,8 +185,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         model = current.loadingSeason(key)
         loadingSeasonKey = key
         rebuild()
-        seasonTask?.cancel()
-        seasonTask = Task { [weak self] in
+        seasonSlot.run { [weak self] in
             guard let self else { return }
             let result = await ShowDetailLoader.loadSeason(key, api: env.api)
             guard model?.selectedSeasonKey == key, loadingSeasonKey == key else { return }

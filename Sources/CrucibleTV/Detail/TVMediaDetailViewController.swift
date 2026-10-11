@@ -12,7 +12,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private var audioID: Int?
     private var subtitleID: Int?
     private var relatedByID: [String: PlexMetadata] = [:]
-    private var nextEpisodeTask: Task<Void, Never>?
+    private lazy var nextEpisodeSlot = makeTaskSlot()
 
     init(env: TVAppEnvironment, ratingKey: String) {
         self.ratingKey = ratingKey
@@ -34,6 +34,11 @@ final class TVMediaDetailViewController: TVDetailViewController {
             AppLogger.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
             if !hasContent { showFailure(title: "Couldn\u{2019}t Load", message: error.localizedDescription) }
         }
+    }
+
+    override func playFocused(at indexPath: IndexPath) -> Bool {
+        play(startingAt: nil)
+        return true
     }
 
     override func didSelect(_ item: Item) {
@@ -176,9 +181,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
     }
 
     private func goToNextEpisode() {
-        guard nextEpisodeTask == nil, let seasonKey = model?.seasonKey else { return }
-        nextEpisodeTask = Task { [weak self] in
-            defer { self?.nextEpisodeTask = nil }
+        guard let seasonKey = model?.seasonKey else { return }
+        nextEpisodeSlot.run { [weak self] in
             guard let self else { return }
             do {
                 guard let next = try await MovieDetailLoader.nextEpisode(after: ratingKey, inSeason: seasonKey, api: env.api),

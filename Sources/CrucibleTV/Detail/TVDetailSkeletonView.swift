@@ -2,8 +2,8 @@ import CrucibleDesign
 import UIKit
 
 /// The loading state of a detail screen: soft blocks where the title, facts, synopsis, button and
-/// first shelf will be. They pulse unless Reduce Motion is on.
-final class TVDetailSkeletonView: UIView {
+/// first shelf will be. They pulse through `TVMotion`: not under Reduce Motion, the UI-test switch or while hidden.
+final class TVDetailSkeletonView: TVPulsingView {
     private let blocks = UIStackView()
 
     override init(frame: CGRect) {
@@ -40,26 +40,7 @@ final class TVDetailSkeletonView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        if window == nil {
-            blocks.layer.removeAllAnimations()
-        } else {
-            startPulsing()
-        }
-    }
-
-    private func startPulsing() {
-        guard !UIAccessibility.isReduceMotionEnabled, blocks.layer.animation(forKey: "pulse") == nil else { return }
-        let pulse = CABasicAnimation(keyPath: "opacity")
-        pulse.fromValue = 1.0
-        pulse.toValue = 0.55
-        pulse.duration = TVMetrics.Duration.skeletonPulse
-        pulse.autoreverses = true
-        pulse.repeatCount = .infinity
-        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        blocks.layer.add(pulse, forKey: "pulse")
-    }
+    override var pulsingLayer: CALayer { blocks.layer }
 
     private static func block(width: CGFloat, height: CGFloat, radius: CGFloat) -> UIView {
         let view = UIView()

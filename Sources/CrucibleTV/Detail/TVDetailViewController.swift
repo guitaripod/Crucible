@@ -6,12 +6,16 @@ import UIKit
 /// block, the synopsis with More, an action row and the shelves below, driven by one
 /// `TVDetailContent` value. Subclasses fetch and map their model, then call `present(_:)`.
 ///
+/// The screen is a `TVScreenViewController`: the host owns the state view, the loading focus anchor,
+/// identifier-keyed focus memory and task slots; Detail adds the backdrop and a skeleton for the
+/// first load, and lays the collection out with its own sections.
+///
 /// Items carry only stable identities; their content is looked up from the current `TVDetailContent`
 /// when a cell is configured, so a refresh after playback or a watched change reconfigures cells in
 /// place and never moves the focus.
 @MainActor
-class TVDetailViewController: UIViewController, UICollectionViewDelegate {
-    enum Section: Int, Hashable {
+class TVDetailViewController: TVScreenViewController {
+    enum Section: Int, Hashable, Sendable {
         case header
         case synopsis
         case actions
@@ -22,7 +26,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         case information
     }
 
-    enum Item: Hashable {
+    enum Item: Hashable, Sendable {
         case header
         case synopsis
         case action(TVDetailAction.Kind)
@@ -41,74 +45,38 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
     let env: TVAppEnvironment
     private(set) var content: TVDetailContent?
     private(set) var hasContent = false
-    private var isShowingState: Bool { stateView.superview != nil && !stateView.isHidden }
 
-    private let collectionView: TVCollectionView
     private let backdrop = TVBackdropView()
-    private let stateView = TVStateView()
     private let skeleton = TVDetailSkeletonView()
-    private let focusAnchor = TVFocusAnchorView()
-    private let focusMemory = TVFocusMemory()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
-    private var loadTask: Task<Void, Never>?
-    private var backdropTask: Task<Void, Never>?
-    private var shownBackdropPath: String?
+    private lazy var loadSlot = makeTaskSlot()
 
     init(env: TVAppEnvironment) {
         self.env = env
-        collectionView = TVCollectionView(frame: .zero, collectionViewLayout: UICollectionViewLayout())
-        super.init(nibName: nil, bundle: nil)
+        super.init(layout: UICollectionViewLayout())
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit {
-        loadTask?.cancel()
-        backdropTask?.cancel()
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = Theme.Color.canvas
-        backdrop.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(backdrop)
-
-        collectionView.collectionViewLayout = makeLayout()
-        collectionView.delegate = self
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.onPlayPause = { [weak self] indexPath in self?.playPause(at: indexPath) }
-        view.addSubview(collectionView)
-        configureDataSource()
-
-        [skeleton, stateView, focusAnchor].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
+    override func installViews() {
+        super.installViews()
+        [backdrop, skeleton].forEach { $0.translatesAutoresizingMaskIntoConstraints = false }
+        view.insertSubview(backdrop, at: 0)
+        view.insertSubview(skeleton, aboveSubview: collectionView)
         NSLayoutConstraint.activate([
             backdrop.topAnchor.constraint(equalTo: view.topAnchor),
             backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             skeleton.topAnchor.constraint(equalTo: view.topAnchor),
             skeleton.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             skeleton.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             skeleton.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stateView.topAnchor.constraint(equalTo: view.topAnchor),
-            stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            focusAnchor.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            focusAnchor.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            focusAnchor.widthAnchor.constraint(equalToConstant: 2),
-            focusAnchor.heightAnchor.constraint(equalToConstant: 2),
         ])
-        stateView.isHidden = true
-        collectionView.isHidden = true
+        collectionView.collectionViewLayout = makeLayout()
+        configureDataSource()
+        adopt(dataSource)
         showLoading()
     }
 
@@ -117,20 +85,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         reload()
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        loadTask?.cancel()
-    }
-
-    override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        if hasContent, !collectionView.isHidden { return [collectionView] }
-        if isShowingState { return [stateView] }
-        return [focusAnchor]
-    }
-
     func fetch() async {}
-
-    func playPause(at indexPath: IndexPath) {}
 
     func didSelect(_ item: Item) {}
 
@@ -140,8 +95,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
 
     /// Starts a fresh load, cancelling one in flight. While content is on screen it is refreshed in place.
     func reload() {
-        loadTask?.cancel()
-        loadTask = Task { [weak self] in
+        loadSlot.run { [weak self] in
             await self?.fetch()
         }
     }
@@ -151,49 +105,37 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         collectionView.isHidden = true
         stateView.isHidden = true
         skeleton.isHidden = false
-        focusAnchor.isHidden = false
-        moveFocusIntoScreen()
     }
 
     func showUnavailable(_ message: String) {
         hasContent = false
-        collectionView.isHidden = true
         skeleton.isHidden = true
-        focusAnchor.isHidden = true
-        stateView.isHidden = false
-        stateView.show(.empty(
+        show(state: .empty(
             title: "Not Available",
             message: message,
             symbol: "questionmark.circle",
             action: TVStateView.Action(title: "Go Back") { [weak self] in
-                self?.navigationController?.popViewController(animated: !UIAccessibility.isReduceMotionEnabled)
+                guard let self else { return }
+                TVNavigation.pop(from: self)
             }
         ))
-        moveFocusIntoScreen()
     }
 
     func showFailure(title: String, message: String) {
         hasContent = false
-        collectionView.isHidden = true
         skeleton.isHidden = true
-        focusAnchor.isHidden = true
-        stateView.isHidden = false
-        stateView.show(.error(title: title, message: message, retryTitle: "Retry") { [weak self] in
+        show(state: .error(title: title, message: message, retryTitle: "Retry") { [weak self] in
             self?.showLoading()
             self?.reload()
         })
-        moveFocusIntoScreen()
     }
 
     func itemIdentifier(at indexPath: IndexPath) -> Item? {
         dataSource.itemIdentifier(for: indexPath)
     }
 
-    /// Pushes the screen for `route` unless this screen is no longer on top or a transition is running,
-    /// so mashing Select or a lookup that finishes after Back cannot stack screens.
     func push(_ route: DetailRoute) {
-        guard let navigation = navigationController, navigation.topViewController === self, navigation.transitionCoordinator == nil else { return }
-        navigation.pushViewController(TVDetailNavigation.viewController(for: route, env: env), animated: true)
+        TVNavigation.push(TVScreens.screen(for: route, env: env), from: self)
     }
 
     func play(_ request: TVPlaybackRequest) {
@@ -213,57 +155,31 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         }
     }
 
-    func presentAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
-        present(alert, animated: !UIAccessibility.isReduceMotionEnabled)
-    }
-
     func presentSynopsis() {
         guard let content, let text = content.synopsis else { return }
-        present(TVSynopsisViewController(title: content.synopsisTitle, text: text), animated: !UIAccessibility.isReduceMotionEnabled)
+        present(TVSynopsisViewController(title: content.synopsisTitle, text: text), animated: TVMotion.animationsEnabled)
     }
 
     /// Shows `content`, reconfiguring the cells already on screen. The first content moves focus to
-    /// the primary action; later refreshes leave focus where the viewer put it.
+    /// the primary action when focus was on this screen's loading state; later refreshes leave focus
+    /// where the viewer put it.
     func present(_ content: TVDetailContent) {
-        let isFirst = !hasContent
         self.content = content
         hasContent = true
         skeleton.isHidden = true
-        stateView.isHidden = true
-        focusAnchor.isHidden = true
-        collectionView.isHidden = false
-        showBackdrop(content.artwork)
+        backdrop.show(path: content.artwork.path, kind: content.artwork.isBackdrop ? .backdrop : .poster, immediate: true)
         applySnapshot(for: content)
-        if isFirst {
-            collectionView.layoutIfNeeded()
-            moveFocusIntoScreen()
-        }
+        showContent()
     }
 
-    /// Moves focus to the screen's preferred item. When the tab bar holds focus (a link opened this
-    /// screen from outside) the system keeps it there and the viewer presses Down, as in other tvOS apps.
-    private func moveFocusIntoScreen() {
-        guard isViewLoaded, let system = UIFocusSystem.focusSystem(for: view) else { return }
-        system.requestFocusUpdate(to: self)
-    }
-
-    private func showBackdrop(_ artwork: DetailArtwork) {
-        guard artwork.path != shownBackdropPath else { return }
-        shownBackdropPath = artwork.path
-        backdropTask?.cancel()
-        guard let path = artwork.path else {
-            backdrop.show(image: nil, animated: true)
-            return
+    override func initialFocusIndexPath() -> IndexPath? {
+        let snapshot = dataSource.snapshot()
+        let enabled = snapshot.itemIdentifiers(inSection: .actions).first { item in
+            guard case .action(let kind) = item else { return false }
+            return content?.actions.first { $0.kind == kind }?.isEnabled == true
         }
-        let kind: TVImagePipeline.Kind = artwork.isBackdrop ? .backdrop : .poster
-        let scale = max(traitCollection.displayScale, 1)
-        backdropTask = Task { [weak self] in
-            let image = await TVImagePipeline.load(path: path, pointWidth: 1920, scale: scale, kind: kind)
-            guard !Task.isCancelled, let self, self.shownBackdropPath == path else { return }
-            self.backdrop.show(image: image, animated: true)
-        }
+        guard let first = enabled ?? snapshot.itemIdentifiers(inSection: .seasons).first else { return nil }
+        return dataSource.indexPath(for: first)
     }
 
     private func applySnapshot(for content: TVDetailContent) {
@@ -296,9 +212,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
             snapshot.appendSections([.information])
             snapshot.appendItems([.information], toSection: .information)
         }
-        let previous = Set(dataSource.snapshot().itemIdentifiers)
-        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { previous.contains($0) })
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.applyReconfiguringExisting(snapshot)
         refreshHeaders()
     }
 
@@ -391,7 +305,7 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
             self?.didSelect(.season(chip.id))
         }
         let episode = TVEpisodeCell.registration()
-        let person = TVPersonCell.registration()
+        let person = TVDetailPersonCell.registration()
         let related = TVPosterCell.registration()
         let information = TVDetailInformationCell.registration { [weak self] in self?.content?.facts ?? [] }
         let placeholder = UICollectionView.CellRegistration<TVDetailEpisodePlaceholderCell, Int> { cell, _, index in
@@ -423,10 +337,8 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
                 let card = content?.episodes.first { $0.id == id } ?? TVCardItem(id: id, title: "")
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: episode, for: indexPath, item: card), id)
             case .person(let id):
-                let card = content?.cast.first { $0.id == id } ?? TVCardItem(id: id, title: "")
-                let cell = Self.identified(collectionView.dequeueConfiguredReusableCell(using: person, for: indexPath, item: card), id)
-                cell.accessibilityTraits = .staticText
-                return cell
+                let model = content?.cast.first { $0.id == id } ?? TVDetailPerson(id: id, name: "")
+                return Self.identified(collectionView.dequeueConfiguredReusableCell(using: person, for: indexPath, item: model), id)
             case .related(let id):
                 let card = content?.related.first { $0.id == id } ?? TVCardItem(id: id, title: "")
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: related, for: indexPath, item: card), id)
@@ -486,17 +398,12 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
         return TVContextMenu.configuration(menu: contextMenu(for: item))
     }
 
-    func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
-        if let remembered = focusMemory.preferredIndexPath(in: collectionView) { return remembered }
-        return primaryActionIndexPath()
-    }
-
-    func collectionView(
+    override func collectionView(
         _ collectionView: UICollectionView,
         didUpdateFocusIn context: UICollectionViewFocusUpdateContext,
         with coordinator: UIFocusAnimationCoordinator
     ) {
-        focusMemory.record(context)
+        super.collectionView(collectionView, didUpdateFocusIn: context, with: coordinator)
         guard let next = context.nextFocusedIndexPath,
               let section = dataSource.sectionIdentifier(for: next.section),
               section == .synopsis || section == .actions
@@ -509,16 +416,5 @@ class TVDetailViewController: UIViewController, UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === collectionView else { return }
         backdrop.dimming = scrollView.contentOffset.y / Self.heroHeight
-    }
-
-    private func primaryActionIndexPath() -> IndexPath? {
-        let snapshot = dataSource.snapshot()
-        guard let first = snapshot.itemIdentifiers(inSection: .actions).first(where: { item in
-            guard case .action(let kind) = item else { return false }
-            return content?.actions.first { $0.kind == kind }?.isEnabled == true
-        }) else {
-            return snapshot.itemIdentifiers(inSection: .seasons).first.flatMap { dataSource.indexPath(for: $0) }
-        }
-        return dataSource.indexPath(for: first)
     }
 }

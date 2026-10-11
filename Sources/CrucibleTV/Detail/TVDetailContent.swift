@@ -29,6 +29,14 @@ struct TVDetailAction {
     var handler: @MainActor () -> Void = {}
 }
 
+/// A cast or crew member: the photo when Plex has one, otherwise a monogram.
+struct TVDetailPerson: Hashable, Sendable {
+    var id: String
+    var name: String
+    var role: String?
+    var photoPath: String?
+}
+
 /// Everything a detail screen shows, as plain values. The screens map their models onto it; the
 /// base class turns it into sections, so movie, episode and show detail share one layout.
 struct TVDetailContent {
@@ -49,7 +57,7 @@ struct TVDetailContent {
     var episodes: [TVCardItem] = []
     var showsEpisodes = false
     var episodesState = EpisodesState.loaded
-    var cast: [TVCardItem] = []
+    var cast: [TVDetailPerson] = []
     var related: [TVCardItem] = []
     var facts: [DetailFact] = []
 }
@@ -67,38 +75,29 @@ enum TVDetailMapping {
             metaParts: parts,
             badges: info.badges,
             synopsis: synopsis,
-            progress: progress
+            progress: progress,
+            titleStyle: .title1,
+            accessibilityText: info.accessibilityText
         )
     }
 
-    static func people(_ roles: [PlexRole]) -> [TVCardItem] {
+    static func people(_ roles: [PlexRole]) -> [TVDetailPerson] {
         roles.enumerated().map { index, role in
-            TVCardItem(
-                id: "cast.\(index)",
-                artworkPath: role.thumb,
-                title: role.tag ?? "",
-                subtitle: role.role,
-                placeholderSymbol: "person.fill"
-            )
+            TVDetailPerson(id: "cast.\(index)", name: role.tag ?? "", role: role.role, photoPath: role.thumb)
         }
     }
 
     static func related(_ items: [PlexMetadata]) -> [TVCardItem] {
         items.map { item in
-            let subtitle: String?
-            if item.mediaType == "show", let count = item.childCount, count > 0 {
-                subtitle = count == 1 ? "1 season" : "\(count) seasons"
-            } else {
-                subtitle = item.year.map(String.init)
-            }
+            let card = DetailRelatedCard(item: item)
             return TVCardItem(
-                id: "related.\(item.id)",
-                artworkPath: item.posterPath ?? item.grandparentThumb,
-                title: item.title,
-                subtitle: subtitle,
-                progress: item.progressPercent > 0 ? item.progressPercent : nil,
-                isUnwatched: item.mediaType != "show" && !item.isWatched && item.positionSecs == 0,
-                placeholderSymbol: item.mediaType == "show" ? "tv" : "film"
+                id: "related.\(card.id)",
+                artworkPath: card.posterPath,
+                title: card.title,
+                subtitle: card.subtitle,
+                progress: card.progress,
+                isUnwatched: card.isUnwatched,
+                placeholderSymbol: card.isShow ? "tv" : "film"
             )
         }
     }

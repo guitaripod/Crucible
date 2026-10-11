@@ -10,7 +10,7 @@ final class TVSynopsisViewController: UIViewController {
     private let textView = UITextView()
     private var textHeight: NSLayoutConstraint?
     private lazy var closeButton = TVButton.make(.glass, title: "Close") { [weak self] in
-        self?.dismiss(animated: !UIAccessibility.isReduceMotionEnabled)
+        self?.dismiss(animated: TVMotion.animationsEnabled)
     }
 
     init(title: String, text: String) {

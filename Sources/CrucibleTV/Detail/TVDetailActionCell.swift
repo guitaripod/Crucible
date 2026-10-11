@@ -91,15 +91,6 @@ final class TVDetailActionCell: UICollectionViewCell {
             button.removeAction(identifiedBy: identifier, for: .primaryActionTriggered)
             actionIdentifier = nil
         }
-        var configuration = TVButton.configuration(.glass, title: action.title, symbol: nil)
-        configuration.image = UIImage(systemName: "chevron.down")
-        configuration.imagePlacement = .trailing
-        configuration.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(
-            font: Theme.Font.scaled(.callout, 31, .semibold, maximum: 44),
-            scale: .small
-        )
-        button.configuration = configuration
-        button.menu = menu
-        button.showsMenuAsPrimaryAction = true
+        TVButton.configure(menu: menu, title: action.title, style: .glass, on: button)
     }
 }
