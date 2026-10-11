@@ -111,6 +111,23 @@ struct StatsDatabaseTests {
         #expect(try await store.totalRows() == 0)
     }
 
+    @Test func aFileThatCannotBeOpenedIsKeptNotRebuilt() async throws {
+        let url = temporaryURL()
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+            cleanUp(url)
+        }
+        let store = StatsStore(database: try StatsDatabase(url: url))
+        try await store.insertPlays([play("a", viewedAt: 1_700_000_000)])
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+
+        #expect(throws: (any Error).self) { try StatsDatabase.openOrRebuild(at: url) }
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+        let reopened = StatsStore(database: try StatsDatabase(url: url))
+        #expect(try await reopened.totalRows() == 1)
+    }
+
     @Test func openingAHealthyMirrorKeepsItsRows() async throws {
         let url = temporaryURL()
         defer { cleanUp(url) }

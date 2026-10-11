@@ -28,15 +28,20 @@ final class StatsDatabase: Sendable {
             .appendingPathComponent("stats.sqlite")
     }
 
-    /// Opens the mirror, starting over when the file cannot be opened or migrated (a purge can leave
-    /// a truncated file behind). A fresh mirror begins with an unfinished backfill from the first page.
+    /// Opens the mirror, starting over only when the file is genuinely corrupt (a purge can leave a
+    /// truncated or garbage file behind). Any other failure, such as a busy or unreadable file or a
+    /// full disk, is rethrown and leaves a healthy mirror untouched. A fresh mirror begins with an
+    /// unfinished backfill from the first page.
     static func openOrRebuild(at url: URL = databaseURL()) throws -> StatsDatabase {
         do {
             return try StatsDatabase(url: url)
-        } catch {
-            AppLogger.error("Stats DB unreadable, rebuilding: \(error.localizedDescription)", .stats)
+        } catch let error as DatabaseError where error.isCorruption {
+            AppLogger.error("Stats DB corrupt (\(error.resultCode)), rebuilding: \(error.localizedDescription)", .stats)
             destroy(at: url)
             return try StatsDatabase(url: url)
+        } catch {
+            AppLogger.error("Stats DB could not be opened, keeping the file: \(error.localizedDescription)", .stats)
+            throw error
         }
     }
 
@@ -121,5 +126,11 @@ final class StatsDatabase: Sendable {
         }
 
         return migrator
+    }
+}
+
+private extension DatabaseError {
+    var isCorruption: Bool {
+        resultCode == .SQLITE_CORRUPT || resultCode == .SQLITE_NOTADB
     }
 }
