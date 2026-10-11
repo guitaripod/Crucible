@@ -130,8 +130,12 @@ enum AppNavigation {
         TVTest.settle(1.0)
     }
 
-    /// Pops the detail on top of Home with Menu and expects Home's own cards underneath, which is how a test knows a link opened on Home.
+    /// Pops the detail on top of Home with Menu and expects Home's own cards underneath, which is how a test knows a link opened on Home. A link leaves focus on the tab bar, where Menu would leave the app, so focus first enters the screen.
     static func expectHomeUnderDetail(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        if app.tabBars.firstMatch.buttons.matching(NSPredicate(format: "hasFocus == true")).firstMatch.exists {
+            TVTest.remote.press(.down)
+            TVTest.settle(1.0)
+        }
         TVTest.remote.press(.menu)
         XCTAssertTrue(firstElement(app, prefix: homeCardPrefix).waitForExistence(timeout: 15), "Menu from the linked Detail must land on Home", file: file, line: line)
         TVTest.settle(1.0)
