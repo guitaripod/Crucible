@@ -1,3 +1,4 @@
+import CrucibleCore
 import Foundation
 
 /// Builds the per-library "Recently Watched" rail from the server's play history, scoped to the

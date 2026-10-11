@@ -1,3 +1,4 @@
+import CrucibleStats
 import UIKit
 
 /// A ring/donut breakdown chart: proportional stroked arcs around a hole that holds

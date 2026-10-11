@@ -1,3 +1,4 @@
+import CrucibleStats
 @preconcurrency import UIKit
 
 extension StatisticsViewController {

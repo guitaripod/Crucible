@@ -1,3 +1,4 @@
+import CrucibleStats
 import UIKit
 
 enum StatsStyle {
@@ -40,7 +41,7 @@ enum StatsStyle {
         return palette[index % palette.count]
     }
 
-    static let monthSymbols = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    static let monthSymbols = StatsTime.monthSymbols
 
     /// Weekday labels indexed by Gregorian weekday (1 == Sunday … 7 == Saturday).
     static func weekdayShort(_ gregorianWeekday: Int) -> String {

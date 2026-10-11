@@ -1,6 +1,7 @@
 #if os(iOS) && canImport(ActivityKit)
 import ActivityKit
 import CrucibleActivity
+import CrucibleCore
 import Foundation
 import os
 import UIKit

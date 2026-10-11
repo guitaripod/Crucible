@@ -1,4 +1,5 @@
 import BackgroundTasks
+import CrucibleCore
 import Foundation
 import Network
 import os

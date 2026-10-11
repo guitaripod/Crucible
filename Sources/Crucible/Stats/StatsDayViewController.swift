@@ -1,3 +1,5 @@
+import CrucibleCore
+import CrucibleStats
 @preconcurrency import UIKit
 
 /// The heatmap drill-down: a poster grid of everything watched on one local day.

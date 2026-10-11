@@ -1,3 +1,4 @@
+import CrucibleStats
 import UIKit
 
 struct YouYearSummary: Equatable {

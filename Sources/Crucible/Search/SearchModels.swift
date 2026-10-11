@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 enum SearchScope: Int, CaseIterable {

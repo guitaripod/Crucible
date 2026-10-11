@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 /// Builds the temporary text file behind "Share Diagnostic Logs".

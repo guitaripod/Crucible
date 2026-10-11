@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 struct HistoryItem: Hashable, Sendable {

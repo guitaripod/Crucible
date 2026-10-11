@@ -1,3 +1,4 @@
+import CrucibleStats
 import UIKit
 
 /// A gradient "wrapped"-style hero card that presents a single ``Superlative`` inside a

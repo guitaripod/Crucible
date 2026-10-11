@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 final class LibraryViewController: UIViewController, LibraryGridHosting {

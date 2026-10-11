@@ -1,5 +1,6 @@
-@preconcurrency import UIKit
+import CrucibleCore
 import os
+@preconcurrency import UIKit
 
 actor ImageLoader {
     static let shared = ImageLoader()

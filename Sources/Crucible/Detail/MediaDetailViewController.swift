@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 final class MediaDetailViewController: UICollectionViewController {

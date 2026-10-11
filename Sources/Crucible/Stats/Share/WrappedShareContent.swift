@@ -1,3 +1,4 @@
+import CrucibleStats
 @preconcurrency import UIKit
 
 /// Everything the share poster draws, resolved up front so rendering is pure drawing and the same

@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 /// The single download state machine shared by the movie/episode action row and the episode rows:

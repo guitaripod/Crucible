@@ -1,4 +1,6 @@
 import AVKit
+import CrucibleCore
+import CrucibleMedia
 import MediaPlayer
 import os
 @preconcurrency import UIKit

@@ -1,3 +1,5 @@
+import CrucibleCore
+import CrucibleStats
 @preconcurrency import UIKit
 
 final class StatisticsViewController: UICollectionViewController {

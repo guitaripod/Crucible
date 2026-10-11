@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 /// What a Recently Watched card shows and does, shared by the rail in the library grid and its

@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 /// Which Home rail a card belongs to; decides its caption copy and tap behaviour.

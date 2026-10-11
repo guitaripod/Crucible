@@ -1,3 +1,5 @@
+import CrucibleCore
+import CrucibleStats
 import UIKit
 
 /// A horizontally scrollable strip of "binge" cards, one per ``BingeSession``, where each

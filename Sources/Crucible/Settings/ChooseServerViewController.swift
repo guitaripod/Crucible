@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 /// The "Choose Server" step shown after sign-in when the account owns or shares more than one

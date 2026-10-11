@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 /// Completed episodes of one show, collapsed into a single "Ready to Watch" row.

@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 /// Bottom sheet for downloading part of a show: which episodes, at what quality, and whether to keep

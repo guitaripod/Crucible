@@ -1,3 +1,4 @@
+import CrucibleCore
 @preconcurrency import UIKit
 
 /// Picks which libraries appear on Home and count toward Statistics. A switch per library, each

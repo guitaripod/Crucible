@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 /// Applies the user's appearance preference (System, Dark, Light) to every window in the app.

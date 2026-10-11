@@ -1,3 +1,5 @@
+import CrucibleCore
+import CrucibleStats
 @preconcurrency import UIKit
 
 /// The "This week" watch-time card: total, change against last week and seven daily bars.

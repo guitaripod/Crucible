@@ -1,3 +1,4 @@
+import CrucibleStats
 import UIKit
 
 /// The shared card language of the Statistics screen: a surface card with a hairline, a headline

@@ -1,5 +1,7 @@
-@preconcurrency import UIKit
+import CrucibleCore
+import CrucibleStats
 import os
+@preconcurrency import UIKit
 
 final class HomeViewController: UICollectionViewController {
     enum Section: Hashable {

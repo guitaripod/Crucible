@@ -1,3 +1,4 @@
+import CrucibleCore
 import UIKit
 
 /// A small sheet that takes a server address, finds a Plex server answering on it (https first, then
