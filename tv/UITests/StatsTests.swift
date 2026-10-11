@@ -33,10 +33,6 @@ final class StatsTests: XCTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "stats.range.year", timeout: 5))
     }
 
-    private func tabBarHasFocus(_ app: XCUIApplication) -> Bool {
-        app.tabBars.firstMatch.buttons.matching(NSPredicate(format: "hasFocus == true")).firstMatch.exists
-    }
-
     func testEverySectionScrollsIntoView() {
         let app = openStatistics()
         waitForContent(app)
@@ -149,18 +145,20 @@ final class StatsTests: XCTestCase {
     }
 
     func testMenuPopsWhileTheFirstLoadRuns() {
-        let app = openStatistics(mock: ["MOCK_SLOW_HISTORY_SECTIONS": "all", "MOCK_SLOW_HISTORY_MS": "25000"])
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60))
+        let app = AppNavigation.launchHome(
+            mock: ["MOCK_SLOW_HISTORY_SECTIONS": "all", "MOCK_SLOW_HISTORY_MS": "25000"],
+            extraEnvironment: ["CRUCIBLE_FRESH": "1"]
+        )
+        AppNavigation.selectTab("You", in: app)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        YouNavigation.openRow(app, "you.statistics")
         XCTAssertTrue(app.staticTexts["Building your statistics"].waitForExistence(timeout: 30), "the first load should show the loading state")
         TVTest.settle(1)
         TVTest.capture("01-loading", in: self)
-        if tabBarHasFocus(app) {
-            TVTest.remote.press(.down)
-            TVTest.settle(1)
-        }
+
         TVTest.remote.press(.menu)
-        XCTAssertTrue(AppNavigation.firstElement(app, prefix: AppNavigation.homeCardPrefix).waitForExistence(timeout: 15), "Menu while Statistics loads must pop to Home")
-        TVTest.capture("02-popped-home", in: self)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.statistics"), "Menu while Statistics loads must pop back to the You list, not leave the app")
+        TVTest.capture("02-popped-to-you", in: self)
     }
 
     func testEmptyHistoryShowsAnExplanation() {
