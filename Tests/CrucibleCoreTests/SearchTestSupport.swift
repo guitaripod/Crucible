@@ -54,7 +54,7 @@ enum SearchFixtures {
     }
 }
 
-actor RequestLog {
+actor SearchRequestLog {
     private(set) var endpoints: [PlexEndpoint] = []
 
     func record(_ endpoint: PlexEndpoint) {
@@ -78,7 +78,7 @@ actor RequestLog {
     var count: Int { endpoints.count }
 }
 
-actor Gate {
+actor SearchGate {
     private var continuation: CheckedContinuation<Void, Never>?
     private var isOpen = false
     private(set) var hasWaiter = false
@@ -96,7 +96,7 @@ actor Gate {
     }
 }
 
-final class MemoryRecents: @unchecked Sendable {
+final class SearchMemoryRecents: @unchecked Sendable {
     private let lock = OSAllocatedUnfairLock<[String]>(initialState: [])
 
     init(_ initial: [String] = []) {
@@ -111,7 +111,7 @@ final class MemoryRecents: @unchecked Sendable {
 }
 
 @MainActor
-func waitUntil(timeout: Duration = .seconds(3), _ condition: () -> Bool) async {
+func searchWaitUntil(timeout: Duration = .seconds(3), _ condition: () -> Bool) async {
     let deadline = ContinuousClock.now + timeout
     while !condition(), ContinuousClock.now < deadline {
         try? await Task.sleep(for: .milliseconds(5))

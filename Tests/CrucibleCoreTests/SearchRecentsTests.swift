@@ -45,7 +45,7 @@ struct SearchRecentsTests {
     }
 
     @Test func storeRoundTripsThroughTheClosures() {
-        let memory = MemoryRecents(["halo"])
+        let memory = SearchMemoryRecents(["halo"])
         memory.store.update { $0.remember("dune") }
         #expect(memory.queries == ["dune", "halo"])
         memory.store.update { $0.remove("halo") }

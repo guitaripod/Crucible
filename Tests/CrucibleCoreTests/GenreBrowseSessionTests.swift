@@ -33,7 +33,7 @@ struct GenreBrowseSessionTests {
         let (session, recorder) = session { _ in page }
         session.load()
         #expect(recorder.states == [.loading])
-        await waitUntil { recorder.states.count >= 2 }
+        await searchWaitUntil { recorder.states.count >= 2 }
         guard case .loaded(let items) = recorder.states.last else {
             Issue.record("expected loaded")
             return
@@ -46,12 +46,12 @@ struct GenreBrowseSessionTests {
         let page = try SearchFixtures.page([])
         let (session, recorder) = session { _ in page }
         session.load()
-        await waitUntil { recorder.states.count >= 2 }
+        await searchWaitUntil { recorder.states.count >= 2 }
         #expect(recorder.states == [.loading, .empty])
     }
 
     @Test func aFailureCarriesTheMessageAndLoadAgainRecovers() async throws {
-        let attempts = RequestLog()
+        let attempts = SearchRequestLog()
         let page = try SearchFixtures.page([try SearchFixtures.item("1", "movie", "A")])
         let (session, recorder) = session { endpoint in
             await attempts.record(endpoint)
@@ -59,11 +59,11 @@ struct GenreBrowseSessionTests {
             return page
         }
         session.load()
-        await waitUntil { recorder.states.count >= 2 }
+        await searchWaitUntil { recorder.states.count >= 2 }
         #expect(recorder.states.last == .failed(message: "boom"))
 
         session.load()
-        await waitUntil { recorder.states.count >= 4 }
+        await searchWaitUntil { recorder.states.count >= 4 }
         #expect(recorder.states.suffix(2).first == .loading)
         guard case .loaded = recorder.states.last else {
             Issue.record("expected loaded")
@@ -79,7 +79,7 @@ struct GenreBrowseSessionTests {
     }
 
     @Test func cancelDropsTheResult() async throws {
-        let gate = Gate()
+        let gate = SearchGate()
         let page = try SearchFixtures.page([try SearchFixtures.item("1", "movie", "A")])
         let (session, recorder) = session { _ in
             await gate.wait()

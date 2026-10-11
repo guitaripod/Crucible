@@ -6,7 +6,7 @@ struct SearchLoaderTests {
     private struct Boom: Error {}
 
     private static func loader(
-        log: RequestLog = RequestLog(),
+        log: SearchRequestLog = SearchRequestLog(),
         _ handler: @escaping @Sendable (PlexEndpoint) async throws -> PlexMediaContainer
     ) -> SearchLoader {
         SearchLoader { endpoint in
@@ -20,7 +20,7 @@ struct SearchLoaderTests {
             [try SearchFixtures.item("1", "movie", "Alpha")],
             [try SearchFixtures.item("2", "show", "Beta"), try SearchFixtures.item("1", "movie", "Alpha")],
         ])
-        let log = RequestLog()
+        let log = SearchRequestLog()
         let results = try await Self.loader(log: log) { _ in container }.search(query: "al")
         #expect(results.ordered.map(\.id) == ["1", "2"])
         #expect(await log.searchQueries == ["al"])
@@ -44,7 +44,7 @@ struct SearchLoaderTests {
         let showGenres = try SearchFixtures.directories([
             (key: "20", title: "drama", type: nil), (key: "21", title: "Mystery", type: nil),
         ])
-        let log = RequestLog()
+        let log = SearchRequestLog()
         let genres = await Self.loader(log: log) { endpoint in
             switch endpoint {
             case .sections: return sections
@@ -99,7 +99,7 @@ struct SearchLoaderTests {
             try SearchFixtures.item("5", "artist", "E"), try SearchFixtures.item("1", "movie", "A again"),
             try SearchFixtures.item("6", "collection", "F"),
         ])
-        let log = RequestLog()
+        let log = SearchRequestLog()
         let items = await Self.loader(log: log) { _ in container }.recentlyAdded()
         #expect(items.map(\.id) == ["1", "2", "3", "4"])
         let endpoints = await log.endpoints
@@ -125,7 +125,7 @@ struct SearchLoaderTests {
 
     @Test func itemsPageByHundredUntilAShortPage() async throws {
         let all = try Self.items(1...250)
-        let log = RequestLog()
+        let log = SearchRequestLog()
         let result = try await Self.loader(log: log) { endpoint in
             guard case .sectionItems(_, let sort, let genre, let start, let size, _, _) = endpoint else { throw Boom() }
             #expect(sort == "titleSort:asc" && genre == "5" && size == 100)
@@ -138,7 +138,7 @@ struct SearchLoaderTests {
 
     @Test func itemsStopWhenTheStartReachesTheTotal() async throws {
         let all = try Self.items(1...200)
-        let log = RequestLog()
+        let log = SearchRequestLog()
         let result = try await Self.loader(log: log) { endpoint in
             guard case .sectionItems(_, _, _, let start, let size, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(Array(all[start..<min(start + size, all.count)]), total: 200)
@@ -150,7 +150,7 @@ struct SearchLoaderTests {
 
     @Test func itemsKeepPagingWhenTheServerReportsNoTotal() async throws {
         let all = try Self.items(1...200)
-        let log = RequestLog()
+        let log = SearchRequestLog()
         _ = try await Self.loader(log: log) { endpoint in
             guard case .sectionItems(_, _, _, let start, let size, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(Array(all[start..<min(start + size, all.count)]))
@@ -159,7 +159,7 @@ struct SearchLoaderTests {
     }
 
     @Test func itemsAreCappedAtTwoThousandPerSource() async throws {
-        let log = RequestLog()
+        let log = SearchRequestLog()
         let result = try await Self.loader(log: log) { endpoint in
             guard case .sectionItems(_, _, _, let start, let size, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(try Self.items((start + 1)...(start + size)), total: 9000)
@@ -195,8 +195,8 @@ struct SearchLoaderTests {
     }
 
     @Test func itemsStopWhenCancelled() async throws {
-        let log = RequestLog()
-        let gate = Gate()
+        let log = SearchRequestLog()
+        let gate = SearchGate()
         let load = Self.loader(log: log) { _ in
             await gate.wait()
             return try SearchFixtures.page(try Self.items(1...100), total: 9000)

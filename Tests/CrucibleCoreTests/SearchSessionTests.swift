@@ -11,8 +11,8 @@ struct SearchSessionTests {
     @MainActor
     private final class Harness {
         let session: SearchSession
-        let log = RequestLog()
-        let memory: MemoryRecents
+        let log = SearchRequestLog()
+        let memory: SearchMemoryRecents
         private(set) var states: [SearchState] = []
 
         init(
@@ -20,7 +20,7 @@ struct SearchSessionTests {
             debounce: Duration = .milliseconds(20),
             handler: @escaping @Sendable (PlexEndpoint) async throws -> PlexMediaContainer
         ) {
-            memory = MemoryRecents(recents)
+            memory = SearchMemoryRecents(recents)
             let log = log
             let loader = SearchLoader { endpoint in
                 await log.record(endpoint)
@@ -45,11 +45,11 @@ struct SearchSessionTests {
         }
 
         func waitForState(count: Int) async {
-            await waitUntil { states.count >= count }
+            await searchWaitUntil { states.count >= count }
         }
 
         func waitFor(_ kind: String, count: Int = 1) async {
-            await waitUntil { kinds.filter { $0 == kind }.count >= count }
+            await searchWaitUntil { kinds.filter { $0 == kind }.count >= count }
         }
     }
 
@@ -164,7 +164,7 @@ struct SearchSessionTests {
     }
 
     @Test func aStaleResponseNeverOverwritesTheNewerQuery() async {
-        let gate = Gate()
+        let gate = SearchGate()
         let harness = Harness(debounce: .zero) { endpoint in
             guard case .search(let query) = endpoint else { return try SearchFixtures.container([:]) }
             if query == "ha" { await gate.wait() }
@@ -182,7 +182,7 @@ struct SearchSessionTests {
     }
 
     @Test func aFailureShowsTheMessageAndAllowsTheSameQueryAgain() async {
-        let counter = RequestLog()
+        let counter = SearchRequestLog()
         let harness = Harness { endpoint in
             guard case .search = endpoint else { return try SearchFixtures.container([:]) }
             await counter.record(endpoint)
@@ -201,7 +201,7 @@ struct SearchSessionTests {
     }
 
     @Test func retryRunsImmediatelyOnlyWhileTheQueryIsStillCurrent() async {
-        let counter = RequestLog()
+        let counter = SearchRequestLog()
         let harness = Harness(debounce: .seconds(5)) { endpoint in
             guard case .search = endpoint else { return try SearchFixtures.container([:]) }
             await counter.record(endpoint)
@@ -338,7 +338,7 @@ struct SearchSessionTests {
     }
 
     @Test func idleContentThatArrivesDuringASearchDoesNotReplaceIt() async throws {
-        let gate = Gate()
+        let gate = SearchGate()
         let sections = try SearchFixtures.directories([(key: "1", title: "Movies", type: "movie")])
         let harness = Harness(debounce: .zero) { endpoint in
             switch endpoint {
