@@ -9,43 +9,62 @@ final class HistoryTests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private var mode: String {
-        ProcessInfo.processInfo.environment["CRUCIBLE_HISTORY_MODE"] ?? "list"
+    override func tearDown() async throws {
+        await MainActor.run { AppNavigation.setMockFlags("latency_ms=0") }
     }
 
-    private func launchHistory() -> XCUIApplication {
-        TVTest.launch(extraEnvironment: ["CRUCIBLE_OPEN": "history"])
+    /// Launches the signed-in app, opens the You tab and selects Watch History, the way a user gets there.
+    private func openHistory(mock: [String: String] = [:], extraEnvironment: [String: String] = [:]) -> XCUIApplication {
+        let app = AppNavigation.launchHome(mock: mock, extraEnvironment: extraEnvironment)
+        AppNavigation.selectTab("You", in: app)
+        XCTAssertTrue(YouNavigation.row(app, "you.history").waitForExistence(timeout: 15))
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        TVTest.remote.press(.select)
+        return app
     }
 
     private func focusedIdentifier(_ app: XCUIApplication) -> String {
-        app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch.identifier
+        AppNavigation.focusedIdentifier(app)
     }
 
-    private func waitForFocusedRow(_ app: XCUIApplication, timeout: TimeInterval = 30) -> Bool {
-        guard app.staticTexts["history.title"].waitForExistence(timeout: timeout) else { return false }
-        TVTest.settle(1.5)
-        if !focusedIdentifier(app).hasPrefix(Self.rowPrefix) {
-            TVTest.remote.press(.down)
-        }
+    private func title(_ app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any)["history.title"]
+    }
+
+    private func waitForFocusedRow(_ app: XCUIApplication, timeout: TimeInterval = 60) -> String {
+        XCTAssertTrue(title(app).waitForExistence(timeout: timeout), "the History screen never appeared")
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
-            if focusedIdentifier(app).hasPrefix(Self.rowPrefix) { return true }
+            let identifier = focusedIdentifier(app)
+            if identifier.hasPrefix(Self.rowPrefix) { return identifier }
             TVTest.settle(0.5)
         }
-        return false
+        return focusedIdentifier(app)
     }
 
     private func position(of identifier: String) -> Int? {
         identifier.split(separator: "-").last.flatMap { Int($0) }
     }
 
-    func testLoadedListFocusesTheFirstRowAndReachesThePlayButton() throws {
-        try XCTSkipUnless(mode == "list")
-        let app = launchHistory()
-        XCTAssertTrue(app.staticTexts["history.title"].waitForExistence(timeout: 60))
-        XCTAssertTrue(waitForFocusedRow(app), "focus should start on the first row, was \(focusedIdentifier(app))")
-        let first = focusedIdentifier(app)
+    private func ratingKey(ofFocusedPlayButton app: XCUIApplication) -> String {
+        let identifier = focusedIdentifier(app)
+        let trimmed = identifier.replacingOccurrences(of: Self.playPrefix, with: "")
+        return trimmed.split(separator: "-").first.map(String.init) ?? ""
+    }
+
+    private func scrobble(_ ratingKey: String) {
+        guard let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"],
+              let url = URL(string: "\(base)/:/scrobble?key=\(ratingKey)&identifier=com.plexapp.plugins.library") else { return }
+        _ = try? Data(contentsOf: url)
+    }
+
+    func testLoadedListFocusesTheFirstRowAndReachesThePlayButton() {
+        let app = openHistory()
+        let first = waitForFocusedRow(app)
+        XCTAssertTrue(first.hasPrefix(Self.rowPrefix), "focus should start on the first row, was \(first)")
         XCTAssertEqual(position(of: first), 0)
+        XCTAssertTrue(title(app).label.hasPrefix("Watch History"), title(app).label)
+        XCTAssertTrue(title(app).label.contains("this week"), "the weekly summary belongs to the title: \(title(app).label)")
         TVTest.settle()
         TVTest.capture("01-loaded-first-row-focused", in: self)
 
@@ -64,10 +83,9 @@ final class HistoryTests: XCTestCase {
         TVTest.capture("03-second-row-focused", in: self)
     }
 
-    func testChipsAndRefreshSitAboveTheListAndFilterIt() throws {
-        try XCTSkipUnless(mode == "list")
-        let app = launchHistory()
-        XCTAssertTrue(waitForFocusedRow(app, timeout: 60))
+    func testChipsAndRefreshSitAboveTheListAndFilterIt() {
+        let app = openHistory()
+        _ = waitForFocusedRow(app)
 
         TVTest.remote.press(.up)
         TVTest.settle(0.6)
@@ -106,10 +124,9 @@ final class HistoryTests: XCTestCase {
         XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.rowPrefix))
     }
 
-    func testScrollingFocusPagesInMoreHistory() throws {
-        try XCTSkipUnless(mode == "list")
-        let app = launchHistory()
-        XCTAssertTrue(waitForFocusedRow(app, timeout: 60))
+    func testScrollingFocusPagesInMoreHistory() {
+        let app = openHistory()
+        _ = waitForFocusedRow(app)
         for _ in 0..<44 {
             TVTest.remote.press(.down)
         }
@@ -125,61 +142,90 @@ final class HistoryTests: XCTestCase {
         TVTest.capture("10-scrolled-into-page-two", in: self)
     }
 
-    func testSelectOpensDetailAndPlayButtonStartsPlayback() throws {
-        try XCTSkipUnless(mode == "list")
-        let app = launchHistory()
-        XCTAssertTrue(waitForFocusedRow(app, timeout: 60))
+    func testSelectOpensDetailAndMenuReturnsToTheSameRow() {
+        let app = openHistory()
+        _ = waitForFocusedRow(app)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.down)
+        TVTest.settle(0.6)
+        let row = focusedIdentifier(app)
+        XCTAssertEqual(position(of: row), 2)
 
+        TVTest.remote.press(.select)
+        AppNavigation.expectDetail(app)
+        TVTest.capture("11-select-opened-detail", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: row, timeout: 15), "focus must return to \(row), not \(focusedIdentifier(app))")
+        TVTest.capture("12-history-focus-restored", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"), "Menu from History must return to the You list")
+    }
+
+    func testPlayAgainReachesThePlayerAndTheListReloadsWhenItIsDismissed() {
+        let app = openHistory(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "4"])
+        _ = waitForFocusedRow(app)
+        TVTest.remote.press(.down)
         TVTest.remote.press(.right)
-        TVTest.settle(0.5)
+        TVTest.settle(0.6)
         XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.playPrefix))
-        TVTest.remote.press(.select)
-        let alert = app.alerts.firstMatch
-        XCTAssertTrue(alert.waitForExistence(timeout: 15), "the play-again button should reach the player seam")
-        TVTest.settle(0.5)
-        TVTest.capture("11-play-again-reached-the-player", in: self)
-        TVTest.remote.press(.select)
-        TVTest.settle(1.0)
-        XCTAssertFalse(alert.exists)
-        XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.playPrefix), "focus returns to the play button, was \(focusedIdentifier(app))")
+        let played = ratingKey(ofFocusedPlayButton: app)
+        XCTAssertFalse(played.isEmpty)
 
-        TVTest.remote.press(.left)
-        TVTest.settle(0.8)
-        XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.rowPrefix))
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.otherElements["player.preroll"].waitForExistence(timeout: 60), "the play-again button must reach the player pre-roll")
+        TVTest.capture("13-play-again-preroll", in: self)
+        scrobble(played)
+        XCTAssertTrue(app.otherElements["player.view"].waitForExistence(timeout: 60))
+        TVTest.settle(2)
+
+        AppNavigation.leavePlayer(app)
+        TVTest.settle(2)
+        let top = AppNavigation.element(app, "\(Self.rowPrefix)\(played)-0")
+        XCTAssertTrue(top.waitForExistence(timeout: 20), "the play finished while the player was open must be the top row after it closes")
+        XCTAssertFalse(focusedIdentifier(app).isEmpty)
+        TVTest.capture("14-list-reloaded-after-the-player", in: self)
+    }
+
+    func testMenuWhileLoadingPopsBackToTheYouList() {
+        let app = AppNavigation.launchHome()
+        AppNavigation.selectTab("You", in: app)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        AppNavigation.setMockFlags("latency_ms=6000")
         TVTest.remote.press(.select)
         TVTest.settle(1.5)
-        TVTest.capture("12-select-opened-detail", in: self)
-        XCTAssertTrue(app.staticTexts["placeholder.title"].waitForExistence(timeout: 10), "Select should push the detail screen")
-        XCTAssertTrue(app.staticTexts["placeholder.title"].label.hasPrefix("Detail "))
+        TVTest.capture("15-loading", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history", timeout: 10), "Menu while History loads must pop to the You list, focus is on \(focusedIdentifier(app))")
+        TVTest.capture("16-popped-while-loading", in: self)
     }
 
-    func testEmptyHistoryShowsTheEmptyState() throws {
-        try XCTSkipUnless(mode == "empty")
-        let app = launchHistory()
+    func testEmptyHistoryShowsTheEmptyState() {
+        let app = openHistory(mock: ["MOCK_NO_HISTORY": "1"])
         XCTAssertTrue(app.staticTexts["No activity yet"].waitForExistence(timeout: 60))
-        TVTest.settle(1.0)
-        TVTest.remote.press(.down)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "Refresh"))
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Refresh"], timeout: 10), "the state's button should hold focus, was \(focusedIdentifier(app))")
         TVTest.settle()
-        TVTest.capture("13-empty", in: self)
+        TVTest.capture("17-empty", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
     }
 
-    func testFailedHistoryOffersTryAgain() throws {
-        try XCTSkipUnless(mode == "error")
-        let app = launchHistory()
+    func testFailedHistoryOffersTryAgainAndKeepsFocusOnTheScreen() {
+        let app = openHistory(mock: ["MOCK_HISTORY_ERROR": "1"])
         XCTAssertTrue(app.staticTexts["Couldn't load history"].waitForExistence(timeout: 90))
-        TVTest.settle(1.0)
-        TVTest.remote.press(.down)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "Try Again"))
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Try Again"], timeout: 10))
         TVTest.settle()
-        TVTest.capture("14-error", in: self)
+        TVTest.capture("18-error", in: self)
 
         TVTest.remote.press(.select)
-        TVTest.settle(0.3)
-        TVTest.capture("15-error-retrying", in: self)
         XCTAssertTrue(app.staticTexts["Couldn't load history"].waitForExistence(timeout: 90))
         TVTest.settle(2.0)
-        TVTest.capture("16-error-after-retry", in: self)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "Try Again"))
+        TVTest.capture("19-error-after-retry", in: self)
+        XCTAssertTrue(TVTest.waitForFocus(app.buttons["Try Again"], timeout: 10), "focus must stay on the screen after Try Again, was \(focusedIdentifier(app))")
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"), "Menu from the error state must pop")
     }
 }

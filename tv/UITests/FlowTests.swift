@@ -142,7 +142,7 @@ final class FlowTests: XCTestCase {
         let app = AppNavigation.launchHome()
         enterYouTab(app)
         YouNavigation.openRow(app, "you.history")
-        XCTAssertTrue(app.staticTexts["history.title"].waitForExistence(timeout: 60))
+        XCTAssertTrue(app.descendants(matching: .any)["history.title"].waitForExistence(timeout: 60))
         TVTest.settle(1.5)
         if !AppNavigation.focusedIdentifier(app).hasPrefix("history.row.") { TVTest.remote.press(.down) }
         let row = waitForFocusedRow(app, prefix: "history.row.")

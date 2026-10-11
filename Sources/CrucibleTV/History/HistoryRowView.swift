@@ -8,9 +8,9 @@ enum HistoryMetrics {
     static let posterRadius: CGFloat = Theme.Radius.xs
     static let rowInset: CGFloat = 12
     static let buttonSpacing: CGFloat = Theme.Space.l
-    static let titleTopInset: CGFloat = 130
     static let dayHeaderHeight: CGFloat = 64
     static let daySectionBottomInset: CGFloat = 40
+    static let noMatchesHeight: CGFloat = 460
 }
 
 /// The focusable part of a history row: a light plate with the poster, the title and subtitle and
@@ -51,13 +51,6 @@ final class HistoryRowSurface: TVFocusableSurface {
         coordinator.addCoordinatedAnimations({ self.applyFocus(focused) })
     }
 
-    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-        super.pressesEnded(presses, with: event)
-        if presses.contains(where: { $0.type == .select }) {
-            sendActions(for: .primaryActionTriggered)
-        }
-    }
-
     private func buildHierarchy() {
         plate.isUserInteractionEnabled = false
         plate.translatesAutoresizingMaskIntoConstraints = false
@@ -67,9 +60,9 @@ final class HistoryRowSurface: TVFocusableSurface {
         artwork.layer.cornerRadius = HistoryMetrics.posterRadius
         artwork.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLabel.font = Theme.Font.scaled(.callout, 31, .semibold, maximum: 42)
+        titleLabel.font = TVFont.rowTitle
         titleLabel.lineBreakMode = .byTruncatingTail
-        subtitleLabel.font = TVCardTypography.subtitle
+        subtitleLabel.font = TVFont.cardSubtitle
         subtitleLabel.lineBreakMode = .byTruncatingTail
         let text = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
         text.axis = .vertical
@@ -118,56 +111,30 @@ final class HistoryRowSurface: TVFocusableSurface {
     }
 }
 
-/// One watch-history row: the focusable plate and, beside it, the glass play-again button. The cell
-/// is not focusable itself; the plate (Select opens detail) and the button (Select plays) are.
-final class HistoryRowCell: UICollectionViewCell {
+/// One watch-history row: the focusable plate and, beside it, the glass play-again button. Hosted in
+/// a `TVHostCell`, so the cell never takes focus: the plate (Select opens detail) and the button
+/// (Select plays) are the two focus targets.
+final class HistoryRowView: UIStackView {
     private let surface = HistoryRowSurface()
-    private let playButton: UIButton
+    private let playButton = TVButton.make(.glass, title: nil, symbol: "play.fill")
     private var onSelect: (@MainActor () -> Void)?
     private var onPlay: (@MainActor () -> Void)?
 
-    override init(frame: CGRect) {
-        playButton = TVButton.make(.glass, title: nil, symbol: "play.fill") {}
-        super.init(frame: frame)
-        backgroundConfiguration = .clear()
-        clipsToBounds = false
-        contentView.clipsToBounds = false
-
+    init() {
+        super.init(frame: .zero)
+        axis = .horizontal
+        alignment = .center
+        spacing = HistoryMetrics.buttonSpacing
         surface.addAction(UIAction { [weak self] _ in self?.onSelect?() }, for: .primaryActionTriggered)
         playButton.addAction(UIAction { [weak self] _ in self?.onPlay?() }, for: .primaryActionTriggered)
         playButton.setContentHuggingPriority(.required, for: .horizontal)
-
-        let stack = UIStackView(arrangedSubviews: [surface, playButton])
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = HistoryMetrics.buttonSpacing
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: contentView.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            surface.heightAnchor.constraint(equalToConstant: HistoryMetrics.rowHeight),
-        ])
+        addArrangedSubview(surface)
+        addArrangedSubview(playButton)
+        surface.heightAnchor.constraint(equalToConstant: HistoryMetrics.rowHeight).isActive = true
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override var canBecomeFocused: Bool { false }
-
-    override var preferredFocusEnvironments: [UIFocusEnvironment] { [surface] }
-
-    static func registration(
-        isBusy: @escaping @MainActor (HistoryItem) -> Bool,
-        onSelect: @escaping @MainActor (HistoryItem) -> Void,
-        onPlay: @escaping @MainActor (HistoryItem) -> Void
-    ) -> UICollectionView.CellRegistration<HistoryRowCell, HistoryItem> {
-        UICollectionView.CellRegistration<HistoryRowCell, HistoryItem> { cell, _, item in
-            cell.configure(with: item, isBusy: isBusy(item), onSelect: { onSelect(item) }, onPlay: { onPlay(item) })
-        }
-    }
+    required init(coder: NSCoder) { fatalError() }
 
     func configure(
         with item: HistoryItem,
@@ -187,12 +154,5 @@ final class HistoryRowCell: UICollectionViewCell {
         playButton.configuration = configuration
         playButton.accessibilityLabel = "Play \(row.title) again"
         playButton.accessibilityIdentifier = "history.play.\(item.uniqueId)"
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        surface.resetArtwork()
-        onSelect = nil
-        onPlay = nil
     }
 }
