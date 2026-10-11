@@ -28,7 +28,7 @@ NAME=x tv/scripts/tv.sh mock-up         start the mock Plex server on the Mac, p
 NAME=x tv/scripts/tv.sh mock-down
 NAME=x tv/scripts/tv.sh run [VAR=value ...]   build, install, launch; prints the PID
 NAME=x tv/scripts/tv.sh shot <name>     simulator screenshot to tv/out/<name>.png
-NAME=x tv/scripts/tv.sh uitest [-only PlaceholderTests/testSelectPressesTheFocusedButton]
+NAME=x tv/scripts/tv.sh uitest [-only TourTests/testEveryTabShowsItsScreen]
 NAME=x tv/scripts/tv.sh logs            tv/out/crucible.log from the app's data container, plus its tail
 NAME=x tv/scripts/tv.sh reset           uninstall the app and wipe its data, keep the simulator
 ```

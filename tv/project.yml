@@ -50,6 +50,10 @@ targets:
               - crucible
         UILaunchScreen:
           UIColorName: LaunchBackground
+        CFBundleURLTypes:
+          - CFBundleURLName: com.guitaripod.crucible
+            CFBundleURLSchemes:
+              - crucible
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations: {}
