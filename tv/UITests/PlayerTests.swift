@@ -131,7 +131,7 @@ final class PlayerTests: TVTestCase {
         setProgress(Self.episode, seconds: 104)
         let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<false/>", "-skipIntroMode", "2"])
         XCTAssertTrue(waitForPlayback(in: app))
-        XCTAssertTrue(app.otherElements["player.upNext"].waitForExistence(timeout: 40))
+        XCTAssertTrue(waitForFocusedUpNextCard(in: app))
         TVTest.remote.press(.menu)
         TVTest.settle(2)
         TVTest.capture("01-after-menu", in: self)
@@ -264,7 +264,7 @@ final class PlayerTests: TVTestCase {
             environment: ["CRUCIBLE_PLAYER_FAIL_RESOLVE_ONCE": Self.nextEpisode]
         )
         XCTAssertTrue(waitForPlayback(in: app))
-        XCTAssertTrue(app.otherElements["player.upNext"].waitForExistence(timeout: 40))
+        XCTAssertTrue(waitForFocusedUpNextCard(in: app))
         TVTest.remote.press(.select)
         let alert = app.alerts["Playback Error"]
         XCTAssertTrue(alert.waitForExistence(timeout: 30))
@@ -324,7 +324,7 @@ final class PlayerTests: TVTestCase {
         let mark = timelineMark()
         let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2"])
         XCTAssertTrue(waitForPlayback(in: app))
-        XCTAssertTrue(app.otherElements["player.upNext"].waitForExistence(timeout: 40))
+        XCTAssertTrue(waitForFocusedUpNextCard(in: app))
         TVTest.remote.press(.menu)
         TVTest.settle(2)
         XCTAssertFalse(app.otherElements["player.upNext"].exists)
@@ -389,6 +389,12 @@ final class PlayerTests: TVTestCase {
             if TVTest.waitForFocus(leave, timeout: 4) { return true }
         }
         return leave.hasFocus
+    }
+
+    /// Waits for the Up Next card and for focus to settle on its Play Now button. The card shows up in the accessibility tree while it is still sliding in, about half a second before the focus engine moves focus onto it; a press sent in that gap goes to the player underneath and is lost, which tvOS 27 exposes because it lists the card a little earlier than tvOS 26 did.
+    private func waitForFocusedUpNextCard(in app: XCUIApplication, timeout: TimeInterval = 40) -> Bool {
+        guard app.otherElements["player.upNext"].waitForExistence(timeout: timeout) else { return false }
+        return TVTest.waitForFocus(app.buttons["player.upNext.play"])
     }
 
     private func waitForPlayback(in app: XCUIApplication) -> Bool {
