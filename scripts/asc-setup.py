@@ -3,15 +3,12 @@
 
 Reads docs/asc-metadata.json and pushes the decided listing: categories, name, subtitle and privacy URL
 (appInfoLocalization), description, keywords, promotional text and URLs for both platform versions, copyright,
-release type, review details with the demo Plex account, a free price, China-mainland availability off and an
+release type, review details with the demo-mode notes, a free price, China-mainland availability off and an
 all-NONE age rating. Re-runnable.
-
-The demo Plex account is never committed: pass CRUCIBLE_DEMO_EMAIL, CRUCIBLE_DEMO_PASSWORD and
-CRUCIBLE_DEMO_SERVER in the environment. Without them the review notes keep their placeholders and the script says so.
 
 In-app purchases are scripts/asc-products.py; screenshots are scripts/asc-screenshots.py.
 
-Usage: CRUCIBLE_DEMO_EMAIL=... CRUCIBLE_DEMO_PASSWORD=... CRUCIBLE_DEMO_SERVER=... python3 scripts/asc-setup.py
+Usage: python3 scripts/asc-setup.py
 """
 import json
 import os
@@ -29,16 +26,6 @@ EDITABLE = ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADAT
 
 def first(path, **params):
     return asc.get(path, **params).get("data", [])
-
-
-def review_notes():
-    email = os.environ.get("CRUCIBLE_DEMO_EMAIL")
-    password = os.environ.get("CRUCIBLE_DEMO_PASSWORD")
-    server = os.environ.get("CRUCIBLE_DEMO_SERVER")
-    if not (email and password and server):
-        print("! CRUCIBLE_DEMO_EMAIL / PASSWORD / SERVER not set: the review notes keep their placeholders")
-        return spec["reviewNotes"]
-    return spec["reviewNotes"].format(email=email, password=password, server=server)
 
 
 def push_app_info():
@@ -96,7 +83,7 @@ def push_review_details(platform, version_id):
         "contactLastName": spec["contactLastName"],
         "contactEmail": spec["contactEmail"],
         "demoAccountRequired": False,
-        "notes": review_notes(),
+        "notes": spec["reviewNotes"],
     }
     if existing:
         asc.patch(f"/v1/appStoreReviewDetails/{existing['id']}", {"data": {

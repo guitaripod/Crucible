@@ -16,7 +16,7 @@ Put Crucible's App Store versions in review.
   scripts/asc-submit.sh tv         the Apple TV version
   scripts/asc-submit.sh status     what App Store Connect says now
 
-Run scripts/asc-setup.py with CRUCIBLE_DEMO_EMAIL, CRUCIBLE_DEMO_PASSWORD and CRUCIBLE_DEMO_SERVER first: the review notes need the demo Plex account.
+Run scripts/asc-setup.py first so the review notes describe the demo mode.
 The review submission is created, filled, listed and then submitted; nothing is submitted without the explicit platform argument.
 USAGE
 }
