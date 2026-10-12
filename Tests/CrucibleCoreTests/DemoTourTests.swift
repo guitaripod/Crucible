@@ -11,7 +11,8 @@ struct DemoTourTests {
     @Test func eachPlatformListsTheStepsItHas() {
         #expect(DemoTourStep.listed(isTV: false).contains(.download))
         #expect(!DemoTourStep.listed(isTV: true).contains(.download))
-        #expect(DemoTourStep.listed(isTV: true).count == DemoTourStep.allCases.count - 1)
+        #expect(!DemoTourStep.listed(isTV: true).contains(.poster))
+        #expect(DemoTourStep.listed(isTV: true) == [.play, .browse, .search, .statistics])
     }
 
     @Test func stepsOnlyCountInsideTheDemo() {
@@ -32,7 +33,17 @@ struct DemoTourTests {
     @Test func aStepTheTelevisionDoesNotHaveIsIgnored() {
         let tour = tour(isTV: true)
         tour.record(.download, demoActive: true)
+        tour.record(.poster, demoActive: true)
         #expect(tour.completedCount == 0)
+    }
+
+    @Test func theTelevisionFinaleFiresWhenItsFourStepsAreDone() {
+        let tour = tour(isTV: true)
+        var fired = 0
+        tour.onFinale = { fired += 1 }
+        for step in DemoTourStep.listed(isTV: true) { tour.record(step, demoActive: true) }
+        #expect(fired == 1)
+        #expect(tour.isComplete)
     }
 
     @Test func theFinaleFiresOnceWhenEnoughStepsAreDone() {

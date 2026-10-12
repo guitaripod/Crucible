@@ -29,6 +29,14 @@ var targets: [Target] = [
     .target(name: "CrucibleStats", dependencies: ["CrucibleCore", grdb]),
 ]
 
+#if os(macOS)
+targets += [
+    .target(name: "CrucibleDemo", dependencies: ["CrucibleCore"], resources: [.copy("Resources")]),
+    .testTarget(name: "CrucibleDemoTests", dependencies: ["CrucibleDemo", "CrucibleCore"]),
+]
+products += [.library(name: "CrucibleDemo", targets: ["CrucibleDemo"])]
+#endif
+
 if coreOnly {
     targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats"]))
 } else {

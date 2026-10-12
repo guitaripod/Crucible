@@ -42,9 +42,9 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
         }
     }
 
-    /// The steps that exist on the current platform: downloads are an iPhone feature.
+    /// The steps that exist on the current platform: downloads and the poster are iPhone features.
     package static func listed(isTV: Bool = AppPlatform.isTV) -> [DemoTourStep] {
-        allCases.filter { isTV ? $0 != .download : true }
+        allCases.filter { isTV ? $0 != .download && $0 != .poster : true }
     }
 }
 
@@ -120,7 +120,7 @@ package final class DemoTour {
         guard done.insert(step).inserted else { return }
         defaults.set(done.map(\.rawValue).sorted(), forKey: Self.completedKey)
         notify()
-        if done.count >= Self.finaleThreshold, !finaleShown {
+        if done.count >= min(Self.finaleThreshold, steps.count), !finaleShown {
             defaults.set(true, forKey: Self.finaleKey)
             onFinale?()
         }
