@@ -48,7 +48,7 @@ Dependencies only point downward. Core never imports UIKit, AVFoundation, MediaP
 
 ## Apple TV specifics
 
-- One top tab bar: Home, one tab per visible Plex library, Search, You. Libraries excluded in Settings also leave the tab bar.
+- One top tab bar: Home, one tab per Plex movie or show library (three plus More past four), Search, You. Libraries excluded in Settings, or hidden from Home on Plex, leave Home and Statistics, never the tab bar.
 - Home is cinematic: a full-screen backdrop that follows focus, a non-focusable hero (title, metadata, synopsis), then shelves. Select acts, Play/Pause plays, long press opens the context menu.
 - Cards are custom `UIContentView`s on `UIImageView.adjustsImageWhenAncestorFocused` (system tvOS 26 focus: lift, glass rim, parallax) with the title outside the scaling artwork. `UIFocusEffect` does not exist on tvOS; custom surfaces animate through the focus animation coordinator.
 - Liquid Glass is used only for controls and navigation, gated by `Glass.isAvailable` (tvOS 26 and Apple TV 4K 2nd generation or later); older systems and boxes get the classic look with the same layout.

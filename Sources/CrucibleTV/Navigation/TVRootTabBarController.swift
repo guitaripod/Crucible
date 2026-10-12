@@ -2,9 +2,9 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// `Home | one tab per visible library (or three plus More) | Search | You`. Each tab hosts its own
-/// navigation controller with the bar hidden. The tab set follows `LibraryVisibility`: a change
-/// rebuilds the tabs and keeps the selection, and tabs that survive keep their navigation stack.
+/// `Home | one tab per library (or three plus More) | Search | You`. Each tab hosts its own
+/// navigation controller with the bar hidden. Every movie and show library gets a tab, whether or
+/// not it counts toward Home and Statistics.
 @MainActor
 final class TVRootTabBarController: UITabBarController {
     private struct Entry {
@@ -21,8 +21,6 @@ final class TVRootTabBarController: UITabBarController {
 
     private var entries: [Entry] = []
     private var navigations: [String: UINavigationController] = [:]
-    private var tabObjects: [String: AnyObject] = [:]
-    private var visibilityObserver: UUID?
 
     init(environment: TVAppEnvironment) {
         self.environment = environment
@@ -32,19 +30,10 @@ final class TVRootTabBarController: UITabBarController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit {
-        if let visibilityObserver {
-            Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
-        }
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view.tintColor = Theme.Color.accent
-        installTabs(selecting: Self.homeIdentifier)
-        visibilityObserver = LibraryVisibility.addObserver { [weak self] in
-            self?.visibilityChanged()
-        }
+        installTabs()
     }
 
     /// Selects Home and returns its navigation controller.
@@ -54,28 +43,14 @@ final class TVRootTabBarController: UITabBarController {
         return navigation(for: entries[0])
     }
 
-    private func visibilityChanged() {
-        installTabs(selecting: selectedIdentifier ?? Self.homeIdentifier)
-    }
-
-    private var selectedIdentifier: String? {
-        entries.indices.contains(selectedIndex) ? entries[selectedIndex].identifier : nil
-    }
-
-    private func installTabs(selecting identifier: String) {
-        let fresh = makeEntries()
-        guard fresh.map(\.identifier) != entries.map(\.identifier) else { return }
-        entries = fresh
-        let live = Set(fresh.map(\.identifier))
-        navigations = navigations.filter { live.contains($0.key) }
-        tabObjects = tabObjects.filter { live.contains($0.key) }
-
+    private func installTabs() {
+        entries = makeEntries()
         if #available(tvOS 18.0, *) {
-            tabs = fresh.map(tab(for:))
+            tabs = entries.map(tab(for:))
         } else {
-            viewControllers = fresh.map(legacyRoot(for:))
+            viewControllers = entries.map(legacyRoot(for:))
         }
-        selectedIndex = fresh.firstIndex { $0.identifier == identifier } ?? 0
+        selectedIndex = 0
     }
 
     private func makeEntries() -> [Entry] {
@@ -110,18 +85,13 @@ final class TVRootTabBarController: UITabBarController {
 
     @available(tvOS 18.0, *)
     private func tab(for entry: Entry) -> UITab {
-        if let cached = tabObjects[entry.identifier] as? UITab { return cached }
         let navigation = navigation(for: entry)
-        let tab: UITab
-        if entry.identifier == Self.searchIdentifier {
-            let search = UISearchTab { _ in navigation }
-            search.title = entry.title
-            tab = search
-        } else {
-            tab = UITab(title: entry.title, image: UIImage(systemName: entry.symbol), identifier: entry.identifier) { _ in navigation }
+        guard entry.identifier == Self.searchIdentifier else {
+            return UITab(title: entry.title, image: UIImage(systemName: entry.symbol), identifier: entry.identifier) { _ in navigation }
         }
-        tabObjects[entry.identifier] = tab
-        return tab
+        let search = UISearchTab { _ in navigation }
+        search.title = entry.title
+        return search
     }
 
     private func legacyRoot(for entry: Entry) -> UINavigationController {

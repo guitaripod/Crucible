@@ -2,7 +2,7 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// Libraries: which libraries count toward Home, Statistics and the tab bar. Select flips a library
+/// Libraries: which libraries count toward Home and Statistics. Select flips a library
 /// between On and Off; at least one always stays on. A reset row appears once anything differs
 /// from what Plex says.
 final class TVLibrariesSettingsViewController: TVSettingsScaffold {
@@ -31,7 +31,7 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
         super.viewDidLoad()
         installHeading(TVSettingsHeading(
             title: "Libraries",
-            body: LibrariesSettings.footerText + " Libraries you switch off also leave the tab bar."
+            body: LibrariesSettings.footerText + " Every library keeps its tab."
         ))
         observer = LibraryVisibility.addObserver { [weak self] in self?.render() }
         render()

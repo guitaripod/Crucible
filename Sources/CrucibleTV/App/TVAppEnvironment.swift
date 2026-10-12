@@ -12,8 +12,7 @@ struct TVAppEnvironment {
     var hubs: PlexMediaContainer { payload.hubs }
     var sections: PlexMediaContainer { payload.sections }
 
-    /// The tab and More split of the current libraries, recomputed on every read so it follows
-    /// `LibraryVisibility`.
+    /// The tab and More split of the server's movie and show libraries.
     var libraryLayout: LibraryTabLayout {
         LibraryTabLayout(directories: sections.Directory ?? [])
     }

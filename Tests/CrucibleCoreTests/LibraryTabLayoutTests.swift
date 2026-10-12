@@ -15,7 +15,7 @@ struct LibraryTabLayoutTests {
 
     @Test func keepsMovieAndShowLibrariesInServerOrder() throws {
         let all = try directories([("1", "movie", "Movies"), ("2", "show", "TV Shows"), ("3", "movie", "Documentaries")])
-        let layout = LibraryTabLayout(directories: all, isIncluded: { _ in true })
+        let layout = LibraryTabLayout(directories: all)
         #expect(titles(layout.tabs) == ["Movies", "TV Shows", "Documentaries"])
         #expect(layout.overflow.isEmpty)
         #expect(!layout.hasMore)
@@ -23,19 +23,13 @@ struct LibraryTabLayoutTests {
 
     @Test func dropsMusicPhotoAndUnknownTypes() throws {
         let all = try directories([("1", "movie", "Movies"), ("2", "artist", "Music"), ("3", "photo", "Photos"), ("4", "show", "Shows")])
-        let layout = LibraryTabLayout(directories: all, isIncluded: { _ in true })
+        let layout = LibraryTabLayout(directories: all)
         #expect(titles(layout.tabs) == ["Movies", "Shows"])
-    }
-
-    @Test func dropsLibrariesLeftOutOfHome() throws {
-        let all = try directories([("1", "movie", "Movies"), ("2", "show", "Shows"), ("3", "movie", "Docs")])
-        let layout = LibraryTabLayout(directories: all, isIncluded: { $0 != 2 })
-        #expect(titles(layout.tabs) == ["Movies", "Docs"])
     }
 
     @Test func exactlyTheLimitStaysAsTabs() throws {
         let all = try directories([("1", "movie", "A"), ("2", "show", "B"), ("3", "movie", "C"), ("4", "show", "D")])
-        let layout = LibraryTabLayout(directories: all, isIncluded: { _ in true })
+        let layout = LibraryTabLayout(directories: all)
         #expect(titles(layout.tabs) == ["A", "B", "C", "D"])
         #expect(!layout.hasMore)
     }
@@ -44,30 +38,21 @@ struct LibraryTabLayoutTests {
         let all = try directories([
             ("1", "movie", "A"), ("2", "show", "B"), ("3", "movie", "C"), ("4", "show", "D"), ("5", "movie", "E"),
         ])
-        let layout = LibraryTabLayout(directories: all, isIncluded: { _ in true })
+        let layout = LibraryTabLayout(directories: all)
         #expect(titles(layout.tabs) == ["A", "B", "C"])
         #expect(titles(layout.overflow) == ["D", "E"])
         #expect(layout.hasMore)
     }
 
-    @Test func hiddenLibrariesDoNotCountTowardTheLimit() throws {
-        let all = try directories([
-            ("1", "movie", "A"), ("2", "show", "B"), ("3", "movie", "C"), ("4", "show", "D"), ("5", "movie", "E"),
-        ])
-        let layout = LibraryTabLayout(directories: all, isIncluded: { $0 != 5 })
-        #expect(titles(layout.tabs) == ["A", "B", "C", "D"])
-        #expect(!layout.hasMore)
-    }
-
     @Test func skipsEntriesWithoutNumericKeyOrTitle() throws {
         let json = #"[{"key":"x","type":"movie","title":"Bad"},{"key":"7","type":"movie"},{"key":"8","type":"show","title":"Good"}]"#
         let all = try JSONDecoder().decode([PlexDirectory].self, from: Data(json.utf8))
-        let layout = LibraryTabLayout(directories: all, isIncluded: { _ in true })
+        let layout = LibraryTabLayout(directories: all)
         #expect(titles(layout.tabs) == ["Good"])
     }
 
     @Test func emptyInputYieldsNoTabs() {
-        let layout = LibraryTabLayout(directories: [], isIncluded: { _ in true })
+        let layout = LibraryTabLayout(directories: [])
         #expect(layout.tabs.isEmpty)
         #expect(!layout.hasMore)
     }

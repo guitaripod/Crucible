@@ -88,7 +88,7 @@ final class SettingsTests: TVTestCase {
         TVTest.capture("03-after-reset", in: self)
     }
 
-    func testRebuildingTheTabBarDoesNotStealFocusFromTheLibrariesList() {
+    func testSwitchingALibraryOffKeepsItsTabAndFocusInTheList() {
         let app = TVTest.launch()
         YouNavigation.openYouTab(app)
         YouNavigation.openRow(app, "you.libraries")
@@ -100,14 +100,14 @@ final class SettingsTests: TVTestCase {
 
         TVTest.remote.press(.select)
         TVTest.settle(2)
-        TVTest.capture("01-library-off-tab-removed", in: self)
-        XCTAssertNotEqual(tabBar.buttons.allElementsBoundByIndex.map(\.label), tabsBefore, "switching a library off rebuilds the tab bar")
+        TVTest.capture("01-library-off-tab-kept", in: self)
         XCTAssertEqual(value(of: YouNavigation.row(app, "library.1")), "Off")
-        XCTAssertTrue(YouNavigation.row(app, "library.1").hasFocus, "the tab rebuild must leave focus in the list")
+        XCTAssertEqual(tabBar.buttons.allElementsBoundByIndex.map(\.label), tabsBefore, "a library switched off for Home still has its tab")
+        XCTAssertTrue(YouNavigation.row(app, "library.1").hasFocus)
 
         TVTest.remote.press(.select)
         TVTest.settle(2)
-        TVTest.capture("02-library-on-tab-restored", in: self)
+        TVTest.capture("02-library-on-tab-unchanged", in: self)
         XCTAssertEqual(tabBar.buttons.allElementsBoundByIndex.map(\.label), tabsBefore)
         XCTAssertEqual(value(of: YouNavigation.row(app, "library.1")), "On")
         XCTAssertTrue(YouNavigation.row(app, "library.1").hasFocus)

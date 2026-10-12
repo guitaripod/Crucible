@@ -18,7 +18,6 @@ final class TVMoreViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var libraries: [PlexDirectory] = []
     private var counts: [String: Int] = [:]
-    private var visibilityObserver: UUID?
     private lazy var countSlot = makeTaskSlot()
 
     init(env: TVAppEnvironment) {
@@ -27,19 +26,10 @@ final class TVMoreViewController: TVScreenViewController {
         title = "More"
     }
 
-    deinit {
-        if let visibilityObserver {
-            Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
-        }
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         configureDataSource()
         collectionView.collectionViewLayout = makeLayout()
-        visibilityObserver = LibraryVisibility.addObserver { [weak self] in
-            self?.reloadLibraries()
-        }
         reloadLibraries()
     }
 

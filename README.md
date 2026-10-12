@@ -73,7 +73,7 @@ A proper download engine — not the afterthought the official app ships.
 
 The same engine in a layout built for the couch and the Siri Remote. Everything that is not presentation — networking, playback, statistics, every screen's rules — is shared with the iPhone app; the Apple TV screens only render it.
 
-- **Top tab bar** — Home, one tab per Plex library, Search and You; libraries you switch off in Settings leave the bar
+- **Top tab bar** — Home, one tab per Plex library, Search and You; libraries you switch off in Settings leave Home and Statistics but keep their tab
 - **Cinematic Home** — a full-screen backdrop that follows focus, a hero with title, metadata and synopsis, then Continue Watching, Up Next, Recently Added and more; Select opens, Play/Pause plays, long press opens the context menu
 - **Library** poster grid with filter chips, a Recently Watched shelf, an A–Z rail, folder browsing for unindexed content and See All grids
 - **Detail** for movies, shows and episodes: season chips, episode rows that track watched and in-progress state, Cast & Crew and related titles

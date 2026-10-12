@@ -45,6 +45,21 @@ final class LibraryVisibilityTests {
         #expect(!LibraryVisibility.hasOverrides)
     }
 
+    @Test func libraryTabsKeepEveryLibraryWhateverHomeIncludes() throws {
+        let json = #"""
+        [
+            {"key":"1","type":"movie","title":"Movies"},
+            {"key":"2","type":"show","title":"Shows"},
+            {"key":"3","type":"movie","title":"Holy Grail","hidden":1}
+        ]
+        """#
+        try record(json)
+        #expect(LibraryVisibility.setIncluded(2, false))
+        #expect(LibraryVisibility.excluded == [2, 3])
+        let directories = try JSONDecoder().decode([PlexDirectory].self, from: Data(json.utf8))
+        #expect(LibraryTabLayout(directories: directories).tabs.compactMap(\.title) == ["Movies", "Shows", "Holy Grail"])
+    }
+
     @Test func unknownLibrariesAreIncludedByDefault() {
         #expect(LibraryVisibility.isIncluded(99))
         #expect(LibraryVisibility.excluded.isEmpty)

@@ -13,6 +13,15 @@ final class LibraryTests: TVTestCase {
         continueAfterFailure = false
     }
 
+    func testALibraryPlexHidesFromHomeStillHasItsTab() {
+        let app = TVTest.launch(mock: ["MOCK_HIDDEN_SECTIONS": "3"])
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60))
+        TVTest.settle(1.5)
+        let titles = app.tabBars.firstMatch.buttons.allElementsBoundByIndex.map(\.label)
+        TVTest.capture("01-tab-bar-with-a-library-hidden-from-home", in: self)
+        XCTAssertTrue(titles.contains("Documentaries"), "a library Plex hides from Home keeps its tab, tabs are \(titles)")
+    }
+
     func testMovieLibraryLoadedFiltersAndMenus() {
         let app = openTab("Movies")
         waitForRecents(in: app)
