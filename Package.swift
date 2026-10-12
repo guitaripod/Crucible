@@ -20,6 +20,10 @@ let coreOnly = ProcessInfo.processInfo.environment["CRUCIBLE_CORE_ONLY"] != nil
 
 var products: [Product] = []
 
+var dependencies: [Package.Dependency] = [
+    .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
+]
+
 var targets: [Target] = [
     .target(name: "CrucibleCore"),
     .target(name: "CrucibleStats", dependencies: ["CrucibleCore", grdb]),
@@ -31,6 +35,12 @@ if coreOnly {
     products += [
         .library(name: "Crucible", targets: ["Crucible"]),
         .library(name: "CrucibleWidgets", targets: ["CrucibleWidgets"]),
+        .library(name: "CrucibleCore", targets: ["CrucibleCore"]),
+        .library(name: "CrucibleMedia", targets: ["CrucibleMedia"]),
+        .library(name: "CrucibleStats", targets: ["CrucibleStats"]),
+        .library(name: "CrucibleDesign", targets: ["CrucibleDesign"]),
+        .library(name: "CrucibleStatsUI", targets: ["CrucibleStatsUI"]),
+        .library(name: "CrucibleActivity", targets: ["CrucibleActivity"]),
     ]
     targets += [
         .target(name: "CrucibleActivity"),
@@ -57,11 +67,17 @@ if coreOnly {
         ),
     ]
     #if os(macOS)
+    dependencies.append(.package(url: "https://github.com/RevenueCat/purchases-ios.git", from: "5.83.0"))
     products += [
         .library(name: "CrucibleTV", targets: ["CrucibleTV"]),
         .library(name: "CrucibleTopShelf", targets: ["CrucibleTopShelf"]),
+        .library(name: "CrucibleStore", targets: ["CrucibleStore"]),
     ]
     targets += [
+        .target(
+            name: "CrucibleStore",
+            dependencies: ["CrucibleCore", .product(name: "RevenueCat", package: "purchases-ios")]
+        ),
         .target(
             name: "CrucibleTV",
             dependencies: ["CrucibleCore", "CrucibleMedia", "CrucibleStats", "CrucibleDesign", "CrucibleStatsUI"]
@@ -79,8 +95,6 @@ let package = Package(
         .macOS(.v14),
     ],
     products: products,
-    dependencies: [
-        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
-    ],
+    dependencies: dependencies,
     targets: targets
 )
