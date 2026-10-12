@@ -108,7 +108,7 @@ swift build --swift-sdk arm64-apple-ios --build-system native
 The Apple TV app needs a Mac with Xcode 26 or newer and [XcodeGen](https://github.com/yonaskolb/XcodeGen). The manifest only declares the tvOS targets when it is evaluated on macOS, so the Linux and xtool build above is unaffected.
 
 ```bash
-cd tv && xcodegen generate && open CrucibleTV.xcodeproj
+cd tv && CRUCIBLE_PACKAGE_NAME=$(basename "$(cd .. && pwd)" | tr '[:upper:]' '[:lower:]') xcodegen generate && open CrucibleTV.xcodeproj
 ```
 
 [tv/README.md](tv/README.md) covers the simulator workflow (build, run, UI tests and screenshots against a mock Plex server, driven from Linux over ssh) and the real-device one: `./scripts/install-tv.sh` builds and signs on the Mac and installs on a paired Apple TV with `devicectl`.

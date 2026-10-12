@@ -42,7 +42,7 @@ generate_project() {
   mkdir -p tv/Generated/Device
   "$PYTHON" tv/scripts/device-spec.py --spec tv/project.yml --profile "$PROFILE" --output tv/Generated/project.device.yml \
     ${BUILD_NUMBER:+--build-number "$BUILD_NUMBER"}
-  xcodegen generate --spec tv/Generated/project.device.yml --project-root tv --project tv --quiet
+  CRUCIBLE_PACKAGE_NAME=$(basename "$PWD" | tr '[:upper:]' '[:lower:]') xcodegen generate --spec tv/Generated/project.device.yml --project-root tv --project tv --quiet
   log "generated $PROJECT for $(profile_field bundleId)"
 }
 

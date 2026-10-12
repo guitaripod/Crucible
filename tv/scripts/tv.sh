@@ -86,7 +86,7 @@ generate() {
     if [ -d CrucibleTV.xcodeproj ] && [ "$(cat .gen-hash 2>/dev/null)" = "$want" ]; then
       echo "xcodegen: project up to date"
     else
-      xcodegen generate --spec project.yml --quiet && echo "$want" > .gen-hash && echo "xcodegen: generated tv/CrucibleTV.xcodeproj"
+      CRUCIBLE_PACKAGE_NAME=$(basename "$(cd .. && pwd)" | tr "[:upper:]" "[:lower:]") xcodegen generate --spec project.yml --quiet && echo "$want" > .gen-hash && echo "xcodegen: generated tv/CrucibleTV.xcodeproj"
     fi'
 }
 

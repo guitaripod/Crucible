@@ -32,6 +32,7 @@ final class TVStatisticsViewController: TVScreenViewController {
     private var hasLoadedOnce = false
     private var syncedAtLeastOnce = false
     private var visibilityObserver: UUID?
+    private var proObserver: UUID?
 
     init(environment: TVAppEnvironment) {
         env = environment
@@ -49,6 +50,9 @@ final class TVStatisticsViewController: TVScreenViewController {
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
         }
+        if let proObserver {
+            Task { @MainActor in ProAccess.shared.stopObserving(proObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -56,10 +60,13 @@ final class TVStatisticsViewController: TVScreenViewController {
         collectionView.accessibilityIdentifier = "stats.collection"
         setContentScrollView(collectionView, for: .top)
         controlsView.onRange = { [weak self] range in self?.selectRange(range) }
+        controlsView.onLocked = { [weak self] lock in self?.unlock(lock) }
+        applyLocks()
         configureDataSource()
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
             self?.librariesChanged()
         }
+        proObserver = ProAccess.shared.observe { [weak self] _ in self?.proStatusChanged() }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -132,6 +139,32 @@ final class TVStatisticsViewController: TVScreenViewController {
     private func librariesChanged() {
         controlsView.updateLibraries(StatsLibraryFilter.current())
         load(animateHero: false)
+    }
+
+    /// Statistics beyond the Week range are Crucible Pro: a free install opens on Week, with locks on the other chips and on the
+    /// Libraries filter, until Pro is on.
+    private func applyLocks() {
+        let locks = ProAccess.shared.showsLocks
+        controlsView.showsLocks = locks
+        if TVStatsControlsView.isLocked(range, showsLocks: locks) {
+            range = .week
+        }
+        controlsView.select(range: range)
+    }
+
+    private func proStatusChanged() {
+        let previous = range
+        applyLocks()
+        if previous != range { load(animateHero: true) }
+    }
+
+    /// A press on a lock opens the paywall; once Pro is on, the range the user reached for opens.
+    private func unlock(_ lock: TVStatsControlsView.StatsLock) {
+        ProAccess.shared.requestUnlock(.fullStatistics) { [weak self] unlocked in
+            guard unlocked, let self, case .range(let chosen) = lock else { return }
+            controlsView.select(range: chosen)
+            selectRange(chosen)
+        }
     }
 
     private func selectRange(_ newRange: StatsRange) {

@@ -5,24 +5,33 @@ import TVServices
 /// session's API client on launch and calls `refresh()` when the app returns to the foreground;
 /// the player calls it when playback ends. Each refresh fetches Home's hubs, rewrites the
 /// snapshot in the App Group when something changed and tells the system.
+///
+/// Top Shelf is a Crucible Pro feature. A free install publishes nothing and empties what an earlier
+/// version or an ended plan left, so the extension returns no content; a status the store has not
+/// answered yet changes nothing. The refresher follows `ProAccess`, so turning Pro on fills the
+/// Top Shelf at once and losing it empties it.
 @MainActor
 enum TVTopShelfRefresher {
     private static var session: (api: APIClient, machineIdentifier: String)?
     private static var task: Task<Void, Never>?
+    private static var proObserver: UUID?
 
     static func activate(api: APIClient, machineIdentifier: String) {
         session = (api, machineIdentifier)
+        observePro()
         refresh()
     }
 
     /// Does nothing without an active session. A refresh already running is replaced.
     static func refresh() {
         guard let session else { return }
-        task?.cancel()
-        task = Task {
-            await TopShelfUpdater.refresh(api: session.api, machineIdentifier: session.machineIdentifier) {
-                TVTopShelfContentProvider.topShelfContentDidChange()
-            }
+        switch ProTVTopShelf.action(for: ProAccess.shared.status) {
+        case .publish:
+            publish(session)
+        case .clear:
+            clear()
+        case .wait:
+            break
         }
     }
 
@@ -32,5 +41,29 @@ enum TVTopShelfRefresher {
         task?.cancel()
         task = nil
         session = nil
+        if let proObserver { ProAccess.shared.stopObserving(proObserver) }
+        proObserver = nil
+    }
+
+    private static func publish(_ session: (api: APIClient, machineIdentifier: String)) {
+        task?.cancel()
+        task = Task {
+            await TopShelfUpdater.refresh(api: session.api, machineIdentifier: session.machineIdentifier) {
+                TVTopShelfContentProvider.topShelfContentDidChange()
+            }
+        }
+    }
+
+    private static func clear() {
+        task?.cancel()
+        task = nil
+        TopShelfUpdater.clear {
+            TVTopShelfContentProvider.topShelfContentDidChange()
+        }
+    }
+
+    private static func observePro() {
+        guard proObserver == nil else { return }
+        proObserver = ProAccess.shared.observe { _ in refresh() }
     }
 }

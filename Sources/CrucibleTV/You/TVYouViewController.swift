@@ -9,6 +9,7 @@ final class TVYouViewController: TVSettingsScaffold {
     private enum RowID {
         static let history = "you.history"
         static let statistics = "you.statistics"
+        static let pro = "you.pro"
         static let playback = "you.playback"
         static let libraries = "you.libraries"
         static let server = "you.server"
@@ -26,6 +27,7 @@ final class TVYouViewController: TVSettingsScaffold {
     private lazy var remoteContentSlot = makeTaskSlot()
     private var remoteContentThrottle = ReloadThrottle(interval: 60)
     private var libraryObserver: UUID?
+    private var proObserver: UUID?
 
     init(env: TVAppEnvironment) {
         self.env = env
@@ -40,6 +42,9 @@ final class TVYouViewController: TVSettingsScaffold {
         if let libraryObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(libraryObserver) }
         }
+        if let proObserver {
+            Task { @MainActor in ProAccess.shared.stopObserving(proObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -47,6 +52,7 @@ final class TVYouViewController: TVSettingsScaffold {
         buildContextColumn()
         YouConnectionStatus.shared.onChange = { [weak self] _ in self?.refreshProfile() }
         libraryObserver = LibraryVisibility.addObserver { [weak self] in self?.refreshRows() }
+        proObserver = ProAccess.shared.observe { [weak self] _ in self?.refreshRows() }
         refreshProfile()
         refreshRows()
     }
@@ -67,6 +73,7 @@ final class TVYouViewController: TVSettingsScaffold {
         switch id {
         case RowID.history: push(TVScreens.history(env))
         case RowID.statistics: push(TVScreens.statistics(env))
+        case RowID.pro: openPro()
         case RowID.playback: push(TVScreens.settings(env, page: .playback))
         case RowID.libraries: push(TVScreens.settings(env, page: .libraries))
         case RowID.server: push(TVScreens.settings(env, page: .server))
@@ -75,6 +82,15 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.signOut: confirmSignOut()
         default: break
         }
+    }
+
+    /// A Pro user sees their plan; everyone else meets the paywall.
+    private func openPro() {
+        guard ProAccess.shared.isPro else {
+            ProAccess.shared.requestUnlock(nil)
+            return
+        }
+        push(TVScreens.settings(env, page: .pro))
     }
 
     private func push(_ screen: UIViewController) {
@@ -137,7 +153,7 @@ final class TVYouViewController: TVSettingsScaffold {
 
     private func refreshRows() {
         let state = YouConnectionStatus.shared.state
-        setRows([
+        var rows = [
             TVRowItem(id: RowID.history, title: "Watch History", subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
             TVRowItem(id: RowID.statistics, title: "Statistics", symbol: "chart.bar", accessory: .chevron),
             TVRowItem(id: RowID.playback, title: "Playback", symbol: "play.rectangle", accessory: .chevron),
@@ -146,7 +162,21 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.diagnostics, title: "Diagnostics", symbol: "doc.text.magnifyingglass", accessory: .chevron),
             TVRowItem(id: RowID.about, title: "About Crucible", value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
             TVRowItem(id: RowID.signOut, title: "Sign Out", symbol: "rectangle.portrait.and.arrow.right", isDestructive: true),
-        ])
+        ]
+        if ProAccess.shared.isStoreBacked {
+            rows.insert(proRow(), at: 2)
+        }
+        setRows(rows)
+    }
+
+    private func proRow() -> TVRowItem {
+        TVRowItem(
+            id: RowID.pro,
+            title: "Crucible Pro",
+            subtitle: ProTVPresentation.rowSubtitle(for: ProAccess.shared.status),
+            symbol: "sparkles",
+            accessory: .chevron
+        )
     }
 
     private func confirmSignOut() {

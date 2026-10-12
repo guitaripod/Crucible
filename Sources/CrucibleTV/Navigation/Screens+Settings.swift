@@ -8,6 +8,7 @@ extension TVScreens {
         case .server: TVServerSettingsViewController(env: env)
         case .diagnostics: TVDiagnosticsViewController()
         case .about: TVAboutViewController()
+        case .pro: TVProViewController()
         }
     }
 }

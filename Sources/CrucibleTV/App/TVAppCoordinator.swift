@@ -20,6 +20,7 @@ final class TVAppCoordinator: TVSessionActions {
 
     /// Queues any link the app was opened with, then routes to the right root.
     func start(openingURLs urls: [URL]) {
+        installPro()
         #if DEBUG
         if let root = TVDebugRoot.rootIfRequested() {
             window.rootViewController = root
@@ -39,11 +40,13 @@ final class TVAppCoordinator: TVSessionActions {
     func stop() {
         launchTask?.cancel()
         launchTask = nil
+        removePro()
         router.deactivate()
         TVTopShelfRefresher.deactivate()
     }
 
     func sceneWillEnterForeground() {
+        ProAccess.shared.refresh()
         TVTopShelfRefresher.refresh()
     }
 
@@ -178,7 +181,7 @@ final class TVAppCoordinator: TVSessionActions {
         window.rootViewController = TVNavigation.makeNavigationController(root: onboarding)
     }
 
-    private var topViewController: UIViewController? {
+    var topViewController: UIViewController? {
         var top = window.rootViewController
         while let presented = top?.presentedViewController {
             top = presented

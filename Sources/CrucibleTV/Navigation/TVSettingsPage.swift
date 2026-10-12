@@ -5,4 +5,5 @@ enum TVSettingsPage: CaseIterable, Sendable {
     case server
     case diagnostics
     case about
+    case pro
 }
