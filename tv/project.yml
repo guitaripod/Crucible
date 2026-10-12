@@ -46,6 +46,7 @@ targets:
         CFBundleDisplayName: Crucible
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
         NSLocalNetworkUsageDescription: Crucible connects to your Plex Media Server on your home network to browse and play your library.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
