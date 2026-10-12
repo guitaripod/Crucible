@@ -17,3 +17,7 @@ DerivedData/
 /tv/.gen-hash
 /marketing/tv/out
 /Sources/CrucibleStore/StoreSecrets.swift
+/ios/*.xcodeproj
+/ios/Generated
+/ios/out
+/ios/.gen-hash
