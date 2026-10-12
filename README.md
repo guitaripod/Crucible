@@ -71,6 +71,8 @@ A proper download engine — not the afterthought the official app ships.
 
 ### Apple TV
 
+<p align="center"><img src="docs/apple-tv.jpg" alt="Crucible on Apple TV: Home, the player, context menus, library, detail and Statistics" width="640"></p>
+
 The same engine in a layout built for the couch and the Siri Remote. Everything that is not presentation — networking, playback, statistics, every screen's rules — is shared with the iPhone app; the Apple TV screens only render it.
 
 - **Top tab bar** — Home, one tab per Plex library, Search and You; libraries you switch off in Settings leave Home and Statistics but keep their tab
