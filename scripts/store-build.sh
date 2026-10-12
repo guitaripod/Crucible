@@ -44,6 +44,6 @@ extra=""
 [[ -z "${CLEAN:-}" ]] || extra+=" --clean"
 
 ssh -o BatchMode=yes "$MAC" "cd ~/$STAGE && export PATH=\$HOME/Dev/buildvm/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH \
-  && python3 scripts/store-spec.py $PLATFORM --package-name $NAME --output project.yml \
+  && python3 scripts/store-spec.py $PLATFORM --package-name ${NAME//-/_} --output project.yml \
   && buildvm build --dir ~/$STAGE --name $NAME --scheme $SCHEME --platform $BUILDVM_PLATFORM $profile_args \
        --build $BUILD_NUMBER --marketing $MARKETING --archive-flags '$flags' $extra" < /dev/null
