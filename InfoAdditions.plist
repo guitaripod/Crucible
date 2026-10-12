@@ -48,8 +48,8 @@
 		<string>iPhoneOS</string>
 	</array>
 	<key>CFBundleShortVersionString</key>
-	<string>2.0.1</string>
+	<string>2.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>11</string>
 </dict>
 </plist>
