@@ -22,10 +22,11 @@ Build Crucible for a real Apple TV on the Mac, sign it with the development prof
   scripts/install-tv.sh check       compile the device variant for tvOS without signing (no Apple TV needed)
   scripts/install-tv.sh logs        copy the app's crucible.log from the Apple TV to tv/out/crucible-device.log and print its tail
   scripts/install-tv.sh devices     list the Apple TVs the Mac knows and whether each is paired
+  scripts/install-tv.sh pair        pair the Apple TV with the Mac from the terminal (type the code the Apple TV shows)
 
-TV_DEVICE=<name|identifier|UDID> picks the Apple TV when more than one is paired. NAME=<id> picks the remote checkout
-(~/Dev/ios/$NAME, default CrucibleTVDevice). MAC=<ssh host> picks the build Mac. The Apple TV is paired once with the
-Mac in Xcode; tv/README.md lists the steps and how the development profile is made.
+TV_DEVICE=<name|identifier|UDID> picks the Apple TV when more than one is paired (for pair: its name, default "Apple TV").
+NAME=<id> picks the remote checkout (~/Dev/ios/$NAME, default CrucibleTVDevice). MAC=<ssh host> picks the build Mac.
+The Apple TV is paired once with the Mac; tv/README.md lists the steps and how the development profile is made.
 USAGE
 }
 
@@ -55,7 +56,7 @@ physical_apple_tvs() {
 import json, sys
 for device in json.load(sys.stdin)["result"]["devices"]:
     hardware = device["hardwareProperties"]
-    if hardware.get("deviceType") == "appleTV" and hardware.get("reality") == "physical":
+    if hardware.get("deviceType") == "appleTV" and hardware.get("reality") != "simulated":
         print(device["connectionProperties"].get("pairingState", "unknown"), device["identifier"], hardware["udid"], hardware["productType"], device["deviceProperties"]["name"], sep="\t")
 '
 }
@@ -65,7 +66,7 @@ explain_pairing() {
 
 The Mac has no paired Apple TV. Pair it once:
   1. Apple TV: Settings > Remotes and Devices > Remote App and Devices, and leave that screen open.
-  2. Mac: Xcode > Window > Devices and Simulators, click +, choose the Apple TV, enter the code it shows.
+  2. Run scripts/install-tv.sh pair and type the code the Apple TV shows (or pair in Xcode: Window > Devices and Simulators > +).
 Then run this again.
 HINT
 }
@@ -127,11 +128,17 @@ device_logs() {
   tail -40 "$OUT/crucible-device.log"
 }
 
+pair() {
+  log "on the Apple TV open Settings > Remotes and Devices > Remote App and Devices and keep it open"
+  "${SSH[@]}" -tt "$MAC" "xcrun devicectl manage pair --device '${TV_DEVICE:-Apple TV}'"
+}
+
 case "${1:-install}" in
   install) deploy ;;
   build) sync_tree; build_remote "" build ;;
   check) sync_tree; build_remote "" check ;;
   logs) device_logs ;;
   devices) physical_apple_tvs | column -t -s $'\t' ;;
+  pair) pair ;;
   *) usage; exit 2 ;;
 esac

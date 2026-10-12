@@ -67,6 +67,7 @@ scripts/install-tv.sh build      build and sign only (no Apple TV needed); print
 scripts/install-tv.sh check      compile the device variant for tvOS without signing (no Apple TV needed)
 scripts/install-tv.sh logs       tv/out/crucible-device.log from the app's data container, plus its tail
 scripts/install-tv.sh devices    the Apple TVs the Mac knows and whether each is paired
+scripts/install-tv.sh pair       pair the Apple TV with the Mac from the terminal
 ```
 
 `TV_DEVICE=<name|identifier|UDID>` picks one when several are paired; `NAME` and `MAC` work as for `tv.sh` (the remote checkout defaults to `~/Dev/ios/CrucibleTVDevice`).
@@ -77,7 +78,7 @@ scripts/install-tv.sh devices    the Apple TVs the Mac knows and whether each is
 - The device build leaves out Top Shelf: the profile carries no App Group, so `TopShelfStore` finds no container, logs it and skips the snapshot. Turning it on needs the App Group `group.com.guitaripod.crucible` created and assigned to both App IDs in the developer portal (the public API cannot; `asc web app-groups` with an Account Holder or Admin web session can), profiles for the app and the extension, and the extension and entitlements restored in the device spec.
 - Release has no DEBUG hooks (`CRUCIBLE_MOCK`, `CRUCIBLE_MODEL_IDENTIFIER`, `CRUCIBLE_STYLE`, `CRUCIBLE_OPEN_LINK`): the device runs the app the way a user would, with the Liquid Glass gate decided by the real tvOS version and hardware.
 
-Pair the Apple TV with the Mac once: on the Apple TV open Settings > Remotes and Devices > Remote App and Devices and leave the screen open, then on the Mac open Xcode > Window > Devices and Simulators, click +, choose the Apple TV and enter the code it shows. tvOS has no Developer Mode. `devicectl list devices` then shows the Apple TV as paired and `scripts/install-tv.sh devices` lists it.
+Pair the Apple TV with the Mac once: on the Apple TV open Settings > Remotes and Devices > Remote App and Devices and leave the screen open, run `scripts/install-tv.sh pair` and type the code the Apple TV shows (it asks again with a fresh code when one is wrong or has expired; a pairing attempt that cannot read a code from stdin burns the one the TV is showing). The Xcode route works too: Window > Devices and Simulators > +, choose the Apple TV, enter the code. `pair` runs `devicectl manage pair` over `ssh -tt`, because `devicectl` prompts for the code on a terminal and buffers its output without one. tvOS has no Developer Mode. `scripts/install-tv.sh devices` then lists the Apple TV as paired; its device JSON has no `reality` field, which is how a real Apple TV differs from a simulated one.
 
 Make the profile again (a new Apple TV, or a year later) on the Mac, with the ASC credentials sourced from `~/.config/midgar/credentials.env`:
 
