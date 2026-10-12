@@ -82,7 +82,7 @@ marketing/shots/run.sh      # iPhone screenshot harness, also the iPhone visual 
 ### Tests
 
 - Core and statistics logic: Swift Testing in `Tests/CrucibleCoreTests`, run on the macOS host (`scripts/mac.sh core-test`).
-- Apple TV screens: XCUITest through the real focus engine (`XCUIRemote`) against the mock Plex server in `marketing/mock`, with screenshots exported to `tv/out/ui`. A test states the mock it needs with `TVTest.launch(mock: [...])`; every launch first resets the mock, so a test never inherits another's state, and a single run executes every test.
+- Apple TV screens: XCUITest through the real focus engine (`XCUIRemote`) against the mock Plex server in `marketing/mock`, with screenshots exported to `tv/out/ui`. Every test class derives from `TVTestCase`, which returns the mock to a pristine library and history before the class starts (`/mock/reset`); a test states the settings it needs with `TVTest.launch(mock: [...])`, and every launch first clears the runtime settings, so a test never inherits another's state and a single run executes every test.
 - DEBUG launch switches for simulator work: `CRUCIBLE_MOCK` (connect to the mock), `CRUCIBLE_FRESH` (first launch), `CRUCIBLE_OPEN` and `CRUCIBLE_OPEN_LINK` (start on a screen or a deep link), `CRUCIBLE_STYLE=light|dark`, `CRUCIBLE_MODEL_IDENTIFIER=AppleTV6,2` (render the classic look on a glass-capable simulator), `CRUCIBLE_VOICEOVER=1` (VoiceOver focus stops without VoiceOver), `CRUCIBLE_GALLERY` (the design-system gallery).
 - iPhone regression: `marketing/shots/run.sh` captures the app against the mock; run it on a baseline checkout and on the working tree with the same simulator and compare the images.
 
