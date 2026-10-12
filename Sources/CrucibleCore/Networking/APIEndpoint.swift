@@ -37,7 +37,7 @@ package enum PlexEndpoint: Sendable {
         }
     }
 
-    static let plexTVBaseURL = PlexTVHost.clients
+    static var plexTVBaseURL: URL { PlexTVHost.clients }
 
     package var timeout: TimeInterval {
         switch self {
