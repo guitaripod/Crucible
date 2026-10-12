@@ -34,3 +34,15 @@ Runtime switches for player tests, read from `MOCK_*` environment variables at s
 `GET /mock/log?q=<text>` returns the last 3000 request lines containing `<text>` as a JSON array (`GET /:/timeline?...`), so a UI test can assert which timeline states, transcode starts or pings reached the server.
 
 `./make_hls.sh` cuts `assets/clip.mp4` into `assets/hls` (fMP4, 6 s segments). Once it exists, `/video/:/transcode/universal/start.m3u8` serves that playlist whatever the `offset`, so transcode playback, restarts and pings can be exercised; without it the endpoint answers an empty 200. Every request is logged to stderr, so `/:/timeline`, `ping` and `stop` calls can be checked in the server log.
+
+## In-app demo library
+
+The App Store builds ship the same fictional library inside the app (`Sources/CrucibleDemo`, served over a loopback HTTP server). Its content is exported from this mock's data, so the two stay in step:
+
+    python3 export_demo.py                 # rewrites Sources/CrucibleDemo/Data: library.json, images/, video/
+    python3 export_demo.py --skip-video    # catalogue and images only
+    python3 export_demo.py --skip-images   # catalogue and video only
+
+Needs Pillow and ffmpeg and the artwork in `assets/` (`python3 art.py` regenerates it). The exporter shrinks the artwork (posters 400x600, backdrops 1280x720, episode stills 480x270, cast avatars 200x200, JPEG quality 62 to 74), writes the catalogue as JSON with watch state as seconds before launch, and builds one 30 second 720p H.264/AAC clip with a synthesised pad and a corner caption, plus the same clip cut into 2 second fMP4 HLS segments. It refuses to finish when the folder exceeds 12 MB. The folder is named `Data` (not `Resources`) because a top-level `Resources` folder inside the flat iOS and tvOS resource bundle makes codesign fail.
+
+The app's history, On Deck and Continue Watching are generated at launch relative to the current date; only the catalogue and its initial watch state come from here. Run `CRUCIBLE_CORE_ONLY=1 swift test --filter CrucibleDemoTests` on the Mac after re-exporting.
