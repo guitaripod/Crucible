@@ -125,7 +125,7 @@ The script checks your setup, builds a release configuration and installs it wit
 
 ## Marketing screenshots
 
-The README and landing-page images are real captures of the app running in the iOS Simulator against a mock Plex server with generated, fictional artwork — no real library or copyrighted posters. `marketing/mock/` is the server and art generator, `marketing/shots/` drives the app and takes the screenshots (`run.sh`), and `compose.sh` frames them with the `frames` CLI (Apple device bezels) for the README banner and the gallery.
+The README and landing-page images are real captures of the app running in the iOS Simulator against a mock Plex server with generated, fictional artwork — no real library or copyrighted posters. `marketing/mock/` is the server and art generator, `marketing/shots/` drives the app and takes the screenshots (`run.sh`), and `compose.sh` frames them with the `frames` CLI (Apple device bezels) for the README banner and the gallery. `marketing/tv/` does the same for Apple TV: it frames 4K simulator captures with a slim TV bezel through the `frames` CLI and lays them out as a share collage (`collage.sh`).
 
 ## Architecture
 
