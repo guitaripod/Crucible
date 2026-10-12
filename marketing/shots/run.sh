@@ -16,7 +16,7 @@ rsync -az --delete \
   "$ROOT/" "$MAC:$REMOTE/" < /dev/null
 
 set +e
-ssh "$MAC" "cd $REMOTE && NAME=$NAME PORT=$PORT UDID=${UDID:-} MODE=$MODE TIMEOUT=${TIMEOUT:-} CLEAN=${CLEAN:-0} MOCK_HIDDEN_SECTIONS=${MOCK_HIDDEN_SECTIONS:-} bash marketing/shots/mac-run.sh" < /dev/null > "$LOG" 2>&1
+ssh "$MAC" "cd $REMOTE && NAME=$NAME PORT=$PORT UDID=${UDID:-} MODE=$MODE TIMEOUT=${TIMEOUT:-} CLEAN=${CLEAN:-0} MOCK_HIDDEN_SECTIONS=${MOCK_HIDDEN_SECTIONS:-} SHOT_SCRIPT=${SHOT_SCRIPT:-} LAUNCH_ENV='${LAUNCH_ENV:-}' bash marketing/shots/mac-run.sh" < /dev/null > "$LOG" 2>&1
 status=$?
 set -e
 

@@ -257,7 +257,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         }
         config.onDownload = {
             Haptics.medium()
-            DownloadManager.shared.enqueue(metadata: item)
+            DownloadManager.shared.requestDownload(metadata: item)
         }
         if let menuAction = downloadMenuAction(for: item) {
             config.downloadMenu = UIMenu(children: [menuAction])

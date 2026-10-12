@@ -33,6 +33,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneWillEnterForeground(_ scene: UIScene) {
         DownloadManager.shared.handleEnteredForeground()
+        ProAccess.shared.refresh()
         AutoDownloadPolicy.shared.evaluateOnForeground()
     }
 

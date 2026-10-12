@@ -17,10 +17,15 @@ extension StatisticsViewController {
         updateLibrariesMenu()
     }
 
-    private func updateLibrariesMenu() {
+    func updateLibrariesMenu() {
         guard let item = navigationItem.rightBarButtonItem else { return }
         let filter = StatsLibraryFilter.current()
         item.isHidden = !filter.isAvailable
+        guard !ProAccess.shared.showsLocks else {
+            showLockedLibraries(on: item, symbol: filter.symbol)
+            return
+        }
+        item.primaryAction = nil
         item.image = UIImage(systemName: filter.symbol)
         item.accessibilityValue = filter.accessibilityValue
 
@@ -43,5 +48,15 @@ extension StatisticsViewController {
             })
         }
         item.menu = UIMenu(children: children)
+    }
+
+    /// The library filter is Pro: a free install sees it locked, and tapping it opens the paywall instead of the menu.
+    private func showLockedLibraries(on item: UIBarButtonItem, symbol: String) {
+        item.menu = nil
+        item.image = ProLock.badged(symbol: symbol)
+        item.accessibilityValue = "Requires Crucible Pro"
+        item.primaryAction = UIAction(title: "Libraries", image: ProLock.badged(symbol: symbol)) { _ in
+            ProAccess.shared.requestUnlock(.fullStatistics)
+        }
     }
 }

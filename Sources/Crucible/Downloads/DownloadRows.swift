@@ -74,12 +74,12 @@ enum DownloadRowFactory {
             config.status = "Paused · \(item.percentText)"
             config.statusTone = .secondary
             config.ring = .paused(item.progress)
-            config.onRingTap = { DownloadManager.shared.resume(ratingKey) }
+            config.onRingTap = { DownloadManager.shared.requestResume(ratingKey) }
         case .failed:
             config.status = item.errorMessage ?? "Download failed"
             config.statusTone = .error
             config.ring = .failed
-            config.onRingTap = { DownloadManager.shared.retry(ratingKey) }
+            config.onRingTap = { DownloadManager.shared.requestResume(ratingKey) }
         case .completed:
             break
         }

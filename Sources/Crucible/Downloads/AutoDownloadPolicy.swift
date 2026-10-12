@@ -69,7 +69,7 @@ final class AutoDownloadPolicy {
     func evaluate(api: APIClient) {
         latestAPI = api
         registerObserverIfNeeded()
-        guard Self.hasAnyPolicy else { return }
+        guard Self.hasAnyPolicy, ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.isPro) else { return }
         guard UIApplication.shared.applicationState != .background else {
             AppLogger.info("Auto-download skipped while backgrounded", .persistence)
             return

@@ -81,6 +81,7 @@ if [ "$OWN_DEVICE" = 1 ] && ! xcrun simctl list devices | grep -F "$UDID" | grep
 xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b > /dev/null
 xcrun simctl ui "$UDID" appearance "$MODE"
+xcrun simctl ui "$UDID" content_size large
 xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularMode active --cellularBars 4 --wifiBars 3 --operatorName ""
 
 perl -0pi -e 's/let iosStamp: \[LinkerSetting\] = \[.*?\n\]\n/let iosStamp: [LinkerSetting] = []\n/s' Package.swift
@@ -102,6 +103,8 @@ LIGHT=0
 SIMCTL_CHILD_CRUCIBLE_MOCK="http://127.0.0.1:$PORT" \
 SIMCTL_CHILD_CRUCIBLE_SIGNAL_DIR="$SIGNALS" \
 SIMCTL_CHILD_CRUCIBLE_LIGHT="$LIGHT" \
+SIMCTL_CHILD_CRUCIBLE_SHOT_SCRIPT="${SHOT_SCRIPT:-}" \
+  env $(for pair in ${LAUNCH_ENV:-}; do printf 'SIMCTL_CHILD_%s ' "$pair"; done) \
   xcrun simctl launch "$UDID" "$APP_ID" > /dev/null
 
 deadline=$((SECONDS + ${TIMEOUT:-420}))

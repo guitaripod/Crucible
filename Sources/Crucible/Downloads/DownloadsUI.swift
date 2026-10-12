@@ -19,7 +19,7 @@ enum DownloadMenu {
             }
         default:
             return UIAction(title: "Download", image: UIImage(systemName: "arrow.down.circle")) { _ in
-                DownloadManager.shared.enqueue(metadata: metadata, quality: quality)
+                DownloadManager.shared.requestDownload(metadata: metadata, quality: quality)
             }
         }
     }

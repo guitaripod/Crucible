@@ -1,12 +1,25 @@
+import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
 @preconcurrency import UIKit
 
 extension StatisticsViewController {
-    /// Builds the poster content, then opens the preview sheet; the button shows progress while the
-    /// top posters download.
+    /// Opens the poster preview. The poster is Pro: a free install gets the paywall first and the preview only if Pro comes on.
     func shareWrapped(from button: UIButton?) {
         guard !page.isEmpty else { return }
+        guard ProAccess.shared.isPro else {
+            ProAccess.shared.requestUnlock(.yearInReviewPoster) { [weak self, weak button] unlocked in
+                guard unlocked else { return }
+                self?.previewWrapped(from: button)
+            }
+            return
+        }
+        previewWrapped(from: button)
+    }
+
+    /// Builds the poster content, then opens the preview sheet; the button shows progress while the
+    /// top posters download.
+    private func previewWrapped(from button: UIButton?) {
         button?.configuration?.showsActivityIndicator = true
         button?.isUserInteractionEnabled = false
         Task { [weak self] in

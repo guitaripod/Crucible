@@ -5,10 +5,11 @@ import CrucibleStats
 
 final class SettingsViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case playback, downloads, home, appearance, support, account
+        case pro, playback, downloads, home, appearance, support, account
 
         var title: String? {
             switch self {
+            case .pro: return nil
             case .playback: return "Playback"
             case .downloads: return "Downloads"
             case .home: return "Home & Statistics"
@@ -20,6 +21,7 @@ final class SettingsViewController: UICollectionViewController {
     }
 
     enum Item: Hashable {
+        case pro
         case streamingQuality, skipIntro, autoplay
         case downloadQuality, downloadCellular, deleteWatched, manageStorage
         case libraries
@@ -29,7 +31,7 @@ final class SettingsViewController: UICollectionViewController {
 
         var isSelectable: Bool {
             switch self {
-            case .manageStorage, .libraries, .shareLogs, .clearCache, .sourceCode, .signOut: return true
+            case .pro, .manageStorage, .libraries, .shareLogs, .clearCache, .sourceCode, .signOut: return true
             default: return false
             }
         }
@@ -40,6 +42,7 @@ final class SettingsViewController: UICollectionViewController {
     private var loadTask: Task<Void, Never>?
     private var storageText = "None"
     private var cacheText = "…"
+    private var proObservation: ProObservation?
 
     init(api: APIClient) {
         self.api = api
@@ -63,6 +66,7 @@ final class SettingsViewController: UICollectionViewController {
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
         applySnapshot()
+        proObservation = ProObservation { [weak self] in self?.reconfigure([.pro]) }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -91,7 +95,8 @@ final class SettingsViewController: UICollectionViewController {
 
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
-        snapshot.appendSections(Section.allCases)
+        snapshot.appendSections(Section.allCases.filter { $0 != .pro || ProAccess.shared.isStoreBacked })
+        if ProAccess.shared.isStoreBacked { snapshot.appendItems([.pro], toSection: .pro) }
         snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay], toSection: .playback)
         snapshot.appendItems([.downloadQuality, .downloadCellular, .deleteWatched, .manageStorage], toSection: .downloads)
         snapshot.appendItems([.libraries], toSection: .home)
@@ -125,6 +130,11 @@ final class SettingsViewController: UICollectionViewController {
             cell.accessories = []
             cell.applyThemedBackground()
             switch item {
+            case .pro:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "sparkles", title: "Crucible Pro", subtitle: Self.proSubtitle()
+                )
+                cell.accessories = [.disclosureIndicator()]
             case .streamingQuality:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "dial.high", title: PreferenceSetting.streamingQuality.title,
@@ -229,6 +239,11 @@ final class SettingsViewController: UICollectionViewController {
         }
     }
 
+    private static func proSubtitle() -> String {
+        guard let entitlement = ProAccess.shared.status.entitlement else { return "Unlock downloads, full Statistics and the poster" }
+        return entitlement.summary()
+    }
+
     private func toggleRow(_ cell: UICollectionViewListCell, symbol: String, title: String, isOn: Bool, onChange: @escaping (Bool) -> Void) {
         var content = IconRowContentConfiguration(symbol: symbol, title: title)
         content.toggle = .init(isOn: isOn, onChange: onChange)
@@ -302,6 +317,8 @@ final class SettingsViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
+        case .pro:
+            openPro()
         case .manageStorage:
             tabBarController?.selectedIndex = 2
         case .libraries:
@@ -319,6 +336,14 @@ final class SettingsViewController: UICollectionViewController {
         default:
             break
         }
+    }
+
+    private func openPro() {
+        guard ProAccess.shared.isPro else {
+            ProAccess.shared.requestUnlock(nil)
+            return
+        }
+        navigationController?.pushViewController(ProStatusViewController(), animated: true)
     }
 
     private func shareLogs(from source: UIView?) {

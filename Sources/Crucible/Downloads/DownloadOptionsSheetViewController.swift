@@ -25,11 +25,13 @@ final class DownloadOptionsSheetViewController: UIViewController {
     private let onFinish: () -> Void
     private let episodes: [PlexMetadata]
     private let initialKeepCount: Int
+    private let initialKeepEnabled: Bool
     private var scope: Scope
     private var quality: DownloadQuality = Preferences.downloadQuality
     private var keepNext: Bool
     private var freeBytes: Int64 = 0
     private var posterTask: Task<Void, Never>?
+    private var proObservation: ProObservation?
 
     private let posterView = UIImageView()
     private let segmented = UISegmentedControl()
@@ -37,6 +39,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
     private let keepSwitch = UISwitch()
     private let wifiSwitch = UISwitch()
     private let keepTitleLabel = UILabel()
+    private let keepLockView = UIImageView()
     private let estimateLabel = UILabel()
     private let confirmButton = ThemeButton.primary(title: "Download")
 
@@ -48,7 +51,8 @@ final class DownloadOptionsSheetViewController: UIViewController {
         }
         let stored = AutoDownloadPolicy.count(forShow: context.showRatingKey)
         self.initialKeepCount = stored
-        self.keepNext = stored > 0
+        self.initialKeepEnabled = stored > 0 && ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.isPro)
+        self.keepNext = initialKeepEnabled
         let hasUnwatched = context.episodes.contains { !$0.isWatched }
         self.scope = hasUnwatched ? .unwatched : .all
         super.init(nibName: nil, bundle: nil)
@@ -81,6 +85,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         refreshAll()
         loadPoster()
         loadFreeSpace()
+        proObservation = ProObservation { [weak self] in self?.updateKeepLock() }
     }
 
     private var selectedEpisodes: [PlexMetadata] {
@@ -100,7 +105,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         initialKeepCount > 0 ? initialKeepCount : AutoDownloadPolicy.defaultCount
     }
 
-    private var keepChanged: Bool { keepNext != (initialKeepCount > 0) }
+    private var keepChanged: Bool { keepNext != initialKeepEnabled }
 
     private func buildLayout() {
         let header = makeHeader()
@@ -336,7 +341,15 @@ final class DownloadOptionsSheetViewController: UIViewController {
             label.numberOfLines = 0
             label.adjustsFontForContentSizeCategory = true
         }
-        let text = UIStackView(arrangedSubviews: [keepTitleLabel, caption])
+        keepLockView.image = ProLock.image(pointSize: 12)
+        keepLockView.tintColor = Theme.Color.labelSecondary
+        keepLockView.setContentHuggingPriority(.required, for: .horizontal)
+        keepLockView.setContentCompressionResistancePriority(.required, for: .horizontal)
+        keepLockView.isAccessibilityElement = false
+        let titleRow = UIStackView(arrangedSubviews: [keepTitleLabel, keepLockView, UIView()])
+        titleRow.alignment = .center
+        titleRow.spacing = 6
+        let text = UIStackView(arrangedSubviews: [titleRow, caption])
         text.axis = .vertical
         text.spacing = 2
 
@@ -344,13 +357,32 @@ final class DownloadOptionsSheetViewController: UIViewController {
         keepSwitch.onTintColor = Theme.Color.accent
         keepSwitch.setContentHuggingPriority(.required, for: .horizontal)
         keepSwitch.accessibilityLabel = "Keep next \(keepCount) downloaded"
-        keepSwitch.addAction(UIAction { [weak self] _ in
-            guard let self else { return }
-            self.keepNext = self.keepSwitch.isOn
-            Haptics.selection()
-            self.refreshAll()
-        }, for: .valueChanged)
+        keepSwitch.addAction(UIAction { [weak self] _ in self?.keepSwitchChanged() }, for: .valueChanged)
+        updateKeepLock()
         return makeRow([text, keepSwitch])
+    }
+
+    /// Keeping episodes downloaded is Pro: switching it on without Pro opens the paywall and the switch only stays on once Pro is.
+    private func keepSwitchChanged() {
+        Haptics.selection()
+        guard keepSwitch.isOn, !ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.isPro) else {
+            keepNext = keepSwitch.isOn
+            refreshAll()
+            return
+        }
+        keepSwitch.setOn(false, animated: true)
+        ProAccess.shared.requestUnlock(.unlimitedDownloads) { [weak self] unlocked in
+            guard unlocked, let self else { return }
+            keepNext = true
+            keepSwitch.setOn(true, animated: true)
+            refreshAll()
+        }
+    }
+
+    private func updateKeepLock() {
+        let locked = ProAccess.shared.showsLocks
+        keepLockView.isHidden = !locked
+        keepSwitch.accessibilityHint = locked ? "Requires Crucible Pro" : nil
     }
 
     private func makeWiFiRow() -> UIView {
@@ -439,10 +471,18 @@ final class DownloadOptionsSheetViewController: UIViewController {
 
     private func confirm() {
         let pending = pendingEpisodes
-        if !pending.isEmpty {
-            let added = DownloadManager.shared.enqueueAll(pending, quality: quality)
-            AppLogger.notice("Download sheet queued \(added) episodes for show \(context.showRatingKey)", .persistence)
+        guard !pending.isEmpty else {
+            finishConfirm()
+            return
         }
+        DownloadManager.shared.requestDownloads(pending, quality: quality) { [weak self] added in
+            guard let self, let added else { return }
+            AppLogger.notice("Download sheet queued \(added) episodes for show \(context.showRatingKey)", .persistence)
+            finishConfirm()
+        }
+    }
+
+    private func finishConfirm() {
         applyKeepNextChoice()
         Haptics.medium()
         dismiss(animated: true) { [onFinish] in onFinish() }

@@ -36,6 +36,8 @@ final class StatisticsViewController: UICollectionViewController {
     private var syncedAtLeastOnce = false
     private var loadTask: Task<Void, Never>?
     var visibilityObserver: UUID?
+    var proObservation: ProObservation?
+    weak var rangeChips: StatsRangeChipsView?
 
     var dataSource: UICollectionViewDiffableDataSource<StatSection, Row>!
 
@@ -48,6 +50,7 @@ final class StatisticsViewController: UICollectionViewController {
     init(api: APIClient) {
         self.api = api
         self.loader = StatsManager.shared.pageLoader
+        self.range = ProAccess.shared.isPro ? .year : .week
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -75,6 +78,7 @@ final class StatisticsViewController: UICollectionViewController {
         refresh.addAction(UIAction { [weak self] _ in self?.refresh() }, for: .valueChanged)
         collectionView.refreshControl = refresh
         configureLibrariesItem()
+        proObservation = ProObservation { [weak self] in self?.proChanged() }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -101,10 +105,48 @@ final class StatisticsViewController: UICollectionViewController {
         }
     }
 
+    /// Switches range. Week is free; any other range sends a free install to the paywall and switches only if Pro comes on.
     func selectRange(_ newRange: StatsRange) {
         guard newRange != range else { return }
+        guard newRange == .week || ProAccess.shared.isPro else {
+            ProAccess.shared.requestUnlock(.fullStatistics) { [weak self] unlocked in
+                guard unlocked else { return }
+                self?.applyRange(newRange)
+            }
+            return
+        }
+        applyRange(newRange)
+    }
+
+    private func applyRange(_ newRange: StatsRange) {
         range = newRange
+        rangeChips?.select(newRange)
         load(animateHero: true)
+    }
+
+    /// Pro turning on or off: the locks, the library filter and the share button follow, and a range that is no longer
+    /// available falls back to the week.
+    private func proChanged() {
+        updateLibrariesMenu()
+        rangeChips?.setLocked(lockedRanges)
+        reconfigureProRows()
+        if !ProAccess.shared.isPro, range != .week { applyRange(.week) }
+    }
+
+    var lockedRanges: Set<StatsRange> {
+        ProAccess.shared.showsLocks ? [.month, .year, .allTime] : []
+    }
+
+    private func reconfigureProRows() {
+        var snapshot = dataSource.snapshot()
+        let rows = snapshot.itemIdentifiers.filter {
+            switch $0 {
+            case .shareButton: return true
+            default: return false
+            }
+        }
+        snapshot.reconfigureItems(rows)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     func load(animateHero: Bool) {

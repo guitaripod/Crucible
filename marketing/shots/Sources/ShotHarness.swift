@@ -48,7 +48,13 @@ enum ShotHarness {
             MainActor.assumeIsolated {
                 guard !started else { return }
                 started = true
-                Task { await ShotScript.run() }
+                Task {
+                    if environment["CRUCIBLE_SHOT_SCRIPT"] == "pro" {
+                        await ProShotScript.run()
+                    } else {
+                        await ShotScript.run()
+                    }
+                }
             }
         }
     }

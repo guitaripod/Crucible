@@ -28,7 +28,7 @@ enum DetailDownload {
         case nil:
             Haptics.medium()
             AppLogger.notice("Detail download tapped ratingKey=\(key)", .persistence)
-            manager.enqueue(metadata: metadata)
+            manager.requestDownload(metadata: metadata)
         case .queued?, .waitingForWiFi?:
             Haptics.medium()
             manager.delete(key)
@@ -37,7 +37,7 @@ enum DetailDownload {
             manager.pause(key)
         case .paused?, .failed?:
             Haptics.medium()
-            manager.resume(key)
+            manager.requestResume(key)
         case .completed?:
             confirmRemoval(title: metadata.title, ratingKey: key, from: host, sourceView: sourceView)
         }
@@ -76,7 +76,7 @@ enum DetailDownload {
             let actions = DownloadQuality.allCases.map { quality in
                 UIAction(title: quality.title, subtitle: quality.detail, state: quality == current ? .on : .off) { _ in
                     Haptics.medium()
-                    manager.enqueue(metadata: metadata, quality: quality)
+                    manager.requestDownload(metadata: metadata, quality: quality)
                 }
             }
             return UIMenu(title: "Download Quality", children: actions)
@@ -89,14 +89,14 @@ enum DetailDownload {
             ])
         case .paused?:
             return UIMenu(title: item?.statusLine ?? "", children: [
-                UIAction(title: "Resume Download", image: UIImage(systemName: "arrow.down.to.line")) { _ in manager.resume(key) },
+                UIAction(title: "Resume Download", image: UIImage(systemName: "arrow.down.to.line")) { _ in manager.requestResume(key) },
                 UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                     manager.delete(key)
                 },
             ])
         case .failed?:
             return UIMenu(title: item?.errorMessage ?? "Download Failed", children: [
-                UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { _ in manager.retry(key) },
+                UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { _ in manager.requestResume(key) },
                 UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                     manager.delete(key)
                 },

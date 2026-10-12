@@ -486,11 +486,11 @@ final class DownloadsViewController: UICollectionViewController {
             })
         case .paused:
             actions.append(UIAction(title: "Resume", image: UIImage(systemName: "arrow.down.to.line")) { _ in
-                DownloadManager.shared.resume(ratingKey)
+                DownloadManager.shared.requestResume(ratingKey)
             })
         case .failed:
             actions.append(UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { _ in
-                DownloadManager.shared.retry(ratingKey)
+                DownloadManager.shared.requestResume(ratingKey)
             })
         }
         actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in

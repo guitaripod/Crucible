@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
 import CrucibleStatsUI
@@ -75,10 +76,12 @@ extension StatisticsViewController {
     func configureDataSource() {
         let rangeReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            let control = StatsRangeControl()
-            control.select(range)
-            control.onRange = { [weak self] newRange in self?.selectRange(newRange) }
-            host(control, in: cell)
+            let chips = StatsRangeChipsView()
+            chips.select(range)
+            chips.setLocked(lockedRanges)
+            chips.onRange = { [weak self] newRange in self?.selectRange(newRange) }
+            rangeChips = chips
+            host(chips, in: cell)
         }
 
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
@@ -360,7 +363,9 @@ extension StatisticsViewController {
     }
 
     private func makeShareButton() -> UIButton {
-        let button = ThemeButton.primary(title: "Share Your Year")
+        let locked = ProAccess.shared.showsLocks
+        let button = ThemeButton.primary(title: "Share Your Year", symbol: locked ? ProLock.symbolName : nil)
+        button.accessibilityHint = locked ? "Requires Crucible Pro" : nil
         button.addAction(UIAction { [weak self] action in
             self?.shareWrapped(from: action.sender as? UIButton)
         }, for: .touchUpInside)

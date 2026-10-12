@@ -466,8 +466,10 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func enqueue(_ items: [PlexMetadata], reason: String) {
         Haptics.medium()
-        let added = DownloadManager.shared.enqueueAll(items)
-        AppLogger.notice("Show download (\(reason)) queued \(added) episodes", .persistence)
+        DownloadManager.shared.requestDownloads(items) { added in
+            guard let added else { return }
+            AppLogger.notice("Show download (\(reason)) queued \(added) episodes", .persistence)
+        }
     }
 
     private func removeSeasonDownloads() {
@@ -783,7 +785,7 @@ final class ShowDetailViewController: UICollectionViewController {
         switch manager.item(for: key)?.state {
         case nil:
             configuration = UISwipeActionsConfiguration(actions: [
-                graphite("arrow.down", "Download", "Download") { manager.enqueue(metadata: episode) },
+                graphite("arrow.down", "Download", "Download") { manager.requestDownload(metadata: episode) },
             ])
         case .completed?:
             configuration = UISwipeActionsConfiguration(actions: [
@@ -801,13 +803,13 @@ final class ShowDetailViewController: UICollectionViewController {
         case .paused?:
             configuration = UISwipeActionsConfiguration(actions: [
                 destructive("Delete", "Delete Download") { Haptics.medium(); manager.delete(key) },
-                graphite("arrow.down", "Resume", "Resume Download") { manager.resume(key) },
+                graphite("arrow.down", "Resume", "Resume Download") { manager.requestResume(key) },
             ])
             configuration.performsFirstActionWithFullSwipe = false
         case .failed?:
             configuration = UISwipeActionsConfiguration(actions: [
                 destructive("Delete", "Delete Download") { Haptics.medium(); manager.delete(key) },
-                graphite("arrow.clockwise", "Retry", "Retry Download") { manager.retry(key) },
+                graphite("arrow.clockwise", "Retry", "Retry Download") { manager.requestResume(key) },
             ])
             configuration.performsFirstActionWithFullSwipe = false
         }
@@ -863,9 +865,11 @@ final class ShowDetailViewController: UICollectionViewController {
         let eps = selectedEpisodes()
         guard !eps.isEmpty else { return }
         Haptics.medium()
-        let added = DownloadManager.shared.enqueueAll(eps, quality: quality)
-        AppLogger.notice("Batch download queued \(added) episodes", .persistence)
-        multiSelect.setEditing(false)
+        DownloadManager.shared.requestDownloads(eps, quality: quality) { [weak self] added in
+            guard let added else { return }
+            AppLogger.notice("Batch download queued \(added) episodes", .persistence)
+            self?.multiSelect.setEditing(false)
+        }
     }
 
     private func removeSelectedEpisodes() {
