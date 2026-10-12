@@ -15,10 +15,10 @@ tv/scripts/tv.sh uitest -only HomeTests/testLoadedHomeFollowsFocusAndScrolls exp
 
   marketing/tv/collage.sh shot1.png shot2.png shot3.png shot4.png [...]
 
-Writes marketing/tv/out/collage.png (full size), collage-web.png and collage-web.jpg (4096 px wide; the JPEG stays under
-the 5 MB image limit of social posts) under a banner
+Writes marketing/tv/out/collage.png (full size), collage-web.png and collage-web.jpg (4096 px on the longest side; the JPEG stays
+near the 5 MB image limit of social posts) under a banner
 with the app icon, TITLE (default Crucible) and TAGLINE. COLUMNS=<n> sets the grid width (default 2), TILE_WIDTH
-the framed screenshot width in pixels (default 3400). The stock frames pack has no Apple TV, so make-tv-frame.py
+the framed screenshot width in pixels (default 3400), GUTTER and MARGIN the spacing (140 and 160). The stock frames pack has no Apple TV, so make-tv-frame.py
 writes the bezel into out/frame-assets and frames is pointed there with --assets.
 USAGE
 }
@@ -32,5 +32,5 @@ for shot in "$@"; do
   frames --assets "$OUT/frame-assets" -o "$OUT/framed" "$shot" > /dev/null
   framed+=("$OUT/framed/$(basename "${shot%.*}")_framed.png")
 done
-python3 "$HERE/compose-collage.py" --columns "${COLUMNS:-2}" --tile-width "${TILE_WIDTH:-3400}" --icon-dir "$ICON" \
+python3 "$HERE/compose-collage.py" --columns "${COLUMNS:-2}" --tile-width "${TILE_WIDTH:-3400}" --gutter "${GUTTER:-140}" --margin "${MARGIN:-160}" --icon-dir "$ICON" \
   --title "${TITLE:-Crucible}" --tagline "$TAGLINE" -o "$OUT/collage.png" "${framed[@]}"

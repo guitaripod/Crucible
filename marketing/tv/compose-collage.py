@@ -113,7 +113,7 @@ def main():
     parser.add_argument("--tile-width", type=int, default=3600, help="each framed tile is scaled to this width")
     parser.add_argument("--gutter", type=int, default=140)
     parser.add_argument("--margin", type=int, default=160)
-    parser.add_argument("--web-width", type=int, default=4096, help="also write <output>-web.png at this width (0 to skip)")
+    parser.add_argument("--web-size", type=int, default=4096, help="also write <output>-web.png and .jpg with this longest side (0 to skip)")
     parser.add_argument("--icon-dir", type=Path, help="the app icon image stack (App Icon - Large.imagestack) for the header")
     parser.add_argument("--title", default="Crucible")
     parser.add_argument("--tagline", default="")
@@ -131,8 +131,9 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     collage.save(args.output, optimize=True)
     print(f"{args.output} {collage.width}x{collage.height} {args.output.stat().st_size / 1e6:.1f} MB")
-    if args.web_width:
-        web = collage.resize((args.web_width, round(collage.height * args.web_width / collage.width)), Image.LANCZOS)
+    if args.web_size:
+        scale = args.web_size / max(collage.size)
+        web = collage.resize((round(collage.width * scale), round(collage.height * scale)), Image.LANCZOS)
         web_path = args.output.with_name(args.output.stem + "-web.png")
         web.save(web_path, optimize=True)
         print(f"{web_path} {web.width}x{web.height} {web_path.stat().st_size / 1e6:.1f} MB")
