@@ -57,6 +57,37 @@ The server also answers the plex.tv surface the tvOS sign-in uses: `POST /api/v2
 
 `python3 tv/scripts/make-assets.py [--preview]` regenerates `tv/Resources/Assets.xcassets`: the layered app icon (`App Icon - Large` 1280x768 and `App Icon - Small` 400x240 @1x/@2x, each with Back/Middle/Front layers; the back layer is opaque, the glow and the crystal are separate transparent layers), the two Top Shelf images (1920x720 and 2320x720, @1x/@2x), `AccentColor` (#FF9F0A) and `LaunchBackground` (#181818). `--preview` writes composites and a parallax contact sheet to `tv/out/assets-preview/`. Check what ends up in the app with `xcrun assetutil --info <app>/Assets.car` on the Mac; the simulator build keeps only the Small icon stack, `xcrun actool tv/Resources/Assets.xcassets --compile <dir> --platform appletvos --minimum-deployment-target 17.0 --target-device tv --app-icon "App Icon & Top Shelf Image" --accent-color AccentColor --output-partial-info-plist <dir>/partial.plist` also compiles the Large (App Store) stack.
 
+## Real Apple TV
+
+`scripts/install-tv.sh` builds a Release device variant on the Mac, signs it with a development profile, installs it on the paired Apple TV with `devicectl`, launches it and checks that the Apple TV reports the build number it just compiled (`CURRENT_PROJECT_VERSION` is the build time, `yyyyMMddHHmm`).
+
+```
+scripts/install-tv.sh            build, sign, install, launch, confirm the installed build
+scripts/install-tv.sh build      build and sign only (no Apple TV needed); prints the .app path
+scripts/install-tv.sh check      compile the device variant for tvOS without signing (no Apple TV needed)
+scripts/install-tv.sh logs       tv/out/crucible-device.log from the app's data container, plus its tail
+scripts/install-tv.sh devices    the Apple TVs the Mac knows and whether each is paired
+```
+
+`TV_DEVICE=<name|identifier|UDID>` picks one when several are paired; `NAME` and `MAC` work as for `tv.sh` (the remote checkout defaults to `~/Dev/ios/CrucibleTVDevice`).
+
+- `tv/scripts/device-spec.py` derives `tv/Generated/project.device.yml` from `project.yml`: the app target only (no Top Shelf extension, UI tests or App Group entitlement, because the profile has none), manual signing scoped to `sdk=appletvos*`, and the bundle id, team and certificate read from the profile so they cannot drift. XcodeGen writes `tv/CrucibleTVDevice.xcodeproj` (git-ignored) next to `CrucibleTV.xcodeproj`.
+- `tv/scripts/device-build.sh` runs on the Mac. An ssh shell cannot unlock the login keychain (`codesign` fails with `errSecInternalComponent`), so a signed build imports `~/.config/midgar/signing/midgar_distribution.p12` (it also holds the Apple Development identity) into a temporary keychain, puts it first in the search list, signs and removes it again. It refuses to build when the paired Apple TV's UDID is not in the profile, and verifies the signature and the embedded profile afterwards.
+- The profile is `~/.config/midgar/signing/crucible-tvos-dev-2026.mobileprovision`, a `TVOS_APP_DEVELOPMENT` profile for the explicit App ID `XTL-A5EBDAB5.com.guitaripod.crucible` (the id xtool registered for the iPhone development build, so the App Store id `com.guitaripod.crucible` stays untouched) with the Apple Development certificate and every Apple TV that should run the build. It expires on 2027-10-12.
+- The device build leaves out Top Shelf: the profile carries no App Group, so `TopShelfStore` finds no container, logs it and skips the snapshot. Turning it on needs the App Group `group.com.guitaripod.crucible` created and assigned to both App IDs in the developer portal (the public API cannot; `asc web app-groups` with an Account Holder or Admin web session can), profiles for the app and the extension, and the extension and entitlements restored in the device spec.
+- Release has no DEBUG hooks (`CRUCIBLE_MOCK`, `CRUCIBLE_MODEL_IDENTIFIER`, `CRUCIBLE_STYLE`, `CRUCIBLE_OPEN_LINK`): the device runs the app the way a user would, with the Liquid Glass gate decided by the real tvOS version and hardware.
+
+Pair the Apple TV with the Mac once: on the Apple TV open Settings > Remotes and Devices > Remote App and Devices and leave the screen open, then on the Mac open Xcode > Window > Devices and Simulators, click +, choose the Apple TV and enter the code it shows. tvOS has no Developer Mode. `devicectl list devices` then shows the Apple TV as paired and `scripts/install-tv.sh devices` lists it.
+
+Make the profile again (a new Apple TV, or a year later) on the Mac, with the ASC credentials sourced from `~/.config/midgar/credentials.env`:
+
+```
+asc devices list --output table                      the Apple TV's UDID must be registered (asc devices register)
+asc profiles create --name "Crucible tvOS Dev" --profile-type TVOS_APP_DEVELOPMENT \
+  --bundle <bundle-id resource> --certificate <Apple Development cert> --device <id>,<id>
+asc profiles download --id <profile id> --output ~/.config/midgar/signing/crucible-tvos-dev-2026.mobileprovision
+```
+
 ## Simulator limits
 
 - `TV_RUNTIME=com.apple.CoreSimulator.SimRuntime.tvOS-26-0` (or `-26-5`, `-27-0`) runs the commands on another installed runtime, and `TV_SIM_TYPE=<SimDeviceType id>` on another device type. A simulator is created once per `NAME`, so `sim-down --delete` before switching runtime or device type.

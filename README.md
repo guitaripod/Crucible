@@ -109,7 +109,7 @@ The Apple TV app needs a Mac with Xcode 26 or newer and [XcodeGen](https://githu
 cd tv && xcodegen generate && open CrucibleTV.xcodeproj
 ```
 
-[tv/README.md](tv/README.md) covers the simulator workflow (build, run, UI tests and screenshots against a mock Plex server, driven from Linux over ssh).
+[tv/README.md](tv/README.md) covers the simulator workflow (build, run, UI tests and screenshots against a mock Plex server, driven from Linux over ssh) and the real-device one: `./scripts/install-tv.sh` builds and signs on the Mac and installs on a paired Apple TV with `devicectl`.
 
 ## Deploying
 
