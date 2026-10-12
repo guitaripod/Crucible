@@ -128,6 +128,56 @@ final class HomeTests: TVTestCase {
         TVTest.capture("07-back-in-recently-added", in: self)
     }
 
+    func testTheHeroComesBackWhenFocusClimbsToTheFirstRail() {
+        launchHome()
+        focusFirstContinueWatching()
+        TVTest.settle(1.0)
+        let header = app.staticTexts["Continue Watching"]
+        XCTAssertTrue(header.exists)
+        let restingTop = header.frame.minY
+
+        moveDown(until: Self.cardPrefix + "recentlyAdded.")
+        TVTest.settle(1.0)
+        TVTest.capture("29-scrolled-down-to-recently-added", in: self)
+
+        for _ in 0..<8 where !focusedIdentifier.hasPrefix(Self.cardPrefix + "continueWatching.") {
+            press(.up)
+        }
+        XCTAssertTrue(focusedIdentifier.hasPrefix(Self.cardPrefix + "continueWatching."), "focus should climb back to Continue Watching, got \(focusedIdentifier)")
+        TVTest.settle(1.2)
+        TVTest.capture("30-back-on-the-first-rail", in: self)
+        XCTAssertEqual(header.frame.minY, restingTop, accuracy: 2, "with focus on the first rail the hero is fully back in view")
+
+        press(.up)
+        XCTAssertTrue(tabBarHasFocus, "one more Up reaches the tab bar")
+        TVTest.settle(1.0)
+        TVTest.capture("31-tab-bar-over-the-hero", in: self)
+        XCTAssertEqual(header.frame.minY, restingTop, accuracy: 2, "the hero stays in view under the tab bar")
+    }
+
+    func testTheHeroComesBackWhenUpNextIsTheFirstRail() {
+        app = TVTest.launch(mock: ["MOCK_HOME_NO_CONTINUE": "1"])
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60))
+        XCTAssertTrue(firstCard("upNext").waitForExistence(timeout: 30), "Up Next should show")
+        XCTAssertFalse(firstCard("continueWatching").exists, "the mock leaves Continue Watching empty")
+        TVTest.settle(1.5)
+        if !focusedIdentifier.hasPrefix(Self.cardPrefix + "upNext.") { press(.down) }
+        XCTAssertTrue(focusedIdentifier.hasPrefix(Self.cardPrefix + "upNext."), "focus should start on Up Next, got \(focusedIdentifier)")
+        let header = app.staticTexts["Up Next"]
+        XCTAssertTrue(header.exists)
+        let restingTop = header.frame.minY
+
+        moveDown(until: Self.cardPrefix + "recentlyAdded.")
+        TVTest.settle(1.0)
+        for _ in 0..<8 where !focusedIdentifier.hasPrefix(Self.cardPrefix + "upNext.") {
+            press(.up)
+        }
+        XCTAssertTrue(focusedIdentifier.hasPrefix(Self.cardPrefix + "upNext."), "focus should climb back to Up Next, got \(focusedIdentifier)")
+        TVTest.settle(1.2)
+        TVTest.capture("32-up-next-first-rail-hero-back", in: self)
+        XCTAssertEqual(header.frame.minY, restingTop, accuracy: 2, "with focus on the first rail, whichever it is, the hero is fully back in view")
+    }
+
     func testSelectPlaysOrOpensDetailPerRailAndBackRestoresFocus() {
         launchHome(extraEnvironment: ["CRUCIBLE_PLAYER_HOLD": "20"])
         focusFirstContinueWatching()

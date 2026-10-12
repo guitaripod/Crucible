@@ -29,7 +29,6 @@ enum TVHomeItem: Hashable {
 enum TVHomeMetrics {
     static let backdropDimmingDistance: CGFloat = 520
     static let weekTileSize = CGSize(width: 960, height: 260)
-    static let restingBand: CGFloat = 120
 }
 
 /// Maps the shared Home models onto the tvOS design-system data.

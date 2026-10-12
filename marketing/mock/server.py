@@ -592,7 +592,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(container(size=0, allowSync=True, identifier="com.plexapp.plugins.library", Hub=[]))
             count = int(one("count", "20"))
             with LOCK:
-                hubs = [hub("home.continue", "Continue Watching", LIB.continue_watching()[:count]),
+                continuing = [] if env("MOCK_HOME_NO_CONTINUE") == "1" else LIB.continue_watching()[:count]
+                hubs = [hub("home.continue", "Continue Watching", continuing),
                         hub("home.ondeck", "On Deck", [LIB.items[r] for r in LIB.on_deck
                                                        if not LIB.items[r].get("viewCount")][:count]),
                         hub("home.recentlyadded", "Recently Added", LIB.recently_added()[:max(count, 16)])]

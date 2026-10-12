@@ -58,6 +58,7 @@ enum TVMetrics {
         static let focus: TimeInterval = 0.2
         static let fade: TimeInterval = 0.25
         static let heroText: TimeInterval = 0.25
+        static let heroReturn: TimeInterval = 0.35
         static let backdropFade: TimeInterval = 0.35
         static let backdropDebounce: TimeInterval = 0.4
         static let skeletonPulse: TimeInterval = 1.2

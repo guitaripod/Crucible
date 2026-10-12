@@ -448,7 +448,11 @@ final class TVHomeViewController: TVScreenViewController {
         with coordinator: UIFocusAnimationCoordinator
     ) {
         super.collectionView(collectionView, didUpdateFocusIn: context, with: coordinator)
-        guard let next = context.nextFocusedIndexPath, let target = cardTarget(at: next) else { return }
+        guard let next = context.nextFocusedIndexPath else { return }
+        if next.section == firstRailSectionIndex {
+            homeCollectionView.bringHeroBack()
+        }
+        guard let target = cardTarget(at: next) else { return }
         showHero(for: target.media, bucket: target.bucket, animated: true)
     }
 
@@ -474,20 +478,36 @@ final class TVHomeViewController: TVScreenViewController {
     }
 }
 
-/// The Home collection view. tvOS nudges a focused row into view even when it already fits, which
-/// would slide the hero text up under the tab bar; while the first rail holds focus the view
-/// therefore stays at its resting offset, and scrolls normally once focus moves to a lower rail.
+/// The Home collection view. The first rail always fits below the hero at the top, but tvOS still
+/// scrolls a focused row into view: a nudge that slides the hero text up under the tab bar, or,
+/// when focus climbs back from a lower rail, a scroll that stops with that rail at the top of the
+/// screen and the hero out of sight. While the first rail holds focus the system's scrolling is
+/// therefore ignored and `bringHeroBack()` is the only thing that moves the view; focus on a
+/// lower rail scrolls normally.
 final class TVHomeCollectionView: TVCollectionView {
     var holdsHeroInPlace = true
+    private var isPlacingHero = false
 
     override var contentOffset: CGPoint {
         get { super.contentOffset }
         set {
-            var offset = newValue
-            if holdsHeroInPlace, super.contentOffset.y < TVHomeMetrics.restingBand, offset.y > 0, offset.y < TVHomeMetrics.restingBand {
-                offset.y = 0
-            }
-            super.contentOffset = offset
+            guard !holdsHeroInPlace || isPlacingHero else { return }
+            super.contentOffset = newValue
+        }
+    }
+
+    override func setContentOffset(_ contentOffset: CGPoint, animated: Bool) {
+        guard !holdsHeroInPlace || isPlacingHero else { return }
+        super.setContentOffset(contentOffset, animated: animated)
+    }
+
+    /// Scrolls to the top, where the hero is fully in view.
+    func bringHeroBack() {
+        guard contentOffset.y != 0 else { return }
+        isPlacingHero = true
+        defer { isPlacingHero = false }
+        TVMotion.animate(TVMetrics.Duration.heroReturn, options: [.beginFromCurrentState, .curveEaseInOut, .allowUserInteraction]) { [self] in
+            contentOffset = CGPoint(x: contentOffset.x, y: 0)
         }
     }
 }
