@@ -10,8 +10,14 @@ REMOTE=Dev/ios/$NAME
 MOCK_REMOTE=Dev/ios/$NAME-mock
 SHARED_ASSETS=Dev/ios/_mock-assets
 SIM_NAME=CrucibleTV-$NAME
-SIM_TYPE=com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-1080p
 SIM_RUNTIME=${TV_RUNTIME:-com.apple.CoreSimulator.SimRuntime.tvOS-26-5}
+SIM_TYPE_1080P=com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-1080p
+SIM_TYPE_4K=com.apple.CoreSimulator.SimDeviceType.Apple-TV-4K-3rd-generation-4K
+if [[ $SIM_RUNTIME == *tvOS-26-0 ]]; then
+  SIM_TYPE=${TV_SIM_TYPE:-$SIM_TYPE_4K}
+else
+  SIM_TYPE=${TV_SIM_TYPE:-$SIM_TYPE_1080P}
+fi
 BUNDLE_ID=com.guitaripod.crucible
 SCHEME=CrucibleTV
 DERIVED=.dd-tvapp

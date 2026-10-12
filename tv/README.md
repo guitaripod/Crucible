@@ -59,6 +59,8 @@ The server also answers the plex.tv surface the tvOS sign-in uses: `POST /api/v2
 
 ## Simulator limits
 
+- `TV_RUNTIME=com.apple.CoreSimulator.SimRuntime.tvOS-26-0` (or `-26-5`, `-27-0`) runs the commands on another installed runtime, and `TV_SIM_TYPE=<SimDeviceType id>` on another device type. A simulator is created once per `NAME`, so `sim-down --delete` before switching runtime or device type.
+- tvOS 26.0 hangs on 1080p (1x) screens. Moving focus from the keyboard into the Search results makes UIKit's search header collapse (`_UISearchControllerATVSearchBarAnimatorLegacy`) lay out forever: the keyboard container is scaled to 1 pt tall (`UIKBFocusVCView`, bounds 66 pt) and its rounded frame grows by one point per layout pass, so the main thread sits at 100% CPU for minutes and every XCUITest query fails with "Timed out while evaluating UI query". The same hang reproduces in a bare `UISearchController` with a plain vertically scrolling `UICollectionView`, and it does not occur on a 4K (2x) simulator or on tvOS 26.5 and 27.0, so it is not an app bug. `tv.sh` therefore uses the 4K device type when `TV_RUNTIME` is the tvOS 26.0 runtime; run 26.0 on `Apple-TV-4K-3rd-generation-1080p` only to reproduce it.
 - Top Shelf renders only on the real Home screen; the simulator can build and install the extension but cannot show it.
 - No HDR and no Match Content (display criteria) in the simulator; the glass rendering is the simulator's, not a specific Apple TV model's.
 - Scripted remote input exists only through `XCUIRemote` in UI tests.
