@@ -44,6 +44,14 @@ struct LibraryTabLayoutTests {
         #expect(layout.hasMore)
     }
 
+    @Test func aSmallerLimitKeepsOneFewerTabAndMovesTheRestBehindMore() throws {
+        let all = try directories([("1", "movie", "A"), ("2", "show", "B"), ("3", "movie", "C"), ("4", "show", "D")])
+        let layout = LibraryTabLayout(directories: all, limit: 3)
+        #expect(titles(layout.tabs) == ["A", "B"])
+        #expect(titles(layout.overflow) == ["C", "D"])
+        #expect(layout.hasMore)
+    }
+
     @Test func skipsEntriesWithoutNumericKeyOrTitle() throws {
         let json = #"[{"key":"x","type":"movie","title":"Bad"},{"key":"7","type":"movie"},{"key":"8","type":"show","title":"Good"}]"#
         let all = try JSONDecoder().decode([PlexDirectory].self, from: Data(json.utf8))
