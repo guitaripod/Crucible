@@ -210,6 +210,7 @@ final class DownloadManager: NSObject {
         persist()
         emit(.changed)
         pumpQueue()
+        DemoTour.shared.record(.download)
     }
 
     /// Enqueues a batch preserving its order (episode 1 downloads first) and, like single `enqueue`,
@@ -239,6 +240,7 @@ final class DownloadManager: NSObject {
             persist()
             emit(.changed)
             pumpQueue()
+            DemoTour.shared.record(.download)
         }
         return touched
     }

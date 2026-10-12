@@ -175,6 +175,7 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func donateActivity(_ show: PlexMetadata) {
+        guard !DemoMode.shared.isActive else { return }
         let activity = MediaActivity.make(
             ratingKey: showRatingKey,
             mediaType: "show",

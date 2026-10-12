@@ -4,10 +4,17 @@ import CrucibleStats
 @preconcurrency import UIKit
 
 extension StatisticsViewController {
+    /// Opens the poster preview once the page has loaded, when the demo tour asked for it; a screen the user has left is left alone.
+    func openPosterIfAsked() {
+        guard opensPosterWhenLoaded, !page.isEmpty, view.window != nil, presentedViewController == nil else { return }
+        opensPosterWhenLoaded = false
+        shareWrapped(from: nil)
+    }
+
     /// Opens the poster preview. The poster is Pro: a free install gets the paywall first and the preview only if Pro comes on.
     func shareWrapped(from button: UIButton?) {
         guard !page.isEmpty else { return }
-        guard ProAccess.shared.isPro else {
+        guard ProAccess.shared.hasFullAccess else {
             ProAccess.shared.requestUnlock(.yearInReviewPoster) { [weak self, weak button] unlocked in
                 guard unlocked else { return }
                 self?.previewWrapped(from: button)

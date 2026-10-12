@@ -334,7 +334,7 @@ final class HomeViewController: UICollectionViewController {
         let switchServer = UIAction(title: "Switch Server", image: UIImage(systemName: "arrow.left.arrow.right")) { [weak self] _ in
             self?.presentServerSwitcher()
         }
-        serverMenuItem.menu = UIMenu(children: [status, switchServer])
+        serverMenuItem.menu = UIMenu(children: DemoMode.shared.isActive ? [status] : [status, switchServer])
         serverMenuItem.accessibilityLabel = route.map { "Server: \(name), \($0.title.lowercased())" } ?? "Server: \(name)"
     }
 
@@ -529,6 +529,26 @@ final class HomeViewController: UICollectionViewController {
     private func openDetail(id: String) {
         guard let media = feed.item(id: id) else { return }
         HomeMediaActions.openDetail(media, api: api, from: navigationController)
+    }
+
+    /// The title the Home hero offers to resume or start, for the demo tour's "Show me".
+    func playHighlightedTitle() {
+        guard let media = feed.arrangement.hero ?? feed.arrangement.continueRail.first else { return }
+        play(id: media.id)
+    }
+
+    /// Names from the library on screen, show names first, for a search the demo tour can type.
+    var sampleTitles: [String] {
+        let arrangement = feed.arrangement
+        let items = (arrangement.hero.map { [$0] } ?? []) + arrangement.continueRail + arrangement.upNext + arrangement.recent
+        return items.map { $0.grandparentTitle ?? $0.title }
+    }
+
+    /// An episode or film on Home that is not downloaded yet, for the demo tour's download step.
+    var downloadCandidate: PlexMetadata? {
+        let arrangement = feed.arrangement
+        let items = (arrangement.hero.map { [$0] } ?? []) + arrangement.upNext + arrangement.continueRail + arrangement.recent
+        return items.first { HomeMediaRules.isDownloadable($0) && DownloadManager.shared.item(for: $0.id) == nil }
     }
 
     private func play(id: String) {

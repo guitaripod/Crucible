@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
@@ -35,6 +36,11 @@ final class WrappedSharePreviewViewController: UIViewController {
         setupShareButton()
         layoutScreen()
         show(.story, animated: false)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DemoTour.shared.record(.poster)
     }
 
     private func setupFormatControl() {

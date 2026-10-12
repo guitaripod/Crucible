@@ -35,6 +35,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         DownloadManager.shared.handleEnteredForeground()
         ProAccess.shared.refresh()
         AutoDownloadPolicy.shared.evaluateOnForeground()
+        refreshDemoLibrary()
+    }
+
+    /// The demo library lives inside the app, so a long stay in the background can end it. Coming back asks it to start again, and if it
+    /// answers somewhere new the app signs in to the new address, or returns to the welcome screen when it cannot start.
+    private func refreshDemoLibrary() {
+        guard DemoMode.shared.isActive, let previous = DemoMode.shared.endpoint?.serverURL else { return }
+        Task { @MainActor [weak self] in
+            let resumed = await DemoMode.shared.resume()
+            guard let self else { return }
+            if !resumed { AccountSessionReset.signOut(.phone) }
+            if !resumed || DemoMode.shared.endpoint?.serverURL != previous { reconfigureRoot() }
+        }
     }
 
     private func route(_ activity: NSUserActivity) {
@@ -48,10 +61,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func reconfigureRoot() {
         launchTask?.cancel()
+        guard DemoMode.shared.isActive else {
+            showConnectionOrSetup()
+            return
+        }
+        resumeDemo()
+    }
+
+    private func showConnectionOrSetup() {
         if let connection = ServerBootstrap.connection() {
             launch(connection: connection)
         } else {
             showServerSetup()
+        }
+    }
+
+    /// A demo that was running when the app last quit starts its library again before anything is shown, because the library comes back
+    /// on a new address. When it cannot, the app falls back to the welcome screen like after a sign-out.
+    private func resumeDemo() {
+        let gate = (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
+        gate.showLoading(status: DemoPhoneCopy.startingStatus)
+        launchTask = Task { @MainActor [weak self] in
+            let resumed = await DemoMode.shared.resume()
+            guard !Task.isCancelled, let self else { return }
+            if !resumed { AccountSessionReset.signOut(.phone) }
+            showConnectionOrSetup()
         }
     }
 
@@ -87,7 +121,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func installLaunchScreen() -> LaunchViewController {
         let gate = LaunchViewController()
         gate.onRetry = { [weak self] in self?.reconfigureRoot() }
-        gate.onSwitchServer = { [weak self] in self?.presentServerSwitcher() }
+        gate.onSwitchServer = { [weak self] in self?.switchServerFromLaunchFailure() }
+        gate.switchTitle = DemoMode.shared.isActive ? DemoPhoneCopy.leaveTitle : "Switch Server"
         window?.rootViewController = gate
         return gate
     }
@@ -117,7 +152,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         UIView.transition(with: window, duration: 0.4, options: [.transitionCrossDissolve, .curveEaseOut]) {
             window.rootViewController = root
         } completion: { [weak self] _ in
-            guard let self, let pending = self.pendingActivity else { return }
+            guard let self else { return }
+            if let tabBar = root as? TabBarController { DemoCoordinator.shared.mainAppDidAppear(tabBar) }
+            guard let pending = self.pendingActivity else { return }
             self.pendingActivity = nil
             self.route(pending)
         }
@@ -131,6 +168,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let nav = UINavigationController(rootViewController: setup)
         window?.backgroundColor = Theme.Color.canvas
         window?.rootViewController = nav
+    }
+
+    /// Switching server means signing in to another one, which a demo that cannot start has no use for: leaving the demo shows the welcome
+    /// screen instead.
+    private func switchServerFromLaunchFailure() {
+        guard DemoMode.shared.isActive else {
+            presentServerSwitcher()
+            return
+        }
+        DemoCoordinator.shared.leave(scene: self)
     }
 
     private func presentServerSwitcher() {

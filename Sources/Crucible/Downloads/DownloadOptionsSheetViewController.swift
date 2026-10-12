@@ -51,7 +51,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         }
         let stored = AutoDownloadPolicy.count(forShow: context.showRatingKey)
         self.initialKeepCount = stored
-        self.initialKeepEnabled = stored > 0 && ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.isPro)
+        self.initialKeepEnabled = stored > 0 && ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.hasFullAccess)
         self.keepNext = initialKeepEnabled
         let hasUnwatched = context.episodes.contains { !$0.isWatched }
         self.scope = hasUnwatched ? .unwatched : .all
@@ -365,7 +365,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
     /// Keeping episodes downloaded is Pro: switching it on without Pro opens the paywall and the switch only stays on once Pro is.
     private func keepSwitchChanged() {
         Haptics.selection()
-        guard keepSwitch.isOn, !ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.isPro) else {
+        guard keepSwitch.isOn, !ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.hasFullAccess) else {
             keepNext = keepSwitch.isOn
             refreshAll()
             return

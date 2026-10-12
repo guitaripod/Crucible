@@ -3,7 +3,11 @@ import CrucibleDesign
 import UIKit
 
 final class TabBarController: UITabBarController {
-    private let api: APIClient
+    enum Tab: Int {
+        case home, library, downloads, you, search
+    }
+
+    let api: APIClient
     private let payload: LaunchPayload
     private let homeNavigation: UINavigationController
     private var downloadObserver: UUID?
@@ -90,6 +94,19 @@ final class TabBarController: UITabBarController {
         } else if let item = downloadsTab as? UITabBarItem {
             item.badgeValue = value
         }
+    }
+
+    var homeScreen: HomeViewController? {
+        homeNavigation.viewControllers.first as? HomeViewController
+    }
+
+    /// Selects `tab` and returns its navigation stack at the root, for callers that take the user somewhere on purpose.
+    @discardableResult
+    func open(_ tab: Tab) -> UINavigationController? {
+        selectedIndex = tab.rawValue
+        let navigation = selectedViewController as? UINavigationController
+        navigation?.popToRootViewController(animated: false)
+        return navigation
     }
 
     func openMedia(ratingKey: String, mediaType: String) {

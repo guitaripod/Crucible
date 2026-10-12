@@ -49,6 +49,8 @@ targets:
         product: CrucibleActivity
       - package: Crucible
         product: CrucibleStore
+      - package: Crucible
+        product: CrucibleDemo
       - package: GRDB
         product: GRDB
       - target: CrucibleWidgetsExt

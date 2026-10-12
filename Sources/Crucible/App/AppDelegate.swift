@@ -17,6 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         application.beginReceivingRemoteControlEvents()
         ProAccess.shared.configureForLaunch(store: nil)
         PaywallPresenter.install()
+        DemoCoordinator.shared.install()
         DownloadManager.shared.bootstrap()
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }

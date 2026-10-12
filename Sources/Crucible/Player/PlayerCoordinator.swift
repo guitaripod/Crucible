@@ -173,7 +173,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         setupForegroundObserver()
         observeEvents()
 
-        viewController.present(playerVC, animated: true)
+        viewController.present(playerVC, animated: true) {
+            DemoTour.shared.record(.play)
+        }
     }
 
     private func observeEvents() {

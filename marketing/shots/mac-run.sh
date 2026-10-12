@@ -95,7 +95,7 @@ xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShot
 
 APP=$ROOT/.dd/Build/Products/Debug-iphonesimulator/CrucibleShots.app
 xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
-xcrun simctl uninstall "$UDID" "$APP_ID" 2>/dev/null || true
+[ "${KEEP_INSTALL:-0}" = 1 ] || xcrun simctl uninstall "$UDID" "$APP_ID" 2>/dev/null || true
 xcrun simctl install "$UDID" "$APP"
 
 LIGHT=0

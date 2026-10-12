@@ -11,6 +11,16 @@ enum PaywallPresenter {
         }
     }
 
+    /// Shows the offer itself, for the places that exist to show it. `requestUnlock` returns at once when the demo has everything
+    /// unlocked, so these ask the sheet directly and the offer stays one tap away during the demo.
+    static func showOffer(from presenter: UIViewController, feature: ProFeature? = nil) {
+        var top = presenter
+        while let presented = top.presentedViewController { top = presented }
+        guard !(top is PaywallViewController) else { return }
+        AppLogger.notice("Paywall shown from \(type(of: presenter)) on request", .store)
+        PaywallViewController.present(PaywallRequest(feature: feature), from: top) { _ in }
+    }
+
     private static func present(_ request: PaywallRequest, completion: @escaping @MainActor (Bool) -> Void) {
         guard let top = topMostViewController(), !(top is PaywallViewController) else {
             AppLogger.info("Paywall request ignored: no screen to show it or one is already open", .store)

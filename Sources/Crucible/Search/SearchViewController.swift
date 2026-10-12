@@ -318,6 +318,13 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         session.clearRecents()
     }
 
+    /// Types `query` into the search field, as the demo tour does when it shows how search works.
+    func run(sample query: String) {
+        loadViewIfNeeded()
+        searchController.searchBar.text = query
+        updateSearchResults(for: searchController)
+    }
+
     func updateSearchResults(for searchController: UISearchController) {
         session.update(query: searchController.searchBar.text, scope: scope)
     }
@@ -367,6 +374,9 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         dataSource.apply(snapshot, animatingDifferences: false)
         collectionView.collectionViewLayout.invalidateLayout()
         contentUnavailableConfiguration = nil
+        if !snapshot.itemIdentifiers.isEmpty, view.window != nil {
+            DemoTour.shared.record(.search)
+        }
     }
 
     private func renderEmpty(query: String, scope: SearchScope) {

@@ -27,11 +27,11 @@ final class SettingsViewController: UICollectionViewController {
         case libraries
         case appearance, libraryGrid
         case shareLogs, clearCache, sourceCode
-        case signOut
+        case signOut, leaveDemo
 
         var isSelectable: Bool {
             switch self {
-            case .pro, .manageStorage, .libraries, .shareLogs, .clearCache, .sourceCode, .signOut: return true
+            case .pro, .manageStorage, .libraries, .shareLogs, .clearCache, .sourceCode, .signOut, .leaveDemo: return true
             default: return false
             }
         }
@@ -43,6 +43,7 @@ final class SettingsViewController: UICollectionViewController {
     private var storageText = "None"
     private var cacheText = "…"
     private var proObservation: ProObservation?
+    private var demoObservation: DemoObservation?
 
     init(api: APIClient) {
         self.api = api
@@ -67,6 +68,12 @@ final class SettingsViewController: UICollectionViewController {
         configureDataSource()
         applySnapshot()
         proObservation = ProObservation { [weak self] in self?.reconfigure([.pro]) }
+        demoObservation = DemoObservation { [weak self] in self?.demoChanged() }
+    }
+
+    private func demoChanged() {
+        guard DemoMode.shared.isActive else { return }
+        reconfigure([.pro])
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -102,7 +109,7 @@ final class SettingsViewController: UICollectionViewController {
         snapshot.appendItems([.libraries], toSection: .home)
         snapshot.appendItems([.appearance, .libraryGrid], toSection: .appearance)
         snapshot.appendItems([.shareLogs, .clearCache, .sourceCode], toSection: .support)
-        snapshot.appendItems([.signOut], toSection: .account)
+        snapshot.appendItems([DemoMode.shared.isActive ? .leaveDemo : .signOut], toSection: .account)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
@@ -132,7 +139,7 @@ final class SettingsViewController: UICollectionViewController {
             switch item {
             case .pro:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "sparkles", title: "Crucible Pro", subtitle: Self.proSubtitle()
+                    symbol: "sparkles", title: Self.proTitle(), subtitle: Self.proSubtitle()
                 )
                 cell.accessories = [.disclosureIndicator()]
             case .streamingQuality:
@@ -190,9 +197,9 @@ final class SettingsViewController: UICollectionViewController {
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "chevron.left.forwardslash.chevron.right", title: "Source Code", value: "GitHub"
                 )
-            case .signOut:
+            case .signOut, .leaveDemo:
                 var content = UIListContentConfiguration.cell()
-                content.text = "Sign Out"
+                content.text = item == .leaveDemo ? DemoPhoneCopy.leaveTitle : "Sign Out"
                 content.textProperties.color = Theme.Color.destructive
                 content.textProperties.font = Theme.Font.headline
                 content.textProperties.alignment = .center
@@ -239,9 +246,18 @@ final class SettingsViewController: UICollectionViewController {
         }
     }
 
+    private static func proTitle() -> String {
+        showsDemoOffer ? DemoPhoneCopy.unlockProTitle : "Crucible Pro"
+    }
+
     private static func proSubtitle() -> String {
-        guard let entitlement = ProAccess.shared.status.entitlement else { return "Unlock downloads, full Statistics and the poster" }
+        guard let entitlement = ProAccess.shared.status.entitlement else { return DemoPhoneCopy.unlockProDetail }
         return entitlement.summary()
+    }
+
+    /// While the demo runs everything is unlocked, but the row still offers Pro, so it reads as the offer instead of a status.
+    private static var showsDemoOffer: Bool {
+        DemoMode.shared.isActive && !ProAccess.shared.isPro
     }
 
     private func toggleRow(_ cell: UICollectionViewListCell, symbol: String, title: String, isOn: Bool, onChange: @escaping (Bool) -> Void) {
@@ -333,6 +349,8 @@ final class SettingsViewController: UICollectionViewController {
             }
         case .signOut:
             confirmSignOut()
+        case .leaveDemo:
+            DemoCoordinator.shared.confirmLeaving(from: self)
         default:
             break
         }
@@ -340,7 +358,7 @@ final class SettingsViewController: UICollectionViewController {
 
     private func openPro() {
         guard ProAccess.shared.isPro else {
-            ProAccess.shared.requestUnlock(nil)
+            PaywallPresenter.showOffer(from: self)
             return
         }
         navigationController?.pushViewController(ProStatusViewController(), animated: true)

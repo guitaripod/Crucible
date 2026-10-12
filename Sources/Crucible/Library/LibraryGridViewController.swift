@@ -90,6 +90,17 @@ class LibraryGridViewController: UIViewController {
         model.appear(visibleGridIndex: firstVisibleGridIndex)
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        recordBrowseIfShowingItems()
+    }
+
+    /// The tour's "Browse a library" step: a grid with titles in it is on screen.
+    private func recordBrowseIfShowingItems() {
+        guard view.window != nil, case .content = model.contentState else { return }
+        DemoTour.shared.record(.browse)
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         model.disappear()
@@ -335,6 +346,7 @@ class LibraryGridViewController: UIViewController {
         switch model.contentState {
         case .content:
             contentUnavailableConfiguration = nil
+            recordBrowseIfShowingItems()
         case .loading:
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         case .failed(let message):

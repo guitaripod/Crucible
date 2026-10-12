@@ -50,7 +50,7 @@ final class StatisticsViewController: UICollectionViewController {
     init(api: APIClient) {
         self.api = api
         self.loader = StatsManager.shared.pageLoader
-        self.range = ProAccess.shared.isPro ? .year : .week
+        self.range = ProAccess.shared.hasFullAccess ? .year : .week
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -91,6 +91,11 @@ final class StatisticsViewController: UICollectionViewController {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        DemoTour.shared.record(.statistics)
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
@@ -108,7 +113,7 @@ final class StatisticsViewController: UICollectionViewController {
     /// Switches range. Week is free; any other range sends a free install to the paywall and switches only if Pro comes on.
     func selectRange(_ newRange: StatsRange) {
         guard newRange != range else { return }
-        guard newRange == .week || ProAccess.shared.isPro else {
+        guard newRange == .week || ProAccess.shared.hasFullAccess else {
             ProAccess.shared.requestUnlock(.fullStatistics) { [weak self] unlocked in
                 guard unlocked else { return }
                 self?.applyRange(newRange)
@@ -130,7 +135,7 @@ final class StatisticsViewController: UICollectionViewController {
         updateLibrariesMenu()
         rangeChips?.setLocked(lockedRanges)
         reconfigureProRows()
-        if !ProAccess.shared.isPro, range != .week { applyRange(.week) }
+        if !ProAccess.shared.hasFullAccess, range != .week { applyRange(.week) }
     }
 
     var lockedRanges: Set<StatsRange> {
@@ -164,6 +169,7 @@ final class StatisticsViewController: UICollectionViewController {
                 page = loaded
                 dataVersion += 1
                 applySnapshot(animateHero: animateHero)
+                openPosterIfAsked()
             } catch {
                 guard !Task.isCancelled else { return }
             }
@@ -216,6 +222,7 @@ final class StatisticsViewController: UICollectionViewController {
     }
 
     var heroShouldAnimate = true
+    var opensPosterWhenLoaded = false
 
     private func showEmptyOrLoading() {
         show(StatsPlaceholder.forEmptyPage(syncedAtLeastOnce: syncedAtLeastOnce, librariesFiltered: LibraryVisibility.isCustomized))

@@ -3,8 +3,9 @@ import CrucibleDesign
 import UIKit
 
 extension ProAccess {
-    /// Locked controls carry a lock glyph only on a free install of the App Store build: Pro installs and source builds never see one.
-    var showsLocks: Bool { isStoreBacked && !isPro }
+    /// Locked controls carry a lock glyph only on a free install of the App Store build: Pro installs, source builds and the running
+    /// demo never see one.
+    var showsLocks: Bool { isStoreBacked && !hasFullAccess }
 }
 
 /// The lock glyph drawn on locked controls, and the one image recipe that puts it next to another symbol.

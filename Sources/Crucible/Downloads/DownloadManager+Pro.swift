@@ -39,7 +39,7 @@ extension DownloadManager {
     }
 
     private func gate(adding: Int, completion: @escaping @MainActor (Int?) -> Void, run: @escaping @MainActor () -> Int) {
-        let decision = ProPolicy.downloadDecision(isPro: ProAccess.shared.isPro, activeDownloads: activeDownloadCount, adding: adding)
+        let decision = ProPolicy.downloadDecision(isPro: ProAccess.shared.hasFullAccess, activeDownloads: activeDownloadCount, adding: adding)
         guard adding > 0, decision == .requiresPro else {
             completion(run())
             return

@@ -4,11 +4,11 @@ import UIKit
 
 final class YouViewController: UICollectionViewController {
     enum Section: Int, Hashable {
-        case profile, year, activity, app, about
+        case demo, profile, year, activity, app, about
     }
 
     enum Item: Hashable {
-        case profile, year, history, statistics, settings, server, about
+        case demo, profile, year, history, statistics, settings, server, about
     }
 
     private let api: APIClient
@@ -17,6 +17,7 @@ final class YouViewController: UICollectionViewController {
     private var accountName = PlexAccountName.fallbackName
     private var historySubtitle: String?
     private var yearSummary: YouYearSummary?
+    private var demoObservation: DemoObservation?
 
     init(api: APIClient) {
         self.api = api
@@ -45,6 +46,9 @@ final class YouViewController: UICollectionViewController {
 
         YouConnectionStatus.shared.onChange = { [weak self] _ in
             self?.reconfigureAll()
+        }
+        demoObservation = DemoObservation { [weak self] in
+            self?.applySnapshot()
         }
     }
 
@@ -82,7 +86,7 @@ final class YouViewController: UICollectionViewController {
             }
             let list = NSCollectionLayoutSection.list(using: .wellRows(), layoutEnvironment: environment)
             var insets = list.contentInsets
-            insets.top = section == .profile ? 14 : 16
+            insets.top = section == .demo || (section == .profile && self?.isInDemo == false) ? 14 : 16
             insets.bottom = 0
             list.contentInsets = insets
             return list
@@ -102,9 +106,14 @@ final class YouViewController: UICollectionViewController {
         let rowRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, item in
             guard let self else { return }
             switch item {
+            case .demo:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "list.bullet.clipboard", title: DemoCopy.bannerTitle, value: demoProgress
+                )
+                cell.accessories = [.disclosureIndicator()]
             case .profile:
                 cell.contentConfiguration = profileConfiguration()
-                cell.accessories = [.disclosureIndicator()]
+                cell.accessories = isInDemo ? [] : [.disclosureIndicator()]
             case .history:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "clock", title: "Watch History", subtitle: historySubtitle)
                 cell.accessories = [.disclosureIndicator()]
@@ -149,6 +158,12 @@ final class YouViewController: UICollectionViewController {
         }
     }
 
+    private var isInDemo: Bool { DemoMode.shared.isActive }
+
+    private var demoProgress: String {
+        DemoPhoneTourPlan.progress(steps: DemoTour.shared.steps, completed: DemoTour.shared.completed)
+    }
+
     private func profileConfiguration() -> YouProfileContentConfiguration {
         let profile = YouProfile.make(accountName: accountName, state: YouConnectionStatus.shared.state)
         return YouProfileContentConfiguration(name: profile.name, statusText: profile.statusText, statusColor: profile.tone.color)
@@ -156,6 +171,10 @@ final class YouViewController: UICollectionViewController {
 
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
+        if isInDemo {
+            snapshot.appendSections([.demo])
+            snapshot.appendItems([.demo], toSection: .demo)
+        }
         snapshot.appendSections([.profile])
         snapshot.appendItems([.profile], toSection: .profile)
         if yearSummary != nil {
@@ -164,7 +183,7 @@ final class YouViewController: UICollectionViewController {
         }
         snapshot.appendSections([.activity, .app, .about])
         snapshot.appendItems([.history, .statistics], toSection: .activity)
-        snapshot.appendItems([.settings, .server], toSection: .app)
+        snapshot.appendItems(isInDemo ? [.settings] : [.settings, .server], toSection: .app)
         snapshot.appendItems([.about], toSection: .about)
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
         dataSource.apply(snapshot, animatingDifferences: false)
@@ -181,6 +200,8 @@ final class YouViewController: UICollectionViewController {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         let destination: UIViewController
         switch item {
+        case .demo: destination = DemoTourViewController()
+        case .profile where isInDemo: return
         case .profile, .server: destination = ServerDetailViewController(api: api)
         case .year, .statistics: destination = StatisticsViewController(api: api)
         case .history: destination = ActivityHistoryViewController(api: api)

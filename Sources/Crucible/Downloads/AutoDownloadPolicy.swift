@@ -44,6 +44,11 @@ final class AutoDownloadPolicy {
         save(all)
     }
 
+    /// Forgets every show's setting, for when the library they belong to is gone.
+    static func forgetAll() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
     static var hasAnyPolicy: Bool {
         loadAll().values.contains { $0.count > 0 }
     }
@@ -69,7 +74,7 @@ final class AutoDownloadPolicy {
     func evaluate(api: APIClient) {
         latestAPI = api
         registerObserverIfNeeded()
-        guard Self.hasAnyPolicy, ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.isPro) else { return }
+        guard Self.hasAnyPolicy, ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.hasFullAccess) else { return }
         guard UIApplication.shared.applicationState != .background else {
             AppLogger.info("Auto-download skipped while backgrounded", .persistence)
             return

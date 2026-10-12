@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		FFFFFFFFFFFFFFFFFFFFFFFF /* Crucible in Frameworks */ = {isa = PBXBuildFile; productRef = 999999999999999999999999 /* Crucible */; };
+		EEEEEEEEEEEEEEEEEEEEEEEE /* CrucibleDemo in Frameworks */ = {isa = PBXBuildFile; productRef = DDDDDDDDDDDDDDDDDDDDDDD1 /* CrucibleDemo */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +39,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FFFFFFFFFFFFFFFFFFFFFFFF /* Crucible in Frameworks */,
+				EEEEEEEEEEEEEEEEEEEEEEEE /* CrucibleDemo in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,6 +84,7 @@
 			name = CrucibleShots;
 			packageProductDependencies = (
 				999999999999999999999999 /* Crucible */,
+				DDDDDDDDDDDDDDDDDDDDDDD1 /* CrucibleDemo */,
 			);
 			productName = CrucibleShots;
 			productReference = 777777777777777777777777 /* CrucibleShots.app */;
@@ -248,6 +251,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 888888888888888888888888 /* Crucible */;
 			productName = Crucible;
+		};
+		DDDDDDDDDDDDDDDDDDDDDDD1 /* CrucibleDemo */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 888888888888888888888888 /* Crucible */;
+			productName = CrucibleDemo;
 		};
 /* End XCSwiftPackageProductDependency section */
 

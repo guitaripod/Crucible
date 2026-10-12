@@ -7,6 +7,9 @@ final class LaunchViewController: UIViewController {
     var onRetry: (() -> Void)?
     var onSwitchServer: (() -> Void)?
     var onOpenDownloads: (() -> Void)?
+    var switchTitle = "Switch Server" {
+        didSet { applySwitchTitle() }
+    }
 
     private let glyph = CrystalGlyphView()
     private let wordmark = UILabel()
@@ -66,6 +69,10 @@ final class LaunchViewController: UIViewController {
     func playSuccess(completion: @escaping () -> Void) {
         spinner.stopAnimating()
         glyph.flare(completion: completion)
+    }
+
+    private func applySwitchTitle() {
+        switchButton.configuration?.title = switchTitle
     }
 
     private func installBackdrop() {
@@ -137,6 +144,7 @@ final class LaunchViewController: UIViewController {
         switchConfig.cornerStyle = .capsule
         switchConfig.buttonSize = .large
         switchButton.configuration = switchConfig
+        applySwitchTitle()
         switchButton.tintColor = Theme.Color.onArt
         switchButton.addAction(UIAction { [weak self] _ in self?.onSwitchServer?() }, for: .touchUpInside)
 

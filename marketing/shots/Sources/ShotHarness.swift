@@ -14,6 +14,10 @@ enum ShotHarness {
     static func bootstrap() {
         let environment = ProcessInfo.processInfo.environment
         let base = URL(string: environment["CRUCIBLE_MOCK"] ?? "http://127.0.0.1:32400")!
+        if let script = environment["CRUCIBLE_SHOT_SCRIPT"], script.hasPrefix("demo") {
+            bootstrapDemo(script: script, mock: base, environment: environment)
+            return
+        }
         ServerBootstrap.clear()
         ServerBootstrap.saveToken("mock-token")
         ServerBootstrap.saveServer(uri: base, name: "Marcus-PC", machineIdentifier: "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b")
@@ -55,6 +59,24 @@ enum ShotHarness {
                         await ShotScript.run()
                     }
                 }
+            }
+        }
+    }
+
+    /// The demo starts from the Welcome screen with nothing saved, unless a relaunch is being tested, which keeps what the first run left.
+    private static func bootstrapDemo(script: String, mock: URL, environment: [String: String]) {
+        if script != "demo-resume" {
+            ServerBootstrap.clear()
+            UserDefaults.standard.set(false, forKey: DemoMode.activeKey)
+        }
+        Preferences.appearance = environment["CRUCIBLE_LIGHT"] == "1" ? .light : .dark
+        DemoShotScript.prepare(mock: mock)
+        var started = false
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                guard !started else { return }
+                started = true
+                Task { await DemoShotScript.run() }
             }
         }
     }

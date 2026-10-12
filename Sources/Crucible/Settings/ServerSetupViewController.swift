@@ -16,9 +16,12 @@ final class ServerSetupViewController: UIViewController {
     private let footerLabel = UILabel()
     private let signInButton = ThemeButton.primary(title: "Sign in with Plex")
     private let addressButton = UIButton(configuration: .plain())
+    private let demoButton = UIButton(configuration: ThemeButton.glassConfiguration(title: DemoCopy.welcomeButton, symbol: "play.circle"))
+    private let demoCaptionLabel = UILabel()
     private let scrollView = UIScrollView()
     private var chooser: ChooseServerViewController?
     private var authTask: Task<Void, Never>?
+    private var demoTask: Task<Void, Never>?
     private var signedInToken: String?
     private var pendingManualAddress: ServerAddress?
     private let log = Logger(subsystem: "com.guitaripod.crucible", category: "auth")
@@ -130,11 +133,14 @@ final class ServerSetupViewController: UIViewController {
         identity.spacing = 6
         identity.setCustomSpacing(26, after: glyph)
 
-        let actions = UIStackView(arrangedSubviews: [statusLabel, signInButton, addressButton, footerLabel])
+        let actions = UIStackView(arrangedSubviews: [statusLabel, signInButton, addressButton, demoButton, demoCaptionLabel, footerLabel])
         actions.axis = .vertical
         actions.alignment = .fill
         actions.spacing = 10
         actions.setCustomSpacing(18, after: addressButton)
+        actions.setCustomSpacing(6, after: demoButton)
+        actions.setCustomSpacing(18, after: demoCaptionLabel)
+        configureDemoOffer()
 
         scrollView.alwaysBounceVertical = false
         scrollView.showsVerticalScrollIndicator = false
@@ -184,6 +190,62 @@ final class ServerSetupViewController: UIViewController {
         signInButton.configuration = config
         signInButton.isEnabled = !busy
         addressButton.isEnabled = !busy
+        demoButton.isEnabled = !busy
+    }
+
+    /// The demo is offered on the real welcome screen only, never over a signed-in session that is merely switching server.
+    private var offersDemo: Bool { DemoMode.shared.isAvailable && !allowsCancel }
+
+    private func configureDemoOffer() {
+        demoButton.isHidden = !offersDemo
+        demoCaptionLabel.isHidden = !offersDemo
+        demoButton.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.primaryButtonHeight).isActive = true
+        demoButton.accessibilityHint = DemoCopy.welcomeCaption
+        demoButton.addAction(UIAction { [weak self] _ in self?.startDemo() }, for: .primaryActionTriggered)
+
+        demoCaptionLabel.text = DemoCopy.welcomeCaption
+        demoCaptionLabel.font = Theme.Font.caption1Regular
+        demoCaptionLabel.adjustsFontForContentSizeCategory = true
+        demoCaptionLabel.textColor = Theme.Color.labelSecondary
+        demoCaptionLabel.textAlignment = .center
+        demoCaptionLabel.numberOfLines = 0
+    }
+
+    private func setDemoBusy(_ busy: Bool) {
+        var config = ThemeButton.glassConfiguration(title: busy ? DemoPhoneCopy.startingStatus : DemoCopy.welcomeButton, symbol: busy ? nil : "play.circle")
+        config.showsActivityIndicator = busy
+        demoButton.configuration = config
+        signInButton.isEnabled = !busy
+        addressButton.isEnabled = !busy
+        demoButton.isEnabled = !busy
+    }
+
+    /// Starts the demo library and signs the app in to it, then continues through the normal launch into the app.
+    private func startDemo() {
+        guard demoTask == nil else { return }
+        statusLabel.isHidden = true
+        setDemoBusy(true)
+        demoTask = Task { [weak self] in
+            defer { self?.demoTask = nil }
+            do {
+                try await DemoMode.shared.enter()
+                DemoPhoneSession.shared.beginSession()
+                guard let self, let connection = ServerBootstrap.connection() else { throw DemoError.unavailable }
+                onConnected?(connection)
+            } catch {
+                AppLogger.error("The demo could not start: \(error)", .lifecycle)
+                self?.setDemoBusy(false)
+                self?.presentDemoFailure()
+            }
+        }
+    }
+
+    private func presentDemoFailure() {
+        Haptics.error()
+        let alert = UIAlertController(title: DemoPhoneCopy.failureTitle, message: DemoPhoneCopy.failureMessage, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Try Again", style: .default) { [weak self] _ in self?.startDemo() })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
     }
 
     private func startAuth() {
