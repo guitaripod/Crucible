@@ -65,6 +65,15 @@ Dependencies only point downward. Core never imports UIKit, AVFoundation, MediaP
 - **Screen host.** `TVScreenViewController` owns the collection view, the loading/empty/error `TVStateView` and the focus rules: identifier-keyed focus memory, an anchor that holds focus while a screen loads, `playFocused(at:)` for Play/Pause, task slots cancelled on disappear. `TVNavigation` guards pushes, `TVHostCell` hosts any view in a cell, `TVFocusableSurface` sends Select exactly once, `TVReadOnlyPanel` makes read-only information reachable with VoiceOver.
 - **Rules.** Menu while a pushed screen loads pops it. Every alert goes through `presentAlert` or `presentConfirmation`, because tvOS dismisses an alert with Menu only when it has a cancel action. Sizes, fonts and clearances come from tokens, never from literals in a screen. Nothing branches on the platform or the OS version outside `Glass`. Every new piece gets an entry in the debug gallery (`CRUCIBLE_GALLERY=1`) with a UI test.
 
+## Crucible Pro
+
+The App Store build sells an optional Crucible Pro through RevenueCat; source builds have everything unlocked. The store never appears in the feature code:
+
+- `CrucibleCore/Features/Pro` holds the store-free model: `ProAccess.shared` (is Pro on, observers, `requestUnlock`), `ProPolicy` (what a free install may do: one download at a time, the Week range, no poster, no Top Shelf), `ProOffer` (priced, described offers), `PaywallModel` (the paywall state machine both platforms render: loading, ready, unavailable, purchasing, restoring, pending, cancelled, failed, finished), `ProAccessProviding` (the store behind it), `UnlockedProAccess` (source builds) and `ScriptedProAccess` (debug builds and UI tests, driven by `CRUCIBLE_PRO*` environment variables).
+- `CrucibleStore` is a package target that only the macOS manifest declares, with the RevenueCat SDK as its one dependency. It implements `ProAccessProviding` for the `pro` entitlement and the `default` offering. Only the Xcode projects (`ios/`, `tv/`) link it; the xtool build never sees it. The public SDK key lives in the git-ignored `Sources/CrucibleStore/StoreSecrets.swift`, written by `scripts/bootstrap-secrets.sh`.
+- Each app's entry point installs the RevenueCat store before `UIApplicationMain`; the shared launch code calls `ProAccess.shared.configureForLaunch(store: nil)` and sets the paywall presenter.
+- Products: `com.guitaripod.crucible.pro.lifetime` (non-consumable) and `com.guitaripod.crucible.pro.yearly` (auto-renewable, 14-day free trial), one app record and one bundle id for iPhone and Apple TV, so a purchase on one covers the other. `docs/asc-products.md` records how they were created, and `scripts/asc-setup.py` and `scripts/asc-products.py` keep the listing and the review material in line.
+
 ## Building and testing
 
 The Linux box has no Apple SDK for the app targets; the Mac is the build host.
