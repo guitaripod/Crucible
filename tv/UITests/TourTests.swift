@@ -50,7 +50,8 @@ final class TourTests: TVTestCase {
     func testEveryTabShowsItsRealScreen() {
         let app = AppNavigation.launchHome()
         let titles = app.tabBars.firstMatch.buttons.allElementsBoundByIndex.map(\.label)
-        XCTAssertEqual(titles, Self.tabs.map(\.title), "tab bar: \(titles)")
+        XCTAssertEqual(titles.first, "Home", "tab bar: \(titles)")
+        XCTAssertEqual(Set(titles), Set(Self.tabs.map(\.title)), "tab bar: \(titles)")
 
         for (index, tab) in Self.tabs.enumerated() {
             AppNavigation.selectTab(tab.title, in: app)

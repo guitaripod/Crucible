@@ -6,14 +6,9 @@ enum YouNavigation {
     /// Opens the You tab (always last); selecting a tab hands focus to its first row.
     @discardableResult
     static func openYouTab(_ app: XCUIApplication) -> XCUIElement {
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
         TVTest.settle()
-        let count = tabBar.buttons.count
-        for _ in 1..<max(count, 1) {
-            TVTest.remote.press(.right)
-        }
-        TVTest.remote.press(.select)
+        AppNavigation.selectTab("You", in: app)
         let first = row(app, "you.history")
         XCTAssertTrue(first.waitForExistence(timeout: 15))
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
@@ -60,14 +55,9 @@ final class YouTests: TVTestCase {
 
     func testYouTabShowsProfileRowsAndYearCard() {
         let app = TVTest.launch()
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
         TVTest.settle(2)
-        let count = tabBar.buttons.count
-        for _ in 1..<max(count, 1) {
-            TVTest.remote.press(.right)
-        }
-        TVTest.remote.press(.select)
+        AppNavigation.selectTab("You", in: app)
         XCTAssertTrue(YouNavigation.row(app, "you.history").waitForExistence(timeout: 15))
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
         TVTest.settle(2)
