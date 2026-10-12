@@ -120,7 +120,7 @@ while [ $SECONDS -lt $deadline ]; do
     name=$(basename "$ready" .ready)
     if [ "$name" = done ]; then
       rm -f "$ready"
-      cp "$SIGNALS"/*.png "$RAW"/ 2>/dev/null || true
+      cp "$SIGNALS"/*.png "$SIGNALS"/*.txt "$RAW"/ 2>/dev/null || true
       xcrun simctl status_bar "$UDID" clear
       exit 0
     fi

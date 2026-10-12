@@ -35,6 +35,10 @@ enum ProShotScript {
         let you = tabBar.selectedViewController as? UINavigationController
 
         await paywallStates(tabBar: tabBar)
+        if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "paywall" {
+            await ShotHarness.capture("done")
+            return
+        }
         await settingsAndStatus(you: you, api: api)
         await statisticsLocks(you: you, api: api, tabBar: tabBar)
         await downloadLocks(you: you, api: api, tabBar: tabBar)
@@ -91,6 +95,28 @@ enum ProShotScript {
         await ShotHarness.settle(0.6)
     }
 
+    private static func dumpDisclosure(_ tabBar: UIViewController, name: String) {
+        guard let paywall = paywall(tabBar) else { return }
+        var lines = [String]()
+        for label in all(UILabel.self, in: paywall.view) where (label.text ?? "").contains("renews automatically") {
+            var chain = [String]()
+            var view: UIView? = label
+            while let current = view {
+                chain.append("\(type(of: current)) hidden=\(current.isHidden) alpha=\(current.alpha) frame=\(current.frame)")
+                view = current.superview
+            }
+            lines.append(chain.joined(separator: "\n  "))
+        }
+        lines.append("labels=\(lines.count)")
+        try? lines.joined(separator: "\n").write(toFile: "\(ShotHarness.signalDirectory)/\(name)-disclosure.png.txt", atomically: true, encoding: .utf8)
+    }
+
+    private static func scrollToBottom(_ paywall: PaywallViewController) {
+        guard let scroll = all(UIScrollView.self, in: paywall.view).first else { return }
+        let bottom = scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom
+        scroll.setContentOffset(CGPoint(x: 0, y: max(0, bottom)), animated: false)
+    }
+
     private static func press(_ title: String, tabBar: UIViewController) {
         guard let paywall = paywall(tabBar) else { return }
         let button = all(UIButton.self, in: paywall.view).first { ($0.configuration?.title ?? "").contains(title) }
@@ -104,6 +130,7 @@ enum ProShotScript {
         await ShotHarness.settle(3.2)
         await ShotHarness.capture("p01-ready-lifetime")
         await selectOffer(.annual, tabBar: tabBar)
+        dumpDisclosure(tabBar, name: "p01b")
         await ShotHarness.capture("p01b-ready-annual")
         await selectOffer(.lifetime, tabBar: tabBar)
         await ShotHarness.capture("iap-review-lifetime")
@@ -113,6 +140,9 @@ enum ProShotScript {
             paywall.view.window?.traitOverrides.preferredContentSizeCategory = .accessibilityExtraLarge
             await ShotHarness.settle(1.2)
             await ShotHarness.capture("p01c-accessibility-xl")
+            scrollToBottom(paywall)
+            await ShotHarness.settle(0.8)
+            await ShotHarness.capture("p01d-accessibility-xl-bottom")
             paywall.view.window?.traitOverrides.preferredContentSizeCategory = .large
             await ShotHarness.settle(0.8)
         }

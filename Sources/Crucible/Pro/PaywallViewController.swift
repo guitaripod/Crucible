@@ -133,7 +133,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
         contentStack.axis = .vertical
-        contentStack.spacing = 22
+        contentStack.spacing = 18
         contentStack.isLayoutMarginsRelativeArrangement = true
         contentStack.layoutMargins = UIEdgeInsets(top: 4, left: 20, bottom: 24, right: 20)
         contentStack.translatesAutoresizingMaskIntoConstraints = false
@@ -171,8 +171,8 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     private func makeHeader() -> UIView {
         glyph.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            glyph.widthAnchor.constraint(equalToConstant: 80),
-            glyph.heightAnchor.constraint(equalToConstant: 80),
+            glyph.widthAnchor.constraint(equalToConstant: 64),
+            glyph.heightAnchor.constraint(equalToConstant: 64),
         ])
         let glyphRow = UIStackView(arrangedSubviews: [UIView(), glyph, UIView()])
         glyphRow.distribution = .equalCentering
@@ -304,20 +304,16 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     // MARK: - Rendering
 
     private func render(_ state: PaywallModel.State, animated: Bool) {
-        let shouldAnimate = animated && view.window != nil && !UIAccessibility.isReduceMotionEnabled
-        let changes = { [self] in
-            isModalInPresentation = state.isBusy
-            closeButton.isEnabled = !state.isBusy
-            renderOffers(state)
-            renderPurchaseControls(state)
-            renderNotice(state.notice)
+        isModalInPresentation = state.isBusy
+        closeButton.isEnabled = !state.isBusy
+        renderOffers(state)
+        renderPurchaseControls(state)
+        renderNotice(state.notice)
+        guard animated, view.window != nil, !UIAccessibility.isReduceMotionEnabled else {
             view.layoutIfNeeded()
+            return
         }
-        if shouldAnimate {
-            UIView.animate(withDuration: 0.25, animations: changes)
-        } else {
-            changes()
-        }
+        UIView.animate(withDuration: 0.25) { self.view.layoutIfNeeded() }
     }
 
     private func renderOffers(_ state: PaywallModel.State) {

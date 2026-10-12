@@ -46,7 +46,7 @@ final class PaywallFeatureRowView: UIView {
         row.alignment = .top
         row.spacing = 14
         row.isLayoutMarginsRelativeArrangement = true
-        row.layoutMargins = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
+        row.layoutMargins = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
         NSLayoutConstraint.activate([
