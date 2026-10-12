@@ -31,7 +31,7 @@ var targets: [Target] = [
 
 #if os(macOS)
 targets += [
-    .target(name: "CrucibleDemo", dependencies: ["CrucibleCore"], resources: [.copy("Resources")]),
+    .target(name: "CrucibleDemo", dependencies: ["CrucibleCore"], resources: [.copy("Data")]),
     .testTarget(name: "CrucibleDemoTests", dependencies: ["CrucibleDemo", "CrucibleCore"]),
 ]
 products += [.library(name: "CrucibleDemo", targets: ["CrucibleDemo"])]
