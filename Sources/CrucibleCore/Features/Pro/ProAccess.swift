@@ -31,11 +31,24 @@ package final class ProAccess {
         self.status = provider.isStoreBacked ? .unknown : .pro(.included)
     }
 
+    package private(set) var demoUnlocked = false
+
+    /// Whether the user has paid for Pro, or has it included. The Pro screens and the paywall read this.
     package var isPro: Bool { status.isPro }
+
+    /// Whether the Pro features work right now: Pro is on, or the demo is running, which unlocks everything on its fictional library.
+    /// Every feature check reads this; only the purchase screens read `isPro`.
+    package var hasFullAccess: Bool { status.isPro || demoUnlocked }
+
+    package func setDemoUnlocked(_ unlocked: Bool) {
+        guard demoUnlocked != unlocked else { return }
+        demoUnlocked = unlocked
+        notify()
+    }
 
     package var isStoreBacked: Bool { provider.isStoreBacked }
 
-    package func allows(_ feature: ProFeature) -> Bool { isPro }
+    package func allows(_ feature: ProFeature) -> Bool { hasFullAccess }
 
     /// Replaces the store before the first screen appears. Source builds never call this and stay unlocked.
     package func install(_ provider: any ProAccessProviding) {
@@ -97,7 +110,7 @@ package final class ProAccess {
 
     /// Runs `completion(true)` at once when Pro is on; otherwise shows the paywall and reports whether the user ended up with Pro.
     package func requestUnlock(_ feature: ProFeature?, completion: @escaping @MainActor (Bool) -> Void = { _ in }) {
-        guard !isPro else {
+        guard !hasFullAccess else {
             completion(true)
             return
         }
