@@ -25,6 +25,8 @@ targets:
       - path: App
       - path: Resources/Assets.xcassets
         buildPhase: resources
+      - path: Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: Crucible
         product: CrucibleTV
