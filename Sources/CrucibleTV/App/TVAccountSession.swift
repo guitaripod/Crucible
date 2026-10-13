@@ -28,5 +28,6 @@ final class TVWeakSession: TVSessionActions {
 
     func switchServer() { target?.switchServer() }
     func signOut() { target?.signOut() }
+    func leaveDemo() { target?.leaveDemo() }
     func reconnect() { target?.reconnect() }
 }

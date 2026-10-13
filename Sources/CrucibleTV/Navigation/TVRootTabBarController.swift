@@ -43,6 +43,22 @@ final class TVRootTabBarController: UITabBarController {
         return navigation(for: entries[0])
     }
 
+    /// Selects the tab for `destination` (the first library, or More when every library sits behind it) and returns its navigation
+    /// controller; nil when the server has no such tab.
+    func select(_ destination: TVTabDestination) -> UINavigationController? {
+        loadViewIfNeeded()
+        guard let index = entries.firstIndex(where: { Self.matches($0.identifier, destination) }) else { return nil }
+        selectedIndex = index
+        return navigation(for: entries[index])
+    }
+
+    private static func matches(_ identifier: String, _ destination: TVTabDestination) -> Bool {
+        switch destination {
+        case .library: identifier.hasPrefix("library.") || identifier == "more"
+        case .search: identifier == searchIdentifier
+        }
+    }
+
     private func installTabs() {
         entries = makeEntries()
         if #available(tvOS 18.0, *) {

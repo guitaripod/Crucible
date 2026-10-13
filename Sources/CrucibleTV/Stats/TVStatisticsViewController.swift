@@ -120,6 +120,7 @@ final class TVStatisticsViewController: TVScreenViewController {
             return
         }
         showContent()
+        DemoTour.shared.record(.statistics)
         dataSource.apply(makeSnapshot(), animatingDifferences: false)
         controlsView.configure(range: range, since: loaded.hero.since, filter: StatsLibraryFilter.current())
         collectionView.collectionViewLayout.invalidateLayout()

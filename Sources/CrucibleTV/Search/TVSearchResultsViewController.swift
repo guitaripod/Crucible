@@ -149,6 +149,7 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         dataSource.applyReconfiguringExisting(snapshot)
         collectionView.collectionViewLayout.invalidateLayout()
         showContent()
+        DemoTour.shared.record(.search)
     }
 
     private func renderEmpty(query: String, scope emptyScope: SearchScope) {

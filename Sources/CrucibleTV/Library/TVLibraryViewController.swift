@@ -293,6 +293,7 @@ final class TVLibraryViewController: TVScreenViewController {
         hasRevealedContent = true
         shelfInserted = model.hasLoadedRecents
         revealSlot.cancel()
+        DemoTour.shared.record(.browse)
     }
 
     private func startRevealDeadline() {

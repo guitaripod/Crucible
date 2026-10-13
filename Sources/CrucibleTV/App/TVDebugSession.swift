@@ -29,6 +29,14 @@ enum TVDebugSession {
         }
     }
 
+    /// A fresh install, and a launch that connects to the mock server, are not in the demo: its flag, tour and welcome are forgotten.
+    @MainActor
+    private static func forgetDemo() {
+        UserDefaults.standard.removeObject(forKey: DemoMode.activeKey)
+        DemoTour.shared.reset()
+        TVDemoState.clearIntro()
+    }
+
     private static let mockMachineIdentifier = "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b"
 
     /// With `CRUCIBLE_FRESH=1` first forgets the account, server, remembered address and Top Shelf
@@ -40,9 +48,11 @@ enum TVDebugSession {
         let environment = ProcessInfo.processInfo.environment
         if environment["CRUCIBLE_FRESH"] == "1" {
             AccountSessionReset.signOut(.tv)
+            forgetDemo()
             AppLogger.notice("Debug session: fresh install state", .lifecycle)
         }
         guard let value = environment["CRUCIBLE_MOCK"], let base = URL(string: value) else { return }
+        forgetDemo()
         ServerBootstrap.clear()
         ServerBootstrap.saveToken("mock-token")
         ServerBootstrap.saveServer(uri: base, name: "Marcus-PC", machineIdentifier: mockMachineIdentifier)

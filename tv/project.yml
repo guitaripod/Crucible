@@ -34,6 +34,8 @@ targets:
         product: CrucibleCore
       - package: Crucible
         product: CrucibleStore
+      - package: Crucible
+        product: CrucibleDemo
       - target: CrucibleTVTopShelf
         embed: true
         codeSign: true

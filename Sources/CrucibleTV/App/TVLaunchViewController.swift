@@ -69,13 +69,13 @@ final class TVLaunchViewController: UIViewController {
         ))
     }
 
-    func showFailure(title: String, message: String) {
+    func showFailure(title: String, message: String, secondaryTitle: String = "Switch Server") {
         show(.error(
             title: title,
             message: message,
             retryTitle: "Try Again",
             retry: { [weak self] in self?.onRetry?() },
-            secondary: TVStateView.Action(title: "Switch Server") { [weak self] in self?.onSwitchServer?() }
+            secondary: TVStateView.Action(title: secondaryTitle) { [weak self] in self?.onSwitchServer?() }
         ))
     }
 

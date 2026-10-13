@@ -8,7 +8,8 @@ import TVServices
 ///
 /// Top Shelf is a Crucible Pro feature. A free install publishes nothing and empties what an earlier
 /// version or an ended plan left, so the extension returns no content; a status the store has not
-/// answered yet changes nothing. The refresher follows `ProAccess`, so turning Pro on fills the
+/// answered yet changes nothing. The demo never publishes: its titles are fictional and must not reach the real Home screen, so
+/// while it runs the Top Shelf is kept empty. The refresher follows `ProAccess`, so turning Pro on fills the
 /// Top Shelf at once and losing it empties it.
 @MainActor
 enum TVTopShelfRefresher {
@@ -25,7 +26,7 @@ enum TVTopShelfRefresher {
     /// Does nothing without an active session. A refresh already running is replaced.
     static func refresh() {
         guard let session else { return }
-        switch ProTVTopShelf.action(for: ProAccess.shared.status) {
+        switch action {
         case .publish:
             publish(session)
         case .clear:
@@ -33,6 +34,10 @@ enum TVTopShelfRefresher {
         case .wait:
             break
         }
+    }
+
+    private static var action: ProTVTopShelf.Action {
+        DemoMode.shared.isActive ? .clear : ProTVTopShelf.action(for: ProAccess.shared.status)
     }
 
     /// Ends the session and cancels a refresh in flight, so it cannot write after the snapshot is

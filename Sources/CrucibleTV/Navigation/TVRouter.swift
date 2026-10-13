@@ -113,6 +113,14 @@ final class TVRouter {
         }
     }
 
+    /// Closes whatever is presented, selects the tab for `destination` and shows its root screen.
+    func show(_ destination: TVTabDestination) {
+        guard let tabBar else { return }
+        dismissPresented(over: tabBar) {
+            tabBar.select(destination)?.popToRootViewController(animated: false)
+        }
+    }
+
     /// Starts playback from anywhere, replacing whatever is presented.
     func play(_ request: TVPlaybackRequest) {
         guard let tabBar else {

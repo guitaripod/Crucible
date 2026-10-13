@@ -183,6 +183,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         }
         player.preventsDisplaySleepDuringVideoPlayback = true
         playerVC.player = player
+        DemoTour.shared.record(.play)
         revealPlayer()
         observeEvents(of: session)
         refreshTrackMenus()

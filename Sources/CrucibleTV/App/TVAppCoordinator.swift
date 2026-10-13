@@ -10,9 +10,10 @@ import UIKit
 final class TVAppCoordinator: TVSessionActions {
     private static let crossDissolveDuration: TimeInterval = 0.4
 
-    private let window: UIWindow
+    let window: UIWindow
     private let router = TVRouter()
     private var launchTask: Task<Void, Never>?
+    var finaleTask: Task<Void, Never>?
 
     init(window: UIWindow) {
         self.window = window
@@ -21,6 +22,7 @@ final class TVAppCoordinator: TVSessionActions {
     /// Queues any link the app was opened with, then routes to the right root.
     func start(openingURLs urls: [URL]) {
         installPro()
+        installDemo()
         #if DEBUG
         if let root = TVDebugRoot.rootIfRequested() {
             window.rootViewController = root
@@ -41,6 +43,7 @@ final class TVAppCoordinator: TVSessionActions {
         launchTask?.cancel()
         launchTask = nil
         removePro()
+        removeDemo()
         router.deactivate()
         TVTopShelfRefresher.deactivate()
     }
@@ -50,12 +53,66 @@ final class TVAppCoordinator: TVSessionActions {
         TVTopShelfRefresher.refresh()
     }
 
+    /// A demo that was running when the app last quit is brought back before anything decides what to show; every other launch goes
+    /// straight to the saved session.
     func reconnect() {
         launchTask?.cancel()
+        guard DemoMode.shared.isActive else {
+            routeToSavedSession()
+            return
+        }
+        resumeDemo()
+    }
+
+    private func routeToSavedSession() {
         if let connection = ServerBootstrap.connection() {
             launch(connection: connection)
         } else {
             showOnboarding()
+        }
+    }
+
+    /// Starts the demo library again behind the launch gate. When it cannot start, the session it left behind points at a library
+    /// that is gone, so it is forgotten and the app returns to its welcome screen.
+    private func resumeDemo() {
+        if window.rootViewController is TVRootTabBarController {
+            router.deactivate()
+        }
+        TVTopShelfRefresher.deactivate()
+        let gate = (window.rootViewController as? TVLaunchViewController) ?? installLaunchGate()
+        gate.showLoading(status: "Starting the demo…")
+        launchTask = Task { @MainActor [weak self] in
+            let resumed = await DemoMode.shared.resume()
+            guard !Task.isCancelled, let self else { return }
+            guard resumed else {
+                forgetDemoThatCouldNotResume()
+                return
+            }
+            routeToSavedSession()
+        }
+    }
+
+    private func forgetDemoThatCouldNotResume() {
+        DemoTour.shared.reset()
+        TVDemoState.clearIntro()
+        AccountSessionReset.signOut(.tv)
+        showOnboarding()
+    }
+
+    func leaveDemo() {
+        guard DemoMode.shared.isActive else { return }
+        AppLogger.notice("Leaving the demo", .lifecycle)
+        finaleTask?.cancel()
+        launchTask?.cancel()
+        router.deactivate()
+        TVTopShelfRefresher.deactivate()
+        APIClient.onBaseURLChanged.withLock { $0 = nil }
+        Task { @MainActor [weak self] in
+            await TVPlayerCoordinator.endActive()
+            await DemoMode.shared.exit(.tv)
+            TVDemoState.clearIntro()
+            self?.window.rootViewController?.dismiss(animated: false)
+            self?.showOnboarding()
         }
     }
 
@@ -126,7 +183,11 @@ final class TVAppCoordinator: TVSessionActions {
             case .failure(.signInExpired):
                 gate.showSignInExpired()
             case .failure(let failure):
-                gate.showFailure(title: "Couldn’t Reach \(connection.serverName)", message: failure.message)
+                gate.showFailure(
+                    title: "Couldn’t Reach \(connection.serverName)",
+                    message: failure.message,
+                    secondaryTitle: DemoMode.shared.isActive ? "Leave the Demo" : "Switch Server"
+                )
             }
         }
     }
@@ -134,7 +195,9 @@ final class TVAppCoordinator: TVSessionActions {
     private func installLaunchGate() -> TVLaunchViewController {
         let gate = TVLaunchViewController()
         gate.onRetry = { [weak self] in self?.reconnect() }
-        gate.onSwitchServer = { [weak self] in self?.switchServer() }
+        gate.onSwitchServer = { [weak self] in
+            if DemoMode.shared.isActive { self?.leaveDemo() } else { self?.switchServer() }
+        }
         gate.onSignInAgain = { [weak self] in self?.signInAgain() }
         gate.onSignOut = { [weak self] in self?.confirmSignOut() }
         window.backgroundColor = CrystalGlyphView.canvas
@@ -164,12 +227,14 @@ final class TVAppCoordinator: TVSessionActions {
         guard !UIAccessibility.isReduceMotionEnabled else {
             window.rootViewController = root
             router.activate(root)
+            presentDemoIntroIfPending()
             return
         }
         UIView.transition(with: window, duration: Self.crossDissolveDuration, options: [.transitionCrossDissolve, .curveEaseOut]) {
             self.window.rootViewController = root
         } completion: { [weak self] _ in
             self?.router.activate(root)
+            self?.presentDemoIntroIfPending()
         }
     }
 

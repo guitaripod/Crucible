@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDemo
 import CrucibleStore
 import CrucibleTV
 import UIKit
@@ -7,6 +8,7 @@ import UIKit
 enum Entry {
     static func main() {
         installStore()
+        installDemo()
         _ = UIApplicationMain(
             CommandLine.argc,
             CommandLine.unsafeArgv,
@@ -23,6 +25,20 @@ enum Entry {
         RevenueCatProAccess.configure(apiKey: StoreSecrets.revenueCatPublicKey)
         MainActor.assumeIsolated {
             ProAccess.shared.install(RevenueCatProAccess())
+        }
+    }
+
+    /// Offers the demo on the Welcome screen: the fictional library served from inside the app. A debug build that names a running
+    /// mock server in `CRUCIBLE_DEMO_URL` signs in to that server instead, so the demo screens can be built without the library.
+    private static func installDemo() {
+        MainActor.assumeIsolated {
+            #if DEBUG
+            if let mock = DemoMockProvider() {
+                DemoMode.shared.install(mock)
+                return
+            }
+            #endif
+            DemoMode.shared.install(DemoLibraryProvider())
         }
     }
 

@@ -9,6 +9,10 @@ protocol TVSessionActions: AnyObject {
     /// Screens confirm with the user before calling this.
     func signOut()
 
+    /// Ends the demo: stops its library, forgets its session, statistics and tour, and returns to the welcome screen. Screens confirm
+    /// with the user before calling this.
+    func leaveDemo()
+
     /// Re-runs the launch pipeline against the saved connection, for example after the saved
     /// route or server changed.
     func reconnect()
