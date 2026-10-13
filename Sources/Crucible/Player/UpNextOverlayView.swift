@@ -43,6 +43,7 @@ final class UpNextOverlayView: UIView {
     private static let padding: CGFloat = 16
     private static let buttonHeight: CGFloat = 48
     private static let maxSweepFraction: CGFloat = 0.42
+    private static let cardWidthPriority = UILayoutPriority(999)
 
     private let content: Content
     private let countdownLabel = UILabel()
@@ -59,6 +60,8 @@ final class UpNextOverlayView: UIView {
     private var landscapeConstraints: [NSLayoutConstraint] = []
     private var portraitConstraints: [NSLayoutConstraint] = []
     private var isLandscapeLayout: Bool?
+    private let buttons = UIStackView()
+    private var buttonRatio: NSLayoutConstraint?
 
     init(
         content: Content,
@@ -117,7 +120,7 @@ final class UpNextOverlayView: UIView {
         host.addSubview(self)
         let guide = host.safeAreaLayoutGuide
         let preferredWidth = widthAnchor.constraint(equalToConstant: Self.cardWidth)
-        preferredWidth.priority = .defaultHigh
+        preferredWidth.priority = Self.cardWidthPriority
         landscapeConstraints = [
             trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -44),
             bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -44),
@@ -193,10 +196,14 @@ final class UpNextOverlayView: UIView {
 
         let dismissButton = makeDismissButton()
         configurePlayButton()
-        let buttons = UIStackView(arrangedSubviews: [dismissButton, playButton])
-        buttons.axis = .horizontal
+        buttons.addArrangedSubview(dismissButton)
+        buttons.addArrangedSubview(playButton)
         buttons.spacing = 10
-        playButton.widthAnchor.constraint(equalTo: dismissButton.widthAnchor, multiplier: 1.3).isActive = true
+        buttonRatio = playButton.widthAnchor.constraint(equalTo: dismissButton.widthAnchor, multiplier: 1.3)
+        placeButtons()
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: UpNextOverlayView, _: UITraitCollection) in
+            view.placeButtons()
+        }
 
         let stack = UIStackView(arrangedSubviews: [topRow, buttons])
         stack.axis = .vertical
@@ -219,6 +226,13 @@ final class UpNextOverlayView: UIView {
 
         accessibilityElements = [titleLabel, countdownLabel, dismissButton, playButton]
         titleLabel.accessibilityLabel = "Up next, \(content.episodeTitle)"
+    }
+
+    /// Side by side with Play Now a little wider, except at the largest text sizes, where the two stack so neither label has to wrap.
+    private func placeButtons() {
+        let stacked = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
+        buttons.axis = stacked ? .vertical : .horizontal
+        buttonRatio?.isActive = !stacked
     }
 
     /// The 128 by 72 episode thumb with a hairline and a film placeholder until artwork arrives.

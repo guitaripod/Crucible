@@ -51,13 +51,16 @@ enum DemoShotScript {
         #else
         base = DemoMockProvider(environment: [DemoMockProvider.environmentVariable: mock.absoluteString])!
         #endif
-        let resuming = environment["CRUCIBLE_SHOT_SCRIPT"] == "demo-resume"
-        DemoMode.shared.install(ScriptedDemoProvider(base: base, startDelay: resuming ? .milliseconds(1500) : .seconds(2.5), failures: resuming ? 0 : 1))
+        let script = environment["CRUCIBLE_SHOT_SCRIPT"]
+        let showsFailure = script == "demo"
+        DemoMode.shared.install(ScriptedDemoProvider(base: base, startDelay: showsFailure ? .seconds(2.5) : .milliseconds(1500), failures: showsFailure ? 1 : 0))
     }
 
     static func run() async {
         if environment["CRUCIBLE_SHOT_SCRIPT"] == "demo-resume" {
             await resumeAfterRelaunch()
+        } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "demo-upnext" {
+            await upNextOverlay()
         } else {
             await enterAndTour()
         }
@@ -152,6 +155,48 @@ enum DemoShotScript {
         await ShotHarness.capture("d17b-settings-bottom")
         guard environment["CRUCIBLE_DEMO_STAY"] != "1" else { return }
         await leaveFromTour(tabBar)
+    }
+
+    /// Plays the highlighted title and captures the Up Next card in portrait, at the largest text size, and in landscape.
+    private static func upNextOverlay() async {
+        rotate(to: .portrait)
+        guard await waitForWelcome() != nil else { return }
+        press("Try the demo", in: welcome())
+        guard let tabBar = await ShotHarness.waitForTabBar() else { return }
+        await ShotHarness.settle(3.5)
+        press("Start exploring", in: topPresented())
+        await ShotHarness.settle(1)
+        DemoCoordinator.shared.show(.play)
+        await ShotHarness.settle(3)
+        await captureUpNext(named: "u1-portrait", tabBar: tabBar)
+        await captureUpNext(named: "u2-portrait-xl", tabBar: tabBar, largeText: true)
+        rotate(to: .landscapeRight)
+        await ShotHarness.settle(3)
+        await captureUpNext(named: "u3-landscape", tabBar: tabBar)
+        await captureUpNext(named: "u4-landscape-xl", tabBar: tabBar, largeText: true)
+    }
+
+    private static func captureUpNext(named name: String, tabBar: UIViewController, largeText: Bool = false) async {
+        for _ in 0..<400 {
+            if let overlay = all(UIView.self, in: topPresented()?.view).first(where: { String(describing: type(of: $0)) == "UpNextOverlayView" }) {
+                let window = overlay.window
+                if largeText { window?.traitOverrides.preferredContentSizeCategory = .accessibilityExtraLarge }
+                await ShotHarness.settle(1)
+                await ShotHarness.capture(name)
+                let frame = overlay.convert(overlay.bounds, to: nil)
+                let affecting = overlay.constraintsAffectingLayout(for: .horizontal).map { "\($0)" }.joined(separator: "\n")
+                try? "frame=\(frame) window=\(window?.bounds ?? .zero) host=\(overlay.superview?.frame ?? .zero) ambiguous=\(overlay.hasAmbiguousLayout)\nOWN:\(overlay.constraints.map { "\($0)" }.joined(separator: "\n"))\nHOST:\((overlay.superview?.constraints ?? []).map { "\($0)" }.joined(separator: "\n"))".write(toFile: "\(ShotHarness.signalDirectory)/\(name).png.txt", atomically: true, encoding: .utf8)
+                window?.traitOverrides.preferredContentSizeCategory = .large
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+    }
+
+    private static func rotate(to orientation: UIInterfaceOrientationMask) {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation)) { _ in }
+        topPresented()?.setNeedsUpdateOfSupportedInterfaceOrientations()
     }
 
     /// Closes whatever sits over the tab bar, the player included, until nothing does.
