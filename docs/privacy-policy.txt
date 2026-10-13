@@ -1,0 +1,33 @@
+Crucible Privacy Policy
+Effective October 12, 2026
+https://midgarcorp.cc/crucible/privacy
+
+What Crucible is
+Crucible is a Plex client for iPhone and Apple TV made by Midgar Oy. It runs on your device and talks to two things only: plex.tv, to sign you in and find your servers, and the Plex Media Server you choose.
+
+What we collect
+Nothing. Midgar Oy runs no server for Crucible, receives none of your data and has no accounts of its own. There are no ads, no analytics and no tracking SDKs.
+
+Your Plex account
+You sign in with Plex's own sign-in flow. Your Plex token is stored in the Keychain on your device and sent only to plex.tv and to your own servers. Plex's privacy policy applies to your Plex account.
+
+Your library and viewing history
+Titles, artwork, watch history and the statistics built from it come from your Plex server and stay on your device. A Year in Review poster is drawn on your device and leaves it only if you share it.
+
+The demo
+The built-in demo runs a fictional library inside the app. It uses no network and no account, and leaving the demo forgets everything it stored.
+
+Downloads
+Offline downloads are saved on your iPhone and are not sent anywhere.
+
+Purchases
+Crucible Pro is sold through the App Store. Apple processes the payment; we never see your payment details or your Apple Account. We use RevenueCat to check and restore your Crucible Pro purchase: RevenueCat receives a random app user ID and your purchase history for this app, and handles it under its own privacy policy at https://www.revenuecat.com/privacy.
+
+Diagnostics
+A diagnostic log is kept on your device. It leaves your device only if you export and share it yourself.
+
+Children
+Crucible is not directed at children and does not knowingly collect information from anyone.
+
+Changes and contact
+If this policy changes, the new version appears at the address above with its date. Questions go to https://github.com/guitaripod/Crucible/issues.

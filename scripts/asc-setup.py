@@ -40,8 +40,9 @@ def push_app_info():
     asc.patch(f"/v1/appInfoLocalizations/{iloc}", {"data": {"type": "appInfoLocalizations",
         "id": iloc, "attributes": {
             "name": spec["name"], "subtitle": spec["subtitle"],
-            "privacyPolicyUrl": spec["privacyPolicyUrl"]}}})
-    print(f"name, subtitle and privacy URL set ({iloc})")
+            "privacyPolicyUrl": spec["privacyPolicyUrl"],
+            "privacyPolicyText": open(os.path.join(ROOT, "docs/privacy-policy.txt")).read()}}})
+    print(f"name, subtitle, privacy URL and text set ({iloc})")
 
 
 def push_version(platform, version_id):
