@@ -22,3 +22,4 @@ DerivedData/
 /ios/out
 /ios/.gen-hash
 /marketing/appstore
+/.bsp/
