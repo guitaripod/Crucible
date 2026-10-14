@@ -14,6 +14,7 @@ Put Crucible's App Store versions in review.
 
   scripts/asc-submit.sh ios        the iPhone version plus both Crucible Pro products (Apple's first-product rule: new products must ride a version submission)
   scripts/asc-submit.sh tv         the Apple TV version
+  scripts/asc-submit.sh resubmit <submission-id>   after a rejection: resolve its rejected items and send it back (a rejected version cannot ride a new submission)
   scripts/asc-submit.sh status     what App Store Connect says now
 
 Run scripts/asc-setup.py first so the review notes describe the demo mode.
@@ -39,9 +40,18 @@ submit() {
   asc review submissions-submit --id "$submission" --confirm
 }
 
+resubmit() {
+  local submission=$1 item
+  for item in $(asc review items list --submission "$submission" --output json | python3 -c 'import json,sys; print(*[i["id"] for i in json.load(sys.stdin)["data"] if i["attributes"]["state"] == "REJECTED"])'); do
+    asc review items update --id "$item" --resolved true > /dev/null
+  done
+  asc review submissions-submit --id "$submission" --confirm
+}
+
 case "${1:-}" in
   ios) submit IOS "$IOS_VERSION" inAppPurchaseVersions "$LIFETIME_VERSION" subscriptionVersions "$YEARLY_VERSION" subscriptionGroupVersions "$GROUP_VERSION" ;;
   tv) submit TV_OS "$TV_VERSION" ;;
+  resubmit) resubmit "${2:?submission id}" ;;
   status) asc review status --app "$APP" ;;
   *) usage; exit 2 ;;
 esac
