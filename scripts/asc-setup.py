@@ -28,8 +28,14 @@ def first(path, **params):
     return asc.get(path, **params).get("data", [])
 
 
+def editable_app_info():
+    """The appInfo that can still change: once one platform is live, ASC keeps a second appInfo for the next version."""
+    infos = first(f"/v1/apps/{APP_ID}/appInfos")
+    return next((i for i in infos if i["attributes"].get("state") != "READY_FOR_DISTRIBUTION"), infos[0])
+
+
 def push_app_info():
-    info = first(f"/v1/apps/{APP_ID}/appInfos")[0]
+    info = editable_app_info()
     asc.patch(f"/v1/appInfos/{info['id']}", {"data": {"type": "appInfos", "id": info["id"],
         "relationships": {
             "primaryCategory": {"data": {"type": "appCategories", "id": spec["primaryCategory"]}},
@@ -144,7 +150,7 @@ def push_availability_minus_china():
 
 def push_age_rating():
     """The 2025 questionnaire lives on the appInfo, not the appStoreVersion."""
-    info = first(f"/v1/apps/{APP_ID}/appInfos")[0]
+    info = editable_app_info()
     declaration = asc.get(f"/v1/appInfos/{info['id']}/ageRatingDeclaration").get("data")
     if not declaration:
         print("! no ageRatingDeclaration resource; set it in the web UI")
