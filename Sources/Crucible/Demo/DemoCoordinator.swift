@@ -13,9 +13,26 @@ final class DemoCoordinator {
 
     private weak var tabBar: TabBarController?
     private var finaleTask: Task<Void, Never>?
+    private var keyboardIsUp = false
+    private var keyboardObservers: [NSObjectProtocol] = []
 
     func install() {
         DemoTour.shared.onFinale = { [weak self] in self?.finaleIsDue() }
+        trackKeyboard()
+    }
+
+    /// The finale waits while the keyboard is up, so it never lands on a search the user is still typing.
+    private func trackKeyboard() {
+        guard keyboardObservers.isEmpty else { return }
+        let center = NotificationCenter.default
+        keyboardObservers = [
+            center.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.keyboardIsUp = true }
+            },
+            center.addObserver(forName: UIResponder.keyboardDidHideNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.keyboardIsUp = false }
+            },
+        ]
     }
 
     /// The main screen is up: the demo's welcome sheet is shown now if it is still owed.
@@ -91,12 +108,13 @@ final class DemoCoordinator {
     }
 
     private func currentScreen() -> DemoPhoneFinaleGate.Screen {
-        guard let tabBar else { return .init(appIsActive: false, hasModal: true, inTransition: false) }
+        guard let tabBar else { return .init(appIsActive: false, hasModal: true, inTransition: false, keyboardIsUp: keyboardIsUp) }
         let navigation = tabBar.selectedViewController as? UINavigationController
         return .init(
             appIsActive: UIApplication.shared.applicationState == .active,
             hasModal: tabBar.presentedViewController != nil,
-            inTransition: tabBar.transitionCoordinator != nil || navigation?.transitionCoordinator != nil
+            inTransition: tabBar.transitionCoordinator != nil || navigation?.transitionCoordinator != nil,
+            keyboardIsUp: keyboardIsUp
         )
     }
 

@@ -32,9 +32,11 @@ final class DemoFinaleViewController: DemoSheetViewController {
         }, for: .primaryActionTriggered)
         addAction(proButton)
 
-        addAction(makeLinkButton(title: DemoCopy.finaleKeepExploring) { [weak self] in
+        let keepExploring = makeLinkButton(title: DemoCopy.finaleKeepExploring) { [weak self] in
             self?.dismiss(animated: true)
-        })
+        }
+        keepExploring.accessibilityIdentifier = "demo.finale.keep"
+        addAction(keepExploring)
         actionStack.spacing = 8
     }
 

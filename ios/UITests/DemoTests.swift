@@ -14,8 +14,8 @@ final class DemoTests: XCTestCase {
         IOSTest.element(app, identifier)
     }
 
-    private func enterDemo() -> XCUIApplication {
-        let app = IOSTest.launch()
+    private func enterDemo(extraEnvironment: [String: String] = [:]) -> XCUIApplication {
+        let app = IOSTest.launch(extraEnvironment: extraEnvironment)
         let demo = element(app, "onboarding.demo")
         XCTAssertTrue(demo.waitForExistence(timeout: 60), "Welcome never showed Try the demo")
         demo.tap()
@@ -102,5 +102,58 @@ final class DemoTests: XCTestCase {
         IOSTest.settle(3)
         assertRunning(app, "rapid typing and scope changes")
         IOSTest.capture("01-search-rapid", in: self)
+    }
+
+    /// Fails when the finale sheet is on screen or the app stopped running, naming whether the keyboard was still up.
+    private func assertNoFinaleOverKeyboard(_ app: XCUIApplication, _ moment: String, file: StaticString = #filePath, line: UInt = #line) {
+        assertRunning(app, moment, file: file, line: line)
+        let finale = element(app, "demo.finale.keep")
+        XCTAssertFalse(finale.exists, "the demo finale landed \(moment) while the keyboard was \(app.keyboards.firstMatch.exists ? "up" : "down")", file: file, line: line)
+    }
+
+    /// Lets `seconds` pass in short steps, checking after each that no finale showed up and the app is still running.
+    private func watchForNoFinale(_ app: XCUIApplication, seconds: TimeInterval, _ moment: String, file: StaticString = #filePath, line: UInt = #line) {
+        let steps = Int(seconds / 0.5)
+        for _ in 0..<steps {
+            IOSTest.settle(0.5)
+            assertNoFinaleOverKeyboard(app, moment, file: file, line: line)
+        }
+    }
+
+    func testFinaleWaitsForTheKeyboardWhileTypingThenAppearsAndKeepExploringKeepsTheResults() {
+        let app = enterDemo(extraEnvironment: ["CRUCIBLE_DEMO_DONE": "play,browse,statistics"])
+        app.tabBars.buttons["Search"].tap()
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 30), "the search field never appeared")
+        field.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10), "the keyboard never came up")
+        assertNoFinaleOverKeyboard(app, "after tapping the search field")
+
+        for letter in ["t", "h", "e"] {
+            field.typeText(letter)
+            IOSTest.settle(0.6)
+            assertNoFinaleOverKeyboard(app, "after typing \(letter)")
+        }
+        IOSTest.capture("01-typed-with-keyboard-up", in: self)
+        watchForNoFinale(app, seconds: 4, "in the 4 seconds after the last letter")
+        XCTAssertTrue(app.keyboards.firstMatch.exists, "the keyboard should still be up")
+        IOSTest.capture("02-four-seconds-later", in: self)
+
+        let resultsBefore = app.collectionViews.firstMatch.cells.count
+        XCTAssertGreaterThan(resultsBefore, 0, "the search shows no results")
+
+        field.typeText("\n")
+        let finale = element(app, "demo.finale.keep")
+        XCTAssertTrue(finale.waitForExistence(timeout: 10), "the finale never appeared after the keyboard went away")
+        assertRunning(app, "the finale appearing")
+        IOSTest.settle(1)
+        IOSTest.capture("03-finale", in: self)
+
+        finale.tap()
+        XCTAssertTrue(IOSTest.wait(for: finale, "exists == false", timeout: 10), "Keep exploring did not close the finale")
+        IOSTest.settle(1)
+        assertRunning(app, "closing the finale")
+        XCTAssertGreaterThan(app.collectionViews.firstMatch.cells.count, 0, "the results disappeared with the finale")
+        IOSTest.capture("04-after-keep-exploring", in: self)
     }
 }

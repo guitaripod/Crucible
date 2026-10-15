@@ -6,12 +6,16 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     private typealias DataSource = UICollectionViewDiffableDataSource<SearchSection, SearchItem>
     private typealias Snapshot = NSDiffableDataSourceSnapshot<SearchSection, SearchItem>
 
+    private static let tourSearchSettle: Duration = .seconds(2)
+
     private let api: APIClient
     private var dataSource: DataSource!
     private let searchController = UISearchController(searchResultsController: nil)
     private let session: SearchSession
     private var downloadObserver: UUID?
     private var playerCoordinator: PlayerCoordinator?
+    private var tourSearchTask: Task<Void, Never>?
+    private var isTourSearchPending = false
 
     init(api: APIClient) {
         self.api = api
@@ -64,6 +68,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         session.suspend()
+        recordTourSearchIfPending()
     }
 
     private func configureSearchController() {
@@ -279,11 +284,17 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     private func render(_ state: SearchState) {
         switch state {
-        case .idle(let content): showIdle(content)
-        case .loading: showLoading()
+        case .idle(let content):
+            cancelTourSearch()
+            showIdle(content)
+        case .loading:
+            cancelTourSearch()
+            showLoading()
         case .results(_, let parts): renderResults(parts)
         case .empty(let query, let scope): renderEmpty(query: query, scope: scope)
-        case .failed(let query, let message): showFailure(message: message, query: query)
+        case .failed(let query, let message):
+            cancelTourSearch()
+            showFailure(message: message, query: query)
         }
     }
 
@@ -374,9 +385,34 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         dataSource.apply(snapshot, animatingDifferences: false)
         collectionView.collectionViewLayout.invalidateLayout()
         contentUnavailableConfiguration = nil
-        if !snapshot.itemIdentifiers.isEmpty, view.window != nil {
-            DemoTour.shared.record(.search)
+        if snapshot.itemIdentifiers.isEmpty {
+            cancelTourSearch()
+        } else if view.window != nil {
+            scheduleTourSearch()
         }
+    }
+
+    /// Ticks the demo tour's Search step once results have stayed up for a moment without another keystroke, or when the screen is
+    /// left with results showing. Ticking on the first partial query could earn the finale while the user is still typing.
+    private func scheduleTourSearch() {
+        isTourSearchPending = true
+        tourSearchTask?.cancel()
+        tourSearchTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.tourSearchSettle)
+            guard !Task.isCancelled else { return }
+            self?.recordTourSearchIfPending()
+        }
+    }
+
+    private func cancelTourSearch() {
+        isTourSearchPending = false
+        tourSearchTask?.cancel()
+    }
+
+    private func recordTourSearchIfPending() {
+        guard isTourSearchPending else { return }
+        cancelTourSearch()
+        DemoTour.shared.record(.search)
     }
 
     private func renderEmpty(query: String, scope: SearchScope) {

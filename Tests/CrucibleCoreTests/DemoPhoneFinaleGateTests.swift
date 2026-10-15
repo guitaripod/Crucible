@@ -15,7 +15,8 @@ struct DemoPhoneFinaleGateTests {
         let player = DemoPhoneFinaleGate.Screen(appIsActive: true, hasModal: true, inTransition: false)
         let background = DemoPhoneFinaleGate.Screen(appIsActive: false, hasModal: false, inTransition: false)
         let moving = DemoPhoneFinaleGate.Screen(appIsActive: true, hasModal: false, inTransition: true)
-        for screen in [player, background, moving] {
+        let typing = DemoPhoneFinaleGate.Screen(appIsActive: true, hasModal: false, inTransition: false, keyboardIsUp: true)
+        for screen in [player, background, moving, typing] {
             #expect(DemoPhoneFinaleGate.decision(demoIsActive: true, screen: screen, quietChecks: 5) == .wait)
         }
     }

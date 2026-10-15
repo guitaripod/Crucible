@@ -231,6 +231,9 @@ final class ServerSetupViewController: UIViewController {
             do {
                 try await DemoMode.shared.enter()
                 DemoPhoneSession.shared.beginSession()
+                #if DEBUG
+                PhoneDebugSession.seedDemoTourIfRequested()
+                #endif
                 guard let self, let connection = ServerBootstrap.connection() else { throw DemoError.unavailable }
                 onConnected?(connection)
             } catch {
