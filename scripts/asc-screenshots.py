@@ -13,7 +13,8 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = os.path.join(ROOT, "marketing/appstore")
-VERSIONS = {"iphone": "013d476f-8e27-4b55-b040-e1cd6585e0c3", "tvos": "36616e31-1747-4e73-a132-6875f4d9e0ce"}
+SPEC = json.load(open(os.path.join(ROOT, "docs/asc-metadata.json")))
+VERSIONS = {"iphone": SPEC["versions"]["IOS"], "tvos": SPEC["versions"]["TV_OS"]}
 DEVICES = {"iphone": ("IPHONE_67", "APP_IPHONE_67"), "tvos": ("APPLE_TV", "APP_APPLE_TV")}
 
 

@@ -67,6 +67,8 @@ def push_version(platform, version_id):
         "description": spec["description"], "keywords": spec["keywords"],
         "promotionalText": spec["promotionalText"],
         "supportUrl": spec["supportUrl"], "marketingUrl": spec["marketingUrl"]}
+    if spec.get("whatsNew"):
+        attributes["whatsNew"] = spec["whatsNew"]
     asc.patch(f"/v1/appStoreVersionLocalizations/{vloc}", {"data": {
         "type": "appStoreVersionLocalizations", "id": vloc, "attributes": attributes}})
     print(f"{platform}: localization set, release={spec.get('releaseType', 'AFTER_APPROVAL')}")
