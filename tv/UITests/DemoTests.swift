@@ -442,4 +442,48 @@ final class DemoTests: TVTestCase {
         waitForWelcome(relaunched)
         XCTAssertFalse(relaunched.tabBars.firstMatch.exists, "a left demo must not come back")
     }
+
+    /// Brings focus to the search keyboard of the Search tab the tour just opened.
+    private func focusSearchKeyboard(_ app: XCUIApplication) {
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 15), "the search keyboard never appeared")
+        if app.keyboards.keys.matching(NSPredicate(format: "hasFocus == true")).count == 0 {
+            TVTest.remote.press(.down)
+            TVTest.settle(1)
+        }
+    }
+
+    func testTheFinaleWaitsForTheTypingToStopWhenSearchIsTheLastStep() {
+        let app = launchIntoHome()
+        openTour(app)
+        doStatistics(app)
+        doBrowse(app)
+        AppNavigation.selectTab("You", in: app)
+        XCTAssertTrue(element(app, "demo.step.play").waitForExistence(timeout: 15))
+        playFromTour(app)
+        leavePlayer(app, until: element(app, "demo.step.play"))
+        waitForDone(app, "play")
+        focusTourRow(app, "demo.step.search")
+        TVTest.remote.press(.select)
+        focusSearchKeyboard(app)
+
+        let finale = element(app, "demo.finale.keep")
+        for letter in ["t", "h", "e"] {
+            app.typeText(letter)
+            TVTest.settle(0.4)
+            XCTAssertFalse(finale.exists, "the finale covered the keyboard while \(letter) was being typed")
+        }
+        TVTest.settle(1)
+        XCTAssertTrue(app.buttons["search.top.play"].exists, "the results of the query should be showing")
+        XCTAssertFalse(finale.exists, "the finale must not land right after the last letter")
+        TVTest.capture("15-search-results-no-finale", in: self)
+
+        XCTAssertTrue(finale.waitForExistence(timeout: 20), "the finale never appeared once the typing stopped")
+        TVTest.capture("16-finale-after-typing", in: self)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "demo.finale.keep"))
+        TVTest.remote.press(.select)
+        XCTAssertFalse(finale.waitForExistence(timeout: 3), "Keep exploring should close the finale")
+        XCTAssertTrue(app.buttons["search.top.play"].exists, "the results are still there after the finale")
+    }
 }

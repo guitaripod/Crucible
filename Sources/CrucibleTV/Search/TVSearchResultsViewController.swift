@@ -10,6 +10,8 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     private typealias DataSource = UICollectionViewDiffableDataSource<TVSearchSection, TVSearchItem>
     private typealias Snapshot = NSDiffableDataSourceSnapshot<TVSearchSection, TVSearchItem>
 
+    private static let tourSearchSettle: Duration = .seconds(2)
+
     private let env: TVAppEnvironment
     private let session: SearchSession
     private var dataSource: DataSource!
@@ -18,6 +20,8 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     private var renderedKey: String?
     private var watchedOverrides: [String: Bool] = [:]
     private var pendingWatched = Set<String>()
+    private lazy var tourSlot = makeTaskSlot()
+    private var isTourSearchPending = false
 
     weak var searchController: UISearchController?
     weak var host: UIViewController?
@@ -45,6 +49,7 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         session.suspend()
+        recordTourSearchIfPending()
     }
 
     func updateSearchResults(for searchController: UISearchController) {
@@ -72,20 +77,24 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     private func render(_ state: SearchState) {
         switch state {
         case .idle(let content):
+            cancelTourSearch()
             discardOverrides(for: "idle")
             resultsQuery = nil
             renderIdle(content)
         case .loading:
+            cancelTourSearch()
             showMessage(.loading(title: nil))
         case .results(let query, let parts):
             discardOverrides(for: query)
             resultsQuery = query
             renderResults(parts)
         case .empty(let query, let emptyScope):
+            cancelTourSearch()
             discardOverrides(for: query)
             resultsQuery = query
             renderEmpty(query: query, scope: emptyScope)
         case .failed(let query, let message):
+            cancelTourSearch()
             showMessage(.error(title: SearchCopy.failureTitle, message: message, retryTitle: SearchCopy.retry) { [weak self] in
                 self?.session.retry(query)
             })
@@ -149,6 +158,29 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         dataSource.applyReconfiguringExisting(snapshot)
         collectionView.collectionViewLayout.invalidateLayout()
         showContent()
+        scheduleTourSearch()
+    }
+
+    /// Ticks the demo tour's Search step once results have stayed on screen without another keystroke, or when the screen is
+    /// left with results showing. Ticking on the first partial query would earn the finale while the viewer is still typing, and it
+    /// would cover the keyboard mid-word.
+    private func scheduleTourSearch() {
+        isTourSearchPending = true
+        tourSlot.run { [weak self] in
+            try? await Task.sleep(for: Self.tourSearchSettle)
+            guard !Task.isCancelled else { return }
+            self?.recordTourSearchIfPending()
+        }
+    }
+
+    private func cancelTourSearch() {
+        isTourSearchPending = false
+        tourSlot.cancel()
+    }
+
+    private func recordTourSearchIfPending() {
+        guard isTourSearchPending else { return }
+        isTourSearchPending = false
         DemoTour.shared.record(.search)
     }
 
