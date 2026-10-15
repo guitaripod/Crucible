@@ -138,17 +138,30 @@ extension DemoLibrary {
     func searchResponse(_ query: String) -> DemoResponse {
         let needle = query.lowercased().trimmingCharacters(in: .whitespaces)
         guard !needle.isEmpty else { return .container(["size": 0, "Hub": [DemoJSON]()]) }
-        func matches(_ keys: [String]) -> [String] {
-            keys.filter { (items[$0]?.title.lowercased() ?? "").contains(needle) }.sorted { rank($0, needle) < rank($1, needle) }
-        }
         let episodes = orderedKeys.filter { items[$0]?.kind == .episode }
-        var hubs = [DemoJSON]()
+        var ranked = [(order: (Int, Int, String, Int), hub: DemoJSON)]()
         for (identifier, title, kind, pool) in [("movie", "Movies", "movie", movieKeys), ("show", "Shows", "show", showKeys),
                                                 ("episode", "Episodes", "episode", episodes)] {
-            let found = matches(pool)
-            if !found.isEmpty { hubs.append(hub(identifier, title, keys: Array(found.prefix(Self.searchHubSize)), kind: kind)) }
+            let found = matches(pool, needle)
+            if let best = found.first {
+                let (matchClass, length, text) = rank(best, needle)
+                ranked.append(((matchClass, length, text, ranked.count), hub(identifier, title, keys: Array(found.prefix(Self.searchHubSize)), kind: kind)))
+            }
         }
+        let hubs = ranked.sorted { $0.order < $1.order }.map(\.hub)
         return .container(["size": hubs.count, "Hub": hubs])
+    }
+
+    /// The keys whose title starts with the needle or has a word that does, best match first, the way Plex's search finds titles; a
+    /// needle with a space may also sit inside a title.
+    private func matches(_ keys: [String], _ needle: String) -> [String] {
+        let spaced = needle.contains(" ")
+        return keys
+            .filter { key in
+                let title = items[key]?.title.lowercased() ?? ""
+                return rank(key, needle).0 < 2 || (spaced && title.contains(needle))
+            }
+            .sorted { rank($0, needle) < rank($1, needle) }
     }
 
     func historyResponse(_ request: DemoRequest) -> DemoResponse {

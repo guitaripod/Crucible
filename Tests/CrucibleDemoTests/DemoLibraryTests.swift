@@ -209,4 +209,18 @@ struct DemoLibraryTests {
             #expect(grid.count >= 5)
         }
     }
+
+    @Test func searchPutsTheBestMatchFirstAndMatchesWordStartsOnly() async throws {
+        try await withDemo { demo in
+            let meridian = try await demo.api.requestContainer(.search(query: "meridian")).Hub ?? []
+            #expect(meridian.first?.type == "show")
+            #expect(meridian.first?.Metadata?.first?.title == "Meridian")
+            #expect(meridian.contains { $0.type == "movie" && $0.Metadata?.first?.title == "Cold Meridian" })
+
+            let the = try await demo.api.requestContainer(.search(query: "the")).Hub ?? []
+            let titles = the.flatMap { $0.Metadata ?? [] }.map { $0.title.lowercased() }
+            #expect(!titles.isEmpty)
+            #expect(titles.allSatisfy { title in title.split { !$0.isLetter && !$0.isNumber }.contains { $0.hasPrefix("the") } })
+        }
+    }
 }

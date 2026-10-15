@@ -21,7 +21,7 @@ package enum SearchFormat {
         case "episode":
             parts.append("Episode")
             if let code = episodeCode(item) { parts.append(code) }
-            if let show = item.grandparentTitle { parts.append(show) }
+            if item.grandparentTitle != nil { parts.append(item.title) }
         default:
             parts.append("Movie")
             if let year = item.year { parts.append("\(year)") }

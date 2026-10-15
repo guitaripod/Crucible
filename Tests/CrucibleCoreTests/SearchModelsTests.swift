@@ -131,9 +131,9 @@ struct SearchFormatTests {
         #expect(SearchFormat.typeLine(for: try SearchFixtures.item("1", "show", "S", ["childCount": 0])) == "Show")
     }
 
-    @Test func typeLineForEpisodesListsCodeAndShow() throws {
-        let item = try SearchFixtures.item("1", "episode", "E", ["parentIndex": 1, "index": 3, "grandparentTitle": "The Show"])
-        #expect(SearchFormat.typeLine(for: item) == "Episode · S1 E3 · The Show")
+    @Test func typeLineForEpisodesListsCodeAndEpisodeTitleBecauseTheCardNamesTheShow() throws {
+        let item = try SearchFixtures.item("1", "episode", "Low Tide", ["parentIndex": 1, "index": 3, "grandparentTitle": "The Show"])
+        #expect(SearchFormat.typeLine(for: item) == "Episode · S1 E3 · Low Tide")
         #expect(SearchFormat.typeLine(for: try SearchFixtures.item("1", "episode", "E")) == "Episode")
     }
 }
@@ -233,6 +233,7 @@ struct SearchCardModelTests {
         let top = SearchTopResultModel(item: episode)
         #expect(top.title == "The Show" && top.posterPath == "/g" && top.canPlay && top.placeholderIcon == "tv")
         #expect(top.meta == SearchFormat.typeLine(for: episode))
+        #expect(top.meta == "Episode · Low Tide")
 
         let show = SearchTopResultModel(item: try SearchFixtures.item("1", "show", "S"))
         #expect(!show.canPlay && show.placeholderIcon == "tv")

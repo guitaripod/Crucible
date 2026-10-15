@@ -279,6 +279,28 @@ struct SearchSessionTests {
         #expect(await harness.log.searchQueries == ["halo", "halo 2"])
     }
 
+    @Test func backspacingToTheShownResultsCancelsTheNewerSearchInFlight() async {
+        let gate = SearchGate()
+        let harness = Harness(debounce: .zero) { endpoint in
+            guard case .search(let query) = endpoint else { return try SearchFixtures.container([:]) }
+            if query == "halo 2" { await gate.wait() }
+            return query == "halo 2" ? SearchFixtures.noHits : SearchFixtures.allHits
+        }
+        harness.session.update(query: "halo", scope: .all)
+        await harness.waitFor("results")
+        harness.session.update(query: "halo 2", scope: .all)
+        while !(await gate.hasWaiter) { try? await Task.sleep(for: .milliseconds(2)) }
+
+        harness.session.update(query: "halo", scope: .all)
+        await gate.open()
+        try? await Task.sleep(for: .milliseconds(60))
+
+        #expect(harness.session.resultsQuery == "halo")
+        #expect(harness.kinds == ["loading", "results", "results"])
+        harness.session.update(query: "halo", scope: .all)
+        #expect(await harness.log.searchQueries == ["halo", "halo 2"])
+    }
+
     @Test func resumeRunsAgainASearchThatSuspendInterrupted() async {
         let harness = Harness(debounce: .seconds(5), handler: Self.serving(SearchFixtures.allHits))
         harness.session.update(query: "halo", scope: .all)

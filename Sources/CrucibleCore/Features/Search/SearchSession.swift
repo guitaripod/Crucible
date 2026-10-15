@@ -74,10 +74,19 @@ package final class SearchSession {
             return
         }
         if query == resultsQuery {
+            cancelSearchInFlight(unlessFor: query)
             renderResults()
         } else if query != activeQuery {
             performSearch(query: query, debounce: true)
         }
+    }
+
+    /// Backspacing to the query whose results are on screen leaves the newer search running; its answer would replace results that
+    /// match the field again, so it is dropped.
+    private func cancelSearchInFlight(unlessFor query: String) {
+        guard activeQuery != query else { return }
+        searchTask?.cancel()
+        activeQuery = query
     }
 
     /// Runs a recent search straight away, with the scope reset to All.
