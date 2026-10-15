@@ -32,6 +32,7 @@ final class DemoIntroViewController: DemoSheetViewController {
         contentStack.addArrangedSubview(steps)
 
         let start = ThemeButton.primary(title: DemoCopy.introStart)
+        start.accessibilityIdentifier = "demo.intro.start"
         start.addAction(UIAction { [weak self] _ in
             Haptics.selection()
             self?.dismiss(animated: true)

@@ -105,6 +105,7 @@ final class DemoTourViewController: UICollectionViewController {
                 cell.accessibilityLabel = row.accessibilityLabel
                 cell.accessibilityHint = DemoPhoneCopy.showMe
                 cell.accessibilityTraits = .button
+                cell.accessibilityIdentifier = "demo.step.\(step.rawValue)"
             case .connect:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "server.rack", title: DemoCopy.connectTitle, subtitle: DemoCopy.connectBody
@@ -113,6 +114,7 @@ final class DemoTourViewController: UICollectionViewController {
             case .pro:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "sparkles", title: DemoCopy.finalePro)
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "demo.pro"
             case .leave:
                 var content = UIListContentConfiguration.cell()
                 content.text = DemoPhoneCopy.leaveTitle

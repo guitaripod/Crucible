@@ -29,9 +29,12 @@ Build, run and screenshot the Crucible iPhone app (the Xcode project in ios/) on
   ios.sh run [VAR=value ...]     build, install, launch and screenshot to ios/out/run.png; VAR=value arguments and every exported
                                  CRUCIBLE_* variable reach the app as SIMCTL_CHILD_VAR
   ios.sh shot <name>             screenshot the simulator to ios/out/<name>.png
+  ios.sh test [-only Class[/test]]   generate, then run the CrucibleIOSUITests XCUITest bundle on the NAME simulator; every exported
+                                 CRUCIBLE_* variable reaches the app as TEST_RUNNER_CRUCIBLE_*, and screenshot attachments land in ios/out/ui
   ios.sh archive-check           generate, then xcodebuild archive unsigned and verify the .app, the widget and the privacy manifest
   ios.sh sim-down [--delete]     shut the simulator down, optionally delete it
 
+IOS_CONFIGURATION=Release runs `ios.sh test` against the optimised build (CRUCIBLE_FRESH and the scripted store are DEBUG-only then).
 NAME=<id> isolates the remote checkout (~/Dev/ios/$NAME), DerivedData and the simulator CrucibleIOS-$NAME
 (iPhone 17 Pro Max, iOS 26.5; IOS_RUNTIME and IOS_SIM_TYPE override). MAC=<ssh host> picks the build Mac (default: mac).
 USAGE
@@ -71,7 +74,7 @@ sync_tree() {
 
 generate() {
   sync_tree
-  remote 'cd ios && want=$( { pwd; cat project.yml scripts/generate.sh; find App Resources ../Sources/Crucible ../Sources/CrucibleWidgets -type f | sort; } | shasum | cut -d" " -f1 )
+  remote 'cd ios && want=$( { pwd; cat project.yml scripts/generate.sh; find App Resources UITests ../Sources/Crucible ../Sources/CrucibleWidgets -type f | sort; } | shasum | cut -d" " -f1 )
     if [ -d CrucibleIOS.xcodeproj ] && [ -d Generated ] && [ "$(cat .gen-hash 2>/dev/null)" = "$want" ]; then
       echo "xcodegen: project up to date"
     else
@@ -114,11 +117,12 @@ sim_down() {
 }
 
 xcodebuild_remote() {
-  local logfile=$1 derived=$2 destination=$3 action=$4 extra=${5:-}
-  remote "$(build_gate) mkdir -p .ioslogs && set +e && xcodebuild -project $PROJECT -scheme $SCHEME \
+  local logfile=$1 derived=$2 destination=$3 action=$4 extra=${5:-} env_prefix=${6:-} gate
+  if [[ $action == test ]]; then gate=$(uitest_gate); else gate=$(build_gate); fi
+  remote "$gate mkdir -p .ioslogs && set +e && $env_prefix xcodebuild -project $PROJECT -scheme $SCHEME \
     -destination '$destination' -derivedDataPath $derived $extra $action \
     > .ioslogs/$logfile 2>&1; rc=\$?; \
-    grep -E 'error:|BUILD (SUCCEEDED|FAILED)|ARCHIVE (SUCCEEDED|FAILED)' .ioslogs/$logfile \
+    grep -E 'error:|BUILD (SUCCEEDED|FAILED)|ARCHIVE (SUCCEEDED|FAILED)|TEST (SUCCEEDED|FAILED)|Test Case .*(passed|failed)|Test Suite .* (passed|failed)|Executed [0-9]+ tests|Fatal error|Crash' .ioslogs/$logfile \
       | sed -E 's#/Users/[^/]+/Dev/ios/[^/]+/##' | awk '!seen[\$0]++' | head -60; exit \$rc"
 }
 
@@ -174,6 +178,37 @@ shot() {
   printf '%s\n' "$OUT/$name.png"
 }
 
+uitest() {
+  local only="" udid test_env="" var
+  while (($#)); do
+    case $1 in
+      -only) only=$2; shift 2 ;;
+      *) log "test: unknown argument $1"; return 2 ;;
+    esac
+  done
+  timed generate generate
+  udid=$(sim_up)
+  for var in $(compgen -e | grep '^CRUCIBLE_'); do
+    test_env+=$(printf ' TEST_RUNNER_%s=%q' "$var" "${!var}")
+  done
+  local extra="-resultBundlePath .ioslogs/uitest.xcresult -configuration ${IOS_CONFIGURATION:-Debug}"
+  [[ -z $only ]] || extra+=" -only-testing:CrucibleIOSUITests/$only"
+  remote "rm -rf .ioslogs/uitest.xcresult .ioslogs/attachments"
+  local rc=0
+  timed uitest-run xcodebuild_remote uitest.log "$DERIVED" "platform=iOS Simulator,id=$udid" test "$extra ARCHS=arm64 ONLY_ACTIVE_ARCH=YES" "$test_env" || rc=$?
+  export_attachments || rc=$?
+  return $rc
+}
+
+export_attachments() {
+  local raw=$OUT/ui/_raw
+  rm -rf "$raw"
+  mkdir -p "$raw"
+  remote "test -d .ioslogs/uitest.xcresult && xcrun xcresulttool export attachments --path .ioslogs/uitest.xcresult --output-path .ioslogs/attachments" > /dev/null || { log "no xcresult to export"; return 0; }
+  rsync -a -e "${SSH[*]}" "$MAC:$REMOTE/.ioslogs/attachments/" "$raw/"
+  python3 -I "$ROOT/tv/scripts/arrange_attachments.py" "$raw" "$OUT/ui"
+}
+
 case "${1:-}" in
   generate) timed generate generate ;;
   build) build ;;
@@ -181,6 +216,7 @@ case "${1:-}" in
   archive-check) archive_check ;;
   run) shift; run_app "$@" ;;
   shot) shift; shot "$@" ;;
+  test|uitest) shift; uitest "$@" ;;
   sim-down) shift; sim_down "$@" ;;
   *) usage; exit 2 ;;
 esac

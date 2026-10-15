@@ -201,6 +201,7 @@ final class ServerSetupViewController: UIViewController {
         demoCaptionLabel.isHidden = !offersDemo
         demoButton.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.primaryButtonHeight).isActive = true
         demoButton.accessibilityHint = DemoCopy.welcomeCaption
+        demoButton.accessibilityIdentifier = "onboarding.demo"
         demoButton.addAction(UIAction { [weak self] _ in self?.startDemo() }, for: .primaryActionTriggered)
 
         demoCaptionLabel.text = DemoCopy.welcomeCaption

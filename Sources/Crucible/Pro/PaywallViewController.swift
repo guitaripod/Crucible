@@ -221,6 +221,8 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         disclosureLabel.numberOfLines = 0
         disclosureLabel.adjustsFontForContentSizeCategory = true
         disclosureLabel.isHidden = true
+        disclosureLabel.accessibilityIdentifier = "paywall.disclosure"
+        ctaButton.accessibilityIdentifier = "paywall.buy"
 
         ctaButton.addAction(UIAction { [weak self] _ in
             Haptics.medium()
@@ -330,10 +332,11 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
             case .ready(let offers):
                 for offer in offers {
                     let card = PaywallOfferCardView(offer: offer)
+                    card.accessibilityIdentifier = "paywall.offer.\(offer.kind == .lifetime ? "lifetime" : "annual")"
                     card.addAction(UIAction { [weak self] _ in
                         Haptics.selection()
                         self?.model.select(offer.id)
-                    }, for: .primaryActionTriggered)
+                    }, for: .touchUpInside)
                     cards[offer.id] = card
                     offersStack.addArrangedSubview(card)
                 }

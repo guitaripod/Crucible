@@ -93,6 +93,13 @@ final class PaywallOfferCardView: UIControl {
         didSet { alpha = isHighlighted ? 0.85 : (isEnabled ? 1 : 0.6) }
     }
 
+    /// A plain `UIControl` does not answer VoiceOver's double tap itself, so the card sends the same event a touch does.
+    override func accessibilityActivate() -> Bool {
+        guard isEnabled else { return false }
+        sendActions(for: .touchUpInside)
+        return true
+    }
+
     private func applyAppearance() {
         backgroundColor = isSelected ? Theme.Color.accentTint : Theme.Color.surface
         layer.borderColor = (isSelected ? Theme.Color.accent : Theme.Color.separator).resolvedColor(with: traitCollection).cgColor

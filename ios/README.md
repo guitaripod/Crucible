@@ -32,6 +32,7 @@ NAME=x ios/scripts/ios.sh build             simulator build of the app and the w
 NAME=x ios/scripts/ios.sh device-build      generic/platform=iOS Release build, signing off: proves the device slice compiles
 NAME=x ios/scripts/ios.sh run [VAR=value ...]   build, install, launch, screenshot to ios/out/run.png
 NAME=x ios/scripts/ios.sh shot <name>       screenshot the simulator to ios/out/<name>.png
+NAME=x ios/scripts/ios.sh test [-only Class[/test]]   XCUITest bundle CrucibleIOSUITests (ios/UITests); screenshots land in ios/out/ui
 NAME=x ios/scripts/ios.sh archive-check     unsigned xcodebuild archive, then checks the app, widget, privacy manifest and icons
 NAME=x ios/scripts/ios.sh sim-down [--delete]
 ```

@@ -120,14 +120,33 @@ targets:
         PRODUCT_MODULE_NAME: CrucibleWidgets
         PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.widgets
         TARGETED_DEVICE_FAMILY: "1"
+  CrucibleIOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: UITests
+    dependencies:
+      - target: CrucibleApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1"
 schemes:
   CrucibleIOS:
     build:
       targets:
         CrucibleApp: all
         CrucibleWidgetsExt: all
+        CrucibleIOSUITests: [test]
     run:
       config: Debug
       executable: CrucibleApp
+    test:
+      config: Debug
+      targets:
+        - name: CrucibleIOSUITests
+          parallelizable: false
     archive:
       config: Release

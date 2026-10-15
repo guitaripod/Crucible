@@ -111,6 +111,7 @@ final class YouViewController: UICollectionViewController {
                     symbol: "list.bullet.clipboard", title: DemoCopy.bannerTitle, value: demoProgress
                 )
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.demo"
             case .profile:
                 cell.contentConfiguration = profileConfiguration()
                 cell.accessories = isInDemo ? [] : [.disclosureIndicator()]

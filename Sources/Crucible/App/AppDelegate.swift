@@ -15,6 +15,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         AppLogger.notice("App launched (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         application.beginReceivingRemoteControlEvents()
+        #if DEBUG
+        PhoneDebugSession.bootstrapIfRequested()
+        #endif
         ProAccess.shared.configureForLaunch(store: nil)
         PaywallPresenter.install()
         DemoCoordinator.shared.install()
