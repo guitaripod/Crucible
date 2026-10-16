@@ -22,8 +22,14 @@ package enum ServerConnectionResolver {
         log.error("Pinned route \(connection.serverURI.absoluteString, privacy: .public) unreachable; re-discovering")
         AppLogger.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", .networking)
 
-        let candidates = await APIClient.discoverCandidates(token: connection.authToken, pinned: connection.serverURI)
-        guard let healthy = await firstReachable(candidates, token: connection.authToken) else {
+        var candidates = await APIClient.discoverCandidates(token: connection.authToken, pinned: connection.serverURI)
+        var reachable = await firstReachable(candidates, token: connection.authToken)
+        if reachable == nil {
+            let tailnet = await tailnetRoutes(for: connection).filter { $0 != connection.serverURI && !candidates.contains($0) }
+            reachable = await firstReachable(tailnet, token: connection.authToken)
+            candidates += tailnet
+        }
+        guard let healthy = reachable else {
             log.error("No reachable route to \(connection.serverName, privacy: .public); falling back to setup")
             AppLogger.error("No reachable route to \(connection.serverName) among \(candidates.count) candidates", .networking)
             return .needsSetup
@@ -40,6 +46,14 @@ package enum ServerConnectionResolver {
             clientIdentifier: connection.clientIdentifier,
             candidateURIs: [healthy] + candidates.filter { $0 != healthy }
         ))
+    }
+
+    /// Routes to the server on the tailnet, for when none of the routes plex.tv lists answer. Empty
+    /// when this device is not on a tailnet.
+    package static func tailnetRoutes(for connection: PlexConnection) async -> [URL] {
+        guard TailnetPresence.isConnected else { return [] }
+        let found = await TailnetServerFinder.live.routes(for: [TailnetTarget(connection: connection)])
+        return found[connection.machineIdentifier] ?? []
     }
 
     /// Probes every candidate concurrently and returns the highest-priority one that answers,

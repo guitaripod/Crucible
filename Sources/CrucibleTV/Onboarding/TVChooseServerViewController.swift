@@ -75,7 +75,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                switch try await discovery.listing() {
+                switch try await discovery.listing(progress: { [weak self] in self?.setBusy($0.message) }) {
                 case .none:
                     show(
                         title: "No Plex Server Found",
@@ -122,7 +122,10 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case .needsAddress(let message):
             show(
                 title: "Couldn’t Reach \(server.name)",
-                subtitle: message ?? "Crucible found no route to this server. Enter its address instead.",
+                subtitle: [
+                    message ?? "Crucible found no route to this server. Enter its address instead.",
+                    ConnectRecovery.addressAdvice(tailnetConnected: TailnetPresence.isConnected),
+                ].joined(separator: " "),
                 rows: [Self.addAddressID, Self.retryID]
             )
         case .failed(let message):

@@ -16,6 +16,7 @@ final class ServerDetailViewController: UIViewController {
         case allowRelay
         case test
         case addServer
+        case tailnetAccess
         case switchServer
     }
 
@@ -135,6 +136,8 @@ final class ServerDetailViewController: UIViewController {
             switch item {
             case .addServer:
                 cell.contentConfiguration = ActionRowConfiguration(symbol: "plus", title: "Add Server by Address…", isAccent: true)
+            case .tailnetAccess:
+                cell.contentConfiguration = ActionRowConfiguration(symbol: "network", title: "Tailscale Search", value: Self.tailnetAccessValue, showsChevron: true)
             default:
                 cell.contentConfiguration = ActionRowConfiguration(symbol: "arrow.left.arrow.right", title: "Switch Server", showsChevron: true)
             }
@@ -151,7 +154,7 @@ final class ServerDetailViewController: UIViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: toggleCell, for: indexPath, item: item)
             case .test:
                 return collectionView.dequeueConfiguredReusableCell(using: testCell, for: indexPath, item: item)
-            case .addServer, .switchServer:
+            case .addServer, .tailnetAccess, .switchServer:
                 return collectionView.dequeueConfiguredReusableCell(using: actionCell, for: indexPath, item: item)
             }
         }
@@ -177,7 +180,7 @@ final class ServerDetailViewController: UIViewController {
         snapshot.appendItems(model.routes.map { .route($0) }, toSection: .connections)
         snapshot.appendItems([.preferLocal, .allowRelay], toSection: .preferences)
         snapshot.appendItems([.test], toSection: .test)
-        snapshot.appendItems([.addServer, .switchServer], toSection: .actions)
+        snapshot.appendItems([.addServer, .tailnetAccess, .switchServer], toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
@@ -224,6 +227,25 @@ final class ServerDetailViewController: UIViewController {
         present(sheet, animated: true)
     }
 
+    private static var tailnetAccessValue: String {
+        switch TailnetAccess.state {
+        case .none: return "Off"
+        case .saved: return "On"
+        case .rejected: return "Needs a new token"
+        }
+    }
+
+    private func presentTailnetAccess() {
+        let sheet = TailnetAccessSheetViewController()
+        sheet.onChange = { [weak self] in
+            guard let self else { return }
+            var snapshot = dataSource.snapshot()
+            snapshot.reconfigureItems([.tailnetAccess])
+            dataSource.apply(snapshot, animatingDifferences: false)
+        }
+        present(sheet, animated: true)
+    }
+
     private func presentServerSwitcher() {
         let setup = ServerSetupViewController()
         setup.allowsCancel = true
@@ -242,7 +264,7 @@ final class ServerDetailViewController: UIViewController {
 extension ServerDetailViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
-        case .addServer, .switchServer: return true
+        case .addServer, .tailnetAccess, .switchServer: return true
         default: return false
         }
     }
@@ -251,6 +273,7 @@ extension ServerDetailViewController: UICollectionViewDelegate {
         collectionView.deselectItem(at: indexPath, animated: true)
         switch dataSource.itemIdentifier(for: indexPath) {
         case .addServer: presentAddServer()
+        case .tailnetAccess: presentTailnetAccess()
         case .switchServer: presentServerSwitcher()
         default: break
         }

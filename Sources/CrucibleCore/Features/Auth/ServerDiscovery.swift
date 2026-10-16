@@ -9,6 +9,8 @@ package struct ServerDiscoveryEnvironment: Sendable {
     package var machineIdentifier: @Sendable (_ url: URL, _ token: String) async -> String?
     package var measure: @Sendable (_ url: URL, _ token: String) async -> Int?
     package var save: @Sendable (_ uri: URL, _ name: String, _ machineIdentifier: String, _ candidates: [URL]) -> PlexConnection?
+    package var isOnTailnet: @Sendable () -> Bool
+    package var tailnetRoutes: @Sendable (_ targets: [TailnetTarget]) async -> [String: [URL]]
 
     package init(
         resources: @escaping @Sendable (String) async throws -> [PlexResource],
@@ -16,7 +18,9 @@ package struct ServerDiscoveryEnvironment: Sendable {
         firstReachable: @escaping @Sendable ([URL], String) async -> URL?,
         machineIdentifier: @escaping @Sendable (URL, String) async -> String?,
         measure: @escaping @Sendable (URL, String) async -> Int?,
-        save: @escaping @Sendable (URL, String, String, [URL]) -> PlexConnection?
+        save: @escaping @Sendable (URL, String, String, [URL]) -> PlexConnection?,
+        isOnTailnet: @escaping @Sendable () -> Bool = { false },
+        tailnetRoutes: @escaping @Sendable ([TailnetTarget]) async -> [String: [URL]] = { _ in [:] }
     ) {
         self.resources = resources
         self.probe = probe
@@ -24,6 +28,8 @@ package struct ServerDiscoveryEnvironment: Sendable {
         self.machineIdentifier = machineIdentifier
         self.measure = measure
         self.save = save
+        self.isOnTailnet = isOnTailnet
+        self.tailnetRoutes = tailnetRoutes
     }
 
     package static let live = ServerDiscoveryEnvironment(
@@ -41,7 +47,9 @@ package struct ServerDiscoveryEnvironment: Sendable {
         save: { uri, name, machineIdentifier, candidates in
             ServerBootstrap.saveServer(uri: uri, name: name, machineIdentifier: machineIdentifier, candidates: candidates)
             return ServerBootstrap.connection()
-        }
+        },
+        isOnTailnet: { TailnetPresence.isConnected },
+        tailnetRoutes: { targets in await TailnetServerFinder.live.routes(for: targets) }
     )
 }
 
@@ -54,6 +62,7 @@ package enum ServerListing: Sendable {
 
 /// What a connect step reports while it works.
 package enum ConnectProgress: Equatable, Sendable {
+    case searchingTailnet
     case findingRoute(serverName: String)
     case connectingToAddress(host: String)
     case connectingToRoute(URL)
@@ -61,6 +70,7 @@ package enum ConnectProgress: Equatable, Sendable {
 
     package var message: String {
         switch self {
+        case .searchingTailnet: return "Looking for your server on your tailnet…"
         case .findingRoute(let name): return "Finding the best route to \(name)…"
         case .connectingToAddress(let host): return "Connecting to \(host)…"
         case .connectingToRoute(let url): return "Connecting to \(url.absoluteString)..."
@@ -117,9 +127,18 @@ package struct ServerDiscovery: Sendable {
         self.environment = environment
     }
 
-    package func listing() async throws -> ServerListing {
+    /// The account's servers, each with the routes plex.tv lists plus, when this device is on a
+    /// tailnet, the ones found there.
+    package func listing(progress: (@MainActor @Sendable (ConnectProgress) -> Void)? = nil) async throws -> ServerListing {
         let resources = try await environment.resources(token)
-        let servers = resources.filter { $0.provides.contains("server") }.map(ServerChoice.init(resource:))
+        var servers = resources.filter { $0.provides.contains("server") }.map(ServerChoice.init(resource:))
+        if environment.isOnTailnet(), servers.contains(where: \.isOnline) {
+            await progress?(.searchingTailnet)
+            let found = await environment.tailnetRoutes(servers.filter(\.isOnline).map(TailnetTarget.init(choice:)))
+            for index in servers.indices {
+                servers[index].addTailnetRoutes(found[servers[index].id] ?? [])
+            }
+        }
         switch servers.count {
         case 0: return .none
         case 1: return .single(servers[0])

@@ -92,7 +92,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Liquid Glass** materials on iOS 26, with one design system underneath: tokens for colour, type, spacing and radii, one ember accent, and Light and Dark appearances
 - **Accessible** — Dynamic Type everywhere, VoiceOver labels, Reduce Motion fallbacks, 44pt targets and contrast-checked colour pairs
 - **Server & Connection** screen with per-route latency (Local, Tailscale, Relay), Prefer Local and Allow Relay switches, and add-by-address
-- Automatic **best-connection server discovery** (prefers local, non-relay, HTTPS), Tailscale-friendly
+- Automatic **best-connection server discovery** (prefers local, non-relay, HTTPS) that also finds a server on your **Tailscale** network by itself, verifies it by its Plex machine identifier, and can search the tailnet's device list when the names do not match
 - Live watched/progress refresh across Home, Library, and detail screens — never stale on return
 - On-device **file logger** for diagnostics without a Mac attached, shareable from Settings
 - Plex **OAuth** sign-in, token stored in the **Keychain**

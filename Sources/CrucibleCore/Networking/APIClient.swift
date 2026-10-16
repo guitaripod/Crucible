@@ -229,7 +229,12 @@ package actor APIClient {
     ) async throws -> (Data, HTTPURLResponse) {
         logger.error("Transport failure on \(self.baseURLStorage.absoluteString, privacy: .public); attempting failover")
         let candidates = await Self.discoverCandidates(token: token, pinned: baseURL).filter { $0 != baseURL }
-        guard let candidate = await ServerConnectionResolver.firstReachable(candidates, token: token) else {
+        var reachable = await ServerConnectionResolver.firstReachable(candidates, token: token)
+        if reachable == nil, let connection = ServerBootstrap.connection() {
+            let tailnet = await ServerConnectionResolver.tailnetRoutes(for: connection).filter { $0 != baseURL }
+            reachable = await ServerConnectionResolver.firstReachable(tailnet, token: token)
+        }
+        guard let candidate = reachable else {
             logger.error("Failover found no reachable route; rethrowing")
             AppLogger.error("Failover from \(baseURLStorage.absoluteString) found no reachable route", .networking)
             throw APIError.serverUnavailable

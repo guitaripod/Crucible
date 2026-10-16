@@ -35,11 +35,15 @@ package struct ServerRoute: Hashable, Sendable {
         }
     }
 
+    package init(url: URL) {
+        uri = url.absoluteString
+        address = url.host ?? url.absoluteString
+        kind = ConnectionRoute.kind(of: url)
+    }
+
     /// Tailscale hands out CGNAT addresses (100.64.0.0/10) and MagicDNS names under `ts.net`.
     private static func isTailscale(_ host: String) -> Bool {
-        if host.hasSuffix(".ts.net") { return true }
-        let octets = host.split(separator: ".").compactMap { Int($0) }
-        return octets.count == 4 && octets[0] == 100 && (64...127).contains(octets[1])
+        host.hasSuffix(".ts.net") || TailnetPresence.isTailnetAddress(host)
     }
 }
 
@@ -95,6 +99,15 @@ package struct ServerChoice: Hashable, Sendable {
         }
         let owner = isOwned ? "Owned by you" : "Shared with you"
         return "\(owner) · \(routes.count) \(routes.count == 1 ? "connection" : "connections")"
+    }
+
+    /// Adds routes found on the tailnet after the local ones and before remote and relay routes,
+    /// the order a person on that network would want them tried. Routes already listed are skipped.
+    package mutating func addTailnetRoutes(_ urls: [URL]) {
+        let fresh = urls.filter { url in !routes.contains { $0.uri == url.absoluteString } }
+        guard !fresh.isEmpty else { return }
+        let position = routes.firstIndex { $0.kind == .remote || $0.kind == .relay } ?? routes.endIndex
+        routes.insert(contentsOf: fresh.map(ServerRoute.init(url:)), at: position)
     }
 
     package mutating func record(routeAt index: Int, milliseconds: Int?) {

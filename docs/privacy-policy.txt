@@ -3,13 +3,16 @@ Effective October 12, 2026
 https://midgarcorp.cc/crucible/privacy
 
 What Crucible is
-Crucible is a Plex client for iPhone and Apple TV made by Midgar Oy. It runs on your device and talks to two things only: plex.tv, to sign you in and find your servers, and the Plex Media Server you choose.
+Crucible is a Plex client for iPhone and Apple TV made by Midgar Oy. It runs on your device and talks to plex.tv, to sign you in and find your servers, and to the Plex Media Server you choose. If you are on a Tailscale network it may also ask the computers on that network which one is your server, and only if you opt in does it talk to api.tailscale.com.
 
 What we collect
 Nothing. Midgar Oy runs no server for Crucible, receives none of your data and has no accounts of its own. There are no ads, no analytics and no tracking SDKs.
 
 Your Plex account
 You sign in with Plex's own sign-in flow. Your Plex token is stored in the Keychain on your device and sent only to plex.tv and to your own servers. Plex's privacy policy applies to your Plex account.
+
+Your Tailscale token (optional)
+If a server cannot be found on your Tailscale network by name, you may give Crucible a Tailscale API access token so it can read your device list. The token is stored in the Keychain on your device, sent only to api.tailscale.com, and can be removed at any time in Settings, Server, Tailscale Search.
 
 Your library and viewing history
 Titles, artwork, watch history and the statistics built from it come from your Plex server and stay on your device. A Year in Review poster is drawn on your device and leaves it only if you share it.

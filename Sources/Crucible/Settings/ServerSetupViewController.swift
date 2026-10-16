@@ -321,7 +321,7 @@ final class ServerSetupViewController: UIViewController {
 
     private func discoverServers(token: String) async throws {
         let discovery = ServerDiscovery(token: token)
-        switch try await discovery.listing() {
+        switch try await discovery.listing(progress: { [weak self] in self?.show($0) }) {
         case .none:
             showError("No Plex server found on your account")
             setBusy(false)
@@ -350,11 +350,64 @@ final class ServerSetupViewController: UIViewController {
     }
 
     private func presentAddressSheet(known: ServerChoice?) {
-        let sheet = ServerAddressSheetViewController(prefill: RememberedServerAddress.text) { [weak self] address in
+        let recovery = known.map { server in
+            ServerAddressRecovery(
+                model: ConnectRecovery(server: server, tailnetConnected: TailnetPresence.isConnected, access: TailnetAccess.state),
+                perform: { [weak self] step in self?.perform(step) },
+                retry: { [weak self] in self?.retryDiscovery() }
+            )
+        }
+        let sheet = ServerAddressSheetViewController(prefill: RememberedServerAddress.text, recovery: recovery) { [weak self] address in
             await self?.handleSubmitted(address, known: known)
         }
         sheet.onDidDismiss = { [weak self] in self?.beginPendingAuthIfNeeded() }
         present(sheet, animated: true)
+    }
+
+    private func perform(_ step: ConnectRecovery.Step) {
+        switch step {
+        case .connectTailscale:
+            UIApplication.shared.open(TailnetPresence.appURL, options: [:]) { opened in
+                guard !opened else { return }
+                UIApplication.shared.open(TailnetPresence.appStoreURL)
+            }
+        case .allowLocalNetwork:
+            if let settings = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(settings) }
+        case .findOnTailnet, .replaceTailnetToken:
+            presentTailnetAccess()
+        case .notOnTailnet:
+            break
+        }
+    }
+
+    private func presentTailnetAccess() {
+        let access = TailnetAccessSheetViewController()
+        access.onChange = { [weak self] in
+            guard let self else { return }
+            dismiss(animated: true) { self.retryDiscovery() }
+        }
+        (presentedViewController ?? self).present(access, animated: true)
+    }
+
+    /// Runs the whole search again for the signed-in account, as after Tailscale was turned on or
+    /// a token was added. A search that fails again brings the address sheet back with fresh advice.
+    private func retryDiscovery() {
+        guard let token = signedInToken else { return }
+        statusLabel.isHidden = true
+        setBusy(true)
+        authTask?.cancel()
+        authTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await discoverServers(token: token)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                showError(error.localizedDescription)
+                setBusy(false)
+            }
+        }
     }
 
     /// Starts sign-in once the address sheet is gone, so the web auth sheet never competes with it.
