@@ -15,7 +15,7 @@ Archive Crucible for the App Store inside buildvm's stable-macOS guest and uploa
   scripts/store-build.sh tv         the Apple TV app and its Top Shelf extension (tv/project.yml)
 
 BUILD_NUMBER=<n> sets CFBundleVersion (default: the time, yyyyMMddHHmm); MARKETING=<x.y.z> the version (default: InfoAdditions.plist);
-NO_UPLOAD=1 builds and verifies without uploading; CLEAN=1 empties the guest's DerivedData first.
+NO_UPLOAD=1 builds and verifies without uploading; the staged checkout is rsynced from the working tree without .git, so buildvm's behind-upstream check is always skipped; CLEAN=1 empties the guest's DerivedData first.
 
 The Mac runs a beta macOS, so a local archive would carry a beta BuildMachineOSBuild and be rejected (ITMS-90111): buildvm archives in
 a Tart guest instead. It stages a checkout and runs xcodegen on a project.yml at its root, so scripts/store-spec.py derives that file
@@ -39,7 +39,7 @@ NAME=store-$NAME "$ROOT/scripts/mac.sh" sync
 profile_args=""
 for profile in "${PROFILES[@]}"; do profile_args+=" --profile \$HOME/.config/midgar/signing/$profile"; done
 flags="-project $PROJECT.xcodeproj -skipPackagePluginValidation -skipMacroValidation -scmProvider system"
-extra=""
+extra=" --allow-stale"
 [[ -z "${NO_UPLOAD:-}" ]] || extra+=" --no-upload"
 [[ -z "${CLEAN:-}" ]] || extra+=" --clean"
 
