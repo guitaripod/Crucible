@@ -94,7 +94,9 @@ final class DemoCoordinator {
                 try? await Task.sleep(for: Self.finalePollInterval)
                 guard let self, !Task.isCancelled else { return }
                 let screen = currentScreen()
-                switch DemoPhoneFinaleGate.decision(demoIsActive: DemoMode.shared.isActive, screen: screen, quietChecks: quietChecks) {
+                switch DemoPhoneFinaleGate.decision(
+                    demoIsActive: DemoMode.shared.isActive, ownsPro: ProAccess.shared.isPro, screen: screen, quietChecks: quietChecks
+                ) {
                 case .drop:
                     return
                 case .present:

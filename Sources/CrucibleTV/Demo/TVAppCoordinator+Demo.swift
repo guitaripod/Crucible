@@ -26,6 +26,10 @@ extension TVAppCoordinator {
     /// The finale never covers the player, an alert, the paywall or any other presented screen: it waits, a little after the step that
     /// earned it, until the main UI is free, and gives up if the demo ends first.
     private func scheduleFinale() {
+        guard !ProAccess.shared.isPro else {
+            AppLogger.notice("Demo finale skipped: Pro is already owned", .lifecycle)
+            return
+        }
         AppLogger.notice("Demo finale scheduled", .lifecycle)
         finaleTask?.cancel()
         finaleTask = Task { @MainActor [weak self] in

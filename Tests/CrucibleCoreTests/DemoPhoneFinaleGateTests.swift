@@ -27,6 +27,10 @@ struct DemoPhoneFinaleGateTests {
         #expect(DemoPhoneFinaleGate.quietChecks(after: quiet, previous: 1) == 2)
     }
 
+    @Test func anInstallThatOwnsProNeverSeesTheFinale() {
+        #expect(DemoPhoneFinaleGate.decision(demoIsActive: true, ownsPro: true, screen: quiet, quietChecks: 5) == .drop)
+    }
+
     @Test func itIsDroppedOnceTheDemoIsLeft() {
         #expect(DemoPhoneFinaleGate.decision(demoIsActive: false, screen: quiet, quietChecks: 5) == .drop)
     }

@@ -53,10 +53,20 @@ final class TVDemoTourViewController: TVSettingsScaffold {
         }
         switch id {
         case RowID.connect: presentLeaveDemoConfirmation(connecting: true) { [session = env.session] in session.leaveDemo() }
-        case RowID.pro: TVPaywallViewController.present(PaywallRequest(), from: self) { _ in }
+        case RowID.pro: openPro()
         case RowID.leave: presentLeaveDemoConfirmation(connecting: false) { [session = env.session] in session.leaveDemo() }
         default: break
         }
+    }
+
+    /// The offer for an install that has not bought Pro; an owner has nothing to buy and would see the paywall close at once, so
+    /// they get their plan instead.
+    private func openPro() {
+        guard ProAccess.shared.isPro else {
+            TVPaywallViewController.present(PaywallRequest(), from: self) { _ in }
+            return
+        }
+        TVNavigation.push(TVScreens.settings(env, page: .pro), from: self)
     }
 
     private func refresh() {

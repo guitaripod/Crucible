@@ -28,8 +28,8 @@ package enum DemoPhoneFinaleGate {
     /// How many quiet checks in a row open the finale.
     package static let quietChecksNeeded = 2
 
-    package static func decision(demoIsActive: Bool, screen: Screen, quietChecks: Int) -> Decision {
-        guard demoIsActive else { return .drop }
+    package static func decision(demoIsActive: Bool, ownsPro: Bool = false, screen: Screen, quietChecks: Int) -> Decision {
+        guard demoIsActive, !ownsPro else { return .drop }
         guard screen.isQuiet else { return .wait }
         return quietChecks + 1 >= quietChecksNeeded ? .present : .wait
     }
