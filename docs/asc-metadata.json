@@ -1,8 +1,8 @@
 {
   "appId": "6822066419",
   "versions": {
-    "IOS": "04cd31c3-3fff-4029-ad27-8ce631863113",
-    "TV_OS": "36616e31-1747-4e73-a132-6875f4d9e0ce"
+    "IOS": "a9195b9b-f45f-4a41-bbe4-5b6920039d9f",
+    "TV_OS": "92fb99af-d953-4b46-aa79-baa00b777aa2"
   },
   "releaseType": "AFTER_APPROVAL",
   "name": "Crucible for Plex",
@@ -20,5 +20,8 @@
   "contactEmail": "guitaripod@gmail.com",
   "contactFirstName": "Marcus",
   "contactLastName": "Ziadé",
-  "whatsNew": "Fixes for Crucible Pro and search.\n\n- The Crucible Pro screen now lets you choose either plan: tapping the yearly plan selects it, with its free trial and renewal terms\n- Search keeps its results in step with the text: going back to a shorter search no longer swaps in the results of the longer one\n- An episode's top search result now names the episode as well as its show\n- In the demo, the Crucible Pro offer at the end of the tour waits until you are done typing instead of covering the search keyboard, and demo search lists the best match first"
+  "whatsNew": {
+    "IOS": "Fixes the Crucible Pro screen.\n\n- If you already own Crucible Pro, See Crucible Pro in the demo tour and the demo's closing offer now open your plan instead of a purchase sheet that closed at once, and the closing offer no longer appears at all\n- The Crucible Pro purchase screen lets you choose either plan: tapping the yearly plan selects it\n- Search no longer swaps in the results of a longer search after you go back to a shorter one",
+    "TV_OS": "Fixes for Crucible Pro and search.\n\n- If you already own Crucible Pro, See Crucible Pro in the demo tour now opens your plan instead of a purchase screen that closed at once, and the demo's closing offer no longer appears\n- In the demo, the closing Crucible Pro offer waits until you are done typing instead of covering the search keyboard, and demo search lists the best match first\n- Search keeps its results in step with the text: going back to a shorter search no longer swaps in the results of the longer one\n- An episode's top search result now names the episode as well as its show"
+  }
 }
