@@ -407,6 +407,24 @@ struct ConnectRecoveryTests {
         #expect(recovery.steps == [.connectTailscale, .allowLocalNetwork])
     }
 
+    @Test func aDeviceThatCannotTypeATokenIsToldToEnterTheMachineName() {
+        let recovery = ConnectRecovery(serverName: "Arch", advertisesLocalRoute: false, tailnetConnected: true, access: .none, canUseToken: false)
+        #expect(recovery.steps == [.enterTailnetName])
+        #expect(recovery.actionTitle(of: .enterTailnetName) == nil)
+        #expect(recovery.detail(of: .enterTailnetName).contains("Arch"))
+    }
+
+    @Test func aDeviceThatCannotTypeATokenIsStillToldToTurnTailscaleOn() {
+        let recovery = ConnectRecovery(serverName: "Arch", advertisesLocalRoute: true, tailnetConnected: false, access: .none, canUseToken: false)
+        #expect(recovery.steps == [.connectTailscale, .allowLocalNetwork])
+    }
+
+    @Test func theLookupNoteNamesEveryNameTried() {
+        #expect(ConnectRecovery.tailnetLookupNote(serverName: "Arch") == "Crucible looked for “arch” on your tailnet.")
+        #expect(ConnectRecovery.tailnetLookupNote(serverName: "Plex Media Server") == "Crucible looked for “plex-media-server”, “plexmediaserver”, “plex” on your tailnet.")
+        #expect(ConnectRecovery.tailnetLookupNote(serverName: "   ") == nil)
+    }
+
     @Test func theHeadlineNamesTheServerWhenItIsKnown() {
         #expect(ConnectRecovery(serverName: "Arch", advertisesLocalRoute: false, tailnetConnected: false, access: .none).headline == "Crucible couldn't reach Arch.")
         #expect(ConnectRecovery(serverName: nil, advertisesLocalRoute: false, tailnetConnected: false, access: .none).headline == "Crucible couldn't connect automatically.")

@@ -159,6 +159,7 @@ final class OnboardingTests: TVTestCase {
         let app = launch()
         signIn(app)
         XCTAssertTrue(titleElement(app, startingWith: "Couldn’t Reach Marcus-PC").waitForExistence(timeout: 40))
+        XCTAssertTrue(titleElement(app, startingWith: "Local Network access").waitForExistence(timeout: 5), "the likely causes are listed under the actions")
         TVTest.settle(2)
         TVTest.capture("10-server-unreachable", in: self)
 

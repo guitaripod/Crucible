@@ -375,7 +375,7 @@ final class ServerSetupViewController: UIViewController {
             if let settings = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(settings) }
         case .findOnTailnet, .replaceTailnetToken:
             presentTailnetAccess()
-        case .notOnTailnet:
+        case .notOnTailnet, .enterTailnetName:
             break
         }
     }

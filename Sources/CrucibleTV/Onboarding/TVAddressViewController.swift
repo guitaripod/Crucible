@@ -67,6 +67,12 @@ final class TVAddressViewController: TVOnboardingViewController {
         }
     }
 
+    private static func detail(for known: ServerChoice?) -> String {
+        let base = "Enter your server’s IP address or hostname, such as 192.168.1.20 or a Tailscale name. The default port is 32400."
+        guard let known, TailnetPresence.isConnected, let note = ConnectRecovery.tailnetLookupNote(serverName: known.name) else { return base }
+        return base + " " + note
+    }
+
     private func refocus() {
         setNeedsFocusUpdate()
         updateFocusIfNeeded()
@@ -76,7 +82,7 @@ final class TVAddressViewController: TVOnboardingViewController {
         let title = TVScreenTitleView(clearsTabBar: false, column: TVMetrics.Column.form)
         title.configure(TVScreenTitleContent(
             title: "Add by Address",
-            detail: "Enter your server’s IP address or hostname, such as 192.168.1.20 or a Tailscale name. The default port is 32400."
+            detail: Self.detail(for: known)
         ))
 
         let stack = UIStackView(arrangedSubviews: [title, form])

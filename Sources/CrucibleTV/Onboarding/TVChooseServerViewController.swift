@@ -12,11 +12,13 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case addAddress
         case retry
         case signInAgain
+        case recovery(ConnectRecovery.Step)
     }
 
     private static let addAddressID = "action.addAddress"
     private static let retryID = "action.retry"
     private static let signInAgainID = "action.signInAgain"
+    private static let recoveryPrefix = "recovery."
 
     private let token: String
     private let discovery: ServerDiscovery
@@ -29,6 +31,9 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     private var loadTask: Task<Void, Never>?
     private var probeTasks: [Task<Void, Never>] = []
     private var connectTask: Task<Void, Never>?
+    private var recovery: ConnectRecovery?
+    private var tailnetWhenRecoveryShown = false
+    private var activeObserver: NSObjectProtocol?
 
     private let titleView = TVScreenTitleView(clearsTabBar: false, column: TVMetrics.Column.wide)
     private let errorLabel = UILabel()
@@ -57,6 +62,29 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         load()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        guard activeObserver == nil else { return }
+        activeObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.appBecameActive() }
+        }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if let activeObserver { NotificationCenter.default.removeObserver(activeObserver) }
+        activeObserver = nil
+    }
+
+    /// Searching again is only worth it when something changed: the person turned Tailscale on (or
+    /// off) and came back to a server that could not be reached.
+    private func appBecameActive() {
+        guard recovery != nil, !isConnecting, TailnetPresence.isConnected != tailnetWhenRecoveryShown else { return }
+        load()
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         guard isMovingFromParent || navigationController?.isBeingDismissed == true else { return }
@@ -71,6 +99,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         cancelProbes()
         picker = nil
         singleServer = nil
+        recovery = nil
         setBusy("Finding your servers…")
         loadTask = Task { [weak self] in
             guard let self else { return }
@@ -120,13 +149,13 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case .connected(let connection):
             flow.didConnect(connection)
         case .needsAddress(let message):
+            let advice = ConnectRecovery(server: server, tailnetConnected: TailnetPresence.isConnected, access: .none, canUseToken: false)
+            recovery = advice
+            tailnetWhenRecoveryShown = TailnetPresence.isConnected
             show(
                 title: "Couldn’t Reach \(server.name)",
-                subtitle: [
-                    message ?? "Crucible found no route to this server. Enter its address instead.",
-                    ConnectRecovery.addressAdvice(tailnetConnected: TailnetPresence.isConnected),
-                ].joined(separator: " "),
-                rows: [Self.addAddressID, Self.retryID]
+                subtitle: message ?? "Crucible found no route to this server. Enter its address instead.",
+                rows: [Self.addAddressID, Self.retryID] + advice.steps.indices.map { Self.recoveryPrefix + String($0) }
             )
         case .failed(let message):
             show(title: "Couldn’t Connect to \(server.name)", subtitle: message, rows: [Self.retryID, Self.addAddressID])
@@ -324,6 +353,10 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         case Self.retryID: return .retry
         case Self.signInAgainID: return .signInAgain
         default:
+            if id.hasPrefix(Self.recoveryPrefix) {
+                guard let recovery, let index = Int(id.dropFirst(Self.recoveryPrefix.count)), recovery.steps.indices.contains(index) else { return nil }
+                return .recovery(recovery.steps[index])
+            }
             guard id.hasPrefix("server.") else { return nil }
             return .server(String(id.dropFirst("server.".count)))
         }
@@ -348,6 +381,9 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
             return TVRowItem(id: id, title: "Try Again", symbol: "arrow.clockwise")
         case .signInAgain:
             return TVRowItem(id: id, title: "Sign In Again", symbol: "person.crop.circle.badge.checkmark", accessory: .chevron)
+        case .recovery(let step):
+            guard let recovery else { return TVRowItem(id: id, title: "") }
+            return TVRowItem(id: id, title: recovery.title(of: step), subtitle: recovery.detail(of: step), symbol: recovery.symbol(of: step), isStatic: true)
         case nil:
             return TVRowItem(id: id, title: "")
         }
@@ -386,13 +422,17 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     }
 
     func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
-        guard let id = dataSource.itemIdentifier(for: indexPath), case .server(let serverID)? = kind(of: id) else { return true }
-        return picker?.isSelectable(serverID) ?? false
+        guard let id = dataSource.itemIdentifier(for: indexPath), let kind = kind(of: id) else { return true }
+        switch kind {
+        case .server(let serverID): return picker?.isSelectable(serverID) ?? false
+        case .recovery: return false
+        case .addAddress, .retry, .signInAgain: return true
+        }
     }
 
     func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
         if let remembered = focusMemory.preferredIndexPath(in: collectionView), userMovedFocus { return remembered }
-        let preferred = picker?.selectedID.map { Self.rowID(forServer: $0) } ?? rows.first
+        let preferred = picker?.selectedID.map { Self.rowID(forServer: $0) } ?? rows.first { !$0.hasPrefix(Self.recoveryPrefix) }
         return preferred.flatMap { dataSource.indexPath(for: $0) }
     }
 
@@ -412,6 +452,8 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
             load()
         case .signInAgain:
             flow.beginSignIn(from: self)
+        case .recovery:
+            break
         }
     }
 

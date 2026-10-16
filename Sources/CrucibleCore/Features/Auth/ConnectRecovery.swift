@@ -15,19 +15,26 @@ package struct ConnectRecovery: Equatable, Sendable {
         case findOnTailnet
         case replaceTailnetToken
         case notOnTailnet
+        case enterTailnetName
     }
 
     package let serverName: String?
     package let steps: [Step]
 
-    package init(serverName: String?, advertisesLocalRoute: Bool, tailnetConnected: Bool, access: TailnetAccess.State) {
+    /// A device with no way to type a long token, such as Apple TV, passes `canUseToken: false`
+    /// and is told to enter the machine's name instead of being offered a search it cannot start.
+    package init(serverName: String?, advertisesLocalRoute: Bool, tailnetConnected: Bool, access: TailnetAccess.State, canUseToken: Bool = true) {
         self.serverName = serverName
         var steps: [Step] = []
         if tailnetConnected {
-            switch access {
-            case .none: steps.append(.findOnTailnet)
-            case .rejected: steps.append(.replaceTailnetToken)
-            case .saved: steps.append(.notOnTailnet)
+            if canUseToken {
+                switch access {
+                case .none: steps.append(.findOnTailnet)
+                case .rejected: steps.append(.replaceTailnetToken)
+                case .saved: steps.append(.notOnTailnet)
+                }
+            } else {
+                steps.append(.enterTailnetName)
             }
         } else {
             steps.append(.connectTailscale)
@@ -36,21 +43,23 @@ package struct ConnectRecovery: Equatable, Sendable {
         self.steps = steps
     }
 
-    package init(server: ServerChoice, tailnetConnected: Bool, access: TailnetAccess.State) {
+    package init(server: ServerChoice, tailnetConnected: Bool, access: TailnetAccess.State, canUseToken: Bool = true) {
         self.init(
             serverName: server.name,
             advertisesLocalRoute: server.routes.contains { $0.kind == .local },
             tailnetConnected: tailnetConnected,
-            access: access
+            access: access,
+            canUseToken: canUseToken
         )
     }
 
-    /// One sentence for a screen that has no room for the step list, such as Apple TV, where a
-    /// token cannot be typed: what to check about Tailscale before typing an address.
-    package static func addressAdvice(tailnetConnected: Bool) -> String {
-        tailnetConnected
-            ? "If it's on your Tailscale network, enter its Tailscale address, which starts with 100."
-            : "If it's on Tailscale, turn Tailscale on for this device and try again."
+    /// What Crucible already tried on the tailnet, said where a person is about to type an address:
+    /// the names it looked for, so the right one is a correction rather than a guess. Nil when the
+    /// server's name leaves nothing to try.
+    package static func tailnetLookupNote(serverName: String) -> String? {
+        let names = MagicDNSName.candidates(forServerNamed: serverName)
+        guard !names.isEmpty else { return nil }
+        return "Crucible looked for \(names.map { "“\($0)”" }.joined(separator: ", ")) on your tailnet."
     }
 
     package var headline: String {
@@ -65,6 +74,7 @@ package struct ConnectRecovery: Equatable, Sendable {
         case .findOnTailnet: return "Search your tailnet"
         case .replaceTailnetToken: return "Your Tailscale token stopped working"
         case .notOnTailnet: return "Not found on your tailnet"
+        case .enterTailnetName: return "Enter its Tailscale name"
         }
     }
 
@@ -81,6 +91,8 @@ package struct ConnectRecovery: Equatable, Sendable {
             return "It expired or was revoked. Add a new one and Crucible searches your tailnet again."
         case .notOnTailnet:
             return "Crucible asked the online computers on your tailnet and none of them answered as \(server). Check that Plex is running."
+        case .enterTailnetName:
+            return "\(server) isn't named like any machine on your tailnet. Add it by address."
         }
     }
 
@@ -90,13 +102,13 @@ package struct ConnectRecovery: Equatable, Sendable {
         case .allowLocalNetwork: return "Open Settings"
         case .findOnTailnet: return "Search My Tailnet"
         case .replaceTailnetToken: return "Add a New Token"
-        case .notOnTailnet: return nil
+        case .notOnTailnet, .enterTailnetName: return nil
         }
     }
 
     package func symbol(of step: Step) -> String {
         switch step {
-        case .connectTailscale, .findOnTailnet, .replaceTailnetToken, .notOnTailnet: return "network"
+        case .connectTailscale, .findOnTailnet, .replaceTailnetToken, .notOnTailnet, .enterTailnetName: return "network"
         case .allowLocalNetwork: return "wifi"
         }
     }

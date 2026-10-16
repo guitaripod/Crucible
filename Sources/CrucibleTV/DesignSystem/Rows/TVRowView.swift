@@ -18,6 +18,7 @@ struct TVRowItem: Hashable, Sendable {
     var accessory: Accessory
     var isDestructive: Bool
     var isEnabled: Bool
+    var isStatic: Bool
 
     init(
         id: String,
@@ -27,7 +28,8 @@ struct TVRowItem: Hashable, Sendable {
         symbol: String? = nil,
         accessory: Accessory = .none,
         isDestructive: Bool = false,
-        isEnabled: Bool = true
+        isEnabled: Bool = true,
+        isStatic: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -37,6 +39,7 @@ struct TVRowItem: Hashable, Sendable {
         self.accessory = accessory
         self.isDestructive = isDestructive
         self.isEnabled = isEnabled
+        self.isStatic = isStatic
     }
 }
 
@@ -199,7 +202,11 @@ final class TVRowCell: UICollectionViewCell {
         contentConfiguration = TVRowConfiguration(item: item)
         accessibilityLabel = [item.title, item.subtitle].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
         accessibilityValue = item.value
-        accessibilityTraits = item.isEnabled ? .button : [.button, .notEnabled]
+        if item.isStatic {
+            accessibilityTraits = .staticText
+        } else {
+            accessibilityTraits = item.isEnabled ? .button : [.button, .notEnabled]
+        }
     }
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
