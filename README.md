@@ -2,6 +2,8 @@
 
 A fast, native Plex client for iPhone and Apple TV — offline downloads, Skip Intro, Picture-in-Picture, lock-screen controls and Handoff on iPhone; a focus-driven Liquid Glass living-room app on Apple TV. The iPhone app is built entirely on Arch Linux.
 
+**[Crucible for Plex on the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419)** — free for iPhone and Apple TV, with an optional Crucible Pro (unlimited downloads, full Statistics, the Year in Review poster, Top Shelf; pay once or subscribe yearly, one purchase for both). No server yet? Choose *Try the demo* on the welcome screen. The source is GPL-3.0, and a build from source is fully unlocked.
+
 ![Swift](https://img.shields.io/badge/Swift_6-F05138?style=flat&logo=swift&logoColor=white)
 ![Platform](https://img.shields.io/badge/iOS_17+-000000?style=flat&logo=apple&logoColor=white)
 ![tvOS](https://img.shields.io/badge/tvOS_17+-000000?style=flat&logo=apple&logoColor=white)

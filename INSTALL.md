@@ -1,6 +1,6 @@
 # Install Crucible on your iPhone
 
-Crucible isn't on the App Store. You build it once with [xtool](https://xtool.sh) and sign it with your own Apple ID. A free Apple ID is enough. Plan on about 15 minutes, most of it waiting for the first build.
+Most people should get [Crucible for Plex from the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419). This guide is for building the open-source code yourself: you build it once with [xtool](https://xtool.sh) and sign it with your own Apple ID, and a free Apple ID is enough. A build from source is fully unlocked, with no Crucible Pro purchase. Plan on about 15 minutes, most of it waiting for the first build.
 
 **You need:** an iPhone on iOS 17 or later, a USB cable, a Mac, a Linux PC or Windows with WSL, and a Plex Media Server you can reach.
 
