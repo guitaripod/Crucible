@@ -2,7 +2,7 @@
   "appId": "6822066419",
   "versions": {
     "IOS": "a9195b9b-f45f-4a41-bbe4-5b6920039d9f",
-    "TV_OS": "92fb99af-d953-4b46-aa79-baa00b777aa2"
+    "TV_OS": "1a3bd191-30ac-4f86-ac6f-27035164c9fd"
   },
   "releaseType": "AFTER_APPROVAL",
   "name": "Crucible for Plex",
@@ -21,7 +21,7 @@
   "contactFirstName": "Marcus",
   "contactLastName": "Ziadé",
   "whatsNew": {
-    "IOS": "Fixes the Crucible Pro screen.\n\n- If you already own Crucible Pro, See Crucible Pro in the demo tour and the demo's closing offer now open your plan instead of a purchase sheet that closed at once, and the closing offer no longer appears at all\n- The Crucible Pro purchase screen lets you choose either plan: tapping the yearly plan selects it\n- Search no longer swaps in the results of a longer search after you go back to a shorter one",
-    "TV_OS": "Fixes for Crucible Pro and search.\n\n- If you already own Crucible Pro, See Crucible Pro in the demo tour now opens your plan instead of a purchase screen that closed at once, and the demo's closing offer no longer appears\n- In the demo, the closing Crucible Pro offer waits until you are done typing instead of covering the search keyboard, and demo search lists the best match first\n- Search keeps its results in step with the text: going back to a shorter search no longer swaps in the results of the longer one\n- An episode's top search result now names the episode as well as its show"
+    "IOS": "Finds your server on Tailscale, and fixes for Crucible Pro and search.\n\n- On Tailscale, Crucible now finds your Plex server by itself after you sign in, even when plex.tv lists no route to it, and keeps that route so leaving home Wi-Fi falls back to your tailnet\n- When a server can't be reached, the address screen lists what is likely wrong (Tailscale off, Local Network access, a name that matches no tailnet machine) and searches again when you come back from the Tailscale app\n- Settings, Server, Tailscale Search lets you add a Tailscale token to search your tailnet for a server that isn't named like its Plex server\n- If you already own Crucible Pro, See Crucible Pro in the demo tour and the demo's closing offer now open your plan instead of a purchase sheet that closed at once, and the closing offer no longer appears at all\n- The Crucible Pro purchase screen lets you choose either plan: tapping the yearly plan selects it\n- Search no longer swaps in the results of a longer search after you go back to a shorter one",
+    "TV_OS": "Finds your server on Tailscale.\n\n- On Tailscale, Crucible now finds your Plex server by itself after you sign in, even when plex.tv lists no route to it, and keeps that route as a fallback\n- When a server can't be reached, the screen lists what is likely wrong (Tailscale off, Local Network access, a name that matches no tailnet machine) and searches again when you come back from turning Tailscale on\n- The address screen now says which tailnet names Crucible already tried, so the right one is a correction"
   }
 }
