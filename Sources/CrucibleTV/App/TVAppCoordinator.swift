@@ -11,9 +11,10 @@ final class TVAppCoordinator: TVSessionActions {
     private static let crossDissolveDuration: TimeInterval = 0.4
 
     let window: UIWindow
-    private let router = TVRouter()
+    let router = TVRouter()
     private var launchTask: Task<Void, Never>?
     var finaleTask: Task<Void, Never>?
+    var proMomentObserver: UUID?
 
     init(window: UIWindow) {
         self.window = window
@@ -22,6 +23,7 @@ final class TVAppCoordinator: TVSessionActions {
     /// Queues any link the app was opened with, then routes to the right root.
     func start(openingURLs urls: [URL]) {
         installPro()
+        installProMoments()
         installDemo()
         #if DEBUG
         if let root = TVDebugRoot.rootIfRequested() {
@@ -43,6 +45,7 @@ final class TVAppCoordinator: TVSessionActions {
         launchTask?.cancel()
         launchTask = nil
         removePro()
+        removeProMoments()
         removeDemo()
         router.deactivate()
         TVTopShelfRefresher.deactivate()
@@ -51,6 +54,7 @@ final class TVAppCoordinator: TVSessionActions {
     func sceneWillEnterForeground() {
         ProAccess.shared.refresh()
         TVTopShelfRefresher.refresh()
+        Task { await presentTrialNoticeIfDue() }
     }
 
     /// A demo that was running when the app last quit is brought back before anything decides what to show; every other launch goes
@@ -228,6 +232,7 @@ final class TVAppCoordinator: TVSessionActions {
             window.rootViewController = root
             router.activate(root)
             presentDemoIntroIfPending()
+            Task { await presentTrialNoticeIfDue() }
             return
         }
         UIView.transition(with: window, duration: Self.crossDissolveDuration, options: [.transitionCrossDissolve, .curveEaseOut]) {
@@ -235,6 +240,7 @@ final class TVAppCoordinator: TVSessionActions {
         } completion: { [weak self] _ in
             self?.router.activate(root)
             self?.presentDemoIntroIfPending()
+            Task { await self?.presentTrialNoticeIfDue() }
         }
     }
 

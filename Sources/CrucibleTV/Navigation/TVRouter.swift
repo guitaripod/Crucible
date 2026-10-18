@@ -121,6 +121,16 @@ final class TVRouter {
         }
     }
 
+    /// Closes whatever is presented and opens Statistics in the You tab.
+    func showStatistics() {
+        guard let tabBar else { return }
+        dismissPresented(over: tabBar) {
+            guard let navigation = tabBar.select(.you) else { return }
+            navigation.popToRootViewController(animated: false)
+            navigation.pushViewController(TVScreens.statistics(tabBar.environment), animated: true)
+        }
+    }
+
     /// Starts playback from anywhere, replacing whatever is presented.
     func play(_ request: TVPlaybackRequest) {
         guard let tabBar else {

@@ -348,6 +348,25 @@ final class PlayerTests: TVTestCase {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: Self.dismissalWait))
     }
 
+    func testFinishingTheFirstVideoOffersProToAFreeViewerOnce() {
+        setFlags("no_credits=1")
+        setProgress(Self.episode, seconds: 144)
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-autoplayNextEpisode", "<false/>", "-skipIntroMode", "2"],
+            environment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_PRO": "free"]
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        let leave = app.buttons["player.upNext.leave"]
+        XCTAssertTrue(leave.waitForExistence(timeout: 40))
+        XCTAssertTrue(focusLeaveButton(leave), "Close can be focused")
+        TVTest.remote.press(.select)
+        let offer = app.alerts["Go further with Crucible Pro"]
+        XCTAssertTrue(offer.waitForExistence(timeout: Self.dismissalWait), "the first finished video offers Pro")
+        TVTest.capture("01-pro-offer-after-the-first-video", in: self)
+        XCTAssertTrue(offer.buttons["Not Now"].exists)
+    }
+
     func testBackgroundingReportsPausedAndAPausedTranscodeRestartsOnReturn() {
         setProgress(Self.episode, seconds: 20)
         let mark = timelineMark()

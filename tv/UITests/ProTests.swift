@@ -366,6 +366,24 @@ final class ProTests: TVTestCase {
         XCTAssertFalse(element(app, "paywall.buy").exists, "Pro never meets the paywall")
     }
 
+    func testTrialEndingSoonShowsTheNoticeOnce() {
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_PRO": "trialending"])
+        let notice = app.alerts["Your free trial ends soon"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 60), "the trial notice never appeared")
+        XCTAssertTrue(notice.staticTexts.containing(NSPredicate(format: "label CONTAINS 'renews yearly'")).firstMatch.exists)
+        TVTest.capture("01-trial-ending-notice", in: self)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(notice.waitForNonExistence(timeout: 10))
+        TVTest.settle(3)
+        XCTAssertFalse(notice.exists, "the notice is shown once")
+    }
+
+    func testAFreshTrialShowsNoNotice() {
+        let app = launchYou(["CRUCIBLE_PRO": "trial"])
+        TVTest.settle(6)
+        XCTAssertFalse(app.alerts["Your free trial ends soon"].exists)
+    }
+
     func testProScreenShowsThePlanAndRestore() {
         let app = launchYou(["CRUCIBLE_PRO": "annual"])
         XCTAssertTrue(YouNavigation.row(app, "you.pro").label.hasPrefix("Crucible Pro, Annual \u{00B7} renews"), YouNavigation.row(app, "you.pro").label)

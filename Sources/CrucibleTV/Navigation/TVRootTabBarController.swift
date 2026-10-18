@@ -16,6 +16,7 @@ final class TVRootTabBarController: UITabBarController {
 
     private static let homeIdentifier = "home"
     private static let searchIdentifier = "search"
+    private static let youIdentifier = "you"
 
     let environment: TVAppEnvironment
 
@@ -56,6 +57,7 @@ final class TVRootTabBarController: UITabBarController {
         switch destination {
         case .library: identifier.hasPrefix("library.") || identifier == "more"
         case .search: identifier == searchIdentifier
+        case .you: identifier == youIdentifier
         }
     }
 
@@ -88,7 +90,7 @@ final class TVRootTabBarController: UITabBarController {
             result.append(Entry(identifier: "more", title: "More", symbol: "ellipsis") { TVScreens.more(env) })
         }
         result.append(Entry(identifier: Self.searchIdentifier, title: "Search", symbol: "magnifyingglass") { TVScreens.search(env) })
-        result.append(Entry(identifier: "you", title: "You", symbol: "person.crop.circle") { TVScreens.you(env) })
+        result.append(Entry(identifier: Self.youIdentifier, title: "You", symbol: "person.crop.circle") { TVScreens.you(env) })
         return result
     }
 

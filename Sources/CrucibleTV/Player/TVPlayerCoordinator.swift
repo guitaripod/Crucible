@@ -32,6 +32,10 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         coordinator.present(from: presenter)
     }
 
+    /// Called on the main actor when a playback has been taken off screen, with whether the viewer finished at least one item
+    /// in it. The app uses it to pick its moment for a Crucible Pro note.
+    static var onEnded: (@MainActor (_ finishedAnItem: Bool) -> Void)?
+
     /// Ends the playback on screen, if any, and waits until its session has stopped and it is off
     /// screen, so a caller that is about to show something else never leaves a session running.
     static func endActive() async {
@@ -58,6 +62,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var upNextCard: TVUpNextViewController?
     var shownMarker: SkipMarker?
     var isFinishing = false
+    var finishedAnItem = false
     var isAdvancing = false
     var isShowingAlert = false
     var isRevealing = false
@@ -252,6 +257,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         case .failed(let message):
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
         case .finished:
+            finishedAnItem = true
             Task { await finish(animated: true) }
         }
     }
@@ -336,6 +342,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     func advance(to offer: UpNextOffer) {
         guard !isAdvancing, !isFinishing else { return }
+        finishedAnItem = true
         isAdvancing = true
         isUpNextCardVisible = false
         request = offer.nextRequest(showRatingKey: request.showRatingKey)
@@ -379,8 +386,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         stopTask = stop
         await waitForStop(stop)
         if Self.active === self {
-            dismissEverything(animated: animated)
             Self.active = nil
+            let finishedAnItem = finishedAnItem
+            dismissEverything(animated: animated) { Self.onEnded?(finishedAnItem) }
         }
         TVTopShelfRefresher.refresh()
     }
@@ -394,11 +402,14 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     }
 
     /// Takes the pre-roll and the player off screen, back to the screen that started playback.
-    private func dismissEverything(animated: Bool) {
+    private func dismissEverything(animated: Bool, completion: @escaping @MainActor () -> Void) {
         preroll?.suppressCloseReport()
         preroll = nil
-        guard let root = rootPresenter, root.presentedViewController != nil else { return }
-        root.dismiss(animated: animated)
+        guard let root = rootPresenter, root.presentedViewController != nil else {
+            completion()
+            return
+        }
+        root.dismiss(animated: animated) { completion() }
     }
 
     private func observeLifecycle() {

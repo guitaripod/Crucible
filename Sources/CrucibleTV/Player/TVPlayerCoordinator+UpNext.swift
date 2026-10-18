@@ -118,6 +118,7 @@ extension TVPlayerCoordinator {
         didReject proposal: AVContentProposal
     ) {
         isUpNextCardVisible = false
+        finishedAnItem = true
         Task { await finish(animated: false) }
     }
 }

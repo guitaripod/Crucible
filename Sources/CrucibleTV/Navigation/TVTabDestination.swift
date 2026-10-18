@@ -2,4 +2,5 @@
 enum TVTabDestination: Sendable {
     case library
     case search
+    case you
 }

@@ -49,6 +49,7 @@ enum TVDebugSession {
         if environment["CRUCIBLE_FRESH"] == "1" {
             AccountSessionReset.signOut(.tv)
             forgetDemo()
+            ProMomentLedger().reset()
             AppLogger.notice("Debug session: fresh install state", .lifecycle)
         }
         guard let value = environment["CRUCIBLE_MOCK"], let base = URL(string: value) else { return }

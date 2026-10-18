@@ -3,7 +3,7 @@ import Foundation
 /// A store that does what the environment tells it to, for UI tests and the debug builds: every purchase and restore
 /// path can be driven without a sandbox account.
 ///
-/// - `CRUCIBLE_PRO`: `free` (default), `lifetime`, `annual` or `trial`, the status the app starts with.
+/// - `CRUCIBLE_PRO`: `free` (default), `lifetime`, `annual`, `trial` or `trialending` (a trial with a day and a half left), the status the app starts with.
 /// - `CRUCIBLE_PRO_STORE`: `ok` (default), `cancel`, `pending`, `fail`, `offline` or `empty`, how the store answers.
 /// - `CRUCIBLE_PRO_RESTORE`: `found`, `none` (default) or `fail`.
 /// - `CRUCIBLE_PRO_TRIAL`: `0` hides the free trial from the annual offer.
@@ -49,6 +49,7 @@ package actor ScriptedProAccess: ProAccessProviding {
         switch start {
         case "lifetime": status = .pro(ProEntitlement(kind: .lifetime, productIdentifier: lifetimeID))
         case "annual": status = .pro(ProEntitlement(kind: .subscription, productIdentifier: annualID, expiresAt: Date().addingTimeInterval(86_400 * 300), willRenew: true))
+        case "trialending": status = .pro(ProEntitlement(kind: .subscription, productIdentifier: annualID, expiresAt: Date().addingTimeInterval(86_400 * 1.5), willRenew: true, isTrial: true))
         case "trial": status = .pro(ProEntitlement(kind: .subscription, productIdentifier: annualID, expiresAt: Date().addingTimeInterval(86_400 * 12), willRenew: true, isTrial: true))
         default: status = .free
         }
