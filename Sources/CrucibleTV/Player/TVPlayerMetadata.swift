@@ -24,8 +24,12 @@ enum TVPlayerMetadata {
         return line.isEmpty ? nil : line
     }
 
+    static func loadPoster(path: String) async -> UIImage? {
+        await ImageLoader.shared.loadImage(path: path, width: artworkWidth)
+    }
+
     static func loadArtwork(path: String?) async -> Data? {
-        guard let path, let image = await ImageLoader.shared.loadImage(path: path, width: artworkWidth) else { return nil }
+        guard let path, let image = await loadPoster(path: path) else { return nil }
         return image.jpegData(compressionQuality: 0.85)
     }
 

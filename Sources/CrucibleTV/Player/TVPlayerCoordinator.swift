@@ -20,6 +20,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// own answer (play the next episode, or close) takes over; a slow Apple TV can need more than a second.
     static let upNextCardGrace: Duration = .seconds(3)
 
+    /// How long the pre-roll waits for the stream to load before the player shows its own buffering.
+    private static let revealTimeout: Duration = .seconds(10)
+
     static func start(api: APIClient, request: PlaybackRequest, from presenter: UIViewController) {
         if let previous = active {
             Task { await previous.finish(animated: false) }
@@ -45,6 +48,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var eventsTask: Task<Void, Never>?
     var prepareTask: Task<Void, Never>?
     var metadataTask: Task<Void, Never>?
+    var revealTask: Task<Void, Never>?
     var upNextTask: Task<Void, Never>?
     var stopTask: Task<Void, Never>?
     var lifecycleObservers: [any NSObjectProtocol] = []
@@ -78,6 +82,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     private func configurePlayerController() {
         playerVC.delegate = self
         playerVC.modalPresentationStyle = .fullScreen
+        playerVC.modalTransitionStyle = .crossDissolve
         playerVC.appliesPreferredDisplayCriteriaAutomatically = true
         playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.view.accessibilityIdentifier = "player.view"
@@ -128,7 +133,11 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// player when the next episode or a retry starts inside an open player.
     private func showPreroll() {
         let headline = TVPlayerMetadata.headline(for: request.metadata)
-        let preroll = TVPlayerPrerollViewController(title: headline.title, subtitle: headline.subtitle)
+        let preroll = TVPlayerPrerollViewController(
+            title: headline.title,
+            subtitle: headline.subtitle,
+            posterPath: request.metadata?.posterPath
+        )
         preroll.onClose = { [weak self] in
             Task { await self?.finish(animated: true) }
         }
@@ -153,23 +162,51 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         return top
     }
 
-    /// Replaces the pre-roll with the player: the first time the player takes the pre-roll's place
-    /// in the presentation, afterwards the pre-roll just fades away over the open player.
+    /// Dissolves from the pre-roll into the player: the first time the player is presented over the
+    /// pre-roll, which stays black underneath, afterwards the pre-roll just fades away over the open
+    /// player. There is never a moment with neither on screen.
     private func revealPlayer() {
         guard let preroll else { return }
         self.preroll = nil
-        if playerVC.presentingViewController == nil, let host = preroll.presentingViewController {
+        if playerVC.presentingViewController == nil, preroll.presentingViewController != nil {
             preroll.suppressCloseReport()
             isRevealing = true
-            host.dismiss(animated: false) { [weak self, playerVC] in
-                guard let self, !isFinishing else { return }
-                host.present(playerVC, animated: false) { [weak self] in
-                    self?.playerRevealed()
-                }
+            preroll.present(playerVC, animated: !UIAccessibility.isReduceMotionEnabled) { [weak self] in
+                self?.playerRevealed()
             }
         } else {
             preroll.close(animated: true)
         }
+    }
+
+    /// Holds the pre-roll until the stream has loaded enough to show a picture, so the dissolve lands
+    /// on video instead of a black player that is still buffering. A failed or slow load reveals the
+    /// player anyway, where the engine's own failure or buffering handling takes over.
+    private func revealWhenLoaded(_ session: PlaybackSession, item: AVPlayerItem?) {
+        revealTask?.cancel()
+        revealTask = Task { [weak self] in
+            if let item { await Self.waitForLoad(of: item) }
+            await self?.preroll?.waitUntilShown()
+            guard let self, !Task.isCancelled, !isFinishing, session === self.session, item?.status != .failed else { return }
+            revealPlayer()
+        }
+    }
+
+    private static func waitForLoad(of item: AVPlayerItem) async {
+        guard item.status == .unknown else { return }
+        var observation: NSKeyValueObservation?
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let gate = ResumeGate(continuation)
+            observation = item.observe(\.status, options: [.new]) { @Sendable observed, _ in
+                guard observed.status != .unknown else { return }
+                Task { @MainActor in gate.resume() }
+            }
+            Task {
+                try? await Task.sleep(for: revealTimeout)
+                gate.resume()
+            }
+        }
+        observation?.invalidate()
     }
 
     private func attach(_ session: PlaybackSession) {
@@ -184,7 +221,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         player.preventsDisplaySleepDuringVideoPlayback = true
         playerVC.player = player
         DemoTour.shared.record(.play)
-        revealPlayer()
+        revealWhenLoaded(session, item: player.currentItem)
         observeEvents(of: session)
         refreshTrackMenus()
         prepareUpNext(for: session)
@@ -309,6 +346,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         eventsTask?.cancel()
         prepareTask?.cancel()
         metadataTask?.cancel()
+        revealTask?.cancel()
         upNextTask?.cancel()
         clearContextualActions()
         playerVC.transportBarCustomMenuItems = []
