@@ -6,17 +6,31 @@ import Foundation
 package struct PlaybackFailurePolicy: Sendable {
     package enum Decision: Equatable, Sendable {
         case fallBackToTranscode
+        case restartTranscode
         case fail
         case ignore
     }
 
     private var hasFallenBack = false
     private var hasFailed = false
+    private var hasRestartedAfterReturn = false
+
+    /// How long after the app came back a transcode failure still counts as the server having reaped it.
+    package static let returnWindow: TimeInterval = 60
 
     package init() {}
 
-    package mutating func decide(wasDirectPlay: Bool, isOffline: Bool) -> Decision {
+    /// The app is back after being away: one transcode failure soon after is answered by restarting it.
+    package mutating func noteReturn() {
+        hasRestartedAfterReturn = false
+    }
+
+    package mutating func decide(wasDirectPlay: Bool, isOffline: Bool, justReturned: Bool = false) -> Decision {
         guard !hasFailed else { return .ignore }
+        if justReturned, !wasDirectPlay, !isOffline, !hasRestartedAfterReturn {
+            hasRestartedAfterReturn = true
+            return .restartTranscode
+        }
         if wasDirectPlay, !isOffline, hasFallenBack { return .ignore }
         guard wasDirectPlay, !isOffline else {
             hasFailed = true

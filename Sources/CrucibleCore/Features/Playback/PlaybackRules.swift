@@ -57,6 +57,7 @@ package enum TranscodeSeekPolicy {
 /// Timings shared by every playback surface.
 package enum PlaybackTiming {
     package static let timelineInterval = 10.0
+    package static let saveInterval = 5.0
     package static let transcodePingInterval: Duration = .seconds(20)
     package static let autoSkipUndoWindow: Duration = .seconds(4)
 }

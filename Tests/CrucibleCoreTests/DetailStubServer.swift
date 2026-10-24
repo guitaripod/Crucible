@@ -17,6 +17,7 @@ final class DetailStubServer: @unchecked Sendable {
     private let state = NSLock()
     private var replies: [String: Reply] = [:]
     private var log: [String] = []
+    private var urlLog: [String] = []
 
     init() {
         Self.lock.lock()
@@ -44,6 +45,12 @@ final class DetailStubServer: @unchecked Sendable {
         return log
     }
 
+    var requestedURLs: [String] {
+        state.lock()
+        defer { state.unlock() }
+        return urlLog
+    }
+
     func reply(path: String, status: Int = 200, items: [PlexMetadata] = []) {
         let metadata = items.map(DetailFixtures.json)
         let body: [String: Any] = metadata.isEmpty ? ["MediaContainer": ["size": 0]] : ["MediaContainer": ["size": metadata.count, "Metadata": metadata]]
@@ -68,6 +75,7 @@ final class DetailStubServer: @unchecked Sendable {
         let path = request.url?.path ?? ""
         state.lock()
         log.append(path)
+        urlLog.append(request.url?.absoluteString ?? path)
         let reply = replies[path]
         state.unlock()
         return reply ?? Reply(status: 404)

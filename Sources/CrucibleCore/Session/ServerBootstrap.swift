@@ -27,6 +27,11 @@ package enum ServerBootstrap {
     private static let authTokenKey = "plex_auth_token"
     private static let candidateURIsKey = "plex_candidate_uris"
 
+    /// The machine identifier of the saved server, without reading the Keychain.
+    package static var savedMachineIdentifier: String? {
+        UserDefaults.standard.string(forKey: machineIdKey)
+    }
+
     package static func connection() -> PlexConnection? {
         guard let token = KeychainHelper.load(key: authTokenKey),
               let uriString = UserDefaults.standard.string(forKey: serverURIKey),

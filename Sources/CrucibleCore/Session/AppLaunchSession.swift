@@ -33,8 +33,8 @@ package enum LaunchFailure: Error, Sendable {
     }
 }
 
-/// The launch pipeline: validate (and if needed heal) the saved route, then fetch Home hubs and
-/// library sections in parallel. Nothing reaches the screen until every stage has succeeded.
+/// The launch pipeline: validate (and if needed heal) the saved route, tell the server where the last
+/// run left the viewer, then fetch Home hubs and library sections in parallel. Nothing reaches the screen until every stage has succeeded.
 package enum AppLaunchSession {
     package static func run(
         connection saved: PlexConnection,
@@ -65,6 +65,7 @@ package enum AppLaunchSession {
 
         progress("Loading your library…")
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
+        await PlaybackResumeSync.flush(api: api, server: connection.machineIdentifier)
         do {
             async let hubs = api.requestContainer(.hubs())
             async let sections = api.requestContainer(.sections)
