@@ -48,8 +48,7 @@ extension PlaybackSession {
     }
 
     /// Called when the app returns. The player is put back where the snapshot says: a transcode the server
-    /// may have reaped is restarted at the snapshot, a direct-play file whose clock no longer agrees is
-    /// seeked to it. It plays on if the viewer was watching when the app went away (what the system
+    /// may have reaped is restarted at the snapshot, a direct-play file is seeked to it. It plays on if the viewer was watching when the app went away (what the system
     /// player does by itself, so the two never disagree) and stays paused if they had paused. The server
     /// is told the position again, in case the report made on the way out never left.
     package func recoverAfterSuspension() {
@@ -60,13 +59,7 @@ extension PlaybackSession {
         failurePolicy.noteReturn()
         let snapshot = tracker.heldPosition ?? absolutePosition ?? lastPlayhead + streamOffset
         let wasPlaying = resumesAfterReturn || player.rate > 0
-        let plan = ReturnPlan.make(
-            snapshot: snapshot,
-            isDirectPlay: stream.isDirectPlay,
-            isRestarting: isRestarting,
-            playerAbsolute: StreamPosition.absolute(playerSeconds: player.currentTime().seconds, streamOffset: streamOffset),
-            isReady: isItemReady
-        )
+        let plan = ReturnPlan.make(snapshot: snapshot, isDirectPlay: stream.isDirectPlay, isRestarting: isRestarting)
         AppLogger.notice("Playback returned ratingKey=\(request.ratingKey) snapshot=\(Int(snapshot)) plan=\(plan) playing=\(wasPlaying)", .playback)
         apply(plan, resumesPlayback: wasPlaying)
         Task { [weak self] in

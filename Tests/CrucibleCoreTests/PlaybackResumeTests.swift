@@ -87,25 +87,17 @@ struct PlaybackResumeTests {
         #expect(tracker.position(playerSeconds: 3, isReady: true) == 903)
     }
 
-    @Test func aTranscodeIsRestartedAtTheSnapshotWhateverThePlayerClockSays() {
-        let expiredSession = ReturnPlan.make(snapshot: 1_840, isDirectPlay: false, isRestarting: false, playerAbsolute: 0, isReady: false)
-        let healthyLookingSession = ReturnPlan.make(snapshot: 1_840, isDirectPlay: false, isRestarting: false, playerAbsolute: 1_840, isReady: true)
-        #expect(expiredSession == .restartTranscode(at: 1_840))
-        #expect(healthyLookingSession == .restartTranscode(at: 1_840))
+    @Test func aTranscodeIsRestartedAtTheSnapshotSoAnExpiredSessionNeverMatters() {
+        #expect(ReturnPlan.make(snapshot: 1_840, isDirectPlay: false, isRestarting: false) == .restartTranscode(at: 1_840))
     }
 
     @Test func aRestartAlreadyUnderWayIsLeftAlone() {
-        #expect(ReturnPlan.make(snapshot: 90, isDirectPlay: false, isRestarting: true, playerAbsolute: 0, isReady: false) == .keep)
+        #expect(ReturnPlan.make(snapshot: 90, isDirectPlay: false, isRestarting: true) == .keep)
     }
 
-    @Test func aDirectPlayFileThatKeptItsPlaceKeepsPlaying() {
-        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: false, playerAbsolute: 600.5, isReady: true) == .keep)
-    }
-
-    @Test func aDirectPlayFileThatLostItsPlaceIsSeekedBackToTheSnapshot() {
-        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: false, playerAbsolute: 0, isReady: true) == .seek(to: 600))
-        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: false, playerAbsolute: 600, isReady: false) == .seek(to: 600))
-        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: false, playerAbsolute: nil, isReady: true) == .seek(to: 600))
+    @Test func aDirectPlayFileIsSeekedToTheSnapshotOnReturn() {
+        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: false) == .seek(to: 600))
+        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: true) == .seek(to: 600))
     }
 
     @Test func aTranscodeFailureSoonAfterTheReturnIsRestartedOnceNotShownAsAnError() {

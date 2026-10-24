@@ -124,22 +124,12 @@ package enum ReturnPlan: Equatable, Sendable {
     case restartTranscode(at: Double)
     case seek(to: Double)
 
-    /// How far the player's clock may sit from the snapshot before a direct-play file is seeked back.
-    package static let seekTolerance = 2.0
-
     /// A transcode is always rebuilt at the snapshot: the server reaps a session that stopped pinging
     /// while the app was away, and the stream the player holds may be gone or may start somewhere else.
-    /// A direct-play file keeps playing from where it is when its clock still agrees with the snapshot
-    /// and is seeked back to the snapshot when it does not.
-    package static func make(
-        snapshot: Double,
-        isDirectPlay: Bool,
-        isRestarting: Bool,
-        playerAbsolute: Double?,
-        isReady: Bool
-    ) -> ReturnPlan {
-        if !isDirectPlay { return isRestarting ? .keep : .restartTranscode(at: snapshot) }
-        guard isReady, let playerAbsolute, abs(playerAbsolute - snapshot) <= seekTolerance else { return .seek(to: snapshot) }
-        return .keep
+    /// A direct-play file is always seeked to the snapshot too, even when its clock agrees: a clock that
+    /// is about to change under the player (a seek still in flight) cannot be told from a good one.
+    package static func make(snapshot: Double, isDirectPlay: Bool, isRestarting: Bool) -> ReturnPlan {
+        if isDirectPlay { return .seek(to: snapshot) }
+        return isRestarting ? .keep : .restartTranscode(at: snapshot)
     }
 }

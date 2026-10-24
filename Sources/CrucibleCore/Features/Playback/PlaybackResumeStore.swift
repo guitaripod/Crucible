@@ -46,6 +46,7 @@ package struct ResumePoint: Codable, Sendable, Equatable {
 package struct PlaybackResumeStore: Sendable {
     private static let key = "playbackResumePoints"
     private static let capacity = 20
+    private static let lock = NSLock()
 
     nonisolated(unsafe) private let defaults: UserDefaults
 
@@ -62,6 +63,8 @@ package struct PlaybackResumeStore: Sendable {
     /// Keeps `positionSecs` as the position of `ratingKey`, or forgets the item once it counts as watched.
     package func save(server: String, ratingKey: String, positionSecs: Double, durationSecs: Double, now: Date = Date()) {
         guard positionSecs.isFinite, positionSecs >= 0 else { return }
+        Self.lock.lock()
+        defer { Self.lock.unlock() }
         var points = load()
         let key = ResumePoint.storageKey(server: server, ratingKey: ratingKey)
         var point = points[key] ?? ResumePoint(server: server, ratingKey: ratingKey, positionSecs: positionSecs, durationSecs: durationSecs, savedAt: now)
@@ -78,17 +81,13 @@ package struct PlaybackResumeStore: Sendable {
 
     /// Notes that the server now holds `positionSecs` for `ratingKey`.
     package func recordReport(server: String, ratingKey: String, positionSecs: Double) {
+        Self.lock.lock()
+        defer { Self.lock.unlock() }
         var points = load()
         let key = ResumePoint.storageKey(server: server, ratingKey: ratingKey)
         guard var point = points[key] else { return }
         point.reportedSecs = positionSecs
         points[key] = point
-        store(points, now: nil)
-    }
-
-    package func clear(server: String, ratingKey: String) {
-        var points = load()
-        guard points.removeValue(forKey: ResumePoint.storageKey(server: server, ratingKey: ratingKey)) != nil else { return }
         store(points, now: nil)
     }
 
