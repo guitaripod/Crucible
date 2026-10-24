@@ -7,6 +7,7 @@ extension PlaybackSession {
     /// a new transcoder offset on a transcode.
     package func seek(toAbsolute target: Double) {
         guard let stream, let player else { return }
+        tracker.moved(to: target)
         if stream.isDirectPlay {
             player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
                 Task { @MainActor in self?.player?.play() }
@@ -98,6 +99,9 @@ extension PlaybackSession {
         guard !isStopped, let player else { return }
         lastPlayhead = seconds
         let absolute = seconds + streamOffset
+        tracker.observe(playerSeconds: seconds, isReady: isItemReady)
+        if !tracker.isHeld { wasPlayingAtLastTick = player.rate > 0 }
+        if !tracker.isHeld, isItemReady { keepPosition(absolute, force: false) }
         emit(.position(absolute: absolute, rate: Double(player.rate)))
         if upNext.creditsReached(at: absolute) { loadUpNext(reason: .credits) }
         evaluateMarkers(at: absolute)
@@ -216,6 +220,7 @@ extension PlaybackSession {
                       let typeValue,
                       let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
 
+                AppLogger.notice("Audio interruption \(type == .began ? "began" : "ended") ratingKey=\(self.request.ratingKey) playerRate=\(self.player?.rate ?? -1)", .playback)
                 if type == .ended, let optionsValue {
                     let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
                     if options.contains(.shouldResume) {

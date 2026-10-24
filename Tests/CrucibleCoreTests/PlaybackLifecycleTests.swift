@@ -55,13 +55,6 @@ struct PlaybackLifecycleTests {
         #expect(gate.running == .requested)
     }
 
-    @Test func onlyAPausedTranscodeIsRestartedOnForeground() {
-        #expect(PlaybackLifecyclePolicy.restartsTranscodeOnForeground(isDirectPlay: false, isPaused: true, isRestarting: false))
-        #expect(!PlaybackLifecyclePolicy.restartsTranscodeOnForeground(isDirectPlay: true, isPaused: true, isRestarting: false))
-        #expect(!PlaybackLifecyclePolicy.restartsTranscodeOnForeground(isDirectPlay: false, isPaused: false, isRestarting: false))
-        #expect(!PlaybackLifecyclePolicy.restartsTranscodeOnForeground(isDirectPlay: false, isPaused: true, isRestarting: true))
-    }
-
     @Test func aRetryKeepsTheViewersSwitchedStreams() {
         let request = PlaybackRequest(
             ratingKey: "5", mediaType: "episode", showRatingKey: "1", seasonRatingKey: "2",

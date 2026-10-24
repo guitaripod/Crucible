@@ -40,11 +40,11 @@ extension PlaybackSession {
         stream = resolved
         streamOffset = ResumeStrategy.streamOffset(resumePosition: position, isDirectPlay: resolved.isDirectPlay)
         lastPlayhead = resolved.isDirectPlay ? position : 0
+        tracker.moved(to: position)
         isRestarting = false
         pendingRestartTarget = nil
         restartItemObserver?.invalidate()
         restartItemObserver = nil
-        reporter?.setStreamOffset(streamOffset)
         if resolved.isDirectPlay {
             pingTask?.cancel()
             pingTask = nil

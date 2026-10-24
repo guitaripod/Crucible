@@ -41,13 +41,3 @@ package struct UpNextLookupGate: Sendable {
         if running == reason { running = nil }
     }
 }
-
-/// What to do about a transcode when the app comes back to the foreground.
-package enum PlaybackLifecyclePolicy {
-    /// A paused transcode is restarted at the playhead when the app returns: the server may have
-    /// reaped it while the app was suspended, and a restart before the viewer presses play spares them
-    /// an error. A playing stream, a direct-play file or a restart already under way need nothing.
-    package static func restartsTranscodeOnForeground(isDirectPlay: Bool, isPaused: Bool, isRestarting: Bool) -> Bool {
-        !isDirectPlay && isPaused && !isRestarting
-    }
-}

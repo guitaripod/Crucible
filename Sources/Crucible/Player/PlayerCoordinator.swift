@@ -22,6 +22,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var upNextOverlay: UpNextOverlayView?
     private var pendingUpNext: UpNextOffer?
     private var foregroundObserver: (any NSObjectProtocol)?
+    private var suspensionObservers: [any NSObjectProtocol] = []
     private var isFinishing = false
     private var lastOfflineWrite: Double = 0
     private var skipPill: SkipPillView?
@@ -171,6 +172,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
 
         setupForegroundObserver()
+        observeSuspension()
         observeEvents()
 
         viewController.present(playerVC, animated: true) {
@@ -236,6 +238,28 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 self.flushPendingUpNext()
             }
         }
+    }
+
+    /// A paused player is held at its position while the app is away and put back there on return, which
+    /// rebuilds a transcode the server reaped meanwhile; one that plays on in the background (audio,
+    /// Picture-in-Picture) is only saved and reported.
+    private func observeSuspension() {
+        let center = NotificationCenter.default
+        suspensionObservers = [
+            center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in await self?.suspendSession() }
+            },
+            center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.session.recoverAfterSuspension() }
+            },
+        ]
+    }
+
+    private func suspendSession() async {
+        let application = UIApplication.shared
+        let task = application.beginBackgroundTask(withName: "playback-suspend")
+        await session.suspend(pausing: false)
+        if task != .invalid { application.endBackgroundTask(task) }
     }
 
     private func showSkipToast(returningTo position: Double) {
@@ -428,6 +452,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             NotificationCenter.default.removeObserver(foregroundObserver)
         }
         foregroundObserver = nil
+        suspensionObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        suspensionObservers.removeAll()
 
         let finalPosition = await session.stop()
         playerVC?.player = nil

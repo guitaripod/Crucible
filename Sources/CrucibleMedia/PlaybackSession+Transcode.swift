@@ -24,7 +24,7 @@ extension PlaybackSession {
     }
 
     private func handleJump() {
-        guard let item = player?.currentItem else { return }
+        guard !tracker.isHeld, let item = player?.currentItem else { return }
         let now = item.currentTime().seconds
         guard now.isFinite else { return }
         let previous = lastPlayhead
@@ -34,14 +34,20 @@ extension PlaybackSession {
     }
 
     /// AVPlayer failures are otherwise completely silent (a black screen): every failure is logged with
-    /// its real error, and a direct-play failure is retried once through the transcoder.
+    /// its real error, a direct-play failure is retried once through the transcoder, and a transcode that
+    /// fails soon after the app came back (the server reaped it) is restarted at the viewer's position.
     private func handleFailure(_ message: String) {
         guard !isStopped else { return }
         let wasDirectPlay = stream?.isDirectPlay ?? false
         AppLogger.error("Playback failed ratingKey=\(request.ratingKey) directPlay=\(wasDirectPlay): \(message)", .playback)
-        switch failurePolicy.decide(wasDirectPlay: wasDirectPlay, isOffline: request.offline != nil) {
+        let justReturned = returnedAt.map { Date().timeIntervalSince($0) <= PlaybackFailurePolicy.returnWindow } ?? false
+        switch failurePolicy.decide(wasDirectPlay: wasDirectPlay, isOffline: request.offline != nil, justReturned: justReturned) {
         case .ignore:
             break
+        case .restartTranscode:
+            let position = absolutePosition ?? lastPlayhead + streamOffset
+            AppLogger.notice("Restarting the transcode after the return ratingKey=\(request.ratingKey) position=\(Int(position))", .playback)
+            restartTranscode(atAbsolute: position, resumesPlayback: false)
         case .fail:
             emit(.failed(message))
         case .fallBackToTranscode:
@@ -54,7 +60,7 @@ extension PlaybackSession {
 
     private func fallBackToTranscode() async {
         let start = PlaybackFailurePolicy.fallbackStart(
-            lastAbsolute: lastPlayhead + streamOffset,
+            lastAbsolute: absolutePosition ?? lastPlayhead + streamOffset,
             resumePosition: request.resumePosition
         )
         do {
@@ -73,7 +79,7 @@ extension PlaybackSession {
             stream = resolved
             streamOffset = start
             lastPlayhead = 0
-            reporter?.setStreamOffset(start)
+            tracker.moved(to: start)
             startPing(session: resolved.sessionId)
             let item = AVPlayerItem(url: resolved.url)
             configureItem?(item)
@@ -93,6 +99,7 @@ extension PlaybackSession {
     /// encode and the new item replaces the old one once built.
     func restartTranscode(atAbsolute target: Double, resumesPlayback: Bool = true) {
         guard let stream, player != nil, !isStopped else { return }
+        tracker.moved(to: target)
         guard !isRestarting else {
             pendingRestartTarget = target
             return
@@ -111,6 +118,7 @@ extension PlaybackSession {
             guard let url, !isStopped else {
                 isRestarting = false
                 pendingRestartTarget = nil
+                finishRecovery()
                 return
             }
             applyTranscodeRestart(url: url, atAbsolute: target)
@@ -124,7 +132,8 @@ extension PlaybackSession {
         }
         lastPlayhead = 0
         streamOffset = target
-        reporter?.setStreamOffset(target)
+        tracker.moved(to: target)
+        finishRecovery()
 
         let item = AVPlayerItem(url: url)
         configureItem?(item)

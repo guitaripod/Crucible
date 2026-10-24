@@ -412,21 +412,37 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         root.dismiss(animated: animated) { completion() }
     }
 
+    /// The snapshot of the viewer's position is taken when the app resigns active, while the player's
+    /// clock is still right; going to the background pauses and reports it, coming back puts the player
+    /// where the snapshot says and stays paused, ready to press play like the system player after Home.
     private func observeLifecycle() {
         let center = NotificationCenter.default
         lifecycleObservers = [
+            center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.session?.holdPosition() }
+            },
+            center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.session?.releasePositionIfForeground() }
+            },
             center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in
-                    await self?.session?.suspend()
-                    #if DEBUG
-                    self?.resetPlayerClockForUITests()
-                    #endif
-                }
+                Task { @MainActor in await self?.suspendSession() }
             },
             center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.session?.recoverAfterSuspension() }
             },
         ]
+    }
+
+    /// Pauses and reports inside a background task, so the system lets the report leave before it suspends the app.
+    private func suspendSession() async {
+        guard let session else { return }
+        let application = UIApplication.shared
+        let task = application.beginBackgroundTask(withName: "playback-suspend")
+        await session.suspend()
+        #if DEBUG
+        resetPlayerClockForUITests()
+        #endif
+        if task != .invalid { application.endBackgroundTask(task) }
     }
 
     #if DEBUG

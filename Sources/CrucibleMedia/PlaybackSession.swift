@@ -8,7 +8,9 @@ import Foundation
 /// decides whether it can present, then either `begin()`s playback and hosts the returned player or
 /// `discard()`s the stream. While it runs the session reports through `events`; `stop()` ends it.
 /// Resume follows `ResumeStrategy`: a transcode starts at the stored position through its URL offset
-/// and is never seeked again. A session plays exactly once: after `stop()` or `discard()` it is
+/// and is never seeked again. Where the viewer is comes from a `PlayheadTracker`, never straight from
+/// the player's clock, and is kept on the device (`PlaybackResumeStore`) as playback goes, so a
+/// suspension, a sleeping Apple TV or a terminated app still leaves the true position behind. A session plays exactly once: after `stop()` or `discard()` it is
 /// spent (`prepare()` throws `CancellationError`, `begin()` returns nil), so a retry or a second
 /// presentation makes a new session.
 @MainActor
@@ -17,7 +19,9 @@ package final class PlaybackSession {
     package let events: AsyncStream<PlaybackEvent>
     package internal(set) var player: AVPlayer?
     package internal(set) var stream: ResolvedStream?
-    package internal(set) var streamOffset: Double = 0
+    package internal(set) var streamOffset: Double = 0 {
+        didSet { tracker.setStreamOffset(streamOffset) }
+    }
     package internal(set) var selectedSubtitleId: Int?
     package internal(set) var selectedAudioStreamId: Int?
 
@@ -28,6 +32,9 @@ package final class PlaybackSession {
     package var configureItem: (@MainActor (AVPlayerItem) -> Void)?
 
     let api: APIClient
+    let tracker = PlayheadTracker()
+    let resumeStore: PlaybackResumeStore
+    let serverID: String
     let continuation: AsyncStream<PlaybackEvent>.Continuation
     var reporter: PlaybackReporter?
     var remoteCommands: PlaybackRemoteCommands?
@@ -40,6 +47,12 @@ package final class PlaybackSession {
     var upNext: UpNextResolver
     var failurePolicy = PlaybackFailurePolicy()
     var lastPlayhead: Double = 0
+    var lastSavedPosition: Double?
+    var isSuspended = false
+    var isRecovering = false
+    var wasPlayingAtLastTick = false
+    var resumesAfterReturn = false
+    var returnedAt: Date?
     var isRestarting = false
     var pendingRestartTarget: Double?
     var restartResumesPlayback = true
@@ -56,8 +69,15 @@ package final class PlaybackSession {
 
     /// `installsRemoteCommands` is false for a player whose system UI already owns the remote
     /// commands (the tvOS player): a second set of handlers would double-toggle play and pause.
-    package init(api: APIClient, request: PlaybackRequest, installsRemoteCommands: Bool = true) {
+    package init(
+        api: APIClient,
+        request: PlaybackRequest,
+        installsRemoteCommands: Bool = true,
+        resumeStore: PlaybackResumeStore = .shared
+    ) {
         self.api = api
+        self.resumeStore = resumeStore
+        serverID = ServerBootstrap.savedMachineIdentifier ?? "unknown"
         self.request = request
         self.installsRemoteCommands = installsRemoteCommands
         selectedSubtitleId = request.selectedSubtitleId
@@ -86,7 +106,11 @@ package final class PlaybackSession {
     /// The item's timeline position of the playhead, or nil before playback starts.
     package var absolutePosition: Double? {
         guard let player else { return nil }
-        return StreamPosition.absolute(playerSeconds: player.currentTime().seconds, streamOffset: streamOffset)
+        return tracker.position(playerSeconds: player.currentTime().seconds, isReady: isItemReady)
+    }
+
+    var isItemReady: Bool {
+        player?.currentItem?.status == .readyToPlay
     }
 
     /// Resolves the stream to play. A cancelled caller gets `CancellationError` and any transcode the
@@ -124,6 +148,7 @@ package final class PlaybackSession {
     package func begin() -> AVPlayer? {
         guard let stream, player == nil, !isStopped else { return nil }
         streamOffset = ResumeStrategy.streamOffset(resumePosition: request.resumePosition, isDirectPlay: stream.isDirectPlay)
+        tracker.moved(to: request.resumePosition)
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
         self.player = player
@@ -132,9 +157,11 @@ package final class PlaybackSession {
             api: api,
             ratingKey: request.ratingKey,
             durationMs: Int(request.durationSecs * 1000),
-            player: player
+            player: player,
+            tracker: tracker,
+            resumeStore: resumeStore,
+            server: serverID
         )
-        reporter.setStreamOffset(streamOffset)
         self.reporter = reporter
 
         markerTracker = MarkerTracker(markers: stream.markers)
@@ -172,8 +199,9 @@ package final class PlaybackSession {
         offlineResumeObserver = nil
 
         await invalidateCaches()
-        await reporter?.stop()
+        await reporter?.stop(positionSecs: finalPosition)
         reporter = nil
+        if player != nil { keepPosition(finalPosition) }
         removePlayheadObservers()
         await stopTranscodeIfNeeded()
 
@@ -197,8 +225,7 @@ package final class PlaybackSession {
     }
 
     private func finalPlayhead() -> Double? {
-        let seconds = player?.currentTime().seconds ?? lastPlayhead
-        return StreamPosition.absolute(playerSeconds: seconds, streamOffset: streamOffset)
+        absolutePosition ?? StreamPosition.absolute(playerSeconds: lastPlayhead, streamOffset: streamOffset)
     }
 
     private func cancelBackgroundWork() {
