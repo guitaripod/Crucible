@@ -416,13 +416,28 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         let center = NotificationCenter.default
         lifecycleObservers = [
             center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in await self?.session?.suspend() }
+                Task { @MainActor in
+                    await self?.session?.suspend()
+                    #if DEBUG
+                    self?.resetPlayerClockForUITests()
+                    #endif
+                }
             },
             center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.session?.recoverAfterSuspension() }
             },
         ]
     }
+
+    #if DEBUG
+    /// `CRUCIBLE_PLAYER_CLOCK_RESET=1` rewinds the player's own clock to zero right after the app has gone to the
+    /// background, the way a player that lost its place while the Apple TV slept reads: zero seconds into its stream.
+    private func resetPlayerClockForUITests() {
+        guard ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_CLOCK_RESET"] == "1" else { return }
+        AppLogger.notice("Debug: resetting the player clock to zero", .playback)
+        session?.player?.seek(to: .zero)
+    }
+    #endif
 
     private func stopObservingLifecycle() {
         lifecycleObservers.forEach { NotificationCenter.default.removeObserver($0) }
