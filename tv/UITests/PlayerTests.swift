@@ -9,7 +9,8 @@ import XCTest
 /// - Skip Intro: the mock's intro marker is 12 to 58 s, so resuming at 8 s reaches it in about 5 s;
 /// - Skip Credits and Up Next: `clip_markers=1` moves the credits to 110 s of the 150 s clip;
 /// - failure: `fail_parts` and `fail_transcode` break direct play and its transcode fallback;
-/// - skip mode and autoplay: launch arguments override `skipIntroMode` and `autoplayNextEpisode`.
+/// - skip mode and autoplay: launch arguments override `skipIntroMode` and `autoplayNextEpisode`;
+/// - a player that loses its place while the app is away: `CRUCIBLE_PLAYER_CLOCK_RESET=1` (DEBUG only) rewinds the player's clock to zero right after the app went to the background.
 @MainActor
 final class PlayerTests: TVTestCase {
     private static let episode = "4013"
@@ -384,6 +385,49 @@ final class PlayerTests: TVTestCase {
         TVTest.capture("01-back-from-the-home-screen", in: self)
     }
 
+    func testReturningFromTheHomeScreenKeepsTheTranscodePositionWhenThePlayerClockLostItsPlace() {
+        assertReturnKeepsThePosition(quality: "8000", restartsTheStream: true)
+    }
+
+    func testReturningFromTheHomeScreenKeepsTheDirectPlayPositionWhenThePlayerClockLostItsPlace() {
+        assertReturnKeepsThePosition(quality: Self.defaultQuality, restartsTheStream: false)
+    }
+
+    /// Plays from 20 s, goes to the Home screen with the player's own clock reset to zero (`CRUCIBLE_PLAYER_CLOCK_RESET`, DEBUG only), returns and
+    /// checks that no timeline report falls back towards the start, that a transcode is rebuilt at the position and that the player is still up.
+    private func assertReturnKeepsThePosition(quality: String, restartsTheStream: Bool) {
+        let resume = 20
+        setProgress(Self.episode, seconds: resume)
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-streamingQuality", quality],
+            environment: ["CRUCIBLE_PLAYER_CLOCK_RESET": "1"]
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(8)
+        let startsBefore = Mock.log("start.m3u8").count
+        let mark = timelineMark()
+        TVTest.remote.press(.home)
+        XCTAssertTrue(waitForReport(Self.episode, state: "paused", since: mark, timeout: 20), "leaving the app reports paused")
+        TVTest.settle(5)
+        app.activate()
+        TVTest.settle(12)
+        let reports = timeline(since: mark)
+        XCTAssertFalse(reports.isEmpty)
+        let floor = (resume + 4) * 1000
+        XCTAssertTrue(reports.allSatisfy { $0.timeMs >= floor }, "no report goes back towards the start: \(reports.map(\.timeMs))")
+        if restartsTheStream {
+            let restarts = Mock.log("start.m3u8").dropFirst(startsBefore)
+            XCTAssertTrue(restarts.contains { Self.offset(in: $0) >= resume + 4 }, "the transcode restarts at the position: \(restarts)")
+        }
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+        TVTest.capture("01-back-at-the-same-place", in: self)
+    }
+
+    private static func offset(in line: String) -> Int {
+        URLComponents(string: "http://x" + line.dropFirst(4))?.queryItems?.first { $0.name == "offset" }?.value.flatMap(Int.init) ?? 0
+    }
+
     private func launch(playing ratingKey: String, arguments: [String] = [], environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment.merge(environment) { _, new in new }
@@ -432,6 +476,7 @@ final class PlayerTests: TVTestCase {
     private struct Report {
         let ratingKey: String
         let state: String
+        let timeMs: Int
     }
 
     private func timeline(since mark: Int) -> [Report] {
@@ -439,8 +484,9 @@ final class PlayerTests: TVTestCase {
             guard let components = URLComponents(string: "http://x" + line.dropFirst(4)),
                   let items = components.queryItems,
                   let key = items.first(where: { $0.name == "ratingKey" })?.value,
-                  let state = items.first(where: { $0.name == "state" })?.value else { return nil }
-            return Report(ratingKey: key, state: state)
+                  let state = items.first(where: { $0.name == "state" })?.value,
+                  let timeMs = items.first(where: { $0.name == "time" })?.value.flatMap(Int.init) else { return nil }
+            return Report(ratingKey: key, state: state, timeMs: timeMs)
         }
     }
 

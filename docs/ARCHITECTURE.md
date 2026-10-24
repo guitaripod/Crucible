@@ -36,7 +36,7 @@ Dependencies only point downward. Core never imports UIKit, AVFoundation, MediaP
 | Module | Contents |
 | --- | --- |
 | `CrucibleCore` | `Networking` (APIClient actor, endpoints, Plex models, headers, keychain), `Session` (server bootstrap, route resolution, launch pipeline, library visibility), `Preferences`, `Support` (logging, formatters, error copy), `Snapshots` (cold-launch Home cache), `Features/*` (Home, Library, Detail, Search, History, You, Settings, Auth, Playback rules, Top Shelf snapshot, Navigation: deep links and library tab layout) |
-| `CrucibleMedia` | `PlaybackSession` (stream resolution, resume, timeline reporting, transcode keep-alive and restarts, fallback, skip markers, Up Next, remote commands) and `PlaybackReporter`; driven by both players |
+| `CrucibleMedia` | `PlaybackSession` (stream resolution, resume, timeline reporting, transcode keep-alive and restarts, fallback, skip markers, Up Next, remote commands, suspend and return) and `PlaybackReporter`; driven by both players. Where the viewer is comes from `PlayheadTracker` (Core), never straight from the player's clock, and is saved on the device in `PlaybackResumeStore`; `PlaybackResumeSync` tells the server at launch what a run that was ended left behind |
 | `CrucibleStats` | Watch-history SQLite mirror (GRDB), sync and backfill, queries, the pre-formatted Statistics page, Year in Review summary |
 | `CrucibleDesign` | `Theme` tokens (colour, type, space, radius, metrics per platform), `Glass`, `Haptics`, `ProgressBar`, `BadgeChipView`, `ImageLoader` + disk cache, `CrystalGlyphView` |
 | `CrucibleStatsUI` | Charts and stats components driven by `StatsMetrics` (`.phone`, `.tv`) |
