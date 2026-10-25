@@ -95,6 +95,8 @@ scripts/mac.sh tvlib        # Apple TV package scheme (compiles Core, Media, Sta
 scripts/mac.sh core-test    # Core + Stats tests on the macOS host (CRUCIBLE_CORE_ONLY=1 swift test)
 tv/scripts/tv.sh build|run|uitest|shot|logs   # the tvOS app, simulator, mock server and UI tests (see tv/README.md)
 marketing/shots/run.sh      # iPhone screenshot harness, also the iPhone visual regression check
+marketing/store/shoot-ipad.sh   # 13-inch iPad App Store captures (landscape, sidebar) through the IPadStoreShots UI test
+marketing/store/compose.py      # frames the iPhone and iPad captures and captions them (captions.json) into marketing/appstore
 ```
 
 `NAME=<id>` isolates a remote checkout, simulator and mock port so several people (or agents) can work at once. The iPhone app is still packaged and signed with `xtool` from Linux (`scripts/install-ios.sh`); the tvOS app is built with Xcode from the XcodeGen project in `tv/`, because xtool does not support tvOS. The manifest only declares the tvOS targets when it is evaluated on macOS, so the Linux/xtool graph is unchanged.

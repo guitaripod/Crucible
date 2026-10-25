@@ -5,7 +5,7 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 
 export PATH=/opt/homebrew/bin:$PATH
 COPY=${IPAD_COPY:-$HOME/Dev/ios/CrucibleIPadUITest}
-SIM_NAME=CrucibleIPadUITest
+SIM_NAME=${IPAD_SIM_NAME:-CrucibleIPadUITest}
 SIM_TYPE=${IPAD_SIM_TYPE:-com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB}
 SIM_RUNTIME=${IPAD_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-27-0}
 SCHEME=CrucibleIOS
@@ -27,7 +27,7 @@ runs ios/scripts/generate.sh in the copy, boots the CrucibleIPadUITest simulator
 bundle and exports the screenshot attachments to ios/out/ui-ipad.
 
 IPAD_SIM_TYPE and IPAD_RUNTIME override the simulator device type (iPad Pro 13-inch M5) and runtime (iOS 27.0; the iOS 27.1 runtime
-cannot host iPads). IPAD_COPY overrides the build copy. Every exported CRUCIBLE_* variable reaches the app as TEST_RUNNER_CRUCIBLE_*.
+cannot host iPads), IPAD_SIM_NAME the simulator's name. IPAD_COPY overrides the build copy. Every exported CRUCIBLE_* variable reaches the app as TEST_RUNNER_CRUCIBLE_*.
 USAGE
 }
 

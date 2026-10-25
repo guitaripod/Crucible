@@ -1,0 +1,23 @@
+{
+  "iphone": [
+    {"screen": "01-home", "headline": "Pick up where you left off", "subhead": "A Resume-first Home for your whole Plex library"},
+    {"screen": "02b-library-settled", "headline": "Every library at your fingertips", "subhead": "Filters, sort, an A–Z index and Recently Watched"},
+    {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Cast and crew, audio and subtitles, More Like This"},
+    {"screen": "04-show", "headline": "Seasons at a glance", "subhead": "Watched state and downloads on every episode"},
+    {"screen": "05-search", "headline": "Find anything, fast", "subhead": "Results grouped by type, with a top result"},
+    {"screen": "06-downloads", "headline": "Take it offline", "subhead": "Movies, seasons or episodes in the quality you pick"},
+    {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from your own history"},
+    {"screen": "07c-share-preview", "headline": "Your year in one poster", "subhead": "A Year in Review to share as a Story or a Square"},
+    {"screen": "10-history", "headline": "Every play, day by day", "subhead": "Watch History with posters, grouped by day"}
+  ],
+  "ipad": [
+    {"screen": "01-home", "headline": "Made for iPad", "subhead": "A sidebar for every library and a Home built for the big screen"},
+    {"screen": "02-library", "headline": "Your whole library at a glance", "subhead": "Poster grids that grow with your window"},
+    {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Cast and crew, audio and subtitles, More Like This"},
+    {"screen": "04-show", "headline": "Seasons at a glance", "subhead": "Watched state and downloads on every episode"},
+    {"screen": "05-player", "headline": "Skip the intro", "subhead": "The system player, Picture in Picture and keyboard shortcuts"},
+    {"screen": "06-search", "headline": "Find anything, fast", "subhead": "Command-F from anywhere with a Magic Keyboard"},
+    {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from your own history"},
+    {"screen": "08-history", "headline": "Every play, day by day", "subhead": "Watch History with posters, grouped by day"}
+  ]
+}

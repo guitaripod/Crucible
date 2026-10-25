@@ -13,30 +13,16 @@ final class IPadTests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
-    private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
-        IOSTest.element(app, identifier)
-    }
-
     private func homeTitle(_ app: XCUIApplication) -> XCUIElement {
-        app.navigationBars["Home"]
+        IPadDemo.homeTitle(app)
     }
 
     private func backButton(_ app: XCUIApplication) -> XCUIElement {
-        app.navigationBars.buttons["BackButton"].firstMatch
+        IPadDemo.backButton(app)
     }
 
     private func enterDemo() -> XCUIApplication {
-        let app = IOSTest.launch()
-        let demo = element(app, "onboarding.demo")
-        XCTAssertTrue(demo.waitForExistence(timeout: 120), "Welcome never showed Try the demo")
-        demo.tap()
-        let start = element(app, "demo.intro.start")
-        XCTAssertTrue(start.waitForExistence(timeout: 180), "the demo intro never appeared")
-        start.tap()
-        XCTAssertTrue(IOSTest.wait(for: start, "exists == false OR hittable == false", timeout: 30), "the intro never closed")
-        XCTAssertTrue(IOSTest.wait(for: homeTitle(app), "exists == true", timeout: 120), "Home never appeared")
-        IOSTest.settle(2)
-        return app
+        IPadDemo.enter()
     }
 
     private func assertRunning(_ app: XCUIApplication, _ step: String, file: StaticString = #filePath, line: UInt = #line) {
@@ -54,14 +40,8 @@ final class IPadTests: XCTestCase {
         assertRunning(app, step)
     }
 
-    /// The sidebar's entry for the library called `titles`' first match: a button, a cell or a text with that name.
     private func libraryEntry(_ app: XCUIApplication, _ titles: [String]) -> XCUIElement? {
-        for title in titles {
-            for candidate in [app.buttons[title], app.cells[title], app.staticTexts[title]] where candidate.exists {
-                return candidate
-            }
-        }
-        return nil
+        IPadDemo.libraryEntry(app, titles)
     }
 
     private func revealSidebar(_ app: XCUIApplication) {

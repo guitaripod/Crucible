@@ -73,6 +73,8 @@ A proper download engine — not the afterthought the official app ships.
 
 ### iPad
 
+<p align="center"><img src="docs/ipad.jpg" alt="Crucible on iPad: Home with the library sidebar, a library grid, a movie and the player with Skip Intro" width="640"></p>
+
 The iPhone app is universal, and every screen lays out by the room its window has, so Split View, Slide Over, a small window and a full 13-inch screen each get a layout made for them.
 
 - **Sidebar** — Home, Downloads, You, Search and each Plex library on its own row; the tab bar keeps a single Library tab in narrow windows
