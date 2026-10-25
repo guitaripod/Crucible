@@ -72,8 +72,8 @@ final class ServerSetupViewController: UIViewController {
         close.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(close)
         NSLayoutConstraint.activate([
-            close.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            close.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            close.topAnchor.constraint(equalTo: view.cornerAdaptiveSafeArea.topAnchor, constant: 8),
+            close.leadingAnchor.constraint(equalTo: view.cornerAdaptiveSafeArea.leadingAnchor, constant: 16),
         ])
     }
 
@@ -126,6 +126,7 @@ final class ServerSetupViewController: UIViewController {
         addressButton.configuration = addressConfig
         addressButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 48).isActive = true
         addressButton.addAction(UIAction { [weak self] _ in self?.presentAddressSheet(known: nil) }, for: .touchUpInside)
+        addressButton.isPointerInteractionEnabled = true
 
         let identity = UIStackView(arrangedSubviews: [glyph, titleLabel, subtitleLabel])
         identity.axis = .vertical
@@ -159,6 +160,8 @@ final class ServerSetupViewController: UIViewController {
         centered.priority = .defaultHigh
         let frame = scrollView.frameLayoutGuide
         let contentGuide = scrollView.contentLayoutGuide
+        let fillsWidth = actions.widthAnchor.constraint(equalTo: content.widthAnchor, constant: -48)
+        fillsWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -178,11 +181,16 @@ final class ServerSetupViewController: UIViewController {
             identity.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
             identity.bottomAnchor.constraint(lessThanOrEqualTo: actions.topAnchor, constant: -24),
 
-            actions.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 24),
-            actions.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
+            actions.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+            actions.leadingAnchor.constraint(greaterThanOrEqualTo: content.leadingAnchor, constant: 24),
+            actions.widthAnchor.constraint(lessThanOrEqualToConstant: Self.actionsMaxWidth),
+            fillsWidth,
             actions.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -56),
         ])
     }
+
+    /// The sign-in buttons span a phone; on a large window they stop at a comfortable width, centred.
+    private static let actionsMaxWidth: CGFloat = 440
 
     private func setBusy(_ busy: Bool) {
         var config = ThemeButton.primaryConfiguration(title: "Sign in with Plex")
@@ -203,6 +211,7 @@ final class ServerSetupViewController: UIViewController {
         demoButton.accessibilityHint = DemoCopy.welcomeCaption
         demoButton.accessibilityIdentifier = "onboarding.demo"
         demoButton.addAction(UIAction { [weak self] _ in self?.startDemo() }, for: .primaryActionTriggered)
+        demoButton.isPointerInteractionEnabled = true
 
         demoCaptionLabel.text = DemoCopy.welcomeCaption
         demoCaptionLabel.font = Theme.Font.caption1Regular

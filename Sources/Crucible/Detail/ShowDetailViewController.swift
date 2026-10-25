@@ -28,6 +28,7 @@ final class ShowDetailViewController: UICollectionViewController {
     private var isOverviewExpanded = false
     private var lastLayoutWidth: CGFloat = 0
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
     private lazy var multiSelect = MultiSelectController(collectionView: collectionView, host: self)
     private lazy var hero = DetailHeroCoordinator(navigationItem: navigationItem, heightRatio: 1.13) { [weak self] in
         self?.playUpNext()
@@ -47,6 +48,8 @@ final class ShowDetailViewController: UICollectionViewController {
         super.viewDidLoad()
         collectionView.collectionViewLayout = createLayout()
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         hero.install(on: collectionView)
         configureDataSource()
         configureMultiSelect()
@@ -111,8 +114,15 @@ final class ShowDetailViewController: UICollectionViewController {
             lastLayoutWidth = collectionView.bounds.width
             stale.append(.overview)
         }
-        reconfigure(stale)
+        reconfigureAfterLayout(stale)
         hero.scrolled(collectionView)
+    }
+
+    /// A layout pass can run inside a snapshot apply (the collection view lays out while it reloads, as in a window that opens on
+    /// this screen), and applying again there is reentrant, so what the pass found stale is reconfigured once it is over.
+    private func reconfigureAfterLayout(_ items: [Item]) {
+        guard !items.isEmpty else { return }
+        Task { @MainActor [weak self] in self?.reconfigure(items) }
     }
 
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -192,12 +202,12 @@ final class ShowDetailViewController: UICollectionViewController {
         UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             guard let self, let section = self.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
             switch section {
-            case .hero: return DetailLayout.fullWidth(top: 0)
-            case .actions: return DetailLayout.fullWidth(top: 4)
-            case .overview: return DetailLayout.fullWidth(top: 16)
-            case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4)
+            case .hero: return DetailLayout.fullWidth(top: 0, environment: environment)
+            case .actions: return DetailLayout.fullWidth(top: 4, environment: environment)
+            case .overview: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4, environment: environment, maxWidth: Self.episodeListWidth)
             case .episodes: return self.episodesSection(environment)
-            case .related: return DetailLayout.posterRail()
+            case .related: return DetailLayout.posterRail(environment)
             }
         }
     }
@@ -215,9 +225,12 @@ final class ShowDetailViewController: UICollectionViewController {
         }
         #endif
         let section = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
-        section.contentInsets = NSDirectionalEdgeInsets(top: Theme.Space.xs, leading: 0, bottom: 0, trailing: 0)
+        section.contentInsets = DetailLayout.rowInsets(top: Theme.Space.xs, environment: environment, maxWidth: Self.episodeListWidth)
         return section
     }
+
+    /// Episode rows carry a thumbnail beside their synopsis, so they run wider than the overview before they stop.
+    private static let episodeListWidth: CGFloat = 960
 
     private func configureDataSource() {
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
@@ -231,7 +244,7 @@ final class ShowDetailViewController: UICollectionViewController {
         let overviewReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
             guard let self, let summary = self.model?.show.summary else { return }
             let lines = 3
-            let width = self.collectionView.bounds.width - Theme.Space.m * 2
+            let width = DetailLayout.textWidth(in: self.collectionView.bounds.size)
             cell.contentConfiguration = DetailOverviewConfiguration(
                 text: summary,
                 collapsedLines: lines,
@@ -249,9 +262,10 @@ final class ShowDetailViewController: UICollectionViewController {
             let episode = model.episodes.first { $0.id == item.id } ?? item
             cell.contentConfiguration = self.episodeConfiguration(episode, model: model)
             cell.accessories = self.collectionView.isEditing ? [.multiselect(displayed: .whenEditing)] : []
+            cell.hoverStyle = UIHoverStyle(effect: .highlight, shape: .rect(cornerRadius: Theme.Radius.s, cornerCurve: .continuous))
             cell.configurationUpdateHandler = { cell, state in
                 var background = UIBackgroundConfiguration.listPlainCell()
-                background.backgroundColor = state.isHighlighted || state.isSelected ? Theme.Color.surface : Theme.Color.canvas
+                background.backgroundColor = state.isHighlighted || state.isSelected || state.isFocused ? Theme.Color.surface : Theme.Color.canvas
                 cell.backgroundConfiguration = background
             }
         }
@@ -493,7 +507,7 @@ final class ShowDetailViewController: UICollectionViewController {
             guard let presented = self?.presentedViewController as? DownloadOptionsSheetViewController else { return }
             presented.dismiss(animated: true)
         }
-        sheet.modalPresentationStyle = .pageSheet
+        sheet.modalPresentationStyle = .formSheet
         if let controller = sheet.sheetPresentationController {
             controller.detents = [.medium(), .large()]
             controller.prefersGrabberVisible = true
@@ -571,6 +585,7 @@ final class ShowDetailViewController: UICollectionViewController {
         self.model = model
         title = show.title
         hero.chrome.setTitle(show.title)
+        (tabBarController as? TabBarController)?.updateWindowTitle()
         let artwork = model.heroArtwork
         hero.backdrop.loadImage(path: artwork.path, isBackdrop: artwork.isBackdrop, offlineRatingKey: nil)
         donateActivity(show)
@@ -652,6 +667,11 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    private func media(at indexPath: IndexPath) -> PlexMetadata? {
+        if case .related(let related) = dataSource.itemIdentifier(for: indexPath) { return related }
+        return episode(at: indexPath)
+    }
+
     private func episode(at indexPath: IndexPath) -> PlexMetadata? {
         guard case .episode(let item) = dataSource.itemIdentifier(for: indexPath) else { return nil }
         return model?.episodes.first { $0.id == item.id } ?? item
@@ -687,6 +707,10 @@ final class ShowDetailViewController: UICollectionViewController {
         case .related: return !collectionView.isEditing
         default: return false
         }
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
+        self.collectionView(collectionView, shouldSelectItemAt: indexPath)
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath) -> Bool {
@@ -907,7 +931,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     self?.playFromBeginning(episode)
                 }, at: 1)
             }
-            return UIMenu(children: children)
+            return UIMenu(children: children).addingNewWindow(for: episode)
         })
     }
 }
@@ -935,5 +959,29 @@ enum SwipeActionArt {
         let result = image.withRenderingMode(.alwaysOriginal)
         result.accessibilityLabel = spokenTitle
         return result
+    }
+}
+
+extension ShowDetailViewController: CommandHandling, MediaScreen {
+    var mediaRoute: (ratingKey: String, mediaType: String) { (showRatingKey, "show") }
+
+    func canPerform(_ command: AppCommand) -> Bool {
+        switch command {
+        case .play: return model?.isPrimaryEnabled == true && model?.upNext != nil
+        case .refresh: return true
+        default: return false
+        }
+    }
+
+    func perform(_ command: AppCommand) {
+        switch command {
+        case .play: playUpNext()
+        case .refresh: loadData()
+        default: break
+        }
+    }
+
+    func title(for command: AppCommand) -> String? {
+        command == .play ? model?.primaryTitle : nil
     }
 }

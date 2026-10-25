@@ -39,6 +39,7 @@ final class LibrariesViewController: UICollectionViewController {
         super.viewDidLoad()
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
@@ -65,7 +66,9 @@ final class LibrariesViewController: UICollectionViewController {
             var config = UICollectionLayoutListConfiguration.wellRows()
             let section = self?.dataSource?.sectionIdentifier(for: index)
             config.footerMode = section == .libraries ? .supplementary : .none
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
     }
 

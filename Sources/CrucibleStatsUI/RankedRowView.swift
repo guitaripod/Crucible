@@ -87,6 +87,9 @@ package final class RankedRowView: UIView {
         tapButton.isHidden = true
         tapButton.translatesAutoresizingMaskIntoConstraints = false
         tapButton.addAction(UIAction { [weak self] _ in self?.onTap?() }, for: .touchUpInside)
+        #if os(iOS)
+        tapButton.isPointerInteractionEnabled = true
+        #endif
         addSubview(tapButton)
 
         thumb.translatesAutoresizingMaskIntoConstraints = false

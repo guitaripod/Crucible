@@ -9,21 +9,28 @@ extension LibraryGridOptions {
 }
 
 /// The trailing "grid size" control shared by the library host and stand-alone grids. The menu is
-/// built lazily on every open so its checkmark always reflects the stored preference.
+/// built lazily on every open so its checkmark always reflects the stored preference, and each
+/// choice names the columns it gives at the grid's current width (`width`), which on a large
+/// screen is more than the phone's two or three.
 @MainActor
 enum LibraryGridSizeMenu {
-    static func barButtonItem(onChange: @escaping @MainActor @Sendable () -> Void) -> UIBarButtonItem {
-        let item = UIBarButtonItem(image: UIImage(systemName: "square.grid.2x2"), menu: menu(onChange: onChange))
+    static func barButtonItem(
+        width: @escaping @MainActor () -> CGFloat,
+        onChange: @escaping @MainActor @Sendable () -> Void
+    ) -> UIBarButtonItem {
+        let item = UIBarButtonItem(image: UIImage(systemName: "square.grid.2x2"), menu: menu(width: width, onChange: onChange))
         item.accessibilityLabel = "Grid Size"
         return item
     }
 
-    static func menu(onChange: @escaping @MainActor @Sendable () -> Void) -> UIMenu {
+    static func menu(width: @escaping @MainActor () -> CGFloat, onChange: @escaping @MainActor @Sendable () -> Void) -> UIMenu {
         let deferred = UIDeferredMenuElement.uncached { completion in
             let current = Preferences.libraryColumns
+            let large = Theme.gridColumns(forWidth: width(), preferred: 2)
+            let compact = Theme.gridColumns(forWidth: width(), preferred: 3)
             completion([
-                action(title: "Large (2 columns)", symbol: "square.grid.2x2", columns: 2, current: current, onChange: onChange),
-                action(title: "Compact (3 columns)", symbol: "square.grid.3x3", columns: 3, current: current, onChange: onChange),
+                action(title: "Large (\(large) columns)", symbol: "square.grid.2x2", columns: 2, current: current, onChange: onChange),
+                action(title: "Compact (\(compact) columns)", symbol: "square.grid.3x3", columns: 3, current: current, onChange: onChange),
             ])
         }
         return UIMenu(title: "Grid Size", children: [deferred])
@@ -37,11 +44,18 @@ enum LibraryGridSizeMenu {
         onChange: @escaping @MainActor @Sendable () -> Void
     ) -> UIAction {
         UIAction(title: title, image: UIImage(systemName: symbol), state: current == columns ? .on : .off) { _ in
-            guard Preferences.libraryColumns != columns else { return }
-            Preferences.libraryColumns = columns
-            Haptics.selection()
-            AppLogger.info("Library grid columns -> \(columns)", .ui)
+            guard set(columns) else { return }
             onChange()
         }
+    }
+
+    /// Stores the column preference; false when it already held `columns`.
+    @discardableResult
+    static func set(_ columns: Int) -> Bool {
+        guard Preferences.libraryColumns != columns else { return false }
+        Preferences.libraryColumns = columns
+        Haptics.selection()
+        AppLogger.info("Library grid columns -> \(columns)", .ui)
+        return true
     }
 }

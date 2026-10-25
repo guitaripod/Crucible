@@ -14,7 +14,7 @@ enum ShotScript {
         await ShotHarness.capture("01-home")
         await reuseHero(tabBar)
 
-        tabBar.selectedIndex = 1
+        tabBar.select(.library)
         await ShotHarness.settle(3.5)
         await ShotHarness.capture("02-library")
         await ShotHarness.settle(5)
@@ -25,7 +25,7 @@ enum ShotScript {
         await ShotHarness.capture("02c-library-recent-all")
         library?.popViewController(animated: false)
 
-        tabBar.selectedIndex = 0
+        tabBar.select(.home)
         await ShotHarness.settle(1)
         let home = navigation(tabBar)
         home?.pushViewController(MediaDetailViewController(api: api, ratingKey: "1001", mediaType: "movie"), animated: false)
@@ -44,7 +44,7 @@ enum ShotScript {
         await ShotHarness.capture("04b-show-episodes")
         home?.popToRootViewController(animated: false)
 
-        tabBar.selectedIndex = 4
+        tabBar.select(.search)
         await ShotHarness.settle(1.5)
         if let search = navigation(tabBar)?.topViewController as? SearchViewController {
             await ShotHarness.capture("05a-search-idle")
@@ -55,11 +55,11 @@ enum ShotScript {
             await ShotHarness.capture("05-search")
         }
 
-        tabBar.selectedIndex = 2
+        tabBar.select(.downloads)
         await ShotHarness.settle(2.5)
         await ShotHarness.capture("06-downloads")
 
-        tabBar.selectedIndex = 3
+        tabBar.select(.you)
         await ShotHarness.settle(2)
         let you = navigation(tabBar)
         await ShotHarness.capture("08-you")
@@ -158,7 +158,7 @@ enum ShotScript {
     private static func playEpisode(api: APIClient, tabBar: TabBarController) async {
         guard let container = try? await api.requestContainer(.metadata(ratingKey: "4013")),
               let item = container.Metadata?.first else { return }
-        tabBar.selectedIndex = 0
+        tabBar.select(.home)
         await ShotHarness.settle(1)
         let coordinator = Theme.quickPlay(api: api, item: item, from: tabBar)
         _ = coordinator

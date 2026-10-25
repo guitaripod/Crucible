@@ -30,12 +30,15 @@ final class ProStatusViewController: UICollectionViewController {
         title = "Crucible Pro"
         navigationItem.largeTitleDisplayMode = .never
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
         collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { [weak self] index, environment in
             var config = UICollectionLayoutListConfiguration.wellRows()
             let section = self?.dataSource?.sectionIdentifier(for: index)
             config.footerMode = section == .plan ? .supplementary : .none
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
         configureDataSource()
         applySnapshot()

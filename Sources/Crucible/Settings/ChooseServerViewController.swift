@@ -83,27 +83,40 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         header.setCustomSpacing(2, after: backRow)
         header.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(header)
+        let guide = view.cornerAdaptiveSafeArea
+        let fillsWidth = header.widthAnchor.constraint(equalTo: guide.widthAnchor, constant: -32)
+        fillsWidth.priority = .defaultHigh
+        let centered = header.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        centered.priority = .defaultHigh
         NSLayoutConstraint.activate([
-            header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            header.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            header.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            header.topAnchor.constraint(equalTo: guide.topAnchor, constant: 8),
+            header.leadingAnchor.constraint(greaterThanOrEqualTo: guide.leadingAnchor, constant: 16),
+            header.trailingAnchor.constraint(lessThanOrEqualTo: guide.trailingAnchor, constant: -16),
+            header.widthAnchor.constraint(lessThanOrEqualToConstant: Self.columnWidth),
+            fillsWidth,
+            centered,
         ])
         headerBottomAnchor = header.bottomAnchor
     }
 
     private var headerBottomAnchor: NSLayoutYAxisAnchor!
 
+    /// The server cards and the Connect button keep a phone's column on a large window, centred.
+    private static let columnWidth: CGFloat = 560
+
     private func configureCollectionView() {
-        let layout = UICollectionViewCompositionalLayout { _, _ in
+        let layout = UICollectionViewCompositionalLayout { _, environment in
             let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(80))
             let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [NSCollectionLayoutItem(layoutSize: size)])
             let section = NSCollectionLayoutSection(group: group)
             section.interGroupSpacing = 12
             section.contentInsets = NSDirectionalEdgeInsets(top: 18, leading: 16, bottom: 120, trailing: 16)
+            Theme.centerReadable(section, environment, maxWidth: Self.columnWidth)
             return section
         }
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
+        collectionView.allowsKeyboardFocus()
         collectionView.delegate = self
         collectionView.alwaysBounceVertical = true
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -170,9 +183,13 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stack)
+        let fillsWidth = stack.widthAnchor.constraint(equalTo: view.widthAnchor, constant: -48)
+        fillsWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            stack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+            stack.widthAnchor.constraint(lessThanOrEqualToConstant: Self.columnWidth),
+            fillsWidth,
             stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -22),
         ])
     }

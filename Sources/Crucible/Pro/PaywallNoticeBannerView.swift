@@ -33,6 +33,7 @@ final class PaywallNoticeBannerView: UIView {
         dismissButton.setContentHuggingPriority(.required, for: .horizontal)
         dismissButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         dismissButton.addAction(UIAction { [weak self] _ in self?.onDismiss?() }, for: .primaryActionTriggered)
+        dismissButton.isPointerInteractionEnabled = true
 
         let row = UIStackView(arrangedSubviews: [icon, label, dismissButton])
         row.alignment = .center

@@ -13,7 +13,8 @@ class DemoSheetViewController: UIViewController {
 
     init(detents: [UISheetPresentationController.Detent]) {
         super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
+        modalPresentationStyle = .formSheet
+        preferredContentSize = Self.largeWindowSize
         if let sheet = sheetPresentationController {
             sheet.detents = detents
             sheet.prefersGrabberVisible = true
@@ -25,6 +26,9 @@ class DemoSheetViewController: UIViewController {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// On a large iPad window the sheet is a centred card this size; a phone or a narrow window shows it at its detents.
+    static let largeWindowSize = CGSize(width: 600, height: 820)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -89,6 +93,7 @@ class DemoSheetViewController: UIViewController {
             return outgoing
         }
         let button = UIButton(configuration: config)
+        button.isPointerInteractionEnabled = true
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.minTarget).isActive = true
         button.addAction(UIAction { _ in action() }, for: .primaryActionTriggered)
         return button

@@ -58,6 +58,7 @@ final class DownloadsViewController: UICollectionViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         view.backgroundColor = Theme.Color.canvas
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
@@ -136,7 +137,9 @@ final class DownloadsViewController: UICollectionViewController {
             config.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
                 self?.swipeActions(at: indexPath)
             }
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
     }
 
@@ -408,6 +411,10 @@ final class DownloadsViewController: UICollectionViewController {
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        dataSource.itemIdentifier(for: indexPath) != .summary
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
         dataSource.itemIdentifier(for: indexPath) != .summary
     }
 

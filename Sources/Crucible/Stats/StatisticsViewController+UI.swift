@@ -17,57 +17,73 @@ extension StatisticsViewController {
         return NSCollectionLayoutBoundarySupplementaryItem(layoutSize: size, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
     }
 
-    private func posterRail() -> NSCollectionLayoutSection {
-        let height = Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
-        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .absolute(Theme.Size.posterRailWidth), heightDimension: .estimated(height)))
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .absolute(Theme.Size.posterRailWidth), heightDimension: .estimated(height)), subitems: [item])
+    private func posterRail(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let width = Theme.Room(environment).posterRailWidth
+        let height = width * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
+        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .absolute(width), heightDimension: .estimated(height)))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .absolute(width), heightDimension: .estimated(height)), subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
         section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
         section.interGroupSpacing = 12
-        section.contentInsets = .init(top: 4, leading: 16, bottom: 14, trailing: 16)
+        section.contentInsets = Self.insets(environment, top: 4, bottom: 14)
         section.boundarySupplementaryItems = [headerItem()]
         return section
     }
 
-    private func cardSection(estimatedHeight: CGFloat = 160, top: CGFloat = 0, bottom: CGFloat = 14) -> NSCollectionLayoutSection {
+    private func cardSection(_ environment: NSCollectionLayoutEnvironment, estimatedHeight: CGFloat = 160, top: CGFloat = 0, bottom: CGFloat = 14) -> NSCollectionLayoutSection {
         let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(estimatedHeight))
         let item = NSCollectionLayoutItem(layoutSize: size)
         let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = .init(top: top, leading: 16, bottom: bottom, trailing: 16)
+        section.contentInsets = Self.insets(environment, top: top, bottom: bottom)
         return section
     }
 
+    /// The dashboard's column: 16 points from the edges on a phone, centred and at most `dashboardWidth` wide on a large screen so the
+    /// charts keep their proportions.
+    private static func insets(_ environment: NSCollectionLayoutEnvironment, top: CGFloat, bottom: CGFloat) -> NSDirectionalEdgeInsets {
+        let room = Theme.Room(environment)
+        guard room != .compact else { return .init(top: top, leading: 16, bottom: bottom, trailing: 16) }
+        let width = environment.container.effectiveContentSize.width
+        let side = max(room.gutter, (width - dashboardWidth) / 2)
+        return .init(top: top, leading: side, bottom: bottom, trailing: side)
+    }
+
+    private static let dashboardWidth: CGFloat = 960
+
     private func layoutSection(_ section: StatSection, environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let room = Theme.Room(environment)
         switch section {
         case .range:
-            return cardSection(estimatedHeight: 44, top: 4, bottom: 12)
+            return cardSection(environment, estimatedHeight: 44, top: 4, bottom: 12)
         case .hero:
-            return cardSection(estimatedHeight: 188, bottom: 10)
+            return cardSection(environment, estimatedHeight: 188, bottom: 10)
         case .kpis:
-            let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .estimated(96))
+            let columns = room == .compact ? 2 : 4
+            let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1 / CGFloat(columns)), heightDimension: .estimated(96))
             let item = NSCollectionLayoutItem(layoutSize: size)
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .estimated(96)), repeatingSubitem: item, count: 2)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .estimated(96)), repeatingSubitem: item, count: columns)
             group.interItemSpacing = .fixed(10)
             let s = NSCollectionLayoutSection(group: group)
             s.interGroupSpacing = 10
-            s.contentInsets = .init(top: 0, leading: 16, bottom: 14, trailing: 16)
+            s.contentInsets = Self.insets(environment, top: 0, bottom: 14)
             return s
         case .heatmap, .topShows, .clock, .momentum, .libraries, .binges, .genres:
-            return cardSection()
+            return cardSection(environment)
         case .topMovies, .onThisDay:
-            return posterRail()
+            return posterRail(environment)
         case .superlatives:
+            let width: NSCollectionLayoutDimension = room == .compact ? .fractionalWidth(0.82) : .absolute(380)
             let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1)))
-            let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(0.82), heightDimension: .absolute(150)), subitems: [item])
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: width, heightDimension: .absolute(150)), subitems: [item])
             let s = NSCollectionLayoutSection(group: group)
-            s.orthogonalScrollingBehavior = .groupPagingCentered
+            s.orthogonalScrollingBehavior = room == .compact ? .groupPagingCentered : .continuousGroupLeadingBoundary
             s.interGroupSpacing = 12
-            s.contentInsets = .init(top: 4, leading: 16, bottom: 14, trailing: 16)
+            s.contentInsets = Self.insets(environment, top: 4, bottom: 14)
             s.boundarySupplementaryItems = [headerItem()]
             return s
         case .share:
-            return cardSection(estimatedHeight: Theme.Size.primaryButtonHeight, top: 2, bottom: 28)
+            return cardSection(environment, estimatedHeight: Theme.Size.primaryButtonHeight, top: 2, bottom: 28)
         }
     }
 }

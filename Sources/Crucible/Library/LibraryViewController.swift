@@ -10,6 +10,8 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
     }
 
     private let api: APIClient
+    private let pinnedSectionID: String?
+    private var sections: [LibrarySection] = []
     private var libraries: [Library] = []
     private var currentIndex = 0
     private var currentChild: LibraryGridViewController?
@@ -23,12 +25,23 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
     }()
 
     private lazy var gridSizeItem = LibraryGridSizeMenu.barButtonItem { [weak self] in
-        self?.libraries.forEach { $0.grid.reloadGridLayout() }
+        self?.currentChild?.gridWidth ?? 0
+    } onChange: { [weak self] in
+        self?.reloadGrids()
     }
 
-    init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
+    private func reloadGrids() {
+        libraries.forEach { $0.grid.reloadGridLayout() }
+    }
+
+    /// Asks the host to show another library; set for a screen pinned to one library, whose title menu then switches libraries.
+    var onSelectLibrary: ((String) -> Void)?
+
+    /// `pinnedSectionID` shows that library alone, for a sidebar entry; nil shows every library behind the title menu.
+    init(api: APIClient, preloaded: PlexMediaContainer? = nil, pinnedSectionID: String? = nil) {
         self.api = api
         self.preloaded = preloaded
+        self.pinnedSectionID = pinnedSectionID
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -77,7 +90,9 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
 
     private func install(sections container: PlexMediaContainer) {
         contentUnavailableConfiguration = nil
-        libraries = LibrarySection.sections(in: container).map { section in
+        sections = LibrarySection.sections(in: container)
+        let shown = pinnedSectionID.map { id in sections.filter { $0.id == id } } ?? sections
+        libraries = shown.map { section in
             switch section.kind {
             case .movie:
                 return Library(title: section.title, kind: .movie, grid: MovieGridViewController(api: api, sectionId: section.id))
@@ -131,13 +146,13 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
     }
 
     private func libraryMenu() -> UIMenu {
-        let switcher = libraries.enumerated().map { index, library in
+        let switcher = sections.enumerated().map { index, section in
             UIAction(
-                title: library.title,
-                image: UIImage(systemName: library.kind == .movie ? "film" : "tv"),
-                state: index == currentIndex ? .on : .off
+                title: section.title,
+                image: UIImage(systemName: section.kind == .movie ? "film" : "tv"),
+                state: isShowing(section, at: index) ? .on : .off
             ) { [weak self] _ in
-                self?.selectLibrary(index)
+                self?.selectLibrary(section, at: index)
             }
         }
         let folders = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
@@ -147,6 +162,19 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
             UIMenu(options: .displayInline, children: switcher),
             UIMenu(options: .displayInline, children: [folders]),
         ])
+    }
+
+    private func isShowing(_ section: LibrarySection, at index: Int) -> Bool {
+        pinnedSectionID.map { $0 == section.id } ?? (index == currentIndex)
+    }
+
+    private func selectLibrary(_ section: LibrarySection, at index: Int) {
+        guard !isShowing(section, at: index) else { return }
+        guard pinnedSectionID == nil else {
+            onSelectLibrary?(section.id)
+            return
+        }
+        selectLibrary(index)
     }
 
     private func selectLibrary(_ index: Int) {
@@ -178,6 +206,26 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         } completion: { _ in
             old.removeFromParent()
             child.didMove(toParent: self)
+        }
+    }
+}
+
+extension LibraryViewController: CommandHandling {
+    func canPerform(_ command: AppCommand) -> Bool {
+        switch command {
+        case .refresh: return currentChild != nil
+        case .largerPosters: return currentChild != nil && Preferences.libraryColumns == 3
+        case .smallerPosters: return currentChild != nil && Preferences.libraryColumns == 2
+        default: return false
+        }
+    }
+
+    func perform(_ command: AppCommand) {
+        switch command {
+        case .refresh: currentChild?.refresh()
+        case .largerPosters: if LibraryGridSizeMenu.set(2) { reloadGrids() }
+        case .smallerPosters: if LibraryGridSizeMenu.set(3) { reloadGrids() }
+        default: break
         }
     }
 }

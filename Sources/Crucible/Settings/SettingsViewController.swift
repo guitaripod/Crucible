@@ -63,6 +63,7 @@ final class SettingsViewController: UICollectionViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
@@ -96,7 +97,9 @@ final class SettingsViewController: UICollectionViewController {
             if section == .account {
                 config.itemSeparatorHandler = nil
             }
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
     }
 
@@ -186,7 +189,7 @@ final class SettingsViewController: UICollectionViewController {
             case .libraryGrid:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "square.grid.3x3", title: "Library Grid",
-                    value: "\(Preferences.libraryColumns) Columns", menu: libraryGridMenu()
+                    value: gridTitle(Preferences.libraryColumns), menu: libraryGridMenu()
                 )
             case .shareLogs:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: "Share Diagnostic Logs")
@@ -313,10 +316,21 @@ final class SettingsViewController: UICollectionViewController {
         reconfigure([.appearance])
     }
 
+    override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in self?.reconfigure([.libraryGrid]) }
+    }
+
+    /// A phone names the grid by its column count; a large window shows more columns than that, so it names the poster size instead.
+    private func gridTitle(_ columns: Int) -> String {
+        guard Theme.Room(width: view.bounds.width, height: view.bounds.height) != .compact else { return "\(columns) Columns" }
+        return columns == 2 ? "Large Posters" : "Compact Posters"
+    }
+
     private func libraryGridMenu() -> UIMenu {
         let current = Preferences.libraryColumns
         let actions = [2, 3].map { columns in
-            UIAction(title: "\(columns) Columns", state: columns == current ? .on : .off) { [weak self] _ in
+            UIAction(title: gridTitle(columns), state: columns == current ? .on : .off) { [weak self] _ in
                 Haptics.selection()
                 Preferences.libraryColumns = columns
                 self?.reconfigure([.libraryGrid])
@@ -336,7 +350,7 @@ final class SettingsViewController: UICollectionViewController {
         case .pro:
             openPro()
         case .manageStorage:
-            tabBarController?.selectedIndex = 2
+            (tabBarController as? TabBarController)?.select(.downloads)
         case .libraries:
             navigationController?.pushViewController(LibrariesViewController(api: api), animated: true)
         case .shareLogs:

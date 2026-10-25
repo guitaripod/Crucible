@@ -45,6 +45,7 @@ final class OfflineHomeViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
         configureNavItems()
         configureDataSource()
@@ -155,15 +156,17 @@ final class OfflineHomeViewController: UICollectionViewController {
     private func createLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             guard let self, let section = dataSource.snapshot().sectionIdentifiers[safe: sectionIndex] else { return nil }
+            let room = Theme.Room(environment)
+            let gutter = room.gutter
             switch section {
             case .banner:
-                return Self.fullWidthSection(estimatedHeight: 64, insets: NSDirectionalEdgeInsets(top: 6, leading: Theme.Space.m, bottom: 0, trailing: Theme.Space.m))
+                return Self.fullWidthSection(estimatedHeight: 64, insets: NSDirectionalEdgeInsets(top: 6, leading: gutter, bottom: 0, trailing: gutter))
             case .hero:
-                return Self.fullWidthSection(estimatedHeight: 220, insets: NSDirectionalEdgeInsets(top: Theme.Space.m, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m))
+                return Self.fullWidthSection(estimatedHeight: 220, insets: NSDirectionalEdgeInsets(top: Theme.Space.m, leading: gutter, bottom: Theme.Space.xs, trailing: gutter))
             case .footer:
-                return Self.fullWidthSection(estimatedHeight: 32, insets: NSDirectionalEdgeInsets(top: Theme.Space.l, leading: Theme.Space.m, bottom: Theme.Space.l, trailing: Theme.Space.m))
+                return Self.fullWidthSection(estimatedHeight: 32, insets: NSDirectionalEdgeInsets(top: Theme.Space.l, leading: gutter, bottom: Theme.Space.l, trailing: gutter))
             case .ready:
-                return Self.railSection(hugeType: environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge)
+                return Self.railSection(room: room, hugeType: environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge)
             }
         }
     }
@@ -177,8 +180,9 @@ final class OfflineHomeViewController: UICollectionViewController {
         return section
     }
 
-    private static func railSection(hugeType: Bool) -> NSCollectionLayoutSection {
-        let height = Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
+    private static func railSection(room: Theme.Room, hugeType: Bool) -> NSCollectionLayoutSection {
+        let width = room.posterRailWidth
+        let height = width * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
         let section: NSCollectionLayoutSection
         if hugeType {
             let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .estimated(height)))
@@ -188,14 +192,14 @@ final class OfflineHomeViewController: UICollectionViewController {
             section = NSCollectionLayoutSection(group: group)
             section.interGroupSpacing = Theme.Space.m
         } else {
-            let size = NSCollectionLayoutSize(widthDimension: .absolute(Theme.Size.posterRailWidth), heightDimension: .estimated(height))
+            let size = NSCollectionLayoutSize(widthDimension: .absolute(width), heightDimension: .estimated(height))
             let item = NSCollectionLayoutItem(layoutSize: size)
             let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
             section = NSCollectionLayoutSection(group: group)
             section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
             section.interGroupSpacing = Theme.Space.s
         }
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: 0, trailing: Theme.Space.m)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: room.gutter, bottom: 0, trailing: room.gutter)
         let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(51))
         section.boundarySupplementaryItems = [
             NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top),

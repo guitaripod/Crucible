@@ -195,7 +195,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				OTHER_SWIFT_FLAGS = "-package-name $(CRUCIBLE_PACKAGE_NAME)";
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -212,7 +212,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				OTHER_SWIFT_FLAGS = "-package-name $(CRUCIBLE_PACKAGE_NAME)";
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};

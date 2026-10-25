@@ -48,6 +48,7 @@ final class SectionHeaderContentView: UIView, UIContentView {
         actionButton.setContentHuggingPriority(.required, for: .horizontal)
         actionButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         actionButton.addAction(UIAction { [weak self] _ in self?.onAction?() }, for: .primaryActionTriggered)
+        actionButton.isPointerInteractionEnabled = true
 
         let stack = UIStackView(arrangedSubviews: [titleLabel, actionButton])
         stack.axis = .horizontal

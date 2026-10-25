@@ -75,8 +75,14 @@ targets:
         NSSupportsLiveActivities: true
         NSUserActivityTypes:
           - com.guitaripod.crucible.viewMedia
+          - com.guitaripod.crucible.window
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIRequiredDeviceCapabilities:
@@ -87,7 +93,7 @@ targets:
               - crucible
         UILaunchScreen: {}
         UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: false
+          UIApplicationSupportsMultipleScenes: true
           UISceneConfigurations: {}
     settings:
       base:
@@ -95,7 +101,7 @@ targets:
         PRODUCT_MODULE_NAME: Crucible
         PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
   CrucibleWidgetsExt:
     type: app-extension
     platform: iOS
@@ -119,7 +125,7 @@ targets:
         PRODUCT_NAME: CrucibleWidgets
         PRODUCT_MODULE_NAME: CrucibleWidgets
         PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.widgets
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
   CrucibleIOSUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -132,7 +138,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.uitests
         GENERATE_INFOPLIST_FILE: YES
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
 schemes:
   CrucibleIOS:
     build:

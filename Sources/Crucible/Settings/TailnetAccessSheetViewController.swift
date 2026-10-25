@@ -18,7 +18,7 @@ final class TailnetAccessSheetViewController: UIViewController {
 
     init() {
         super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
+        modalPresentationStyle = .formSheet
         if let sheet = sheetPresentationController {
             sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
@@ -60,6 +60,7 @@ final class TailnetAccessSheetViewController: UIViewController {
         keysConfig.baseForegroundColor = Theme.Color.accentText
         keysConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 8)
         let keysButton = UIButton(configuration: keysConfig)
+        keysButton.isPointerInteractionEnabled = true
         keysButton.contentHorizontalAlignment = .leading
         keysButton.addAction(UIAction { _ in UIApplication.shared.open(Self.keysPage) }, for: .touchUpInside)
 
@@ -76,6 +77,7 @@ final class TailnetAccessSheetViewController: UIViewController {
         errorLabel.isHidden = true
 
         saveButton.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.primaryButtonHeight).isActive = true
+        saveButton.isPointerInteractionEnabled = true
         saveButton.addAction(UIAction { [weak self] _ in self?.check() }, for: .primaryActionTriggered)
 
         var arranged: [UIView] = [title, intro, steps, keysButton, fieldBox, errorLabel, saveButton]
@@ -84,6 +86,7 @@ final class TailnetAccessSheetViewController: UIViewController {
             removeConfig.title = "Remove Saved Token"
             removeConfig.baseForegroundColor = Theme.Color.destructive
             let remove = UIButton(configuration: removeConfig)
+            remove.isPointerInteractionEnabled = true
             remove.addAction(UIAction { [weak self] _ in self?.removeToken() }, for: .touchUpInside)
             arranged.append(remove)
         }

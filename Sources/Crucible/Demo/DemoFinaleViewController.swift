@@ -25,6 +25,7 @@ final class DemoFinaleViewController: DemoSheetViewController {
         var pro = ThemeButton.glassConfiguration(title: DemoCopy.finalePro, symbol: "sparkles")
         pro.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 24, bottom: 14, trailing: 24)
         let proButton = UIButton(configuration: pro)
+        proButton.isPointerInteractionEnabled = true
         proButton.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.primaryButtonHeight).isActive = true
         proButton.addAction(UIAction { [weak self] _ in
             guard let self else { return }

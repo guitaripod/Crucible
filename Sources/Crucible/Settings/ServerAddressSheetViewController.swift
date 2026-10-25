@@ -35,7 +35,7 @@ final class ServerAddressSheetViewController: UIViewController {
         self.recovery = recovery
         super.init(nibName: nil, bundle: nil)
         field.text = prefill
-        modalPresentationStyle = .pageSheet
+        modalPresentationStyle = .formSheet
         if let sheet = sheetPresentationController {
             sheet.detents = recovery == nil ? [.medium(), .large()] : [.large()]
             sheet.prefersGrabberVisible = true
@@ -156,6 +156,7 @@ final class ServerAddressSheetViewController: UIViewController {
             retryConfig.title = "Search Again"
             retryConfig.baseForegroundColor = Theme.Color.accentText
             let retry = UIButton(configuration: retryConfig)
+            retry.isPointerInteractionEnabled = true
             retry.addAction(UIAction { [weak self] _ in self?.retrySearch() }, for: .touchUpInside)
             actions.insert(retry, at: 0)
         }
@@ -279,6 +280,7 @@ private final class RecoveryStepView: UIView {
             config.baseForegroundColor = Theme.Color.accentText
             config.baseBackgroundColor = Theme.Color.accent
             let button = UIButton(configuration: config)
+            button.isPointerInteractionEnabled = true
             button.addAction(UIAction { _ in action() }, for: .touchUpInside)
             let row = UIStackView(arrangedSubviews: [button, UIView()])
             row.axis = .horizontal

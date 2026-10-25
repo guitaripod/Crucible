@@ -47,6 +47,14 @@ enum SearchCellEffects {
 }
 
 private final class PaddedHitButton: UIButton {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isPointerInteractionEnabled = true
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         let verticalSlop = max(0, (Theme.Size.minTarget - bounds.height) / 2)
         let horizontalSlop = max(0, (Theme.Size.minTarget - bounds.width) / 2)
@@ -122,6 +130,7 @@ final class TopResultContentView: UIView, UIContentView {
 
     private func setupViews() {
         let card = UIView()
+        card.hoverStyle = UIHoverStyle(effect: .highlight, shape: .rect(cornerRadius: 20, cornerCurve: .continuous))
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = 20
         card.layer.cornerCurve = .continuous
@@ -350,6 +359,7 @@ final class SearchEpisodeContentView: UIView, UIContentView {
     deinit { imageTask?.cancel() }
 
     private func setupViews() {
+        hoverStyle = UIHoverStyle(effect: .highlight, shape: .rect(cornerRadius: 10, cornerCurve: .continuous))
         thumbView.contentMode = .scaleAspectFill
         thumbView.clipsToBounds = true
         thumbView.backgroundColor = Theme.Color.surfaceRaised
@@ -476,6 +486,7 @@ final class SearchGenreContentView: UIView, UIContentView {
         layer.masksToBounds = true
         layer.borderWidth = 1
         layer.borderColor = Theme.Color.artHairline.cgColor
+        liftsOnHover(cornerRadius: Theme.Radius.m)
 
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint = CGPoint(x: 1, y: 1)
@@ -511,6 +522,7 @@ final class SearchGenreContentView: UIView, UIContentView {
         gradientLayer.frame = bounds
         scrimLayer.frame = bounds
         CATransaction.commit()
+        ringsFocus(around: self, cornerRadius: Theme.Radius.m)
     }
 
     private func apply() {
@@ -556,6 +568,7 @@ final class SearchChipContentView: UIView, UIContentView {
         backgroundColor = Theme.Color.surfaceRaised
         layer.cornerRadius = FilterChipsView.height / 2
         layer.cornerCurve = .continuous
+        hoverStyle = UIHoverStyle(effect: .highlight, shape: .capsule)
         layer.borderWidth = 1
         layer.borderColor = Theme.Color.separator.cgColor
 

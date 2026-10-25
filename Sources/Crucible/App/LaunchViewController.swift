@@ -132,6 +132,7 @@ final class LaunchViewController: UIViewController {
         retryButton.configuration = retry
         retryButton.tintColor = Theme.Color.accent
         retryButton.addAction(UIAction { [weak self] _ in self?.onRetry?() }, for: .touchUpInside)
+        retryButton.isPointerInteractionEnabled = true
 
         var switchConfig = Glass.glassButton {
             var fallback = UIButton.Configuration.gray()
@@ -147,6 +148,7 @@ final class LaunchViewController: UIViewController {
         applySwitchTitle()
         switchButton.tintColor = Theme.Color.onArt
         switchButton.addAction(UIAction { [weak self] _ in self?.onSwitchServer?() }, for: .touchUpInside)
+        switchButton.isPointerInteractionEnabled = true
 
         var downloads = UIButton.Configuration.plain()
         downloads.title = "Watch Downloads Offline"
@@ -155,6 +157,7 @@ final class LaunchViewController: UIViewController {
         downloads.baseForegroundColor = Theme.Color.onArtSecondary
         downloadsButton.configuration = downloads
         downloadsButton.addAction(UIAction { [weak self] _ in self?.onOpenDownloads?() }, for: .touchUpInside)
+        downloadsButton.isPointerInteractionEnabled = true
 
         actions.axis = .vertical
         actions.spacing = 12

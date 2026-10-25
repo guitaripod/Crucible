@@ -14,6 +14,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     private let session: SearchSession
     private var downloadObserver: UUID?
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.dataSource.itemIdentifier(for: indexPath)?.metadata }
     private var tourSearchTask: Task<Void, Never>?
     private var isTourSearchPending = false
 
@@ -45,6 +46,8 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
         configureSearchController()
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         collectionView.keyboardDismissMode = .onDrag
         collectionView.collectionViewLayout = createLayout()
         configureDataSource()
@@ -109,10 +112,10 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     private func layoutSection(for section: SearchSection, environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let layoutSection: NSCollectionLayoutSection
         switch section {
-        case .recent: layoutSection = chipsSection()
-        case .browse: layoutSection = browseSection()
-        case .topResult: layoutSection = topResultSection()
-        case .episodes: layoutSection = episodesSection()
+        case .recent: layoutSection = chipsSection(environment)
+        case .browse: layoutSection = browseSection(environment)
+        case .topResult: layoutSection = topResultSection(environment)
+        case .episodes: layoutSection = episodesSection(environment)
         case .recentlyAdded: layoutSection = posterSection(environment: environment, forceGrid: false)
         case .movies, .shows: layoutSection = posterSection(environment: environment, forceGrid: scope != .all)
         }
@@ -126,43 +129,56 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         return layoutSection
     }
 
-    private func chipsSection() -> NSCollectionLayoutSection {
+    private func chipsSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let gutter = Theme.Room(environment).gutter
         let size = NSCollectionLayoutSize(widthDimension: .estimated(80), heightDimension: .estimated(FilterChipsView.height))
         let item = NSCollectionLayoutItem(layoutSize: size)
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
         section.orthogonalScrollingBehavior = .continuous
         section.interGroupSpacing = Theme.Space.xs
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: gutter, bottom: Theme.Space.xs, trailing: gutter)
         return section
     }
 
-    private func browseSection() -> NSCollectionLayoutSection {
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .estimated(76))
+    /// Two genre tiles to a row on a phone, three or four across a large screen.
+    private func browseSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let room = Theme.Room(environment)
+        let columns = room == .compact ? 2 : (room == .regular ? 3 : 4)
+        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1 / CGFloat(columns)), heightDimension: .estimated(76))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
         let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(76))
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: 2)
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: columns)
         group.interItemSpacing = .fixed(Theme.Space.xs)
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = Theme.Space.xs
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: room.gutter, bottom: Theme.Space.xs, trailing: room.gutter)
         return section
     }
 
-    private func topResultSection() -> NSCollectionLayoutSection {
+    private func topResultSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(138))
         let item = NSCollectionLayoutItem(layoutSize: size)
         let section = NSCollectionLayoutSection(group: .vertical(layoutSize: size, subitems: [item]))
-        section.contentInsets = NSDirectionalEdgeInsets(top: Theme.Space.s, leading: Theme.Space.m, bottom: 0, trailing: Theme.Space.m)
+        var insets = Theme.sideInsets(environment, maxWidth: Theme.readableWidth)
+        insets.top = Theme.Space.s
+        section.contentInsets = insets
         return section
     }
 
-    private func episodesSection() -> NSCollectionLayoutSection {
-        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(58))
-        let item = NSCollectionLayoutItem(layoutSize: size)
-        let section = NSCollectionLayoutSection(group: .vertical(layoutSize: size, subitems: [item]))
+    /// One episode to a row on a phone, two side by side once the screen is wide enough to keep each row readable.
+    private func episodesSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let columns = Theme.Room(environment) == .compact ? 1 : 2
+        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1 / CGFloat(columns)), heightDimension: .estimated(58))
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(58))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: columns)
+        group.interItemSpacing = .fixed(Theme.Space.l)
+        let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = Theme.Space.s
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: Theme.Space.m, trailing: Theme.Space.m)
+        var insets = Theme.sideInsets(environment)
+        insets.bottom = Theme.Space.m
+        section.contentInsets = insets
         return section
     }
 
@@ -171,14 +187,15 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         if forceGrid || isAccessibilitySize {
             return Theme.gridLayout(environment: environment)
         }
-        let height = Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
-        let size = NSCollectionLayoutSize(widthDimension: .absolute(Theme.Size.posterRailWidth), heightDimension: .estimated(height))
+        let room = Theme.Room(environment)
+        let height = room.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight
+        let size = NSCollectionLayoutSize(widthDimension: .absolute(room.posterRailWidth), heightDimension: .estimated(height))
         let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1)))
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
         section.orthogonalScrollingBehavior = .continuous
         section.interGroupSpacing = Theme.Space.s
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: Theme.Space.m, bottom: Theme.Space.m, trailing: Theme.Space.m)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: room.gutter, bottom: Theme.Space.m, trailing: room.gutter)
         return section
     }
 
@@ -336,6 +353,15 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         updateSearchResults(for: searchController)
     }
 
+    /// Puts the cursor in the search field, for Command-F.
+    func activateSearchField() {
+        loadViewIfNeeded()
+        searchController.isActive = true
+        DispatchQueue.main.async { [searchController] in
+            searchController.searchBar.becomeFirstResponder()
+        }
+    }
+
     func updateSearchResults(for searchController: UISearchController) {
         session.update(query: searchController.searchBar.text, scope: scope)
     }
@@ -479,7 +505,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         guard let metadata = item.metadata else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
-            return UIMenu(children: self.menuActions(for: metadata))
+            return UIMenu(children: self.menuActions(for: metadata)).addingNewWindow(for: metadata)
         })
     }
 

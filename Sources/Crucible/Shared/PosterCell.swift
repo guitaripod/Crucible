@@ -80,7 +80,13 @@ final class PosterContentView: UIView, UIContentView {
 
     deinit { imageTask?.cancel() }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        ringsFocus(around: cardView, cornerRadius: Theme.Radius.s)
+    }
+
     private func setupViews() {
+        cardView.liftsOnHover(cornerRadius: Theme.Radius.s)
         cardView.layer.cornerRadius = Theme.Radius.s
         cardView.layer.cornerCurve = .continuous
         cardView.layer.borderWidth = 1
@@ -228,6 +234,7 @@ final class PosterContentView: UIView, UIContentView {
         config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         playChip.configuration = config
         playChip.accessibilityLabel = "Play"
+        playChip.isPointerInteractionEnabled = true
         playChip.addAction(UIAction { [weak self] _ in self?.onQuickPlay?() }, for: .primaryActionTriggered)
     }
 

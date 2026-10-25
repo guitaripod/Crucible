@@ -269,6 +269,7 @@ final class DetailNavigationChrome {
         config.image = UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .bold))
         playButton = UIButton(configuration: config)
         playButton.translatesAutoresizingMaskIntoConstraints = false
+        playButton.isPointerInteractionEnabled = true
         NSLayoutConstraint.activate([
             playButton.widthAnchor.constraint(equalToConstant: 32),
             playButton.heightAnchor.constraint(equalToConstant: 32),
@@ -357,11 +358,13 @@ final class DetailHeroCoordinator {
         minimumHeroCellHeight = computedMinimumHeroCellHeight(collectionView)
     }
 
+    /// A phone shows the artwork at the screen's own ratio; a large screen shows it at 16:9 and leaves room for the title's actions below.
     func restHeight(for collectionView: UICollectionView) -> CGFloat {
         let size = collectionView.bounds.size
         guard size.width > 0 else { return 0 }
-        let byWidth = size.width * heightRatio
-        let byHeight = size.height * 0.68
+        let compact = Theme.Room(width: size.width, height: size.height) == .compact
+        let byWidth = size.width * (compact ? heightRatio : 9 / 16)
+        let byHeight = size.height * (compact ? 0.68 : 0.6)
         return floor(min(byWidth, byHeight))
     }
 

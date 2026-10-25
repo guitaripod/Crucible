@@ -14,6 +14,7 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private var loadTask: Task<Void, Never>?
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
     init(api: APIClient, sectionId: String, kind: LibraryGridKind, items: [PlexMetadata]) {
         self.api = api
@@ -35,6 +36,8 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
         super.viewDidLoad()
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         view.backgroundColor = Theme.Color.canvas
         configureDataSource()
         apply(items)
@@ -122,8 +125,12 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
                 api: api,
                 open: { [weak self] in self?.navigationController?.pushViewController($0, animated: true) },
                 play: { [weak self] item in self?.play(item) }
-            )
+            ).addingNewWindow(for: item)
         })
+    }
+
+    private func media(at indexPath: IndexPath) -> PlexMetadata? {
+        dataSource.itemIdentifier(for: indexPath).flatMap { itemsById[$0] }
     }
 
     private func play(_ item: PlexMetadata) {

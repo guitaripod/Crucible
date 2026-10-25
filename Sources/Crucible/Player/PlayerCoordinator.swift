@@ -7,6 +7,8 @@ import CrucibleMedia
 @MainActor
 final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
     private static weak var resolvingCoordinator: PlayerCoordinator?
+    /// The player that started last. On iPad each window can hold a player; starting one pauses the other, so only one plays at a time.
+    private static weak var playingCoordinator: PlayerCoordinator?
 
     typealias Metadata = PlaybackMetadata
 
@@ -26,10 +28,13 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var isFinishing = false
     private var lastOfflineWrite: Double = 0
     private var skipPill: SkipPillView?
+    private var shownSkip: (title: String, target: Double)?
+    private var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
     private var isInPiP = false
     private var pipRestoreInProgress = false
     private weak var presentingVC: UIViewController?
+    private weak var windowScene: UIWindowScene?
     private var nextCoordinator: PlayerCoordinator?
     private weak var spinnerView: UIActivityIndicatorView?
     var onAdvanceToNext: ((PlayerCoordinator) -> Void)?
@@ -146,6 +151,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             isPresenting = false
             return
         }
+        if let other = Self.playingCoordinator, other !== self {
+            other.session.player?.pause()
+        }
+        Self.playingCoordinator = self
 
         let playerVC = AVPlayerViewController()
         playerVC.player = player
@@ -171,10 +180,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             )
         }
 
+        windowScene = viewController.view.window?.windowScene
         setupForegroundObserver()
         observeSuspension()
         observeEvents()
 
+        if let title = request.metadata?.title {
+            windowScene?.title = title
+        }
         viewController.present(playerVC, animated: true) {
             DemoTour.shared.record(.play)
         }
@@ -229,8 +242,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private func setupForegroundObserver() {
         foregroundObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.didBecomeActiveNotification,
-            object: nil,
+            forName: UIScene.didActivateNotification,
+            object: windowScene,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
@@ -240,19 +253,33 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
     }
 
-    /// A paused player is held at its position while the app is away and put back there on return, which
+    /// A paused player is held at its position while its window is away and put back there on return, which
     /// rebuilds a transcode the server reaped meanwhile; one that plays on in the background (audio,
-    /// Picture-in-Picture) is only saved and reported.
+    /// Picture-in-Picture) is only saved and reported. These follow the player's own window, so on iPad
+    /// that window going to the background counts as leaving even while another Crucible window stays
+    /// up, and closing the window ends playback.
     private func observeSuspension() {
         let center = NotificationCenter.default
         suspensionObservers = [
-            center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            center.addObserver(forName: UIScene.didEnterBackgroundNotification, object: windowScene, queue: .main) { [weak self] _ in
                 Task { @MainActor in await self?.suspendSession() }
             },
-            center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+            center.addObserver(forName: UIScene.willEnterForegroundNotification, object: windowScene, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.session.recoverAfterSuspension() }
             },
+            center.addObserver(forName: UIScene.didDisconnectNotification, object: windowScene, queue: .main) { [weak self] _ in
+                guard let self else { return }
+                Task { @MainActor in await self.windowClosed() }
+            },
         ]
+    }
+
+    /// A closed window takes its player with it: the session is stopped and reported like a dismissal, so the server
+    /// ends the transcode and keeps the position.
+    private func windowClosed() async {
+        AppLogger.notice("Player window closed ratingKey=\(request.ratingKey)", .playback)
+        isInPiP = false
+        await dismissPlayer()
     }
 
     private func suspendSession() async {
@@ -300,6 +327,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             self?.skip(to: target)
         }
         pill.update(title: marker.title, accessibilityTitle: marker.title, progress: progress)
+        shownSkip = (marker.title, target)
     }
 
     private func skip(to target: Double) {
@@ -310,6 +338,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func removeSkipButton() {
         skipPill?.dismiss(animated: true)
         skipPill = nil
+        shownSkip = nil
     }
 
     private func presentUpNext(_ offer: UpNextOffer) {
@@ -338,6 +367,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         )
         overlay.present(in: host)
         upNextOverlay = overlay
+        shownUpNext = offer
         session.setUpNextVisible(true)
         overlay.startCountdown()
     }
@@ -390,6 +420,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func removeUpNextOverlay() {
         upNextOverlay?.dismiss()
         upNextOverlay = nil
+        shownUpNext = nil
         session.setUpNextVisible(false)
     }
 
@@ -444,6 +475,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         removeUpNextOverlay()
         skipPill?.dismiss(animated: false)
         skipPill = nil
+        shownSkip = nil
         removeSkipToast(animated: false)
         pendingUpNext = nil
         eventsTask?.cancel()
@@ -467,6 +499,29 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
         playerVC = nil
         isPresenting = false
+        (presentingVC?.tabBarController as? TabBarController)?.updateWindowTitle()
+    }
+
+    // MARK: - Keyboard
+
+    /// What the on-screen skip button offers right now ("Skip Intro"), so the keyboard can take it too.
+    var skipTitle: String? { shownSkip?.title }
+
+    var offersNextEpisode: Bool { shownUpNext != nil }
+
+    func performShownSkip() {
+        guard let shownSkip else { return }
+        Haptics.light()
+        skip(to: shownSkip.target)
+    }
+
+    func close() {
+        Task { await dismissPlayer() }
+    }
+
+    func playOfferedNextEpisode() {
+        guard let shownUpNext else { return }
+        playNext(shownUpNext)
     }
 
 }

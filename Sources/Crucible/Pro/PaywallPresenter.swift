@@ -54,7 +54,9 @@ enum PaywallPresenter {
     /// The end of the presented chain of the active window: a sheet over a sheet over a tab.
     private static func topMostViewController() -> UIViewController? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        let scene = scenes.first { $0.activationState == .foregroundActive && $0.keyWindow != nil }
+            ?? scenes.first { $0.activationState == .foregroundActive }
+            ?? scenes.first
         guard let window = scene?.windows.first(where: \.isKeyWindow) ?? scene?.windows.first else { return nil }
         var top = window.rootViewController
         while let presented = top?.presentedViewController {

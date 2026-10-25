@@ -299,6 +299,7 @@ final class UpNextOverlayView: UIView {
             return outgoing
         }
         let button = UIButton(configuration: config)
+        button.isPointerInteractionEnabled = true
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.buttonHeight).isActive = true
         button.addAction(UIAction { [weak self] _ in self?.finish(play: false) }, for: .primaryActionTriggered)
         return button

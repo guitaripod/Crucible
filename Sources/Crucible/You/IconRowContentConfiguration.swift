@@ -157,6 +157,7 @@ final class IconRowContentView: UIView, UIContentView {
         ])
 
         menuButton.showsMenuAsPrimaryAction = true
+        menuButton.isPointerInteractionEnabled = true
         menuButton.configurationUpdateHandler = { button in
             var config = button.configuration
             config?.background.backgroundColor = button.isHighlighted ? Theme.Color.separator : .clear

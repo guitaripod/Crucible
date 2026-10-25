@@ -40,6 +40,7 @@ final class StatsRangeChipsView: UIView {
 
         for range in StatsRange.allCases {
             let button = UIButton(configuration: .plain())
+            button.isPointerInteractionEnabled = true
             button.addAction(UIAction { [weak self] _ in
                 Haptics.selection()
                 self?.onRange?(range)

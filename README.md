@@ -1,6 +1,6 @@
 # Crucible
 
-A fast, native Plex client for iPhone and Apple TV — offline downloads, Skip Intro, Picture-in-Picture, lock-screen controls and Handoff on iPhone; a focus-driven Liquid Glass living-room app on Apple TV. The iPhone app is built entirely on Arch Linux.
+A fast, native Plex client for iPhone, iPad and Apple TV — offline downloads, Skip Intro, Picture-in-Picture, lock-screen controls and Handoff on iPhone; the same app on iPad with a library sidebar, several windows, a menu bar and keyboard shortcuts; a focus-driven Liquid Glass living-room app on Apple TV. The iPhone app is built entirely on Arch Linux.
 
 **[Crucible for Plex on the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419)** — free for iPhone and Apple TV, with an optional Crucible Pro (unlimited downloads, full Statistics, the Year in Review poster, Top Shelf; pay once or subscribe yearly, one purchase for both). No server yet? Choose *Try the demo* on the welcome screen. The source is GPL-3.0, and a build from source is fully unlocked.
 
@@ -70,6 +70,16 @@ A proper download engine — not the afterthought the official app ships.
 - **Choose your libraries** — Settings › Libraries, or the filter in Statistics, picks which libraries appear on Home and count toward your statistics; libraries Plex hides from Home start switched off
 - **Handoff & Spotlight** — hand a title between devices, find recently-viewed media in iOS search
 - **Surprise Me** random picker
+
+### iPad
+
+The iPhone app is universal, and every screen lays out by the room its window has, so Split View, Slide Over, a small window and a full 13-inch screen each get a layout made for them.
+
+- **Sidebar** — Home, Downloads, You, Search and each Plex library on its own row; the tab bar keeps a single Library tab in narrow windows
+- **Large-screen layouts** — bigger rails and posters, grids that add columns as the window grows, 16:9 detail artwork with a readable column of text and controls, centred lists, and a Statistics dashboard with four tiles a row
+- **Windows** — open any title in a new window from its menu or by dragging its card to the edge of the screen; each window keeps its own tab and title across launches, is named after what it shows, and stops its own player when it closes
+- **Magic Keyboard** — a full menu bar: Command-1 to 4 for the tabs, Command-F to search, Command-[ to go back, Command-R to refresh, Command-plus and minus for poster size, Space to play or resume, S to skip the intro, N for the next episode, Escape to close the player, Command-comma for Settings; arrow and Tab keys move through every grid and list
+- **Pointer** — posters and cards lift under the trackpad and Apple Pencil hover, rows and chips highlight, right-click opens every context menu
 
 ### Apple TV
 

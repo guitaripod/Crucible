@@ -70,10 +70,12 @@ final class ServerDetailViewController: UIViewController {
             if section == .test {
                 layoutSection.contentInsets.top = Theme.Space.s
             }
+            Theme.centerReadable(layoutSection, environment)
             return layoutSection
         }
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
         collectionView.delegate = self
         collectionView.alwaysBounceVertical = true
@@ -219,6 +221,7 @@ final class ServerDetailViewController: UIViewController {
     private func presentAddServer() {
         guard let token = model.authToken else { return }
         let sheet = AddServerSheetViewController(token: token)
+        sheet.modalPresentationStyle = .formSheet
         sheet.onSaved = { [weak self] in self?.reconfigureRoot() }
         if let presentation = sheet.sheetPresentationController {
             presentation.detents = [.medium()]

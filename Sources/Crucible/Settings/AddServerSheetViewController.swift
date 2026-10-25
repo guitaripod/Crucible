@@ -53,6 +53,7 @@ final class AddServerSheetViewController: UIViewController {
 
         connectButton.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.primaryButtonHeight).isActive = true
         connectButton.addAction(UIAction { [weak self] _ in self?.connect() }, for: .primaryActionTriggered)
+        connectButton.isPointerInteractionEnabled = true
 
         let stack = UIStackView(arrangedSubviews: [titleLabel, hintLabel, fieldBox, errorLabel, connectButton])
         stack.axis = .vertical

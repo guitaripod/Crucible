@@ -56,7 +56,13 @@ final class LandscapeContentView: UIView, UIContentView {
 
     deinit { imageTask?.cancel() }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        ringsFocus(around: cardView, cornerRadius: 12)
+    }
+
     private func setupViews() {
+        cardView.liftsOnHover(cornerRadius: 12)
         cardView.layer.cornerRadius = 12
         cardView.layer.cornerCurve = .continuous
         cardView.layer.borderWidth = 1

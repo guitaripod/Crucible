@@ -11,6 +11,7 @@ final class HomeSectionGridViewController: UICollectionViewController {
     private var mediaById: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
     init(api: APIClient, title: String, bucket: HomeBucket, items: [PlexMetadata], onChange: @escaping @MainActor () -> Void) {
         self.api = api
@@ -30,6 +31,8 @@ final class HomeSectionGridViewController: UICollectionViewController {
         super.viewDidLoad()
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         view.backgroundColor = Theme.Color.canvas
         configureDataSource()
         update(items: items)
@@ -91,8 +94,12 @@ final class HomeSectionGridViewController: UICollectionViewController {
                 navigation: { [weak self] in self?.navigationController },
                 play: { [weak self] item in self?.play(item) },
                 didChange: { [weak self] in self?.onChange() }
-            )
+            ).addingNewWindow(for: item)
         })
+    }
+
+    private func media(at indexPath: IndexPath) -> PlexMetadata? {
+        dataSource.itemIdentifier(for: indexPath).flatMap { mediaById[$0] }
     }
 
     private func play(_ item: PlexMetadata) {

@@ -38,6 +38,7 @@ final class YouViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
 
         collectionView.collectionViewLayout = makeLayout()
@@ -82,23 +83,31 @@ final class YouViewController: UICollectionViewController {
         UICollectionViewCompositionalLayout { [weak self] index, environment in
             let section = self?.dataSource?.sectionIdentifier(for: index)
             if section == .year {
-                return Self.yearSection()
+                return Self.yearSection(environment)
             }
             let list = NSCollectionLayoutSection.list(using: .wellRows(), layoutEnvironment: environment)
             var insets = list.contentInsets
             insets.top = section == .demo || (section == .profile && self?.isInDemo == false) ? 14 : 16
             insets.bottom = 0
             list.contentInsets = insets
+            Theme.centerReadable(list, environment)
             return list
         }
     }
 
-    private static func yearSection() -> NSCollectionLayoutSection {
+    /// The year card lines up with the rows under it: 16 points on a phone, the list's own margins and readable width on a large screen.
+    private static func yearSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(176))
         let item = NSCollectionLayoutItem(layoutSize: size)
         let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 0, trailing: 16)
+        if Theme.Room(environment) != .compact {
+            let rows = NSCollectionLayoutSection.list(using: .wellRows(), layoutEnvironment: environment).contentInsets
+            section.contentInsets.leading = rows.leading
+            section.contentInsets.trailing = rows.trailing
+            Theme.centerReadable(section, environment)
+        }
         return section
     }
 

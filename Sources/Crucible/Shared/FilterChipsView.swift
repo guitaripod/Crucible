@@ -81,6 +81,7 @@ final class FilterChipsView: UIView {
         }
 
         let button = UIButton(configuration: config)
+        button.isPointerInteractionEnabled = true
         button.accessibilityTraits = chip.isSelected ? [.button, .selected] : .button
         if let menu = chip.menu {
             button.menu = menu

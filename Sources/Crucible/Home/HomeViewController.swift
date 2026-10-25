@@ -29,7 +29,9 @@ final class HomeViewController: UICollectionViewController {
     private var isShowingSkeleton = false
     private var skipNextAppearanceLoad = false
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
     private weak var sectionGrid: HomeSectionGridViewController?
+    private var heroHeight: CGFloat = 0
 
     init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
@@ -54,6 +56,8 @@ final class HomeViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         collectionView.showsVerticalScrollIndicator = false
         configureNavButtons()
         configureDataSource()
@@ -92,6 +96,23 @@ final class HomeViewController: UICollectionViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
+    }
+
+    /// The hero grows with the window, so a resize or a rotation re-measures it. The pass can run inside a snapshot apply, so the
+    /// hero is reconfigured once it is over rather than reentrantly.
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let height = Theme.heroHeight(width: collectionView.bounds.width, height: collectionView.bounds.height)
+        guard abs(height - heroHeight) > 0.5 else { return }
+        heroHeight = height
+        Task { @MainActor [weak self] in self?.reconfigureHero() }
+    }
+
+    private func reconfigureHero() {
+        var snapshot = dataSource.snapshot()
+        guard snapshot.sectionIdentifiers.contains(.hero) else { return }
+        snapshot.reconfigureItems(snapshot.itemIdentifiers(inSection: .hero))
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     // MARK: - Snapshot cache
@@ -182,6 +203,7 @@ final class HomeViewController: UICollectionViewController {
             guard let self,
                   let section = dataSource.snapshot().sectionIdentifiers[safe: sectionIndex] else { return nil }
             let hugeType = environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge
+            let room = Theme.Room(environment)
             switch section {
             case .skeleton:
                 let layoutSection = Self.fullWidthSection(estimatedHeight: 420)
@@ -189,23 +211,30 @@ final class HomeViewController: UICollectionViewController {
                 return layoutSection
             case .hero:
                 let layoutSection = Self.fullWidthSection(estimatedHeight: Theme.Size.heroCardHeight)
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
+                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: room.gutter, bottom: Theme.Space.xs, trailing: room.gutter)
                 return layoutSection
             case .week:
                 let layoutSection = Self.fullWidthSection(estimatedHeight: 96)
-                layoutSection.contentInsets = NSDirectionalEdgeInsets(top: Theme.Space.m, leading: Theme.Space.m, bottom: Theme.Space.xs, trailing: Theme.Space.m)
+                var insets = Theme.sideInsets(environment)
+                insets.top = Theme.Space.m
+                insets.bottom = Theme.Space.xs
+                layoutSection.contentInsets = insets
                 return layoutSection
             case .continueWatching:
+                let width = room.landscapeCardWidth
                 return Theme.railSection(
-                    width: Theme.Size.landscapeCardWidth,
-                    estimatedHeight: Theme.Size.landscapeCardHeight + 52,
-                    columns: hugeType ? 1 : nil
+                    width: width,
+                    estimatedHeight: width * 9 / 16 + 52,
+                    columns: hugeType ? 1 : nil,
+                    gutter: room.gutter
                 )
             case .upNext, .recentlyAdded:
+                let width = room.posterRailWidth
                 return Theme.railSection(
-                    width: Theme.Size.posterRailWidth,
-                    estimatedHeight: Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
-                    columns: hugeType ? 2 : nil
+                    width: width,
+                    estimatedHeight: width * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
+                    columns: hugeType ? 2 : nil,
+                    gutter: room.gutter
                 )
             }
         }
@@ -296,6 +325,7 @@ final class HomeViewController: UICollectionViewController {
         config.trailingText = model.trailingText
         config.progress = model.progress
         config.spokenLabel = model.spokenLabel
+        config.minimumHeight = Theme.heroHeight(width: collectionView.bounds.width, height: collectionView.bounds.height)
         config.onPrimary = { [weak self] in self?.play(id: id) }
         config.onDetails = { [weak self] in self?.openDetail(id: id) }
         return config
@@ -354,7 +384,7 @@ final class HomeViewController: UICollectionViewController {
 
     // MARK: - Surprise Me
 
-    private func surprise(_ kind: SurpriseMe.Kind) {
+    func surprise(_ kind: SurpriseMe.Kind) {
         Haptics.selection()
         guard surpriseTask == nil else { return }
         surpriseTask = Task { [weak self] in
@@ -510,8 +540,13 @@ final class HomeViewController: UICollectionViewController {
                 navigation: { [weak self] in self?.navigationController },
                 play: { [weak self] item in self?.play(id: item.id) },
                 didChange: { [weak self] in self?.loadData() }
-            )
+            ).addingNewWindow(for: media)
         })
+    }
+
+    private func media(at indexPath: IndexPath) -> PlexMetadata? {
+        guard case .media(let id, _) = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return feed.item(id: id)
     }
 
     private func showAll(_ bucket: HomeBucket) {
@@ -559,6 +594,32 @@ final class HomeViewController: UICollectionViewController {
         }
         Haptics.light()
         playerCoordinator = Theme.quickPlay(api: api, item: media, from: self)
+    }
+}
+
+extension HomeViewController: CommandHandling {
+    func canPerform(_ command: AppCommand) -> Bool {
+        switch command {
+        case .refresh: return !isShowingSkeleton
+        case .play: return feed.arrangement.hero ?? feed.arrangement.continueRail.first != nil
+        default: return false
+        }
+    }
+
+    func perform(_ command: AppCommand) {
+        switch command {
+        case .refresh:
+            loadData()
+            loadWeek()
+        case .play: playHighlightedTitle()
+        default: break
+        }
+    }
+
+    /// Space resumes what the Home hero offers, named in the menu bar.
+    func title(for command: AppCommand) -> String? {
+        guard command == .play, let item = feed.arrangement.hero ?? feed.arrangement.continueRail.first else { return nil }
+        return "\(feed.heroModel(for: item).actionTitle) \u{201C}\(item.grandparentTitle ?? item.title)\u{201D}"
     }
 }
 

@@ -8,12 +8,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private var pendingActivity: NSUserActivity?
     private var launchTask: Task<Void, Never>?
 
+    /// The window that connects to the server on behalf of every window. The others hold their launch screen and take its result, so
+    /// several windows never validate the route or fetch the library at the same time.
+    private static weak var launchLeader: SceneDelegate?
+    /// What the last successful connection produced, kept so a window opened later shows the library at once.
+    private static var latestPayload: LaunchPayload?
+    private static let minimumWindowSize = CGSize(width: 320, height: 480)
+
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
+        windowScene.sizeRestrictions?.minimumSize = Self.minimumWindowSize
         let window = UIWindow(windowScene: windowScene)
         window.tintColor = Theme.Color.accent
         AppearanceController.apply(to: window)
@@ -21,21 +29,54 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         window.makeKeyAndVisible()
 
-        if let activity = connectionOptions.userActivities.first {
-            pendingActivity = activity
+        pendingActivity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
+        AppLogger.notice("Window connected (\(UIApplication.shared.connectedScenes.count) open, activity: \(pendingActivity?.activityType ?? "none"))", .lifecycle)
+        connectToLibrary()
+    }
+
+    /// A new window joins whatever the app is doing: the library when another window already shows it, the connection in progress, or a
+    /// fresh connection when nothing is running.
+    private func connectToLibrary() {
+        if let payload = Self.latestPayload {
+            adopt(payload, freshHome: false)
+        } else if Self.launchLeader != nil {
+            follow()
+        } else {
+            reconfigureRoot()
         }
-        reconfigureRoot()
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         route(userActivity)
     }
 
+    func stateRestorationActivity(for scene: UIScene) -> NSUserActivity? {
+        (window?.rootViewController as? TabBarController)?.restorationActivity()
+    }
+
     func sceneWillEnterForeground(_ scene: UIScene) {
+        guard Self.isFirstWindowInForeground(scene) else { return }
         DownloadManager.shared.handleEnteredForeground()
         ProAccess.shared.refresh()
         AutoDownloadPolicy.shared.evaluateOnForeground()
         refreshDemoLibrary()
+    }
+
+    /// The work that follows the app coming back runs once, for the first window to return, not again for every other window.
+    private static func isFirstWindowInForeground(_ scene: UIScene) -> Bool {
+        !UIApplication.shared.connectedScenes.contains { other in
+            other !== scene && (other.activationState == .foregroundActive || other.activationState == .foregroundInactive)
+        }
+    }
+
+    /// A window closed while it was connecting hands the connection to another window, so the rest never wait on a launch nobody runs.
+    func sceneDidDisconnect(_ scene: UIScene) {
+        AppLogger.notice("Window closed", .lifecycle)
+        guard Self.launchLeader === self else { return }
+        launchTask?.cancel()
+        launchTask = nil
+        Self.launchLeader = nil
+        Self.otherWindows(than: self).first?.reconfigureRoot()
     }
 
     /// The demo library lives inside the app, so a long stay in the background can end it. Coming back asks it to start again, and if it
@@ -51,16 +92,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func route(_ activity: NSUserActivity) {
-        guard let target = MediaActivity.route(activity) else { return }
         guard let tabBar = window?.rootViewController as? TabBarController else {
             pendingActivity = activity
             return
         }
-        tabBar.openMedia(ratingKey: target.ratingKey, mediaType: target.mediaType)
+        tabBar.restore(from: activity)
     }
 
+    /// Starts over in every window: this one connects, the others wait on it and then show what it found.
     func reconfigureRoot() {
         launchTask?.cancel()
+        Self.latestPayload = nil
+        Self.launchLeader = self
+        Self.otherWindows(than: self).forEach { $0.follow() }
         guard DemoMode.shared.isActive else {
             showConnectionOrSetup()
             return
@@ -68,19 +112,39 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         resumeDemo()
     }
 
+    private static func otherWindows(than scene: SceneDelegate) -> [SceneDelegate] {
+        UIApplication.shared.connectedScenes.compactMap { $0.delegate as? SceneDelegate }.filter { $0 !== scene }
+    }
+
+    private var followers: [SceneDelegate] {
+        Self.launchLeader === self ? Self.otherWindows(than: self) : []
+    }
+
+    /// Waits on the window that connects. A sign-in already on screen stays, so whatever was typed there is kept.
+    private func follow() {
+        launchTask?.cancel()
+        launchTask = nil
+        guard !isShowingServerSetup else { return }
+        launchGate().showLoading(status: "Connecting…")
+    }
+
+    private var isShowingServerSetup: Bool {
+        (window?.rootViewController as? UINavigationController)?.viewControllers.first is ServerSetupViewController
+    }
+
     private func showConnectionOrSetup() {
         if let connection = ServerBootstrap.connection() {
             launch(connection: connection)
         } else {
             showServerSetup()
+            followers.forEach { $0.showServerSetup() }
         }
     }
 
     /// A demo that was running when the app last quit starts its library again before anything is shown, because the library comes back
     /// on a new address. When it cannot, the app falls back to the welcome screen like after a sign-out.
     private func resumeDemo() {
-        let gate = (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
-        gate.showLoading(status: DemoPhoneCopy.startingStatus)
+        showLoading(DemoPhoneCopy.startingStatus)
         launchTask = Task { @MainActor [weak self] in
             let resumed = await DemoMode.shared.resume()
             guard !Task.isCancelled, let self else { return }
@@ -89,33 +153,68 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
+    private func showLoading(_ status: String) {
+        launchGate().showLoading(status: status)
+        followers.forEach { $0.launchGate().showLoading(status: status) }
+    }
+
     /// The main UI is never on screen with a broken connection: the launch screen holds until the
     /// route is validated (healing it if needed) and both Home and Library payloads are in hand.
     private func launch(connection: PlexConnection) {
         AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, .phone)
-        let gate = (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
-        gate.showLoading(status: "Connecting to \(connection.serverName)…")
+        let gate = launchGate()
+        showLoading("Connecting to \(connection.serverName)…")
         launchTask = Task { @MainActor [weak self, weak gate] in
             let outcome = await AppLaunchSession.run(connection: connection) { message in
-                Task { @MainActor in gate?.showLoading(status: message) }
+                Task { @MainActor in self?.showLoading(message) }
             }
             guard !Task.isCancelled, let self, let gate else { return }
+            launchTask = nil
             switch outcome {
             case .success(let payload):
                 let tabBar = self.buildMainApp(payload)
+                let followers = self.followers
+                Self.launchLeader = nil
+                Self.latestPayload = payload
                 gate.playSuccess { [weak self] in
                     self?.present(root: tabBar)
                 }
+                followers.forEach { $0.adopt(payload, freshHome: true) }
             case .failure(let failure):
-                let hasOffline = DownloadManager.shared.items.contains { $0.state == .completed }
-                gate.showFailure(
-                    title: "Couldn't Reach \(connection.serverName)",
-                    message: failure.message,
-                    canOpenDownloads: hasOffline
-                )
-                gate.onOpenDownloads = { [weak self] in self?.showOfflineDownloads(connection: connection) }
+                let followers = self.followers
+                Self.launchLeader = nil
+                showFailure(failure, connection: connection)
+                followers.forEach { $0.showFailure(failure, connection: connection) }
             }
         }
+    }
+
+    private func showFailure(_ failure: LaunchFailure, connection: PlexConnection) {
+        let gate = launchGate()
+        let hasOffline = DownloadManager.shared.items.contains { $0.state == .completed }
+        gate.showFailure(
+            title: "Couldn't Reach \(connection.serverName)",
+            message: failure.message,
+            canOpenDownloads: hasOffline
+        )
+        gate.onOpenDownloads = { [weak self] in self?.showOfflineDownloads(connection: connection) }
+    }
+
+    /// Shows the library another window connected to, without connecting again. Home loads its own shelves when the payload is no longer
+    /// fresh.
+    private func adopt(_ payload: LaunchPayload, freshHome: Bool) {
+        launchTask?.cancel()
+        launchTask = nil
+        let tabBar = TabBarController(payload: payload, preloadsHome: freshHome)
+        if let gate = window?.rootViewController as? LaunchViewController {
+            gate.playSuccess { [weak self] in self?.present(root: tabBar) }
+        } else {
+            present(root: tabBar)
+        }
+    }
+
+    private func launchGate() -> LaunchViewController {
+        (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
     }
 
     private func installLaunchScreen() -> LaunchViewController {
@@ -161,13 +260,24 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     private func showServerSetup() {
+        launchTask?.cancel()
+        launchTask = nil
+        guard !isShowingServerSetup else { return }
         let setup = ServerSetupViewController()
         setup.onConnected = { [weak self] connection in
-            self?.launch(connection: connection)
+            self?.lead(connection: connection)
         }
         let nav = UINavigationController(rootViewController: setup)
         window?.backgroundColor = Theme.Color.canvas
         window?.rootViewController = nav
+    }
+
+    /// The window where the sign-in finished connects for every window.
+    private func lead(connection: PlexConnection) {
+        Self.latestPayload = nil
+        Self.launchLeader = self
+        Self.otherWindows(than: self).forEach { $0.follow() }
+        launch(connection: connection)
     }
 
     /// Switching server means signing in to another one, which a demo that cannot start has no use for: leaving the demo shows the welcome

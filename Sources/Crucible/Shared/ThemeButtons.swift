@@ -48,6 +48,7 @@ enum ThemeButton {
 
     static func primary(title: String, symbol: String? = nil) -> UIButton {
         let button = UIButton(configuration: primaryConfiguration(title: title, symbol: symbol))
+        button.isPointerInteractionEnabled = true
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.primaryButtonHeight).isActive = true
         return button
     }
@@ -57,6 +58,7 @@ enum ThemeButton {
         var config = glassConfiguration(symbol: symbol)
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
         let button = UIButton(configuration: config)
+        button.isPointerInteractionEnabled = true
         button.accessibilityLabel = label
         button.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -70,6 +72,7 @@ enum ThemeButton {
     /// e.g. "Audio / English · Atmos". Attach a `menu`; it opens as the primary action.
     static func menuButton(caption: String, value: String, menu: UIMenu? = nil) -> UIButton {
         let button = UIButton()
+        button.isPointerInteractionEnabled = true
         configureMenuButton(button, caption: caption, value: value)
         button.menu = menu
         button.showsMenuAsPrimaryAction = true

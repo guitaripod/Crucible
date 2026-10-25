@@ -24,7 +24,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         DownloadManager.shared.bootstrap()
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        if #available(iOS 26.0, *) {
+            installMainMenu()
+        }
         return true
+    }
+
+    /// The iPad menu bar: a New Window item, no document, print, find or text formatting groups, and Crucible's own menus.
+    @available(iOS 26.0, *)
+    private func installMainMenu() {
+        let configuration = UIMainMenuSystem.Configuration()
+        configuration.newScenePreference = .included
+        configuration.documentPreference = .removed
+        configuration.printingPreference = .removed
+        configuration.findingPreference = .removed
+        configuration.inspectorPreference = .removed
+        configuration.textFormattingPreference = .removed
+        UIMainMenuSystem.shared.setBuildConfiguration(configuration) { builder in
+            AppMenu.build(builder)
+        }
+    }
+
+    /// Before iPadOS 26 the same commands fill the shortcut overlay shown while Command is held.
+    override func buildMenu(with builder: any UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard builder.system == .main else { return }
+        if #available(iOS 26.0, *) { return }
+        AppMenu.buildLegacy(builder)
     }
 
     func application(
@@ -62,10 +88,10 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         guard let ratingKey = userInfo["ratingKey"] as? String,
               let mediaType = userInfo["mediaType"] as? String else { return }
         await MainActor.run {
-            let tabBar = UIApplication.shared.connectedScenes
-                .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController as? TabBarController }
-                .first
-            tabBar?.openMedia(ratingKey: ratingKey, mediaType: mediaType)
+            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            let tabBars = scenes.sorted { $0.activationState.rawValue < $1.activationState.rawValue }
+                .compactMap { ($0.keyWindow ?? $0.windows.first)?.rootViewController as? TabBarController }
+            tabBars.first?.openMedia(ratingKey: ratingKey, mediaType: mediaType)
         }
     }
 }

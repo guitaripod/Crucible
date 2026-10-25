@@ -56,7 +56,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         let hasUnwatched = context.episodes.contains { !$0.isWatched }
         self.scope = hasUnwatched ? .unwatched : .all
         super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
+        modalPresentationStyle = .formSheet
         configureSheet()
     }
 
@@ -295,6 +295,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         let label = rowLabel("Quality")
         label.setContentHuggingPriority(.defaultLow, for: .horizontal)
         qualityButton.showsMenuAsPrimaryAction = true
+        qualityButton.isPointerInteractionEnabled = true
         qualityButton.setContentHuggingPriority(.required, for: .horizontal)
         qualityButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         updateQualityButton()

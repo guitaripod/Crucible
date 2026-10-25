@@ -40,6 +40,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.collectionViewLayout = makeLayout()
 
         configureDataSource()
@@ -77,7 +78,9 @@ final class ActivityHistoryViewController: UICollectionViewController {
                 separator.bottomSeparatorInsets = NSDirectionalEdgeInsets(top: 0, leading: 74, bottom: 0, trailing: 0)
                 return separator
             }
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
     }
 
@@ -283,6 +286,10 @@ final class ActivityHistoryViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         if case .item = dataSource.itemIdentifier(for: indexPath) { return true }
         return false
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
+        self.collectionView(collectionView, shouldSelectItemAt: indexPath)
     }
 }
 

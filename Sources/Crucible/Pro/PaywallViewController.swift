@@ -41,7 +41,8 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         self.model = model
         self.completion = completion
         super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
+        modalPresentationStyle = .formSheet
+        preferredContentSize = DemoSheetViewController.largeWindowSize
         if let sheet = sheetPresentationController {
             sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
@@ -275,6 +276,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
             return outgoing
         }
         button.configuration = config
+        button.isPointerInteractionEnabled = true
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.minTarget).isActive = true
         button.addAction(UIAction { _ in action() }, for: .primaryActionTriggered)
     }
@@ -454,6 +456,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         var config = ThemeButton.glassConfiguration(title: "Try Again", symbol: "arrow.clockwise")
         config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 22, bottom: 12, trailing: 22)
         let retry = UIButton(configuration: config)
+        retry.isPointerInteractionEnabled = true
         retry.addAction(UIAction { [weak self] _ in
             Haptics.selection()
             self?.model.retry()

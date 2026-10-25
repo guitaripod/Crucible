@@ -261,6 +261,7 @@ final class DetailPillsContentView: UIView, UIContentView {
                 return outgoing
             }
             let button = UIButton(configuration: buttonConfig)
+            button.isPointerInteractionEnabled = true
             button.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.minTarget).isActive = true
             button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
             button.accessibilityLabel = pill.accessibilityLabel ?? pill.title
@@ -407,6 +408,7 @@ final class DetailOverviewContentView: UIView, UIContentView {
         }
         toggleButton.configuration = buttonConfig
         toggleButton.contentHorizontalAlignment = .leading
+        toggleButton.isPointerInteractionEnabled = true
         toggleButton.addAction(UIAction { [weak self] _ in
             guard let config = self?.configuration as? DetailOverviewConfiguration else { return }
             Haptics.selection()
@@ -644,6 +646,7 @@ final class DetailSeasonBarContentView: UIView, UIContentView {
         super.init(frame: .zero)
         preferContentHeight()
         seasonButton.showsMenuAsPrimaryAction = true
+        seasonButton.isPointerInteractionEnabled = true
         seasonButton.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         seasonButton.setContentHuggingPriority(.required, for: .horizontal)
         watchedLabel.font = Theme.Font.footnote

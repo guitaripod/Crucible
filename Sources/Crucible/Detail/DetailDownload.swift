@@ -66,6 +66,17 @@ enum DetailDownload {
         host.present(sheet, animated: true)
     }
 
+    /// What the download control does next, as a menu bar title.
+    static func commandTitle(for ratingKey: String) -> String {
+        switch DownloadManager.shared.item(for: ratingKey)?.state {
+        case nil: return "Download"
+        case .queued?, .waitingForWiFi?: return "Cancel Download"
+        case .downloading?: return "Pause Download"
+        case .paused?, .failed?: return "Resume Download"
+        case .completed?: return "Remove Download…"
+        }
+    }
+
     static func menu(for metadata: PlexMetadata, onPlayOffline: (() -> Void)?) -> UIMenu {
         let key = metadata.id
         let manager = DownloadManager.shared

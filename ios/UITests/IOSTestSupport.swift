@@ -23,10 +23,27 @@ enum IOSTest {
 
     /// Attaches a full-screen screenshot named `name` that `ios.sh test` exports to `ios/out/ui/<test>/<name>.png`.
     static func capture(_ name: String, in test: XCTestCase) {
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        let attachment = XCTAttachment(image: upright(XCUIScreen.main.screenshot().image))
         attachment.name = name
         attachment.lifetime = .keepAlways
         test.add(attachment)
+    }
+
+    /// The simulator's screenshot is always in the panel's portrait orientation; a rotated iPad is turned back so the capture reads the way
+    /// the screen did.
+    private static func upright(_ image: UIImage) -> UIImage {
+        let orientation: UIImage.Orientation
+        switch XCUIDevice.shared.orientation {
+        case .landscapeLeft: orientation = .left
+        case .landscapeRight: orientation = .right
+        case .portraitUpsideDown: orientation = .down
+        default: return image
+        }
+        guard let cgImage = image.cgImage else { return image }
+        let turned = UIImage(cgImage: cgImage, scale: image.scale, orientation: orientation)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        return UIGraphicsImageRenderer(size: turned.size, format: format).image { _ in turned.draw(at: .zero) }
     }
 
     static func settle(_ seconds: TimeInterval = 1.0) {

@@ -24,6 +24,7 @@ final class DownloadRingButton: UIButton {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        isPointerInteractionEnabled = true
         trackLayer.fillColor = UIColor.clear.cgColor
         trackLayer.lineWidth = 3
         trackLayer.strokeColor = Theme.Color.surfaceHigh.cgColor

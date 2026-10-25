@@ -33,6 +33,7 @@ final class MediaDetailViewController: UICollectionViewController {
     private var selectedAudioTrackId: Int?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.related(at: indexPath) }
     private var downloadObserver: UUID?
     private var isOverviewExpanded = false
     private var lastLayoutWidth: CGFloat = 0
@@ -57,6 +58,8 @@ final class MediaDetailViewController: UICollectionViewController {
         super.viewDidLoad()
         collectionView.collectionViewLayout = createLayout()
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         hero.install(on: collectionView)
         navigationItem.rightBarButtonItems = [hero.chrome.playItem]
         configureDataSource()
@@ -101,8 +104,15 @@ final class MediaDetailViewController: UICollectionViewController {
             lastLayoutWidth = collectionView.bounds.width
             stale.append(.overview)
         }
-        reconfigure(stale)
+        reconfigureAfterLayout(stale)
         hero.scrolled(collectionView)
+    }
+
+    /// A layout pass can run inside a snapshot apply (the collection view lays out while it reloads, as in a window that opens on
+    /// this screen), and applying again there is reentrant, so what the pass found stale is reconfigured once it is over.
+    private func reconfigureAfterLayout(_ items: [Item]) {
+        guard !items.isEmpty else { return }
+        Task { @MainActor [weak self] in self?.reconfigure(items) }
     }
 
     override func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -142,19 +152,19 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func createLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
+        UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             guard let section = self?.dataSource?.sectionIdentifier(for: sectionIndex) else { return nil }
             switch section {
-            case .hero: return DetailLayout.fullWidth(top: 0, bottom: 0)
-            case .actions: return DetailLayout.fullWidth(top: 4)
-            case .progress: return DetailLayout.fullWidth(top: 12)
-            case .links: return DetailLayout.fullWidth(top: 12)
-            case .tracks: return DetailLayout.fullWidth(top: 16)
-            case .overview: return DetailLayout.fullWidth(top: 20)
-            case .genres: return DetailLayout.fullWidth(top: 16)
-            case .cast: return DetailLayout.castRail()
-            case .details: return DetailLayout.factsGrid()
-            case .related: return DetailLayout.posterRail()
+            case .hero: return DetailLayout.fullWidth(top: 0, bottom: 0, environment: environment)
+            case .actions: return DetailLayout.fullWidth(top: 4, environment: environment)
+            case .progress: return DetailLayout.fullWidth(top: 12, environment: environment)
+            case .links: return DetailLayout.fullWidth(top: 12, environment: environment)
+            case .tracks: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .overview: return DetailLayout.fullWidth(top: 20, environment: environment)
+            case .genres: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .cast: return DetailLayout.castRail(environment)
+            case .details: return DetailLayout.factsGrid(environment)
+            case .related: return DetailLayout.posterRail(environment)
             }
         }
     }
@@ -183,7 +193,7 @@ final class MediaDetailViewController: UICollectionViewController {
         let overviewReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
             guard let self, let summary = self.model?.item.summary else { return }
             let lines = 4
-            let width = self.collectionView.bounds.width - Theme.Space.m * 2
+            let width = DetailLayout.textWidth(in: self.collectionView.bounds.size)
             cell.contentConfiguration = DetailOverviewConfiguration(
                 text: summary,
                 collapsedLines: lines,
@@ -379,6 +389,7 @@ final class MediaDetailViewController: UICollectionViewController {
         self.model = model
         title = model.item.title
         hero.chrome.setTitle(model.item.title)
+        (tabBarController as? TabBarController)?.updateWindowTitle()
         hero.chrome.setPlay(label: model.playAccessibilityLabel, available: true)
         let tracks = model.reconciledTracks(audioId: selectedAudioTrackId, subtitleId: selectedSubtitleId)
         selectedAudioTrackId = tracks.audioId
@@ -475,10 +486,32 @@ final class MediaDetailViewController: UICollectionViewController {
         return false
     }
 
+    override func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
+        self.collectionView(collectionView, shouldSelectItemAt: indexPath)
+    }
+
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard case .related(let related) = dataSource.itemIdentifier(for: indexPath) else { return }
         openRelated(related)
+    }
+
+    private func related(at indexPath: IndexPath) -> PlexMetadata? {
+        guard case .related(let related) = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return related
+    }
+
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let indexPath = indexPaths.first, let related = related(at: indexPath),
+              let open = WindowActivity.openInNewWindowAction(for: related) else { return nil }
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            let details = UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { _ in self?.openRelated(related) }
+            return UIMenu(children: [details, UIMenu(options: .displayInline, children: [open])])
+        })
     }
 
     private func openRelated(_ related: PlexMetadata) {
@@ -552,5 +585,39 @@ final class MediaDetailViewController: UICollectionViewController {
     private func navigateToShow() {
         guard let route = model?.showRoute else { return }
         navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
+    }
+}
+
+extension MediaDetailViewController: CommandHandling, MediaScreen {
+    var mediaRoute: (ratingKey: String, mediaType: String) { (ratingKey, mediaType) }
+
+    func canPerform(_ command: AppCommand) -> Bool {
+        switch command {
+        case .play, .toggleWatched: return model != nil
+        case .download: return model.map { HomeMediaRules.isDownloadable($0.item) } ?? false
+        case .refresh: return true
+        default: return false
+        }
+    }
+
+    func perform(_ command: AppCommand) {
+        switch command {
+        case .play: play()
+        case .toggleWatched: toggleWatched()
+        case .download:
+            guard let model else { return }
+            DetailDownload.performTap(for: model.item, from: self, sourceView: nil)
+        case .refresh: loadData()
+        default: break
+        }
+    }
+
+    func title(for command: AppCommand) -> String? {
+        switch command {
+        case .play: return model?.playTitle
+        case .toggleWatched: return model?.item.isWatched == true ? "Mark as Unwatched" : "Mark as Watched"
+        case .download: return DetailDownload.commandTitle(for: ratingKey)
+        default: return nil
+        }
     }
 }

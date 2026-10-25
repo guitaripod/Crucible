@@ -91,6 +91,7 @@ final class SkipPillView: UIView {
         button.configuration = config
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addAction(UIAction { [weak self] _ in self?.onTap?() }, for: .primaryActionTriggered)
+        button.isPointerInteractionEnabled = true
 
         addSubview(glass)
         glass.contentView.addSubview(fill)
@@ -180,6 +181,7 @@ final class SkipToastView: UIView {
             return outgoing
         }
         let undo = UIButton(configuration: config)
+        undo.isPointerInteractionEnabled = true
         undo.accessibilityLabel = "Undo skip"
         undo.addAction(UIAction { [weak self] _ in self?.undoTapped() }, for: .primaryActionTriggered)
         undo.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true

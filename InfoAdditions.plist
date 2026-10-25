@@ -21,6 +21,7 @@
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.guitaripod.crucible.viewMedia</string>
+		<string>com.guitaripod.crucible.window</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
@@ -35,6 +36,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
+	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+	</dict>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>LSRequiresIPhoneOS</key>

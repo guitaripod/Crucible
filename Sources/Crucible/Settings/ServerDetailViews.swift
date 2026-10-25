@@ -311,6 +311,7 @@ final class TestButtonContentView: UIView, UIContentView {
         super.init(frame: .zero)
         preferContentHeight()
         button.addAction(UIAction { [weak self] _ in self?.action() }, for: .primaryActionTriggered)
+        button.isPointerInteractionEnabled = true
         button.translatesAutoresizingMaskIntoConstraints = false
         addSubview(button)
         NSLayoutConstraint.activate([

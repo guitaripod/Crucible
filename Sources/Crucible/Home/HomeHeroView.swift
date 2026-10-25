@@ -125,6 +125,7 @@ final class HomeHeroContentView: UIView, UIContentView {
         trailingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         primaryButton.addAction(UIAction { [weak self] _ in self?.onPrimary?() }, for: .primaryActionTriggered)
+        primaryButton.isPointerInteractionEnabled = true
         primaryButton.setContentHuggingPriority(.required, for: .horizontal)
         primaryButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         primaryButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 48).isActive = true
@@ -140,6 +141,7 @@ final class HomeHeroContentView: UIView, UIContentView {
         info.contentInsets = .zero
         infoButton.configuration = info
         infoButton.accessibilityLabel = "Details"
+        infoButton.isPointerInteractionEnabled = true
         infoButton.addAction(UIAction { [weak self] _ in self?.onDetails?() }, for: .primaryActionTriggered)
         infoButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([

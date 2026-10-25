@@ -31,6 +31,7 @@ class LibraryGridViewController: UIViewController {
 
     private var downloadObserver: UUID?
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
     private lazy var optionsItem: UIBarButtonItem = {
         let item = UIBarButtonItem(image: LibraryGridOptions.optionsImage(filtering: false), menu: nil)
@@ -39,7 +40,16 @@ class LibraryGridViewController: UIViewController {
     }()
 
     private lazy var gridSizeItem = LibraryGridSizeMenu.barButtonItem { [weak self] in
+        self?.gridWidth ?? 0
+    } onChange: { [weak self] in
         self?.reloadGridLayout()
+    }
+    private var appliedColumns = Preferences.libraryColumns
+
+    /// The width the poster grid lays out in, inside the safe area.
+    var gridWidth: CGFloat {
+        guard isViewLoaded else { return 0 }
+        return collectionView.bounds.inset(by: collectionView.safeAreaInsets).width
     }
 
     init(api: APIClient, sectionId: String, kind: LibraryGridKind) {
@@ -85,6 +95,7 @@ class LibraryGridViewController: UIViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         AppLogger.info("\(kind.logName) appeared section=\(sectionId)", .ui)
+        if appliedColumns != Preferences.libraryColumns { reloadGridLayout() }
         installControls()
         observeDownloads()
         model.appear(visibleGridIndex: firstVisibleGridIndex)
@@ -123,6 +134,8 @@ class LibraryGridViewController: UIViewController {
 
     private func setupCollectionView() {
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         collectionView.alwaysBounceVertical = true
         collectionView.delegate = self
         collectionView.prefetchDataSource = self
@@ -169,7 +182,7 @@ class LibraryGridViewController: UIViewController {
             guard sections.indices.contains(sectionIndex) else { return nil }
             switch sections[sectionIndex] {
             case .header:
-                return Self.headerSection()
+                return Self.headerSection(environment)
             case .recentlyWatched:
                 return Self.recentSection(environment: environment)
             case .grid:
@@ -178,25 +191,36 @@ class LibraryGridViewController: UIViewController {
         }
     }
 
-    private static func headerSection() -> NSCollectionLayoutSection {
+    /// The chips and banner inset themselves by 16 points; on a large screen the section adds the rest of the gutter.
+    private static func headerSection(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
         let item = NSCollectionLayoutItem(layoutSize: size)
         let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
-        return NSCollectionLayoutSection(group: group)
+        let section = NSCollectionLayoutSection(group: group)
+        let extra = Theme.Room(environment).gutter - Theme.Space.m
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: extra, bottom: 0, trailing: extra)
+        return section
     }
 
     private static func recentSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        Theme.railSection(
-            width: Theme.Size.posterRailWidth,
-            estimatedHeight: Theme.Size.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
-            columns: environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge ? 2 : nil
+        let room = Theme.Room(environment)
+        return Theme.railSection(
+            width: room.posterRailWidth,
+            estimatedHeight: room.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
+            columns: environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge ? 2 : nil,
+            gutter: room.gutter
         )
     }
 
     /// Re-flows the grid after the column preference changes; the layout reads the preference on
     /// every pass, so a fresh layout is all it takes.
+    func refresh() {
+        model.refreshAll()
+    }
+
     func reloadGridLayout() {
         guard isViewLoaded else { return }
+        appliedColumns = Preferences.libraryColumns
         let animated = view.window != nil && !UIAccessibility.isReduceMotionEnabled
         collectionView.setCollectionViewLayout(makeLayout(), animated: animated)
         updateScrubberVisibility()
@@ -566,6 +590,14 @@ class LibraryGridViewController: UIViewController {
         navigationController?.pushViewController(detail, animated: true)
     }
 
+    private func media(at indexPath: IndexPath) -> PlexMetadata? {
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .media(let id): return model.item(withId: id)
+        case .recent(let id): return model.recentItem(withId: id)
+        case .header, nil: return nil
+        }
+    }
+
     private func posterCell(for item: Item) -> UIView? {
         guard let indexPath = dataSource.indexPath(for: item) else { return nil }
         return collectionView.cellForItem(at: indexPath)
@@ -616,6 +648,10 @@ extension LibraryGridViewController: UICollectionViewDelegate {
         dataSource.itemIdentifier(for: indexPath) != .header
     }
 
+    func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
+        dataSource.itemIdentifier(for: indexPath) != .header
+    }
+
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         switch dataSource.itemIdentifier(for: indexPath) {
@@ -645,7 +681,7 @@ extension LibraryGridViewController: UICollectionViewDelegate {
         case .media(let id):
             guard let item = model.item(withId: id) else { return nil }
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-                self?.contextMenu(for: item)
+                self?.contextMenu(for: item).addingNewWindow(for: item)
             })
         case .recent(let id):
             guard let item = model.recentItem(withId: id) else { return nil }
@@ -657,7 +693,7 @@ extension LibraryGridViewController: UICollectionViewDelegate {
                     api: api,
                     open: { [weak self] in self?.navigationController?.pushViewController($0, animated: true) },
                     play: { [weak self] in self?.quickPlay($0) }
-                )
+                ).addingNewWindow(for: item)
             })
         case .header, nil:
             return nil

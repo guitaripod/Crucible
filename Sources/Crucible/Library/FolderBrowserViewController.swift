@@ -49,6 +49,7 @@ final class FolderBrowserViewController: UICollectionViewController {
         title = folderTitle ?? "Browse"
         navigationItem.largeTitleDisplayMode = .never
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
     }
@@ -76,7 +77,9 @@ final class FolderBrowserViewController: UICollectionViewController {
                 var listConfig = UICollectionLayoutListConfiguration(appearance: .plain)
                 listConfig.showsSeparators = true
                 listConfig.backgroundColor = Theme.Color.canvas
-                return NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
+                let listSection = NSCollectionLayoutSection.list(using: listConfig, layoutEnvironment: environment)
+                Theme.centerReadable(listSection, environment)
+                return listSection
             }
 
             return Theme.gridLayout(environment: environment)

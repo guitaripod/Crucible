@@ -8,6 +8,7 @@ final class GenreBrowseViewController: UICollectionViewController {
     private let session: GenreBrowseSession
     private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>!
     private var playerCoordinator: PlayerCoordinator?
+    private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.dataSource.itemIdentifier(for: indexPath) }
 
     init(api: APIClient, genre: SearchGenre) {
         self.api = api
@@ -25,6 +26,8 @@ final class GenreBrowseViewController: UICollectionViewController {
         navigationItem.largeTitleDisplayMode = .never
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
+        collectionView.dragDelegate = mediaDrag
         collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { _, environment in
             Theme.gridLayout(environment: environment)
         }
@@ -110,7 +113,7 @@ final class GenreBrowseViewController: UICollectionViewController {
                 guard let self else { return }
                 self.playerCoordinator = Theme.quickPlay(api: self.api, item: item, from: self)
             }
-            return UIMenu(children: [play, DownloadMenu.action(for: item)])
+            return UIMenu(children: [play, DownloadMenu.action(for: item)]).addingNewWindow(for: item)
         })
     }
 }

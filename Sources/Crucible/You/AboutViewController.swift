@@ -21,11 +21,14 @@ final class AboutViewController: UICollectionViewController {
         title = "About Crucible"
         navigationItem.largeTitleDisplayMode = .never
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
 
         collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { _, environment in
             var config = UICollectionLayoutListConfiguration.wellRows()
             config.footerMode = .supplementary
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
         configureDataSource()
 

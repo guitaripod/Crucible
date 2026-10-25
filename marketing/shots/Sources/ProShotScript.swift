@@ -30,7 +30,7 @@ enum ProShotScript {
         guard let tabBar = await ShotHarness.waitForTabBar() else { return }
         let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
         await ShotHarness.settle(5)
-        tabBar.selectedIndex = 3
+        tabBar.select(.you)
         await ShotHarness.settle(1.5)
         let you = tabBar.selectedViewController as? UINavigationController
 
@@ -254,7 +254,7 @@ enum ProShotScript {
 
     private static func downloadLocks(you: UINavigationController?, api: APIClient, tabBar: TabBarController) async {
         await install(scripted())
-        tabBar.selectedIndex = 0
+        tabBar.select(.home)
         await ShotHarness.settle(1)
         let home = tabBar.selectedViewController as? UINavigationController
         home?.pushViewController(ShowDetailViewController(api: api, showRatingKey: "2001"), animated: false)

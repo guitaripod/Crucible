@@ -36,6 +36,7 @@ final class DemoTourViewController: UICollectionViewController {
         title = DemoCopy.tourTitle
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
+        collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
@@ -65,7 +66,9 @@ final class DemoTourViewController: UICollectionViewController {
                     return separator
                 }
             }
-            return NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+            Theme.centerReadable(listSection, environment)
+            return listSection
         }
     }
 
