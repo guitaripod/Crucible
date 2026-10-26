@@ -38,6 +38,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var nextCoordinator: PlayerCoordinator?
     private weak var spinnerView: UIActivityIndicatorView?
     var onAdvanceToNext: ((PlayerCoordinator) -> Void)?
+    private(set) var unattendedEpisodes = 0
+    private(set) var viewerActedThisEpisode = true
 
     convenience init(
         api: APIClient,
@@ -209,7 +211,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             nowPlaying?.updateElapsed(absolute, rate: rate)
             recordOfflineProgress(at: absolute)
         case .viewerActed:
-            break
+            viewerActed()
         case .skipAvailable(let marker, let progress):
             showSkipButton(for: marker, progress: progress)
         case .skipHidden:
@@ -221,6 +223,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         case .autoSkipUndoExpired:
             removeSkipToast(animated: true)
         case .upNext(let offer):
+            if offer.reason == .requested { viewerActed() }
             presentUpNext(offer)
         case .failed(let message):
             showPlaybackError(message)
@@ -310,6 +313,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         removeSkipToast(animated: false)
         let toast = SkipToastView(message: "Skipped intro") { [weak self] in
             Haptics.light()
+            self?.viewerActed()
             self?.undoSkip(returningTo: position)
         }
         toast.present(in: host)
@@ -340,6 +344,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let target = marker.endSecs
         pill.onTap = { [weak self] in
             Haptics.light()
+            self?.viewerActed()
             self?.skip(to: target)
         }
         pill.update(title: marker.title, accessibilityTitle: marker.title, progress: progress)
@@ -375,31 +380,64 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 episodeNumber: next.index,
                 episodeTitle: next.title,
                 thumbPath: next.thumb,
-                autoplays: offer.autoplays
+                autoplays: offer.autoplays,
+                asksStillWatching: asksStillWatching
             ),
             countdownSeconds: UpNextOffer.countdownSeconds,
-            onPlayNext: { [weak self] in self?.playNext(offer) },
-            onDismiss: { [weak self] in Task { await self?.dismissPlayer() } }
+            onPlayNext: { [weak self] byViewer in
+                if byViewer { self?.playNext(offer, byViewer: true) } else { self?.autoPlayNext(offer) }
+            },
+            onDismiss: { [weak self] in
+                self?.viewerActed()
+                Task { await self?.dismissPlayer() }
+            }
         )
         overlay.present(in: host)
         upNextOverlay = overlay
         shownUpNext = offer
         session.setUpNextVisible(true)
-        overlay.startCountdown()
+        overlay.begin()
     }
 
     private func flushPendingUpNext() {
         guard let pending = pendingUpNext, !isFinishing else { return }
         pendingUpNext = nil
         if pending.playbackEnded, pending.autoplays {
-            playNext(pending)
+            autoPlayNext(pending)
         } else {
             presentUpNext(pending)
         }
     }
 
-    private func playNext(_ offer: UpNextOffer) {
+    /// Whatever the viewer does while an episode plays ends a run of episodes nobody watched.
+    private func viewerActed() {
+        viewerActedThisEpisode = true
+    }
+
+    /// Whether the Up Next card asks "Still watching?" instead of counting down: a run of episodes has
+    /// started on its own with nobody touching the player.
+    private var asksStillWatching: Bool {
+        !viewerActedThisEpisode && StillWatchingRule.asks(unattended: unattendedEpisodes, limit: Preferences.stillWatchingAfter)
+    }
+
+    /// Plays the next episode without the viewer asking for it (the countdown ran out, or the item ended).
+    /// Once the card must ask first it asks instead and nothing plays.
+    private func autoPlayNext(_ offer: UpNextOffer) {
+        guard asksStillWatching else {
+            playNext(offer, byViewer: false)
+            return
+        }
+        removeUpNextOverlay()
+        presentUpNext(offer)
+    }
+
+    /// Starts the next episode in a new coordinator that carries the run of unattended episodes. One the
+    /// viewer chose (or asked for with a next-track command) starts a new run; one that started on its own
+    /// adds to the run, unless the viewer touched this episode.
+    private func playNext(_ offer: UpNextOffer, byViewer: Bool) {
         guard !isFinishing else { return }
+        let startedByViewer = byViewer || offer.reason == .requested
+        let unattended = startedByViewer ? 0 : (viewerActedThisEpisode ? 0 : unattendedEpisodes) + 1
         isFinishing = true
         removeUpNextOverlay()
         let pvc = playerVC
@@ -413,6 +451,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                     api: self.api,
                     request: offer.nextRequest(showRatingKey: self.request.showRatingKey, offline: offline)
                 )
+                coordinator.unattendedEpisodes = unattended
+                coordinator.viewerActedThisEpisode = startedByViewer
                 if let onAdvanceToNext = self.onAdvanceToNext {
                     coordinator.onAdvanceToNext = onAdvanceToNext
                     onAdvanceToNext(coordinator)
@@ -528,6 +568,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     func performShownSkip() {
         guard let shownSkip else { return }
         Haptics.light()
+        viewerActed()
         skip(to: shownSkip.target)
     }
 
@@ -537,7 +578,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     func playOfferedNextEpisode() {
         guard let shownUpNext else { return }
-        playNext(shownUpNext)
+        playNext(shownUpNext, byViewer: true)
     }
 
 }

@@ -1,7 +1,8 @@
+import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// The ember Play Now pill with a darker sweep over its trailing edge that tracks the countdown.
+/// The ember Play Now (or Keep Watching) pill with a darker sweep over its trailing edge that tracks the countdown.
 @MainActor
 private final class CountdownPlayButton: UIButton {
     let sweep = UIView()
@@ -36,6 +37,7 @@ final class UpNextOverlayView: UIView {
         let episodeTitle: String
         let thumbPath: String?
         let autoplays: Bool
+        let asksStillWatching: Bool
     }
 
     private static let cardWidth: CGFloat = 372
@@ -51,7 +53,7 @@ final class UpNextOverlayView: UIView {
     private let placeholderIcon = UIImageView()
     private let playButton = CountdownPlayButton()
     private let countdownSeconds: Int
-    private let onPlayNext: () -> Void
+    private let onPlayNext: (_ byViewer: Bool) -> Void
     private let onDismiss: () -> Void
     private var countdownTask: Task<Void, Never>?
     private var thumbTask: Task<Void, Never>?
@@ -66,7 +68,7 @@ final class UpNextOverlayView: UIView {
     init(
         content: Content,
         countdownSeconds: Int,
-        onPlayNext: @escaping () -> Void,
+        onPlayNext: @escaping (_ byViewer: Bool) -> Void,
         onDismiss: @escaping () -> Void
     ) {
         self.content = content
@@ -95,8 +97,24 @@ final class UpNextOverlayView: UIView {
         removeFromSuperview()
     }
 
-    func startCountdown() {
-        guard content.autoplays, countdownTask == nil else { return }
+    /// Whether the card counts down and plays on its own: autoplay is on and nobody needs asking first.
+    private var isCounting: Bool { content.autoplays && !content.asksStillWatching }
+
+    /// The episode as VoiceOver hears it when the card asks "Still watching?".
+    private var questionText: String {
+        UpNextText.stillWatchingAnnouncement(
+            code: Formatters.episodeCode(content.seasonNumber, content.episodeNumber),
+            title: content.episodeTitle
+        )
+    }
+
+    /// Starts the countdown, or, when the card asks "Still watching?", tells VoiceOver the question and
+    /// waits for an answer instead of counting.
+    func begin() {
+        if content.asksStillWatching {
+            UIAccessibility.post(notification: .announcement, argument: questionText)
+        }
+        guard isCounting, countdownTask == nil else { return }
         countdownTask = Task { [weak self] in
             guard let self else { return }
             while self.remaining > 0 {
@@ -109,7 +127,7 @@ final class UpNextOverlayView: UIView {
                 }
                 self.remaining -= 1
             }
-            self.finish(play: true)
+            self.finish(play: true, byViewer: false)
         }
     }
 
@@ -166,7 +184,7 @@ final class UpNextOverlayView: UIView {
         }
 
         let header = UILabel()
-        header.text = "UP NEXT"
+        header.text = UpNextText.eyebrow(asksStillWatching: content.asksStillWatching)
         header.font = Theme.Font.caption2
         header.textColor = Theme.Color.accent
         header.adjustsFontForContentSizeCategory = true
@@ -225,7 +243,7 @@ final class UpNextOverlayView: UIView {
         ])
 
         accessibilityElements = [titleLabel, countdownLabel, dismissButton, playButton]
-        titleLabel.accessibilityLabel = "Up next, \(content.episodeTitle)"
+        titleLabel.accessibilityLabel = content.asksStillWatching ? questionText : "Up next, \(content.episodeTitle)"
     }
 
     /// Side by side with Play Now a little wider, except at the largest text sizes, where the two stack so neither label has to wrap.
@@ -301,13 +319,13 @@ final class UpNextOverlayView: UIView {
         let button = UIButton(configuration: config)
         button.isPointerInteractionEnabled = true
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.buttonHeight).isActive = true
-        button.addAction(UIAction { [weak self] _ in self?.finish(play: false) }, for: .primaryActionTriggered)
+        button.addAction(UIAction { [weak self] _ in self?.finish(play: false, byViewer: true) }, for: .primaryActionTriggered)
         return button
     }
 
     private func configurePlayButton() {
         var config = UIButton.Configuration.filled()
-        config.title = "Play Now"
+        config.title = UpNextText.playTitle(asksStillWatching: content.asksStillWatching)
         config.image = UIImage(
             systemName: "play.fill",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
@@ -325,11 +343,11 @@ final class UpNextOverlayView: UIView {
         playButton.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.buttonHeight).isActive = true
         playButton.addAction(UIAction { [weak self] _ in
             Haptics.light()
-            self?.finish(play: true)
+            self?.finish(play: true, byViewer: true)
         }, for: .primaryActionTriggered)
-        playButton.accessibilityLabel = "Play now"
+        playButton.accessibilityLabel = UpNextText.playTitle(asksStillWatching: content.asksStillWatching)
 
-        playButton.sweep.isHidden = !content.autoplays
+        playButton.sweep.isHidden = !isCounting
         playButton.sweepFraction = Self.maxSweepFraction
     }
 
@@ -341,7 +359,7 @@ final class UpNextOverlayView: UIView {
     private func updateSecondaryText() {
         var parts = [String]()
         if let code = episodeCode() { parts.append(code) }
-        parts.append(content.autoplays ? "Playing in \(remaining) s" : "Next episode")
+        parts.append(isCounting ? "Playing in \(remaining) s" : "Next episode")
         countdownLabel.text = parts.joined(separator: " · ")
     }
 
@@ -359,11 +377,11 @@ final class UpNextOverlayView: UIView {
         }
     }
 
-    private func finish(play: Bool) {
+    private func finish(play: Bool, byViewer: Bool) {
         guard !didFinish else { return }
         didFinish = true
         countdownTask?.cancel()
         countdownTask = nil
-        if play { onPlayNext() } else { onDismiss() }
+        if play { onPlayNext(byViewer) } else { onDismiss() }
     }
 }
