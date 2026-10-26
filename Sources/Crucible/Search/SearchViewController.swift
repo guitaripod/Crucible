@@ -293,8 +293,9 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     private func refreshTopResultDownloadState() {
         var snapshot = dataSource.snapshot()
+        guard snapshot.sectionIdentifiers.contains(.topResult) else { return }
         let tops = snapshot.itemIdentifiers(inSection: .topResult)
-        guard snapshot.sectionIdentifiers.contains(.topResult), !tops.isEmpty else { return }
+        guard !tops.isEmpty else { return }
         snapshot.reconfigureItems(tops)
         dataSource.apply(snapshot, animatingDifferences: false)
     }
