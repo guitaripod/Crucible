@@ -60,6 +60,10 @@ extension PlaybackSession {
             settleRebuiltItem(item, movedTo: now)
             return
         }
+        guard TranscodeSeekPolicy.needsRestart(from: previous, to: now, loaded: item.loadedRanges) else {
+            noteViewerAction()
+            return
+        }
         noteViewerAction()
         let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
         restartTranscode(atAbsolute: streamOffset + max(0, now), resumesPlayback: plays, reason: "scrub from \(Int(previous)) to \(Int(now))")
@@ -231,6 +235,8 @@ extension PlaybackSession {
                 finishRecovery()
                 return
             }
+            selectionCarry = await MediaSelectionCarry.capture(from: player?.currentItem)
+            guard !isStopped else { return }
             if sessionId != previous {
                 self.stream = current.restarted(url: url, sessionId: sessionId)
                 liveness = TranscodeLiveness(confirmedAt: now())
@@ -275,6 +281,10 @@ extension PlaybackSession {
             let settled = player?.currentItem?.currentTime().seconds ?? 0
             lastPlayhead = settled.isFinite ? settled : 0
             settlingUntil = now().advanced(by: .seconds(5))
+            if let carry = selectionCarry, let item = player?.currentItem {
+                selectionCarry = nil
+                Task { await carry.apply(to: item) }
+            }
             if restartResumesPlayback, pendingRestart == nil { player?.play() }
         }
         isRestarting = false
@@ -310,5 +320,18 @@ extension PlaybackSession {
     private func pingAnswered(session: String) {
         guard session == stream?.sessionId else { return }
         liveness?.pinged(at: now())
+    }
+}
+
+extension AVPlayerItem {
+    /// The stretches of the item the player has loaded, in seconds of the item's own clock.
+    var loadedRanges: [ClosedRange<Double>] {
+        loadedTimeRanges.compactMap { value in
+            let range = value.timeRangeValue
+            let start = range.start.seconds
+            let end = range.end.seconds
+            guard start.isFinite, end.isFinite, end >= start else { return nil }
+            return start...end
+        }
     }
 }

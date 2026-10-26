@@ -99,6 +99,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         playerVC.appliesPreferredDisplayCriteriaAutomatically = true
         playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.view.accessibilityIdentifier = "player.view"
+        installHoldGestures()
     }
 
     /// Starts a fresh session for `request` behind the pre-roll.

@@ -1,3 +1,4 @@
+import CrucibleCore
 import Foundation
 import MediaPlayer
 
@@ -38,14 +39,14 @@ final class PlaybackRemoteCommands {
             Task { @MainActor in handler(.togglePlayPause) }
             return .success
         }
-        center.skipForwardCommand.preferredIntervals = [10]
+        center.skipForwardCommand.preferredIntervals = [NSNumber(value: Preferences.skipForwardSeconds)]
         center.skipForwardCommand.addTarget { @Sendable event in
             guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
             let interval = skip.interval
             Task { @MainActor in handler(.skip(by: interval)) }
             return .success
         }
-        center.skipBackwardCommand.preferredIntervals = [10]
+        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: Preferences.skipBackSeconds)]
         center.skipBackwardCommand.addTarget { @Sendable event in
             guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
             let interval = skip.interval

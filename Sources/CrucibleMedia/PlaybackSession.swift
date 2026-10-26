@@ -68,6 +68,7 @@ package final class PlaybackSession {
     var positionAtLastBeat: Double?
     var settlingUntil: ContinuousClock.Instant?
     var staleClock: Double?
+    var selectionCarry: MediaSelectionCarry?
     var pausedSince: ContinuousClock.Instant?
     var liveness: TranscodeLiveness?
     var heals = HealBudget()

@@ -83,6 +83,67 @@ final class PlayerTests: TVTestCase {
         TVTest.capture("01-scrubbed-forward", in: self)
     }
 
+    /// A click on the left of the clickpad skips back the distance chosen in Settings (30 s here), not the system's ten seconds.
+    func testAClickLeftSkipsBackTheChosenDistance() {
+        setProgress(Self.movie, seconds: 100)
+        let app = launch(playing: Self.movie, arguments: ["-skipBackSeconds", "<integer>30</integer>"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(6)
+        let mark = timelineMark()
+        TVTest.remote.press(.left)
+        TVTest.settle(5)
+        let reports = timeline(since: mark).map(\.timeMs)
+        XCTAssertTrue(reports.contains { (68_000...84_000).contains($0) }, "the click lands about 30 s back: \(reports)")
+        XCTAssertFalse(reports.contains { (92_000...99_000).contains($0) }, "not the system's ten seconds back: \(reports)")
+        TVTest.capture("01-skipped-back-30", in: self)
+    }
+
+    /// A click on the right skips ahead the distance chosen in Settings (45 s here).
+    func testAClickRightSkipsAheadTheChosenDistance() {
+        setProgress(Self.movie, seconds: 20)
+        let app = launch(playing: Self.movie, arguments: ["-skipForwardSeconds", "<integer>45</integer>"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(6)
+        let before = currentPositionMs()
+        let mark = timelineMark()
+        TVTest.remote.press(.right)
+        TVTest.settle(5)
+        let reports = timeline(since: mark).map(\.timeMs)
+        XCTAssertTrue(reports.contains { (before + 40_000...before + 56_000).contains($0) }, "the click lands about 45 s ahead of \(before): \(reports)")
+    }
+
+    /// Holding the right of the clickpad, set to jump two minutes, jumps there instead of scanning.
+    func testHoldingRightSetToJumpJumpsAhead() {
+        setProgress(Self.movie, seconds: 10)
+        let app = launch(playing: Self.movie, arguments: ["-holdRightAction", "<integer>120</integer>"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(5)
+        let mark = timelineMark()
+        TVTest.remote.longPress(.right, duration: 1.2)
+        TVTest.settle(5)
+        let reports = timeline(since: mark).map(\.timeMs)
+        XCTAssertTrue(reports.contains { (128_000...148_000).contains($0) }, "the hold jumps about two minutes ahead: \(reports)")
+        TVTest.capture("01-held-right-jumped", in: self)
+    }
+
+    /// A click back inside a transcode's own stream seeks in place: the server is not asked for a new transcode, so nothing the
+    /// viewer chose on the item (such as subtitles off) is reset. It starts past the mock's intro marker (12 to 58 s), where a
+    /// Skip Intro action on screen would take the click as focus movement.
+    func testAClickBackInsideATranscodeDoesNotRestartIt() {
+        setProgress(Self.episode, seconds: 70)
+        let app = launch(playing: Self.episode, arguments: ["-streamingQuality", "8000"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(16)
+        let before = currentPositionMs()
+        let startsBefore = transcodeStarts().count
+        let mark = timelineMark()
+        TVTest.remote.press(.left)
+        TVTest.settle(6)
+        XCTAssertEqual(transcodeStarts().count, startsBefore, "no new transcode: \(transcodeStarts().dropFirst(startsBefore))")
+        let reports = timeline(since: mark).map(\.timeMs)
+        XCTAssertTrue(reports.contains { (before - 12_000...before - 2_000).contains($0) }, "the click lands about 10 s back from \(before): \(reports)")
+    }
+
     func testSkipIntroActionAppearsInsideTheMarkerWindowAndSkips() {
         setProgress(Self.episode, seconds: 8)
         let app = launch(playing: Self.episode, arguments: ["-skipIntroMode", "0"])
@@ -680,6 +741,13 @@ final class PlayerTests: TVTestCase {
                   let timeMs = items.first(where: { $0.name == "time" })?.value.flatMap(Int.init) else { return nil }
             return Report(ratingKey: key, state: state, timeMs: timeMs)
         }
+    }
+
+    /// The position of the last timeline report, which the player sends at least every ten seconds while it plays.
+    private func currentPositionMs() -> Int {
+        let mark = timelineMark()
+        _ = waitForReport(pastMs: 0, since: mark, timeout: 12)
+        return timeline(since: 0).last?.timeMs ?? 0
     }
 
     private func timelineMark() -> Int {

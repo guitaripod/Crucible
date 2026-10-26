@@ -59,6 +59,15 @@ package enum TranscodeSeekPolicy {
     package static func isJump(from previous: Double, to current: Double) -> Bool {
         abs(current - previous) > jumpThreshold
     }
+
+    /// Whether a jump inside a transcode needs the server to encode from somewhere else. The player goes back
+    /// on its own, since the server already made those segments, and forward into what it has loaded; only a
+    /// jump further ahead restarts the transcode there. A restart replaces the item, which also resets
+    /// choices the viewer made on it, such as turning its subtitles off.
+    package static func needsRestart(from previous: Double, to current: Double, loaded: [ClosedRange<Double>]) -> Bool {
+        guard current > previous else { return false }
+        return !loaded.contains { $0.contains(current) }
+    }
 }
 
 /// Timings shared by every playback surface.

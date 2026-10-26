@@ -44,6 +44,8 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Keeps your place through anything**: a sleeping Apple TV (even one that dozed off from its screen saver without telling the app), the app in the background, or a server that dropped the stream while you were away: a heartbeat notices the absence, and the stream is rebuilt under a fresh server session at the exact moment you left. A stream that stops short is rebuilt instead of being taken for the end, so the next episode never starts mid-episode, and Up Next only appears at the credits
 - **Rewind After a Break**: coming back after a break, playback backs up a few seconds, more the longer you were away (up to 15)
 - **Still watching?**: after a few episodes in a row without touching the remote (2, 3 or 5; 3 by default), Up Next asks before playing on, so a season does not run on while you sleep
+- **Your skip distances**: how far a click left or right on the Siri Remote skips (5 s to 1 min, each side on its own), also used by the Lock Screen, Control Center and headphone skip buttons on iPhone; on Apple TV, holding either side can keep the system's rewind and fast forward or jump 1 to 10 minutes, start over or play the next episode
+- Skipping back or a short skip ahead inside a transcode seeks within the stream instead of restarting it, and a stream that is rebuilt keeps the subtitles and audio chosen on the one before
 
 ### Offline downloads
 

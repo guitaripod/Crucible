@@ -22,7 +22,7 @@ final class SettingsViewController: UICollectionViewController {
 
     enum Item: Hashable {
         case pro
-        case streamingQuality, skipIntro, autoplay, rewindAfterBreak, stillWatching
+        case streamingQuality, skipIntro, autoplay, rewindAfterBreak, stillWatching, skipBack, skipForward
         case downloadQuality, downloadCellular, deleteWatched, manageStorage
         case libraries
         case appearance, libraryGrid
@@ -107,7 +107,7 @@ final class SettingsViewController: UICollectionViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases.filter { $0 != .pro || ProAccess.shared.isStoreBacked })
         if ProAccess.shared.isStoreBacked { snapshot.appendItems([.pro], toSection: .pro) }
-        snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay, .rewindAfterBreak, .stillWatching], toSection: .playback)
+        snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay, .rewindAfterBreak, .stillWatching, .skipBack, .skipForward], toSection: .playback)
         snapshot.appendItems([.downloadQuality, .downloadCellular, .deleteWatched, .manageStorage], toSection: .downloads)
         snapshot.appendItems([.libraries], toSection: .home)
         snapshot.appendItems([.appearance, .libraryGrid], toSection: .appearance)
@@ -167,6 +167,16 @@ final class SettingsViewController: UICollectionViewController {
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "moon.zzz", title: PreferenceSetting.stillWatching.title,
                     value: PreferenceSetting.stillWatching.valueLabel, menu: menu(for: .stillWatching, item: .stillWatching)
+                )
+            case .skipBack:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "gobackward.10", title: PreferenceSetting.skipBack.title,
+                    value: PreferenceSetting.skipBack.valueLabel, menu: menu(for: .skipBack, item: .skipBack)
+                )
+            case .skipForward:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "goforward.10", title: PreferenceSetting.skipForward.title,
+                    value: PreferenceSetting.skipForward.valueLabel, menu: menu(for: .skipForward, item: .skipForward)
                 )
             case .downloadQuality:
                 cell.contentConfiguration = IconRowContentConfiguration(
@@ -238,7 +248,8 @@ final class SettingsViewController: UICollectionViewController {
             content.textProperties.color = Theme.Color.labelSecondary
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .playback:
-                content.text = [PreferenceSetting.skipIntro, .rewindAfterBreak, .stillWatching].compactMap(\.explanation).joined(separator: " ")
+                content.text = ([PreferenceSetting.skipIntro, .rewindAfterBreak, .stillWatching].compactMap(\.explanation)
+                    + ["Skip Back and Skip Ahead set the skip buttons on the Lock Screen, in Control Center and on headphones."]).joined(separator: " ")
             case .home:
                 content.text = LibrariesSettings.homeFooterText
             case .account:

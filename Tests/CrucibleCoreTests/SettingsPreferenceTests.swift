@@ -24,7 +24,7 @@ struct SettingsPreferenceTests {
     @Test func titlesMatchTheRowsOnTheIPhone() {
         #expect(PreferenceSetting.allCases.map(\.title) == [
             "Streaming Quality", "Skip Intro", "Autoplay Next Episode", "Rewind After a Break", "Ask If Still Watching",
-            "Prefer Local Connection", "Allow Relay",
+            "Skip Back", "Skip Ahead", "Hold Left", "Hold Right", "Prefer Local Connection", "Allow Relay",
         ])
     }
 
@@ -136,6 +136,6 @@ struct SettingsPreferenceTests {
     }
 
     @Test func onlyTheSettingsWithCopyExplainThemselves() {
-        #expect(PreferenceSetting.allCases.filter { $0.explanation != nil } == [.skipIntro, .rewindAfterBreak, .stillWatching])
+        #expect(PreferenceSetting.allCases.filter { $0.explanation != nil } == [.skipIntro, .rewindAfterBreak, .stillWatching, .skipBack, .skipForward, .holdLeft, .holdRight])
     }
 }

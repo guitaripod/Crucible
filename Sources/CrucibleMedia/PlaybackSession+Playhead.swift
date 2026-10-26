@@ -3,18 +3,71 @@ import CrucibleCore
 import Foundation
 
 extension PlaybackSession {
-    /// Moves the playhead to a position on the item's timeline: an exact seek on a direct-play file,
-    /// a new transcoder offset on a transcode.
+    /// Moves the playhead to a position on the item's timeline and plays: an exact seek on a direct-play file
+    /// and inside a transcode's own stream (back, or ahead into what it has loaded), a new transcoder offset
+    /// for anywhere else.
     package func seek(toAbsolute target: Double) {
-        guard let stream, let player else { return }
+        move(toAbsolute: target, plays: true, reason: "seek")
+    }
+
+    /// Moves the playhead `seconds` along the item's timeline (back when negative), keeping the player playing
+    /// or paused as it was.
+    package func move(by seconds: Double, reason: String) {
+        guard let player else { return }
+        let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+        let upper = request.durationSecs > 0 ? max(0, request.durationSecs - 1) : Double.infinity
+        move(toAbsolute: min(max(0, bestKnownPosition + seconds), upper), plays: plays, reason: reason)
+    }
+
+    /// Goes back to the very start of the item, playing or paused as the player was.
+    package func startOver() {
+        guard let player else { return }
+        noteViewerAction()
+        move(toAbsolute: 0, plays: player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate, reason: "start over")
+    }
+
+    /// The viewer clicked left or right on the remote, which the system player turned into its ten-second skip
+    /// from `playerTime`. Returns the player time to seek to instead, for the distance the viewer chose; a skip
+    /// back past the start of a transcode's stream returns `playerTime` and restarts the transcode there.
+    package func click(_ direction: SkipRule.Direction, fromPlayerTime playerTime: Double) -> Double {
+        guard let stream, let player else { return playerTime }
+        let seconds = direction == .back ? Preferences.skipBackSeconds : Preferences.skipForwardSeconds
+        let offset = stream.isDirectPlay ? 0 : streamOffset
+        let target = SkipRule.target(from: offset + playerTime, direction: direction, seconds: seconds, duration: request.durationSecs)
+        AppLogger.notice("Click \(direction) \(seconds) s ratingKey=\(request.ratingKey) from=\(Int(offset + playerTime)) to=\(Int(target))", .playback)
+        noteViewerAction()
+        staleClock = nil
+        settlingUntil = nil
         tracker.moved(to: target)
-        if stream.isDirectPlay {
-            player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
-                Task { @MainActor in self?.player?.play() }
-            }
-        } else {
-            restartTranscode(atAbsolute: target, reason: "seek")
+        guard target - offset < 0 else {
+            if !stream.isDirectPlay { lastPlayhead = target - offset }
+            return target - offset
         }
+        let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+        restartTranscode(atAbsolute: target, resumesPlayback: plays, reason: "click back past the stream's start")
+        return playerTime
+    }
+
+    func move(toAbsolute target: Double, plays: Bool, reason: String) {
+        guard let stream, let player else { return }
+        let playerTime = stream.isDirectPlay ? target : target - streamOffset
+        guard stream.isDirectPlay || canSeekInStream(toPlayerTime: playerTime) else {
+            restartTranscode(atAbsolute: target, resumesPlayback: plays, reason: reason)
+            return
+        }
+        tracker.moved(to: target)
+        if !stream.isDirectPlay { lastPlayhead = playerTime }
+        player.seek(to: CMTime(seconds: playerTime, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
+            Task { @MainActor in if plays { self?.player?.play() } }
+        }
+    }
+
+    /// Whether the transcode's current stream can show `playerTime` itself: it is not before the stream's
+    /// start, and it is behind the playhead or inside what the player has loaded.
+    private func canSeekInStream(toPlayerTime playerTime: Double) -> Bool {
+        guard playerTime >= 0, let item = player?.currentItem, item.status == .readyToPlay else { return false }
+        let now = item.currentTime().seconds
+        return !TranscodeSeekPolicy.needsRestart(from: now.isFinite ? now : 0, to: playerTime, loaded: item.loadedRanges)
     }
 
     /// Takes back an automatic skip: returns to where the playhead was when the marker was skipped.
@@ -249,7 +302,8 @@ extension PlaybackSession {
         case .togglePlayPause:
             if player.timeControlStatus == .playing { player.pause() } else { player.play() }
         case .skip(let delta):
-            player.seek(to: CMTime(seconds: max(0, player.currentTime().seconds + delta), preferredTimescale: 600))
+            noteViewerAction()
+            move(by: delta, reason: "remote skip")
         case .seek(let position):
             if stream?.isDirectPlay == false {
                 restartTranscode(atAbsolute: position, reason: "remote seek")

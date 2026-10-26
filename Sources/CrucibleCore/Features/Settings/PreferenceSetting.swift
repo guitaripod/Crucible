@@ -16,6 +16,10 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case autoplayNextEpisode
     case rewindAfterBreak
     case stillWatching
+    case skipBack
+    case skipForward
+    case holdLeft
+    case holdRight
     case preferLocalConnection
     case allowRelayConnection
 
@@ -31,6 +35,10 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .autoplayNextEpisode: return "Autoplay Next Episode"
         case .rewindAfterBreak: return "Rewind After a Break"
         case .stillWatching: return "Ask If Still Watching"
+        case .skipBack: return "Skip Back"
+        case .skipForward: return "Skip Ahead"
+        case .holdLeft: return "Hold Left"
+        case .holdRight: return "Hold Right"
         case .preferLocalConnection: return "Prefer Local Connection"
         case .allowRelayConnection: return "Allow Relay"
         }
@@ -41,6 +49,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipIntro: return "Skip Intro can show a button, skip automatically, or stay out of the way."
         case .rewindAfterBreak: return "After a break, playback backs up a few seconds, more the longer you were away."
         case .stillWatching: return "Asks before the next episode once this many have played in a row without the remote."
+        case .skipBack, .skipForward: return "How far one skip goes: a click on the left or right of the Siri Remote's clickpad, or the skip buttons on the Lock Screen, in Control Center and on headphones."
+        case .holdLeft, .holdRight: return "What holding the left or right of the clickpad does: the system's rewind and fast forward, a jump, or Start Over and Next Episode."
         default: return nil
         }
     }
@@ -59,6 +69,14 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .choice(StillWatchingRule.choices.map { limit in
                 SettingChoice(id: limit, title: StillWatchingRule.label(for: limit), isSelected: limit == Preferences.stillWatchingAfter)
             })
+        case .skipBack:
+            return .choice(Self.skipChoices(current: Preferences.skipBackSeconds))
+        case .skipForward:
+            return .choice(Self.skipChoices(current: Preferences.skipForwardSeconds))
+        case .holdLeft:
+            return .choice(Self.holdChoices(current: Preferences.holdLeftAction, forward: false))
+        case .holdRight:
+            return .choice(Self.holdChoices(current: Preferences.holdRightAction, forward: true))
         case .preferLocalConnection:
             return .toggle(isOn: Preferences.preferLocalConnection)
         case .allowRelayConnection:
@@ -92,6 +110,14 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             if let mode = Preferences.SkipIntroMode(rawValue: choice.id) { Preferences.skipIntroMode = mode }
         case .stillWatching:
             if StillWatchingRule.choices.contains(choice.id) { Preferences.stillWatchingAfter = choice.id }
+        case .skipBack:
+            if SkipRule.choices.contains(choice.id) { Preferences.skipBackSeconds = choice.id }
+        case .skipForward:
+            if SkipRule.choices.contains(choice.id) { Preferences.skipForwardSeconds = choice.id }
+        case .holdLeft:
+            if let action = HoldAction(rawValue: choice.id) { Preferences.holdLeftAction = action }
+        case .holdRight:
+            if let action = HoldAction(rawValue: choice.id) { Preferences.holdRightAction = action }
         default:
             break
         }
@@ -105,6 +131,14 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .allowRelayConnection: Preferences.allowRelayConnection = isOn
         default: break
         }
+    }
+
+    private static func skipChoices(current: Int) -> [SettingChoice] {
+        SkipRule.choices.map { SettingChoice(id: $0, title: SkipRule.label(for: $0), isSelected: $0 == current) }
+    }
+
+    private static func holdChoices(current: HoldAction, forward: Bool) -> [SettingChoice] {
+        HoldAction.allCases.map { SettingChoice(id: $0.rawValue, title: $0.title(forward: forward), isSelected: $0 == current) }
     }
 
     private static func choices<Value: Equatable>(
