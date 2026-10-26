@@ -5,7 +5,7 @@ import Testing
 @Suite(.serialized)
 struct SettingsPreferenceTests {
     private static let keys = [
-        "skipIntroMode", "autoplayNextEpisode", "rewindAfterBreak", "stillWatchingAfterEpisodes",
+        "skipIntroMode", "skipOutroMode", "autoplayNextEpisode", "rewindAfterBreak", "stillWatchingAfterEpisodes",
         "preferLocalConnection", "allowRelayConnection",
     ]
 
@@ -23,7 +23,7 @@ struct SettingsPreferenceTests {
 
     @Test func titlesMatchTheRowsOnTheIPhone() {
         #expect(PreferenceSetting.allCases.map(\.title) == [
-            "Streaming Quality", "Skip Intro", "Autoplay Next Episode", "Rewind After a Break", "Ask If Still Watching",
+            "Streaming Quality", "Skip Intro", "Skip Outro", "Autoplay Next Episode", "Rewind After a Break", "Ask If Still Watching",
             "Skip Back", "Skip Ahead", "Hold Left", "Hold Right", "Prefer Local Connection", "Allow Relay",
         ])
     }
@@ -41,6 +41,27 @@ struct SettingsPreferenceTests {
             #expect(setting.valueLabel == "Show Button")
             #expect(setting.choices.map(\.title) == ["Show Button", "Skip Automatically", "Off"])
             #expect(setting.choices.first(where: \.isSelected)?.id == 0)
+        }
+    }
+
+    @Test func skipOutroDefaultsToTheButton() {
+        isolated {
+            let setting = PreferenceSetting.skipOutro
+            #expect(setting.valueLabel == "Show Button")
+            #expect(setting.choices.map(\.title) == ["Show Button", "Skip Automatically", "Off"])
+            #expect(setting.choices.first(where: \.isSelected)?.id == 0)
+        }
+    }
+
+    @Test func selectingASkipOutroChoiceWritesThePreference() throws {
+        try isolated {
+            let setting = PreferenceSetting.skipOutro
+            let automatic = try #require(setting.choices.first { $0.title == "Skip Automatically" })
+            setting.select(automatic)
+            #expect(Preferences.skipOutroMode == .automatic)
+            #expect(setting.valueLabel == "Skip Automatically")
+            PreferenceSetting.skipOutro.select(SettingChoice(id: 99, title: "Bogus", isSelected: false))
+            #expect(Preferences.skipOutroMode == .automatic)
         }
     }
 
@@ -136,6 +157,6 @@ struct SettingsPreferenceTests {
     }
 
     @Test func onlyTheSettingsWithCopyExplainThemselves() {
-        #expect(PreferenceSetting.allCases.filter { $0.explanation != nil } == [.skipIntro, .rewindAfterBreak, .stillWatching, .skipBack, .skipForward, .holdLeft, .holdRight])
+        #expect(PreferenceSetting.allCases.filter { $0.explanation != nil } == [.skipIntro, .skipOutro, .rewindAfterBreak, .stillWatching, .skipBack, .skipForward, .holdLeft, .holdRight])
     }
 }

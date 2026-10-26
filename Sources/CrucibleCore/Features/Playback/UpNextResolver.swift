@@ -77,16 +77,19 @@ package struct UpNextResolver: Sendable {
         return episodes[index + 1]
     }
 
-    /// Loads the season and returns the offer for the next episode, or nil when this is the last one.
+    /// Loads the season and returns the offer for the next episode, or nil when this is the last one or
+    /// Skip Outro keeps the credits to themselves. A credits offer waits for the viewer unless Skip Outro
+    /// is set to start the next episode automatically; the end of the item follows Autoplay Next Episode.
     package func loadOffer(api: APIClient, reason: UpNextOffer.Reason) async throws -> UpNextOffer? {
         guard let seasonRatingKey else { return nil }
+        if reason == .credits, Preferences.skipOutroMode == .off { return nil }
         let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
         guard let next = Self.nextEpisode(after: ratingKey, in: container.Metadata ?? []) else { return nil }
         return UpNextOffer(
             episode: next,
             seasonRatingKey: seasonRatingKey,
             reason: reason,
-            autoplays: Preferences.autoplayNextEpisode
+            autoplays: reason == .credits ? Preferences.skipOutroMode == .automatic : Preferences.autoplayNextEpisode
         )
     }
 }

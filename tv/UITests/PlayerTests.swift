@@ -9,7 +9,7 @@ import XCTest
 /// - Skip Intro: the mock's intro marker is 12 to 58 s, so resuming at 8 s reaches it in about 5 s;
 /// - Skip Credits and Up Next: `clip_markers=1` moves the credits to 110 s of the 150 s clip;
 /// - failure: `fail_parts` and `fail_transcode` break direct play and its transcode fallback;
-/// - skip mode and autoplay: launch arguments override `skipIntroMode` and `autoplayNextEpisode`;
+/// - skip mode, outro and autoplay: launch arguments override `skipIntroMode`, `skipOutroMode` and `autoplayNextEpisode`;
 /// - a player that loses its place while the app is away: `CRUCIBLE_PLAYER_CLOCK_RESET=1` (DEBUG only) rewinds the player's clock to zero right after the app went to the background;
 /// - an Apple TV that sleeps without telling the app: `CRUCIBLE_PLAYER_SLEEP_AT=<seconds>` with `CRUCIBLE_PLAYER_SLEEP_FOR=<seconds>` (DEBUG only) pauses the player once the playhead passes SLEEP_AT, drops the
 ///   transcode session on the mock (`/mock/reap`) and jumps the session's clock ahead, with no lifecycle notification; the heartbeat has to notice;
@@ -203,10 +203,25 @@ final class PlayerTests: TVTestCase {
         XCTAssertFalse(app.tabBars.firstMatch.exists, "the player stays up")
     }
 
+    /// Skip Outro off: the credits play without the Up Next card and nothing starts the next episode.
+    func testSkipOutroOffLetsTheCreditsPlayWithoutTheCard() {
+        setFlags("clip_markers=1")
+        setProgress(Self.episode, seconds: 104)
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-autoplayNextEpisode", "<false/>", "-skipOutroMode", "2", "-skipIntroMode", "2"]
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(12)
+        TVTest.capture("01-credits-without-up-next", in: self)
+        XCTAssertFalse(app.otherElements["player.upNext"].exists, "Skip Outro off keeps the Up Next card away")
+        XCTAssertFalse(app.tabBars.firstMatch.exists, "the credits keep the player up")
+    }
+
     func testAutoplayStartsTheNextEpisodeAfterTheCountdown() {
         setFlags("clip_markers=1")
         setProgress(Self.episode, seconds: 104)
-        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2"])
+        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipOutroMode", "1", "-skipIntroMode", "2"])
         XCTAssertTrue(waitForPlayback(in: app))
         TVTest.settle(8)
         TVTest.capture("01-autoplay-proposal", in: self)
@@ -387,7 +402,7 @@ final class PlayerTests: TVTestCase {
         setProgress(Self.episode, seconds: 104)
         setProgress(Self.nextEpisode, seconds: 1)
         let mark = timelineMark()
-        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2"])
+        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipOutroMode", "1", "-skipIntroMode", "2"])
         XCTAssertTrue(waitForPlayback(in: app))
         XCTAssertTrue(waitForFocusedUpNextCard(in: app))
         TVTest.remote.press(.menu)
@@ -574,7 +589,7 @@ final class PlayerTests: TVTestCase {
         let mark = timelineMark()
         let app = launch(
             playing: Self.episode,
-            arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2", "-stillWatchingAfterEpisodes", "3"],
+            arguments: ["-autoplayNextEpisode", "<true/>", "-skipOutroMode", "1", "-skipIntroMode", "2", "-stillWatchingAfterEpisodes", "3"],
             environment: ["CRUCIBLE_PLAYER_UNATTENDED": "3"]
         )
         XCTAssertTrue(waitForPlayback(in: app))
@@ -610,7 +625,7 @@ final class PlayerTests: TVTestCase {
         let mark = timelineMark()
         let app = launch(
             playing: Self.episode,
-            arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2", "-stillWatchingAfterEpisodes", "3"],
+            arguments: ["-autoplayNextEpisode", "<true/>", "-skipOutroMode", "1", "-skipIntroMode", "2", "-stillWatchingAfterEpisodes", "3"],
             environment: ["CRUCIBLE_PLAYER_UNATTENDED": "2"]
         )
         XCTAssertTrue(waitForPlayback(in: app))

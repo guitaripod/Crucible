@@ -52,6 +52,22 @@ final class SettingsTests: TVTestCase {
         YouNavigation.moveFocus(app, to: "playback.skipIntro")
         TVTest.capture("04-skip-intro-focused-with-explanation", in: self)
 
+        YouNavigation.moveFocus(app, to: "playback.skipOutro")
+        let skipOutro = YouNavigation.row(app, "playback.skipOutro")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "playback.skipOutro"))
+        TVTest.capture("04b-skip-outro-focused-with-explanation", in: self)
+        TVTest.remote.press(.select)
+        for choice in ["choice.0", "choice.1", "choice.2"] {
+            XCTAssertTrue(YouNavigation.row(app, choice).waitForExistence(timeout: 10), "Skip Outro offers \(choice)")
+        }
+        YouNavigation.moveFocus(app, to: "choice.0")
+        TVTest.remote.press(.select)
+        TVTest.settle()
+        TVTest.capture("04c-skip-outro-show-button", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "playback.skipOutro"))
+        XCTAssertEqual(value(of: skipOutro), "Show Button")
+
         YouNavigation.moveFocus(app, to: "playback.autoplayNextEpisode")
         let before = value(of: YouNavigation.row(app, "playback.autoplayNextEpisode"))
         TVTest.remote.press(.select)

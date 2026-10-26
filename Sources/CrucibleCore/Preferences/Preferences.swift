@@ -8,6 +8,7 @@ package enum Preferences {
     private static let deleteWatchedKey = "deleteWatchedDownloads"
     private static let libraryColumnsKey = "libraryColumns"
     private static let skipIntroKey = "skipIntroMode"
+    private static let skipOutroKey = "skipOutroMode"
     private static let autoplayNextKey = "autoplayNextEpisode"
     private static let appearanceKey = "appearanceMode"
     private static let preferLocalKey = "preferLocalConnection"
@@ -31,6 +32,20 @@ package enum Preferences {
     }
 
     package enum SkipIntroMode: Int, CaseIterable, Sendable {
+        case button = 0
+        case automatic = 1
+        case off = 2
+
+        package var title: String {
+            switch self {
+            case .button: return "Show Button"
+            case .automatic: return "Skip Automatically"
+            case .off: return "Off"
+            }
+        }
+    }
+
+    package enum SkipOutroMode: Int, CaseIterable, Sendable {
         case button = 0
         case automatic = 1
         case off = 2
@@ -101,6 +116,11 @@ package enum Preferences {
     package static var skipIntroMode: SkipIntroMode {
         get { SkipIntroMode(rawValue: UserDefaults.standard.integer(forKey: skipIntroKey)) ?? .button }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: skipIntroKey) }
+    }
+
+    package static var skipOutroMode: SkipOutroMode {
+        get { SkipOutroMode(rawValue: UserDefaults.standard.integer(forKey: skipOutroKey)) ?? .button }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: skipOutroKey) }
     }
 
     package static var autoplayNextEpisode: Bool {

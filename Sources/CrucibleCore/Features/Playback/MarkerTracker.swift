@@ -38,7 +38,8 @@ package enum MarkerAction: Equatable, Sendable {
 
 /// Decides, once per playhead update, whether a skip control is offered, a marker is skipped on its
 /// own, or the control goes away. A marker is active from its start until one second before its end;
-/// credits are only ever offered; each automatic skip happens once per marker start.
+/// credits are only ever offered, and only while Skip Outro allows it; each automatic intro skip
+/// happens once per marker start.
 package struct MarkerTracker: Sendable {
     private let markers: [SkipMarker]
     private var autoSkipped: Set<Double> = []
@@ -53,12 +54,19 @@ package struct MarkerTracker: Sendable {
     package mutating func evaluate(
         absolute: Double,
         mode: Preferences.SkipIntroMode,
+        outroMode: Preferences.SkipOutroMode,
         upNextVisible: Bool,
         undoVisible: Bool
     ) -> MarkerAction {
         let active = markers.first { absolute >= $0.startSecs && absolute < $0.endSecs - 1 }
-        guard mode != .off, let active, !upNextVisible else { return hide() }
-        if mode == .automatic, !active.isCredits, !autoSkipped.contains(active.startSecs) {
+        guard let active, !upNextVisible else { return hide() }
+        if active.isCredits {
+            guard outroMode != .off, !undoVisible else { return hide() }
+            isSkipShown = true
+            return .showSkip(active, progress: active.progress(at: absolute))
+        }
+        guard mode != .off else { return hide() }
+        if mode == .automatic, !autoSkipped.contains(active.startSecs) {
             autoSkipped.insert(active.startSecs)
             isSkipShown = false
             return .autoSkip(active)

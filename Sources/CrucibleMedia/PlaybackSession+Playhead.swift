@@ -219,6 +219,7 @@ extension PlaybackSession {
         let action = markerTracker.evaluate(
             absolute: absolute,
             mode: Preferences.skipIntroMode,
+            outroMode: Preferences.skipOutroMode,
             upNextVisible: isUpNextVisible,
             undoVisible: isUndoVisible
         )
