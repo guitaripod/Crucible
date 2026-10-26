@@ -10,7 +10,10 @@ import XCTest
 /// - Skip Credits and Up Next: `clip_markers=1` moves the credits to 110 s of the 150 s clip;
 /// - failure: `fail_parts` and `fail_transcode` break direct play and its transcode fallback;
 /// - skip mode and autoplay: launch arguments override `skipIntroMode` and `autoplayNextEpisode`;
-/// - a player that loses its place while the app is away: `CRUCIBLE_PLAYER_CLOCK_RESET=1` (DEBUG only) rewinds the player's clock to zero right after the app went to the background.
+/// - a player that loses its place while the app is away: `CRUCIBLE_PLAYER_CLOCK_RESET=1` (DEBUG only) rewinds the player's clock to zero right after the app went to the background;
+/// - an Apple TV that sleeps without telling the app: `CRUCIBLE_PLAYER_SLEEP_AT=<seconds>` with `CRUCIBLE_PLAYER_SLEEP_FOR=<seconds>` (DEBUG only) pauses the player once the playhead passes SLEEP_AT, drops the
+///   transcode session on the mock (`/mock/reap`) and jumps the session's clock ahead, with no lifecycle notification; the heartbeat has to notice;
+/// - a run of episodes nobody watched: `CRUCIBLE_PLAYER_UNATTENDED=<n>` (DEBUG only) starts the player as if `n` episodes had already played with nobody at the remote.
 @MainActor
 final class PlayerTests: TVTestCase {
     private static let episode = "4013"
@@ -424,8 +427,195 @@ final class PlayerTests: TVTestCase {
         TVTest.capture("01-back-at-the-same-place", in: self)
     }
 
+    /// A transcode (8000 kbps) that the Apple TV's sleep froze without a word: after two hours away the heartbeat rebuilds it under a new server
+    /// session fifteen seconds behind where it stopped, and the player stays paused instead of playing into an empty room.
+    func testASleepNobodyAnnouncedRebuildsTheTranscodeUnderANewSessionBehindThePosition() {
+        setProgress(Self.episode, seconds: 20)
+        let startsBefore = transcodeStarts().count
+        let mark = timelineMark()
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-streamingQuality", "8000", "-rewindAfterBreak", "<true/>"],
+            environment: sleepEnvironment(at: 30, for: 7200)
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        let rebuild = waitForRebuild(after: startsBefore, timeout: 90)
+        TVTest.capture("01-after-the-sleep", in: self)
+        let first = transcodeStarts().dropFirst(startsBefore).first.map(Self.session(in:))
+        XCTAssertNotNil(rebuild, "the heartbeat rebuilds the transcode: \(transcodeStarts().dropFirst(startsBefore))")
+        guard let rebuild else { return }
+        XCTAssertNotEqual(rebuild.session, first, "the rebuild runs under a new server session")
+        XCTAssertTrue((14...16).contains(rebuild.offset), "the rebuild starts 15 s behind the position of 30 s: offset \(rebuild.offset)")
+
+        let settled = timelineMark()
+        XCTAssertFalse(app.otherElements["player.upNext"].waitForExistence(timeout: 20), "the rebuild is not taken for the end of the item")
+        XCTAssertTrue(app.otherElements["player.view"].exists, "the player is still up")
+        XCTAssertTrue(waitForReport(Self.episode, state: "paused", since: settled, timeout: 30), "the player reports paused")
+        TVTest.settle(15)
+        let afterSleep = reportsAfterSleep(since: mark, at: 30)
+        XCTAssertFalse(afterSleep.isEmpty)
+        XCTAssertTrue(afterSleep.allSatisfy { $0.timeMs >= 14000 }, "no report goes back towards the start: \(afterSleep.map(\.timeMs))")
+        let later = timeline(since: settled)
+        XCTAssertTrue(later.allSatisfy { $0.timeMs <= (rebuild.offset + 3) * 1000 }, "nothing plays on after the rebuild: \(later.map { "\($0.state)@\($0.timeMs)" })")
+        XCTAssertTrue(later.allSatisfy { $0.state == "paused" }, "the player stays paused: \(later.map(\.state))")
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+        TVTest.capture("02-paused-behind-the-position", in: self)
+    }
+
+    /// The same sleep on a direct-play file: nothing is rebuilt, the player seeks back to where the rewind puts it and no report falls towards the start.
+    func testASleepNobodyAnnouncedOnDirectPlaySeeksBehindThePosition() {
+        setProgress(Self.episode, seconds: 20)
+        let mark = timelineMark()
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-rewindAfterBreak", "<true/>"],
+            environment: sleepEnvironment(at: 30, for: 7200)
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(waitForReport(pastMs: 30000, since: mark, timeout: 90), "the playhead reaches the sleep")
+        TVTest.settle(15)
+        let afterSleep = reportsAfterSleep(since: mark, at: 30)
+        XCTAssertFalse(afterSleep.isEmpty)
+        XCTAssertTrue(afterSleep.allSatisfy { $0.timeMs >= 14000 }, "no report goes back towards the start: \(afterSleep.map(\.timeMs))")
+        let settled = timeline(since: mark).last
+        XCTAssertNotNil(settled)
+        XCTAssertTrue((14000...17000).contains(settled?.timeMs ?? 0), "the player settles about 15 s behind the position: \(afterSleep.map { "\($0.state)@\($0.timeMs)" })")
+        XCTAssertTrue(app.otherElements["player.view"].exists, "the player is still up")
+        TVTest.capture("01-direct-play-after-the-sleep", in: self)
+    }
+
+    /// Only a minute away with "Rewind After a Break" off: the transcode is rebuilt exactly where it stopped, not behind it.
+    func testAShortAbsenceWithRewindOffComesBackExactly() {
+        setProgress(Self.episode, seconds: 20)
+        let startsBefore = transcodeStarts().count
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-streamingQuality", "8000", "-rewindAfterBreak", "<false/>"],
+            environment: sleepEnvironment(at: 30, for: 60)
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        let rebuild = waitForRebuild(after: startsBefore, timeout: 90)
+        TVTest.settle(4)
+        TVTest.capture("01-back-after-a-minute", in: self)
+        XCTAssertNotNil(rebuild, "the heartbeat rebuilds the transcode: \(transcodeStarts().dropFirst(startsBefore))")
+        guard let rebuild else { return }
+        XCTAssertTrue((29...31).contains(rebuild.offset), "the rebuild starts at the position of 30 s: offset \(rebuild.offset)")
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+    }
+
+    /// Three unattended episodes in a row and "Still watching?" at three: the card asks instead of counting down, and the next episode starts only when the viewer says so.
+    func testStillWatchingAsksInsteadOfCountingDown() {
+        setFlags("clip_markers=1")
+        setProgress(Self.episode, seconds: 104)
+        setProgress(Self.nextEpisode, seconds: 1)
+        let mark = timelineMark()
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2", "-stillWatchingAfterEpisodes", "3"],
+            environment: ["CRUCIBLE_PLAYER_UNATTENDED": "3"]
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(waitForFocusedUpNextCard(in: app))
+        TVTest.capture("01-still-watching-card", in: self)
+        XCTAssertTrue(app.staticTexts["STILL WATCHING?"].exists, "the eyebrow asks")
+        XCTAssertFalse(app.staticTexts["UP NEXT"].exists)
+        let play = app.buttons["player.upNext.play"]
+        XCTAssertEqual(play.label, "Keep Watching")
+        XCTAssertTrue(play.hasFocus)
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Playing in'")).firstMatch.exists, "there is no countdown")
+
+        TVTest.settle(15)
+        TVTest.capture("02-still-asking-after-15-s", in: self)
+        XCTAssertTrue(app.otherElements["player.upNext"].exists, "the card waits for the viewer")
+        XCTAssertTrue(app.staticTexts["STILL WATCHING?"].exists)
+        let waiting = timeline(since: mark)
+        XCTAssertTrue(waiting.contains { $0.ratingKey == Self.episode }, "the episode keeps playing")
+        XCTAssertFalse(waiting.contains { $0.ratingKey == Self.nextEpisode && $0.state == "playing" }, "the next episode does not start by itself: \(waiting.map { "\($0.ratingKey)/\($0.state)" })")
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(waitForReport(Self.nextEpisode, state: "playing", since: mark, timeout: 40), "Keep Watching starts the next episode")
+        TVTest.settle(3)
+        TVTest.capture("03-next-episode-after-keep-watching", in: self)
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+    }
+
+    /// One episode short of the limit nobody is asked: the card says "UP NEXT", counts down and the next episode starts by itself.
+    func testWithoutTheRunTheCardStillCountsDown() {
+        setFlags("clip_markers=1")
+        setProgress(Self.episode, seconds: 104)
+        setProgress(Self.nextEpisode, seconds: 1)
+        let mark = timelineMark()
+        let app = launch(
+            playing: Self.episode,
+            arguments: ["-autoplayNextEpisode", "<true/>", "-skipIntroMode", "2", "-stillWatchingAfterEpisodes", "3"],
+            environment: ["CRUCIBLE_PLAYER_UNATTENDED": "2"]
+        )
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(app.otherElements["player.upNext"].waitForExistence(timeout: 40))
+        TVTest.capture("01-up-next-counting-down", in: self)
+        XCTAssertTrue(app.staticTexts["UP NEXT"].exists, "the eyebrow does not ask")
+        XCTAssertFalse(app.staticTexts["STILL WATCHING?"].exists)
+        XCTAssertEqual(app.buttons["player.upNext.play"].label, "Play Now")
+        XCTAssertTrue(waitForReport(Self.nextEpisode, state: "playing", since: mark, timeout: 40), "the countdown starts the next episode")
+        TVTest.settle(3)
+        TVTest.capture("02-next-episode-after-the-countdown", in: self)
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+    }
+
+    /// A transcode that stops at the end of the mock's 150 s clip long before the credits is not the end of the episode: it is rebuilt where it ended, and Up Next stays away.
+    func testATranscodeThatEndsBeforeTheCreditsIsRebuiltNotFollowedByUpNext() {
+        setProgress(Self.episode, seconds: 20)
+        let startsBefore = transcodeStarts().count
+        let app = launch(playing: Self.episode, arguments: ["-streamingQuality", "8000", "-autoplayNextEpisode", "<true/>"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertGreaterThan(transcodeStarts().count, startsBefore, "the stream is a transcode")
+        let rebuild = waitForRebuild(after: startsBefore, minimumOffset: 160, timeout: Self.endOfItemWait)
+        TVTest.capture("01-rebuilt-after-the-clip-ended", in: self)
+        XCTAssertNotNil(rebuild, "the transcode is rebuilt after the clip ends: \(transcodeStarts().dropFirst(startsBefore))")
+        XCTAssertFalse(app.otherElements["player.upNext"].waitForExistence(timeout: 10), "an early end does not propose the next episode")
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+    }
+
+    /// The transcode starts the mock has logged; the log queries that look for them are in the log too and are left out.
+    private func transcodeStarts() -> [String] {
+        Mock.log("start.m3u8").filter { $0.hasPrefix("GET /video/") }
+    }
+
+    private func sleepEnvironment(at seconds: Int, for length: Int) -> [String: String] {
+        ["CRUCIBLE_PLAYER_SLEEP_AT": "\(seconds)", "CRUCIBLE_PLAYER_SLEEP_FOR": "\(length)"]
+    }
+
+    /// Waits for a transcode start beyond the first one that a rebuild logged since `count` log lines, as `(session, offset)`; with `minimumOffset` only a start at or past it counts.
+    private func waitForRebuild(after count: Int, minimumOffset: Int = 0, timeout: TimeInterval) -> (session: String, offset: Int)? {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let starts = transcodeStarts().dropFirst(count)
+            if let first = starts.first,
+               let rebuild = starts.dropFirst().first(where: { Self.offset(in: $0) >= minimumOffset && Self.session(in: $0) != Self.session(in: first) }) {
+                return (Self.session(in: rebuild) ?? "", Self.offset(in: rebuild))
+            }
+            TVTest.settle(1)
+        }
+        return nil
+    }
+
+    /// The reports from the first one at or past `seconds` (the moment the simulated sleep started) on.
+    private func reportsAfterSleep(since mark: Int, at seconds: Int) -> [Report] {
+        let reports = timeline(since: mark)
+        guard let start = reports.firstIndex(where: { $0.timeMs >= seconds * 1000 }) else { return [] }
+        return Array(reports[start...])
+    }
+
     private static func offset(in line: String) -> Int {
-        URLComponents(string: "http://x" + line.dropFirst(4))?.queryItems?.first { $0.name == "offset" }?.value.flatMap(Int.init) ?? 0
+        query("offset", in: line).flatMap(Int.init) ?? 0
+    }
+
+    private static func session(in line: String) -> String? {
+        query("session", in: line)
+    }
+
+    private static func query(_ name: String, in line: String) -> String? {
+        URLComponents(string: "http://x" + line.dropFirst(4))?.queryItems?.first { $0.name == name }?.value
     }
 
     private func launch(playing ratingKey: String, arguments: [String] = [], environment: [String: String] = [:]) -> XCUIApplication {
@@ -492,6 +682,15 @@ final class PlayerTests: TVTestCase {
 
     private func timelineMark() -> Int {
         Mock.log("/:/timeline").count
+    }
+
+    private func waitForReport(pastMs: Int, since mark: Int, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if timeline(since: mark).contains(where: { $0.timeMs >= pastMs }) { return true }
+            TVTest.settle(1)
+        }
+        return false
     }
 
     private func waitForReport(_ ratingKey: String, state: String, since mark: Int, timeout: TimeInterval) -> Bool {
