@@ -14,6 +14,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case streamingQuality
     case skipIntro
     case autoplayNextEpisode
+    case rewindAfterBreak
+    case stillWatching
     case preferLocalConnection
     case allowRelayConnection
 
@@ -27,6 +29,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .streamingQuality: return "Streaming Quality"
         case .skipIntro: return "Skip Intro"
         case .autoplayNextEpisode: return "Autoplay Next Episode"
+        case .rewindAfterBreak: return "Rewind After a Break"
+        case .stillWatching: return "Ask If Still Watching"
         case .preferLocalConnection: return "Prefer Local Connection"
         case .allowRelayConnection: return "Allow Relay"
         }
@@ -35,6 +39,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     package var explanation: String? {
         switch self {
         case .skipIntro: return "Skip Intro can show a button, skip automatically, or stay out of the way."
+        case .rewindAfterBreak: return "After a break, playback backs up a few seconds, more the longer you were away."
+        case .stillWatching: return "Asks before the next episode once this many have played in a row without the remote."
         default: return nil
         }
     }
@@ -47,6 +53,12 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .choice(Self.choices(Preferences.SkipIntroMode.allCases, current: Preferences.skipIntroMode, rawValue: \.rawValue, title: \.title))
         case .autoplayNextEpisode:
             return .toggle(isOn: Preferences.autoplayNextEpisode)
+        case .rewindAfterBreak:
+            return .toggle(isOn: Preferences.rewindAfterBreak)
+        case .stillWatching:
+            return .choice(StillWatchingRule.choices.map { limit in
+                SettingChoice(id: limit, title: StillWatchingRule.label(for: limit), isSelected: limit == Preferences.stillWatchingAfter)
+            })
         case .preferLocalConnection:
             return .toggle(isOn: Preferences.preferLocalConnection)
         case .allowRelayConnection:
@@ -78,6 +90,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             if let quality = Preferences.Quality(rawValue: choice.id) { Preferences.streamingQuality = quality }
         case .skipIntro:
             if let mode = Preferences.SkipIntroMode(rawValue: choice.id) { Preferences.skipIntroMode = mode }
+        case .stillWatching:
+            if StillWatchingRule.choices.contains(choice.id) { Preferences.stillWatchingAfter = choice.id }
         default:
             break
         }
@@ -86,6 +100,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     package func setOn(_ isOn: Bool) {
         switch self {
         case .autoplayNextEpisode: Preferences.autoplayNextEpisode = isOn
+        case .rewindAfterBreak: Preferences.rewindAfterBreak = isOn
         case .preferLocalConnection: Preferences.preferLocalConnection = isOn
         case .allowRelayConnection: Preferences.allowRelayConnection = isOn
         default: break

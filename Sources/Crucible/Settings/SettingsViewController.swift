@@ -22,7 +22,7 @@ final class SettingsViewController: UICollectionViewController {
 
     enum Item: Hashable {
         case pro
-        case streamingQuality, skipIntro, autoplay
+        case streamingQuality, skipIntro, autoplay, rewindAfterBreak, stillWatching
         case downloadQuality, downloadCellular, deleteWatched, manageStorage
         case libraries
         case appearance, libraryGrid
@@ -107,7 +107,7 @@ final class SettingsViewController: UICollectionViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases.filter { $0 != .pro || ProAccess.shared.isStoreBacked })
         if ProAccess.shared.isStoreBacked { snapshot.appendItems([.pro], toSection: .pro) }
-        snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay], toSection: .playback)
+        snapshot.appendItems([.streamingQuality, .skipIntro, .autoplay, .rewindAfterBreak, .stillWatching], toSection: .playback)
         snapshot.appendItems([.downloadQuality, .downloadCellular, .deleteWatched, .manageStorage], toSection: .downloads)
         snapshot.appendItems([.libraries], toSection: .home)
         snapshot.appendItems([.appearance, .libraryGrid], toSection: .appearance)
@@ -159,6 +159,15 @@ final class SettingsViewController: UICollectionViewController {
                 toggleRow(cell, symbol: "play", title: PreferenceSetting.autoplayNextEpisode.title, isOn: PreferenceSetting.autoplayNextEpisode.isOn) { newValue in
                     PreferenceSetting.autoplayNextEpisode.setOn(newValue)
                 }
+            case .rewindAfterBreak:
+                toggleRow(cell, symbol: "gobackward", title: PreferenceSetting.rewindAfterBreak.title, isOn: PreferenceSetting.rewindAfterBreak.isOn) { newValue in
+                    PreferenceSetting.rewindAfterBreak.setOn(newValue)
+                }
+            case .stillWatching:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "moon.zzz", title: PreferenceSetting.stillWatching.title,
+                    value: PreferenceSetting.stillWatching.valueLabel, menu: menu(for: .stillWatching, item: .stillWatching)
+                )
             case .downloadQuality:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "arrow.down.circle", title: "Download Quality",

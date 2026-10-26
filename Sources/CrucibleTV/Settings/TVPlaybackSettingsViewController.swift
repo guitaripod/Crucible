@@ -2,7 +2,7 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// Playback: streaming quality and skip intro open a single-select list, autoplay flips in place.
+/// Playback: streaming quality, skip intro and still watching open a single-select list; autoplay and rewind flip in place.
 final class TVPlaybackSettingsViewController: TVSettingsScaffold {
     private static let intro = "How Crucible plays what you pick from your server."
 
@@ -12,9 +12,13 @@ final class TVPlaybackSettingsViewController: TVSettingsScaffold {
         .streamingQuality: "dial.high",
         .skipIntro: "forward.end",
         .autoplayNextEpisode: "play",
+        .rewindAfterBreak: "gobackward",
+        .stillWatching: "moon.zzz",
     ]
 
-    private static let settings: [PreferenceSetting] = [.streamingQuality, .skipIntro, .autoplayNextEpisode]
+    private static let settings: [PreferenceSetting] = [
+        .streamingQuality, .skipIntro, .autoplayNextEpisode, .rewindAfterBreak, .stillWatching,
+    ]
 
     override func viewDidLoad() {
         super.viewDidLoad()
