@@ -69,6 +69,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isUpNextCardVisible = false
     var unattendedEpisodes = 0
     var viewerActedThisEpisode = true
+    #if DEBUG
+    var didSimulateSleep = false
+    #endif
     var pendingFailure: (message: String, retry: @MainActor () -> Void)?
 
     private init(api: APIClient, request: PlaybackRequest) {
@@ -80,6 +83,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     private func present(from presenter: UIViewController) {
         configurePlayerController()
         observeLifecycle()
+        #if DEBUG
+        presetUnattendedRunForUITests()
+        #endif
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
         rootPresenter = top
@@ -246,8 +252,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     private func handle(_ event: PlaybackEvent) {
         switch event {
-        case .position:
-            break
+        case .position(let absolute, _):
+            #if DEBUG
+            simulateSleepForUITestsIfDue(at: absolute)
+            #else
+            _ = absolute
+            #endif
         case .viewerActed:
             viewerActed()
         case .skipAvailable(let marker, _):
@@ -494,6 +504,37 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         guard ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_CLOCK_RESET"] == "1" else { return }
         AppLogger.notice("Debug: resetting the player clock to zero", .playback)
         session?.player?.seek(to: .zero)
+    }
+    #endif
+
+    #if DEBUG
+    /// `CRUCIBLE_PLAYER_UNATTENDED=<n>` starts the player as if `n` episodes had already played on their own with nobody at the
+    /// remote, so a test reaches "Still watching?" without sitting through them.
+    private func presetUnattendedRunForUITests() {
+        guard let count = ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_UNATTENDED"].flatMap(Int.init) else { return }
+        unattendedEpisodes = count
+        viewerActedThisEpisode = false
+    }
+
+    /// `CRUCIBLE_PLAYER_SLEEP_AT=<seconds>` with `CRUCIBLE_PLAYER_SLEEP_FOR=<seconds>` acts out an Apple TV that falls asleep without
+    /// telling the app: once the playhead passes SLEEP_AT the player pauses, the mock drops the transcode session (`/mock/reap`), and
+    /// the session's clock jumps SLEEP_FOR seconds ahead, as it reads after a night asleep. No lifecycle notification is sent.
+    private func simulateSleepForUITestsIfDue(at absolute: Double) {
+        let environment = ProcessInfo.processInfo.environment
+        guard !didSimulateSleep,
+              let sleepAt = environment["CRUCIBLE_PLAYER_SLEEP_AT"].flatMap(Double.init), absolute >= sleepAt,
+              let length = environment["CRUCIBLE_PLAYER_SLEEP_FOR"].flatMap(Double.init),
+              let session else { return }
+        didSimulateSleep = true
+        AppLogger.notice("Debug: simulating \(Int(length)) s asleep without lifecycle notifications", .playback)
+        session.player?.pause()
+        let reap = environment["CRUCIBLE_MOCK"].flatMap { mock in
+            session.stream.flatMap { URL(string: "\(mock)/mock/reap?session=\($0.sessionId)") }
+        }
+        Task {
+            if let reap { _ = try? await URLSession.shared.data(from: reap) }
+            session.debugAdvanceClock(by: .seconds(length))
+        }
     }
     #endif
 

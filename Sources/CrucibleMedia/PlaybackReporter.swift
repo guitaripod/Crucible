@@ -3,8 +3,9 @@ import CrucibleCore
 import Foundation
 import os
 
-/// Reports the playhead to the server's timeline: `playing` every ten seconds, `playing`/`paused` on
-/// every state change and `stopped` when it is stopped. One reporter serves a whole session; a change
+/// Reports the playhead to the server's timeline: the player's state every ten seconds (and whenever the
+/// periodic observer fires on a seek or a new item), `playing`/`paused` on every state change and `stopped`
+/// when it is stopped. One reporter serves a whole session; a change
 /// of stream only changes the offset of its `PlayheadTracker`, which also decides what position is
 /// true: a report never reads the player's clock directly, so a clock that lost its place cannot
 /// write the start of the stream over the server's record. Every report the server accepts is
@@ -58,9 +59,10 @@ package final class PlaybackReporter {
         ) { [weak player] time in
             let isReady = player?.currentItem?.status == .readyToPlay
             guard let position = tracker.position(playerSeconds: time.seconds, isReady: isReady) else { return }
+            let state = player?.timeControlStatus == .paused ? "paused" : "playing"
             Task {
                 await Self.report(
-                    api: api, ratingKey: ratingKey, state: "playing", position: position,
+                    api: api, ratingKey: ratingKey, state: state, position: position,
                     durationMs: durationMs, resumeStore: resumeStore, server: server
                 )
             }

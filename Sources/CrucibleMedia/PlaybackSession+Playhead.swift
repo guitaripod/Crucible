@@ -13,7 +13,7 @@ extension PlaybackSession {
                 Task { @MainActor in self?.player?.play() }
             }
         } else {
-            restartTranscode(atAbsolute: target)
+            restartTranscode(atAbsolute: target, reason: "seek")
         }
     }
 
@@ -145,7 +145,7 @@ extension PlaybackSession {
         if stream.isDirectPlay {
             seek(toAbsolute: target)
         } else {
-            restartTranscode(atAbsolute: target, resumesPlayback: true, freshSession: gone)
+            restartTranscode(atAbsolute: target, resumesPlayback: true, freshSession: gone, reason: "play after a pause")
         }
     }
 
@@ -251,7 +251,7 @@ extension PlaybackSession {
             player.seek(to: CMTime(seconds: max(0, player.currentTime().seconds + delta), preferredTimescale: 600))
         case .seek(let position):
             if stream?.isDirectPlay == false {
-                restartTranscode(atAbsolute: position)
+                restartTranscode(atAbsolute: position, reason: "remote seek")
             } else {
                 player.seek(to: CMTime(seconds: position, preferredTimescale: 600))
             }

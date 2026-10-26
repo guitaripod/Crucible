@@ -103,7 +103,7 @@ extension PlaybackSession {
         resumesAfterReturn = false
         switch plan {
         case .restartTranscode(let position):
-            restartTranscode(atAbsolute: position, resumesPlayback: resumes, freshSession: true)
+            restartTranscode(atAbsolute: position, resumesPlayback: resumes, freshSession: true, reason: "return (\(trigger))")
         case .seek(let position):
             seekAfterReturn(to: position, resumesPlayback: resumes)
         }

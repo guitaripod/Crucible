@@ -46,6 +46,7 @@ def apply_flags():
 
 apply_flags()
 REQUEST_LOG = collections.deque(maxlen=3000)
+REAPED_SESSIONS = set()
 PATH_LOG = collections.deque(maxlen=3000)
 HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4"}
 MOCK_TOKEN = "mock-token"
@@ -78,6 +79,7 @@ def reset_state():
         DETAIL_FLAKY["left"] = DETAIL_FLAKY_FAILURES
         OVERRIDES.clear()
         REQUEST_LOG.clear()
+        REAPED_SESSIONS.clear()
         PATH_LOG.clear()
         HUBS_MODE = os.environ.get("MOCK_HUBS_MODE", "ok")
         PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
@@ -659,19 +661,61 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"MediaContainer": c})
 
         if p.startswith("/video/:/transcode/universal/"):
-            return self.transcode(p)
+            return self.transcode(p, q)
 
         self.not_found()
 
-    def transcode(self, p):
-        name = p.rsplit("/", 1)[-1]
-        if FLAGS["fail_transcode"] and name == "start.m3u8":
-            return self.send_json(container(size=0, error="mock transcode failure"), 500)
-        hls = os.path.join(ASSETS, "hls", "index.m3u8" if name == "start.m3u8" else name)
+    def transcode(self, p, q):
+        """The universal transcoder: start.m3u8 opens a session whose segments live under session/<id>/, like a real server's,
+        so a session reaped with /mock/reap answers 404 for its segments and pings, as a server answers for a session it dropped."""
+        rest = p[len("/video/:/transcode/universal/"):]
+        session = (q.get("session") or [""])[0]
+        if rest.startswith("session/"):
+            parts = rest.split("/", 2)
+            if len(parts) < 3 or parts[1] in REAPED_SESSIONS:
+                return self.not_found()
+            return self.send_hls_file(parts[2])
+        name = rest.rsplit("/", 1)[-1]
+        if name == "ping":
+            return self.not_found() if session in REAPED_SESSIONS else self.send_empty()
+        if name == "start.m3u8":
+            if FLAGS["fail_transcode"]:
+                return self.send_json(container(size=0, error="mock transcode failure"), 500)
+            REAPED_SESSIONS.discard(session)
+            return self.send_session_playlist(session)
+        if name == "stop":
+            return self.send_empty()
+        return self.send_hls_file(name)
+
+    def send_hls_file(self, name):
+        hls = os.path.join(ASSETS, "hls", name)
         kind = HLS_TYPES.get(os.path.splitext(hls)[1])
         if kind and os.path.isfile(hls):
             return self.send_file(hls, kind)
         return self.send_empty()
+
+    def send_session_playlist(self, session):
+        """The clip's playlist with every segment and the init section moved under session/<id>/."""
+        path = os.path.join(ASSETS, "hls", "index.m3u8")
+        if not os.path.isfile(path):
+            return self.not_found()
+        prefix = f"session/{session}/" if session else ""
+        lines = []
+        with open(path, encoding="utf-8") as playlist:
+            for raw in playlist.read().splitlines():
+                line = raw.strip()
+                if line.startswith("#EXT-X-MAP:") and 'URI="' in line:
+                    head, uri = line.split('URI="', 1)
+                    line = f'{head}URI="{prefix}{uri}'
+                elif line and not line.startswith("#"):
+                    line = prefix + line
+                lines.append(line)
+        body = ("\n".join(lines) + "\n").encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", HLS_TYPES[".m3u8"])
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def detail_fault(self, rk):
         if rk == DETAIL_ERROR_KEY:
@@ -720,6 +764,11 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/mock/reset":
             reset_state()
             return self.send_json({"reset": True})
+        if p == "/mock/reap":
+            session = (q.get("session") or [""])[0]
+            if session:
+                REAPED_SESSIONS.add(session)
+            return self.send_json({"reaped": sorted(REAPED_SESSIONS)})
         if p == "/mock/env":
             if q.get("reset", [""])[0] == "1":
                 OVERRIDES.clear()

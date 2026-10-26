@@ -7,6 +7,7 @@ struct PendingRestart {
     var target: Double
     var resumesPlayback: Bool
     var freshSession: Bool
+    var reason: String
 }
 
 extension PlaybackSession {
@@ -14,8 +15,10 @@ extension PlaybackSession {
         itemWatcher?.invalidate()
         itemWatcher = nil
         guard let item = player?.currentItem, let stream else { return }
+        let watched = ObjectIdentifier(item)
         itemWatcher = PlayerItemWatcher(item: item, isTranscode: !stream.isDirectPlay) { [weak self] event in
-            self?.handle(event)
+            guard let self, let current = player?.currentItem, ObjectIdentifier(current) == watched else { return }
+            handle(event)
         }
     }
 
@@ -38,15 +41,19 @@ extension PlaybackSession {
         }
     }
 
+    /// A jump of the playhead inside a transcode is the viewer scrubbing: the transcode restarts at the new
+    /// place, playing or paused as the player was. Jumps while the session moves the player itself, or before
+    /// the item is ready to show the new place, are the item settling and not the viewer.
     private func handleJump() {
-        guard !tracker.isHeld, let item = player?.currentItem else { return }
+        guard !tracker.isHeld, !isRestarting, !isRecovering, let player, let item = player.currentItem, item.status == .readyToPlay else { return }
         let now = item.currentTime().seconds
         guard now.isFinite else { return }
         let previous = lastPlayhead
         lastPlayhead = now
         guard TranscodeSeekPolicy.isJump(from: previous, to: now) else { return }
         noteViewerAction()
-        restartTranscode(atAbsolute: streamOffset + max(0, now))
+        let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+        restartTranscode(atAbsolute: streamOffset + max(0, now), resumesPlayback: plays, reason: "scrub from \(Int(previous)) to \(Int(now))")
     }
 
     /// The end of the item. A transcode that ends short of the credits and of the end of the timeline is a
@@ -62,6 +69,7 @@ extension PlaybackSession {
             loadUpNext(reason: .playbackEnded)
             return
         }
+        guard !isRestarting, !isRecovering else { return }
         if let earlier = prematureEndPosition, abs(earlier - position) < ItemEndRule.endWindow(duration: request.durationSecs) {
             AppLogger.error("The stream ended early twice ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs))", .playback)
             emit(.failed("The stream stopped at \(Formatters.timestamp(position)) before the end of the video."))
@@ -69,7 +77,7 @@ extension PlaybackSession {
         }
         prematureEndPosition = position
         AppLogger.notice("The stream ended early ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs)); rebuilding it", .playback)
-        restartTranscode(atAbsolute: position, resumesPlayback: true, freshSession: true)
+        restartTranscode(atAbsolute: position, resumesPlayback: true, freshSession: true, reason: "early end")
     }
 
     /// AVPlayer failures are otherwise completely silent (a black screen): every failure is logged with
@@ -87,7 +95,7 @@ extension PlaybackSession {
         case .restartTranscode:
             let position = bestKnownPosition
             AppLogger.notice("Restarting the transcode after a failure ratingKey=\(request.ratingKey) position=\(Int(position))", .playback)
-            restartTranscode(atAbsolute: position, resumesPlayback: wasPlayingAtLastTick, freshSession: true)
+            restartTranscode(atAbsolute: position, resumesPlayback: wasPlayingAtLastTick, freshSession: true, reason: "failure after a return")
         case .fail:
             emit(.failed(message))
         case .fallBackToTranscode:
@@ -159,22 +167,24 @@ extension PlaybackSession {
             let position = bestKnownPosition
             let playing = (player?.rate ?? 0) > 0 || player?.timeControlStatus == .waitingToPlayAtSpecifiedRate
             AppLogger.notice("Healing the transcode ratingKey=\(request.ratingKey) position=\(Int(position)) reason=\(reason)", .playback)
-            restartTranscode(atAbsolute: position, resumesPlayback: playing, freshSession: true)
+            restartTranscode(atAbsolute: position, resumesPlayback: playing, freshSession: true, reason: "heal: \(reason)")
         }
     }
 
     /// Restarts the transcode at a new absolute offset. A seek keeps the server session (the server re-keys
     /// the encode); `freshSession` starts a new one and stops the old, for a session the server may have
     /// reaped. The new item replaces the old one once built.
-    func restartTranscode(atAbsolute target: Double, resumesPlayback: Bool = true, freshSession: Bool = false) {
+    func restartTranscode(atAbsolute target: Double, resumesPlayback: Bool = true, freshSession: Bool = false, reason: String) {
         guard let stream, player != nil, !isStopped else { return }
         let start = StreamPosition.transcodeStart(target)
+        AppLogger.notice("Transcode restart ratingKey=\(request.ratingKey) at=\(Int(start)) fresh=\(freshSession) plays=\(resumesPlayback) queued=\(isRestarting) reason=\(reason)", .playback)
         tracker.moved(to: start)
         guard !isRestarting else {
             pendingRestart = PendingRestart(
                 target: start,
                 resumesPlayback: resumesPlayback,
-                freshSession: freshSession || (pendingRestart?.freshSession ?? false)
+                freshSession: freshSession || (pendingRestart?.freshSession ?? false),
+                reason: reason
             )
             return
         }
@@ -232,6 +242,8 @@ extension PlaybackSession {
     private func finishRestart(ready: Bool) {
         if ready {
             liveness?.confirm(at: now())
+            let settled = player?.currentItem?.currentTime().seconds ?? 0
+            lastPlayhead = settled.isFinite ? settled : 0
             if restartResumesPlayback { player?.play() }
         }
         isRestarting = false
@@ -240,7 +252,7 @@ extension PlaybackSession {
         restartItemObserver = nil
         if let pending = pendingRestart {
             pendingRestart = nil
-            restartTranscode(atAbsolute: pending.target, resumesPlayback: pending.resumesPlayback, freshSession: pending.freshSession)
+            restartTranscode(atAbsolute: pending.target, resumesPlayback: pending.resumesPlayback, freshSession: pending.freshSession, reason: "queued \(pending.reason)")
         }
     }
 
