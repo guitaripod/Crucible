@@ -87,17 +87,12 @@ struct PlaybackResumeTests {
         #expect(tracker.position(playerSeconds: 3, isReady: true) == 903)
     }
 
-    @Test func aTranscodeIsRestartedAtTheSnapshotSoAnExpiredSessionNeverMatters() {
-        #expect(ReturnPlan.make(snapshot: 1_840, isDirectPlay: false, isRestarting: false) == .restartTranscode(at: 1_840))
+    @Test func aTranscodeIsRebuiltAtTheTargetSoAnExpiredSessionNeverMatters() {
+        #expect(ReturnPlan.make(target: 1_840, isDirectPlay: false) == .restartTranscode(at: 1_840))
     }
 
-    @Test func aRestartAlreadyUnderWayIsLeftAlone() {
-        #expect(ReturnPlan.make(snapshot: 90, isDirectPlay: false, isRestarting: true) == .keep)
-    }
-
-    @Test func aDirectPlayFileIsSeekedToTheSnapshotOnReturn() {
-        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: false) == .seek(to: 600))
-        #expect(ReturnPlan.make(snapshot: 600, isDirectPlay: true, isRestarting: true) == .seek(to: 600))
+    @Test func aDirectPlayFileIsSeekedToTheTargetOnReturn() {
+        #expect(ReturnPlan.make(target: 600, isDirectPlay: true) == .seek(to: 600))
     }
 
     @Test func aTranscodeFailureSoonAfterTheReturnIsRestartedOnceNotShownAsAnError() {

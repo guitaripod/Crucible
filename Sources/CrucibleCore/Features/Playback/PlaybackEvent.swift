@@ -9,6 +9,8 @@ package enum PlaybackFinish: Sendable {
 /// What a playback session tells its player surface.
 package enum PlaybackEvent: Sendable {
     case position(absolute: Double, rate: Double)
+    /// The viewer paused, played or scrubbed: someone is watching.
+    case viewerActed
     case skipAvailable(SkipMarker, progress: Double)
     case skipHidden
     case autoSkipped(SkipMarker, returnTo: Double)

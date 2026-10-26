@@ -80,6 +80,9 @@ package final class PlayheadTracker: Sendable {
 
     package var heldPosition: Double? { state.withLock { $0.keeper.held } }
 
+    /// The last position seen on a ready item, or the last one the session moved to.
+    package var lastGoodPosition: Double? { state.withLock { $0.keeper.lastGood } }
+
     package var streamOffset: Double { state.withLock { $0.streamOffset } }
 
     package func setStreamOffset(_ offset: Double) {
@@ -120,16 +123,15 @@ package final class PlayheadTracker: Sendable {
 
 /// What the player is put through when the app returns after being away.
 package enum ReturnPlan: Equatable, Sendable {
-    case keep
     case restartTranscode(at: Double)
     case seek(to: Double)
 
-    /// A transcode is always rebuilt at the snapshot: the server reaps a session that stopped pinging
-    /// while the app was away, and the stream the player holds may be gone or may start somewhere else.
-    /// A direct-play file is always seeked to the snapshot too, even when its clock agrees: a clock that
-    /// is about to change under the player (a seek still in flight) cannot be told from a good one.
-    package static func make(snapshot: Double, isDirectPlay: Bool, isRestarting: Bool) -> ReturnPlan {
-        if isDirectPlay { return .seek(to: snapshot) }
-        return isRestarting ? .keep : .restartTranscode(at: snapshot)
+    /// A transcode is always rebuilt at the target under a new server session: the server reaps a session
+    /// that stopped pinging while the app was away, and a reaped session the player keeps reading can show
+    /// the episode from its start while the clock runs on where it was. A direct-play file is always seeked to
+    /// the target too, even when its clock agrees: a clock that is about to change under the player (a seek
+    /// still in flight) cannot be told from a good one.
+    package static func make(target: Double, isDirectPlay: Bool) -> ReturnPlan {
+        isDirectPlay ? .seek(to: target) : .restartTranscode(at: target)
     }
 }

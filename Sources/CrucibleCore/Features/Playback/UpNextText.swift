@@ -14,6 +14,23 @@ package enum UpNextText {
             .compactMap { $0 }.joined(separator: ", ")
     }
 
+    /// The eyebrow over the episode title: "UP NEXT", or the question once a run of episodes has played
+    /// with nobody at the remote.
+    package static func eyebrow(asksStillWatching: Bool) -> String {
+        asksStillWatching ? "STILL WATCHING?" : "UP NEXT"
+    }
+
+    /// The card's main button.
+    package static func playTitle(asksStillWatching: Bool) -> String {
+        asksStillWatching ? "Keep Watching" : "Play Now"
+    }
+
+    /// What VoiceOver is told when the card asks before playing on.
+    package static func stillWatchingAnnouncement(code: String?, title: String) -> String {
+        let name = [code, title].compactMap { $0 }.joined(separator: " ")
+        return "Are you still watching? Up next: \(name)"
+    }
+
     /// What VoiceOver is told once when the card appears.
     package static func announcement(code: String?, title: String, seconds: Int?) -> String {
         let name = [code, title].compactMap { $0 }.joined(separator: " ")

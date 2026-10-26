@@ -8,17 +8,24 @@ import UIKit
 /// Now and a second button. During credits that button is Watch Credits, which defers the proposal
 /// so the credits keep playing, and Menu does the same; without credits it is Close, which rejects
 /// the proposal and ends the player. With autoplay on and VoiceOver off the card counts down and
-/// plays on its own. It always renders dark, like the rest of a video overlay, so its white text
-/// stays legible over the picture in either system appearance.
+/// plays on its own, unless a run of episodes has played with nobody at the remote: then it asks
+/// "Still watching?" and waits for an answer. It always renders dark, like the rest of a video
+/// overlay, so its white text stays legible over the picture in either system appearance.
 @MainActor
 final class TVUpNextViewController: AVContentProposalViewController {
     var onDeferred: (() -> Void)?
     var isAtEndOfItem: (() -> Bool)?
+    var asksStillWatching: (() -> Bool)?
+
+    /// Whether the viewer pressed the main button, as opposed to the countdown accepting on its own.
+    private(set) var acceptedByViewer = false
 
     private let episode: PlexMetadata
     private let autoplays: Bool
     private let hasCredits: Bool
     private let countdownLabel = UILabel()
+    private let eyebrow = UILabel()
+    private var stillWatching = false
     private let thumb = UIImageView()
     private var countdownTask: Task<Void, Never>?
     private var remaining = UpNextOffer.countdownSeconds
@@ -35,9 +42,9 @@ final class TVUpNextViewController: AVContentProposalViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Counts down only when autoplay is on and VoiceOver is off: a countdown the viewer cannot see
-    /// must not start the next episode under them.
-    private var isCounting: Bool { autoplays && !UIAccessibility.isVoiceOverRunning }
+    /// Counts down only when autoplay is on, VoiceOver is off and nobody needs asking: a countdown the
+    /// viewer cannot see must not start the next episode under them, and neither may one nobody is awake for.
+    private var isCounting: Bool { autoplays && !stillWatching && !UIAccessibility.isVoiceOverRunning }
 
     private var animatesDismissal: Bool { !UIAccessibility.isReduceMotionEnabled }
 
@@ -55,6 +62,10 @@ final class TVUpNextViewController: AVContentProposalViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        stillWatching = asksStillWatching?() ?? false
+        eyebrow.text = UpNextText.eyebrow(asksStillWatching: stillWatching)
+        playButton?.configuration?.title = UpNextText.playTitle(asksStillWatching: stillWatching)
+        playButton?.accessibilityLabel = UpNextText.playTitle(asksStillWatching: stillWatching)
         refreshLeaveButton()
     }
 
@@ -108,11 +119,11 @@ final class TVUpNextViewController: AVContentProposalViewController {
     }
 
     private func announce() {
-        let seconds = autoplays ? UpNextOffer.countdownSeconds : nil
-        UIAccessibility.post(
-            notification: .announcement,
-            argument: UpNextText.announcement(code: code, title: episode.title, seconds: seconds)
-        )
+        let seconds = isCounting ? UpNextOffer.countdownSeconds : nil
+        let text = stillWatching
+            ? UpNextText.stillWatchingAnnouncement(code: code, title: episode.title)
+            : UpNextText.announcement(code: code, title: episode.title, seconds: seconds)
+        UIAccessibility.post(notification: .announcement, argument: text)
     }
 
     private func buildCard() {
@@ -122,8 +133,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
         glass.layer.cornerCurve = .continuous
         glass.translatesAutoresizingMaskIntoConstraints = false
 
-        let eyebrow = UILabel()
-        eyebrow.text = "UP NEXT"
+        eyebrow.text = UpNextText.eyebrow(asksStillWatching: stillWatching)
         eyebrow.font = Theme.Font.caption1
         eyebrow.textColor = Theme.Color.accentText
 
@@ -143,8 +153,9 @@ final class TVUpNextViewController: AVContentProposalViewController {
         }
         leaveButton = leave
         refreshLeaveButton()
-        let play = TVButton.make(.primary, title: "Play Now", symbol: "play.fill") { [weak self] in
+        let play = TVButton.make(.primary, title: UpNextText.playTitle(asksStillWatching: stillWatching), symbol: "play.fill") { [weak self] in
             guard let self else { return }
+            acceptedByViewer = true
             dismissContentProposal(for: .accept, animated: animatesDismissal, completion: nil)
         }
         play.accessibilityIdentifier = "player.upNext.play"

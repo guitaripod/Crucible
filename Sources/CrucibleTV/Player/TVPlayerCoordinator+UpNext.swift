@@ -27,6 +27,7 @@ extension TVPlayerCoordinator {
         let card = TVUpNextViewController(offer: offer, hasCredits: hasCredits)
         card.onDeferred = { [weak self] in self?.upNextCardWasDeferred() }
         card.isAtEndOfItem = { [weak self] in self?.isItemNearEnd ?? false }
+        card.asksStillWatching = { [weak self] in self?.asksStillWatching ?? false }
         upNextCard = card
         playerVC.contentProposalViewController = card
         session.player?.currentItem?.nextContentProposal = makeProposal()
@@ -67,24 +68,26 @@ extension TVPlayerCoordinator {
     }
 
     private func upNextCardWasDeferred() {
+        viewerActed()
         isUpNextCardVisible = false
         session?.setUpNextVisible(false)
     }
 
     /// The engine's own Up Next answers. The card handles the credits; the answer for the end of the
     /// item is the safety net for when no card is on screen (the viewer chose to watch the credits, or
-    /// the card never came): play the next episode with autoplay, otherwise close the player.
+    /// the card never came): play the next episode with autoplay, unless nobody has touched the remote for
+    /// long enough that Crucible should ask first, otherwise close the player.
     func handle(_ offer: UpNextOffer) {
         switch offer.reason {
         case .requested:
-            advance(to: offer)
+            advance(to: offer, byViewer: true)
         case .credits:
             break
         case .playbackEnded:
             Task { [weak self] in
                 try? await Task.sleep(for: Self.upNextCardGrace)
                 guard let self, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
-                if offer.autoplays {
+                if offer.autoplays, !asksStillWatching {
                     advance(to: offer)
                 } else {
                     await finish(animated: true)
@@ -98,7 +101,12 @@ extension TVPlayerCoordinator {
         shouldPresent proposal: AVContentProposal
     ) -> Bool {
         guard !isFinishing else { return false }
-        AppLogger.notice("Up Next proposal presented for ratingKey=\(request.ratingKey)", .playback)
+        if let session, !session.isAtCreditsOrEnd {
+            AppLogger.notice("Up Next proposal refused before the credits ratingKey=\(request.ratingKey) position=\(Int(session.absolutePosition ?? -1)) credits=\(Int(session.creditsStartSecs ?? -1))", .playback)
+            session.heal(reason: "Up Next proposal before the credits")
+            return false
+        }
+        AppLogger.notice("Up Next proposal presented for ratingKey=\(request.ratingKey) stillWatching=\(asksStillWatching) unattended=\(unattendedEpisodes)", .playback)
         isUpNextCardVisible = true
         session?.setUpNextVisible(true)
         clearContextualActions()
@@ -110,7 +118,7 @@ extension TVPlayerCoordinator {
         didAccept proposal: AVContentProposal
     ) {
         guard let offer = upNextOffer else { return }
-        advance(to: offer)
+        advance(to: offer, byViewer: upNextCard?.acceptedByViewer ?? false)
     }
 
     func playerViewController(

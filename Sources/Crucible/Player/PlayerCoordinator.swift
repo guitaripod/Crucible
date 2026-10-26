@@ -208,6 +208,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         case .position(let absolute, let rate):
             nowPlaying?.updateElapsed(absolute, rate: rate)
             recordOfflineProgress(at: absolute)
+        case .viewerActed:
+            break
         case .skipAvailable(let marker, let progress):
             showSkipButton(for: marker, progress: progress)
         case .skipHidden:
@@ -262,10 +264,18 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let center = NotificationCenter.default
         suspensionObservers = [
             center.addObserver(forName: UIScene.didEnterBackgroundNotification, object: windowScene, queue: .main) { [weak self] _ in
-                Task { @MainActor in await self?.suspendSession() }
+                MainActor.assumeIsolated {
+                    self?.session.noteLifecycle("background")
+                    self?.session.isInForeground = false
+                    self?.suspendSession()
+                }
             },
             center.addObserver(forName: UIScene.willEnterForegroundNotification, object: windowScene, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.session.recoverAfterSuspension() }
+                MainActor.assumeIsolated {
+                    self?.session.noteLifecycle("foreground")
+                    self?.session.isInForeground = true
+                    self?.session.recoverAfterSuspension()
+                }
             },
             center.addObserver(forName: UIScene.didDisconnectNotification, object: windowScene, queue: .main) { [weak self] _ in
                 guard let self else { return }
@@ -282,11 +292,17 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         await dismissPlayer()
     }
 
-    private func suspendSession() async {
+    /// Saves at once, inside the notification, then reports inside a background task, so the system lets the
+    /// report leave before it suspends the app.
+    private func suspendSession() {
         let application = UIApplication.shared
         let task = application.beginBackgroundTask(withName: "playback-suspend")
-        await session.suspend(pausing: false)
-        if task != .invalid { application.endBackgroundTask(task) }
+        let report = session.suspendNow(pausing: false)
+        let session = session
+        Task {
+            if let report { await session.reportSuspension(report) }
+            if task != .invalid { application.endBackgroundTask(task) }
+        }
     }
 
     private func showSkipToast(returningTo position: Double) {

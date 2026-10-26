@@ -95,6 +95,60 @@ extension PlaybackSession {
         }
     }
 
+    /// Follows the player between paused and playing, which is how the session knows how long a pause lasted
+    /// and when the viewer asks to play again.
+    func observeRate(of player: AVPlayer) {
+        rateObserver = player.observe(\.timeControlStatus, options: [.new]) { @Sendable [weak self] observed, _ in
+            let status = observed.timeControlStatus
+            Task { @MainActor in self?.timeControlChanged(to: status) }
+        }
+    }
+
+    private func timeControlChanged(to status: AVPlayer.TimeControlStatus) {
+        guard !isStopped else { return }
+        switch status {
+        case .paused:
+            if pausedSince == nil, !isRestarting { pausedSince = now() }
+            noteViewerAction()
+        case .playing, .waitingToPlayAtSpecifiedRate:
+            guard let since = pausedSince else { return }
+            pausedSince = nil
+            noteViewerAction()
+            resumeAfterPause(since.duration(to: now()))
+        @unknown default:
+            break
+        }
+    }
+
+    /// Tells the surface the viewer did something, unless the change was the session's own (a recovery or a
+    /// restart), the system's (the app going away) or the end of the item.
+    func noteViewerAction() {
+        guard isInForeground, !isRecovering, !isRestarting, !isSuspended, !tracker.isHeld else { return }
+        if let item = player?.currentItem {
+            let duration = item.duration.seconds
+            if duration.isFinite, item.currentTime().seconds >= duration - 2 { return }
+        }
+        emit(.viewerActed)
+    }
+
+    /// The viewer plays again after a pause. A transcode the server may have reaped meanwhile is rebuilt under
+    /// a new session before it plays, and a pause long enough to be a break backs up a little first
+    /// (`BreakRule`), so the viewer is back in the scene.
+    private func resumeAfterPause(_ pause: Duration) {
+        guard !isRecovering, !isRestarting, !isSuspended, let stream else { return }
+        let rewind = Preferences.rewindAfterBreak ? BreakRule.rewind(after: pause) : 0
+        let gone = liveness?.mayBeGone(at: now()) ?? false
+        guard rewind > 0 || gone else { return }
+        let snapshot = bestKnownPosition
+        let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.markers.map(SkipMarker.init))
+        AppLogger.notice("Playing after a pause ratingKey=\(request.ratingKey) pause=\(Int(pause.seconds))s position=\(Int(snapshot)) target=\(Int(target)) sessionGone=\(gone)", .playback)
+        if stream.isDirectPlay {
+            seek(toAbsolute: target)
+        } else {
+            restartTranscode(atAbsolute: target, resumesPlayback: true, freshSession: gone)
+        }
+    }
+
     private func playheadMoved(to seconds: Double) {
         guard !isStopped, let player else { return }
         lastPlayhead = seconds

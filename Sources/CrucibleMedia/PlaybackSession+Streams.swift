@@ -40,15 +40,17 @@ extension PlaybackSession {
         stream = resolved
         streamOffset = ResumeStrategy.streamOffset(resumePosition: position, isDirectPlay: resolved.isDirectPlay)
         lastPlayhead = resolved.isDirectPlay ? position : 0
-        tracker.moved(to: position)
+        tracker.moved(to: resolved.isDirectPlay ? position : streamOffset)
         isRestarting = false
-        pendingRestartTarget = nil
+        pendingRestart = nil
         restartItemObserver?.invalidate()
         restartItemObserver = nil
         if resolved.isDirectPlay {
             pingTask?.cancel()
             pingTask = nil
+            liveness = nil
         } else {
+            liveness = TranscodeLiveness(confirmedAt: now())
             startPing(session: resolved.sessionId)
         }
         let item = AVPlayerItem(url: resolved.url)

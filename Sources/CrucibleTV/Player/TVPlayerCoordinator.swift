@@ -67,6 +67,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isShowingAlert = false
     var isRevealing = false
     var isUpNextCardVisible = false
+    var unattendedEpisodes = 0
+    var viewerActedThisEpisode = true
     var pendingFailure: (message: String, retry: @MainActor () -> Void)?
 
     private init(api: APIClient, request: PlaybackRequest) {
@@ -246,6 +248,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         switch event {
         case .position:
             break
+        case .viewerActed:
+            viewerActed()
         case .skipAvailable(let marker, _):
             showSkip(marker)
         case .skipHidden, .autoSkipUndoExpired:
@@ -267,6 +271,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         shownMarker = marker
         playerVC.contextualActions = [
             UIAction(title: marker.title, image: UIImage(systemName: "forward.fill")) { [weak self] _ in
+                self?.viewerActed()
                 self?.skip(marker)
             },
         ]
@@ -281,6 +286,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         shownMarker = nil
         playerVC.contextualActions = [
             UIAction(title: "Undo Skip", image: UIImage(systemName: "arrow.uturn.backward")) { [weak self] _ in
+                self?.viewerActed()
                 self?.clearContextualActions()
                 self?.session?.undoAutoSkip(returnTo: position)
             },
@@ -340,8 +346,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         }
     }
 
-    func advance(to offer: UpNextOffer) {
+    /// Starts the next episode. One the viewer chose starts a new run; one that started on its own adds to
+    /// the run of episodes nobody has touched the remote in, which is what "Still watching?" counts.
+    func advance(to offer: UpNextOffer, byViewer: Bool = false) {
         guard !isAdvancing, !isFinishing else { return }
+        unattendedEpisodes = byViewer ? 0 : (viewerActedThisEpisode ? 0 : unattendedEpisodes) + 1
+        viewerActedThisEpisode = byViewer
         finishedAnItem = true
         isAdvancing = true
         isUpNextCardVisible = false
@@ -414,35 +424,67 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     /// The snapshot of the viewer's position is taken when the app resigns active, while the player's
     /// clock is still right; going to the background pauses and reports it, coming back puts the player
-    /// where the snapshot says and stays paused, ready to press play like the system player after Home.
+    /// where the snapshot says. Each handler runs at once, inside the notification, because the system can
+    /// suspend the app as soon as it returns; work deferred to a task may not run until the app is back.
+    /// An absence no notification announces (an Apple TV that sleeps from its screen saver) is the session
+    /// heartbeat's to notice.
     private func observeLifecycle() {
-        let center = NotificationCenter.default
         lifecycleObservers = [
-            center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.session?.holdPosition() }
+            observe(UIApplication.willResignActiveNotification) { coordinator in
+                coordinator.session?.noteLifecycle("resignActive")
+                coordinator.session?.holdPosition()
             },
-            center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.session?.releasePositionIfForeground() }
+            observe(UIApplication.didBecomeActiveNotification) { coordinator in
+                coordinator.session?.noteLifecycle("becomeActive")
+                coordinator.session?.isInForeground = true
+                coordinator.session?.releasePositionIfForeground()
             },
-            center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in await self?.suspendSession() }
+            observe(UIApplication.didEnterBackgroundNotification) { coordinator in
+                coordinator.session?.noteLifecycle("background")
+                coordinator.session?.isInForeground = false
+                coordinator.suspendSession()
             },
-            center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.session?.recoverAfterSuspension() }
+            observe(UIApplication.willEnterForegroundNotification) { coordinator in
+                coordinator.session?.noteLifecycle("foreground")
+                coordinator.session?.isInForeground = true
+                coordinator.session?.recoverAfterSuspension()
             },
         ]
     }
 
-    /// Pauses and reports inside a background task, so the system lets the report leave before it suspends the app.
-    private func suspendSession() async {
+    private func observe(_ name: Notification.Name, _ handler: @escaping @MainActor (TVPlayerCoordinator) -> Void) -> any NSObjectProtocol {
+        NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                handler(self)
+            }
+        }
+    }
+
+    /// Pauses and saves at once, then reports inside a background task, so the system lets the report leave
+    /// before it suspends the app.
+    private func suspendSession() {
         guard let session else { return }
         let application = UIApplication.shared
         let task = application.beginBackgroundTask(withName: "playback-suspend")
-        await session.suspend()
+        let report = session.suspendNow()
         #if DEBUG
         resetPlayerClockForUITests()
         #endif
-        if task != .invalid { application.endBackgroundTask(task) }
+        Task {
+            if let report { await session.reportSuspension(report) }
+            if task != .invalid { application.endBackgroundTask(task) }
+        }
+    }
+
+    /// Whatever the viewer does with the remote while an episode plays: it ends a run of unattended episodes.
+    func viewerActed() {
+        viewerActedThisEpisode = true
+    }
+
+    /// Whether the Up Next card asks "Still watching?" instead of counting down.
+    var asksStillWatching: Bool {
+        !viewerActedThisEpisode && StillWatchingRule.asks(unattended: unattendedEpisodes, limit: Preferences.stillWatchingAfter)
     }
 
     #if DEBUG

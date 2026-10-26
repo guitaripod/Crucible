@@ -10,9 +10,16 @@ import Foundation
 /// Resume follows `ResumeStrategy`: a transcode starts at the stored position through its URL offset
 /// and is never seeked again. Where the viewer is comes from a `PlayheadTracker`, never straight from
 /// the player's clock, and is kept on the device (`PlaybackResumeStore`) as playback goes, so a
-/// suspension, a sleeping Apple TV or a terminated app still leaves the true position behind. A session plays exactly once: after `stop()` or `discard()` it is
-/// spent (`prepare()` throws `CancellationError`, `begin()` returns nil), so a retry or a second
-/// presentation makes a new session.
+/// suspension, a sleeping Apple TV or a terminated app still leaves the true position behind.
+///
+/// The session also heals itself. A heartbeat notices any absence (`AwayDetector`), even one no
+/// lifecycle notification announced, and a transcode the server may have reaped (`TranscodeLiveness`:
+/// pings, segment loads and the item's error log) is rebuilt under a new server session at the true
+/// position before it plays on. An item that ends short of its credits is not taken for the end of the
+/// episode (`ItemEndRule`). After a break the player backs up a little (`BreakRule`).
+///
+/// A session plays exactly once: after `stop()` or `discard()` it is spent (`prepare()` throws
+/// `CancellationError`, `begin()` returns nil), so a retry or a second presentation makes a new session.
 @MainActor
 package final class PlaybackSession {
     package let request: PlaybackRequest
@@ -54,8 +61,21 @@ package final class PlaybackSession {
     var resumesAfterReturn = false
     var returnedAt: Date?
     var isRestarting = false
-    var pendingRestartTarget: Double?
+    var pendingRestart: PendingRestart?
     var restartResumesPlayback = true
+    var awayDetector = AwayDetector()
+    var awaySince: ContinuousClock.Instant?
+    var pausedSince: ContinuousClock.Instant?
+    var liveness: TranscodeLiveness?
+    var heals = HealBudget()
+    var prematureEndPosition: Double?
+    /// Whether the surface is in the foreground; set by the surface from its lifecycle notifications.
+    package var isInForeground = true
+    var heartbeatTask: Task<Void, Never>?
+    var rateObserver: NSKeyValueObservation?
+    #if DEBUG
+    var debugClockShift: Duration = .zero
+    #endif
     var upNextGate = UpNextLookupGate()
     let installsRemoteCommands: Bool
     var isChangingStreams = false
@@ -111,6 +131,34 @@ package final class PlaybackSession {
 
     var isItemReady: Bool {
         player?.currentItem?.status == .readyToPlay
+    }
+
+    /// The continuous clock the session measures absences and pauses with.
+    func now() -> ContinuousClock.Instant {
+        #if DEBUG
+        ContinuousClock.now.advanced(by: debugClockShift)
+        #else
+        ContinuousClock.now
+        #endif
+    }
+
+    #if DEBUG
+    /// Moves the session's clock forward as if the device had slept for `duration` without telling the app.
+    package func debugAdvanceClock(by duration: Duration) {
+        debugClockShift += duration
+    }
+    #endif
+
+    /// The position to act on when the player's clock cannot be trusted right now.
+    var bestKnownPosition: Double {
+        tracker.heldPosition ?? absolutePosition ?? tracker.lastGoodPosition ?? lastPlayhead + streamOffset
+    }
+
+    /// Whether the playhead has really reached the credits or the end of the item, the only places an Up
+    /// Next card belongs. An offline item and a direct-play file always qualify: their clock is the file's own.
+    package var isAtCreditsOrEnd: Bool {
+        guard let stream, !stream.isDirectPlay, request.offline == nil else { return true }
+        return ItemEndRule.isGenuineEnd(absolute: bestKnownPosition, duration: request.durationSecs, creditsStart: creditsStartSecs)
     }
 
     /// Resolves the stream to play. A cancelled caller gets `CancellationError` and any transcode the
@@ -172,9 +220,14 @@ package final class PlaybackSession {
             markers: stream.markers
         )
         if installsRemoteCommands { configureRemoteCommands() }
-        if !stream.isDirectPlay { startPing(session: stream.sessionId) }
+        if !stream.isDirectPlay {
+            liveness = TranscodeLiveness(confirmedAt: now())
+            startPing(session: stream.sessionId)
+        }
         observeInterruptions()
         observePlayhead(of: player)
+        observeRate(of: player)
+        startHeartbeat()
         watchCurrentItem()
         startPlayback(player: player, stream: stream, resumePosition: request.resumePosition, autoplay: true)
         return player
@@ -197,6 +250,8 @@ package final class PlaybackSession {
         restartItemObserver = nil
         offlineResumeObserver?.invalidate()
         offlineResumeObserver = nil
+        rateObserver?.invalidate()
+        rateObserver = nil
 
         await invalidateCaches()
         await reporter?.stop(positionSecs: finalPosition)
@@ -219,8 +274,12 @@ package final class PlaybackSession {
 
     func discardTranscode(of stream: ResolvedStream) {
         guard !stream.isDirectPlay else { return }
+        discardTranscode(session: stream.sessionId)
+    }
+
+    func discardTranscode(session: String) {
         Task { [api] in
-            try? await api.requestVoid(.stopTranscode(session: stream.sessionId))
+            try? await api.requestVoid(.stopTranscode(session: session))
         }
     }
 
@@ -229,11 +288,12 @@ package final class PlaybackSession {
     }
 
     private func cancelBackgroundWork() {
-        for task in [pingTask, undoTask, upNextTask, fallbackTask] { task?.cancel() }
+        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask] { task?.cancel() }
         pingTask = nil
         undoTask = nil
         upNextTask = nil
         fallbackTask = nil
+        heartbeatTask = nil
     }
 
     private func invalidateCaches() async {

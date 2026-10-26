@@ -32,7 +32,7 @@ package enum ResumeStrategy: Equatable, Sendable {
 
     /// The timeline position the stream's own zero corresponds to: the URL offset of a transcode.
     package static func streamOffset(resumePosition: Double, isDirectPlay: Bool) -> Double {
-        isDirectPlay ? 0 : resumePosition
+        isDirectPlay ? 0 : StreamPosition.transcodeStart(resumePosition)
     }
 }
 
@@ -42,6 +42,13 @@ package enum StreamPosition {
     package static func absolute(playerSeconds: Double, streamOffset: Double) -> Double? {
         let position = playerSeconds + streamOffset
         return position.isFinite && position >= 0 ? position : nil
+    }
+
+    /// Where a transcode asked to start at `target` really starts: the server takes whole seconds, so the
+    /// stream's zero is the whole second at or before the target.
+    package static func transcodeStart(_ target: Double) -> Double {
+        guard target.isFinite, target > 0 else { return 0 }
+        return target.rounded(.down)
     }
 }
 

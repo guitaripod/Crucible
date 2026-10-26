@@ -24,6 +24,11 @@ package struct ResolvedStream: Sendable {
         self.audioTracks = audioTracks
         self.markers = markers
     }
+
+    /// The same stream restarted under another server session.
+    package func restarted(url: URL, sessionId: String) -> ResolvedStream {
+        ResolvedStream(url: url, isDirectPlay: isDirectPlay, sessionId: sessionId, subtitles: subtitles, audioTracks: audioTracks, markers: markers)
+    }
 }
 
 enum StreamResolverError: Error, LocalizedError {
@@ -195,7 +200,7 @@ package enum StreamResolver {
             + "&X-Plex-Platform=\(AppPlatform.plexName)"
             + "&X-Plex-Product=Crucible"
         if let secs = startSecs {
-            query += "&offset=\(Int(secs))"
+            query += "&offset=\(Int(StreamPosition.transcodeStart(secs)))"
         }
         if Preferences.streamingQuality != .original {
             query += "&maxVideoBitrate=\(Preferences.streamingQuality.rawValue)&videoQuality=100"
