@@ -41,6 +41,9 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Skip Intro** your way: a glass button with a live progress sweep, automatic skipping with Undo, or off
 - Adjustable **playback speed**, subtitle and audio track selection
 - Resume from where you left off, progress synced to the server via the timeline API
+- **Keeps your place through anything**: a sleeping Apple TV (even one that dozed off from its screen saver without telling the app), the app in the background, or a server that dropped the stream while you were away: a heartbeat notices the absence, and the stream is rebuilt under a fresh server session at the exact moment you left. A stream that stops short is rebuilt instead of being taken for the end, so the next episode never starts mid-episode, and Up Next only appears at the credits
+- **Rewind After a Break**: coming back after a break, playback backs up a few seconds, more the longer you were away (up to 15)
+- **Still watching?**: after a few episodes in a row without touching the remote (2, 3 or 5; 3 by default), Up Next asks before playing on, so a season does not run on while you sleep
 
 ### Offline downloads
 
@@ -94,7 +97,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Library** poster grid with filter chips, a Recently Watched shelf, an A–Z rail, folder browsing for unindexed content and See All grids
 - **Detail** for movies, shows and episodes: season chips, episode rows that track watched and in-progress state, Cast & Crew and related titles
 - **Search**, **Watch History**, **Statistics** (heatmap, patterns, binges, taste) and a **Year in Review** card on the You tab, plus Settings and Server & Connection
-- **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card with a countdown, audio and subtitle menus, resume where you left off, progress reported through the timeline API
+- **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API
 - **Top Shelf** — Continue Watching and Up Next on the Apple TV Home screen
 - **Sign in from your phone** — a short code for plex.tv/link plus a QR code
 - **Liquid Glass** controls on tvOS 26 (Apple TV 4K 2nd generation or later); older systems and boxes get the classic look with the same layout
@@ -150,7 +153,7 @@ One SwiftPM package: five shared modules, two apps and their extensions. Depende
 ```
 Sources/
 ├── CrucibleCore/        # Networking, models, sessions, preferences, logging, formatting, and the rules of every screen (Features/*)
-├── CrucibleMedia/       # PlaybackSession: stream resolution, resume, timeline reporting, skip markers, Up Next (AVFoundation)
+├── CrucibleMedia/       # PlaybackSession: stream resolution, resume, self-healing after absences, timeline reporting, skip markers, Up Next (AVFoundation)
 ├── CrucibleStats/       # GRDB-backed watch-history mirror, sync, queries, Year in Review
 ├── CrucibleDesign/      # Theme tokens, Glass, haptics, image pipeline, brand atoms
 ├── CrucibleStatsUI/     # Charts and stats components shared by both apps

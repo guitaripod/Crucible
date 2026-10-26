@@ -65,6 +65,7 @@ package final class PlaybackSession {
     var restartResumesPlayback = true
     var awayDetector = AwayDetector()
     var awaySince: ContinuousClock.Instant?
+    var positionAtLastBeat: Double?
     var pausedSince: ContinuousClock.Instant?
     var liveness: TranscodeLiveness?
     var heals = HealBudget()

@@ -84,7 +84,7 @@ extension PlaybackSession {
     /// `BreakRule.rewind` when the viewer wants that. It plays on if the viewer was watching and the absence was
     /// short, and stays paused after a long one. The server is told the position again, in case the report
     /// made on the way out never left.
-    func returnFromAway(trigger: String, away: Duration) {
+    func returnFromAway(trigger: String, away: Duration, snapshot noticed: Double? = nil) {
         guard !isStopped, let player, let stream, !isRecovering else { return }
         isSuspended = false
         isRecovering = true
@@ -92,7 +92,7 @@ extension PlaybackSession {
         awayDetector.reset(at: now())
         returnedAt = Date()
         failurePolicy.noteReturn()
-        let snapshot = bestKnownPosition
+        let snapshot = tracker.heldPosition ?? noticed ?? bestKnownPosition
         let wasPlaying = resumesAfterReturn || player.rate > 0
         let resumes = player.rate > 0 || BreakRule.resumesPlaying(wasPlaying: wasPlaying, away: away)
         let rewind = Preferences.rewindAfterBreak ? BreakRule.rewind(after: away) : 0
@@ -130,7 +130,9 @@ extension PlaybackSession {
 
     /// Beats once a second for as long as the session plays. A beat that comes long after the last one
     /// means nothing ran in between, which is an absence even when no notification said so; while the app
-    /// is known to be suspended the foreground notification deals with it instead.
+    /// is known to be suspended the foreground notification deals with it instead. Each beat notes where the
+    /// viewer is, so an absence comes back to the position from before it, whatever the player's clock has
+    /// read since the device woke.
     func startHeartbeat() {
         heartbeatTask?.cancel()
         awayDetector.reset(at: now())
@@ -144,9 +146,13 @@ extension PlaybackSession {
     }
 
     private func beat() {
-        guard !isStopped, let away = awayDetector.beat(at: now()) else { return }
+        guard !isStopped else { return }
+        guard let away = awayDetector.beat(at: now()) else {
+            positionAtLastBeat = bestKnownPosition
+            return
+        }
         guard !isSuspended else { return }
-        returnFromAway(trigger: "heartbeat", away: away)
+        returnFromAway(trigger: "heartbeat", away: away, snapshot: positionAtLastBeat)
     }
 
     /// Notes a lifecycle notification of the surface in the log, with what the player was doing.

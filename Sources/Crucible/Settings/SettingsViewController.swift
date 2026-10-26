@@ -238,7 +238,7 @@ final class SettingsViewController: UICollectionViewController {
             content.textProperties.color = Theme.Color.labelSecondary
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .playback:
-                content.text = PreferenceSetting.skipIntro.explanation
+                content.text = [PreferenceSetting.skipIntro, .rewindAfterBreak, .stillWatching].compactMap(\.explanation).joined(separator: " ")
             case .home:
                 content.text = LibrariesSettings.homeFooterText
             case .account:
