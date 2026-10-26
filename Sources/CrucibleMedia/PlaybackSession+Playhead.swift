@@ -105,7 +105,7 @@ extension PlaybackSession {
     }
 
     private func timeControlChanged(to status: AVPlayer.TimeControlStatus) {
-        guard !isStopped else { return }
+        guard !isStopped, !noticeAbsence(trigger: "player state") else { return }
         switch status {
         case .paused:
             if pausedSince == nil, !isRestarting { pausedSince = now() }
@@ -143,14 +143,14 @@ extension PlaybackSession {
         let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.markers.map(SkipMarker.init))
         AppLogger.notice("Playing after a pause ratingKey=\(request.ratingKey) pause=\(Int(pause.seconds))s position=\(Int(snapshot)) target=\(Int(target)) sessionGone=\(gone)", .playback)
         if stream.isDirectPlay {
-            seek(toAbsolute: target)
+            seekAfterReturn(to: target, resumesPlayback: true)
         } else {
             restartTranscode(atAbsolute: target, resumesPlayback: true, freshSession: gone, reason: "play after a pause")
         }
     }
 
     private func playheadMoved(to seconds: Double) {
-        guard !isStopped, let player else { return }
+        guard !isStopped, let player, !noticeAbsence(trigger: "playhead") else { return }
         lastPlayhead = seconds
         let absolute = seconds + streamOffset
         tracker.observe(playerSeconds: seconds, isReady: isItemReady)

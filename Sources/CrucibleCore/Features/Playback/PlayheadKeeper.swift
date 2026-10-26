@@ -15,16 +15,28 @@ package struct PlayheadKeeper: Sendable, Equatable {
 
     package private(set) var lastGood: Double?
     package private(set) var held: Double?
+    package private(set) var isRebuilding = false
 
     package init() {}
 
     package var isHeld: Bool { held != nil }
 
-    /// Records a reading from the player's clock. Readings from an item that is not ready, and every
-    /// reading while a snapshot is held, are ignored.
+    /// Records a reading from the player's clock. Readings from an item that is not ready, every reading
+    /// while a snapshot is held and every reading while the stream is being rebuilt are ignored.
     package mutating func observe(absolute: Double?, isReady: Bool) {
-        guard held == nil, isReady, let absolute, absolute.isFinite, absolute >= 0 else { return }
+        guard held == nil, !isRebuilding, isReady, let absolute, absolute.isFinite, absolute >= 0 else { return }
         lastGood = absolute
+    }
+
+    /// The stream is being rebuilt to start at `absolute`: until the new item is ready the player's clock
+    /// still belongs to the old one, so nothing reads it.
+    package mutating func beginRebuild(at absolute: Double) {
+        moved(to: absolute)
+        isRebuilding = true
+    }
+
+    package mutating func endRebuild() {
+        isRebuilding = false
     }
 
     /// The position the viewer asked for with a seek, or the offset a restarted stream begins at.
@@ -50,10 +62,11 @@ package struct PlayheadKeeper: Sendable, Equatable {
         held = nil
     }
 
-    /// The position to act on: the held snapshot, else the reading of a ready item, else the last good one.
+    /// The position to act on: the held snapshot, else the reading of a ready item, else the last good one,
+    /// which is also the answer while the stream is being rebuilt.
     package func position(observed absolute: Double?, isReady: Bool) -> Double? {
         if let held { return held }
-        if isReady, let absolute, absolute.isFinite, absolute >= 0 { return absolute }
+        if !isRebuilding, isReady, let absolute, absolute.isFinite, absolute >= 0 { return absolute }
         return lastGood
     }
 
@@ -97,6 +110,14 @@ package final class PlayheadTracker: Sendable {
 
     package func moved(to absolute: Double) {
         state.withLock { $0.keeper.moved(to: absolute) }
+    }
+
+    package func beginRebuild(at absolute: Double) {
+        state.withLock { $0.keeper.beginRebuild(at: absolute) }
+    }
+
+    package func endRebuild() {
+        state.withLock { $0.keeper.endRebuild() }
     }
 
     @discardableResult

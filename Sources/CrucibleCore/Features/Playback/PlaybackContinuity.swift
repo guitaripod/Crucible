@@ -79,10 +79,16 @@ package struct TranscodeLiveness: Sendable, Equatable {
         lastConfirmed = now
     }
 
-    /// The server answered for the session: a ping or a segment came back.
+    /// The stream answered: a segment came back or a rebuilt item became ready.
     package mutating func confirm(at now: ContinuousClock.Instant) {
         lastConfirmed = now
         isGone = false
+    }
+
+    /// The server answered a ping. A server can answer pings for a session whose stream it already dropped,
+    /// so this keeps a session alive but never brings back one a segment request found gone.
+    package mutating func pinged(at now: ContinuousClock.Instant) {
+        lastConfirmed = now
     }
 
     /// The server said the session does not exist.

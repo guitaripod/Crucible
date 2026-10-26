@@ -423,6 +423,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// Plays the next episode without the viewer asking for it (the countdown ran out, or the item ended).
     /// Once the card must ask first it asks instead and nothing plays.
     private func autoPlayNext(_ offer: UpNextOffer) {
+        guard session.isAtCreditsOrEnd else {
+            AppLogger.notice("Up Next countdown ended away from the credits ratingKey=\(request.ratingKey); staying on this episode", .playback)
+            removeUpNextOverlay()
+            return
+        }
         guard asksStillWatching else {
             playNext(offer, byViewer: false)
             return

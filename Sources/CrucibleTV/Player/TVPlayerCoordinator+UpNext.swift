@@ -84,9 +84,10 @@ extension TVPlayerCoordinator {
         case .credits:
             break
         case .playbackEnded:
+            let ended = session
             Task { [weak self] in
                 try? await Task.sleep(for: Self.upNextCardGrace)
-                guard let self, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
+                guard let self, ended === session, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
                 if offer.autoplays, !asksStillWatching {
                     advance(to: offer)
                 } else {
@@ -118,7 +119,15 @@ extension TVPlayerCoordinator {
         didAccept proposal: AVContentProposal
     ) {
         guard let offer = upNextOffer else { return }
-        advance(to: offer, byViewer: upNextCard?.acceptedByViewer ?? false)
+        let byViewer = upNextCard?.acceptedByViewer ?? false
+        if !byViewer, let session, !session.isAtCreditsOrEnd {
+            AppLogger.notice("Up Next countdown ended away from the credits ratingKey=\(request.ratingKey); staying on this episode", .playback)
+            isUpNextCardVisible = false
+            session.setUpNextVisible(false)
+            session.player?.currentItem?.nextContentProposal = makeProposal()
+            return
+        }
+        advance(to: offer, byViewer: byViewer)
     }
 
     func playerViewController(

@@ -23,6 +23,7 @@ extension PlaybackSession {
     }
 
     private func handle(_ event: PlayerItemWatcher.Event) {
+        guard !noticeAbsence(trigger: "item event") else { return }
         switch event {
         case .ended:
             handleEnd()
@@ -45,15 +46,32 @@ extension PlaybackSession {
     /// place, playing or paused as the player was. Jumps while the session moves the player itself, or before
     /// the item is ready to show the new place, are the item settling and not the viewer.
     private func handleJump() {
-        guard !tracker.isHeld, !isRestarting, !isRecovering, let player, let item = player.currentItem, item.status == .readyToPlay else { return }
+        guard let player else { return }
+        if player.rate == 0, pausedSince != nil, !isRecovering { pausedSince = now() }
+        guard stream?.isDirectPlay == false else { return }
+        guard !tracker.isHeld, !isRestarting, !isRecovering, let item = player.currentItem, item.status == .readyToPlay else { return }
         let now = item.currentTime().seconds
         guard now.isFinite else { return }
         let previous = lastPlayhead
         lastPlayhead = now
         guard TranscodeSeekPolicy.isJump(from: previous, to: now) else { return }
+        if let settlingUntil, self.now() < settlingUntil {
+            settleRebuiltItem(item, movedTo: now)
+            return
+        }
         noteViewerAction()
         let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
         restartTranscode(atAbsolute: streamOffset + max(0, now), resumesPlayback: plays, reason: "scrub from \(Int(previous)) to \(Int(now))")
+    }
+
+    /// The system player moves a rebuilt item to where its previous item was, as if that were still the
+    /// viewer's place, right after it became ready. The rebuilt stream already starts at the viewer's place,
+    /// so the item goes back to its own start instead of being taken for a scrub that would skip ahead.
+    private func settleRebuiltItem(_ item: AVPlayerItem, movedTo seconds: Double) {
+        AppLogger.notice("Settling a rebuilt item ratingKey=\(request.ratingKey): the player moved it to \(Int(seconds)) s, back to the start at \(Int(streamOffset))", .playback)
+        lastPlayhead = 0
+        tracker.moved(to: streamOffset)
+        item.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: nil)
     }
 
     /// The end of the item. A transcode that ends short of the credits and of the end of the timeline is a
@@ -93,6 +111,7 @@ extension PlaybackSession {
         case .ignore:
             break
         case .restartTranscode:
+            guard !isRestarting else { return }
             let position = bestKnownPosition
             AppLogger.notice("Restarting the transcode after a failure ratingKey=\(request.ratingKey) position=\(Int(position))", .playback)
             restartTranscode(atAbsolute: position, resumesPlayback: wasPlayingAtLastTick, freshSession: true, reason: "failure after a return")
@@ -148,6 +167,7 @@ extension PlaybackSession {
     /// watching, and otherwise before it plays again.
     func transcodeGone(session: String?, reason: String) {
         guard let stream, !stream.isDirectPlay, session == stream.sessionId else { return }
+        guard !noticeAbsence(trigger: "server answer") else { return }
         liveness?.markGone()
         AppLogger.notice("Transcode session gone ratingKey=\(request.ratingKey) reason=\(reason) playing=\(player?.rate ?? 0 > 0)", .playback)
         guard let player, player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate else { return }
@@ -156,11 +176,12 @@ extension PlaybackSession {
 
     /// Rebuilds the transcode under a new server session at the true position, within `HealBudget`.
     package func heal(reason: String) {
-        guard !isStopped, !isRestarting, !isRecovering, let stream, !stream.isDirectPlay else { return }
+        guard !isStopped, !isRestarting, !isRecovering, !hasGivenUp, let stream, !stream.isDirectPlay else { return }
         switch heals.ask(at: now()) {
         case .wait:
             return
         case .giveUp:
+            hasGivenUp = true
             AppLogger.error("Giving up on healing ratingKey=\(request.ratingKey) after repeated rebuilds: \(reason)", .playback)
             emit(.failed("The server keeps stopping this stream."))
         case .heal:
@@ -178,7 +199,7 @@ extension PlaybackSession {
         guard let stream, player != nil, !isStopped else { return }
         let start = StreamPosition.transcodeStart(target)
         AppLogger.notice("Transcode restart ratingKey=\(request.ratingKey) at=\(Int(start)) fresh=\(freshSession) plays=\(resumesPlayback) queued=\(isRestarting) reason=\(reason)", .playback)
-        tracker.moved(to: start)
+        tracker.beginRebuild(at: start)
         guard !isRestarting else {
             pendingRestart = PendingRestart(
                 target: start,
@@ -204,6 +225,7 @@ extension PlaybackSession {
             guard let url, !isStopped, let current = self.stream else {
                 isRestarting = false
                 pendingRestart = nil
+                tracker.endRebuild()
                 finishRecovery()
                 return
             }
@@ -220,12 +242,14 @@ extension PlaybackSession {
     private func applyTranscodeRestart(url: URL, atAbsolute target: Double) {
         guard let player else {
             isRestarting = false
+            tracker.endRebuild()
             return
         }
         lastPlayhead = 0
         streamOffset = target
         tracker.moved(to: target)
-        finishRecovery()
+        if pendingRestart == nil { finishRecovery() }
+        if !restartResumesPlayback || pendingRestart != nil { player.pause() }
 
         let item = AVPlayerItem(url: url)
         configureItem?(item)
@@ -240,11 +264,14 @@ extension PlaybackSession {
     }
 
     private func finishRestart(ready: Bool) {
+        guard !isStopped else { return }
+        tracker.endRebuild()
         if ready {
             liveness?.confirm(at: now())
             let settled = player?.currentItem?.currentTime().seconds ?? 0
             lastPlayhead = settled.isFinite ? settled : 0
-            if restartResumesPlayback { player?.play() }
+            settlingUntil = now().advanced(by: .seconds(5))
+            if restartResumesPlayback, pendingRestart == nil { player?.play() }
         }
         isRestarting = false
         pausedSince = player?.rate == 0 ? now() : nil
@@ -278,6 +305,6 @@ extension PlaybackSession {
 
     private func pingAnswered(session: String) {
         guard session == stream?.sessionId else { return }
-        liveness?.confirm(at: now())
+        liveness?.pinged(at: now())
     }
 }

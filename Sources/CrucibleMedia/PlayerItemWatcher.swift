@@ -3,7 +3,7 @@ import CrucibleCore
 import Foundation
 
 /// Watches one `AVPlayerItem` for the things a session reacts to: reaching the end, failing (at load
-/// or mid-playback) and, on a transcode, the playhead jumping, segments arriving or being refused, and
+/// or mid-playback), the playhead jumping and, on a transcode, segments arriving or being refused, and
 /// playback stalling. Every callback arrives on the main actor.
 @MainActor
 final class PlayerItemWatcher {
@@ -44,10 +44,10 @@ final class PlayerItemWatcher {
         observe(.AVPlayerItemDidPlayToEndTime, of: item) { _ in
             Task { @MainActor in handler(.ended) }
         }
-        guard isTranscode else { return }
         observe(AVPlayerItem.timeJumpedNotification, of: item) { _ in
             Task { @MainActor in handler(.jumped) }
         }
+        guard isTranscode else { return }
         observe(AVPlayerItem.newAccessLogEntryNotification, of: item) { _ in
             Task { @MainActor in handler(.segmentLoaded) }
         }

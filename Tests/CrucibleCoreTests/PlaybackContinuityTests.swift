@@ -66,6 +66,8 @@ struct PlaybackContinuityTests {
         var liveness = TranscodeLiveness(confirmedAt: start)
         liveness.markGone()
         #expect(liveness.mayBeGone(at: start))
+        liveness.pinged(at: start)
+        #expect(liveness.mayBeGone(at: start), "a ping answer does not bring back a stream a segment found gone")
         liveness.confirm(at: start)
         #expect(!liveness.mayBeGone(at: start))
         #expect(TranscodeLiveness.isGoneStatus(404))
@@ -127,5 +129,15 @@ struct PlaybackContinuityTests {
         #expect(UpNextText.eyebrow(asksStillWatching: true) == "STILL WATCHING?")
         #expect(UpNextText.playTitle(asksStillWatching: false) == "Play Now")
         #expect(UpNextText.stillWatchingAnnouncement(code: "S01E04", title: "Ebb") == "Are you still watching? Up next: S01E04 Ebb")
+    }
+
+    @Test func whileTheStreamIsRebuiltTheOldClockIsNeitherReadNorKept() {
+        var keeper = PlayheadKeeper()
+        keeper.observe(absolute: 45, isReady: true)
+        keeper.beginRebuild(at: 29)
+        keeper.observe(absolute: 44, isReady: true)
+        #expect(keeper.position(observed: 44, isReady: true) == 29)
+        keeper.endRebuild()
+        #expect(keeper.position(observed: 31, isReady: true) == 31)
     }
 }

@@ -28,6 +28,7 @@ extension PlaybackSession {
             return
         }
         awaySince = nil
+        resumesAfterReturn = false
         tracker.release()
     }
 
@@ -50,12 +51,12 @@ extension PlaybackSession {
             holdPosition()
             if pausing { player.pause() }
             isSuspended = true
+            awaySince = awaySince ?? now()
             position = tracker.heldPosition
         } else {
             position = absolutePosition
             keepPosition(position)
         }
-        awaySince = awaySince ?? now()
         AppLogger.notice("Playback suspended ratingKey=\(request.ratingKey) position=\(Int(position ?? -1)) directPlay=\(stream?.isDirectPlay ?? false) held=\(holds)", .playback)
         return SuspensionReport(position: position, held: holds)
     }
@@ -74,7 +75,10 @@ extension PlaybackSession {
 
     /// Called when the app returns to the foreground after `suspendNow`.
     package func recoverAfterSuspension() {
-        guard !isStopped, isSuspended else { return }
+        guard !isStopped, isSuspended else {
+            awaySince = nil
+            return
+        }
         let away = awaySince.map { $0.duration(to: now()) } ?? .zero
         returnFromAway(trigger: "foreground", away: away)
     }
@@ -101,6 +105,7 @@ extension PlaybackSession {
         AppLogger.notice("Playback returned ratingKey=\(request.ratingKey) trigger=\(trigger) away=\(Int(away.seconds))s snapshot=\(Int(snapshot)) target=\(Int(target)) plan=\(plan) playing=\(resumes)", .playback)
         if !resumes { player.pause() }
         resumesAfterReturn = false
+        keepPosition(target)
         switch plan {
         case .restartTranscode(let position):
             restartTranscode(atAbsolute: position, resumesPlayback: resumes, freshSession: true, reason: "return (\(trigger))")
@@ -112,7 +117,7 @@ extension PlaybackSession {
         }
     }
 
-    private func seekAfterReturn(to position: Double, resumesPlayback: Bool) {
+    func seekAfterReturn(to position: Double, resumesPlayback: Bool) {
         guard let player else { return }
         tracker.moved(to: position)
         let tolerance = request.offline == nil ? CMTime.zero : CMTime(seconds: ResumeStrategy.offlineToleranceBefore, preferredTimescale: 600)
@@ -122,7 +127,7 @@ extension PlaybackSession {
             toleranceAfter: request.offline == nil ? .zero : .positiveInfinity
         ) { @Sendable [weak self] _ in
             Task { @MainActor in
-                if resumesPlayback { self?.player?.play() }
+                if resumesPlayback, self?.isStopped == false { self?.player?.play() }
                 self?.finishRecovery()
             }
         }
@@ -146,13 +151,18 @@ extension PlaybackSession {
     }
 
     private func beat() {
-        guard !isStopped else { return }
-        guard let away = awayDetector.beat(at: now()) else {
-            positionAtLastBeat = bestKnownPosition
-            return
-        }
-        guard !isSuspended else { return }
-        returnFromAway(trigger: "heartbeat", away: away, snapshot: positionAtLastBeat)
+        guard !isStopped, !noticeAbsence(trigger: "heartbeat") else { return }
+        positionAtLastBeat = bestKnownPosition
+    }
+
+    /// Checks for an absence before anything acts on the player: a callback that runs right after the device
+    /// woke, before the heartbeat, would otherwise act on a clock and a stream that are no longer right. Returns
+    /// true when the absence was found and dealt with, and the caller should do nothing more.
+    func noticeAbsence(trigger: String) -> Bool {
+        guard !isStopped, let away = awayDetector.beat(at: now()) else { return false }
+        guard !isSuspended else { return false }
+        returnFromAway(trigger: trigger, away: away, snapshot: positionAtLastBeat)
+        return true
     }
 
     /// Notes a lifecycle notification of the surface in the log, with what the player was doing.

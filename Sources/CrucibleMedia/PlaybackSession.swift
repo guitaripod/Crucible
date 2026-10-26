@@ -66,9 +66,11 @@ package final class PlaybackSession {
     var awayDetector = AwayDetector()
     var awaySince: ContinuousClock.Instant?
     var positionAtLastBeat: Double?
+    var settlingUntil: ContinuousClock.Instant?
     var pausedSince: ContinuousClock.Instant?
     var liveness: TranscodeLiveness?
     var heals = HealBudget()
+    var hasGivenUp = false
     var prematureEndPosition: Double?
     /// Whether the surface is in the foreground; set by the surface from its lifecycle notifications.
     package var isInForeground = true
