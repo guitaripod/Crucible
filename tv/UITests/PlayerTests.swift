@@ -450,8 +450,10 @@ final class PlayerTests: TVTestCase {
         let settled = timelineMark()
         XCTAssertFalse(app.otherElements["player.upNext"].waitForExistence(timeout: 20), "the rebuild is not taken for the end of the item")
         XCTAssertTrue(app.otherElements["player.view"].exists, "the player is still up")
-        XCTAssertTrue(waitForReport(Self.episode, state: "paused", since: settled, timeout: 30), "the player reports paused")
         TVTest.settle(15)
+        let last = timeline(since: mark).last
+        XCTAssertEqual(last?.state, "paused", "the last report says paused: \(timeline(since: mark).map { "\($0.state)@\($0.timeMs)" })")
+        XCTAssertTrue(last.map { abs($0.timeMs - rebuild.offset * 1000) <= 1000 } ?? false, "the last report is at the rebuild's start")
         let afterSleep = reportsAfterSleep(since: mark, at: 30)
         XCTAssertFalse(afterSleep.isEmpty)
         XCTAssertTrue(afterSleep.allSatisfy { $0.timeMs >= 14000 }, "no report goes back towards the start: \(afterSleep.map(\.timeMs))")
@@ -484,19 +486,19 @@ final class PlayerTests: TVTestCase {
         TVTest.capture("01-direct-play-after-the-sleep", in: self)
     }
 
-    /// Only a minute away with "Rewind After a Break" off: the transcode is rebuilt exactly where it stopped, not behind it.
-    func testAShortAbsenceWithRewindOffComesBackExactly() {
+    /// Two hours away with "Rewind After a Break" off: the transcode is rebuilt exactly where it stopped, not the fifteen seconds behind it the setting would give.
+    func testALongAbsenceWithRewindOffComesBackExactly() {
         setProgress(Self.episode, seconds: 20)
         let startsBefore = transcodeStarts().count
         let app = launch(
             playing: Self.episode,
             arguments: ["-streamingQuality", "8000", "-rewindAfterBreak", "<false/>"],
-            environment: sleepEnvironment(at: 30, for: 60)
+            environment: sleepEnvironment(at: 30, for: 7200)
         )
         XCTAssertTrue(waitForPlayback(in: app))
         let rebuild = waitForRebuild(after: startsBefore, timeout: 90)
         TVTest.settle(4)
-        TVTest.capture("01-back-after-a-minute", in: self)
+        TVTest.capture("01-back-after-two-hours", in: self)
         XCTAssertNotNil(rebuild, "the heartbeat rebuilds the transcode: \(transcodeStarts().dropFirst(startsBefore))")
         guard let rebuild else { return }
         XCTAssertTrue((29...31).contains(rebuild.offset), "the rebuild starts at the position of 30 s: offset \(rebuild.offset)")

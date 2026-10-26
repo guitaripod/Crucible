@@ -55,7 +55,8 @@ extension PlaybackSession {
         let previous = lastPlayhead
         lastPlayhead = now
         guard TranscodeSeekPolicy.isJump(from: previous, to: now) else { return }
-        if let settlingUntil, self.now() < settlingUntil {
+        let toStaleClock = staleClock.map { abs($0 - now) < 1.5 } ?? false
+        if toStaleClock || settlingUntil.map({ self.now() < $0 }) == true {
             settleRebuiltItem(item, movedTo: now)
             return
         }
@@ -65,8 +66,9 @@ extension PlaybackSession {
     }
 
     /// The system player moves a rebuilt item to where its previous item was, as if that were still the
-    /// viewer's place, right after it became ready. The rebuilt stream already starts at the viewer's place,
-    /// so the item goes back to its own start instead of being taken for a scrub that would skip ahead.
+    /// viewer's place: right after it became ready, or later while it stays paused (the paused transport bar
+    /// commits the time it still shows). The rebuilt stream already starts at the viewer's place, so the item
+    /// goes back to its own start instead of being taken for a scrub that would skip ahead.
     private func settleRebuiltItem(_ item: AVPlayerItem, movedTo seconds: Double) {
         AppLogger.notice("Settling a rebuilt item ratingKey=\(request.ratingKey): the player moved it to \(Int(seconds)) s, back to the start at \(Int(streamOffset))", .playback)
         lastPlayhead = 0
@@ -245,6 +247,8 @@ extension PlaybackSession {
             tracker.endRebuild()
             return
         }
+        let previousClock = player.currentItem?.currentTime().seconds ?? 0
+        staleClock = previousClock.isFinite && previousClock > TranscodeSeekPolicy.jumpThreshold ? previousClock : nil
         lastPlayhead = 0
         streamOffset = target
         tracker.moved(to: target)

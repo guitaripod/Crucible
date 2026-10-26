@@ -111,6 +111,7 @@ extension PlaybackSession {
             if pausedSince == nil, !isRestarting { pausedSince = now() }
             noteViewerAction()
         case .playing, .waitingToPlayAtSpecifiedRate:
+            if status == .playing { staleClock = nil }
             guard let since = pausedSince else { return }
             pausedSince = nil
             noteViewerAction()
