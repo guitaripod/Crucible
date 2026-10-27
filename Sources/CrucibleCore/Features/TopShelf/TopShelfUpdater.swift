@@ -55,7 +55,7 @@ package enum TopShelfUpdater {
         }
         if let existing, existing.hasSameContent(as: snapshot) { return false }
         guard store.save(snapshot) else { return false }
-        AppLogger.info("Top Shelf updated: \(snapshot.sections.map { "\($0.title)=\($0.items.count)" }.joined(separator: " "))", .lifecycle)
+        AppLogger.info("Top Shelf updated: \(snapshot.itemCount) items at \(store.existingSnapshotPath ?? "unknown path")", .lifecycle)
         notify()
         return true
     }

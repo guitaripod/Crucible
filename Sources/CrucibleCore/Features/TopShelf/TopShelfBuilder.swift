@@ -1,11 +1,14 @@
 import Foundation
 
-/// Turns the Home buckets into the Top Shelf snapshot: "Continue Watching" and "Up Next"
-/// with 16:9 artwork URLs the Apple TV fetches itself.
+/// Turns the Home buckets into the Top Shelf snapshot: "Continue Watching" and "Up Next" with the
+/// 16:9 artwork URLs the Apple TV fetches itself, in the two sizes the system asks for.
 package enum TopShelfBuilder {
     package static let maxItemsPerSection = 12
-    package static let imageWidth = 1816
-    package static let imageHeight = 1024
+    package static let imageWidth = 1920
+    package static let imageHeight = 1080
+    package static let image2xWidth = 3840
+    package static let image2xHeight = 2160
+    package static let summaryLimit = 280
 
     package struct Source: Sendable {
         package let serverURL: URL
@@ -33,11 +36,11 @@ package enum TopShelfBuilder {
 
         let continueSection = TopShelfSection(
             title: "Continue Watching",
-            items: visible.continueWatching.prefix(maxItemsPerSection).map { item(from: $0, subtitle: HomeFormat.continueSubtitle(for: $0), source: source) }
+            items: visible.continueWatching.prefix(maxItemsPerSection).map { item(from: $0, section: "Continue Watching", source: source) }
         )
         let upNextSection = TopShelfSection(
             title: "Up Next",
-            items: upNext.prefix(maxItemsPerSection).map { item(from: $0, subtitle: HomeFormat.upNextSubtitle(for: $0), source: source) }
+            items: upNext.prefix(maxItemsPerSection).map { item(from: $0, section: "Up Next", source: source) }
         )
         return TopShelfSnapshot(
             machineIdentifier: source.machineIdentifier,
@@ -54,26 +57,45 @@ package enum TopShelfBuilder {
     }
 
     /// The server's photo transcoder at the Top Shelf's 16:9 size, authorised by a token query item.
-    package static func imageURL(path: String, source: Source) -> URL? {
+    package static func imageURL(path: String, width: Int = imageWidth, height: Int = imageHeight, source: Source) -> URL? {
         let base = source.serverURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard var components = URLComponents(string: base + "/photo/:/transcode") else { return nil }
         components.queryItems = [
             URLQueryItem(name: "url", value: path),
-            URLQueryItem(name: "width", value: "\(imageWidth)"),
-            URLQueryItem(name: "height", value: "\(imageHeight)"),
+            URLQueryItem(name: "width", value: "\(width)"),
+            URLQueryItem(name: "height", value: "\(height)"),
             URLQueryItem(name: "minSize", value: "1"),
             URLQueryItem(name: "X-Plex-Token", value: source.token),
         ]
         return components.url
     }
 
-    private static func item(from metadata: PlexMetadata, subtitle: String?, source: Source) -> TopShelfItem {
-        TopShelfItem(
+    /// What the card says above its summary: the show and episode for a series, why it is being
+    /// shown for anything else.
+    package static func contextTitle(for item: PlexMetadata, section: String) -> String? {
+        guard item.mediaType == "episode" else { return section }
+        return HomeFormat.joined([item.grandparentTitle, HomeFormat.episodeLine(season: item.parentIndex, episode: item.index, tail: nil)])
+    }
+
+    /// The item's own synopsis, trimmed to what a carousel card can show without a scroll.
+    package static func summary(for item: PlexMetadata) -> String? {
+        guard let summary = item.summary?.trimmingCharacters(in: .whitespacesAndNewlines), !summary.isEmpty else { return nil }
+        guard summary.count > summaryLimit else { return summary }
+        let cut = summary.prefix(summaryLimit)
+        guard let space = cut.lastIndex(of: " ") else { return String(cut) + "…" }
+        return String(cut[..<space]) + "…"
+    }
+
+    private static func item(from metadata: PlexMetadata, section: String, source: Source) -> TopShelfItem {
+        let path = imagePath(for: metadata)
+        return TopShelfItem(
             ratingKey: metadata.id,
             type: metadata.mediaType,
-            title: HomeFormat.title(for: metadata),
-            subtitle: subtitle,
-            imageURL: imagePath(for: metadata).flatMap { imageURL(path: $0, source: source) },
+            title: metadata.title ?? HomeFormat.title(for: metadata),
+            subtitle: contextTitle(for: metadata, section: section),
+            summary: summary(for: metadata),
+            imageURL: path.flatMap { imageURL(path: $0, source: source) },
+            image2xURL: path.flatMap { imageURL(path: $0, width: image2xWidth, height: image2xHeight, source: source) },
             progress: progress(of: metadata)
         )
     }

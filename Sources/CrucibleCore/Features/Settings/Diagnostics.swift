@@ -117,3 +117,18 @@ package enum ImageCacheMeter {
         bytes > 0 ? ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) : "Empty"
     }
 }
+
+/// The Top Shelf's on-device state: what the app last wrote, what the extension last read, and
+/// whether the sandbox granted the App Group this launch.
+package struct TopShelfStatus: Sendable {
+    package let diagnostics: TopShelfStoreDiagnostics
+
+    package var snapshotLine: String { diagnostics.snapshotSummary }
+    package var readLine: String { diagnostics.receiptSummary }
+
+    package static func read() async -> TopShelfStatus {
+        await Task.detached(priority: .userInitiated) {
+            TopShelfStatus(diagnostics: TopShelfStore.shared.diagnostics)
+        }.value
+    }
+}

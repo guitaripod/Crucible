@@ -10,7 +10,7 @@ struct AuthTopShelfTests {
         let offsetJSON = offset.map { #""viewOffset": \#($0),"# } ?? ""
         return AuthFixtures.metadata("""
         {"ratingKey": "\(key)", "type": "episode", "title": "Low Tide", "grandparentTitle": "The Show", "parentIndex": 2, "index": 4,
-         \(offsetJSON) "duration": 2700000, "thumb": "/library/metadata/\(key)/thumb/1", "art": "/library/metadata/\(key)/art/1",
+         \(offsetJSON) "duration": 2700000, "summary": "A body on the rocks.", "thumb": "/library/metadata/\(key)/thumb/1", "art": "/library/metadata/\(key)/art/1",
          "grandparentArt": "/library/metadata/100/art/1", "librarySectionID": \(section)}
         """)
     }
@@ -19,7 +19,7 @@ struct AuthTopShelfTests {
         let offsetJSON = offset.map { #""viewOffset": \#($0),"# } ?? ""
         return AuthFixtures.metadata("""
         {"ratingKey": "\(key)", "type": "movie", "title": "Salt and Rope", \(offsetJSON) "duration": 7200000,
-         "thumb": "/library/metadata/\(key)/thumb/1", "art": "/library/metadata/\(key)/art/1", "librarySectionID": \(section)}
+         "summary": "A heist gone wrong.", "thumb": "/library/metadata/\(key)/thumb/1", "art": "/library/metadata/\(key)/art/1", "librarySectionID": \(section)}
         """)
     }
 
@@ -37,9 +37,10 @@ struct AuthTopShelfTests {
         let first = snapshot.sections[0].items[0]
         #expect(first.ratingKey == "11")
         #expect(first.type == "episode")
-        #expect(first.title == "The Show")
-        #expect(first.subtitle == "S2 · E4 · Low Tide")
-        #expect(snapshot.sections[1].items[0].subtitle == "2 h 00 m")
+        #expect(first.title == "Low Tide")
+        #expect(first.subtitle == "The Show · S2 · E4")
+        #expect(first.summary == "A body on the rocks.")
+        #expect(snapshot.sections[1].items[0].subtitle == "Up Next")
     }
 
     @Test func progressIsTheWatchedFractionAndAbsentWhenNothingWasWatched() throws {
@@ -94,9 +95,23 @@ struct AuthTopShelfTests {
         #expect(components.path == "/photo/:/transcode")
         let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") })
         #expect(query["url"] == "/library/metadata/12/art/1")
-        #expect(query["width"] == "1816")
-        #expect(query["height"] == "1024")
+        #expect(query["width"] == "1920")
+        #expect(query["height"] == "1080")
         #expect(query["X-Plex-Token"] == "tok")
+
+        let large = try #require(TopShelfBuilder.imageURL(path: "/library/metadata/12/art/1", width: TopShelfBuilder.image2xWidth, height: TopShelfBuilder.image2xHeight, source: source))
+        let largeQuery = Dictionary(uniqueKeysWithValues: (URLComponents(url: large, resolvingAgainstBaseURL: false)?.queryItems ?? []).map { ($0.name, $0.value ?? "") })
+        #expect(largeQuery["width"] == "3840")
+        #expect(largeQuery["height"] == "2160")
+    }
+
+    @Test func eachItemCarriesBothImageScales() {
+        let snapshot = build(continueItems: [episode("11")], onDeck: [])
+        let item = snapshot.sections[0].items[0]
+        let one = URLComponents(url: item.imageURL!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "width" }?.value
+        let two = URLComponents(url: item.image2xURL!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "width" }?.value
+        #expect(one == "1920")
+        #expect(two == "3840")
     }
 
     @Test func itemsWithoutArtworkStillAppear() {
@@ -122,28 +137,38 @@ struct AuthTopShelfTests {
         #expect(DeepLink.item(ratingKey: "42", mediaType: nil).url.absoluteString == "crucible://item/42")
     }
 
-    @Test func thePlanMapsSectionsTilesAndActions() throws {
+    @Test func thePlanMapsCarouselCardsAndActions() throws {
         let show = AuthFixtures.metadata(#"{"ratingKey": "30", "type": "show", "title": "A Show"}"#)
         let snapshot = build(continueItems: [episode("11", offset: 600_000)], onDeck: [show])
         let plan = try #require(TopShelfPlan(snapshot: snapshot))
 
-        #expect(plan.sections.map(\.title) == ["Continue Watching", "Up Next"])
-        let resume = plan.sections[0].items[0]
-        #expect(resume.identifier == "11")
-        #expect(resume.title == "The Show")
-        #expect(resume.progress != nil)
+        #expect(plan.items.map(\.identifier) == ["11", "30"])
+        let resume = plan.items[0]
+        #expect(resume.title == "Low Tide")
+        #expect(resume.contextTitle == "The Show · S2 · E4")
+        #expect(resume.summary == "A body on the rocks.")
+        #expect(resume.imageURL != nil)
+        #expect(resume.image2xURL != nil)
         #expect(resume.playURL?.absoluteString == "crucible://play/11")
         #expect(resume.displayURL.absoluteString == "crucible://item/11?type=episode")
 
-        let browse = plan.sections[1].items[0]
+        let browse = plan.items[1]
+        #expect(browse.contextTitle == "Up Next")
         #expect(browse.playURL == nil)
         #expect(browse.displayURL.absoluteString == "crucible://item/30?type=show")
+    }
+
+    @Test func thePlanKeepsAtMostTenCards() throws {
+        let many = (1...20).map { movie("\($0)") }
+        let plan = try #require(TopShelfPlan(snapshot: build(continueItems: many, onDeck: [])))
+        #expect(plan.items.count == TopShelfPlan.maxItems)
+        #expect(plan.items.first?.identifier == "1")
     }
 
     @Test func tilesOfOtherTypesOpenTheirDetailWithoutAType() throws {
         let clip = AuthFixtures.metadata(#"{"ratingKey": "31", "type": "clip", "title": "A Clip"}"#)
         let plan = try #require(TopShelfPlan(snapshot: build(continueItems: [clip], onDeck: [])))
-        let tile = plan.sections[0].items[0]
+        let tile = plan.items[0]
         #expect(tile.playURL?.absoluteString == "crucible://play/31")
         #expect(tile.displayURL.absoluteString == "crucible://item/31")
         #expect(DeepLink(url: tile.displayURL) == .item(ratingKey: "31", mediaType: nil))
@@ -171,6 +196,52 @@ struct AuthTopShelfTests {
         #expect(store.load() == snapshot)
         store.clear()
         #expect(store.load() == nil)
+    }
+
+    @Test func theSnapshotGoesIntoLibraryCaches() throws {
+        let (store, directory) = temporaryStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let snapshot = build(continueItems: [movie("1")], onDeck: [])
+
+        #expect(store.save(snapshot))
+        let caches = directory.appendingPathComponent("Library/Caches/topshelf.json")
+        #expect(FileManager.default.fileExists(atPath: caches.path))
+        #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("topshelf.json").path))
+        #expect(store.existingSnapshotPath == caches.path)
+    }
+
+    @Test func aSnapshotWrittenAtTheContainerRootIsStillReadAndReplaced() throws {
+        let (store, directory) = temporaryStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let legacy = build(continueItems: [movie("1")], onDeck: [])
+        let root = directory.appendingPathComponent("topshelf.json")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(legacy).write(to: root)
+
+        #expect(store.load() == legacy)
+
+        let fresh = build(continueItems: [movie("2")], onDeck: [])
+        #expect(store.save(fresh))
+        #expect(store.load() == fresh)
+        #expect(!FileManager.default.fileExists(atPath: root.path))
+    }
+
+    @Test func theExtensionReceiptRoundTrips() throws {
+        let (store, directory) = temporaryStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        #expect(store.receipt() == nil)
+
+        let receipt = TopShelfReceipt(readAt: 1_700_000_000, itemCount: 7, imageCount: 6, snapshotSchema: 2)
+        #expect(store.saveReceipt(receipt))
+        #expect(store.receipt() == receipt)
+    }
+
+    @Test func diagnosticsExplainAnEmptyStore() {
+        let store = TopShelfStore(directory: nil)
+        let diagnostics = store.diagnostics
+        #expect(diagnostics.snapshotSummary == "No App Group")
+        #expect(diagnostics.snapshot == nil)
+        #expect(!diagnostics.hasContainer)
     }
 
     @Test func theStoreRejectsOversizedAndForeignSnapshots() throws {

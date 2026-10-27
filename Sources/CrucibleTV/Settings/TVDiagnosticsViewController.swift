@@ -10,6 +10,8 @@ final class TVDiagnosticsViewController: UIViewController {
     private let errorsValue = UILabel()
     private let sizeValue = UILabel()
     private let cacheValue = UILabel()
+    private let topShelfValue = UILabel()
+    private let topShelfReadValue = UILabel()
     private lazy var refreshButton = TVButton.make(.glass, title: "Refresh Log", symbol: "arrow.clockwise") { [weak self] in self?.reload() }
     private lazy var clearButton = TVButton.make(.glass, title: "Clear Image Cache", symbol: "trash") { [weak self] in self?.confirmClearCache() }
     private let loadSlot = TVTaskSlot()
@@ -62,6 +64,8 @@ final class TVDiagnosticsViewController: UIViewController {
             statRow("Errors", errorsValue),
             statRow("Log size", sizeValue),
             statRow("Image cache", cacheValue),
+            statRow("Top Shelf", topShelfValue),
+            statRow("Top Shelf read", topShelfReadValue),
         ])
         statRows.axis = .vertical
         statRows.spacing = Theme.Space.xs
@@ -95,7 +99,7 @@ final class TVDiagnosticsViewController: UIViewController {
     }
 
     private var spokenCounts: String {
-        [("Log lines", linesValue), ("Errors", errorsValue), ("Log size", sizeValue), ("Image cache", cacheValue)]
+        [("Log lines", linesValue), ("Errors", errorsValue), ("Log size", sizeValue), ("Image cache", cacheValue), ("Top Shelf", topShelfValue), ("Top Shelf read", topShelfReadValue)]
             .map { "\($0.0) \($0.1.text ?? "")" }
             .joined(separator: ", ")
     }
@@ -117,19 +121,22 @@ final class TVDiagnosticsViewController: UIViewController {
         loadSlot.run { [weak self] in
             async let tail = LogTail.read()
             async let cacheBytes = ImageCacheMeter.totalBytes()
-            let (newTail, newBytes) = await (tail, cacheBytes)
+            async let topShelf = TopShelfStatus.read()
+            let (newTail, newBytes, newTopShelf) = await (tail, cacheBytes, topShelf)
             guard !Task.isCancelled, let self else { return }
-            show(newTail, cacheBytes: newBytes)
+            show(newTail, cacheBytes: newBytes, topShelf: newTopShelf)
         }
     }
 
-    private func show(_ tail: LogTail, cacheBytes: Int64) {
+    private func show(_ tail: LogTail, cacheBytes: Int64, topShelf: TopShelfStatus) {
         linesValue.text = tail.lines.count < tail.totalLineCount
             ? "\(tail.lines.count) of \(tail.totalLineCount)"
             : "\(tail.totalLineCount)"
         errorsValue.text = "\(tail.errorCount)"
         sizeValue.text = ByteCountFormatter.string(fromByteCount: Int64(tail.byteCount), countStyle: .file)
         cacheValue.text = ImageCacheMeter.formatted(cacheBytes)
+        topShelfValue.text = topShelf.snapshotLine
+        topShelfReadValue.text = topShelf.readLine
         logView.show(tail)
         focusLogOnFirstLoad()
     }

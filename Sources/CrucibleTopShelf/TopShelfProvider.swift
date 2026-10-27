@@ -6,30 +6,36 @@ import TVServices
 /// show it returns nil so the system displays the static branded Top Shelf image.
 open class TopShelfProvider: TVTopShelfContentProvider {
     open override func loadTopShelfContent(completionHandler: @escaping @Sendable ((any TVTopShelfContent)?) -> Void) {
-        let plan = TopShelfPlan(snapshot: TopShelfStore.shared.load())
+        let store = TopShelfStore.shared
+        let snapshot = store.load()
+        let plan = TopShelfPlan(snapshot: snapshot)
+        store.saveReceipt(
+            TopShelfReceipt(
+                itemCount: plan?.items.count ?? 0,
+                imageCount: plan?.items.filter { $0.imageURL != nil }.count ?? 0,
+                snapshotSchema: snapshot?.schema
+            )
+        )
+        AppLogger.info(
+            "Top Shelf extension: \(plan?.items.count ?? 0) items, schema \(snapshot.map { String($0.schema) } ?? "none"), snapshot \(store.existingSnapshotPath ?? "none")",
+            .lifecycle
+        )
         completionHandler(plan.map(Self.content(for:)))
     }
 
-    private static func content(for plan: TopShelfPlan) -> TVTopShelfSectionedContent {
-        TVTopShelfSectionedContent(sections: plan.sections.map(collection(for:)))
+    private static func content(for plan: TopShelfPlan) -> TVTopShelfCarouselContent {
+        TVTopShelfCarouselContent(style: .details, items: plan.items.map(carouselItem(for:)))
     }
 
-    private static func collection(for section: TopShelfPlan.Section) -> TVTopShelfItemCollection<TVTopShelfSectionedItem> {
-        let collection = TVTopShelfItemCollection(items: section.items.map(sectionedItem(for:)))
-        collection.title = section.title
-        return collection
-    }
-
-    private static func sectionedItem(for item: TopShelfPlan.Item) -> TVTopShelfSectionedItem {
-        let tile = TVTopShelfSectionedItem(identifier: item.identifier)
-        tile.title = item.title
-        tile.imageShape = .hdtv
-        tile.setImageURL(item.imageURL, for: [.screenScale1x, .screenScale2x])
-        if let progress = item.progress {
-            tile.playbackProgress = progress
-        }
-        tile.playAction = item.playURL.map { TVTopShelfAction(url: $0) }
-        tile.displayAction = TVTopShelfAction(url: item.displayURL)
-        return tile
+    private static func carouselItem(for item: TopShelfPlan.Item) -> TVTopShelfCarouselItem {
+        let card = TVTopShelfCarouselItem(identifier: item.identifier)
+        card.title = item.title
+        card.contextTitle = item.contextTitle
+        card.summary = item.summary
+        card.setImageURL(item.imageURL, for: .screenScale1x)
+        card.setImageURL(item.image2xURL, for: .screenScale2x)
+        card.playAction = item.playURL.map { TVTopShelfAction(url: $0) }
+        card.displayAction = TVTopShelfAction(url: item.displayURL)
+        return card
     }
 }

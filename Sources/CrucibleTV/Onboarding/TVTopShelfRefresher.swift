@@ -19,6 +19,7 @@ enum TVTopShelfRefresher {
 
     static func activate(api: APIClient, machineIdentifier: String) {
         session = (api, machineIdentifier)
+        AppLogger.info(TopShelfStore.shared.diagnostics.logSummary, .persistence)
         observePro()
         refresh()
     }
