@@ -55,6 +55,8 @@ enum ShotHarness {
                 Task {
                     if environment["CRUCIBLE_SHOT_SCRIPT"] == "pro" {
                         await ProShotScript.run()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "flow" {
+                        await EpisodeFlowProbe.run()
                     } else {
                         await ShotScript.run()
                     }
