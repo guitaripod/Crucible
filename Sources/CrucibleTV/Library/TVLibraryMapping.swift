@@ -34,7 +34,7 @@ extension TVCardItem {
     init(folderItem item: PlexMetadata) {
         let poster = LibraryPoster(folderItem: item)
         let tracksWatched = HomeMediaRules.isPlayable(item)
-        let progress = item.progressPercent
+        let progress = item.progressFraction
         self.init(
             id: item.id,
             artworkPath: poster.posterPath,

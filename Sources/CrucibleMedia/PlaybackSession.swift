@@ -87,6 +87,10 @@ package final class PlaybackSession {
     var isStopped = false
     var isUpNextVisible = false
     var isUndoVisible = false
+    /// Set when a surface puts a prepared player on screen and asks it to start while the resume seek it
+    /// needs is still on its way: the seek plays it the moment it lands, so the item never shows a moment of
+    /// its start first.
+    var playsAfterResume = false
     var pingTask: Task<Void, Never>?
     var undoTask: Task<Void, Never>?
     var upNextTask: Task<Void, Never>?
@@ -197,8 +201,10 @@ package final class PlaybackSession {
 
     /// Creates the player and starts playback at the resume position. The caller hosts the returned
     /// player in its own surface; the session keeps driving it until `stop()`. Returns nil when there
-    /// is no prepared stream, playback already began, or the session is spent.
-    package func begin() -> AVPlayer? {
+    /// is no prepared stream, playback already began, or the session is spent. `autoplay` false leaves the
+    /// player paused: a surface that swaps this player in for the episode before it starts it itself once
+    /// the picture is there.
+    package func begin(autoplay: Bool = true) -> AVPlayer? {
         guard let stream, player == nil, !isStopped else { return nil }
         streamOffset = ResumeStrategy.streamOffset(resumePosition: request.resumePosition, isDirectPlay: stream.isDirectPlay)
         tracker.moved(to: request.resumePosition)
@@ -222,6 +228,7 @@ package final class PlaybackSession {
             ratingKey: request.ratingKey,
             isEpisode: request.isEpisode,
             seasonRatingKey: request.seasonRatingKey,
+            showRatingKey: request.showRatingKey,
             markers: stream.markers
         )
         if installsRemoteCommands { configureRemoteCommands() }
@@ -234,18 +241,21 @@ package final class PlaybackSession {
         observeRate(of: player)
         startHeartbeat()
         watchCurrentItem()
-        startPlayback(player: player, stream: stream, resumePosition: request.resumePosition, autoplay: true)
+        startPlayback(player: player, stream: stream, resumePosition: request.resumePosition, autoplay: autoplay)
         return player
     }
 
     /// Ends playback: stops the transcode, reports the final position, drops cached metadata of the
-    /// item, its season and its show, and releases the player. Returns the playhead at the moment of
-    /// the stop so a caller can persist it.
+    /// item, its season and its show, and releases the player. An item the viewer finished is reported at
+    /// its very end, which is what ends it in Continue Watching and counts it as watched on a server whose
+    /// completion rule does not happen to be the one this item's credits cross. Returns the playhead at the
+    /// moment of the stop so a caller can persist it.
     @discardableResult
     package func stop() async -> Double? {
         guard !isStopped else { return nil }
         isStopped = true
         let finalPosition = finalPlayhead()
+        let finished = finalPosition.map { hasFinished(at: $0) } ?? false
         remoteCommands?.tearDown()
         remoteCommands = nil
         cancelBackgroundWork()
@@ -259,9 +269,9 @@ package final class PlaybackSession {
         rateObserver = nil
 
         await invalidateCaches()
-        await reporter?.stop(positionSecs: finalPosition)
+        await reporter?.stop(positionSecs: Self.reportPosition(for: finalPosition, finished: finished, duration: request.durationSecs))
         reporter = nil
-        if player != nil { keepPosition(finalPosition) }
+        if player != nil { keepPosition(finalPosition, finished: finished) }
         removePlayheadObservers()
         await stopTranscodeIfNeeded()
 
@@ -270,6 +280,27 @@ package final class PlaybackSession {
         stream = nil
         continuation.finish()
         return finalPosition
+    }
+
+    /// Whether the viewer finished the item at `position`: the playhead reached the credits, or the
+    /// percentage, or the end of the timeline. The credits are the rule Plex itself finishes items by, so an
+    /// episode left in the middle of long end credits is finished all the same.
+    package func hasFinished(at position: Double) -> Bool {
+        WatchedRule.isFinished(
+            positionSecs: position,
+            durationSecs: request.durationSecs,
+            creditsStartSecs: creditsStartSecs
+        )
+    }
+
+    /// Whether playback is at the end of the item right now.
+    package var isFinishedNow: Bool { hasFinished(at: bestKnownPosition) }
+
+    /// What the server is told for a run that ends here: the very end of the item for a finished one, so
+    /// the item leaves Continue Watching whatever the server's completion rule is, and the playhead otherwise.
+    private static func reportPosition(for position: Double?, finished: Bool, duration: Double) -> Double? {
+        guard finished else { return position }
+        return max(position ?? 0, duration > 0 ? duration : position ?? 0)
     }
 
     func emit(_ event: PlaybackEvent) {

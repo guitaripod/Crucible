@@ -24,7 +24,7 @@ package enum SearchItemActions {
     }
 
     package static func playTitle(for item: PlexMetadata) -> String {
-        item.positionSecs > 0 ? "Resume" : "Play"
+        item.resumeSecs > 0 ? "Resume" : "Play"
     }
 
     /// The show an episode or season belongs to, for the Go to Show action.

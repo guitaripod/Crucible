@@ -229,16 +229,21 @@ enum BenchShow {
             ratingKey: episode.id,
             isEpisode: episode.mediaType == "episode",
             seasonRatingKey: episode.parentRatingKey,
+            showRatingKey: Fixtures.showKey,
             markers: []
         )
     }
 }
 
-/// The one place the benchmark asks "did this episode finish?", the way the player and the screens do.
-/// It has to keep calling whatever rule the app itself uses, so the expectation never has to change:
-/// today that is the percentage alone (`WatchedRule`), which knows nothing about credits markers.
+/// The one place the benchmark asks "did this episode finish?", the way the player and the screens do. It
+/// has to keep calling whatever rule the app itself uses, so the expectation never has to change: today
+/// that is `WatchedRule.isFinished`, the earlier of the credits and the percentage.
 enum FinishedProbe {
     static func isFinished(positionSecs: Double, durationSecs: Double, creditsStartSecs: Double?) -> Bool {
-        WatchedRule.isWatched(positionMs: Int(positionSecs * 1000), durationMs: Int(durationSecs * 1000))
+        WatchedRule.isFinished(
+            positionSecs: positionSecs,
+            durationSecs: durationSecs,
+            creditsStartSecs: creditsStartSecs
+        )
     }
 }

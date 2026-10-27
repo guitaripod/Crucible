@@ -24,7 +24,7 @@ package struct HomeHeroModel: Hashable, Sendable {
         metaParts = Self.metaParts(for: item)
         actionTitle = HomeMediaRules.playTitle(for: item)
         trailingText = HomeFormat.remaining(item) ?? HomeFormat.runtime(item.durationSecs)
-        progress = resuming ? item.progressPercent : nil
+        progress = resuming ? item.progressFraction : nil
         let episode = item.mediaType == "episode" ? HomeFormat.spokenEpisode(season: item.parentIndex, episode: item.index) : nil
         let timePhrase = Self.timePhrase(for: item)
         spokenLabel = [

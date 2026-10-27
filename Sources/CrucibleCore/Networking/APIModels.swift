@@ -451,6 +451,13 @@ extension PlexMetadata {
         return Double(offset) / Double(dur)
     }
 
+    /// Where playback resumes: zero for an item already watched, whose offset is where the last watching
+    /// stopped rather than a place to continue from.
+    package var resumeSecs: Double { isWatched ? 0 : positionSecs }
+
+    /// How much of the item is left to watch, for a progress bar: nothing for one already watched.
+    package var progressFraction: Double { isWatched ? 0 : progressPercent }
+
     package var id: String { ratingKey ?? key ?? "" }
     package var mediaType: String { type ?? "unknown" }
 

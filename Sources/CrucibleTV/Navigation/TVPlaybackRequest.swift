@@ -43,7 +43,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
     }
 
     /// Builds the request for `item`, resuming where the server says it was left unless
-    /// `resumeSeconds` overrides it (pass 0 for Play from Beginning).
+    /// `resumeSeconds` overrides it (pass 0 for Play from Beginning). A watched item starts from the
+    /// beginning: its offset is where the last watching stopped, not a place to continue from.
     init(
         item: PlexMetadata,
         resumeSeconds: Double? = nil,
@@ -55,7 +56,7 @@ struct TVPlaybackRequest: Sendable, Equatable {
             mediaType: item.mediaType,
             showRatingKey: item.grandparentRatingKey,
             seasonRatingKey: item.parentRatingKey,
-            resumeSeconds: resumeSeconds ?? item.positionSecs,
+            resumeSeconds: resumeSeconds ?? item.resumeSecs,
             selectedAudioStreamID: selectedAudioStreamID,
             selectedSubtitleStreamID: selectedSubtitleStreamID,
             display: Display(

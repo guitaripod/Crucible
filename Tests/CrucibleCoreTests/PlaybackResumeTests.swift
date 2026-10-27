@@ -132,11 +132,30 @@ struct PlaybackResumeTests {
         #expect(store.pendingReports(server: "srv").map(\.positionSecs) == [640])
     }
 
-    @Test func aFinishedItemIsForgotten() {
+    @Test func aFinishedItemIsKeptUntilTheServerConfirmsIt() {
         let store = PlaybackResumeStore(defaults: defaults())
         store.save(server: "srv", ratingKey: "7", positionSecs: 600, durationSecs: 2_400)
         store.save(server: "srv", ratingKey: "7", positionSecs: 2_300, durationSecs: 2_400)
-        #expect(store.point(server: "srv", ratingKey: "7") == nil)
+        let point = store.point(server: "srv", ratingKey: "7")
+        #expect(point?.finished == true)
+        #expect(point?.reportSecs == 2_400)
+        #expect(store.pendingReports(server: "srv").map(\.ratingKey) == ["7"])
+        store.recordReport(server: "srv", ratingKey: "7", positionSecs: 2_400)
+        #expect(store.pendingReports(server: "srv").isEmpty)
+    }
+
+    @Test func aRunThatReachedTheCreditsIsStoredAsFinished() {
+        let store = PlaybackResumeStore(defaults: defaults())
+        store.save(server: "srv", ratingKey: "7", positionSecs: 2_112, durationSecs: 2_400, finished: true)
+        let point = store.point(server: "srv", ratingKey: "7")
+        #expect(point?.finished == true)
+        #expect(point?.positionSecs == 2_112)
+        #expect(point?.reportSecs == 2_400)
+    }
+
+    @Test func anItemTheServerCallsWatchedIsNeverWrittenTo() {
+        let point = ResumePoint(server: "srv", ratingKey: "7", positionSecs: 600, durationSecs: 2_400, savedAt: Date())
+        #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 0, serverViewedAt: nil, serverWatched: true))
     }
 
     @Test func positionsAreKeptPerServerAndExpireWithTheNextSave() {

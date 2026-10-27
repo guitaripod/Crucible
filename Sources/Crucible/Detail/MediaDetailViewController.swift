@@ -549,7 +549,6 @@ final class MediaDetailViewController: UICollectionViewController {
             selectedAudioStreamId: selectedAudioTrackId,
             offlineAsset: offlineAsset
         )
-        coordinator.onAdvanceToNext = { [weak self] next in self?.playerCoordinator = next }
         self.playerCoordinator = coordinator
         coordinator.present(from: self)
     }

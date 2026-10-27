@@ -21,9 +21,9 @@ struct Probe: Sendable {
 enum Probes {
     static func all() -> [Probe] {
         [
-            inSeason, finale, lastEver, movie, unreadableSeason, agreement, requestShape, ordering,
-            threshold, creditsFinished, noMarkers, retryAfterFinish,
-            watchedPlaysFromStart, watchedRow, inProgressRow, allWatched,
+            inSeason, finale, lastEver, movie, unreadableSeason, agreement, requestShape, selections, offlineResume, ordering,
+            threshold, creditsFinished, noMarkers, retryAfterFinish, finishedReport, serverWatched,
+            watchedPlaysFromStart, watchedRow, inProgressRow, allWatched, mostRecent,
             pendingIsFlushed, confirmedIsClean, staleIsDropped, noRewind, resumeStrategy,
         ]
     }
@@ -118,7 +118,8 @@ enum Probes {
         return nil
     }
 
-    /// The offer builds a request that starts the next episode from its start, in its own season.
+    /// The offer builds a request that starts the next episode from its start, in its own season, with the
+    /// streams the viewer chose on the episode before.
     private static let requestShape = Probe(id: "flow.request", group: .flow, title: "the offer starts the next episode from the beginning") {
         let offer = UpNextOffer(
             episode: Fixtures.episode(season: 1, index: 2),
@@ -131,6 +132,40 @@ enum Probes {
         if request.seasonRatingKey != Fixtures.seasonKeys[1]! { return "lost the season" }
         if request.showRatingKey != Fixtures.showKey { return "lost the show" }
         if request.metadata?.episodeNumber != 2 { return "lost the episode number" }
+        return nil
+    }
+
+    /// What the viewer picked to listen to and read on this episode stays picked on the next one.
+    private static let selections = Probe(id: "flow.selections", group: .flow, title: "the next episode keeps the viewer's subtitle and audio") {
+        let offer = UpNextOffer(
+            episode: Fixtures.episode(season: 1, index: 2),
+            seasonRatingKey: Fixtures.seasonKeys[1]!,
+            reason: .credits,
+            autoplays: true
+        )
+        let request = offer.nextRequest(showRatingKey: Fixtures.showKey, selectedSubtitleId: 13, selectedAudioStreamId: 11)
+        if request.selectedSubtitleId != 13 { return "lost the subtitle pick" }
+        if request.selectedAudioStreamId != 11 { return "lost the audio pick" }
+        return nil
+    }
+
+    /// A downloaded next episode starts where the viewer left the download, not at zero.
+    private static let offlineResume = Probe(id: "flow.offline", group: .flow, title: "a downloaded next episode resumes where it was left") {
+        let source = OfflinePlaybackSource(
+            fileURL: URL(string: "http://127.0.0.1:1/next.m3u8")!,
+            markers: [],
+            durationSecs: 2_400,
+            resumeSecs: 600
+        )
+        let offer = UpNextOffer(
+            episode: Fixtures.episode(season: 1, index: 2),
+            seasonRatingKey: Fixtures.seasonKeys[1]!,
+            reason: .credits,
+            autoplays: true
+        )
+        let request = offer.nextRequest(showRatingKey: Fixtures.showKey, offline: source)
+        if request.resumePosition != 600 { return "starts at \(request.resumePosition) s" }
+        if request.offline?.fileURL != source.fileURL { return "lost the download" }
         return nil
     }
 
@@ -197,6 +232,32 @@ enum Probes {
         return nil
     }
 
+    /// The retried report carries the end of the item, which is what ends it in Continue Watching and
+    /// counts it as watched whatever the server's completion rule is.
+    private static let finishedReport = Probe(id: "watched.report-end", group: .watched, title: "a finished item is reported at its very end") {
+        let store = PlaybackResumeStore(defaults: scratchDefaults())
+        store.save(server: "s", ratingKey: "e1", positionSecs: 2_110, durationSecs: 2_400, finished: true)
+        guard let point = store.pendingReports(server: "s").first(where: { $0.ratingKey == "e1" }) else {
+            return "no report left"
+        }
+        if point.reportSecs != 2_400 { return "reports \(Int(point.reportSecs)) s, not the end" }
+        if ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 2_400, serverViewedAt: nil) {
+            return "sends the end again over an item already at its end"
+        }
+        return nil
+    }
+
+    /// A finished run is not written over an item the server already counts as watched.
+    private static let serverWatched = Probe(id: "watched.server", group: .watched, title: "a position never rewinds an item the server counts as watched") {
+        let store = PlaybackResumeStore(defaults: scratchDefaults())
+        store.save(server: "s", ratingKey: "e1", positionSecs: 600, durationSecs: 2_400)
+        guard let point = store.pendingReports(server: "s").first else { return "no point saved" }
+        if ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 0, serverViewedAt: nil, serverWatched: true) {
+            return "writes over an item the server counts as watched"
+        }
+        return nil
+    }
+
     // MARK: - Screen: what a watched episode offers
 
     /// A watched episode plays from the beginning, whatever offset the server left on it.
@@ -244,6 +305,28 @@ enum Probes {
         if upNext.episode.id != Fixtures.episodeKey(season: 1, index: 1) { return "offered \(upNext.episode.id)" }
         if upNext.kind != .start { return "kind is \(upNext.kind)" }
         if !model.isWatched { return "the show does not count as watched" }
+        return nil
+    }
+
+    /// The show's Continue follows what the viewer watched last, so it matches the server's own Continue
+    /// Watching row instead of pointing at an episode abandoned days ago.
+    private static let mostRecent = Probe(id: "screen.recent", group: .screen, title: "the show screen follows the most recent watch") {
+        let episodes = [
+            Fixtures.episode(season: 1, index: 1, watched: true, lastViewedAt: 1_000),
+            Fixtures.episode(season: 1, index: 2, offsetSecs: 600, lastViewedAt: 2_000),
+            Fixtures.episode(season: 1, index: 3, watched: true, lastViewedAt: 9_000),
+            Fixtures.episode(season: 1, index: 4),
+        ]
+        let model = ShowDetailModel(
+            show: Fixtures.show(viewed: 2),
+            seasons: [Fixtures.season(1, watched: 2)],
+            selectedSeasonKey: Fixtures.seasonKeys[1],
+            episodes: episodes,
+            allEpisodes: episodes
+        )
+        guard let upNext = model.upNext else { return "no next episode" }
+        if upNext.episode.id != Fixtures.episodeKey(season: 1, index: 4) { return "offers \(upNext.episode.id)" }
+        if upNext.kind != .next { return "kind is \(upNext.kind)" }
         return nil
     }
 

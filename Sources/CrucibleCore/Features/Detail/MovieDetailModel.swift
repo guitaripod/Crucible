@@ -48,10 +48,6 @@ package struct MovieDetailModel: Sendable {
         seasonKey.map { .episode(next, showRatingKey: showKey, seasonRatingKey: $0) }
     }
 
-    package var hasResumePosition: Bool {
-        item.positionSecs > 0
-    }
-
     package var playTitle: String {
         hasResumePosition ? "Resume" : "Play"
     }
@@ -68,13 +64,21 @@ package struct MovieDetailModel: Sendable {
         WatchedService.title(isWatched: item.isWatched)
     }
 
-    /// The position playback starts from: the downloaded copy's own resume point when playing offline, else the server's.
+    /// The position playback starts from: the beginning for an episode already watched, otherwise the
+    /// downloaded copy's own resume point when playing offline, else the server's.
     package func resumePosition(offlineResumeSecs: Double?) -> Double {
-        offlineResumeSecs ?? item.positionSecs
+        guard !item.isWatched else { return 0 }
+        return offlineResumeSecs ?? item.positionSecs
     }
 
+    /// Whether there is somewhere to resume: a watched item has nothing left to resume, whatever offset
+    /// the server or a download still carries.
     package var hasProgress: Bool {
-        item.positionSecs > 0 && item.durationSecs > item.positionSecs
+        !item.isWatched && item.positionSecs > 0 && item.durationSecs > item.positionSecs
+    }
+
+    package var hasResumePosition: Bool {
+        !item.isWatched && item.positionSecs > 0
     }
 
     package var progress: PlaybackProgress {
@@ -252,9 +256,7 @@ package struct MovieDetailModel: Sendable {
     /// The episode after `ratingKey` within `episodes`, which are one season's episodes: the last
     /// episode of a season has no next episode, the following season is never entered.
     package static func nextEpisode(after ratingKey: String, in episodes: [PlexMetadata]) -> PlexMetadata? {
-        guard let currentIndex = episodes.firstIndex(where: { $0.id == ratingKey }),
-              currentIndex + 1 < episodes.count else { return nil }
-        return episodes[currentIndex + 1]
+        EpisodeOrder.next(after: ratingKey, in: episodes)
     }
 }
 

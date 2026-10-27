@@ -42,11 +42,14 @@ package struct OfflinePlaybackSource: Sendable {
     package let fileURL: URL
     package let markers: [PlexMarker]
     package let durationSecs: Double
+    /// Where the downloaded copy itself was left, for an episode played before it is offered as Up Next.
+    package let resumeSecs: Double
 
-    package init(fileURL: URL, markers: [PlexMarker], durationSecs: Double) {
+    package init(fileURL: URL, markers: [PlexMarker], durationSecs: Double, resumeSecs: Double = 0) {
         self.fileURL = fileURL
         self.markers = markers
         self.durationSecs = durationSecs
+        self.resumeSecs = resumeSecs
     }
 }
 
@@ -86,6 +89,8 @@ package struct PlaybackRequest: Sendable {
     }
 
     /// Plays `item` from the position the server last stored for it unless `resumePosition` says otherwise.
+    /// A watched item starts from the beginning: whatever offset the server still holds is not a place to
+    /// resume, it is where the last watching stopped.
     package init(
         item: PlexMetadata,
         resumePosition: Double? = nil,
@@ -98,7 +103,7 @@ package struct PlaybackRequest: Sendable {
             mediaType: item.mediaType,
             showRatingKey: item.grandparentRatingKey,
             seasonRatingKey: item.parentRatingKey,
-            resumePosition: resumePosition ?? item.positionSecs,
+            resumePosition: resumePosition ?? (item.isWatched ? 0 : item.positionSecs),
             metadata: PlaybackMetadata(item: item),
             selectedSubtitleId: selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId,

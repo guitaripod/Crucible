@@ -53,9 +53,10 @@ extension PlaybackSession {
             isSuspended = true
             awaySince = awaySince ?? now()
             position = tracker.heldPosition
+            keepPosition(position, finished: position.map { hasFinished(at: $0) } ?? false)
         } else {
             position = absolutePosition
-            keepPosition(position)
+            keepPosition(position, finished: position.map { hasFinished(at: $0) } ?? false)
         }
         AppLogger.notice("Playback suspended ratingKey=\(request.ratingKey) position=\(Int(position ?? -1)) directPlay=\(stream?.isDirectPlay ?? false) held=\(holds)", .playback)
         return SuspensionReport(position: position, held: holds)
@@ -173,12 +174,20 @@ extension PlaybackSession {
         AppLogger.notice("Lifecycle \(phase) ratingKey=\(request.ratingKey) position=\(Int(bestKnownPosition)) rate=\(rate) itemStatus=\(status) suspended=\(isSuspended)", .playback)
     }
 
-    /// Writes the position to the device (`PlaybackResumeStore`) unless it is already the one saved.
-    func keepPosition(_ position: Double?, force: Bool = true) {
+    /// Writes the position to the device (`PlaybackResumeStore`) unless it is already the one saved. A run
+    /// that reached the credits or the end is stored as finished, so a report the server never received is
+    /// sent at the next launch instead of being lost with the process.
+    func keepPosition(_ position: Double?, force: Bool = true, finished: Bool = false) {
         guard let position, position.isFinite, position >= 0 else { return }
-        if !force, let lastSavedPosition, abs(position - lastSavedPosition) < PlaybackTiming.saveInterval { return }
+        if !force, !finished, let lastSavedPosition, abs(position - lastSavedPosition) < PlaybackTiming.saveInterval { return }
         lastSavedPosition = position
-        resumeStore.save(server: serverID, ratingKey: request.ratingKey, positionSecs: position, durationSecs: request.durationSecs)
+        resumeStore.save(
+            server: serverID,
+            ratingKey: request.ratingKey,
+            positionSecs: position,
+            durationSecs: request.durationSecs,
+            finished: finished
+        )
     }
 }
 

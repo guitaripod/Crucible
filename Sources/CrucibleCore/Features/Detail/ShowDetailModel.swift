@@ -234,17 +234,35 @@ package struct ShowDetailModel: Sendable {
         return initialSeasonKey(seasons: seasons, preferred: preferred)
     }
 
-    /// The episode the primary button plays: an in-progress episode first, then the first unwatched
-    /// episode after the last watched one, otherwise the very first episode.
+    /// The episode the primary button plays: the episode the viewer touched most recently when it is still
+    /// in progress, otherwise the first unwatched episode after the most recently watched one, and the very
+    /// first episode once everything is watched. Following the most recent watch keeps this screen in step
+    /// with the server's own Continue Watching, which is built from that too.
     package static func computeUpNext(in episodes: [PlexMetadata]) -> UpNext? {
-        guard let first = episodes.first else { return nil }
-        if let inProgress = episodes.first(where: { !$0.isWatched && $0.positionSecs > 0 }) {
-            return UpNext(episode: inProgress, kind: .resume)
+        let ordered = EpisodeOrder.sorted(episodes)
+        guard let first = ordered.first else { return nil }
+        let inProgress = ordered.filter { !$0.isWatched && $0.positionSecs > 0 }
+        let watched = ordered.filter(\.isWatched)
+        let engaged = ordered.filter { $0.isWatched || $0.positionSecs > 0 }
+        guard let anchor = mostRecentlyViewed(engaged) ?? inProgress.first ?? watched.last else {
+            return UpNext(episode: first, kind: .start)
         }
-        guard let lastWatched = episodes.lastIndex(where: \.isWatched) else { return UpNext(episode: first, kind: .start) }
-        if let next = episodes[(lastWatched + 1)...].first(where: { !$0.isWatched }) ?? episodes.first(where: { !$0.isWatched }) {
+        if !anchor.isWatched, anchor.positionSecs > 0 {
+            return UpNext(episode: anchor, kind: .resume)
+        }
+        guard let index = ordered.firstIndex(where: { $0.id == anchor.id }) else {
+            return UpNext(episode: first, kind: .start)
+        }
+        if let next = ordered[(index + 1)...].first(where: { !$0.isWatched }) ?? ordered.first(where: { !$0.isWatched }) {
             return UpNext(episode: next, kind: .next)
         }
         return UpNext(episode: first, kind: .start)
+    }
+
+    /// The entry the server says the viewer looked at last. Nil when it sent no timestamps at all (an older
+    /// server, or a library without them), so each caller can fall back to its own order.
+    private static func mostRecentlyViewed(_ episodes: [PlexMetadata]) -> PlexMetadata? {
+        guard episodes.contains(where: { $0.lastViewedAt != nil }) else { return nil }
+        return episodes.max { ($0.lastViewedAt ?? 0) < ($1.lastViewedAt ?? 0) }
     }
 }

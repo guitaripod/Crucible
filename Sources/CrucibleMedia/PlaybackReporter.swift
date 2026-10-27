@@ -10,6 +10,12 @@ import os
 /// true: a report never reads the player's clock directly, so a clock that lost its place cannot
 /// write the start of the stream over the server's record. Every report the server accepts is
 /// noted in the `PlaybackResumeStore`.
+///
+/// Reports leave one at a time, in the order they were made: the observers fire from two places (the
+/// periodic tick and the player's state) and a request takes as long as the network takes, so a report made
+/// before the stop could otherwise land after it and put a finished item back where it was ten seconds
+/// earlier. Once the reporter is stopped nothing else is sent: the queued tick that was on its way out is
+/// dropped, and only `stopped` follows it.
 @MainActor
 package final class PlaybackReporter {
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
@@ -23,6 +29,9 @@ package final class PlaybackReporter {
     private weak var player: AVPlayer?
     private var timeObserverToken: Any?
     private var statusObservation: NSKeyValueObservation?
+    /// The tail of the report chain: every report awaits the one before it.
+    private var pending: Task<Void, Never>?
+    private var isStopped = false
 
     package init(
         api: APIClient,
@@ -46,43 +55,50 @@ package final class PlaybackReporter {
     private func setupObservers() {
         guard let player else { return }
 
-        let api = self.api
-        let ratingKey = self.ratingKey
-        let durationMs = self.durationMs
-        let tracker = self.tracker
-        let resumeStore = self.resumeStore
-        let server = self.server
-
         timeObserverToken = player.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: PlaybackTiming.timelineInterval, preferredTimescale: 1),
             queue: .main
-        ) { [weak player] time in
+        ) { [weak self, weak player] time in
             let isReady = player?.currentItem?.status == .readyToPlay
-            guard let position = tracker.position(playerSeconds: time.seconds, isReady: isReady) else { return }
             let state = player?.timeControlStatus == .paused ? "paused" : "playing"
-            Task {
-                await Self.report(
-                    api: api, ratingKey: ratingKey, state: state, position: position,
-                    durationMs: durationMs, resumeStore: resumeStore, server: server
-                )
+            Task { @MainActor [weak self] in
+                guard let self, let position = self.tracker.position(playerSeconds: time.seconds, isReady: isReady) else { return }
+                self.enqueue(state: state, position: position)
             }
         }
 
-        statusObservation = player.observe(\.timeControlStatus, options: [.new]) { @Sendable observedPlayer, _ in
+        statusObservation = player.observe(\.timeControlStatus, options: [.new]) { [weak self] observedPlayer, _ in
             let isReady = observedPlayer.currentItem?.status == .readyToPlay
-            guard let position = tracker.position(playerSeconds: observedPlayer.currentTime().seconds, isReady: isReady) else { return }
             let state: String
             switch observedPlayer.timeControlStatus {
             case .playing: state = "playing"
             case .paused: state = "paused"
             default: return
             }
-            Task {
-                await Self.report(
-                    api: api, ratingKey: ratingKey, state: state, position: position,
-                    durationMs: durationMs, resumeStore: resumeStore, server: server
-                )
+            let seconds = observedPlayer.currentTime().seconds
+            Task { @MainActor [weak self] in
+                guard let self, let position = self.tracker.position(playerSeconds: seconds, isReady: isReady) else { return }
+                self.enqueue(state: state, position: position)
             }
+        }
+    }
+
+    /// Puts a report at the end of the chain, so it leaves after every report made before it.
+    private func enqueue(state: String, position: Double) {
+        guard !isStopped else { return }
+        let previous = pending
+        let api = api
+        let ratingKey = ratingKey
+        let durationMs = durationMs
+        let resumeStore = resumeStore
+        let server = server
+        pending = Task { [weak self] in
+            await previous?.value
+            guard let self, !self.isStopped else { return }
+            await Self.report(
+                api: api, ratingKey: ratingKey, state: state, position: position,
+                durationMs: durationMs, resumeStore: resumeStore, server: server
+            )
         }
     }
 
@@ -105,7 +121,7 @@ package final class PlaybackReporter {
 
     /// Reports `state` ("paused", for instance) right away, at `positionSecs` or else at the tracked position.
     package func send(state: String, positionSecs: Double? = nil) async {
-        guard let position = positionSecs ?? currentPosition() else { return }
+        guard !isStopped, let position = positionSecs ?? currentPosition() else { return }
         await Self.report(
             api: api, ratingKey: ratingKey, state: state, position: position,
             durationMs: durationMs, resumeStore: resumeStore, server: server
@@ -116,12 +132,22 @@ package final class PlaybackReporter {
         tracker.position(playerSeconds: player?.currentTime().seconds, isReady: player?.currentItem?.status == .readyToPlay)
     }
 
+    /// Ends reporting: drops every queued report except the stop, which goes out after them so nothing
+    /// already sent can be overtaken by a stale one.
     package func stop(positionSecs: Double? = nil) async {
-        await send(state: "stopped", positionSecs: positionSecs)
+        guard !isStopped else { return }
+        isStopped = true
         if let token = timeObserverToken, let player {
             player.removeTimeObserver(token)
         }
         timeObserverToken = nil
         statusObservation = nil
+        await pending?.value
+        pending = nil
+        guard let position = positionSecs ?? currentPosition() else { return }
+        await Self.report(
+            api: api, ratingKey: ratingKey, state: "stopped", position: position,
+            durationMs: durationMs, resumeStore: resumeStore, server: server
+        )
     }
 }

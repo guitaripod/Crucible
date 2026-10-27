@@ -26,7 +26,7 @@ package struct HomeCardModel: Hashable, Sendable {
         isWatched = HomeMediaRules.isWatched(item)
         isPlayable = HomeMediaRules.isPlayable(item)
         unwatchedCount = HomeMediaRules.unwatchedCount(item)
-        progress = item.positionSecs > 0 && item.duration != nil ? item.progressPercent : nil
+        progress = item.resumeSecs > 0 && item.duration != nil ? item.progressFraction : nil
         switch layout {
         case .poster:
             subtitle = Self.posterSubtitle(for: item, bucket: bucket)

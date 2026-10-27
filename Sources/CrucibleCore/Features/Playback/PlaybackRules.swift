@@ -1,8 +1,15 @@
 import Foundation
 
-/// When an item counts as watched: at least 92 percent played.
+/// When an item counts as watched: at least 92 percent played, or the playhead has reached the credits.
+/// Plex itself finishes an item at the earlier of its completion percentage and its first credits marker
+/// (the default of its "Video play completion behaviour"), so an episode the viewer watched into the
+/// credits is finished even when those credits begin before the percentage.
 package enum WatchedRule {
     package static let threshold = 0.92
+
+    /// How close to the credits start an item counts as finished: a playhead two seconds short of them is
+    /// the credits, not the last scene.
+    package static let creditsTolerance = 2.0
 
     package static func progress(positionMs: Int, durationMs: Int) -> Double {
         guard durationMs > 0 else { return 0 }
@@ -11,6 +18,42 @@ package enum WatchedRule {
 
     package static func isWatched(positionMs: Int, durationMs: Int) -> Bool {
         durationMs > 0 && positionMs > 0 && progress(positionMs: positionMs, durationMs: durationMs) >= threshold
+    }
+
+    /// Whether the viewer finished the item: the playhead reached the credits, or the percentage says so.
+    /// An item with neither a known duration nor credits markers is never finished by position alone.
+    package static func isFinished(positionSecs: Double, durationSecs: Double, creditsStartSecs: Double?) -> Bool {
+        guard positionSecs.isFinite, positionSecs >= 0 else { return false }
+        if let creditsStartSecs, creditsStartSecs > 0, positionSecs >= creditsStartSecs - creditsTolerance {
+            return true
+        }
+        guard durationSecs > 0 else { return false }
+        return positionSecs / durationSecs >= threshold
+    }
+}
+
+/// The order episodes play in, and the one after a given episode. One rule for the player's Up Next, the
+/// episode screen's link to the next episode and a show's Continue button, so a show never offers three
+/// different answers. The server's own order is not trusted: an episode's season and number decide.
+package enum EpisodeOrder {
+    package static func sorted(_ episodes: [PlexMetadata]) -> [PlexMetadata] {
+        episodes.enumerated()
+            .sorted { left, right in
+                let a = (left.element.parentIndex ?? 0, left.element.index ?? 0, left.offset)
+                let b = (right.element.parentIndex ?? 0, right.element.index ?? 0, right.offset)
+                return a < b
+            }
+            .map(\.element)
+    }
+
+    /// The episode after `ratingKey`, when it is one of `episodes`: the next entry in episode order, or nil
+    /// for the last one. Follows the season and episode numbers, never the list the server happened to send.
+    package static func next(after ratingKey: String, in episodes: [PlexMetadata]) -> PlexMetadata? {
+        let ordered = sorted(episodes)
+        guard let current = ordered.firstIndex(where: { $0.id == ratingKey }), current + 1 < ordered.count else {
+            return nil
+        }
+        return ordered[current + 1]
     }
 }
 
@@ -76,4 +119,6 @@ package enum PlaybackTiming {
     package static let saveInterval = 5.0
     package static let transcodePingInterval: Duration = .seconds(20)
     package static let autoSkipUndoWindow: Duration = .seconds(4)
+    /// How close to the resume position the playhead has to be for a prepared player's seek to count as landed.
+    package static let resumeLandedTolerance = 5.0
 }
