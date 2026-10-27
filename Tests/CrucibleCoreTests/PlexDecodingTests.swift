@@ -242,6 +242,23 @@ struct PlexDecodingTests {
         #expect(item.librarySectionID == 3)
     }
 
+    @Test func metadataAcceptsSectionIDAndCountsSpelledAsStrings() throws {
+        let json = #"{"MediaContainer":{"size":1,"Metadata":[{"ratingKey":"9","type":"movie","title":"Play","librarySectionID":"3","duration":"7200000","viewCount":"2","rating":"7.8"}]}}"#
+        let item = try #require(decode(PlexResponse.self, json).MediaContainer.Metadata?.first)
+        #expect(item.librarySectionID == 3)
+        #expect(item.duration == 7_200_000)
+        #expect(item.viewCount == 2)
+        #expect(item.rating == 7.8)
+    }
+
+    @Test func historyRowDecodesThroughTheStrictMetadataPath() throws {
+        let json = #"{"MediaContainer":{"size":1,"totalSize":1,"Metadata":[{"historyKey":"/status/sessions/history/1","ratingKey":"18778","key":"/library/metadata/18778","type":"movie","title":"Play","librarySectionID":"3","viewedAt":1}]}}"#
+        let item = try #require(decode(PlexResponse.self, json).MediaContainer.Metadata?.first)
+        #expect(item.id == "18778")
+        #expect(item.librarySectionID == 3)
+        #expect(item.viewedAt == 1)
+    }
+
     @Test func directoriesDecodeAndReportHiddenFlag() throws {
         let json = #"{"MediaContainer":{"size":2,"Directory":[{"key":"1","type":"movie","title":"Movies"},{"key":"2","type":"show","title":"Shows","hidden":2}]}}"#
         let directories = try #require(decode(PlexResponse.self, json).MediaContainer.Directory)

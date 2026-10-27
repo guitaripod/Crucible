@@ -105,7 +105,7 @@ package struct PlexMediaContainer: Decodable, Sendable {
         title1 = try container.decodeIfPresent(String.self, forKey: .title1)
         title2 = try container.decodeIfPresent(String.self, forKey: .title2)
         viewGroup = try container.decodeIfPresent(String.self, forKey: .viewGroup)
-        librarySectionID = try container.decodeIfPresent(Int.self, forKey: .librarySectionID)
+        librarySectionID = PlexNumber.decode(container, .librarySectionID, Int.self)
         librarySectionTitle = try container.decodeIfPresent(String.self, forKey: .librarySectionTitle)
         Metadata = try container.decodeIfPresent([PlexMetadata].self, forKey: .Metadata)
         Hub = try container.decodeIfPresent([PlexHub].self, forKey: .Hub)
@@ -257,6 +257,79 @@ package struct PlexMetadata: Decodable, Sendable {
         case originallyAvailableAt, thumb, art
         case leafCount, viewedLeafCount, childCount, librarySectionID, librarySectionTitle
         case Genre, Role, Director, Writer, Media, Marker, Related
+    }
+
+    /// The server spells ids and counts as numbers on a library listing and as strings on a history row, and one field it
+    /// wrote differently used to cost the whole screen, so every scalar decodes leniently here.
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        func string(_ key: CodingKeys) -> String? {
+            (try? container.decodeIfPresent(String.self, forKey: key)) ?? nil
+        }
+        func number<T: Decodable & LosslessStringConvertible>(_ key: CodingKeys, _ type: T.Type) -> T? {
+            PlexNumber.decode(container, key, type)
+        }
+        func list<T: Decodable>(_ type: T.Type, _ key: CodingKeys) -> T? {
+            (try? container.decodeIfPresent(type, forKey: key)) ?? nil
+        }
+        self.init(
+            ratingKey: string(.ratingKey),
+            key: string(.key),
+            type: string(.type),
+            title: string(.title) ?? "",
+            grandparentTitle: string(.grandparentTitle),
+            grandparentRatingKey: string(.grandparentRatingKey),
+            grandparentThumb: string(.grandparentThumb),
+            grandparentArt: string(.grandparentArt),
+            parentTitle: string(.parentTitle),
+            parentRatingKey: string(.parentRatingKey),
+            parentThumb: string(.parentThumb),
+            parentIndex: number(.parentIndex, Int.self),
+            index: number(.index, Int.self),
+            year: number(.year, Int.self),
+            summary: string(.summary),
+            tagline: string(.tagline),
+            contentRating: string(.contentRating),
+            studio: string(.studio),
+            rating: number(.rating, Double.self),
+            audienceRating: number(.audienceRating, Double.self),
+            duration: number(.duration, Int.self),
+            viewOffset: number(.viewOffset, Int.self),
+            viewCount: number(.viewCount, Int.self),
+            lastViewedAt: number(.lastViewedAt, Int.self),
+            viewedAt: number(.viewedAt, Int.self),
+            accountID: number(.accountID, Int.self),
+            deviceID: number(.deviceID, Int.self),
+            addedAt: number(.addedAt, Int.self),
+            originallyAvailableAt: string(.originallyAvailableAt),
+            thumb: string(.thumb),
+            art: string(.art),
+            leafCount: number(.leafCount, Int.self),
+            viewedLeafCount: number(.viewedLeafCount, Int.self),
+            childCount: number(.childCount, Int.self),
+            librarySectionID: number(.librarySectionID, Int.self),
+            librarySectionTitle: string(.librarySectionTitle),
+            Genre: list([PlexTag].self, .Genre),
+            Role: list([PlexRole].self, .Role),
+            Director: list([PlexTag].self, .Director),
+            Writer: list([PlexTag].self, .Writer),
+            Media: list([PlexMedia].self, .Media),
+            Marker: list([PlexMarker].self, .Marker),
+            Related: list(PlexRelatedHubs.self, .Related)
+        )
+    }
+}
+
+/// Reads a value the server may send either as a JSON number or as a string holding one.
+package enum PlexNumber {
+    package static func decode<Key: CodingKey, T: Decodable & LosslessStringConvertible>(
+        _ container: KeyedDecodingContainer<Key>,
+        _ key: Key,
+        _ type: T.Type
+    ) -> T? {
+        if let value = try? container.decodeIfPresent(T.self, forKey: key) { return value }
+        guard let text = try? container.decodeIfPresent(String.self, forKey: key) else { return nil }
+        return T(text)
     }
 }
 
