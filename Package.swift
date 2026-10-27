@@ -17,6 +17,7 @@ let widgetKeep: [LinkerSetting] = [
 let grdb: Target.Dependency = .product(name: "GRDB", package: "GRDB.swift")
 
 let coreOnly = ProcessInfo.processInfo.environment["CRUCIBLE_CORE_ONLY"] != nil
+let benchOnly = ProcessInfo.processInfo.environment["CRUCIBLE_BENCH"] != nil
 
 var products: [Product] = []
 
@@ -36,6 +37,10 @@ targets += [
 ]
 products += [.library(name: "CrucibleDemo", targets: ["CrucibleDemo"])]
 #endif
+
+if benchOnly {
+    targets.append(.executableTarget(name: "CrucibleBench", dependencies: ["CrucibleCore"]))
+}
 
 if coreOnly {
     targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats"]))

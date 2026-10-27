@@ -132,6 +132,10 @@ cd tv && CRUCIBLE_PACKAGE_NAME=$(basename "$(cd .. && pwd)" | tr '[:upper:]' '[:
 
 [tv/README.md](tv/README.md) covers the simulator workflow (build, run, UI tests and screenshots against a mock Plex server, driven from Linux over ssh) and the real-device one: `./scripts/install-tv.sh` builds and signs on the Mac and installs on a paired Apple TV with `devicectl`.
 
+### Episode-flow benchmark
+
+`scripts/mac.sh bench` runs `Sources/CrucibleBench` (declared only with `CRUCIBLE_BENCH=1`, so no app build ever sees it) on the macOS host. It scores the behaviours behind going from one episode to the next and keeping watched state in step: 21 probes that call the real resolvers, loaders and rules against canned Plex responses, each PASS or FAIL with the reason, ending in a `crucible-bench 14/21 67%` line. That 14/21 is the baseline it was written against.
+
 ## Deploying
 
 New to this? [INSTALL.md](INSTALL.md) walks through putting Crucible on your own iPhone, step by step.

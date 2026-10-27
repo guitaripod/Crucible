@@ -17,6 +17,7 @@ Build and test Crucible on the Mac (the only host with the Apple SDKs).
   scripts/mac.sh tvlib       sync, then build the CrucibleTV package scheme for the Apple TV simulator
   scripts/mac.sh store       sync, then build the CrucibleStore package scheme (RevenueCat) for the iPhone and Apple TV simulators
   scripts/mac.sh core-test   sync, then run CrucibleCoreTests on the macOS host (CRUCIBLE_CORE_ONLY=1)
+  scripts/mac.sh bench       sync, then score the episode-flow benchmark on the macOS host (CRUCIBLE_BENCH=1)
   scripts/mac.sh sh <cmd>    sync, then run <cmd> inside the remote checkout
 
 NAME=<dir> keeps parallel work apart: it picks the remote checkout (~/Dev/ios/$NAME) and its build products.
@@ -55,6 +56,7 @@ case "${1:-}" in
   tvlib) sync_tree; xcode_build CrucibleTV "generic/platform=tvOS Simulator" .dd-tv ;;
   store) sync_tree; xcode_build CrucibleStore "generic/platform=iOS Simulator" .dd-store; xcode_build CrucibleStore "generic/platform=tvOS Simulator" .dd-store-tv ;;
   core-test) sync_tree; remote "$(build_gate) CRUCIBLE_CORE_ONLY=1 swift test --scratch-path .build-core 2>&1" | summarize ;;
+  bench) sync_tree; remote "$(build_gate) CRUCIBLE_CORE_ONLY=1 CRUCIBLE_BENCH=1 swift run --scratch-path .build-core CrucibleBench 2>&1" | grep -E "^(FLOW|WATCHED|SCREEN|RESUME|TOTAL|crucible-bench|  |error:)" | head -${LINES_MAX:-80} ;;
   sh) shift; sync_tree; remote "$*" ;;
   *) usage; exit 2 ;;
 esac
