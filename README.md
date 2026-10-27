@@ -37,10 +37,10 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Skip Intro / Skip Credits** from Plex chapter markers
 - **Picture-in-Picture** and **background audio**
 - **Lock screen & Control Center controls** — play/pause, skip ±10s, scrub, next episode
-- **Credits-triggered Up Next** autoplay between episodes
+- **Credits-triggered Up Next** autoplay between episodes, straight into the next season at a finale, keeping the subtitles and audio you chose
 - **Skip Intro** your way: a glass button with a live progress sweep, automatic skipping with Undo, or off
 - Adjustable **playback speed**, subtitle and audio track selection
-- Resume from where you left off, progress synced to the server via the timeline API
+- Resume from where you left off, progress synced to the server via the timeline API; an episode you finished counts as watched even when you leave at the credits, so it never comes back as something to continue, and one already watched starts from the beginning
 - **Keeps your place through anything**: a sleeping Apple TV (even one that dozed off from its screen saver without telling the app), the app in the background, or a server that dropped the stream while you were away: a heartbeat notices the absence, and the stream is rebuilt under a fresh server session at the exact moment you left. A stream that stops short is rebuilt instead of being taken for the end, so the next episode never starts mid-episode, and Up Next only appears at the credits
 - **Rewind After a Break**: coming back after a break, playback backs up a few seconds, more the longer you were away (up to 15)
 - **Still watching?**: after a few episodes in a row without touching the remote (2, 3 or 5; 3 by default), Up Next asks before playing on, so a season does not run on while you sleep
@@ -134,7 +134,7 @@ cd tv && CRUCIBLE_PACKAGE_NAME=$(basename "$(cd .. && pwd)" | tr '[:upper:]' '[:
 
 ### Episode-flow benchmark
 
-`scripts/mac.sh bench` runs `Sources/CrucibleBench` (declared only with `CRUCIBLE_BENCH=1`, so no app build ever sees it) on the macOS host. It scores the behaviours behind going from one episode to the next and keeping watched state in step: 21 probes that call the real resolvers, loaders and rules against canned Plex responses, each PASS or FAIL with the reason, ending in a `crucible-bench 14/21 67%` line. That 14/21 is the baseline it was written against.
+`scripts/mac.sh bench` runs `Sources/CrucibleBench` (declared only with `CRUCIBLE_BENCH=1`, so no app build ever sees it) on the macOS host. It scores the behaviours behind going from one episode to the next and keeping watched state in step: 26 probes that call the real resolvers, loaders and rules against canned Plex responses, each PASS or FAIL with the reason, ending in a `crucible-bench 26/26 100%` line. The same benchmark read 14/21 before the episode-flow work, and the seven it failed name what that work fixed.
 
 ## Deploying
 
