@@ -45,6 +45,24 @@ package struct TopShelfStore: Sendable {
             .path
     }
 
+    /// The first candidate directory the sandbox lets this process write to. tvOS answers the
+    /// container URL even when a write there is denied, so a probe is the only way to tell a
+    /// sandbox denial apart from an empty shelf.
+    package func writableDirectory() -> URL? {
+        for directory in directories {
+            let url = directory.appendingPathComponent("topshelf-probe.tmp")
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try Data("probe".utf8).write(to: url)
+                try? FileManager.default.removeItem(at: url)
+                return directory
+            } catch {
+                continue
+            }
+        }
+        return nil
+    }
+
     /// Nil when there is no snapshot, it is too large, unreadable or from another schema.
     package func load() -> TopShelfSnapshot? {
         for directory in directories {
@@ -150,6 +168,7 @@ package struct TopShelfStore: Sendable {
     package var diagnostics: TopShelfStoreDiagnostics {
         TopShelfStoreDiagnostics(
             containerPath: containerPath,
+            writablePath: writableDirectory()?.path,
             snapshotPath: existingSnapshotPath,
             snapshot: load(),
             receipt: receipt()
@@ -160,6 +179,7 @@ package struct TopShelfStore: Sendable {
 /// Everything Diagnostics needs to explain the Top Shelf's state on the Apple TV.
 package struct TopShelfStoreDiagnostics: Sendable {
     package let containerPath: String?
+    package let writablePath: String?
     package let snapshotPath: String?
     package let snapshot: TopShelfSnapshot?
     package let receipt: TopShelfReceipt?
@@ -170,6 +190,7 @@ package struct TopShelfStoreDiagnostics: Sendable {
 
     package var snapshotSummary: String {
         guard hasContainer else { return "No App Group" }
+        guard writablePath != nil else { return "No write access" }
         guard let snapshot else { return "No snapshot" }
         return "\(snapshot.itemCount) items · \(Self.time(snapshot.savedAt))"
     }
@@ -180,7 +201,7 @@ package struct TopShelfStoreDiagnostics: Sendable {
     }
 
     package var logSummary: String {
-        "Top Shelf: container=\(containerPath ?? "none") snapshot=\(snapshotPath ?? "none")"
+        "Top Shelf: container=\(containerPath ?? "none") write=\(writablePath ?? "denied") snapshot=\(snapshotPath ?? "none")"
     }
 
     private static func time(_ epoch: Int) -> String {

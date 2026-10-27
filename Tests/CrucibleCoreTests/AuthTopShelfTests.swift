@@ -236,6 +236,16 @@ struct AuthTopShelfTests {
         #expect(store.receipt() == receipt)
     }
 
+    @Test func theStoreReportsTheDirectoryItCanWrite() throws {
+        let (store, directory) = temporaryStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let writable = try #require(store.writableDirectory())
+        #expect(writable.path == directory.appendingPathComponent("Library/Caches").path)
+        #expect(!FileManager.default.fileExists(atPath: writable.appendingPathComponent("topshelf-probe.tmp").path))
+        #expect(store.diagnostics.writablePath == writable.path)
+    }
+
     @Test func diagnosticsExplainAnEmptyStore() {
         let store = TopShelfStore(directory: nil)
         let diagnostics = store.diagnostics

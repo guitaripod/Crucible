@@ -12,7 +12,7 @@ public final class TVAppDelegate: UIResponder, UIApplicationDelegate {
             let stack = exception.callStackSymbols.joined(separator: "\n")
             AppLogger.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", .lifecycle, sync: true)
         }
-        AppLogger.notice("App launched (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
+        AppLogger.notice("App launched — \(AppInfo.versionSummary) (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         #if DEBUG
         TVDebugSession.bootstrapIfRequested()

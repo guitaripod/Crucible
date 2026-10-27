@@ -10,6 +10,7 @@ final class TVDiagnosticsViewController: UIViewController {
     private let errorsValue = UILabel()
     private let sizeValue = UILabel()
     private let cacheValue = UILabel()
+    private let versionValue = UILabel()
     private let topShelfValue = UILabel()
     private let topShelfReadValue = UILabel()
     private lazy var refreshButton = TVButton.make(.glass, title: "Refresh Log", symbol: "arrow.clockwise") { [weak self] in self?.reload() }
@@ -64,6 +65,7 @@ final class TVDiagnosticsViewController: UIViewController {
             statRow("Errors", errorsValue),
             statRow("Log size", sizeValue),
             statRow("Image cache", cacheValue),
+            statRow("Version", versionValue),
             statRow("Top Shelf", topShelfValue),
             statRow("Top Shelf read", topShelfReadValue),
         ])
@@ -99,7 +101,7 @@ final class TVDiagnosticsViewController: UIViewController {
     }
 
     private var spokenCounts: String {
-        [("Log lines", linesValue), ("Errors", errorsValue), ("Log size", sizeValue), ("Image cache", cacheValue), ("Top Shelf", topShelfValue), ("Top Shelf read", topShelfReadValue)]
+        [("Log lines", linesValue), ("Errors", errorsValue), ("Log size", sizeValue), ("Image cache", cacheValue), ("Version", versionValue), ("Top Shelf", topShelfValue), ("Top Shelf read", topShelfReadValue)]
             .map { "\($0.0) \($0.1.text ?? "")" }
             .joined(separator: ", ")
     }
@@ -135,6 +137,7 @@ final class TVDiagnosticsViewController: UIViewController {
         errorsValue.text = "\(tail.errorCount)"
         sizeValue.text = ByteCountFormatter.string(fromByteCount: Int64(tail.byteCount), countStyle: .file)
         cacheValue.text = ImageCacheMeter.formatted(cacheBytes)
+        versionValue.text = AppInfo.versionSummary
         topShelfValue.text = topShelf.snapshotLine
         topShelfReadValue.text = topShelf.readLine
         logView.show(tail)
