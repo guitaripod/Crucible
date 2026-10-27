@@ -104,6 +104,9 @@ final class TVLibraryItemActions {
         switch action.kind {
         case .play:
             play(item, isRecent: isRecent)
+        case .playFromBeginning:
+            guard HomeMediaRules.isPlayable(item), let presenter else { return }
+            TVScreens.play(env, request: TVPlaybackRequest(item: item, resumeSeconds: 0), from: presenter)
         case .setWatched(let watched):
             setWatched?(item, watched)
         case .goToShow(let showKey):

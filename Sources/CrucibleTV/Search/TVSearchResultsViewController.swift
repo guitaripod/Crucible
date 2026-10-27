@@ -400,8 +400,10 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
                 for: metadata,
                 watched: watchedOverrides[metadata.id] ?? metadata.isWatched,
                 play: { [weak self] in self?.play(metadata) },
+                playFromBeginning: { [weak self] in self?.play(metadata, fromBeginning: true) },
+                openDetails: { [weak self] in self?.open(metadata) },
                 goToShow: { [weak self] showKey in self?.openShow(showKey) },
-                toggleWatched: { [weak self] in self?.toggleWatched(metadata) }
+                setWatched: { [weak self] watched in self?.setWatched(watched, item: metadata) }
               )
         else { return nil }
         return TVContextMenu.configuration(menu: menu)
@@ -436,17 +438,20 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         TVNavigation.push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), from: navigator)
     }
 
-    private func play(_ item: PlexMetadata) {
-        TVScreens.play(env, request: TVPlaybackRequest(item: item), from: presenter)
+    private func play(_ item: PlexMetadata, fromBeginning: Bool = false) {
+        TVScreens.play(
+            env,
+            request: TVPlaybackRequest(item: item, resumeSeconds: fromBeginning ? 0 : nil),
+            from: presenter
+        )
     }
 
     /// Shows the new watched state at once and tells the server; if the server refuses, the card goes
-    /// back to what it showed and an alert says so. A second toggle of the same title waits for the first.
-    private func toggleWatched(_ item: PlexMetadata) {
+    /// back to what it showed and an alert says so. A second change of the same title waits for the first.
+    private func setWatched(_ watched: Bool, item: PlexMetadata) {
         let ratingKey = item.id
         guard pendingWatched.insert(ratingKey).inserted else { return }
         let previous = watchedOverrides[ratingKey]
-        let watched = !(previous ?? item.isWatched)
         watchedOverrides[ratingKey] = watched
         reconfigure(ratingKey)
         let api = env.api

@@ -21,7 +21,9 @@ final class TVRecentlyWatchedViewController: TVScreenViewController {
     private var items: [PlexMetadata]
     private var itemsById: [String: PlexMetadata] = [:]
     private lazy var loadSlot = makeTaskSlot()
-    private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self)
+    private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self) { [weak self] item, watched in
+        self?.markWatched(item, watched)
+    }
 
     init(env: TVAppEnvironment, section: LibrarySection, items: [PlexMetadata]) {
         self.env = env
@@ -64,6 +66,13 @@ final class TVRecentlyWatchedViewController: TVScreenViewController {
             }
         }
         adopt(dataSource)
+    }
+
+    private func markWatched(_ item: PlexMetadata, _ watched: Bool) {
+        Task { @MainActor in
+            try? await WatchedService.setWatched(watched, ratingKey: item.id, api: env.api)
+            loadHistory()
+        }
     }
 
     private func loadHistory() {

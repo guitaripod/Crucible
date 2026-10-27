@@ -83,35 +83,35 @@ struct LibraryItemsTests {
     @Test func movieMenuOffersResumeWhenPartWatchedAndToggleWatched() throws {
         let partly = try LibraryFixtures.item(#"{"ratingKey":"1","type":"movie","title":"A","viewOffset":60000,"duration":600000}"#)
         let actions = LibraryItemAction.grid(for: partly, kind: .movie)
-        #expect(actions.map(\.title) == ["Resume", "Mark Watched", "View Details"])
-        #expect(actions.map(\.kind) == [.play, .setWatched(true), .viewDetails])
+        #expect(actions.map(\.title) == ["Resume", "Play from Beginning", "Mark Watched", "Mark Unwatched", "View Details"])
+        #expect(actions.map(\.kind) == [.play, .playFromBeginning, .setWatched(true), .setWatched(false), .viewDetails])
 
         let watched = try LibraryFixtures.item(#"{"ratingKey":"2","type":"movie","title":"B","viewCount":1}"#)
         let again = LibraryItemAction.grid(for: watched, kind: .movie)
-        #expect(again.map(\.title) == ["Play", "Mark Unwatched", "View Details"])
-        #expect(again[1].kind == .setWatched(false))
-        #expect(again[1].symbol == "eye.slash")
+        #expect(again.map(\.title) == ["Play", "Mark Watched", "Mark Unwatched", "View Details"])
+        #expect(again[2].kind == .setWatched(false))
+        #expect(again[2].symbol == "eye.slash")
     }
 
     @Test func showMenuMarksTheWholeSeries() throws {
         let partly = try LibraryFixtures.item(#"{"ratingKey":"1","type":"show","title":"S","leafCount":8,"viewedLeafCount":3}"#)
         let done = try LibraryFixtures.item(#"{"ratingKey":"2","type":"show","title":"T","leafCount":8,"viewedLeafCount":8}"#)
         let empty = try LibraryFixtures.item(#"{"ratingKey":"3","type":"show","title":"U"}"#)
-        #expect(LibraryItemAction.grid(for: partly, kind: .show).map(\.title) == ["Mark All Watched", "View Details"])
-        #expect(LibraryItemAction.grid(for: done, kind: .show).first?.kind == .setWatched(false))
-        #expect(LibraryItemAction.grid(for: done, kind: .show).first?.title == "Mark All Unwatched")
+        #expect(LibraryItemAction.grid(for: partly, kind: .show).map(\.title) == ["Mark Show Watched", "Mark Show Unwatched", "View Details"])
+        #expect(LibraryItemAction.grid(for: done, kind: .show)[1].kind == .setWatched(false))
+        #expect(LibraryItemAction.grid(for: done, kind: .show)[1].title == "Mark Show Unwatched")
         #expect(LibraryItemAction.grid(for: empty, kind: .show).first?.kind == .setWatched(true))
     }
 
     @Test func recentMenuLeadsToTheShowOnlyForShowLibraries() throws {
         let episode = try LibraryFixtures.item(#"{"ratingKey":"9","type":"episode","title":"E","grandparentRatingKey":"5"}"#)
         let show = LibraryItemAction.recent(for: episode, kind: .show)
-        #expect(show.map(\.title) == ["Go to Show", "Play Again", "Episode Details"])
+        #expect(show.map(\.title) == ["Go to Show", "Play Again", "Mark Watched", "Mark Unwatched", "Episode Details"])
         #expect(show[0].kind == .goToShow("5"))
         let movie = LibraryItemAction.recent(for: episode, kind: .movie)
-        #expect(movie.map(\.title) == ["Play Again", "View Details"])
+        #expect(movie.map(\.title) == ["Play Again", "Mark Watched", "Mark Unwatched", "View Details"])
         let orphan = try LibraryFixtures.item(#"{"ratingKey":"9","type":"episode","title":"E"}"#)
-        #expect(LibraryItemAction.recent(for: orphan, kind: .show).map(\.title) == ["Play Again", "Episode Details"])
+        #expect(LibraryItemAction.recent(for: orphan, kind: .show).map(\.title) == ["Play Again", "Mark Watched", "Mark Unwatched", "Episode Details"])
     }
 
     @Test func destinationsFollowTheMediaType() throws {

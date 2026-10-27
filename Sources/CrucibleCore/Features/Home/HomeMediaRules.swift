@@ -55,7 +55,7 @@ package enum HomeMediaRules {
     }
 
     package static func isResuming(_ item: PlexMetadata) -> Bool {
-        item.positionSecs > 0
+        item.isResumable
     }
 
     /// "Resume" once playback has started, "Play" otherwise.

@@ -14,17 +14,25 @@ package enum HomeFormat {
         return "\(minutes) min"
     }
 
-    /// "31 min left" / "1 h 12 m left" for a partially watched item, nil when nothing remains.
-    package static func remaining(_ item: PlexMetadata) -> String? {
-        guard let seconds = remainingSeconds(item) else { return nil }
+    /// "31 min left" / "1 h 12 m left" for a partially watched item, nil when nothing remains. Pass
+    /// the position a Continue Watching card carries when it differs from the plain stored offset.
+    package static func remaining(_ item: PlexMetadata, position: Double? = nil) -> String? {
+        guard let seconds = remainingSeconds(item, position: position) else { return nil }
         return runtime(seconds).map { "\($0) left" }
     }
 
-    package static func remainingSeconds(_ item: PlexMetadata) -> Double? {
+    package static func remainingSeconds(_ item: PlexMetadata, position: Double? = nil) -> Double? {
         let duration = item.durationSecs
-        let position = item.positionSecs
+        let position = position ?? item.positionSecs
         guard duration > 0, position > 0, position < duration else { return nil }
         return max(60, duration - position)
+    }
+
+    /// "12 min in" for a partly watched title whose runtime the server did not send.
+    package static func elapsed(_ item: PlexMetadata, position: Double? = nil) -> String? {
+        let position = position ?? item.positionSecs
+        guard position > 0 else { return nil }
+        return runtime(position).map { "\($0) in" }
     }
 
     /// Week total in the "7 h 20 m" style of the This Week card.

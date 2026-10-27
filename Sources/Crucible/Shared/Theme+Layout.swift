@@ -99,7 +99,12 @@ extension Theme {
     static let spacing: CGFloat = 10
     static let buttonHeight: CGFloat = Size.iconButton
 
-    @MainActor static func quickPlay(api: APIClient, item: PlexMetadata, from vc: UIViewController) -> PlayerCoordinator {
+    @MainActor static func quickPlay(
+        api: APIClient,
+        item: PlexMetadata,
+        from vc: UIViewController,
+        resumePosition override: Double? = nil
+    ) -> PlayerCoordinator {
         AppLogger.notice("Quick play tapped ratingKey=\(item.id) type=\(item.mediaType)", .playback)
         let meta = PlayerCoordinator.Metadata(
             title: item.title,
@@ -110,9 +115,9 @@ extension Theme {
             duration: item.durationSecs
         )
         let offlineAsset = DownloadManager.shared.offlineAsset(for: item.id)
-        let resumePosition = offlineAsset != nil
+        let resumePosition = override ?? (offlineAsset != nil
             ? (DownloadManager.shared.item(for: item.id)?.resumeSecs ?? item.positionSecs)
-            : item.positionSecs
+            : item.positionSecs)
         let coordinator = PlayerCoordinator(
             api: api,
             ratingKey: item.id,

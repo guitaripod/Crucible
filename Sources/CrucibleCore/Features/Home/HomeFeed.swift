@@ -66,8 +66,8 @@ package final class HomeFeed {
         mediaByID[id]
     }
 
-    package func heroModel(for item: PlexMetadata, bucket: HomeBucket = .hero) -> HomeHeroModel {
-        HomeHeroModel(item: item, eyebrow: arrangement.title(for: bucket), cachedArt: cachedArt)
+    package func heroModel(for item: PlexMetadata, bucket: HomeBucket = .hero, continuing: Bool = false) -> HomeHeroModel {
+        HomeHeroModel(item: item, eyebrow: arrangement.title(for: bucket), cachedArt: cachedArt, continuing: continuing)
     }
 
     /// Fills the feed from the last saved snapshot when it belongs to the connected server and has

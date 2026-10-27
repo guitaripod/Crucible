@@ -55,7 +55,7 @@ struct TVPlaybackRequest: Sendable, Equatable {
             mediaType: item.mediaType,
             showRatingKey: item.grandparentRatingKey,
             seasonRatingKey: item.parentRatingKey,
-            resumeSeconds: resumeSeconds ?? item.positionSecs,
+            resumeSeconds: resumeSeconds ?? item.continueSecs,
             selectedAudioStreamID: selectedAudioStreamID,
             selectedSubtitleStreamID: selectedSubtitleStreamID,
             display: Display(

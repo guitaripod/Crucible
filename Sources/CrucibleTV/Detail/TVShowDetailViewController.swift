@@ -78,7 +78,7 @@ final class TVShowDetailViewController: TVDetailViewController {
     override func contextMenu(for item: Item) -> UIMenu? {
         guard case .episode(let id) = item, let model, let episode = episodesByID[id] else { return nil }
         let status = model.status(for: episode)
-        var children = [
+        var children: [UIMenuElement] = [
             UIAction(title: status.playTitle, image: UIImage(systemName: "play.fill")) { [weak self] _ in
                 self?.play(TVPlaybackRequest(item: episode))
             },
@@ -88,12 +88,22 @@ final class TVShowDetailViewController: TVDetailViewController {
                 self?.play(TVPlaybackRequest(item: episode, resumeSeconds: 0))
             })
         }
-        children.append(UIAction(
-            title: status.watchedToggleTitle,
-            image: UIImage(systemName: episode.isWatched ? "eye.slash" : "eye")
-        ) { [weak self] _ in
-            self?.markWatched(!episode.isWatched, ratingKey: episode.id)
-        })
+        children.append(UIMenu(title: "Watched", image: UIImage(systemName: "eye"), children: [
+            UIAction(
+                title: "Mark Watched",
+                image: UIImage(systemName: "checkmark.circle"),
+                state: episode.isWatched ? .on : .off
+            ) { [weak self] _ in
+                self?.markWatched(true, ratingKey: episode.id)
+            },
+            UIAction(
+                title: "Mark Unwatched",
+                image: UIImage(systemName: "eye.slash"),
+                state: episode.isWatched ? .off : .on
+            ) { [weak self] _ in
+                self?.markWatched(false, ratingKey: episode.id)
+            },
+        ]))
         children.append(UIAction(title: "Episode Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
             self?.push(.item(ratingKey: episode.id, mediaType: "episode", showRatingKey: self?.showKey, seasonRatingKey: model.selectedSeasonKey))
         })

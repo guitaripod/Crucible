@@ -26,7 +26,12 @@ package struct HomeCardModel: Hashable, Sendable {
         isWatched = HomeMediaRules.isWatched(item)
         isPlayable = HomeMediaRules.isPlayable(item)
         unwatchedCount = HomeMediaRules.unwatchedCount(item)
-        progress = item.positionSecs > 0 && item.duration != nil ? item.progressPercent : nil
+        let continuing = bucket == .continueWatching
+        let position = continuing ? item.continueSecs : item.positionSecs
+        let fraction = continuing
+            ? (item.durationSecs > 0 ? item.continueSecs / item.durationSecs : 0)
+            : item.progressPercent
+        progress = position > 0 && item.duration != nil ? fraction : nil
         switch layout {
         case .poster:
             subtitle = Self.posterSubtitle(for: item, bucket: bucket)
@@ -38,7 +43,9 @@ package struct HomeCardModel: Hashable, Sendable {
         case .landscape:
             subtitle = Self.landscapeSubtitle(for: item, bucket: bucket)
             imagePath = Self.landscapePath(for: item)
-            trailingText = HomeFormat.remaining(item) ?? HomeFormat.runtime(item.durationSecs)
+            trailingText = HomeFormat.remaining(item, position: position)
+                ?? HomeFormat.elapsed(item, position: position)
+                ?? HomeFormat.runtime(item.durationSecs)
             isUnwatched = false
             showsPlayChip = item.mediaType != "show"
             usesSeriesPlaceholder = item.mediaType == "episode"

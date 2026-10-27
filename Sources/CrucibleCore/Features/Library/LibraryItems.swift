@@ -92,6 +92,7 @@ package struct LibraryPoster: Equatable, Sendable {
 package struct LibraryItemAction: Equatable, Sendable {
     package enum Kind: Equatable, Sendable {
         case play
+        case playFromBeginning
         case setWatched(Bool)
         case goToShow(String)
         case viewDetails
@@ -101,38 +102,36 @@ package struct LibraryItemAction: Equatable, Sendable {
     package let title: String
     package let symbol: String
 
-    /// A movie poster: resume or play, mark (un)watched, details. A show poster: mark the whole
-    /// series (un)watched, details.
+    /// A movie poster: play, restart, both watched directions and details. A show poster: both
+    /// directions for the whole series and details.
     package static func grid(for item: PlexMetadata, kind: LibraryGridKind) -> [LibraryItemAction] {
         var actions = [LibraryItemAction]()
         switch kind {
         case .movie:
-            actions.append(LibraryItemAction(kind: .play, title: item.positionSecs > 0 ? "Resume" : "Play", symbol: "play.fill"))
-            actions.append(LibraryItemAction(
-                kind: .setWatched(!item.isWatched),
-                title: WatchedService.title(isWatched: item.isWatched),
-                symbol: item.isWatched ? "eye.slash" : "eye"
-            ))
+            actions.append(LibraryItemAction(kind: .play, title: item.isResumable ? "Resume" : "Play", symbol: "play.fill"))
+            if item.isResumable {
+                actions.append(LibraryItemAction(kind: .playFromBeginning, title: "Play from Beginning", symbol: "gobackward"))
+            }
+            actions.append(LibraryItemAction(kind: .setWatched(true), title: "Mark Watched", symbol: "checkmark.circle"))
+            actions.append(LibraryItemAction(kind: .setWatched(false), title: "Mark Unwatched", symbol: "eye.slash"))
         case .show:
-            let total = item.leafCount ?? 0
-            let allWatched = total > 0 && (item.viewedLeafCount ?? 0) >= total
-            actions.append(LibraryItemAction(
-                kind: .setWatched(!allWatched),
-                title: allWatched ? "Mark All Unwatched" : "Mark All Watched",
-                symbol: allWatched ? "eye.slash" : "checkmark.circle"
-            ))
+            actions.append(LibraryItemAction(kind: .setWatched(true), title: "Mark Show Watched", symbol: "checkmark.circle"))
+            actions.append(LibraryItemAction(kind: .setWatched(false), title: "Mark Show Unwatched", symbol: "eye.slash"))
         }
         actions.append(LibraryItemAction(kind: .viewDetails, title: "View Details", symbol: "info.circle"))
         return actions
     }
 
-    /// A Recently Watched card: go to the series (show libraries), play again, details.
+    /// A Recently Watched card: go to the series (show libraries), play again, both watched
+    /// directions and details.
     package static func recent(for item: PlexMetadata, kind: LibraryGridKind) -> [LibraryItemAction] {
         var actions = [LibraryItemAction]()
         if kind == .show, let showKey = item.grandparentRatingKey {
             actions.append(LibraryItemAction(kind: .goToShow(showKey), title: "Go to Show", symbol: "tv"))
         }
         actions.append(LibraryItemAction(kind: .play, title: "Play Again", symbol: "play.fill"))
+        actions.append(LibraryItemAction(kind: .setWatched(true), title: "Mark Watched", symbol: "checkmark.circle"))
+        actions.append(LibraryItemAction(kind: .setWatched(false), title: "Mark Unwatched", symbol: "eye.slash"))
         actions.append(LibraryItemAction(
             kind: .viewDetails,
             title: kind == .show ? "Episode Details" : "View Details",

@@ -14,19 +14,26 @@ package struct HomeHeroModel: Hashable, Sendable {
     package let spokenLabel: String
     package let accessibilityText: String
 
-    package init(item: PlexMetadata, eyebrow: String, cachedArt: [String: String] = [:]) {
-        let resuming = HomeMediaRules.isResuming(item)
+    package init(item: PlexMetadata, eyebrow: String, cachedArt: [String: String] = [:], continuing: Bool = false) {
+        let position = continuing ? item.continueSecs : item.positionSecs
+        let resuming = position > 0
         id = item.id
         backdropPath = Self.backdropPath(for: item, cachedArt: cachedArt)
         self.eyebrow = eyebrow
         title = HomeFormat.title(for: item)
         subtitle = HomeFormat.heroSubtitle(for: item)
-        metaParts = Self.metaParts(for: item)
-        actionTitle = HomeMediaRules.playTitle(for: item)
-        trailingText = HomeFormat.remaining(item) ?? HomeFormat.runtime(item.durationSecs)
-        progress = resuming ? item.progressPercent : nil
+        metaParts = Self.metaParts(for: item, position: position)
+        actionTitle = resuming ? "Resume" : "Play"
+        trailingText = HomeFormat.remaining(item, position: position)
+            ?? HomeFormat.elapsed(item, position: position)
+            ?? HomeFormat.runtime(item.durationSecs)
+        progress = resuming
+            ? (continuing
+                ? (item.durationSecs > 0 ? item.continueSecs / item.durationSecs : 0)
+                : item.progressPercent)
+            : nil
         let episode = item.mediaType == "episode" ? HomeFormat.spokenEpisode(season: item.parentIndex, episode: item.index) : nil
-        let timePhrase = Self.timePhrase(for: item)
+        let timePhrase = Self.timePhrase(for: item, position: position)
         spokenLabel = [
             "\(actionTitle) \(title)",
             episode,
@@ -49,9 +56,9 @@ package struct HomeHeroModel: Hashable, Sendable {
 
     /// The facts line of a hero as separate parts, the time left or runtime last: "S2 · E4", the
     /// episode title and "17 min left" for an episode; the year and runtime for a movie.
-    private static func metaParts(for item: PlexMetadata) -> [String] {
+    private static func metaParts(for item: PlexMetadata, position: Double) -> [String] {
         let year = item.year.map(String.init)
-        let time = HomeFormat.remaining(item) ?? HomeFormat.runtime(item.durationSecs)
+        let time = HomeFormat.remaining(item, position: position) ?? HomeFormat.runtime(item.durationSecs)
         let parts: [String?]
         switch item.mediaType {
         case "episode":
@@ -66,8 +73,8 @@ package struct HomeHeroModel: Hashable, Sendable {
         return parts.compactMap { $0 }.filter { !$0.isEmpty }
     }
 
-    private static func timePhrase(for item: PlexMetadata) -> String? {
-        if let left = HomeFormat.remainingSeconds(item) { return "\(HomeFormat.spoken(left)) left" }
+    private static func timePhrase(for item: PlexMetadata, position: Double) -> String? {
+        if let left = HomeFormat.remainingSeconds(item, position: position) { return "\(HomeFormat.spoken(left)) left" }
         return item.durationSecs > 0 ? HomeFormat.spoken(item.durationSecs) : nil
     }
 }

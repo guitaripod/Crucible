@@ -25,7 +25,7 @@ enum RecentlyWatchedActions {
                 switch action.kind {
                 case .goToShow(let showKey):
                     open(LibraryDestination.show(ratingKey: showKey).viewController(api: api))
-                case .play:
+                case .play, .playFromBeginning:
                     play(item)
                 case .viewDetails:
                     open(LibraryDestination.media(item).viewController(api: api))

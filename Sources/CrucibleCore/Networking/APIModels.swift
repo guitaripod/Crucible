@@ -524,6 +524,17 @@ extension PlexMetadata {
         return Double(offset) / Double(dur)
     }
 
+    /// Whether the server holds a place worth returning to: a started item that has not reached
+    /// the watched threshold yet.
+    package var isResumable: Bool {
+        guard positionSecs > 0 else { return false }
+        guard durationSecs > 0 else { return true }
+        return positionSecs / durationSecs < WatchedRule.threshold
+    }
+
+    /// Where a Continue Watching card resumes; a title at the end starts over.
+    package var continueSecs: Double { isResumable ? positionSecs : 0 }
+
     package var id: String { ratingKey ?? key ?? "" }
     package var mediaType: String { type ?? "unknown" }
 

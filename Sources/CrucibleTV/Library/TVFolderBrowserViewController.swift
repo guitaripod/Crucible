@@ -25,7 +25,9 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     private var needsRefresh = false
     private lazy var loadSlot = makeTaskSlot()
     private lazy var refreshSlot = makeTaskSlot()
-    private lazy var actions = TVLibraryItemActions(env: env, kind: kind, presenter: self)
+    private lazy var actions = TVLibraryItemActions(env: env, kind: kind, presenter: self) { [weak self] item, watched in
+        self?.markWatched(item, watched)
+    }
 
     init(env: TVAppEnvironment, source: LibraryFolderListing.Source, title: String, kind: LibraryGridKind) {
         self.env = env
@@ -131,6 +133,13 @@ final class TVFolderBrowserViewController: TVScreenViewController {
 
     private static func watchedState(_ item: PlexMetadata) -> [Int] {
         [item.viewCount ?? 0, item.viewOffset ?? 0]
+    }
+
+    private func markWatched(_ item: PlexMetadata, _ watched: Bool) {
+        Task { @MainActor in
+            try? await WatchedService.setWatched(watched, ratingKey: item.id, api: env.api)
+            load()
+        }
     }
 
     private func load() {

@@ -35,7 +35,7 @@ package enum LibraryContinue {
                 return id.contains("continue") || id.contains("inprogress") || id.contains("ondeck")
             }
             .flatMap { $0.Metadata ?? [] }
-            .first { $0.mediaType != "show" && $0.positionSecs > 0 }
+            .first { $0.mediaType != "show" && $0.continueSecs > 0 }
     }
 
     /// Whether `item` is already what the Continue banner offers; a show library's cards stand for

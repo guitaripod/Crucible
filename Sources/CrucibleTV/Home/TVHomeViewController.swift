@@ -341,7 +341,8 @@ final class TVHomeViewController: TVScreenViewController {
     }
 
     private func showHero(for media: PlexMetadata, bucket: HomeBucket, animated: Bool) {
-        let model = feed.heroModel(for: media, bucket: bucket)
+        let continuing = bucket == .continueWatching || (bucket == .hero && feed.arrangement.heroIsContinue)
+        let model = feed.heroModel(for: media, bucket: bucket, continuing: continuing)
         let info = TVHomeContent.heroInfo(for: media, model: model)
         currentHero = info
         backdrop.show(path: model.backdropPath)

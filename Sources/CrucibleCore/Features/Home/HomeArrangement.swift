@@ -14,15 +14,17 @@ package struct HomeArrangement: Sendable {
 
     package init(buckets: HomeBuckets) {
         recent = buckets.recent
-        if let first = buckets.continueWatching.first {
+        let resumable = buckets.continueWatching.filter { $0.continueSecs > 0 }
+        let nextOnly = buckets.continueWatching.filter { $0.continueSecs == 0 }
+        if let first = resumable.first {
             hero = first
             heroIsContinue = true
-            continueRail = Array(buckets.continueWatching.dropFirst())
+            continueRail = Array(resumable.dropFirst())
         } else if let first = buckets.onDeck.first {
             hero = first
         }
-        let excluded = Set(buckets.continueWatching.map(\.id)).union(hero.map { [$0.id] } ?? [])
-        upNext = buckets.onDeck.filter { !excluded.contains($0.id) }
+        var seen = Set(resumable.map(\.id)).union(hero.map { [$0.id] } ?? [])
+        upNext = (buckets.onDeck + nextOnly).filter { seen.insert($0.id).inserted }
     }
 
     package var isEmpty: Bool { hero == nil && continueRail.isEmpty && upNext.isEmpty && recent.isEmpty }

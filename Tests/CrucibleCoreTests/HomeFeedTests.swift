@@ -32,7 +32,10 @@ struct HomeFeedTests {
 
     private func standardHubs() -> PlexMediaContainer {
         F.hubsContainer([
-            F.hub("home.continue", [F.raw("1"), F.raw("2")]),
+            F.hub("home.continue", [
+                F.raw("1", fields: ["duration": 2_400_000, "viewOffset": 60_000]),
+                F.raw("2", fields: ["duration": 2_400_000, "viewOffset": 120_000]),
+            ]),
             F.hub("home.ondeck", [F.raw("2"), F.raw("3")]),
             F.hub("home.recent", [F.raw("4"), F.raw("4"), F.raw("5")]),
         ])
@@ -44,7 +47,7 @@ struct HomeFeedTests {
             machineIdentifier: machine,
             savedAt: 1,
             cards: keys.map { key in
-                var card = F.item(key).homeCard(bucket: "cw")
+                var card = F.item(key, fields: ["duration": 2_400_000, "viewOffset": 60_000]).homeCard(bucket: "cw")
                 card.art = "/art/\(key)"
                 return card
             }

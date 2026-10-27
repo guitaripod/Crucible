@@ -5,7 +5,9 @@ import Testing
 struct HomeArrangementTests {
     private typealias F = HomeFixtures
 
-    private func items(_ keys: String...) -> [PlexMetadata] { keys.map { F.item($0) } }
+    private func items(_ keys: String...) -> [PlexMetadata] {
+        keys.map { F.item($0, fields: ["duration": 2_400_000, "viewOffset": 60_000]) }
+    }
     private func ids(_ items: [PlexMetadata]) -> [String] { items.map(\.id) }
 
     @Test func heroIsFirstContinueWatchingAndLeavesTheRail() {
@@ -82,6 +84,26 @@ struct HomeArrangementTests {
         let fromOnDeck = HomeArrangement(buckets: HomeBuckets(onDeck: items("3", "5")))
         #expect(fromOnDeck.shelf(for: .continueWatching).isEmpty)
         #expect(ids(fromOnDeck.shelf(for: .upNext)) == ["3", "5"])
+    }
+
+    @Test func continueWatchingWithoutAPositionMovesToUpNext() {
+        let arrangement = HomeArrangement(buckets: HomeBuckets(
+            continueWatching: [F.item("1"), F.item("2")],
+            onDeck: items("3")
+        ))
+        #expect(arrangement.hero?.id == "3")
+        #expect(!arrangement.heroIsContinue)
+        #expect(arrangement.continueRail.isEmpty)
+        #expect(ids(arrangement.upNext) == ["1", "2"])
+    }
+
+    @Test func anItemAtTheEndOfItsTimelineLeavesContinueWatching() {
+        let finished = F.item("1", type: "episode", fields: [
+            "duration": 2_400_000, "viewOffset": 2_350_000, "viewCount": 1,
+        ])
+        let arrangement = HomeArrangement(buckets: HomeBuckets(continueWatching: [finished]))
+        #expect(arrangement.hero == nil)
+        #expect(ids(arrangement.upNext) == ["1"])
     }
 
     @Test func weekCardNeedsContentAndActivity() {

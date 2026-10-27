@@ -603,9 +603,14 @@ class LibraryGridViewController: UIViewController {
         return collectionView.cellForItem(at: indexPath)
     }
 
-    private func quickPlay(_ item: PlexMetadata) {
+    private func quickPlay(_ item: PlexMetadata, fromBeginning: Bool = false) {
         Haptics.light()
-        playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
+        playerCoordinator = Theme.quickPlay(
+            api: api,
+            item: item,
+            from: self,
+            resumePosition: fromBeginning ? 0 : nil
+        )
     }
 
     private func setWatched(_ item: PlexMetadata, watched: Bool) {
@@ -629,6 +634,8 @@ class LibraryGridViewController: UIViewController {
         switch action.kind {
         case .play:
             quickPlay(item)
+        case .playFromBeginning:
+            quickPlay(item, fromBeginning: true)
         case .setWatched(let watched):
             setWatched(item, watched: watched)
         case .viewDetails:
