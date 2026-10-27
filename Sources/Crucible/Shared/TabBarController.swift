@@ -191,7 +191,9 @@ final class TabBarController: UITabBarController {
         if #available(iOS 18.0, *), !tabs.isEmpty {
             guard let tab = uiTab(for: identifier) else { return }
             if let group = tab as? UITabGroup {
-                selectedTab = group.selectedChild ?? group.children.first ?? group
+                select(group)
+            } else if let group = tab.parent {
+                select(group, child: tab)
             } else {
                 selectedTab = tab
             }
@@ -199,6 +201,23 @@ final class TabBarController: UITabBarController {
             selectedIndex = tab.rawValue
         }
         updateWindowTitle()
+    }
+
+    /// A group has no screen of its own: selecting it means selecting the library it was last on, or its first.
+    @available(iOS 18.0, *)
+    private func select(_ group: UITabGroup) {
+        guard let child = group.selectedChild ?? group.children.first else {
+            selectedTab = group
+            return
+        }
+        select(group, child: child)
+    }
+
+    /// A tab inside a group is shown by selecting that child of the group, not by asking the tab bar for the child alone.
+    @available(iOS 18.0, *)
+    private func select(_ group: UITabGroup, child: UITab) {
+        group.selectedChild = child
+        selectedTab = child
     }
 
     /// The search tab carries a system identifier, so it is matched by reference.
@@ -217,11 +236,13 @@ final class TabBarController: UITabBarController {
 
     /// Switches the Library tab to another library, crossfading like the switcher always has.
     private func selectLibrary(_ sectionID: String) {
-        guard #available(iOS 18.0, *), let tab = tab(forIdentifier: Self.libraryIdentifier(sectionID)) else { return }
+        guard #available(iOS 18.0, *),
+              let tab = tab(forIdentifier: Self.libraryIdentifier(sectionID)),
+              let group = tab.parent else { return }
         Haptics.selection()
         let duration = UIAccessibility.isReduceMotionEnabled ? 0 : 0.2
         UIView.transition(with: view, duration: duration, options: .transitionCrossDissolve) {
-            self.selectedTab = tab
+            self.select(group, child: tab)
         }
         updateWindowTitle()
     }
@@ -378,6 +399,14 @@ final class TabBarController: UITabBarController {
 }
 
 extension TabBarController: UITabBarControllerDelegate {
+    /// Tapping the Library tab lands on the group itself, which has nothing of its own to show, so the tap picks its library instead.
+    @available(iOS 18.0, *)
+    func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+        guard let group = tab as? UITabGroup, group.identifier == Tab.library.identifier else { return true }
+        select(group)
+        return false
+    }
+
     @available(iOS 18.0, *)
     func tabBarController(_ tabBarController: UITabBarController, didSelectTab selectedTab: UITab, previousTab: UITab?) {
         updateWindowTitle()
