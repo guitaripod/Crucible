@@ -103,9 +103,9 @@ final class TVUpNextViewController: AVContentProposalViewController {
 
     private func refreshLeaveButton() {
         let keeps = leavingKeepsPlaying
-        leaveButton?.configuration?.title = keeps ? "Watch Credits" : "Close"
-        leaveButton?.accessibilityLabel = keeps ? "Watch Credits" : "Close"
-        leaveButton?.accessibilityHint = keeps ? "Closes this card and keeps the credits playing" : "Ends playback"
+        leaveButton?.configuration?.title = UpNextText.leaveTitle(keepsCreditsPlaying: keeps)
+        leaveButton?.accessibilityLabel = UpNextText.leaveTitle(keepsCreditsPlaying: keeps)
+        leaveButton?.accessibilityHint = UpNextText.leaveHint(keepsCreditsPlaying: keeps)
     }
 
     /// Defers during credits so they keep playing, rejects (ending the player) when there are none.

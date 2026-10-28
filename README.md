@@ -99,7 +99,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Library** poster grid with filter chips, a Recently Watched shelf, an A–Z rail, folder browsing for unindexed content and See All grids
 - **Detail** for movies, shows and episodes: season chips, episode rows that track watched and in-progress state, Cast & Crew and related titles
 - **Search**, **Watch History**, **Statistics** (heatmap, patterns, binges, taste) and a **Year in Review** card on the You tab, plus Settings and Server & Connection
-- **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API
+- **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card that offers Play Now or Watch Credits with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API
 - **Top Shelf** — Continue Watching and Up Next on the Apple TV Home screen
 - **Sign in from your phone** — a short code for plex.tv/link plus a QR code
 - **Liquid Glass** controls on tvOS 26 (Apple TV 4K 2nd generation or later); older systems and boxes get the classic look with the same layout

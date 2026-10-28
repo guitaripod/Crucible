@@ -25,6 +25,17 @@ package enum UpNextText {
         asksStillWatching ? "Keep Watching" : "Play Now"
     }
 
+    /// The card's second button: it lets the credits play on while they still are, and closes the player
+    /// once the item has ended.
+    package static func leaveTitle(keepsCreditsPlaying: Bool) -> String {
+        keepsCreditsPlaying ? "Watch Credits" : "Close"
+    }
+
+    /// What the second button does, for VoiceOver.
+    package static func leaveHint(keepsCreditsPlaying: Bool) -> String {
+        keepsCreditsPlaying ? "Closes this card and keeps the credits playing" : "Ends playback"
+    }
+
     /// What VoiceOver is told when the card asks before playing on.
     package static func stillWatchingAnnouncement(code: String?, title: String) -> String {
         let name = [code, title].compactMap { $0 }.joined(separator: " ")

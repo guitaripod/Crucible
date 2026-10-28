@@ -363,7 +363,13 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func presentUpNext(_ offer: UpNextOffer) {
-        guard !isFinishing, upNextOverlay == nil else { return }
+        if let overlay = upNextOverlay {
+            guard offer.playbackEnded else { return }
+            overlay.markPlaybackEnded()
+            shownUpNext = offer
+            return
+        }
+        guard !isFinishing else { return }
         if isInPiP || UIApplication.shared.applicationState != .active {
             pendingUpNext = offer
             return
@@ -381,15 +387,21 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 episodeTitle: next.title,
                 thumbPath: next.thumb,
                 autoplays: offer.autoplays,
-                asksStillWatching: asksStillWatching
+                asksStillWatching: asksStillWatching,
+                hasCredits: offer.reason == .credits
             ),
             countdownSeconds: UpNextOffer.countdownSeconds,
             onPlayNext: { [weak self] byViewer in
                 if byViewer { self?.playNext(offer, byViewer: true) } else { self?.autoPlayNext(offer) }
             },
-            onDismiss: { [weak self] in
-                self?.viewerActed()
-                Task { await self?.dismissPlayer() }
+            onLeave: { [weak self] endsPlayback in
+                guard let self else { return }
+                self.viewerActed()
+                if endsPlayback {
+                    Task { await self.dismissPlayer() }
+                } else {
+                    self.removeUpNextOverlay()
+                }
             }
         )
         overlay.present(in: host)

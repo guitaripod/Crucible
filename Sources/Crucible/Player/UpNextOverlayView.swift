@@ -38,6 +38,7 @@ final class UpNextOverlayView: UIView {
         let thumbPath: String?
         let autoplays: Bool
         let asksStillWatching: Bool
+        let hasCredits: Bool
     }
 
     private static let cardWidth: CGFloat = 372
@@ -52,9 +53,11 @@ final class UpNextOverlayView: UIView {
     private let thumbView = UIImageView()
     private let placeholderIcon = UIImageView()
     private let playButton = CountdownPlayButton()
+    private var leaveButton: UIButton?
     private let countdownSeconds: Int
     private let onPlayNext: (_ byViewer: Bool) -> Void
-    private let onDismiss: () -> Void
+    private let onLeave: (_ endsPlayback: Bool) -> Void
+    private var hasEnded = false
     private var countdownTask: Task<Void, Never>?
     private var thumbTask: Task<Void, Never>?
     private var didFinish = false
@@ -69,16 +72,17 @@ final class UpNextOverlayView: UIView {
         content: Content,
         countdownSeconds: Int,
         onPlayNext: @escaping (_ byViewer: Bool) -> Void,
-        onDismiss: @escaping () -> Void
+        onLeave: @escaping (_ endsPlayback: Bool) -> Void
     ) {
         self.content = content
         self.countdownSeconds = countdownSeconds
         self.remaining = countdownSeconds
         self.onPlayNext = onPlayNext
-        self.onDismiss = onDismiss
+        self.onLeave = onLeave
         super.init(frame: .zero)
         build()
         updateSecondaryText()
+        updateLeaveButton()
         loadThumb()
     }
 
@@ -96,6 +100,16 @@ final class UpNextOverlayView: UIView {
         countdownTask = nil
         removeFromSuperview()
     }
+
+    /// The item ended while the card was already up: its second button now closes the player instead of
+    /// letting credits that no longer play continue.
+    func markPlaybackEnded() {
+        hasEnded = true
+        updateLeaveButton()
+    }
+
+    /// Whether the second button ends playback: the item has ended or there were no credits to watch.
+    private var endsPlayback: Bool { hasEnded || !content.hasCredits }
 
     /// Whether the card counts down and plays on its own: autoplay is on and nobody needs asking first.
     private var isCounting: Bool { content.autoplays && !content.asksStillWatching }
@@ -212,12 +226,12 @@ final class UpNextOverlayView: UIView {
         topRow.alignment = .center
         topRow.spacing = 14
 
-        let dismissButton = makeDismissButton()
+        let leaveButton = makeLeaveButton()
         configurePlayButton()
-        buttons.addArrangedSubview(dismissButton)
+        buttons.addArrangedSubview(leaveButton)
         buttons.addArrangedSubview(playButton)
         buttons.spacing = 10
-        buttonRatio = playButton.widthAnchor.constraint(equalTo: dismissButton.widthAnchor, multiplier: 1.3)
+        buttonRatio = playButton.widthAnchor.constraint(equalTo: leaveButton.widthAnchor, multiplier: 1.3)
         placeButtons()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: UpNextOverlayView, _: UITraitCollection) in
             view.placeButtons()
@@ -242,7 +256,7 @@ final class UpNextOverlayView: UIView {
             stack.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor, constant: -pad),
         ])
 
-        accessibilityElements = [titleLabel, countdownLabel, dismissButton, playButton]
+        accessibilityElements = [titleLabel, countdownLabel, leaveButton, playButton]
         titleLabel.accessibilityLabel = content.asksStillWatching ? questionText : "Up next, \(content.episodeTitle)"
     }
 
@@ -302,13 +316,12 @@ final class UpNextOverlayView: UIView {
         }
     }
 
-    private func makeDismissButton() -> UIButton {
+    private func makeLeaveButton() -> UIButton {
         var config = Glass.glassButton {
             var fallback = UIButton.Configuration.filled()
             fallback.baseBackgroundColor = UIColor.white.withAlphaComponent(0.18)
             return fallback
         }
-        config.title = "Dismiss"
         config.baseForegroundColor = Theme.Color.onArt
         config.cornerStyle = .capsule
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
@@ -320,7 +333,17 @@ final class UpNextOverlayView: UIView {
         button.isPointerInteractionEnabled = true
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.buttonHeight).isActive = true
         button.addAction(UIAction { [weak self] _ in self?.finish(play: false, byViewer: true) }, for: .primaryActionTriggered)
+        leaveButton = button
         return button
+    }
+
+    /// The second button lets the credits play on while they still are and closes the player once the item
+    /// has ended, the same choice the Apple TV card offers.
+    private func updateLeaveButton() {
+        let keepsCreditsPlaying = !endsPlayback
+        leaveButton?.configuration?.title = UpNextText.leaveTitle(keepsCreditsPlaying: keepsCreditsPlaying)
+        leaveButton?.accessibilityLabel = UpNextText.leaveTitle(keepsCreditsPlaying: keepsCreditsPlaying)
+        leaveButton?.accessibilityHint = UpNextText.leaveHint(keepsCreditsPlaying: keepsCreditsPlaying)
     }
 
     private func configurePlayButton() {
@@ -382,6 +405,6 @@ final class UpNextOverlayView: UIView {
         didFinish = true
         countdownTask?.cancel()
         countdownTask = nil
-        if play { onPlayNext(byViewer) } else { onDismiss() }
+        if play { onPlayNext(byViewer) } else { onLeave(endsPlayback) }
     }
 }

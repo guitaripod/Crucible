@@ -19,6 +19,13 @@ struct PlaybackLifecycleTests {
         #expect(UpNextText.announcement(code: nil, title: "Pilot", seconds: nil) == "Up next: Pilot")
     }
 
+    @Test func theSecondButtonWatchesTheCreditsAndOnlyClosesOnceTheyAreOver() {
+        #expect(UpNextText.leaveTitle(keepsCreditsPlaying: true) == "Watch Credits")
+        #expect(UpNextText.leaveTitle(keepsCreditsPlaying: false) == "Close")
+        #expect(UpNextText.leaveHint(keepsCreditsPlaying: true) == "Closes this card and keeps the credits playing")
+        #expect(UpNextText.leaveHint(keepsCreditsPlaying: false) == "Ends playback")
+    }
+
     @Test func aRunningEndOfItemLookupIsNotReplaced() {
         var gate = UpNextLookupGate()
         let first = gate.begin(.playbackEnded)
