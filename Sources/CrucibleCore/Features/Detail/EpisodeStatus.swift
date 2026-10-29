@@ -76,8 +76,8 @@ package struct EpisodeStatus: Equatable, Sendable {
         self.metaParts = meta
         self.spokenText = Self.spokenDescription(episode: episode, inProgress: inProgress, download: download)
         self.download = download
-        self.playTitle = position > 0 ? "Resume" : "Play"
-        self.canPlayFromBeginning = position > 0
+        self.playTitle = inProgress ? "Resume" : "Play"
+        self.canPlayFromBeginning = inProgress
         self.watchedToggleTitle = WatchedService.title(isWatched: isWatched)
     }
 

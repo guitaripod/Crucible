@@ -88,6 +88,29 @@ extension PlaybackSession {
         loadUpNext(reason: .requested)
     }
 
+    /// Starts playback once the item is at the place playback should start from. For a surface that prepared
+    /// this player behind the episode before it: a plain start plays at once, and one whose resume seek is
+    /// still on its way plays when it lands instead of showing a moment of the item's start.
+    package func startWhenResumed() {
+        guard let player else { return }
+        switch ResumeStrategy.make(
+            resumePosition: request.resumePosition,
+            isDirectPlay: stream?.isDirectPlay ?? true,
+            isOffline: request.offline != nil
+        ) {
+        case .none:
+            player.play()
+        case .seekExact(let position), .seekWhenReady(let position):
+            let landed = player.currentItem?.status == .readyToPlay
+                && abs(player.currentTime().seconds - position) < PlaybackTiming.resumeLandedTolerance
+            if landed {
+                player.play()
+            } else {
+                playsAfterResume = true
+            }
+        }
+    }
+
     func startPlayback(player: AVPlayer, stream: ResolvedStream, resumePosition: Double, autoplay: Bool) {
         switch ResumeStrategy.make(
             resumePosition: resumePosition,
@@ -98,34 +121,40 @@ extension PlaybackSession {
             if autoplay { player.play() }
         case .seekExact(let position):
             player.seek(to: CMTime(seconds: position, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
-                guard autoplay else { return }
-                Task { @MainActor in self?.player?.play() }
+                Task { @MainActor in self?.playIfAsked(autoplay: autoplay) }
             }
         case .seekWhenReady(let position):
-            seekWhenReady(to: position)
+            seekWhenReady(to: position, autoplay: autoplay)
         }
     }
 
+    /// Plays after a resume seek when the viewer or the surface asked for playback.
+    private func playIfAsked(autoplay: Bool) {
+        if autoplay || playsAfterResume { player?.play() }
+        playsAfterResume = false
+    }
+
     /// Downloaded HLS only accepts seeks at segment boundaries once the item is ready, so resume waits
-    /// for `.readyToPlay` and seeks with tolerance instead of the exact seek of a direct-play file.
-    private func seekWhenReady(to position: Double) {
+    /// for `.readyToPlay` and seeks with tolerance instead of the exact seek of a direct-play file. A
+    /// player that is being prepared behind the episode before it stays paused until its surface plays it.
+    private func seekWhenReady(to position: Double, autoplay: Bool) {
         guard let item = player?.currentItem else {
-            player?.play()
+            if autoplay { player?.play() }
             return
         }
         offlineResumeObserver?.invalidate()
         offlineResumeObserver = item.observe(\.status, options: [.new]) { @Sendable [weak self] observedItem, _ in
             guard observedItem.status != .unknown else { return }
             let ready = observedItem.status == .readyToPlay
-            Task { @MainActor in self?.resumeOffline(to: position, ready: ready) }
+            Task { @MainActor in self?.resumeOffline(to: position, ready: ready, autoplay: autoplay) }
         }
     }
 
-    private func resumeOffline(to position: Double, ready: Bool) {
+    private func resumeOffline(to position: Double, ready: Bool, autoplay: Bool) {
         offlineResumeObserver?.invalidate()
         offlineResumeObserver = nil
         guard ready else {
-            player?.play()
+            if autoplay { player?.play() }
             return
         }
         player?.seek(
@@ -133,7 +162,7 @@ extension PlaybackSession {
             toleranceBefore: CMTime(seconds: ResumeStrategy.offlineToleranceBefore, preferredTimescale: 600),
             toleranceAfter: .positiveInfinity
         ) { @Sendable [weak self] _ in
-            Task { @MainActor in self?.player?.play() }
+            Task { @MainActor in self?.playIfAsked(autoplay: autoplay) }
         }
     }
 
@@ -272,12 +301,7 @@ extension PlaybackSession {
         upNextTask = Task { [weak self] in
             guard let self else { return }
             defer { if !Task.isCancelled { upNextGate.end(reason) } }
-            let offer: UpNextOffer?
-            do {
-                offer = try await resolver.loadOffer(api: api, reason: reason)
-            } catch {
-                offer = nil
-            }
+            let offer = await Self.lookUpOffer(resolver: resolver, api: api, reason: reason)
             guard !Task.isCancelled else { return }
             if let offer {
                 emit(.upNext(offer))
@@ -285,6 +309,24 @@ extension PlaybackSession {
                 emit(.finished(.noNextEpisode))
             }
         }
+    }
+
+    /// Asks for the next episode, trying once more when the request fails: the credits are a short window
+    /// and one dropped request there means no card at all, not a card a moment later.
+    private static func lookUpOffer(resolver: UpNextResolver, api: APIClient, reason: UpNextOffer.Reason) async -> UpNextOffer? {
+        for attempt in 0..<2 {
+            if attempt > 0 {
+                AppLogger.notice("Up Next lookup failed; trying once more", .playback)
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return nil }
+            }
+            do {
+                return try await resolver.loadOffer(api: api, reason: reason)
+            } catch {
+                AppLogger.error("Up Next lookup failed: \(error.localizedDescription)", .playback)
+            }
+        }
+        return nil
     }
 
     func configureRemoteCommands() {

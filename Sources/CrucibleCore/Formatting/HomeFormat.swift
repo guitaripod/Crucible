@@ -23,7 +23,7 @@ package enum HomeFormat {
 
     package static func remainingSeconds(_ item: PlexMetadata, position: Double? = nil) -> Double? {
         let duration = item.durationSecs
-        let position = position ?? item.positionSecs
+        let position = position ?? item.resumeSecs
         guard duration > 0, position > 0, position < duration else { return nil }
         return max(60, duration - position)
     }

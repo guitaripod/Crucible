@@ -28,14 +28,14 @@ package struct SearchPosterModel: Equatable, Sendable {
             title = item.grandparentTitle ?? item.title
             subtitle = SearchFormat.episodeSubtitle(item)
             placeholderIcon = "tv"
-            progress = item.progressPercent > 0 ? item.progressPercent : nil
+            progress = item.progressFraction > 0 ? item.progressFraction : nil
             isUnwatched = !item.isWatched
         default:
             posterPath = item.thumb
             title = item.title
             subtitle = item.year.map(String.init)
-            progress = item.progressPercent > 0 ? item.progressPercent : nil
-            isUnwatched = !item.isWatched && item.progressPercent == 0
+            progress = item.progressFraction > 0 ? item.progressFraction : nil
+            isUnwatched = !item.isWatched && item.progressFraction == 0
         }
     }
 }
@@ -67,6 +67,6 @@ package struct SearchEpisodeModel: Equatable, Sendable {
         thumbPath = item.thumb ?? item.grandparentThumb
         title = item.grandparentTitle ?? item.title
         subtitle = SearchFormat.episodeSubtitle(item)
-        progress = item.progressPercent > 0 ? item.progressPercent : nil
+        progress = item.progressFraction > 0 ? item.progressFraction : nil
     }
 }

@@ -33,7 +33,7 @@ package struct LibraryPoster: Equatable, Sendable {
         let year = item.year.map(String.init)
         switch kind {
         case .movie:
-            let progress = item.progressPercent
+            let progress = item.progressFraction
             self.init(
                 posterPath: item.thumb ?? item.grandparentThumb,
                 title: item.title,

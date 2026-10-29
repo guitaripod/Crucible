@@ -358,7 +358,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     }
 
     /// Starts the next episode. One the viewer chose starts a new run; one that started on its own adds to
-    /// the run of episodes nobody has touched the remote in, which is what "Still watching?" counts.
+    /// the run of episodes nobody has touched the remote in, which is what "Still watching?" counts. The
+    /// subtitle and audio chosen on the episode before carry over.
     func advance(to offer: UpNextOffer, byViewer: Bool = false) {
         guard !isAdvancing, !isFinishing else { return }
         unattendedEpisodes = byViewer ? 0 : (viewerActedThisEpisode ? 0 : unattendedEpisodes) + 1
@@ -366,7 +367,11 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         finishedAnItem = true
         isAdvancing = true
         isUpNextCardVisible = false
-        request = offer.nextRequest(showRatingKey: request.showRatingKey)
+        request = offer.nextRequest(
+            showRatingKey: request.showRatingKey,
+            selectedSubtitleId: session?.selectedSubtitleId,
+            selectedAudioStreamId: session?.selectedAudioStreamId
+        )
         restartSession()
     }
 

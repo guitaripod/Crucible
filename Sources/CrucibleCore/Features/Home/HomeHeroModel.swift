@@ -15,7 +15,7 @@ package struct HomeHeroModel: Hashable, Sendable {
     package let accessibilityText: String
 
     package init(item: PlexMetadata, eyebrow: String, cachedArt: [String: String] = [:], continuing: Bool = false) {
-        let position = continuing ? item.continueSecs : item.positionSecs
+        let position = continuing ? item.continueSecs : item.resumeSecs
         let resuming = position > 0
         id = item.id
         backdropPath = Self.backdropPath(for: item, cachedArt: cachedArt)
@@ -30,7 +30,7 @@ package struct HomeHeroModel: Hashable, Sendable {
         progress = resuming
             ? (continuing
                 ? (item.durationSecs > 0 ? item.continueSecs / item.durationSecs : 0)
-                : item.progressPercent)
+                : item.progressFraction)
             : nil
         let episode = item.mediaType == "episode" ? HomeFormat.spokenEpisode(season: item.parentIndex, episode: item.index) : nil
         let timePhrase = Self.timePhrase(for: item, position: position)

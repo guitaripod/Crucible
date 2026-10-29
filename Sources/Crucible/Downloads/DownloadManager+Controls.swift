@@ -85,10 +85,10 @@ extension DownloadManager {
         Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: dir) }
     }
 
-    func recordOfflineProgress(ratingKey: String, positionSecs: Double, deleteIfWatched: Bool = false) {
+    func recordOfflineProgress(ratingKey: String, positionSecs: Double, finished: Bool = false, deleteIfWatched: Bool = false) {
         guard let idx = index(ratingKey), items[idx].state == .completed else { return }
         let wasWatched = items[idx].isWatched
-        items[idx].viewOffsetMs = Int(max(0, positionSecs) * 1000)
+        items[idx].viewOffsetMs = finished ? items[idx].durationMs : Int(max(0, positionSecs) * 1000)
         if !wasWatched, items[idx].isWatched { scrobbleBestEffort(ratingKey) }
         if deleteIfWatched, Preferences.deleteWatchedDownloads, items[idx].isWatched {
             delete(ratingKey)

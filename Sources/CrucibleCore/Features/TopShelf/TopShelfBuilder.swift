@@ -101,7 +101,7 @@ package enum TopShelfBuilder {
     }
 
     private static func progress(of metadata: PlexMetadata) -> Double? {
-        guard metadata.positionSecs > 0, metadata.duration != nil else { return nil }
-        return min(max(metadata.progressPercent, 0), 1)
+        guard metadata.resumeSecs > 0, metadata.duration != nil else { return nil }
+        return min(max(metadata.progressFraction, 0), 1)
     }
 }

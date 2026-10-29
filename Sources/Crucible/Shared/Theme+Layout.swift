@@ -115,9 +115,8 @@ extension Theme {
             duration: item.durationSecs
         )
         let offlineAsset = DownloadManager.shared.offlineAsset(for: item.id)
-        let resumePosition = override ?? (offlineAsset != nil
-            ? (DownloadManager.shared.item(for: item.id)?.resumeSecs ?? item.positionSecs)
-            : item.positionSecs)
+        let offlineResume = offlineAsset != nil ? DownloadManager.shared.item(for: item.id)?.resumeSecs : nil
+        let resumePosition = override ?? (item.isWatched ? 0 : offlineResume ?? item.positionSecs)
         let coordinator = PlayerCoordinator(
             api: api,
             ratingKey: item.id,

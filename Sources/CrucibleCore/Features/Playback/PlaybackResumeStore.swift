@@ -9,14 +9,43 @@ package struct ResumePoint: Codable, Sendable, Equatable {
     package var durationSecs: Double
     package var savedAt: Date
     package var reportedSecs: Double?
+    /// Whether the run finished the item: the playhead reached the credits or the end of the timeline. The
+    /// server is told the end of the item for one of these, so an episode the viewer finished leaves
+    /// Continue Watching even when the app never got to say so.
+    package var finished: Bool
 
-    package init(server: String, ratingKey: String, positionSecs: Double, durationSecs: Double, savedAt: Date, reportedSecs: Double? = nil) {
+    package init(
+        server: String,
+        ratingKey: String,
+        positionSecs: Double,
+        durationSecs: Double,
+        savedAt: Date,
+        reportedSecs: Double? = nil,
+        finished: Bool = false
+    ) {
         self.server = server
         self.ratingKey = ratingKey
         self.positionSecs = positionSecs
         self.durationSecs = durationSecs
         self.savedAt = savedAt
         self.reportedSecs = reportedSecs
+        self.finished = finished
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case server, ratingKey, positionSecs, durationSecs, savedAt, reportedSecs, finished
+    }
+
+    /// Positions saved by a run that predates `finished` read as unfinished, not as a lost point.
+    package init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        server = try container.decode(String.self, forKey: .server)
+        ratingKey = try container.decode(String.self, forKey: .ratingKey)
+        positionSecs = try container.decode(Double.self, forKey: .positionSecs)
+        durationSecs = try container.decode(Double.self, forKey: .durationSecs)
+        savedAt = try container.decode(Date.self, forKey: .savedAt)
+        reportedSecs = try container.decodeIfPresent(Double.self, forKey: .reportedSecs)
+        finished = try container.decodeIfPresent(Bool.self, forKey: .finished) ?? false
     }
 
     /// How far the server's copy may differ before the device's position is worth sending.
@@ -28,7 +57,13 @@ package struct ResumePoint: Codable, Sendable, Equatable {
     /// True while the server has not confirmed (within a couple of seconds) the position kept here.
     package var needsReport: Bool {
         guard let reportedSecs else { return true }
-        return abs(positionSecs - reportedSecs) > Self.reportTolerance
+        return abs(reportSecs - reportedSecs) > Self.reportTolerance
+    }
+
+    /// The timeline position the server is told: the end of the item for a run that finished it, which ends
+    /// it in Continue Watching and counts it as watched whatever the server's completion rule is.
+    package var reportSecs: Double {
+        finished ? max(positionSecs, durationSecs) : positionSecs
     }
 
     fileprivate var storageKey: String { Self.storageKey(server: server, ratingKey: ratingKey) }
@@ -42,7 +77,9 @@ package struct ResumePoint: Codable, Sendable, Equatable {
 
 /// The positions of the items played most recently, in `UserDefaults` (tvOS keeps no other persistent
 /// storage). Every playback writes here as it goes, so the last position survives a suspension, a
-/// termination and a server that could not be reached when the app went away.
+/// termination and a server that could not be reached when the app went away. An item the run finished
+/// stays here too, marked finished, until the server confirms it: that report is what ends a finished
+/// episode in Continue Watching when the app was killed before its last one left.
 package struct PlaybackResumeStore: Sendable {
     private static let key = "playbackResumePoints"
     private static let capacity = 20
@@ -60,8 +97,18 @@ package struct PlaybackResumeStore: Sendable {
         load()[ResumePoint.storageKey(server: server, ratingKey: ratingKey)]
     }
 
-    /// Keeps `positionSecs` as the position of `ratingKey`, or forgets the item once it counts as watched.
-    package func save(server: String, ratingKey: String, positionSecs: Double, durationSecs: Double, now: Date = Date()) {
+    /// Keeps `positionSecs` as the position of `ratingKey`, finished when the run reached the credits or the
+    /// end of the item. A finished point is kept until the server confirms it rather than dropped, so the
+    /// next launch can still end the item; an unfinished one is dropped once the percentage says watched,
+    /// which is what a server has already recorded by then.
+    package func save(
+        server: String,
+        ratingKey: String,
+        positionSecs: Double,
+        durationSecs: Double,
+        finished: Bool = false,
+        now: Date = Date()
+    ) {
         guard positionSecs.isFinite, positionSecs >= 0 else { return }
         Self.lock.lock()
         defer { Self.lock.unlock() }
@@ -71,11 +118,8 @@ package struct PlaybackResumeStore: Sendable {
         point.positionSecs = positionSecs
         point.durationSecs = durationSecs
         point.savedAt = now
-        if point.isWatched {
-            points[key] = nil
-        } else {
-            points[key] = point
-        }
+        point.finished = finished || point.isWatched
+        points[key] = point
         store(points, now: now)
     }
 
@@ -124,10 +168,20 @@ package enum ResumeFlushRule {
     /// to have watched it since; the allowance covers the two clocks not agreeing.
     package static let clockSkewAllowance: TimeInterval = 120
 
-    /// Only a position that differs from the server's offset, unless another client has watched the
-    /// item since the device saved it: that one must not be rewound.
-    package static func shouldSend(point: ResumePoint, serverOffsetSecs: Double, serverViewedAt: Date?) -> Bool {
-        guard !point.isWatched, point.positionSecs > 0 else { return false }
+    /// Only a position that differs from the server's offset, unless another client has watched the item
+    /// since the device saved it: that one must not be rewound. An item the server already counts as
+    /// watched is never written to, and a finished run is always worth sending: it is what ends the item.
+    package static func shouldSend(
+        point: ResumePoint,
+        serverOffsetSecs: Double,
+        serverViewedAt: Date?,
+        serverWatched: Bool = false
+    ) -> Bool {
+        guard !serverWatched else { return false }
+        if point.finished {
+            return point.durationSecs <= 0 || serverOffsetSecs < point.durationSecs - ResumePoint.reportTolerance
+        }
+        guard point.positionSecs > 0 else { return false }
         if let serverViewedAt, serverViewedAt.timeIntervalSince(point.savedAt) > clockSkewAllowance { return false }
         return abs(point.positionSecs - serverOffsetSecs) > ResumePoint.reportTolerance
     }
@@ -155,19 +209,24 @@ package enum PlaybackResumeSync {
             let container = try await api.requestContainer(.metadata(ratingKey: point.ratingKey))
             let item = container.Metadata?.first
             let viewedAt = item?.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
-            guard ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: item?.positionSecs ?? 0, serverViewedAt: viewedAt) else {
-                store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.positionSecs)
+            guard ResumeFlushRule.shouldSend(
+                point: point,
+                serverOffsetSecs: item?.positionSecs ?? 0,
+                serverViewedAt: viewedAt,
+                serverWatched: item?.isWatched ?? false
+            ) else {
+                store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.reportSecs)
                 return
             }
             try await api.requestVoid(.timeline(
                 ratingKey: point.ratingKey,
                 state: "stopped",
-                timeMs: Int(point.positionSecs * 1000),
+                timeMs: Int(point.reportSecs * 1000),
                 durationMs: Int(point.durationSecs * 1000)
             ))
-            store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.positionSecs)
+            store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.reportSecs)
             await api.invalidate(ratingKey: point.ratingKey)
-            AppLogger.notice("Reported the saved position of \(point.ratingKey) to the server: \(Int(point.positionSecs)) s", .playback)
+            AppLogger.notice("Reported the saved position of \(point.ratingKey) to the server: \(Int(point.reportSecs)) s finished=\(point.finished)", .playback)
         } catch {
             AppLogger.error("Reporting the saved position of \(point.ratingKey) failed: \(error.localizedDescription)", .playback)
         }

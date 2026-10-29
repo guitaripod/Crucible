@@ -27,10 +27,10 @@ package struct HomeCardModel: Hashable, Sendable {
         isPlayable = HomeMediaRules.isPlayable(item)
         unwatchedCount = HomeMediaRules.unwatchedCount(item)
         let continuing = bucket == .continueWatching
-        let position = continuing ? item.continueSecs : item.positionSecs
+        let position = continuing ? item.continueSecs : item.resumeSecs
         let fraction = continuing
             ? (item.durationSecs > 0 ? item.continueSecs / item.durationSecs : 0)
-            : item.progressPercent
+            : item.progressFraction
         progress = position > 0 && item.duration != nil ? fraction : nil
         switch layout {
         case .poster:

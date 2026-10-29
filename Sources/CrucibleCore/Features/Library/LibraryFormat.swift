@@ -2,7 +2,7 @@ import Foundation
 
 package enum LibraryFormat {
     package static func timeLeft(_ item: PlexMetadata) -> String? {
-        let remaining = item.durationSecs - item.positionSecs
+        let remaining = item.durationSecs - item.resumeSecs
         guard item.durationSecs > 0, remaining.isFinite, remaining > 0 else { return nil }
         let minutes = Int((remaining / 60).rounded())
         if minutes >= 60 {

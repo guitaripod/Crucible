@@ -524,10 +524,17 @@ extension PlexMetadata {
         return Double(offset) / Double(dur)
     }
 
-    /// Whether the server holds a place worth returning to: a started item that has not reached
-    /// the watched threshold yet.
+    /// Where playback resumes: zero for an item already watched, whose offset is where the last watching
+    /// stopped rather than a place to continue from.
+    package var resumeSecs: Double { isWatched ? 0 : positionSecs }
+
+    /// How much of the item is left to watch, for a progress bar: nothing for one already watched.
+    package var progressFraction: Double { isWatched ? 0 : progressPercent }
+
+    /// Whether the server holds a place worth returning to: a started item that is not yet watched and has
+    /// not reached the watched threshold.
     package var isResumable: Bool {
-        guard positionSecs > 0 else { return false }
+        guard resumeSecs > 0 else { return false }
         guard durationSecs > 0 else { return true }
         return positionSecs / durationSecs < WatchedRule.threshold
     }

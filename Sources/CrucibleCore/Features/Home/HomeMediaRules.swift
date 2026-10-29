@@ -29,7 +29,7 @@ package enum HomeMediaRules {
             guard let leaves = item.leafCount, leaves > 0 else { return false }
             return (item.viewedLeafCount ?? 0) < leaves
         default:
-            return !item.isWatched && item.positionSecs == 0
+            return !item.isWatched && item.resumeSecs == 0
         }
     }
 
