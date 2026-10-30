@@ -1,6 +1,6 @@
 # Crucible
 
-A fast, native Plex client for iPhone, iPad and Apple TV — offline downloads, Skip Intro, Picture-in-Picture, lock-screen controls and Handoff on iPhone; the same app on iPad with a library sidebar, several windows, a menu bar and keyboard shortcuts; a focus-driven Liquid Glass living-room app on Apple TV. The iPhone app is built entirely on Arch Linux.
+A fast, native Plex client for iPhone, iPad and Apple TV — offline downloads, Skip Intro, Picture-in-Picture, lock-screen controls and Handoff on iPhone; the same app on iPad with a library sidebar, several windows, a menu bar and keyboard shortcuts; a focus-driven Liquid Glass living-room app on Apple TV. The iPhone app builds and deploys from Arch Linux.
 
 **[Crucible for Plex on the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419)** — free for iPhone and Apple TV, with an optional Crucible Pro (unlimited downloads, full Statistics, the Year in Review poster, Top Shelf; pay once or subscribe yearly, one purchase for both). No server yet? Choose *Try the demo* on the welcome screen. The source is GPL-3.0, and a build from source is fully unlocked.
 
@@ -41,11 +41,11 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Skip Intro** your way: a glass button with a live progress sweep, automatic skipping with Undo, or off
 - Adjustable **playback speed**, subtitle and audio track selection
 - Resume from where you left off, progress synced to the server via the timeline API; an episode you finished counts as watched even when you leave at the credits, so it never comes back as something to continue, and one already watched starts from the beginning
-- **Keeps your place through anything**: a sleeping Apple TV (even one that dozed off from its screen saver without telling the app), the app in the background, or a server that dropped the stream while you were away: a heartbeat notices the absence, and the stream is rebuilt under a fresh server session at the exact moment you left. A stream that stops short is rebuilt instead of being taken for the end, so the next episode never starts mid-episode, and Up Next only appears at the credits
+- **Keeps your place through anything**: a sleeping Apple TV, the app in the background or a server that dropped the stream; the stream is rebuilt at the exact moment you left, and one that stops short is never taken for the end, so the next episode never starts mid-episode
 - **Rewind After a Break**: coming back after a break, playback backs up a few seconds, more the longer you were away (up to 15)
 - **Still watching?**: after a few episodes in a row without touching the remote (2, 3 or 5; 3 by default), Up Next asks before playing on, so a season does not run on while you sleep
-- **Your skip distances**: how far a click left or right on the Siri Remote skips (5 s to 1 min, each side on its own), also used by the Lock Screen, Control Center and headphone skip buttons on iPhone; on Apple TV, holding either side can keep the system's rewind and fast forward or jump 1 to 10 minutes, start over or play the next episode
-- Skipping back or a short skip ahead inside a transcode seeks within the stream instead of restarting it, and a stream that is rebuilt keeps the subtitles and audio chosen on the one before
+- **Your skip distances**: 5 s to 1 min for each direction, on the Siri Remote and the iPhone's Lock Screen and headphone buttons; on Apple TV, holding either side can scan, jump 1 to 10 minutes, start over or play the next episode
+- A short skip inside a transcode seeks within the stream, and a rebuilt stream keeps your subtitles and audio
 
 ### Offline downloads
 
@@ -54,8 +54,7 @@ A proper download engine — not the afterthought the official app ships.
 - **Download movies, whole seasons, or single episodes** for offline viewing
 - **Per-download quality** — Original (source quality), High (1080p · 20 Mbps), Medium (720p · 8 Mbps), Low (480p · 3 Mbps), and Data Saver (360p · 0.7 Mbps), with a configurable default in Settings
 - **Live Activity** — a Lock Screen card and Dynamic Island showing live download progress (percent, current title, "X of Y"), built with **ActivityKit + a WidgetKit extension** — compiled and signed on Linux by xtool
-- **Real offline HLS engine** — downloads the transcoded stream segment-by-segment into a self-contained local playlist, re-minting the Plex session on the fly so a stalled transcode never breaks the download
-- **True background downloading** — segments are fetched over a **background `URLSession`**, so transfers continue in the system daemon while the app is suspended or terminated (the Live Activity keeps advancing); a fresh Plex session is re-minted on failure, downloads **auto-resume** from the segments already on disk, and a notification fires when one finishes while you're away
+- **Real offline HLS engine** — the transcoded stream saved segment by segment into a local playlist, over a **background `URLSession`** that keeps going while the app is suspended; a stalled transcode gets a fresh Plex session, downloads resume from what is on disk, and a notification says when one finishes
 - **Real download queue** — concurrency limit plus pause / resume / cancel / retry per item and live progress
 - **Wi-Fi-only by default** — downloads pause when you leave Wi-Fi and resume when it returns; opt into cellular with one toggle
 - **Dedicated Downloads tab** — a storage summary, the live queue, and downloaded movies and shows grouped as stacks, with one-tap **Free up space** for watched titles
@@ -85,7 +84,7 @@ The iPhone app is universal, and every screen lays out by the room its window ha
 - **Sidebar** — Home, Downloads, You, Search and each Plex library on its own row; the tab bar keeps a single Library tab in narrow windows
 - **Large-screen layouts** — bigger rails and posters, grids that add columns as the window grows, 16:9 detail artwork with a readable column of text and controls, centred lists, and a Statistics dashboard with four tiles a row
 - **Windows** — open any title in a new window from its menu or by dragging its card to the edge of the screen; each window keeps its own tab and title across launches, is named after what it shows, and stops its own player when it closes
-- **Magic Keyboard** — a full menu bar: Command-1 to 4 for the tabs, Command-F to search, Command-[ to go back, Command-R to refresh, Command-plus and minus for poster size, Space to play or resume, S to skip the intro, N for the next episode, Escape to close the player, Command-comma for Settings; arrow and Tab keys move through every grid and list
+- **Magic Keyboard** — a full menu bar and shortcuts (Command-1 to 4 for tabs, Command-F, Space to play, S to skip the intro, N for the next episode), with arrow and Tab keys through every grid and list
 - **Pointer** — posters and cards lift under the trackpad and Apple Pencil hover, rows and chips highlight, right-click opens every context menu
 
 ### Apple TV
@@ -134,7 +133,7 @@ cd tv && CRUCIBLE_PACKAGE_NAME=$(basename "$(cd .. && pwd)" | tr '[:upper:]' '[:
 
 ### Episode-flow benchmark
 
-`scripts/mac.sh bench` runs `Sources/CrucibleBench` (declared only with `CRUCIBLE_BENCH=1`, so no app build ever sees it) on the macOS host. It scores the behaviours behind going from one episode to the next and keeping watched state in step: 26 probes that call the real resolvers, loaders and rules against canned Plex responses, each PASS or FAIL with the reason, ending in a `crucible-bench 26/26 100%` line. The same benchmark read 14/21 before the episode-flow work, and the seven it failed name what that work fixed.
+`scripts/mac.sh bench` runs `Sources/CrucibleBench` (declared only with `CRUCIBLE_BENCH=1`, so no app build ever sees it) on the macOS host. It scores going from one episode to the next and keeping watched state in step: 26 probes against canned Plex responses, ending in a `crucible-bench 26/26 100%` line.
 
 ## Deploying
 
