@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Everything one library grid does apart from drawing: it reads the section page by page, tracks
 /// the filter and sort options, the Continue item, Recently Watched, genres and the A–Z index, and
@@ -145,7 +146,7 @@ package final class LibraryGridModel {
                 completion?()
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("\(kind.logName) page fetch failed section=\(sectionId) offset=\(offset): \(error.localizedDescription)", .networking)
+                MidgarLog.error("\(kind.logName) page fetch failed section=\(sectionId) offset=\(offset): \(error.localizedDescription)", category: .networking)
                 pager.endFetch()
                 if pager.ids.isEmpty { contentState = .failed(message: ConnectionError.message(for: error)) }
                 onUpdate?(.pageFailed)
@@ -177,7 +178,7 @@ package final class LibraryGridModel {
                 onUpdate?(.pageLoaded)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("\(kind.logName) window refresh failed section=\(sectionId) offset=\(offset): \(error.localizedDescription)", .networking)
+                MidgarLog.error("\(kind.logName) window refresh failed section=\(sectionId) offset=\(offset): \(error.localizedDescription)", category: .networking)
                 pager.endFetch()
                 onUpdate?(.pageFailed)
             }
@@ -206,7 +207,7 @@ package final class LibraryGridModel {
                 onUpdate?(.genres)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("\(kind.logName) genres fetch failed section=\(sectionId): \(error.localizedDescription)", .networking)
+                MidgarLog.error("\(kind.logName) genres fetch failed section=\(sectionId): \(error.localizedDescription)", category: .networking)
             }
         }
     }
@@ -239,7 +240,7 @@ package final class LibraryGridModel {
         case .scroll(let index):
             scrollTo(index)
         case .loadThenScroll(let size):
-            AppLogger.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset) loading \(size)", .ui)
+            MidgarLog.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset) loading \(size)", category: .ui)
             fetchPage(offset: pager.serverOffset, size: size) {
                 scrollTo(offset)
             }
@@ -276,7 +277,7 @@ package final class LibraryGridModel {
         change(&next)
         guard next != options else { return }
         options = next
-        AppLogger.info("\(kind.logName) options sort=\(next.sort) genre=\(next.genre ?? "-") filter=\(next.watch.rawValue)", .ui)
+        MidgarLog.info("\(kind.logName) options sort=\(next.sort) genre=\(next.genre ?? "-") filter=\(next.watch.rawValue)", category: .ui)
         onUpdate?(.optionsChanged)
         loadPage(offset: 0)
     }
@@ -294,7 +295,7 @@ package final class LibraryGridModel {
                 onUpdate?(.continueItem)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("\(kind.logName) hubs fetch failed section=\(sectionId): \(error.localizedDescription)", .networking)
+                MidgarLog.error("\(kind.logName) hubs fetch failed section=\(sectionId): \(error.localizedDescription)", category: .networking)
             }
         }
     }
@@ -323,7 +324,7 @@ package final class LibraryGridModel {
                 alphabet = LibraryAlphabetIndex(entries: response.MediaContainer.Directory ?? [])
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("\(kind.logName) firstCharacter fetch failed section=\(sectionId): \(error.localizedDescription)", .networking)
+                MidgarLog.error("\(kind.logName) firstCharacter fetch failed section=\(sectionId): \(error.localizedDescription)", category: .networking)
                 alphabet = LibraryAlphabetIndex(entries: [])
             }
             onUpdate?(.alphabet)

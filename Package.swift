@@ -15,6 +15,8 @@ let widgetKeep: [LinkerSetting] = [
 ]
 
 let grdb: Target.Dependency = .product(name: "GRDB", package: "GRDB.swift")
+let midgarCore: Target.Dependency = .product(name: "MidgarCore", package: "MidgarKit")
+let midgarCommerce: Target.Dependency = .product(name: "MidgarCommerce", package: "MidgarKit")
 
 let coreOnly = ProcessInfo.processInfo.environment["CRUCIBLE_CORE_ONLY"] != nil
 let benchOnly = ProcessInfo.processInfo.environment["CRUCIBLE_BENCH"] != nil
@@ -23,11 +25,12 @@ var products: [Product] = []
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
+    .package(url: "https://github.com/guitaripod/MidgarKit.git", exact: "4.4.0"),
 ]
 
 var targets: [Target] = [
-    .target(name: "CrucibleCore"),
-    .target(name: "CrucibleStats", dependencies: ["CrucibleCore", grdb]),
+    .target(name: "CrucibleCore", dependencies: [midgarCore]),
+    .target(name: "CrucibleStats", dependencies: ["CrucibleCore", grdb, midgarCore]),
 ]
 
 #if os(macOS)
@@ -57,7 +60,7 @@ if coreOnly {
     ]
     targets += [
         .target(name: "CrucibleActivity"),
-        .target(name: "CrucibleMedia", dependencies: ["CrucibleCore"]),
+        .target(name: "CrucibleMedia", dependencies: ["CrucibleCore", midgarCore]),
         .target(name: "CrucibleDesign", dependencies: ["CrucibleCore"]),
         .target(name: "CrucibleStatsUI", dependencies: ["CrucibleStats", "CrucibleDesign"]),
         .target(
@@ -70,6 +73,7 @@ if coreOnly {
                 "CrucibleDesign",
                 "CrucibleStatsUI",
                 grdb,
+                midgarCore,
             ],
             linkerSettings: iosStamp
         ),
@@ -80,7 +84,6 @@ if coreOnly {
         ),
     ]
     #if os(macOS)
-    dependencies.append(.package(url: "https://github.com/RevenueCat/purchases-ios.git", from: "5.83.0"))
     products += [
         .library(name: "CrucibleTV", targets: ["CrucibleTV"]),
         .library(name: "CrucibleTopShelf", targets: ["CrucibleTopShelf"]),
@@ -89,13 +92,13 @@ if coreOnly {
     targets += [
         .target(
             name: "CrucibleStore",
-            dependencies: ["CrucibleCore", .product(name: "RevenueCat", package: "purchases-ios")]
+            dependencies: ["CrucibleCore", midgarCore, midgarCommerce]
         ),
         .target(
             name: "CrucibleTV",
-            dependencies: ["CrucibleCore", "CrucibleMedia", "CrucibleStats", "CrucibleDesign", "CrucibleStatsUI"]
+            dependencies: ["CrucibleCore", "CrucibleMedia", "CrucibleStats", "CrucibleDesign", "CrucibleStatsUI", midgarCore]
         ),
-        .target(name: "CrucibleTopShelf", dependencies: ["CrucibleCore"]),
+        .target(name: "CrucibleTopShelf", dependencies: ["CrucibleCore", midgarCore]),
     ]
     #endif
 }

@@ -3,6 +3,7 @@ import CrucibleDesign
 import os
 @preconcurrency import UIKit
 import WebKit
+import MidgarCore
 
 final class ServerSetupViewController: UIViewController {
     var onConnected: ((PlexConnection) -> Void)?
@@ -246,7 +247,7 @@ final class ServerSetupViewController: UIViewController {
                 guard let self, let connection = ServerBootstrap.connection() else { throw DemoError.unavailable }
                 onConnected?(connection)
             } catch {
-                AppLogger.error("The demo could not start: \(error)", .lifecycle)
+                MidgarLog.error("The demo could not start: \(error)", category: .lifecycle)
                 self?.setDemoBusy(false)
                 self?.presentDemoFailure()
             }

@@ -1,0 +1,72 @@
+{
+  "appPolicies": {
+    "eula": "",
+    "policies": [
+      {
+        "locale": "en_US",
+        "policyText": "",
+        "policyURL": "https://midgarcorp.cc/crucible/privacy"
+      }
+    ]
+  },
+  "identifier": "C7C1B1E0",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "17.99",
+      "familyShareable": true,
+      "internalID": "C7C1B1E1",
+      "localizations": [
+        {
+          "description": "Pay once. Every update, on every device.",
+          "displayName": "Crucible Pro Lifetime",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.guitaripod.crucible.pro.lifetime",
+      "referenceName": "Crucible Pro Lifetime",
+      "type": "NonConsumable"
+    }
+  ],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "C7C1B1E2",
+      "localizations": [],
+      "name": "Crucible Pro",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "7.99",
+          "familyShareable": true,
+          "groupNumber": 1,
+          "internalID": "C7C1B1E3",
+          "localizations": [
+            {
+              "description": "Downloads, full Statistics and Top Shelf.",
+              "displayName": "Crucible Pro Annual",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.guitaripod.crucible.pro.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Crucible Pro Annual",
+          "subscriptionGroupID": "C7C1B1E2",
+          "type": "RecurringSubscription",
+          "offerCodes": [],
+          "promotionalOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}

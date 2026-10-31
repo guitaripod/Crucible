@@ -1,6 +1,7 @@
 import AVFoundation
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 public final class TVAppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,11 +9,13 @@ public final class TVAppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        CrucibleLog.configure()
         NSSetUncaughtExceptionHandler { exception in
             let stack = exception.callStackSymbols.joined(separator: "\n")
-            AppLogger.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", .lifecycle, sync: true)
+            MidgarLog.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", category: .lifecycle)
+            MidgarLog.flush()
         }
-        AppLogger.notice("App launched — \(AppInfo.versionSummary) (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
+        MidgarLog.notice("App launched — \(AppInfo.versionSummary) (log: \(MidgarLog.logFileURLs.first?.path ?? "none"))", category: .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         #if DEBUG
         TVDebugSession.bootstrapIfRequested()
@@ -31,7 +34,7 @@ public final class TVAppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     public func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
-        AppLogger.notice("Memory warning: purging the in-memory image cache", .lifecycle)
+        MidgarLog.notice("Memory warning: purging the in-memory image cache", category: .lifecycle)
         Task { await ImageLoader.shared.purgeMemoryCache() }
     }
 }

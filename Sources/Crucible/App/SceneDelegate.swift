@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -30,7 +31,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
 
         pendingActivity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
-        AppLogger.notice("Window connected (\(UIApplication.shared.connectedScenes.count) open, activity: \(pendingActivity?.activityType ?? "none"))", .lifecycle)
+        MidgarLog.notice("Window connected (\(UIApplication.shared.connectedScenes.count) open, activity: \(pendingActivity?.activityType ?? "none"))", category: .lifecycle)
         connectToLibrary()
     }
 
@@ -71,7 +72,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     /// A window closed while it was connecting hands the connection to another window, so the rest never wait on a launch nobody runs.
     func sceneDidDisconnect(_ scene: UIScene) {
-        AppLogger.notice("Window closed", .lifecycle)
+        MidgarLog.notice("Window closed", category: .lifecycle)
         guard Self.launchLeader === self else { return }
         launchTask?.cancel()
         launchTask = nil

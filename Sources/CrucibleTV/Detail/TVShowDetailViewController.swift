@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 import UIKit
 
 /// Show detail: the hero with Play or Continue for the up-next episode and a Mark Watched menu, a
@@ -42,7 +43,7 @@ final class TVShowDetailViewController: TVDetailViewController {
             rebuild()
         } catch {
             guard !Task.isCancelled else { return }
-            AppLogger.error("Show load failed ratingKey=\(showKey): \(error.localizedDescription)", .networking)
+            MidgarLog.error("Show load failed ratingKey=\(showKey): \(error.localizedDescription)", category: .networking)
             if !hasContent { showFailure(title: "Failed to load", message: error.localizedDescription) }
         }
     }

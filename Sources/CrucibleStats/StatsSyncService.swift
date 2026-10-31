@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 /// Mirrors Plex watch history into the local GRDB store (newest-first, incremental) and runs the
 /// progressive runtime/genre/leafCount enrichment pass.
@@ -83,9 +84,9 @@ struct StatsSyncService: Sendable {
             if caughtUp { state.historyComplete = true }
             try await store.saveSyncState(state)
 
-            AppLogger.info("Stats sync: \(totalRows) rows, \(pages) pages, complete=\(state.historyComplete)", .stats)
+            MidgarLog.info("Stats sync: \(totalRows) rows, \(pages) pages, complete=\(state.historyComplete)", category: .stats)
         } catch {
-            AppLogger.error("Stats sync failed: \(error.localizedDescription)", .stats)
+            MidgarLog.error("Stats sync failed: \(error.localizedDescription)", category: .stats)
         }
     }
 
@@ -98,7 +99,7 @@ struct StatsSyncService: Sendable {
             processed += did
         }
         if processed > 0 {
-            AppLogger.info("Stats enrichment processed \(processed) items", .stats)
+            MidgarLog.info("Stats enrichment processed \(processed) items", category: .stats)
         }
     }
 

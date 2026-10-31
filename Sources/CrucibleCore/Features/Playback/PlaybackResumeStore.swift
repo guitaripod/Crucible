@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Where the viewer was in one item, kept on the device so a process the system ended while the app
 /// was away still knows, and what the server was last told.
@@ -226,9 +227,9 @@ package enum PlaybackResumeSync {
             ))
             store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.reportSecs)
             await api.invalidate(ratingKey: point.ratingKey)
-            AppLogger.notice("Reported the saved position of \(point.ratingKey) to the server: \(Int(point.reportSecs)) s finished=\(point.finished)", .playback)
+            MidgarLog.notice("Reported the saved position of \(point.ratingKey) to the server: \(Int(point.reportSecs)) s finished=\(point.finished)", category: .playback)
         } catch {
-            AppLogger.error("Reporting the saved position of \(point.ratingKey) failed: \(error.localizedDescription)", .playback)
+            MidgarLog.error("Reporting the saved position of \(point.ratingKey) failed: \(error.localizedDescription)", category: .playback)
         }
     }
 }

@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 import UIKit
 
 extension DownloadManager {
@@ -14,7 +15,7 @@ extension DownloadManager {
         items[idx].state = .queued
         persist()
         emit(.changed)
-        AppLogger.notice("Fallback fetch suspended (background time expired) key=\(ratingKey)", .persistence)
+        MidgarLog.notice("Fallback fetch suspended (background time expired) key=\(ratingKey)", category: .persistence)
     }
 
     func startFallbackFetch(_ ratingKey: String, token: String) {
@@ -56,18 +57,18 @@ extension DownloadManager {
                     guard !Task.isCancelled, self.jobs[ratingKey]?.token == token else { return }
                     guard (200...299).contains(status),
                           DownloadPaths.commitSegment(tempURL: tmp, ratingKey: ratingKey, name: local) else {
-                        AppLogger.error("Fallback segment failed status=\(status) key=\(ratingKey) name=\(local)", .persistence)
+                        MidgarLog.error("Fallback segment failed status=\(status) key=\(ratingKey) name=\(local)", category: .persistence)
                         self.handleSegmentError(ratingKey: ratingKey, token: token)
                         return
                     }
                     fetched += 1
                     if fetched == 1 || fetched % 25 == 0 {
-                        AppLogger.notice("Fallback fetch progress key=\(ratingKey) fetched=\(fetched)", .persistence)
+                        MidgarLog.notice("Fallback fetch progress key=\(ratingKey) fetched=\(fetched)", category: .persistence)
                     }
                     self.handleSegmentFinished(ratingKey: ratingKey, name: local, token: token)
                 } catch {
                     guard !Task.isCancelled else { return }
-                    AppLogger.error("Fallback segment error key=\(ratingKey): \(error.localizedDescription)", .persistence)
+                    MidgarLog.error("Fallback segment error key=\(ratingKey): \(error.localizedDescription)", category: .persistence)
                     self.handleSegmentError(ratingKey: ratingKey, token: token)
                     return
                 }

@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Where the demo library answers: a Plex server and a plex.tv stand-in, both fictional, plus the credentials the app signs in with.
 package struct DemoEndpoint: Equatable, Sendable {
@@ -69,7 +70,7 @@ package final class DemoMode {
         defaults.set(true, forKey: Self.activeKey)
         access.setDemoUnlocked(true)
         DemoTour.shared.begin()
-        AppLogger.notice("Demo started", .lifecycle)
+        MidgarLog.notice("Demo started", category: .lifecycle)
         notify()
     }
 
@@ -79,7 +80,7 @@ package final class DemoMode {
     package func resume() async -> Bool {
         guard isActive else { return false }
         guard let provider, let endpoint = try? await provider.start() else {
-            AppLogger.error("The demo could not resume; leaving it", .lifecycle)
+            MidgarLog.error("The demo could not resume; leaving it", category: .lifecycle)
             defaults.set(false, forKey: Self.activeKey)
             PlexTVHost.setOverride(nil)
             access.setDemoUnlocked(false)
@@ -101,7 +102,7 @@ package final class DemoMode {
         access.setDemoUnlocked(false)
         DemoTour.shared.reset()
         AccountSessionReset.signOut(collaborators)
-        AppLogger.notice("Demo left", .lifecycle)
+        MidgarLog.notice("Demo left", category: .lifecycle)
         notify()
     }
 

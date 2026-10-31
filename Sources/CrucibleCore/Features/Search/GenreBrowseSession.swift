@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 package enum GenreBrowseState: Equatable, Sendable {
     case loading
@@ -36,7 +37,7 @@ package final class GenreBrowseSession {
                 emit(items.isEmpty ? .empty : .loaded(items))
             } catch {
                 guard !Task.isCancelled, (error as? URLError)?.code != .cancelled, let self else { return }
-                AppLogger.error("Genre browse failed genre=\(genre.title): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Genre browse failed genre=\(genre.title): \(error.localizedDescription)", category: .networking)
                 emit(.failed(message: error.localizedDescription))
             }
         }

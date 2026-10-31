@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 import UIKit
 
 extension DownloadManager {
@@ -36,7 +37,7 @@ extension DownloadManager {
             jobs[ratingKey] = SegmentJob(base: resolved.base, names: resolved.segments, onDisk: onDisk, token: token, refreshes: refreshes)
             cancelInflight(ratingKey, scope: .excluding(token))
             resolveRetries[ratingKey] = nil
-            AppLogger.notice("Download \(refreshes == 0 ? "started" : "resumed") key=\(ratingKey) quality=\(quality.shortLabel) segments=\(resolved.segments.count) onDisk=\(onDisk.count)", .persistence)
+            MidgarLog.notice("Download \(refreshes == 0 ? "started" : "resumed") key=\(ratingKey) quality=\(quality.shortLabel) segments=\(resolved.segments.count) onDisk=\(onDisk.count)", category: .persistence)
             enqueueAllSegments(ratingKey)
         } catch {
             guard index(ratingKey) != nil else {
@@ -60,7 +61,7 @@ extension DownloadManager {
                 items[idx].state = .queued
                 persist()
                 emit(.changed)
-                AppLogger.notice("Resolve deferred (app backgrounded) key=\(ratingKey)", .persistence)
+                MidgarLog.notice("Resolve deferred (app backgrounded) key=\(ratingKey)", category: .persistence)
                 return
             }
             let retries = (resolveRetries[ratingKey] ?? 0) + 1
@@ -69,7 +70,7 @@ extension DownloadManager {
                 items[idx].state = .queued
                 persist()
                 emit(.changed)
-                AppLogger.notice("Resolve retry \(retries)/\(Self.maxResolveRetries) key=\(ratingKey)", .persistence)
+                MidgarLog.notice("Resolve retry \(retries)/\(Self.maxResolveRetries) key=\(ratingKey)", category: .persistence)
                 scheduleResolveRetry()
                 return
             }

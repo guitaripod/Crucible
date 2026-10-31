@@ -51,10 +51,10 @@ struct ReloadThrottleTests {
 
 struct LogTailErrorLineTests {
     @Test func errorAndFaultLinesAreErrors() {
-        #expect(LogTail.isError("2026-01-01T00:00:00.000Z [ERROR] [networking] boom"))
-        #expect(LogTail.isError("2026-01-01T00:00:00.000Z [FAULT] [lifecycle] worse"))
-        #expect(!LogTail.isError("2026-01-01T00:00:00.000Z [INFO] [ui] error handling is fine"))
-        #expect(!LogTail.isError("2026-01-01T00:00:00.000Z [NOTE] [ui] ok"))
+        #expect(LogTail.isError("2026-01-01T00:00:00.000Z [42] [error ] [networking  ] boom"))
+        #expect(LogTail.isError("2026-01-01T00:00:00.000Z [42] [fault ] [lifecycle   ] worse"))
+        #expect(!LogTail.isError("2026-01-01T00:00:00.000Z [42] [info  ] [ui          ] error handling is fine"))
+        #expect(!LogTail.isError("2026-01-01T00:00:00.000Z [42] [notice] [ui          ] ok"))
     }
 }
 

@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Shows the paywall for `ProAccess.requestUnlock` from whatever is on top, so every locked control opens it the same way
@@ -22,7 +23,7 @@ enum PaywallPresenter {
         var top = presenter
         while let presented = top.presentedViewController { top = presented }
         guard !(top is PaywallViewController) else { return }
-        AppLogger.notice("Paywall shown from \(type(of: presenter)) on request", .store)
+        MidgarLog.notice("Paywall shown from \(type(of: presenter)) on request", category: .store)
         PaywallViewController.present(PaywallRequest(feature: feature), from: top) { _ in }
     }
 
@@ -43,11 +44,11 @@ enum PaywallPresenter {
 
     private static func present(_ request: PaywallRequest, completion: @escaping @MainActor (Bool) -> Void) {
         guard let top = topMostViewController(), !(top is PaywallViewController) else {
-            AppLogger.info("Paywall request ignored: no screen to show it or one is already open", .store)
+            MidgarLog.info("Paywall request ignored: no screen to show it or one is already open", category: .store)
             completion(false)
             return
         }
-        AppLogger.notice("Paywall shown for \(request.feature?.rawValue ?? "no feature")", .store)
+        MidgarLog.notice("Paywall shown for \(request.feature?.rawValue ?? "no feature")", category: .store)
         PaywallViewController.present(request, from: top, completion: completion)
     }
 

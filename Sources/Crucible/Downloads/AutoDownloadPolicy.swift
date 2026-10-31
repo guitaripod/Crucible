@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 import UIKit
 
 /// "Keep next N downloaded": a per-show setting that keeps the next unwatched episodes queued or
@@ -76,7 +77,7 @@ final class AutoDownloadPolicy {
         registerObserverIfNeeded()
         guard Self.hasAnyPolicy, ProPolicy.allowsKeepNextEpisodes(isPro: ProAccess.shared.hasFullAccess) else { return }
         guard UIApplication.shared.applicationState != .background else {
-            AppLogger.info("Auto-download skipped while backgrounded", .persistence)
+            MidgarLog.info("Auto-download skipped while backgrounded", category: .persistence)
             return
         }
         guard !isEvaluating else {
@@ -121,9 +122,9 @@ final class AutoDownloadPolicy {
                 guard !missing.isEmpty else { continue }
                 let quality = DownloadQuality(rawValue: setting.quality) ?? Preferences.downloadQuality
                 let added = DownloadManager.shared.enqueueAll(missing, quality: quality)
-                AppLogger.notice("Auto-download queued \(added) episodes for show \(showKey)", .persistence)
+                MidgarLog.notice("Auto-download queued \(added) episodes for show \(showKey)", category: .persistence)
             } catch {
-                AppLogger.error("Auto-download evaluation failed for show \(showKey): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Auto-download evaluation failed for show \(showKey): \(error.localizedDescription)", category: .networking)
                 if Self.isConnectivityFailure(error) { return }
             }
         }

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleStats
+import MidgarCore
 import UIKit
 
 extension TVAppCoordinator {
@@ -67,7 +68,7 @@ extension TVAppCoordinator {
         }
         alert.preferredAction = action
         presenter.present(alert, animated: true)
-        AppLogger.notice("Pro moment shown: \(moment.kind)", .store)
+        MidgarLog.notice("Pro moment shown: \(moment.kind)", category: .store)
         return true
     }
 

@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Marks a movie, episode, season or show watched or unwatched.
 package enum WatchedService {
@@ -18,7 +19,7 @@ package enum WatchedService {
             }
             await api.invalidateCache()
         } catch {
-            AppLogger.error("Mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+            MidgarLog.error("Mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
             throw error
         }
     }

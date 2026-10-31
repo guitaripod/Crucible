@@ -1,13 +1,16 @@
 import Foundation
+import MidgarCore
 
-/// The two rotating log files `LogFileWriter` keeps.
+/// The newest two of the log files MidgarLog keeps.
 package struct LogFiles: Sendable {
     package let current: URL
     package let previous: URL
 
     package static var live: LogFiles {
-        let current = URL(fileURLWithPath: LogFileWriter.shared.currentPath)
-        return LogFiles(current: current, previous: current.deletingLastPathComponent().appendingPathComponent("crucible.previous.log"))
+        let files = MidgarLog.logFileURLs
+        let current = files.first ?? CrucibleLog.directory.appendingPathComponent(CrucibleLog.fileName)
+        let previous = files.dropFirst().first ?? current.deletingLastPathComponent().appendingPathComponent("crucible.1.log")
+        return LogFiles(current: current, previous: previous)
     }
 }
 
@@ -19,7 +22,8 @@ package enum DiagnosticsReport {
     }
 
     package static func export(deviceDescription: String) async -> URL? {
-        LogFileWriter.shared.writeSync("Diagnostics export requested")
+        MidgarLog.info("Diagnostics export requested", category: .lifecycle)
+        MidgarLog.flush()
         let header = header(deviceDescription: deviceDescription)
         let files = LogFiles.live
         return await Task.detached(priority: .userInitiated) {
@@ -77,7 +81,7 @@ package struct LogTail: Equatable, Sendable {
 
     /// Whether `line` was logged at error or fault level.
     package static func isError(_ line: String) -> Bool {
-        line.contains("[ERROR]") || line.contains("[FAULT]")
+        line.contains("[error ") || line.contains("[fault ")
     }
 
     /// Previous log first, then the current one, so a log that just rotated still shows context.

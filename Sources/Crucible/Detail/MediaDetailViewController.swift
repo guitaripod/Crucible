@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 final class MediaDetailViewController: UICollectionViewController {
@@ -375,7 +376,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 await display(loaded)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
                 if model == nil, let download = DownloadManager.shared.item(for: ratingKey) {
                     await display(MovieDetailModel(item: download.asPlexMetadata, showRatingKey: showRatingKey, seasonRatingKey: seasonRatingKey))
                 } else if model == nil {
@@ -576,7 +577,7 @@ final class MediaDetailViewController: UICollectionViewController {
                       let route = model?.nextEpisodeRoute(next) else { return }
                 navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
             } catch {
-                AppLogger.error("Next episode lookup failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Next episode lookup failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
             }
         }
     }

@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 import TVServices
 
 /// The Top Shelf extension's content provider. It only reads the snapshot the app left in the App
@@ -6,6 +7,7 @@ import TVServices
 /// show it returns nil so the system displays the static branded Top Shelf image.
 open class TopShelfProvider: TVTopShelfContentProvider {
     open override func loadTopShelfContent(completionHandler: @escaping @Sendable ((any TVTopShelfContent)?) -> Void) {
+        CrucibleLog.configure()
         let store = TopShelfStore.shared
         let snapshot = store.load()
         let plan = TopShelfPlan(snapshot: snapshot)
@@ -16,9 +18,9 @@ open class TopShelfProvider: TVTopShelfContentProvider {
                 snapshotSchema: snapshot?.schema
             )
         )
-        AppLogger.info(
+        MidgarLog.info(
             "Top Shelf extension: \(plan?.items.count ?? 0) items, schema \(snapshot.map { String($0.schema) } ?? "none"), snapshot \(store.existingSnapshotPath ?? "none")",
-            .lifecycle
+            category: .lifecycle
         )
         completionHandler(plan.map(Self.content(for:)))
     }

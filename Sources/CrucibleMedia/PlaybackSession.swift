@@ -1,6 +1,7 @@
 import AVFoundation
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 /// One playback of one item, from stream resolution to teardown, independent of any screen.
 ///
@@ -354,7 +355,7 @@ package final class PlaybackSession {
         do {
             try await api.requestVoid(.stopTranscode(session: stream.sessionId))
         } catch {
-            AppLogger.error("Stop transcode failed: \(error.localizedDescription)", .playback)
+            MidgarLog.error("Stop transcode failed: \(error.localizedDescription)", category: .playback)
         }
     }
 }

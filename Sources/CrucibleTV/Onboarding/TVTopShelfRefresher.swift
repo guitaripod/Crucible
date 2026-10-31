@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 import TVServices
 
 /// Keeps the Top Shelf current for the signed-in session: the coordinator activates it with the
@@ -19,7 +20,7 @@ enum TVTopShelfRefresher {
 
     static func activate(api: APIClient, machineIdentifier: String) {
         session = (api, machineIdentifier)
-        AppLogger.info(TopShelfStore.shared.diagnostics.logSummary, .persistence)
+        MidgarLog.info(TopShelfStore.shared.diagnostics.logSummary, category: .persistence)
         observePro()
         refresh()
     }

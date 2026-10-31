@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// What a Home card can do, shared by the Home screen and its See All grids: open its detail, play
@@ -96,7 +97,7 @@ final class TVHomeActions {
                 do {
                     try await toggle.perform(using: api)
                 } catch {
-                    AppLogger.error("Home mark watched failed ratingKey=\(media.id): \(error.localizedDescription)", .networking)
+                    MidgarLog.error("Home mark watched failed ratingKey=\(media.id): \(error.localizedDescription)", category: .networking)
                 }
                 self?.onChange()
             }

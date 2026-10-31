@@ -1,6 +1,7 @@
 import CoreSpotlight
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Runs the iPhone side of the demo that no single screen owns: the welcome sheet after the first entry, the tour's "Show me" jumps,
@@ -122,7 +123,7 @@ final class DemoCoordinator {
 
     private func presentFinale() {
         guard let tabBar else { return }
-        AppLogger.notice("Demo finale shown", .ui)
+        MidgarLog.notice("Demo finale shown", category: .ui)
         let sheet = DemoFinaleViewController()
         sheet.onConnect = { [weak self, weak sheet] in
             guard let sheet else { return }

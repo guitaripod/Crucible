@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The single download state machine shared by the movie/episode action row and the episode rows:
@@ -27,7 +28,7 @@ enum DetailDownload {
         switch manager.item(for: key)?.state {
         case nil:
             Haptics.medium()
-            AppLogger.notice("Detail download tapped ratingKey=\(key)", .persistence)
+            MidgarLog.notice("Detail download tapped ratingKey=\(key)", category: .persistence)
             manager.requestDownload(metadata: metadata)
         case .queued?, .waitingForWiFi?:
             Haptics.medium()

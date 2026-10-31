@@ -17,14 +17,14 @@ enum Entry {
         )
     }
 
-    /// The App Store build sells Crucible Pro through RevenueCat, and the store must be in place before the first screen. Debug runs
+    /// The App Store build sells Crucible Pro through MidgarStore, and the store must be in place before the first screen. Debug runs
     /// against the mock server or the UI tests never reach the App Store: they stay unlocked, or take the scripted store that
     /// `CRUCIBLE_PRO` asks for.
     private static func installStore() {
-        guard sellsThroughAppStore else { return }
-        RevenueCatProAccess.configure(apiKey: StoreSecrets.revenueCatPublicKey)
+        guard sellsThroughAppStore, MidgarProAccess.reachesMidgarServices else { return }
+        CrucibleLog.configure()
         MainActor.assumeIsolated {
-            ProAccess.shared.install(RevenueCatProAccess())
+            ProAccess.shared.install(MidgarProAccess.live())
         }
     }
 

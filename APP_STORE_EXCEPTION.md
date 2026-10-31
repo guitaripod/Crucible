@@ -11,5 +11,5 @@ If you modify Crucible you may remove this permission from your version; if you 
 ## What this means in practice
 
 - The source in this repository builds with everything unlocked. `scripts/install-ios.sh` (iPhone, with xtool) and the Xcode project in `tv/` need no account with us and contain no store code.
-- The App Store build of Crucible for Plex is free to download and sells an optional Crucible Pro through RevenueCat. You are paying for the signed, updated build and for supporting the work, not for the right to run the code.
+- The App Store build of Crucible for Plex is free to download and sells an optional Crucible Pro through the App Store. You are paying for the signed, updated build and for supporting the work, not for the right to run the code.
 - Contributions are accepted under `CONTRIBUTING.md`, which includes the grant that lets the App Store build ship them.

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// Add Server by Address: an address typed on the system keyboard is expanded into candidate URLs,
@@ -73,7 +74,7 @@ final class TVAddServerViewController: UIViewController {
             connectTask = nil
             form.setBusy(false)
             guard let found else {
-                AppLogger.error("Add server: nothing answered at \(input)", .networking)
+                MidgarLog.error("Add server: nothing answered at \(input)", category: .networking)
                 form.showError(AddServerLookup.notFoundMessage(for: input))
                 return
             }

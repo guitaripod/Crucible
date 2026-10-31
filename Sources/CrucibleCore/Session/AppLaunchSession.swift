@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Everything the main UI needs to be fully usable the instant it appears: a validated route,
 /// the API client bound to it, and the Home and Library payloads already fetched.
@@ -71,10 +72,10 @@ package enum AppLaunchSession {
             async let sections = api.requestContainer(.sections)
             let payload = try await LaunchPayload(connection: connection, api: api, hubs: hubs, sections: sections)
             await MainActor.run { LibraryVisibility.record(directories: payload.sections.Directory ?? []) }
-            AppLogger.notice("Launch ready: \(payload.sections.Directory?.count ?? 0) sections, \(payload.hubs.Hub?.count ?? 0) hubs via \(connection.serverURI.absoluteString)", .lifecycle)
+            MidgarLog.notice("Launch ready: \(payload.sections.Directory?.count ?? 0) sections, \(payload.hubs.Hub?.count ?? 0) hubs via \(connection.serverURI.absoluteString)", category: .lifecycle)
             return .success(payload)
         } catch {
-            AppLogger.error("Launch fetch failed: \(String(describing: error))", .networking)
+            MidgarLog.error("Launch fetch failed: \(String(describing: error))", category: .networking)
             return .failure(.fetchFailure(error))
         }
     }

@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 import os
 
 package enum APIError: Error, LocalizedError, Sendable {
@@ -149,7 +150,7 @@ package actor APIClient {
             logger.error("Decode \(T.self, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             logger.debug("Decode body: \(String(data: data.prefix(500), encoding: .utf8) ?? "non-utf8", privacy: .private)")
             let body = String(data: data.prefix(280), encoding: .utf8) ?? "non-utf8"
-            AppLogger.error("Decode \(T.self) failed: \(String(describing: error)) | body: \(body)", .networking)
+            MidgarLog.error("Decode \(T.self) failed: \(String(describing: error)) | body: \(body)", category: .networking)
             throw APIError.decodingError(error.localizedDescription)
         }
     }
@@ -236,11 +237,11 @@ package actor APIClient {
         }
         guard let candidate = reachable else {
             logger.error("Failover found no reachable route; rethrowing")
-            AppLogger.error("Failover from \(baseURLStorage.absoluteString) found no reachable route", .networking)
+            MidgarLog.error("Failover from \(baseURLStorage.absoluteString) found no reachable route", category: .networking)
             throw APIError.serverUnavailable
         }
         logger.notice("Failover to \(candidate.absoluteString, privacy: .public)")
-        AppLogger.notice("Failover to \(candidate.absoluteString)", .networking)
+        MidgarLog.notice("Failover to \(candidate.absoluteString)", category: .networking)
         ServerBootstrap.repin(uri: candidate)
         applyFailover(to: candidate)
         return try await Self.performWithRetry { try await replay(candidate) }

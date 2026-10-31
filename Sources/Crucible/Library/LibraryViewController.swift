@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 final class LibraryViewController: UIViewController, LibraryGridHosting {
@@ -82,7 +83,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
                 install(sections: container)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Library sections fetch failed: \(error.localizedDescription)", .networking)
+                MidgarLog.error("Library sections fetch failed: \(error.localizedDescription)", category: .networking)
                 showErrorState(error)
             }
         }
@@ -101,7 +102,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
             }
         }
         currentIndex = 0
-        AppLogger.info("Library sections loaded: \(libraries.map(\.title).joined(separator: ", "))", .ui)
+        MidgarLog.info("Library sections loaded: \(libraries.map(\.title).joined(separator: ", "))", category: .ui)
         configureNavigation()
         if let first = libraries.first {
             showChild(first.grid)
@@ -179,7 +180,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
 
     private func selectLibrary(_ index: Int) {
         guard libraries.indices.contains(index), index != currentIndex else { return }
-        AppLogger.info("Library switch -> \(libraries[index].title)", .ui)
+        MidgarLog.info("Library switch -> \(libraries[index].title)", category: .ui)
         Haptics.selection()
         currentIndex = index
         configureNavigation()

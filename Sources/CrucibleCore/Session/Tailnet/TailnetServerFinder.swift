@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Finds a Plex server on the tailnet when plex.tv does not list a route to it. plex.tv only knows
 /// the addresses a server reports about itself, and a computer's Tailscale address is not among
@@ -69,7 +70,7 @@ package struct TailnetServerFinder: Sendable {
             }
         }
         let result = findings.routes
-        AppLogger.notice("Tailnet search for \(targets.map(\.name).joined(separator: ", ")): \(result.values.joined().map(\.absoluteString))", .networking)
+        MidgarLog.notice("Tailnet search for \(targets.map(\.name).joined(separator: ", ")): \(result.values.joined().map(\.absoluteString))", category: .networking)
         return result
     }
 
@@ -94,15 +95,15 @@ package struct TailnetServerFinder: Sendable {
         do {
             devices = try await environment.devices(token)
         } catch TailscaleAPIError.tokenRejected {
-            AppLogger.error("Tailscale rejected the saved API token", .networking)
+            MidgarLog.error("Tailscale rejected the saved API token", category: .networking)
             environment.tokenRejected()
             return
         } catch {
-            AppLogger.error("Tailscale device list unavailable: \(error)", .networking)
+            MidgarLog.error("Tailscale device list unavailable: \(error)", category: .networking)
             return
         }
         let addresses = devices.filter { $0.isWorthProbing() }.compactMap(\.tailnetIPv4)
-        AppLogger.info("Probing \(addresses.count) of \(devices.count) tailnet devices", .networking)
+        MidgarLog.info("Probing \(addresses.count) of \(devices.count) tailnet devices", category: .networking)
         var pending = addresses.makeIterator()
         await withTaskGroup(of: Void.self) { group in
             func addNext() {

@@ -20,6 +20,9 @@ packages:
   GRDB:
     url: https://github.com/groue/GRDB.swift.git
     from: 7.0.0
+  MidgarKit:
+    url: https://github.com/guitaripod/MidgarKit.git
+    exactVersion: 4.4.0
 targets:
   CrucibleApp:
     type: application
@@ -53,9 +56,16 @@ targets:
         product: CrucibleDemo
       - package: GRDB
         product: GRDB
+      - package: MidgarKit
+        product: MidgarCore
       - target: CrucibleWidgetsExt
         embed: true
         codeSign: true
+    entitlements:
+      path: Generated/CrucibleApp.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)cc.midgarcorp.shared
     info:
       path: Generated/CrucibleApp-Info.plist
       properties:
@@ -139,6 +149,30 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.uitests
         GENERATE_INFOPLIST_FILE: YES
         TARGETED_DEVICE_FAMILY: "1,2"
+  CrucibleStoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ../Tests/CrucibleStoreTests
+    dependencies:
+      - target: CrucibleApp
+      - package: Crucible
+        product: CrucibleCore
+      - package: Crucible
+        product: CrucibleStore
+      - package: MidgarKit
+        product: MidgarCore
+      - package: MidgarKit
+        product: MidgarCommerce
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.guitaripod.crucible.storetests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Crucible.app/Crucible"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        OTHER_SWIFT_FLAGS: "$(inherited) -package-name ${CRUCIBLE_PACKAGE_NAME}"
 schemes:
   CrucibleIOS:
     build:
@@ -156,3 +190,16 @@ schemes:
           parallelizable: false
     archive:
       config: Release
+  CrucibleStoreTests:
+    build:
+      targets:
+        CrucibleApp: all
+        CrucibleStoreTests: [test]
+    run:
+      config: Debug
+      storeKitConfiguration: ../Tests/CrucibleStoreTests/Products.storekit
+    test:
+      config: Debug
+      targets:
+        - name: CrucibleStoreTests
+          parallelizable: false

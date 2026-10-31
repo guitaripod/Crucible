@@ -87,10 +87,10 @@ struct SettingsDiagnosticsTests {
         let folder = try directory()
         defer { try? FileManager.default.removeItem(at: folder) }
         let current = """
-        2026-01-01T00:00:00.000Z [INFO] [ui] fine
-        2026-01-01T00:00:01.000Z [ERROR] [networking] boom
-        2026-01-01T00:00:02.000Z [FAULT] [lifecycle] worse
-        2026-01-01T00:00:03.000Z [NOTE] [ui] ok
+        2026-01-01T00:00:00.000Z [42] [info  ] [ui          ] fine
+        2026-01-01T00:00:01.000Z [42] [error ] [networking  ] boom
+        2026-01-01T00:00:02.000Z [42] [fault ] [lifecycle   ] worse
+        2026-01-01T00:00:03.000Z [42] [notice] [ui          ] ok
         """
         let logs = try files(in: folder, previous: nil, current: current)
         let tail = LogTail.read(files: logs, maxLines: 1)

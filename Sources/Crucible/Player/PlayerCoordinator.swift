@@ -2,6 +2,7 @@ import AVKit
 import CrucibleCore
 import CrucibleDesign
 import CrucibleMedia
+import MidgarCore
 @preconcurrency import UIKit
 
 @MainActor
@@ -93,10 +94,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         if let resolving = Self.resolvingCoordinator, resolving !== self {
             resolving.cancel()
         }
-        AppLogger.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", .playback)
+        MidgarLog.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", category: .playback)
 
         if request.offline != nil {
-            AppLogger.notice("Playing offline asset for ratingKey=\(request.ratingKey)", .playback)
+            MidgarLog.notice("Playing offline asset for ratingKey=\(request.ratingKey)", category: .playback)
             startPlayback(from: viewController)
             return
         }
@@ -120,13 +121,13 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             }
             do {
                 let stream = try await session.prepare()
-                AppLogger.notice("Stream resolved directPlay=\(stream.isDirectPlay) subs=\(stream.subtitles.count) audio=\(stream.audioTracks.count)", .playback)
+                MidgarLog.notice("Stream resolved directPlay=\(stream.isDirectPlay) subs=\(stream.subtitles.count) audio=\(stream.audioTracks.count)", category: .playback)
                 startPlayback(from: viewController)
             } catch {
                 spinnerView?.removeFromSuperview()
                 isPresenting = false
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Stream resolve failed for ratingKey=\(request.ratingKey): \(error.localizedDescription)", .playback)
+                MidgarLog.error("Stream resolve failed for ratingKey=\(request.ratingKey): \(error.localizedDescription)", category: .playback)
                 let alert = UIAlertController(title: "Playback Error", message: error.localizedDescription, preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "OK", style: .default))
                 viewController.present(alert, animated: true)
@@ -149,14 +150,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         spinnerView?.removeFromSuperview()
 
         guard viewController.presentedViewController == nil, viewController.view.window != nil else {
-            AppLogger.error("Presentation unavailable for ratingKey=\(request.ratingKey); abandoning playback", .playback)
+            MidgarLog.error("Presentation unavailable for ratingKey=\(request.ratingKey); abandoning playback", category: .playback)
             isPresenting = false
             session.discard()
             return
         }
 
         guard let player = session.begin() else {
-            AppLogger.error("Playback session unusable for ratingKey=\(request.ratingKey); abandoning playback", .playback)
+            MidgarLog.error("Playback session unusable for ratingKey=\(request.ratingKey); abandoning playback", category: .playback)
             isPresenting = false
             return
         }
@@ -306,7 +307,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// A closed window takes its player with it: the session is stopped and reported like a dismissal, so the server
     /// ends the transcode and keeps the position.
     private func windowClosed() async {
-        AppLogger.notice("Player window closed ratingKey=\(request.ratingKey)", .playback)
+        MidgarLog.notice("Player window closed ratingKey=\(request.ratingKey)", category: .playback)
         isInPiP = false
         await dismissPlayer()
     }
@@ -452,7 +453,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// Once the card must ask first it asks instead and nothing plays.
     private func autoPlayNext(_ offer: UpNextOffer) {
         guard session.isAtCreditsOrEnd else {
-            AppLogger.notice("Up Next countdown ended away from the credits ratingKey=\(request.ratingKey); staying on this episode", .playback)
+            MidgarLog.notice("Up Next countdown ended away from the credits ratingKey=\(request.ratingKey); staying on this episode", category: .playback)
             removeUpNextOverlay()
             return
         }
@@ -495,7 +496,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let previous = session
         previous.player?.pause()
         let indicator = showAdvanceIndicator(for: offer)
-        AppLogger.notice("Advancing ratingKey=\(previous.request.ratingKey) -> \(next.ratingKey) byViewer=\(viewerActedThisEpisode)", .playback)
+        MidgarLog.notice("Advancing ratingKey=\(previous.request.ratingKey) -> \(next.ratingKey) byViewer=\(viewerActedThisEpisode)", category: .playback)
 
         advanceTask?.cancel()
         advanceTask = Task { [weak self] in
@@ -509,7 +510,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                     abandonAdvance()
                     return
                 }
-                AppLogger.error("Next episode stream failed ratingKey=\(next.ratingKey): \(error.localizedDescription)", .playback)
+                MidgarLog.error("Next episode stream failed ratingKey=\(next.ratingKey): \(error.localizedDescription)", category: .playback)
                 nextSession.discard()
                 isAdvancing = false
                 indicator?.hide()

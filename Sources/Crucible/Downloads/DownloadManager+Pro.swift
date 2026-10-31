@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     /// Queues one title. A free install that already has a download going is offered Crucible Pro first, and the title is
@@ -44,7 +45,7 @@ extension DownloadManager {
             completion(run())
             return
         }
-        AppLogger.notice("Download limit reached with \(activeDownloadCount) active; asking for Pro to add \(adding)", .store)
+        MidgarLog.notice("Download limit reached with \(activeDownloadCount) active; asking for Pro to add \(adding)", category: .store)
         ProAccess.shared.requestUnlock(.unlimitedDownloads) { unlocked in
             completion(unlocked ? run() : nil)
         }

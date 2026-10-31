@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 @MainActor
@@ -94,7 +95,7 @@ class LibraryGridViewController: UIViewController {
 
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        AppLogger.info("\(kind.logName) appeared section=\(sectionId)", .ui)
+        MidgarLog.info("\(kind.logName) appeared section=\(sectionId)", category: .ui)
         if appliedColumns != Preferences.libraryColumns { reloadGridLayout() }
         installControls()
         observeDownloads()
@@ -566,7 +567,7 @@ class LibraryGridViewController: UIViewController {
 
 
     func openFolderBrowser() {
-        AppLogger.info("Folder browse tapped section=\(sectionId)", .ui)
+        MidgarLog.info("Folder browse tapped section=\(sectionId)", category: .ui)
         navigationController?.pushViewController(FolderBrowserViewController(api: api, source: .section(sectionId), folderTitle: "Browse Folders"), animated: true)
     }
 

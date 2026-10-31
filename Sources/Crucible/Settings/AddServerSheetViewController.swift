@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// A small sheet that takes a server address, finds a Plex server answering on it (https first, then
@@ -147,7 +148,7 @@ final class AddServerSheetViewController: UIViewController {
             connectTask = nil
             setConnecting(false)
             guard let found else {
-                AppLogger.error("Add server: nothing answered at \(input)", .networking)
+                MidgarLog.error("Add server: nothing answered at \(input)", category: .networking)
                 showError(AddServerLookup.notFoundMessage(for: input))
                 return
             }

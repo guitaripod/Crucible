@@ -1,6 +1,7 @@
 import AVFoundation
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension PlaybackSession {
     /// Takes the snapshot of where the viewer is, before the app has left the foreground: the player's own
@@ -58,7 +59,7 @@ extension PlaybackSession {
             position = absolutePosition
             keepPosition(position, finished: position.map { hasFinished(at: $0) } ?? false)
         }
-        AppLogger.notice("Playback suspended ratingKey=\(request.ratingKey) position=\(Int(position ?? -1)) directPlay=\(stream?.isDirectPlay ?? false) held=\(holds)", .playback)
+        MidgarLog.notice("Playback suspended ratingKey=\(request.ratingKey) position=\(Int(position ?? -1)) directPlay=\(stream?.isDirectPlay ?? false) held=\(holds)", category: .playback)
         return SuspensionReport(position: position, held: holds)
     }
 
@@ -103,7 +104,7 @@ extension PlaybackSession {
         let rewind = Preferences.rewindAfterBreak ? BreakRule.rewind(after: away) : 0
         let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.markers.map(SkipMarker.init))
         let plan = ReturnPlan.make(target: target, isDirectPlay: stream.isDirectPlay)
-        AppLogger.notice("Playback returned ratingKey=\(request.ratingKey) trigger=\(trigger) away=\(Int(away.seconds))s snapshot=\(Int(snapshot)) target=\(Int(target)) plan=\(plan) playing=\(resumes)", .playback)
+        MidgarLog.notice("Playback returned ratingKey=\(request.ratingKey) trigger=\(trigger) away=\(Int(away.seconds))s snapshot=\(Int(snapshot)) target=\(Int(target)) plan=\(plan) playing=\(resumes)", category: .playback)
         if !resumes { player.pause() }
         resumesAfterReturn = false
         keepPosition(target)
@@ -171,7 +172,7 @@ extension PlaybackSession {
         guard !isStopped else { return }
         let rate = player?.rate ?? -1
         let status = player?.currentItem?.status.rawValue ?? -1
-        AppLogger.notice("Lifecycle \(phase) ratingKey=\(request.ratingKey) position=\(Int(bestKnownPosition)) rate=\(rate) itemStatus=\(status) suspended=\(isSuspended)", .playback)
+        MidgarLog.notice("Lifecycle \(phase) ratingKey=\(request.ratingKey) position=\(Int(bestKnownPosition)) rate=\(rate) itemStatus=\(status) suspended=\(isSuspended)", category: .playback)
     }
 
     /// Writes the position to the device (`PlaybackResumeStore`) unless it is already the one saved. A run

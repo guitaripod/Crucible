@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Loads the watch history one page at a time and keeps the plays loaded so far. A screen owns one
 /// feed, calls the intent methods below, and reacts to `onEvent` by redrawing from `items` and `pager`.
@@ -105,7 +106,7 @@ package final class HistoryFeed {
                 onEvent?(.pageLoaded)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("History page \(offset) failed: \(error.localizedDescription)", .networking)
+                MidgarLog.error("History page \(offset) failed: \(error.localizedDescription)", category: .networking)
                 loadTask = nil
                 if pagerBeforeRefresh != nil {
                     restorePagerAfterFailedRefresh()

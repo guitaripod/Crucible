@@ -1,6 +1,7 @@
 import BackgroundTasks
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     /// iOS 26's continued-processing task keeps the in-process fetcher alive long after the ~30s
@@ -9,14 +10,14 @@ extension DownloadManager {
     func registerContinuedProcessing() {
         guard #available(iOS 26.0, *) else { return }
         let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.continuedTaskIdentifier, using: nil) { task in
-            AppLogger.notice("Continued processing launch handler invoked", .persistence)
+            MidgarLog.notice("Continued processing launch handler invoked", category: .persistence)
             guard let task = task as? BGContinuedProcessingTask else {
                 task.setTaskCompleted(success: false)
                 return
             }
             Task { @MainActor in DownloadManager.shared.adoptContinuedTask(task) }
         }
-        AppLogger.notice("Continued processing registration \(registered ? "succeeded" : "FAILED")", .persistence)
+        MidgarLog.notice("Continued processing registration \(registered ? "succeeded" : "FAILED")", category: .persistence)
     }
 
     /// `.fail` forces the system to either start the task immediately or throw a diagnosable error;
@@ -36,21 +37,21 @@ extension DownloadManager {
         }
         do {
             try BGTaskScheduler.shared.submit(request(.fail))
-            AppLogger.notice("Continued processing task submitted (fail strategy)", .persistence)
+            MidgarLog.notice("Continued processing task submitted (fail strategy)", category: .persistence)
         } catch {
-            AppLogger.error("Continued processing .fail submit rejected: \(error as NSError); retrying with .queue", .persistence)
+            MidgarLog.error("Continued processing .fail submit rejected: \(error as NSError); retrying with .queue", category: .persistence)
             do {
                 try BGTaskScheduler.shared.submit(request(.queue))
-                AppLogger.notice("Continued processing task submitted (queue strategy)", .persistence)
+                MidgarLog.notice("Continued processing task submitted (queue strategy)", category: .persistence)
             } catch {
-                AppLogger.error("Continued processing .queue submit rejected: \(error as NSError)", .persistence)
+                MidgarLog.error("Continued processing .queue submit rejected: \(error as NSError)", category: .persistence)
                 return
             }
         }
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(8))
             guard let self, self.continuedTask == nil else { return }
-            AppLogger.error("Continued processing task not launched 8s after submit", .persistence)
+            MidgarLog.error("Continued processing task not launched 8s after submit", category: .persistence)
         }
     }
 
@@ -65,12 +66,12 @@ extension DownloadManager {
         task.expirationHandler = { [weak self] in
             Task { @MainActor in self?.continuedTaskExpired() }
         }
-        AppLogger.notice("Continued processing task adopted; remaining units=\(continuedUnitsTotal)", .persistence)
+        MidgarLog.notice("Continued processing task adopted; remaining units=\(continuedUnitsTotal)", category: .persistence)
         if !hasActiveDownloads { completeContinuedTaskIfNeeded(success: true) }
     }
 
     private func continuedTaskExpired() {
-        AppLogger.notice("Continued processing expired; suspending in-process fetches", .persistence)
+        MidgarLog.notice("Continued processing expired; suspending in-process fetches", category: .persistence)
         continuedProcessingActive = false
         for key in Array(fallbackFetchers.keys) { suspendFallbackFetch(key) }
         completeContinuedTaskIfNeeded(success: false)
@@ -81,7 +82,7 @@ extension DownloadManager {
         continuedTask = nil
         continuedProcessingActive = false
         task.setTaskCompleted(success: success)
-        AppLogger.notice("Continued processing task completed success=\(success)", .persistence)
+        MidgarLog.notice("Continued processing task completed success=\(success)", category: .persistence)
     }
 
     func recordContinuedProgress(addedUnits: Int64 = 0, completedOne: Bool = false) {

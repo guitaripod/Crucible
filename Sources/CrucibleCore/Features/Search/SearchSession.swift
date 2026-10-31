@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 @MainActor
 package final class SearchSession {
@@ -162,7 +163,7 @@ package final class SearchSession {
                 renderResults()
             } catch {
                 guard !Task.isCancelled, (error as? URLError)?.code != .cancelled else { return }
-                AppLogger.error("Search failed query=\(query): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Search failed query=\(query): \(error.localizedDescription)", category: .networking)
                 activeQuery = nil
                 results = nil
                 resultsQuery = nil

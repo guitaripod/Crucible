@@ -1,6 +1,7 @@
 import AVFoundation
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension PlaybackSession {
     /// Moves the playhead to a position on the item's timeline and plays: an exact seek on a direct-play file
@@ -34,7 +35,7 @@ extension PlaybackSession {
         let seconds = direction == .back ? Preferences.skipBackSeconds : Preferences.skipForwardSeconds
         let offset = stream.isDirectPlay ? 0 : streamOffset
         let target = SkipRule.target(from: offset + playerTime, direction: direction, seconds: seconds, duration: request.durationSecs)
-        AppLogger.notice("Click \(direction) \(seconds) s ratingKey=\(request.ratingKey) from=\(Int(offset + playerTime)) to=\(Int(target))", .playback)
+        MidgarLog.notice("Click \(direction) \(seconds) s ratingKey=\(request.ratingKey) from=\(Int(offset + playerTime)) to=\(Int(target))", category: .playback)
         noteViewerAction()
         staleClock = nil
         settlingUntil = nil
@@ -224,7 +225,7 @@ extension PlaybackSession {
         guard rewind > 0 || gone else { return }
         let snapshot = bestKnownPosition
         let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.markers.map(SkipMarker.init))
-        AppLogger.notice("Playing after a pause ratingKey=\(request.ratingKey) pause=\(Int(pause.seconds))s position=\(Int(snapshot)) target=\(Int(target)) sessionGone=\(gone)", .playback)
+        MidgarLog.notice("Playing after a pause ratingKey=\(request.ratingKey) pause=\(Int(pause.seconds))s position=\(Int(snapshot)) target=\(Int(target)) sessionGone=\(gone)", category: .playback)
         if stream.isDirectPlay {
             seekAfterReturn(to: target, resumesPlayback: true)
         } else {
@@ -316,14 +317,14 @@ extension PlaybackSession {
     private static func lookUpOffer(resolver: UpNextResolver, api: APIClient, reason: UpNextOffer.Reason) async -> UpNextOffer? {
         for attempt in 0..<2 {
             if attempt > 0 {
-                AppLogger.notice("Up Next lookup failed; trying once more", .playback)
+                MidgarLog.notice("Up Next lookup failed; trying once more", category: .playback)
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return nil }
             }
             do {
                 return try await resolver.loadOffer(api: api, reason: reason)
             } catch {
-                AppLogger.error("Up Next lookup failed: \(error.localizedDescription)", .playback)
+                MidgarLog.error("Up Next lookup failed: \(error.localizedDescription)", category: .playback)
             }
         }
         return nil
@@ -372,7 +373,7 @@ extension PlaybackSession {
                       let typeValue,
                       let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
 
-                AppLogger.notice("Audio interruption \(type == .began ? "began" : "ended") ratingKey=\(self.request.ratingKey) playerRate=\(self.player?.rate ?? -1)", .playback)
+                MidgarLog.notice("Audio interruption \(type == .began ? "began" : "ended") ratingKey=\(self.request.ratingKey) playerRate=\(self.player?.rate ?? -1)", category: .playback)
                 if type == .ended, let optionsValue {
                     let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
                     if options.contains(.shouldResume) {

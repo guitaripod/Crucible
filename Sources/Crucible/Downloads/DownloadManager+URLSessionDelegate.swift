@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     nonisolated func urlSession(
@@ -12,7 +13,7 @@ extension DownloadManager {
         let size = (try? location.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
         guard (200...299).contains(status), size > 0,
               DownloadPaths.commitSegment(tempURL: location, ratingKey: parts.key, name: parts.name) else {
-            AppLogger.error("Segment rejected status=\(status) size=\(size) key=\(parts.key) name=\(parts.name)", .persistence)
+            MidgarLog.error("Segment rejected status=\(status) size=\(size) key=\(parts.key) name=\(parts.name)", category: .persistence)
             Task { @MainActor in DownloadManager.shared.handleSegmentError(ratingKey: parts.key, token: parts.token) }
             return
         }
@@ -27,7 +28,7 @@ extension DownloadManager {
         guard let error, let parts = Self.descriptor(task) else { return }
         let nsError = error as NSError
         guard !(nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled) else { return }
-        AppLogger.error("Segment task error key=\(parts.key) name=\(parts.name) \(nsError.domain)#\(nsError.code): \(nsError.localizedDescription)", .persistence)
+        MidgarLog.error("Segment task error key=\(parts.key) name=\(parts.name) \(nsError.domain)#\(nsError.code): \(nsError.localizedDescription)", category: .persistence)
         Task { @MainActor in DownloadManager.shared.handleSegmentError(ratingKey: parts.key, token: parts.token) }
     }
 

@@ -1,6 +1,7 @@
 import AVFoundation
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 /// A transcode restart asked for while another one is still being built.
 struct PendingRestart {
@@ -74,7 +75,7 @@ extension PlaybackSession {
     /// commits the time it still shows). The rebuilt stream already starts at the viewer's place, so the item
     /// goes back to its own start instead of being taken for a scrub that would skip ahead.
     private func settleRebuiltItem(_ item: AVPlayerItem, movedTo seconds: Double) {
-        AppLogger.notice("Settling a rebuilt item ratingKey=\(request.ratingKey): the player moved it to \(Int(seconds)) s, back to the start at \(Int(streamOffset))", .playback)
+        MidgarLog.notice("Settling a rebuilt item ratingKey=\(request.ratingKey): the player moved it to \(Int(seconds)) s, back to the start at \(Int(streamOffset))", category: .playback)
         lastPlayhead = 0
         tracker.moved(to: streamOffset)
         item.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: nil)
@@ -95,12 +96,12 @@ extension PlaybackSession {
         }
         guard !isRestarting, !isRecovering else { return }
         if let earlier = prematureEndPosition, abs(earlier - position) < ItemEndRule.endWindow(duration: request.durationSecs) {
-            AppLogger.error("The stream ended early twice ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs))", .playback)
+            MidgarLog.error("The stream ended early twice ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs))", category: .playback)
             emit(.failed("The stream stopped at \(Formatters.timestamp(position)) before the end of the video."))
             return
         }
         prematureEndPosition = position
-        AppLogger.notice("The stream ended early ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs)); rebuilding it", .playback)
+        MidgarLog.notice("The stream ended early ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs)); rebuilding it", category: .playback)
         restartTranscode(atAbsolute: position, resumesPlayback: true, freshSession: true, reason: "early end")
     }
 
@@ -110,7 +111,7 @@ extension PlaybackSession {
     private func handleFailure(_ message: String) {
         guard !isStopped else { return }
         let wasDirectPlay = stream?.isDirectPlay ?? false
-        AppLogger.error("Playback failed ratingKey=\(request.ratingKey) directPlay=\(wasDirectPlay): \(message)", .playback)
+        MidgarLog.error("Playback failed ratingKey=\(request.ratingKey) directPlay=\(wasDirectPlay): \(message)", category: .playback)
         let justReturned = returnedAt.map { Date().timeIntervalSince($0) <= PlaybackFailurePolicy.returnWindow } ?? false
         let gone = liveness?.mayBeGone(at: now()) ?? false
         switch failurePolicy.decide(wasDirectPlay: wasDirectPlay, isOffline: request.offline != nil, justReturned: justReturned || gone) {
@@ -119,12 +120,12 @@ extension PlaybackSession {
         case .restartTranscode:
             guard !isRestarting else { return }
             let position = bestKnownPosition
-            AppLogger.notice("Restarting the transcode after a failure ratingKey=\(request.ratingKey) position=\(Int(position))", .playback)
+            MidgarLog.notice("Restarting the transcode after a failure ratingKey=\(request.ratingKey) position=\(Int(position))", category: .playback)
             restartTranscode(atAbsolute: position, resumesPlayback: wasPlayingAtLastTick, freshSession: true, reason: "failure after a return")
         case .fail:
             emit(.failed(message))
         case .fallBackToTranscode:
-            AppLogger.notice("Retrying via transcode ratingKey=\(request.ratingKey)", .playback)
+            MidgarLog.notice("Retrying via transcode ratingKey=\(request.ratingKey)", category: .playback)
             itemWatcher?.invalidate()
             itemWatcher = nil
             fallbackTask = Task { [weak self] in await self?.fallBackToTranscode() }
@@ -160,10 +161,10 @@ extension PlaybackSession {
             player.replaceCurrentItem(with: item)
             watchCurrentItem()
             player.play()
-            AppLogger.notice("Transcode fallback playing ratingKey=\(request.ratingKey)", .playback)
+            MidgarLog.notice("Transcode fallback playing ratingKey=\(request.ratingKey)", category: .playback)
         } catch {
             guard !isStopped else { return }
-            AppLogger.error("Transcode fallback failed ratingKey=\(request.ratingKey): \(error.localizedDescription)", .playback)
+            MidgarLog.error("Transcode fallback failed ratingKey=\(request.ratingKey): \(error.localizedDescription)", category: .playback)
             failurePolicy.recordFailure()
             emit(.failed(error.localizedDescription))
         }
@@ -175,7 +176,7 @@ extension PlaybackSession {
         guard let stream, !stream.isDirectPlay, session == stream.sessionId else { return }
         guard !noticeAbsence(trigger: "server answer") else { return }
         liveness?.markGone()
-        AppLogger.notice("Transcode session gone ratingKey=\(request.ratingKey) reason=\(reason) playing=\(player?.rate ?? 0 > 0)", .playback)
+        MidgarLog.notice("Transcode session gone ratingKey=\(request.ratingKey) reason=\(reason) playing=\(player?.rate ?? 0 > 0)", category: .playback)
         guard let player, player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate else { return }
         heal(reason: reason)
     }
@@ -188,12 +189,12 @@ extension PlaybackSession {
             return
         case .giveUp:
             hasGivenUp = true
-            AppLogger.error("Giving up on healing ratingKey=\(request.ratingKey) after repeated rebuilds: \(reason)", .playback)
+            MidgarLog.error("Giving up on healing ratingKey=\(request.ratingKey) after repeated rebuilds: \(reason)", category: .playback)
             emit(.failed("The server keeps stopping this stream."))
         case .heal:
             let position = bestKnownPosition
             let playing = (player?.rate ?? 0) > 0 || player?.timeControlStatus == .waitingToPlayAtSpecifiedRate
-            AppLogger.notice("Healing the transcode ratingKey=\(request.ratingKey) position=\(Int(position)) reason=\(reason)", .playback)
+            MidgarLog.notice("Healing the transcode ratingKey=\(request.ratingKey) position=\(Int(position)) reason=\(reason)", category: .playback)
             restartTranscode(atAbsolute: position, resumesPlayback: playing, freshSession: true, reason: "heal: \(reason)")
         }
     }
@@ -204,7 +205,7 @@ extension PlaybackSession {
     func restartTranscode(atAbsolute target: Double, resumesPlayback: Bool = true, freshSession: Bool = false, reason: String) {
         guard let stream, player != nil, !isStopped else { return }
         let start = StreamPosition.transcodeStart(target)
-        AppLogger.notice("Transcode restart ratingKey=\(request.ratingKey) at=\(Int(start)) fresh=\(freshSession) plays=\(resumesPlayback) queued=\(isRestarting) reason=\(reason)", .playback)
+        MidgarLog.notice("Transcode restart ratingKey=\(request.ratingKey) at=\(Int(start)) fresh=\(freshSession) plays=\(resumesPlayback) queued=\(isRestarting) reason=\(reason)", category: .playback)
         tracker.beginRebuild(at: start)
         guard !isRestarting else {
             pendingRestart = PendingRestart(

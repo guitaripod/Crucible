@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 final class ShowDetailViewController: UICollectionViewController {
@@ -483,7 +484,7 @@ final class ShowDetailViewController: UICollectionViewController {
         Haptics.medium()
         DownloadManager.shared.requestDownloads(items) { added in
             guard let added else { return }
-            AppLogger.notice("Show download (\(reason)) queued \(added) episodes", .persistence)
+            MidgarLog.notice("Show download (\(reason)) queued \(added) episodes", category: .persistence)
         }
     }
 
@@ -569,7 +570,7 @@ final class ShowDetailViewController: UICollectionViewController {
                 await applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Show load failed ratingKey=\(showRatingKey): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Show load failed ratingKey=\(showRatingKey): \(error.localizedDescription)", category: .networking)
                 if model == nil {
                     showLoadError(message: error.localizedDescription)
                 } else {
@@ -892,7 +893,7 @@ final class ShowDetailViewController: UICollectionViewController {
         Haptics.medium()
         DownloadManager.shared.requestDownloads(eps, quality: quality) { [weak self] added in
             guard let added else { return }
-            AppLogger.notice("Batch download queued \(added) episodes", .persistence)
+            MidgarLog.notice("Batch download queued \(added) episodes", category: .persistence)
             self?.multiSelect.setEditing(false)
         }
     }

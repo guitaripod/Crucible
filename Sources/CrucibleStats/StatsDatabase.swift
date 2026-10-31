@@ -1,6 +1,7 @@
 import CrucibleCore
 import Foundation
 import GRDB
+import MidgarCore
 import os
 
 /// Owns the on-disk GRDB queue for the local watch-history mirror. It lives in
@@ -36,11 +37,11 @@ final class StatsDatabase: Sendable {
         do {
             return try StatsDatabase(url: url)
         } catch let error as DatabaseError where error.isCorruption {
-            AppLogger.error("Stats DB corrupt (\(error.resultCode)), rebuilding: \(error.localizedDescription)", .stats)
+            MidgarLog.error("Stats DB corrupt (\(error.resultCode)), rebuilding: \(error.localizedDescription)", category: .stats)
             destroy(at: url)
             return try StatsDatabase(url: url)
         } catch {
-            AppLogger.error("Stats DB could not be opened, keeping the file: \(error.localizedDescription)", .stats)
+            MidgarLog.error("Stats DB could not be opened, keeping the file: \(error.localizedDescription)", category: .stats)
             throw error
         }
     }

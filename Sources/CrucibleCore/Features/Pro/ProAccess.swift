@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// A request to show the paywall: which feature the user reached for, so the screen can say why.
 package struct PaywallRequest: Equatable, Sendable {
@@ -93,7 +94,7 @@ package final class ProAccess {
         guard new != status else { return }
         if keepingProOnUnknown, new == .unknown { return }
         status = new
-        AppLogger.info("Pro status is now \(new.logDescription)", .store)
+        MidgarLog.info("Pro status is now \(new.logDescription)", category: .store)
         notify()
     }
 
@@ -115,7 +116,7 @@ package final class ProAccess {
             return
         }
         guard let paywallPresenter else {
-            AppLogger.error("A paywall was requested before a screen could show it", .store)
+            MidgarLog.error("A paywall was requested before a screen could show it", category: .store)
             completion(false)
             return
         }

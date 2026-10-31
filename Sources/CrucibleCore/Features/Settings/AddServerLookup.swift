@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// A Plex server that answered at a typed address, with the other routes plex.tv knows for it.
 package struct FoundServer: Sendable {
@@ -64,6 +65,6 @@ package enum AddServerLookup {
 
     package static func save(_ server: FoundServer) {
         ServerBootstrap.saveServer(uri: server.url, name: server.name, machineIdentifier: server.machineIdentifier, candidates: server.candidates)
-        AppLogger.notice("Added server \(server.name) at \(server.url.absoluteString)", .networking)
+        MidgarLog.notice("Added server \(server.name) at \(server.url.absoluteString)", category: .networking)
     }
 }

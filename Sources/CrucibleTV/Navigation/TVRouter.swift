@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 import UIKit
 
 /// The single place that opens things from outside a screen: `crucible://` links from Top Shelf and
@@ -63,7 +64,7 @@ final class TVRouter {
     @discardableResult
     func handle(_ url: URL) -> Bool {
         guard let link = DeepLink(url: url) else {
-            AppLogger.notice("Ignored unrecognised URL \(Self.redacted(url))", .lifecycle)
+            MidgarLog.notice("Ignored unrecognised URL \(Self.redacted(url))", category: .lifecycle)
             return false
         }
         handle(link)
@@ -71,7 +72,7 @@ final class TVRouter {
     }
 
     func handle(_ link: DeepLink) {
-        AppLogger.notice("Deep link \(Self.describe(link)), main UI \(tabBar == nil ? "not ready" : "ready")", .lifecycle)
+        MidgarLog.notice("Deep link \(Self.describe(link)), main UI \(tabBar == nil ? "not ready" : "ready")", category: .lifecycle)
         guard tabBar != nil else {
             pending = link
             return
@@ -82,7 +83,7 @@ final class TVRouter {
         case .item(let ratingKey, nil):
             resolve(ratingKey: ratingKey) { router, item in
                 guard ["movie", "show", "episode"].contains(item.mediaType) else {
-                    AppLogger.error("Deep link item \(item.id) is a \(item.mediaType), which has no detail screen", .lifecycle)
+                    MidgarLog.error("Deep link item \(item.id) is a \(item.mediaType), which has no detail screen", category: .lifecycle)
                     return
                 }
                 router.open(ratingKey: item.id, mediaType: item.mediaType)
@@ -90,7 +91,7 @@ final class TVRouter {
         case .play(let ratingKey):
             resolve(ratingKey: ratingKey) { router, item in
                 guard DeepLink.isPlayableType(item.mediaType) else {
-                    AppLogger.error("Deep link item \(item.id) is a \(item.mediaType), which cannot be played", .lifecycle)
+                    MidgarLog.error("Deep link item \(item.id) is a \(item.mediaType), which cannot be played", category: .lifecycle)
                     return
                 }
                 router.play(TVPlaybackRequest(item: item))
@@ -153,13 +154,13 @@ final class TVRouter {
             do {
                 let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
                 guard !Task.isCancelled, let self, let item = container.Metadata?.first else {
-                    AppLogger.error("Deep link item \(ratingKey) not found", .lifecycle)
+                    MidgarLog.error("Deep link item \(ratingKey) not found", category: .lifecycle)
                     return
                 }
                 action(self, item)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Deep link lookup for \(ratingKey) failed: \(String(describing: error))", .networking)
+                MidgarLog.error("Deep link lookup for \(ratingKey) failed: \(String(describing: error))", category: .networking)
             }
         }
     }

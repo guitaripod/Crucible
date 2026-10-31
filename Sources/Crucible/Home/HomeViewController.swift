@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 import os
 @preconcurrency import UIKit
 
@@ -437,7 +438,7 @@ final class HomeViewController: UICollectionViewController {
                 presentLoadedContent(animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Home load failed: \(error.localizedDescription)", .networking)
+                MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
                 endRefreshing()
                 showLoadError(error)
             }

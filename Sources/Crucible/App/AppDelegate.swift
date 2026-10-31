@@ -1,5 +1,6 @@
 import AVFoundation
 import CrucibleCore
+import MidgarCore
 import UIKit
 import UserNotifications
 
@@ -8,11 +9,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        CrucibleLog.configure()
         NSSetUncaughtExceptionHandler { exception in
             let stack = exception.callStackSymbols.joined(separator: "\n")
-            AppLogger.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", .lifecycle, sync: true)
+            MidgarLog.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", category: .lifecycle)
+            MidgarLog.flush()
         }
-        AppLogger.notice("App launched (log: \(LogFileWriter.shared.currentPath))", .lifecycle)
+        MidgarLog.notice("App launched (log: \(MidgarLog.logFileURLs.first?.path ?? "none"))", category: .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         application.beginReceivingRemoteControlEvents()
         #if DEBUG

@@ -15,7 +15,7 @@ Build and test Crucible on the Mac (the only host with the Apple SDKs).
   scripts/mac.sh sync        rsync the working tree to the Mac
   scripts/mac.sh ios         sync, then build the iOS package scheme (Crucible) for the iPhone simulator
   scripts/mac.sh tvlib       sync, then build the CrucibleTV package scheme for the Apple TV simulator
-  scripts/mac.sh store       sync, then build the CrucibleStore package scheme (RevenueCat) for the iPhone and Apple TV simulators
+  scripts/mac.sh store       sync, then build the CrucibleStore package scheme (MidgarStore) for the iPhone and Apple TV simulators
   scripts/mac.sh core-test   sync, then run CrucibleCoreTests on the macOS host (CRUCIBLE_CORE_ONLY=1)
   scripts/mac.sh bench       sync, then score the episode-flow benchmark on the macOS host (CRUCIBLE_BENCH=1)
   scripts/mac.sh sh <cmd>    sync, then run <cmd> inside the remote checkout

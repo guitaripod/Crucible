@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 import UIKit
 
 extension TVAppCoordinator {
@@ -27,16 +28,16 @@ extension TVAppCoordinator {
     /// earned it, until the main UI is free, and gives up if the demo ends first.
     private func scheduleFinale() {
         guard !ProAccess.shared.isPro else {
-            AppLogger.notice("Demo finale skipped: Pro is already owned", .lifecycle)
+            MidgarLog.notice("Demo finale skipped: Pro is already owned", category: .lifecycle)
             return
         }
-        AppLogger.notice("Demo finale scheduled", .lifecycle)
+        MidgarLog.notice("Demo finale scheduled", category: .lifecycle)
         finaleTask?.cancel()
         finaleTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: Self.finaleSettleDelay)
             while !Task.isCancelled, let self, DemoMode.shared.isActive {
                 if let tabBar = unobstructedTabBar {
-                    AppLogger.notice("Demo finale presented", .lifecycle)
+                    MidgarLog.notice("Demo finale presented", category: .lifecycle)
                     presentFinale(over: tabBar)
                     return
                 }

@@ -1,6 +1,7 @@
 import AVKit
 import CrucibleCore
 import CrucibleMedia
+import MidgarCore
 import UIKit
 
 extension TVPlayerCoordinator {
@@ -48,7 +49,7 @@ extension TVPlayerCoordinator {
 
     private func selectStreams(subtitleId: Int?, audioId: Int?) {
         guard let session else { return }
-        AppLogger.notice("Switching streams ratingKey=\(request.ratingKey) audio=\(String(describing: audioId)) subtitle=\(String(describing: subtitleId))", .playback)
+        MidgarLog.notice("Switching streams ratingKey=\(request.ratingKey) audio=\(String(describing: audioId)) subtitle=\(String(describing: subtitleId))", category: .playback)
         Task { [weak self] in
             do {
                 try await session.selectStreams(subtitleId: subtitleId, audioStreamId: audioId)

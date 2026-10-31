@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// State behind the Server & Connection screen: the pinned server, every known route with a live
 /// latency probe, and the numbers the rows print. The screen renders `card` and `routeRows`, calls
@@ -203,6 +204,6 @@ package final class ServerConnectionModel {
         isTesting = false
         onChange?()
         onFinish?()
-        AppLogger.info("Connection test finished: \(probes.count) routes", .networking)
+        MidgarLog.info("Connection test finished: \(probes.count) routes", category: .networking)
     }
 }

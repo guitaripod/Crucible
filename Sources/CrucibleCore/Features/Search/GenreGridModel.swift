@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// What a genre grid does apart from drawing: the first page of every library section the genre
 /// spans paints the grid, and the next pages arrive as the focus nears the end, like a library grid.
@@ -79,7 +80,7 @@ package final class GenreGridModel {
                 apply(pages)
             } catch {
                 guard !Task.isCancelled, (error as? URLError)?.code != .cancelled, let self else { return }
-                AppLogger.error("Genre browse failed genre=\(genre.title): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Genre browse failed genre=\(genre.title): \(error.localizedDescription)", category: .networking)
                 fail(error)
             }
         }

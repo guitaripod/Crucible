@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     func finalizeComplete(_ ratingKey: String) {
@@ -20,7 +21,7 @@ extension DownloadManager {
         emit(.finished(ratingKey: ratingKey))
         emit(.changed)
         notifyDownloadComplete(items[idx])
-        AppLogger.notice("Download finished key=\(ratingKey) bytes=\(size)", .persistence)
+        MidgarLog.notice("Download finished key=\(ratingKey) bytes=\(size)", category: .persistence)
         pumpQueue()
         if !hasActiveDownloads { completeContinuedTaskIfNeeded(success: true) }
     }
@@ -35,7 +36,7 @@ extension DownloadManager {
         persist()
         emit(.failed(ratingKey: ratingKey, message: message))
         emit(.changed)
-        AppLogger.error("Download failed key=\(ratingKey): \(message)", .persistence)
+        MidgarLog.error("Download failed key=\(ratingKey): \(message)", category: .persistence)
         notifyDownloadFailed(items[idx], message: message)
         pumpQueue()
         if !hasActiveDownloads { completeContinuedTaskIfNeeded(success: false) }

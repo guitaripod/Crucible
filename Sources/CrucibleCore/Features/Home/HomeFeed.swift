@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Loads and arranges the content of Home: `/hubs` bucketed and filtered into a `HomeArrangement`,
 /// with the cold-launch snapshot as the instant first paint and as the fallback when a refresh
@@ -94,9 +95,9 @@ package final class HomeFeed {
     /// Applies an already fetched `/hubs` response and saves it as the cold-launch snapshot.
     package func apply(container: PlexMediaContainer) {
         let visible = setContent(HomeBuckets(hubs: container.Hub))
-        AppLogger.info(
+        MidgarLog.info(
             "Home loaded: cw=\(visible.continueWatching.count) od=\(visible.onDeck.count) ra=\(visible.recent.count)",
-            .networking
+            category: .networking
         )
         environment.saveSnapshot(HomeSnapshot(
             schema: HomeSnapshotStore.schemaVersion,
@@ -123,7 +124,7 @@ package final class HomeFeed {
             pool = HomeBuckets.visible(container.Metadata ?? [], excluding: environment.excludedLibraries()) + pool
         } catch {
             lookupError = error
-            AppLogger.error("Surprise Me fetch failed, using cached Home items: \(error.localizedDescription)", .networking)
+            MidgarLog.error("Surprise Me fetch failed, using cached Home items: \(error.localizedDescription)", category: .networking)
         }
         try Task.checkCancellation()
         let pick = SurpriseMe.pick(from: pool, kind: kind)

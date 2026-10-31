@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     // MARK: - Recovery
@@ -28,7 +29,7 @@ extension DownloadManager {
                     items[i].state = .queued
                     items[i].progress = 0
                     items[i].completedAt = nil
-                    AppLogger.notice("Download re-queued (asset incomplete on disk) key=\(items[i].ratingKey)", .persistence)
+                    MidgarLog.notice("Download re-queued (asset incomplete on disk) key=\(items[i].ratingKey)", category: .persistence)
                 }
             case .waitingForWiFi:
                 items[i].state = .queued

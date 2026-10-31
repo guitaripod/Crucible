@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// Watch History on Apple TV: the plays newest first, grouped by day, with All/Movies/TV chips, a
@@ -316,7 +317,7 @@ final class HistoryViewController: TVScreenViewController {
                 TVScreens.play(env, request: TVPlaybackRequest(item: metadata), from: self)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("History play again failed for \(item.ratingKey): \(error.localizedDescription)", .playback)
+                MidgarLog.error("History play again failed for \(item.ratingKey): \(error.localizedDescription)", category: .playback)
                 presentPlaybackError()
             }
         }

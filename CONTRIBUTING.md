@@ -5,7 +5,7 @@ Issues and pull requests are welcome at <https://github.com/guitaripod/Crucible>
 ## Before you start
 
 - Read `docs/ARCHITECTURE.md`: logic lives in `CrucibleCore` and the other shared modules, and the iPhone and Apple TV screens only render it.
-- The repo rules are in the README and architecture doc: programmatic UIKit, Swift 6, `package` access across modules, no inline comments (a well-named method with a `///` doc comment instead), no `print` (use `AppLogger`).
+- The repo rules are in the README and architecture doc: programmatic UIKit, Swift 6, `package` access across modules, no inline comments (a well-named method with a `///` doc comment instead), no `print` (use `MidgarLog` with a Crucible category from `CrucibleLog.swift`).
 - Run `scripts/mac.sh core-test` for Core changes and `tv/scripts/tv.sh uitest` for Apple TV changes; both need a Mac.
 
 ## Licence of your contribution

@@ -4,19 +4,18 @@ The iPhone app is built two ways from the same sources.
 
 | Path | Builds | Use |
 | --- | --- | --- |
-| xtool (`scripts/install-ios.sh`, `xtool.yml`, `InfoAdditions.plist`) | the SwiftPM library target `Crucible`, whose `@main` is `Sources/Crucible/App/CrucibleApp.swift` | day-to-day installs on the iPhone from Linux. Untouched: it still builds the unlocked source build (Pro is simply on, no RevenueCat). |
-| Xcode project in `ios/` (this directory) | `ios/project.yml` generates `ios/CrucibleIOS.xcodeproj` | the App Store build: archive and upload with Xcode. Installs the RevenueCat store before the first screen. |
+| xtool (`scripts/install-ios.sh`, `xtool.yml`, `InfoAdditions.plist`) | the SwiftPM library target `Crucible`, whose `@main` is `Sources/Crucible/App/CrucibleApp.swift` | day-to-day installs on the iPhone from Linux. Untouched: it still builds the unlocked source build (Pro is simply on, no store). |
+| Xcode project in `ios/` (this directory) | `ios/project.yml` generates `ios/CrucibleIOS.xcodeproj` | the App Store build: archive and upload with Xcode. Installs the MidgarStore store (`MidgarProAccess`) before the first screen. |
 
 | Target | What it is |
 | --- | --- |
-| `CrucibleApp` | The app: product `Crucible`, bundle id `com.guitaripod.crucible`, module `Crucible`, iPhone and iPad (`TARGETED_DEVICE_FAMILY` 1,2, several windows), iOS 17. It compiles `Sources/Crucible/**` directly, minus `App/CrucibleApp.swift`, plus `ios/App/Entry.swift`, which configures `RevenueCatProAccess` with `StoreSecrets.revenueCatPublicKey`, installs it into `ProAccess.shared` and then runs `UIApplicationMain` with `AppDelegate`. It links the package products `CrucibleCore`, `CrucibleMedia`, `CrucibleStats`, `CrucibleDesign`, `CrucibleStatsUI`, `CrucibleActivity`, `CrucibleStore` and `GRDB`. |
+| `CrucibleApp` | The app: product `Crucible`, bundle id `com.guitaripod.crucible`, module `Crucible`, iPhone and iPad (`TARGETED_DEVICE_FAMILY` 1,2, several windows), iOS 17. It compiles `Sources/Crucible/**` directly, minus `App/CrucibleApp.swift`, plus `ios/App/Entry.swift`, which opens the MidgarLog file, installs `MidgarProAccess.live()` into `ProAccess.shared` and then runs `UIApplicationMain` with `AppDelegate`. It links the package products `CrucibleCore`, `CrucibleMedia`, `CrucibleStats`, `CrucibleDesign`, `CrucibleStatsUI`, `CrucibleActivity`, `CrucibleStore` and `GRDB`. |
 | `CrucibleWidgetsExt` | The Live Activity widget extension (`com.guitaripod.crucible.widgets`, product `CrucibleWidgets`), compiling `Sources/CrucibleWidgets/**` and embedded in the app. |
 
 Info.plist keys are in `ios/project.yml` (they mirror `InfoAdditions.plist` and `CrucibleWidgets-Info.plist`, including the four iPad orientations and `UIApplicationSupportsMultipleScenes`). `ios/Resources/Assets.xcassets` holds the single 1024 `AppIcon` (a copy of `Resources/AppIcon.png`, RGB without alpha) and `ios/Resources/PrivacyInfo.xcprivacy` the app's privacy manifest. There are no entitlements and no App Group on iOS. Version and build number are `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` (keep them equal to `tv/project.yml`).
 
 The generated `ios/CrucibleIOS.xcodeproj`, `ios/Generated/` (Info.plists), `ios/.gen-hash` and `ios/out/` are git-ignored. The scheme is `CrucibleIOS`.
 
-`Sources/CrucibleStore/StoreSecrets.swift` (git-ignored, from `scripts/bootstrap-secrets.sh`) must exist on the Mac.
 
 ## Package name
 

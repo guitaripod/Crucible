@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 import UIKit
 
 /// Movie and episode detail: backdrop hero, Play or Resume, Start Over, Mark Watched, the Audio and
@@ -31,7 +32,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
             adopt(loaded)
         } catch {
             guard !Task.isCancelled else { return }
-            AppLogger.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+            MidgarLog.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
             if !hasContent { showFailure(title: "Couldn\u{2019}t Load", message: error.localizedDescription) }
         }
     }
@@ -189,7 +190,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
                       let route = model?.nextEpisodeRoute(next) else { return }
                 push(route)
             } catch {
-                AppLogger.error("Next episode lookup failed ratingKey=\(ratingKey): \(error.localizedDescription)", .networking)
+                MidgarLog.error("Next episode lookup failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
             }
         }
     }

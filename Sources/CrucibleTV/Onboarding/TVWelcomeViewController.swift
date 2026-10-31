@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The first screen of a new install: the crystal, the name, one line and the way in. Sign in with Plex is the main button; when
@@ -67,7 +68,7 @@ final class TVWelcomeViewController: TVOnboardingViewController {
                 TVDemoState.markIntroPending()
                 self?.flow.didConnect(connection)
             } catch {
-                AppLogger.error("The demo could not start: \(String(describing: error))", .lifecycle)
+                MidgarLog.error("The demo could not start: \(String(describing: error))", category: .lifecycle)
                 self?.setEnteringDemo(false)
                 self?.presentAlert(
                     title: "Couldn\u{2019}t Start the Demo",

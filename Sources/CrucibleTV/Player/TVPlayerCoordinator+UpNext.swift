@@ -2,6 +2,7 @@ import AVKit
 import CrucibleCore
 import CrucibleDesign
 import CrucibleMedia
+import MidgarCore
 import UIKit
 
 extension TVPlayerCoordinator {
@@ -22,7 +23,7 @@ extension TVPlayerCoordinator {
     }
 
     private func installUpNext(_ offer: UpNextOffer, hasCredits: Bool, session: PlaybackSession) {
-        AppLogger.notice("Up Next prepared: \(offer.episode.id) credits=\(String(describing: session.creditsStartSecs)) offset=\(session.streamOffset)", .playback)
+        MidgarLog.notice("Up Next prepared: \(offer.episode.id) credits=\(String(describing: session.creditsStartSecs)) offset=\(session.streamOffset)", category: .playback)
         upNextOffer = offer
         let card = TVUpNextViewController(offer: offer, hasCredits: hasCredits)
         card.onDeferred = { [weak self] in self?.upNextCardWasDeferred() }
@@ -103,11 +104,11 @@ extension TVPlayerCoordinator {
     ) -> Bool {
         guard !isFinishing else { return false }
         if let session, !session.isAtCreditsOrEnd {
-            AppLogger.notice("Up Next proposal refused before the credits ratingKey=\(request.ratingKey) position=\(Int(session.absolutePosition ?? -1)) credits=\(Int(session.creditsStartSecs ?? -1))", .playback)
+            MidgarLog.notice("Up Next proposal refused before the credits ratingKey=\(request.ratingKey) position=\(Int(session.absolutePosition ?? -1)) credits=\(Int(session.creditsStartSecs ?? -1))", category: .playback)
             session.heal(reason: "Up Next proposal before the credits")
             return false
         }
-        AppLogger.notice("Up Next proposal presented for ratingKey=\(request.ratingKey) stillWatching=\(asksStillWatching) unattended=\(unattendedEpisodes)", .playback)
+        MidgarLog.notice("Up Next proposal presented for ratingKey=\(request.ratingKey) stillWatching=\(asksStillWatching) unattended=\(unattendedEpisodes)", category: .playback)
         isUpNextCardVisible = true
         session?.setUpNextVisible(true)
         clearContextualActions()
@@ -121,7 +122,7 @@ extension TVPlayerCoordinator {
         guard let offer = upNextOffer else { return }
         let byViewer = upNextCard?.acceptedByViewer ?? false
         if !byViewer, let session, !session.isAtCreditsOrEnd {
-            AppLogger.notice("Up Next countdown ended away from the credits ratingKey=\(request.ratingKey); staying on this episode", .playback)
+            MidgarLog.notice("Up Next countdown ended away from the credits ratingKey=\(request.ratingKey); staying on this episode", category: .playback)
             isUpNextCardVisible = false
             session.setUpNextVisible(false)
             session.player?.currentItem?.nextContentProposal = makeProposal()

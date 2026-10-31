@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Card configuration, navigation and context-menu building shared by Home and its See All grids.
@@ -72,7 +73,7 @@ enum HomeMediaActions {
                 do {
                     try await toggle.perform(using: api)
                 } catch {
-                    AppLogger.error("Home mark watched failed ratingKey=\(item.id): \(error.localizedDescription)", .networking)
+                    MidgarLog.error("Home mark watched failed ratingKey=\(item.id): \(error.localizedDescription)", category: .networking)
                 }
                 didChange()
             }

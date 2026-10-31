@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// A requested PIN and the moment plex.tv stops honouring it.
 package struct PlexPinCode: Equatable, Sendable {
@@ -185,7 +186,7 @@ package struct PlexPinAuth: Sendable {
                     consecutiveUnknown = 0
                 }
                 consecutiveFailures += 1
-                AppLogger.error("PIN poll failed (\(consecutiveFailures)): \(error.localizedDescription)", .networking)
+                MidgarLog.error("PIN poll failed (\(consecutiveFailures)): \(error.localizedDescription)", category: .networking)
                 if consecutiveFailures >= timing.maxConsecutivePollFailures {
                     continuation.yield(.failed(error.localizedDescription))
                     return

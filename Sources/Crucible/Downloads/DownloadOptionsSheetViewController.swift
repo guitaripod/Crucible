@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Bottom sheet for downloading part of a show: which episodes, at what quality, and whether to keep
@@ -478,7 +479,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         }
         DownloadManager.shared.requestDownloads(pending, quality: quality) { [weak self] added in
             guard let self, let added else { return }
-            AppLogger.notice("Download sheet queued \(added) episodes for show \(context.showRatingKey)", .persistence)
+            MidgarLog.notice("Download sheet queued \(added) episodes for show \(context.showRatingKey)", category: .persistence)
             finishConfirm()
         }
     }

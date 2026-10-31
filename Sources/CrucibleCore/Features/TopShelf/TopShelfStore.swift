@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Reads and writes the Top Shelf snapshot in the App Group container shared by the app and its
 /// Top Shelf extension.
@@ -69,11 +70,11 @@ package struct TopShelfStore: Sendable {
             let url = directory.appendingPathComponent(Self.snapshotName)
             guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else { continue }
             guard size <= Self.maxReadBytes else {
-                AppLogger.error("Top Shelf snapshot at \(url.path) is \(size) bytes, over the read limit", .persistence)
+                MidgarLog.error("Top Shelf snapshot at \(url.path) is \(size) bytes, over the read limit", category: .persistence)
                 continue
             }
             guard let data = try? Data(contentsOf: url), let snapshot = try? JSONDecoder().decode(TopShelfSnapshot.self, from: data) else {
-                AppLogger.error("Top Shelf snapshot at \(url.path) could not be read", .persistence)
+                MidgarLog.error("Top Shelf snapshot at \(url.path) could not be read", category: .persistence)
                 continue
             }
             guard snapshot.schema == TopShelfSnapshot.schemaVersion else { continue }
@@ -86,7 +87,7 @@ package struct TopShelfStore: Sendable {
     @discardableResult
     package func save(_ snapshot: TopShelfSnapshot) -> Bool {
         guard container != nil else {
-            AppLogger.error("Top Shelf: no App Group container for \(Self.appGroupIdentifier)", .persistence)
+            MidgarLog.error("Top Shelf: no App Group container for \(Self.appGroupIdentifier)", category: .persistence)
             return false
         }
         guard let data = try? JSONEncoder().encode(snapshot) else { return false }
@@ -159,9 +160,9 @@ package struct TopShelfStore: Sendable {
 
     private func logWriteFailure(_ error: Error, at url: URL) {
         let failure = error as NSError
-        AppLogger.error(
+        MidgarLog.error(
             "Top Shelf write failed at \(url.path): \(failure.domain) \(failure.code) — \(failure.localizedDescription)",
-            .persistence
+            category: .persistence
         )
     }
 

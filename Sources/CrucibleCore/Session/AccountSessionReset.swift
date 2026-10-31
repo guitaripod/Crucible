@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// The parts of a session reset that live above Core: the statistics database, the image cache,
 /// the Top Shelf announcement and, on the iPhone, downloads. Each platform builds its own value
@@ -56,7 +57,7 @@ package enum AccountSessionReset {
         let previous = defaults.string(forKey: sessionMachineKey)
         defaults.set(machineIdentifier, forKey: sessionMachineKey)
         guard let previous, previous != machineIdentifier else { return false }
-        AppLogger.notice("Server changed; resetting state bound to the previous server", .lifecycle)
+        MidgarLog.notice("Server changed; resetting state bound to the previous server", category: .lifecycle)
         resetServerBoundState(collaborators)
         return true
     }

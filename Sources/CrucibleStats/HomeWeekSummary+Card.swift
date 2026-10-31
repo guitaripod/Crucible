@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension HomeWeekSummary {
     /// The This Week card's display data; nil when there is no watch time this week or last.
@@ -20,7 +21,7 @@ extension StatsStore {
         do {
             return try await homeWeekSummary(now: now)
         } catch {
-            AppLogger.error("Home week summary failed: \(error.localizedDescription)", .stats)
+            MidgarLog.error("Home week summary failed: \(error.localizedDescription)", category: .stats)
             return nil
         }
     }

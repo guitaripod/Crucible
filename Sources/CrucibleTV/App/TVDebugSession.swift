@@ -2,6 +2,7 @@ import Foundation
 #if DEBUG
 import CrucibleCore
 import UIKit
+import MidgarCore
 #endif
 
 /// Launch-time switches for simulator runs and UI tests. Everything that changes the session only
@@ -50,7 +51,7 @@ enum TVDebugSession {
             AccountSessionReset.signOut(.tv)
             forgetDemo()
             ProMomentLedger().reset()
-            AppLogger.notice("Debug session: fresh install state", .lifecycle)
+            MidgarLog.notice("Debug session: fresh install state", category: .lifecycle)
         }
         guard let value = environment["CRUCIBLE_MOCK"], let base = URL(string: value) else { return }
         forgetDemo()
@@ -58,7 +59,7 @@ enum TVDebugSession {
         ServerBootstrap.saveToken("mock-token")
         ServerBootstrap.saveServer(uri: base, name: "Marcus-PC", machineIdentifier: mockMachineIdentifier)
         UserDefaults.standard.set("Marcus", forKey: "plex_account_name")
-        AppLogger.notice("Debug session: mock connection \(base.absoluteString)", .lifecycle)
+        MidgarLog.notice("Debug session: mock connection \(base.absoluteString)", category: .lifecycle)
     }
     #endif
 }

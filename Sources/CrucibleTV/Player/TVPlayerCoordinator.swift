@@ -2,6 +2,7 @@ import AVKit
 import CrucibleCore
 import CrucibleDesign
 import CrucibleMedia
+import MidgarCore
 import UIKit
 
 /// Plays one item, or a run of episodes, in the system `AVPlayerViewController` on top of a
@@ -104,7 +105,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     /// Starts a fresh session for `request` behind the pre-roll.
     func startSession() {
-        AppLogger.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", .playback)
+        MidgarLog.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", category: .playback)
         isAdvancing = false
         let session = PlaybackSession(api: api, request: request, installsRemoteCommands: false)
         session.configureItem = { [weak self] item in self?.configure(item: item) }
@@ -399,7 +400,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     func finish(animated: Bool) async {
         guard !isFinishing else { return }
         isFinishing = true
-        AppLogger.notice("Playback finishing ratingKey=\(request.ratingKey) animated=\(animated)", .playback)
+        MidgarLog.notice("Playback finishing ratingKey=\(request.ratingKey) animated=\(animated)", category: .playback)
         session?.player?.pause()
         stopObservingLifecycle()
         let session = self.session
@@ -508,7 +509,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// background, the way a player that lost its place while the Apple TV slept reads: zero seconds into its stream.
     private func resetPlayerClockForUITests() {
         guard ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_CLOCK_RESET"] == "1" else { return }
-        AppLogger.notice("Debug: resetting the player clock to zero", .playback)
+        MidgarLog.notice("Debug: resetting the player clock to zero", category: .playback)
         session?.player?.seek(to: .zero)
     }
     #endif
@@ -532,7 +533,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
               let length = environment["CRUCIBLE_PLAYER_SLEEP_FOR"].flatMap(Double.init),
               let session else { return }
         didSimulateSleep = true
-        AppLogger.notice("Debug: simulating \(Int(length)) s asleep without lifecycle notifications", .playback)
+        MidgarLog.notice("Debug: simulating \(Int(length)) s asleep without lifecycle notifications", category: .playback)
         session.player?.pause()
         let reap = environment["CRUCIBLE_MOCK"].flatMap { mock in
             session.stream.flatMap { URL(string: "\(mock)/mock/reap?session=\($0.sessionId)") }
@@ -550,7 +551,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     }
 
     func playerViewControllerShouldDismiss(_ playerViewController: AVPlayerViewController) -> Bool {
-        AppLogger.notice("Player asked to dismiss (finishing=\(isFinishing))", .playback)
+        MidgarLog.notice("Player asked to dismiss (finishing=\(isFinishing))", category: .playback)
         if isFinishing { return true }
         Task { await finish(animated: true) }
         return false

@@ -32,7 +32,6 @@ case "$PLATFORM" in
 esac
 
 STAGE=Dev/ios/store-$NAME
-[[ -f "$ROOT/Sources/CrucibleStore/StoreSecrets.swift" ]] || "$ROOT/scripts/bootstrap-secrets.sh"
 
 NAME=store-$NAME "$ROOT/scripts/mac.sh" sync
 

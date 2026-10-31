@@ -22,7 +22,7 @@ Run the Crucible XCUITests on a local iPad simulator.
 
   ipad-uitest.sh [-only Class[/test]]
 
-Syncs the repo to ~/Dev/ios/CrucibleIPadUITest (the git-ignored StoreSecrets.swift gets a placeholder there, never in the repo),
+Syncs the repo to ~/Dev/ios/CrucibleIPadUITest,
 runs ios/scripts/generate.sh in the copy, boots the CrucibleIPadUITest simulator (created on first use), runs the CrucibleIOSUITests
 bundle and exports the screenshot attachments to ios/out/ui-ipad.
 
@@ -54,14 +54,8 @@ sync_tree() {
     "$ROOT/" "$COPY/"
 }
 
-write_store_secrets() {
-  mkdir -p "$COPY/Sources/CrucibleStore"
-  printf 'package enum StoreSecrets {\n    package static let revenueCatPublicKey = "appl_placeholder"\n}\n' > "$COPY/Sources/CrucibleStore/StoreSecrets.swift"
-}
-
 generate() {
   sync_tree
-  write_store_secrets
   "$COPY/ios/scripts/generate.sh"
 }
 

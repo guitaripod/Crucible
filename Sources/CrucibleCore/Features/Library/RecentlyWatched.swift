@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Builds the per-library "Recently Watched" rail from the server's play history, scoped to the
 /// library section the grid is showing.
@@ -13,12 +14,12 @@ package enum RecentlyWatched {
         do {
             response = try await api.request(.sectionHistory(sectionId: sectionId, size: limit * rowsPerTitle))
         } catch {
-            AppLogger.error("Recently watched fetch failed section=\(sectionId): \(error.localizedDescription)", .networking)
+            MidgarLog.error("Recently watched fetch failed section=\(sectionId): \(error.localizedDescription)", category: .networking)
             return []
         }
         let rows = ownerScoped(response?.MediaContainer.Metadata ?? [])
         let items = railItems(from: rows, groupingByShow: groupingByShow, limit: limit)
-        AppLogger.info("Recently watched section=\(sectionId): \(items.count) items from \(rows.count) rows", .networking)
+        MidgarLog.info("Recently watched section=\(sectionId): \(items.count) items from \(rows.count) rows", category: .networking)
         return items
     }
 

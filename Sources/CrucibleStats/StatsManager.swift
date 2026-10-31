@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 /// App-level owner of the statistics database and background sync/enrichment. Mirrors the
 /// DownloadManager singleton pattern used elsewhere. Sync (fast, incremental) and enrichment
@@ -33,7 +34,7 @@ package final class StatsManager {
             do {
                 store = StatsStore(database: try StatsDatabase.openOrRebuild())
             } catch {
-                AppLogger.error("Stats DB init failed: \(error.localizedDescription)", .stats)
+                MidgarLog.error("Stats DB init failed: \(error.localizedDescription)", category: .stats)
             }
         }
     }

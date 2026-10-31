@@ -7,8 +7,10 @@ import UIKit
 enum Entry {
     @MainActor
     static func main() {
-        RevenueCatProAccess.configure(apiKey: StoreSecrets.revenueCatPublicKey)
-        ProAccess.shared.install(RevenueCatProAccess())
+        CrucibleLog.configure()
+        if MidgarProAccess.reachesMidgarServices {
+            ProAccess.shared.install(MidgarProAccess.live())
+        }
         DemoMode.shared.install(demoProvider())
         _ = UIApplicationMain(
             CommandLine.argc,

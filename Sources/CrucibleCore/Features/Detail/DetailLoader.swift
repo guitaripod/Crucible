@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Messages for a detail screen whose item the server no longer has.
 package enum DetailMessage {
@@ -111,7 +112,7 @@ package enum ShowDetailLoader {
             return .loaded(container.Metadata ?? [])
         } catch {
             guard !Task.isCancelled else { return .cancelled }
-            AppLogger.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", .networking)
+            MidgarLog.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", category: .networking)
             return .failed
         }
     }

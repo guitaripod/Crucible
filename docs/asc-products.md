@@ -1,11 +1,11 @@
 # Crucible Pro products
 
-One app record (App Store Connect app 6822066419, bundle id `com.guitaripod.crucible`, iOS and tvOS versions) and two products, mirrored in RevenueCat (project `projad1befc4`, App Store app `app885906aca7`, entitlement `pro`, offering `default` with packages `$rc_lifetime` and `$rc_annual`).
+One app record (App Store Connect app 6822066419, bundle id `com.guitaripod.crucible`, iOS and tvOS versions) and two products. Until 2.3.0 they were sold through RevenueCat (project `projad1befc4`); from 2.4.0 through MidgarKit's MidgarStore, both granting the `pro` entitlement in the Midgar ledger.
 
 | Product id | Type | Price | Notes |
 |---|---|---|---|
 | `com.guitaripod.crucible.pro.lifetime` | non-consumable | $17.99 until 2026-12-07, then $24.99 | Family Sharing on; the rise is a scheduled price in App Store Connect |
-| `com.guitaripod.crucible.pro.yearly` | auto-renewable, group "Crucible Pro" | $7.99 per year | Family Sharing on; 14-day free trial introductory offer in every territory |
+| `com.guitaripod.crucible.pro.yearly` | auto-renewable, group "Crucible Pro" | $7.99 per year | Family Sharing on; no introductory offer (the 14-day free trial was removed on 2026-10-31, Midgar D22) |
 
 Created with the `asc` CLI:
 
@@ -26,4 +26,4 @@ asc subscriptions offers introductory import --subscription-id <sub id> --input 
 
 Both stay MISSING_METADATA until each has its review screenshot and rides the first version submission (Apple's first-product rule). `scripts/asc-setup.py` writes the listing and review details for both platform versions; `scripts/asc-products.py` attaches the review screenshots and review notes.
 
-The App Store build reads the products through RevenueCat only: `CrucibleStore` asks for the `default` offering, buys the package, and watches the `pro` entitlement.
+The App Store build reads the products through StoreKit with MidgarStore (`Sources/CrucibleStore/MidgarProAccess.swift`), buys with the Midgar ID as the app account token and watches the `pro` entitlement. `Tests/CrucibleStoreTests` checks the offers and the entitlement mapping against `Products.storekit`.

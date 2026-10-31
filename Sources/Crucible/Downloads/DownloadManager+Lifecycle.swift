@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 import UIKit
 
 extension DownloadManager {
@@ -33,7 +34,7 @@ extension DownloadManager {
     }
 
     func handleEnteredForeground() {
-        AppLogger.notice("Entered foreground; \(activeDownloadCount) active downloads", .lifecycle)
+        MidgarLog.notice("Entered foreground; \(activeDownloadCount) active downloads", category: .lifecycle)
         resolveRetries.removeAll()
         #if os(iOS) && canImport(ActivityKit)
         liveActivity.sync(items: items, force: true)

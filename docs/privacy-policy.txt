@@ -24,7 +24,7 @@ Downloads
 Offline downloads are saved on your iPhone and are not sent anywhere.
 
 Purchases
-Crucible Pro is sold through the App Store. Apple processes the payment; we never see your payment details or your Apple Account. We use RevenueCat to check and restore your Crucible Pro purchase: RevenueCat receives a random app user ID and your purchase history for this app, and handles it under its own privacy policy at https://www.revenuecat.com/privacy.
+The policy that applies is the one at https://midgarcorp.cc/crucible/privacy. In short: Crucible Pro is sold through the App Store and Apple processes the payment. Apple's notifications about Crucible Pro purchases reach Midgar's purchase ledger, and from version 2.4 the app keeps an anonymous Midgar ID (in your iCloud Keychain) and sends the ledger the signed transaction record with it, so Crucible Pro is recognised on all your devices. Version 2.4 contains no RevenueCat software; earlier versions check purchases through RevenueCat under its own privacy policy at https://www.revenuecat.com/privacy.
 
 Diagnostics
 A diagnostic log is kept on your device. It leaves your device only if you export and share it yourself.

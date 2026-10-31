@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     /// Enqueues every not-yet-downloaded segment at once. With the session capped to one connection per
@@ -17,7 +18,7 @@ extension DownloadManager {
         guard !pending.isEmpty else { finalizeComplete(ratingKey); return }
         recordContinuedProgress(addedUnits: Int64(pending.count))
         if backgroundSessionBroken {
-            AppLogger.notice("Background session known broken; fetching in-process key=\(ratingKey)", .persistence)
+            MidgarLog.notice("Background session known broken; fetching in-process key=\(ratingKey)", category: .persistence)
             startFallbackFetch(ratingKey, token: job.token)
             return
         }
@@ -38,7 +39,7 @@ extension DownloadManager {
             guard let job = self.jobs[ratingKey], job.token == token, job.onDisk.count == baseline,
                   let idx = self.index(ratingKey), self.items[idx].state == .downloading,
                   self.fallbackFetchers[ratingKey] == nil else { return }
-            AppLogger.error("Background session stalled (no segment progress in 20s) key=\(ratingKey); falling back to in-process fetch", .persistence)
+            MidgarLog.error("Background session stalled (no segment progress in 20s) key=\(ratingKey); falling back to in-process fetch", category: .persistence)
             self.backgroundSessionBroken = true
             self.cancelInflight(ratingKey, scope: .matching(token))
             self.startFallbackFetch(ratingKey, token: token)
@@ -61,7 +62,7 @@ extension DownloadManager {
                 task.taskDescription = segment.descriptor
                 task.resume()
             }
-            AppLogger.notice("Enqueued \(pending.count) background segment tasks", .persistence)
+            MidgarLog.notice("Enqueued \(pending.count) background segment tasks", category: .persistence)
         }
     }
 

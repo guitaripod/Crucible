@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 import UIKit
 
 /// The cinematic Home: a full-screen backdrop and a hero block that follow the focused card, then
@@ -359,7 +360,7 @@ final class TVHomeViewController: TVScreenViewController {
                 render(animated: true)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Home load failed: \(error.localizedDescription)", .networking)
+                MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
                 if feed.isEmpty {
                     showLoadError(error)
                 } else if collectionView.isHidden {

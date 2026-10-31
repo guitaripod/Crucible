@@ -1,6 +1,7 @@
 import AVKit
 import CrucibleCore
 import CrucibleMedia
+import MidgarCore
 import UIKit
 
 extension TVPlayerCoordinator {
@@ -45,7 +46,7 @@ extension TVPlayerCoordinator {
 
     private func performHold(_ action: HoldAction, forward: Bool) {
         guard let session, action != .scan else { return }
-        AppLogger.notice("Hold \(forward ? "right" : "left") ratingKey=\(request.ratingKey) action=\(action.title(forward: forward))", .playback)
+        MidgarLog.notice("Hold \(forward ? "right" : "left") ratingKey=\(request.ratingKey) action=\(action.title(forward: forward))", category: .playback)
         viewerActed()
         switch action {
         case .scan:

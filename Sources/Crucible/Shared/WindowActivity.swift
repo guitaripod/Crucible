@@ -1,4 +1,5 @@
 import CrucibleCore
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Windows on iPad: what a window was showing when iPadOS brings it back, and opening a title in a window of its own from a context
@@ -42,7 +43,7 @@ enum WindowActivity {
             request.options = options
         }
         UIApplication.shared.activateSceneSession(for: request) { error in
-            AppLogger.error("New window refused: \(error.localizedDescription)", .ui)
+            MidgarLog.error("New window refused: \(error.localizedDescription)", category: .ui)
         }
     }
 

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 final class ActivityHistoryViewController: UICollectionViewController {
@@ -247,7 +248,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
                 playerCoordinator = Theme.quickPlay(api: api, item: metadata, from: self)
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("History play again failed for \(entry.ratingKey): \(error.localizedDescription)", .playback)
+                MidgarLog.error("History play again failed for \(entry.ratingKey): \(error.localizedDescription)", category: .playback)
                 presentPlaybackError()
             }
         }

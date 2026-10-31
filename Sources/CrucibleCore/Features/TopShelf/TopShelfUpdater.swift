@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// Keeps the Top Shelf snapshot current. The tvOS scene calls `refresh` on launch, when the app
 /// returns to the foreground and after playback; `notify` is where it tells the system the Top
@@ -23,7 +24,7 @@ package enum TopShelfUpdater {
         do {
             container = try await api.requestContainer(.hubs())
         } catch {
-            AppLogger.error("Top Shelf refresh skipped: \(error.localizedDescription)", .networking)
+            MidgarLog.error("Top Shelf refresh skipped: \(error.localizedDescription)", category: .networking)
             return false
         }
         let serverURL = await api.baseURL
@@ -55,7 +56,7 @@ package enum TopShelfUpdater {
         }
         if let existing, existing.hasSameContent(as: snapshot) { return false }
         guard store.save(snapshot) else { return false }
-        AppLogger.info("Top Shelf updated: \(snapshot.itemCount) items at \(store.existingSnapshotPath ?? "unknown path")", .lifecycle)
+        MidgarLog.info("Top Shelf updated: \(snapshot.itemCount) items at \(store.existingSnapshotPath ?? "unknown path")", category: .lifecycle)
         notify()
         return true
     }

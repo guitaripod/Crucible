@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 extension LibraryGridOptions {
@@ -55,7 +56,7 @@ enum LibraryGridSizeMenu {
         guard Preferences.libraryColumns != columns else { return false }
         Preferences.libraryColumns = columns
         Haptics.selection()
-        AppLogger.info("Library grid columns -> \(columns)", .ui)
+        MidgarLog.info("Library grid columns -> \(columns)", category: .ui)
         return true
     }
 }

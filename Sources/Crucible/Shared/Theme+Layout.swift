@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 extension Theme {
@@ -105,7 +106,7 @@ extension Theme {
         from vc: UIViewController,
         resumePosition override: Double? = nil
     ) -> PlayerCoordinator {
-        AppLogger.notice("Quick play tapped ratingKey=\(item.id) type=\(item.mediaType)", .playback)
+        MidgarLog.notice("Quick play tapped ratingKey=\(item.id) type=\(item.mediaType)", category: .playback)
         let meta = PlayerCoordinator.Metadata(
             title: item.title,
             showName: item.grandparentTitle,

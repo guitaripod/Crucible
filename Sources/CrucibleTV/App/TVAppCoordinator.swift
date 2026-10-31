@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 import UIKit
 
 /// Owns the root of the window and the session behind it: saved connection, launch gate, main app,
@@ -105,7 +106,7 @@ final class TVAppCoordinator: TVSessionActions {
 
     func leaveDemo() {
         guard DemoMode.shared.isActive else { return }
-        AppLogger.notice("Leaving the demo", .lifecycle)
+        MidgarLog.notice("Leaving the demo", category: .lifecycle)
         finaleTask?.cancel()
         launchTask?.cancel()
         router.deactivate()
@@ -142,7 +143,7 @@ final class TVAppCoordinator: TVSessionActions {
     }
 
     func signOut() {
-        AppLogger.notice("Signing out", .lifecycle)
+        MidgarLog.notice("Signing out", category: .lifecycle)
         launchTask?.cancel()
         router.deactivate()
         TVTopShelfRefresher.deactivate()

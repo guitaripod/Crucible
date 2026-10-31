@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// One level of a library's folder tree: the sub-folders as a list, then the media directly inside as
@@ -126,7 +127,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
                 applySnapshot()
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Folder refresh failed: \(error.localizedDescription)", .networking)
+                MidgarLog.error("Folder refresh failed: \(error.localizedDescription)", category: .networking)
             }
         }
     }
@@ -167,7 +168,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                AppLogger.error("Folder listing failed: \(error.localizedDescription)", .networking)
+                MidgarLog.error("Folder listing failed: \(error.localizedDescription)", category: .networking)
                 show(state: .error(title: "Couldn’t Load Folder", message: ConnectionError.message(for: error), retryTitle: "Try Again", retry: { [weak self] in
                     self?.load()
                 }))

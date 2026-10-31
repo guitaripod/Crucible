@@ -44,6 +44,8 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.guitaripod.crucible
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)cc.midgarcorp.shared
     info:
       path: Generated/CrucibleTV-Info.plist
       properties:

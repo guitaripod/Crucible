@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 import os
 
 package enum ServerConnectionResolver {
@@ -20,7 +21,7 @@ package enum ServerConnectionResolver {
 
         progress("Looking for \(connection.serverName)…")
         log.error("Pinned route \(connection.serverURI.absoluteString, privacy: .public) unreachable; re-discovering")
-        AppLogger.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", .networking)
+        MidgarLog.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", category: .networking)
 
         var candidates = await APIClient.discoverCandidates(token: connection.authToken, pinned: connection.serverURI)
         var reachable = await firstReachable(candidates, token: connection.authToken)
@@ -31,12 +32,12 @@ package enum ServerConnectionResolver {
         }
         guard let healthy = reachable else {
             log.error("No reachable route to \(connection.serverName, privacy: .public); falling back to setup")
-            AppLogger.error("No reachable route to \(connection.serverName) among \(candidates.count) candidates", .networking)
+            MidgarLog.error("No reachable route to \(connection.serverName) among \(candidates.count) candidates", category: .networking)
             return .needsSetup
         }
 
         log.notice("Re-pinned to \(healthy.absoluteString, privacy: .public)")
-        AppLogger.notice("Re-pinned to \(healthy.absoluteString)", .networking)
+        MidgarLog.notice("Re-pinned to \(healthy.absoluteString)", category: .networking)
         ServerBootstrap.repin(uri: healthy)
         return .connection(PlexConnection(
             serverURI: healthy,

@@ -78,12 +78,12 @@ The iPhone app is universal. Nothing branches on the device: layout reads the ro
 
 ## Crucible Pro
 
-The App Store build sells an optional Crucible Pro through RevenueCat; source builds have everything unlocked. The store never appears in the feature code:
+The App Store build sells an optional Crucible Pro through MidgarKit's MidgarStore; source builds have everything unlocked. The store never appears in the feature code:
 
 - `CrucibleCore/Features/Pro` holds the store-free model: `ProAccess.shared` (is Pro on, observers, `requestUnlock`), `ProPolicy` (what a free install may do: one download at a time, the Week range, no poster, no Top Shelf), `ProOffer` (priced, described offers), `PaywallModel` (the paywall state machine both platforms render: loading, ready, unavailable, purchasing, restoring, pending, cancelled, failed, finished), `ProAccessProviding` (the store behind it), `UnlockedProAccess` (source builds) and `ScriptedProAccess` (debug builds and UI tests, driven by `CRUCIBLE_PRO*` environment variables).
-- `CrucibleStore` is a package target that only the macOS manifest declares, with the RevenueCat SDK as its one dependency. It implements `ProAccessProviding` for the `pro` entitlement and the `default` offering. Only the Xcode projects (`ios/`, `tv/`) link it; the xtool build never sees it. The public SDK key lives in the git-ignored `Sources/CrucibleStore/StoreSecrets.swift`, written by `scripts/bootstrap-secrets.sh`.
-- Each app's entry point installs the RevenueCat store before `UIApplicationMain`; the shared launch code calls `ProAccess.shared.configureForLaunch(store: nil)` and sets the paywall presenter.
-- Products: `com.guitaripod.crucible.pro.lifetime` (non-consumable) and `com.guitaripod.crucible.pro.yearly` (auto-renewable, 14-day free trial), one app record and one bundle id for iPhone and Apple TV, so a purchase on one covers the other. `docs/asc-products.md` records how they were created, and `scripts/asc-setup.py` and `scripts/asc-products.py` keep the listing and the review material in line.
+- `CrucibleStore` is a package target that only the macOS manifest declares, on MidgarKit's `MidgarCommerce` (tagged package, `exact: 4.4.0`). `MidgarProAccess` implements `ProAccessProviding` for the `pro` entitlement: StoreKit buys and finishes, the purchase carries the anonymous Midgar ID as its app account token and reaches the Midgar ledger. Only the Xcode projects (`ios/`, `tv/`) link it; the xtool build never sees it. `Tests/CrucibleStoreTests` (scheme `CrucibleStoreTests`, iOS 27.1 simulator) runs it against `Products.storekit`.
+- Each app's entry point opens the log (`CrucibleLog.configure()`, MidgarLog writing `Library/Logs/crucible.log`) and installs `MidgarProAccess.live()` before `UIApplicationMain`, except in a test host; the shared launch code calls `ProAccess.shared.configureForLaunch(store: nil)` and sets the paywall presenter.
+- Products: `com.guitaripod.crucible.pro.lifetime` (non-consumable) and `com.guitaripod.crucible.pro.yearly` (auto-renewable, no free trial since 2026-10-31), one app record and one bundle id for iPhone and Apple TV, so a purchase on one covers the other. `docs/asc-products.md` records how they were created, and `scripts/asc-setup.py` and `scripts/asc-products.py` keep the listing and the review material in line.
 
 ## Building and testing
 
