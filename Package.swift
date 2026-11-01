@@ -25,7 +25,7 @@ var products: [Product] = []
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
-    .package(url: "https://github.com/guitaripod/MidgarKit.git", exact: "4.4.0"),
+    .package(url: "https://github.com/guitaripod/MidgarKit.git", exact: "4.5.0"),
 ]
 
 var targets: [Target] = [

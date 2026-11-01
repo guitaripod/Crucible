@@ -683,6 +683,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC = nil
         isPresenting = false
         (presentingVC?.tabBarController as? TabBarController)?.updateWindowTitle()
+        if let finalPosition, session.hasFinished(at: finalPosition) {
+            PlaybackOffer.offerAfterFinishing(over: presentingVC)
+        }
     }
 
     // MARK: - Keyboard
