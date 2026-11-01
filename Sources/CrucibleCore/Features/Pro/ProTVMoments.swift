@@ -1,7 +1,7 @@
 import Foundation
 
-/// A one-time note to the viewer about Crucible Pro, shown on Apple TV at the two moments it is worth something: after the first
-/// finished video, and shortly before a free trial ends.
+/// A note to the viewer about Crucible Pro, shown on Apple TV at the moments it is worth something: after a finished video, when
+/// the offer policy says so, and shortly before a free trial bought before decision D22 ends.
 package struct ProMoment: Equatable, Sendable {
     package enum Kind: Equatable, Sendable {
         case firstFinish
@@ -25,7 +25,7 @@ package struct ProMoment: Equatable, Sendable {
 package enum ProTVMoments {
     package static let trialWarningWindow: TimeInterval = 2 * 24 * 60 * 60
 
-    /// After the first finished video: a free viewer is told what Pro adds, a trial viewer is pointed at what the trial unlocked.
+    /// After a finished video: a free viewer is told what Pro adds, a trial viewer is pointed at what the trial unlocked.
     /// Nothing for a paid Pro viewer, a source build, the demo, or a store that has not answered yet.
     package static func firstFinish(status: ProStatus, isStoreBacked: Bool, isDemo: Bool) -> ProMoment? {
         guard isStoreBacked, !isDemo else { return nil }
@@ -36,7 +36,7 @@ package enum ProTVMoments {
             return ProMoment(
                 kind: .firstFinish,
                 title: "Go further with Crucible Pro",
-                message: "Full Statistics for every range and library, and Top Shelf with Continue Watching on the Apple TV Home screen. The yearly plan starts with a 14-day free trial.",
+                message: "Full Statistics for every range and library, and Top Shelf with Continue Watching on the Apple TV Home screen. Pro unlocks the moment you buy it, yearly or once for good.",
                 action: .seePro,
                 actionTitle: "See Crucible Pro"
             )

@@ -25,6 +25,7 @@ struct ProTVMomentsTests {
     @Test func firstFinishPitchesProToAFreeViewer() {
         let moment = ProTVMoments.firstFinish(status: .free, isStoreBacked: true, isDemo: false)
         #expect(moment?.action == .seePro)
+        #expect(moment?.message.localizedCaseInsensitiveContains("trial") == false)
     }
 
     @Test func firstFinishPointsATrialViewerAtStatistics() {

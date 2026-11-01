@@ -1,7 +1,6 @@
 import CrucibleCore
 import CrucibleDemo
 import CrucibleStore
-import MidgarCommerce
 import UIKit
 
 @main
@@ -11,7 +10,7 @@ enum Entry {
         CrucibleLog.configure()
         if MidgarProAccess.reachesMidgarServices {
             ProAccess.shared.install(MidgarProAccess.live())
-            installPlaybackOffer()
+            MidgarProAccess.installPlaybackOffer(firstOfferAfter: 3, laterOfferEvery: 5)
         }
         DemoMode.shared.install(demoProvider())
         _ = UIApplicationMain(
@@ -20,15 +19,6 @@ enum Entry {
             nil,
             NSStringFromClass(AppDelegate.self)
         )
-    }
-
-    /// Gives the player MidgarKit's offer policy: Pro is offered after the third item watched to the end, then after
-    /// every fifth.
-    @MainActor
-    private static func installPlaybackOffer() {
-        let policy = MidgarOfferPolicy(appID: MidgarProAccess.appID, firstOfferAfter: 3, laterOfferEvery: 5)
-        PlaybackOffer.noteValue = { isOwned in policy.noteValue(isOwned: isOwned) }
-        PlaybackOffer.noteOffered = { policy.noteOffered() }
     }
 
     /// The fictional library the welcome screen offers. A debug build can point it at a running mock server instead, to build screens

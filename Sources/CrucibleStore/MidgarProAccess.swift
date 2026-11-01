@@ -51,6 +51,17 @@ package final class MidgarProAccess: ProAccessProviding {
         return MidgarProAccess(store: store)
     }
 
+    /// Gives `PlaybackOffer` MidgarKit's offer policy: Pro is offered after `firstOfferAfter` items watched to the end, then
+    /// after every `laterOfferEvery` more. `alreadyOffered` counts an offer made before the policy existed, so that install
+    /// waits for the next one instead of being offered again at once.
+    @MainActor
+    package static func installPlaybackOffer(firstOfferAfter: Int, laterOfferEvery: Int, alreadyOffered: Bool = false) {
+        let policy = MidgarOfferPolicy(appID: appID, firstOfferAfter: firstOfferAfter, laterOfferEvery: laterOfferEvery)
+        if alreadyOffered, policy.offers == 0 { policy.noteOffered() }
+        PlaybackOffer.noteValue = { isOwned in policy.noteValue(isOwned: isOwned) }
+        PlaybackOffer.noteOffered = { policy.noteOffered() }
+    }
+
     /// The registry's `[commerce]` table for Crucible: both products grant `pro`.
     package static func storeConfiguration(directory: URL? = nil) -> MidgarStoreConfiguration {
         MidgarStoreConfiguration(

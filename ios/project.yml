@@ -58,8 +58,6 @@ targets:
         product: GRDB
       - package: MidgarKit
         product: MidgarCore
-      - package: MidgarKit
-        product: MidgarCommerce
       - target: CrucibleWidgetsExt
         embed: true
         codeSign: true

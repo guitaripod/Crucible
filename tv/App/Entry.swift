@@ -25,6 +25,8 @@ enum Entry {
         CrucibleLog.configure()
         MainActor.assumeIsolated {
             ProAccess.shared.install(MidgarProAccess.live())
+            MidgarProAccess.installPlaybackOffer(
+                firstOfferAfter: 1, laterOfferEvery: 5, alreadyOffered: ProMomentLedger().hasShown(.firstFinish))
         }
     }
 
