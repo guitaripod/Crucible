@@ -1,7 +1,11 @@
 #!/usr/bin/python3
 """Compose Crucible's App Store screenshots from raw simulator captures.
 
-Usage: marketing/store/compose.py [iphone|ipad ...]   (defaults to both)
+Usage: marketing/store/compose.py [iphone|ipad ...] [--locale LOCALE]   (defaults to both, en-US)
+
+With --locale (an App Store locale such as de-DE), the iPhone set is composed from marketing/shots/out/raw-dark-<language>
+(marketing/shots/run.sh with APP_LANGUAGE) with the captions under captions.json's "l10n", into
+marketing/appstore/l10n/<locale>/iphone.
 
 iphone: 1320x2868 captures from marketing/shots/out/raw-dark (marketing/shots/run.sh on an iPhone 17 Pro Max in US English) become
 the 6.9-inch set in marketing/appstore/iphone. ipad: 2752x2064 landscape captures from marketing/shots/out/raw-ipad
@@ -24,6 +28,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 FRAMES = os.path.realpath(os.path.expanduser("~/.local/bin/frames"))
 SANS = "/System/Library/Fonts/SFNS.ttf"
+CJK_FACES = {
+    "ja": {"Bold": ("/System/Library/Fonts/ヒラギノ角ゴシック W7.ttc", 0), "Medium": ("/System/Library/Fonts/ヒラギノ角ゴシック W5.ttc", 0)},
+    "ko": {"Bold": ("/System/Library/Fonts/AppleSDGothicNeo.ttc", 6), "Medium": ("/System/Library/Fonts/AppleSDGothicNeo.ttc", 2)},
+    "zh-Hans": {"Bold": ("/System/Library/Fonts/Hiragino Sans GB.ttc", 2), "Medium": ("/System/Library/Fonts/Hiragino Sans GB.ttc", 0)},
+    "zh-Hant": {"Bold": ("/System/Library/Fonts/STHeiti Medium.ttc", 0), "Medium": ("/System/Library/Fonts/STHeiti Light.ttc", 0)},
+}
+LANGUAGE = {"de-DE": "de", "es-ES": "es", "fr-FR": "fr", "it": "it", "ja": "ja", "ko": "ko", "pl": "pl", "pt-BR": "pt-BR", "zh-Hans": "zh-Hans", "zh-Hant": "zh-Hant"}
+LOCALE = None
 
 GRADIENT_TOP = (46, 26, 10)
 GRADIENT_BOTTOM = (9, 8, 7)
@@ -64,15 +76,24 @@ DEVICES = {
 
 
 def font(weight, size):
+    if LOCALE in CJK_FACES:
+        path, index = CJK_FACES[LOCALE][weight]
+        return ImageFont.truetype(path, size, index=index)
     face = ImageFont.truetype(SANS, size)
     face.set_variation_by_name(weight)
     return face
 
 
+def units(text):
+    """The pieces a line may break between: words, or single characters in scripts written without spaces."""
+    return list(text) if LOCALE in CJK_FACES else text.split()
+
+
 def wrap(text, face, width):
+    joiner = "" if LOCALE in CJK_FACES else " "
     lines, current = [], ""
-    for word in text.split():
-        trial = f"{current} {word}".strip()
+    for word in units(text):
+        trial = f"{current}{joiner}{word}".strip()
         if face.getlength(trial) <= width or not current:
             current = trial
         else:
@@ -87,10 +108,11 @@ def balance(lines, face, width):
     """Two ragged lines read better when their lengths are close; a one-word last line reads as a typo."""
     if len(lines) != 2:
         return lines
-    words = " ".join(lines).split()
+    joiner = "" if LOCALE in CJK_FACES else " "
+    words = units(joiner.join(lines))
     best = lines
     for split in range(1, len(words)):
-        first, second = " ".join(words[:split]), " ".join(words[split:])
+        first, second = joiner.join(words[:split]), joiner.join(words[split:])
         if face.getlength(first) > width or face.getlength(second) > width:
             continue
         if abs(face.getlength(first) - face.getlength(second)) < abs(face.getlength(best[0]) - face.getlength(best[1])):
@@ -183,9 +205,25 @@ def compose(kind, entry, device_top):
     return canvas.convert("RGB")
 
 
+def localized(captions, locale):
+    """Point the iPhone set at the locale's captures, captions and output folder."""
+    global LOCALE
+    LOCALE = locale
+    DEVICES["iphone"]["raw"] = os.path.join(ROOT, f"marketing/shots/out/raw-dark-{LANGUAGE[locale]}")
+    DEVICES["iphone"]["out"] = os.path.join(ROOT, f"marketing/appstore/l10n/{locale}/iphone")
+    text = captions["l10n"][locale]
+    return {"iphone": [{**entry, **text[entry["screen"]]} for entry in captions["iphone"]]}
+
+
 def main():
-    kinds = sys.argv[1:] or list(DEVICES)
+    args = sys.argv[1:]
     captions = json.load(open(os.path.join(HERE, "captions.json")))
+    if "--locale" in args:
+        at = args.index("--locale")
+        captions = localized(captions, args[at + 1])
+        del args[at:at + 2]
+        args = args or ["iphone"]
+    kinds = args or list(DEVICES)
     for kind in kinds:
         out = DEVICES[kind]["out"]
         os.makedirs(out, exist_ok=True)

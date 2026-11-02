@@ -88,6 +88,7 @@ perl -0pi -e 's/let iosStamp: \[LinkerSetting\] = \[.*?\n\]\n/let iosStamp: [Lin
 sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
 sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
 
+cp Localization/Localizable.xcstrings marketing/shots/Sources/Localizable.xcstrings
 rm -rf .dd/Build/Intermediates.noindex/Crucible.build .dd/Build/Intermediates.noindex/CrucibleShots.build
 xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
   CRUCIBLE_PACKAGE_NAME="$PACKAGE_NAME" -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
@@ -105,7 +106,7 @@ SIMCTL_CHILD_CRUCIBLE_SIGNAL_DIR="$SIGNALS" \
 SIMCTL_CHILD_CRUCIBLE_LIGHT="$LIGHT" \
 SIMCTL_CHILD_CRUCIBLE_SHOT_SCRIPT="${SHOT_SCRIPT:-}" \
   env $(for pair in ${LAUNCH_ENV:-}; do printf 'SIMCTL_CHILD_%s ' "$pair"; done) \
-  xcrun simctl launch "$UDID" "$APP_ID" > /dev/null
+  xcrun simctl launch "$UDID" "$APP_ID" -AppleLanguages "(${APP_LANGUAGE:-en})" -AppleLocale "${APP_LOCALE:-en_US}" > /dev/null
 
 deadline=$((SECONDS + ${TIMEOUT:-420}))
 tick=0

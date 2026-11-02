@@ -7,7 +7,7 @@ NAME=${NAME:-CrucibleSim}
 REMOTE=${REMOTE:-Dev/ios/$NAME}
 PORT=${PORT:-$((32400 + $(printf %s "$NAME" | cksum | cut -d' ' -f1) % 500))}
 MODE=${MODE:-dark}
-OUT=${OUT:-$ROOT/marketing/shots/out/raw-$MODE}
+OUT=${OUT:-$ROOT/marketing/shots/out/raw-$MODE${APP_LANGUAGE:+-$APP_LANGUAGE}}
 LOG=$(mktemp "${TMPDIR:-/tmp}/crucible-shots-$NAME.XXXXXX")
 
 rsync -az --delete \
@@ -16,7 +16,7 @@ rsync -az --delete \
   "$ROOT/" "$MAC:$REMOTE/" < /dev/null
 
 set +e
-ssh "$MAC" "cd $REMOTE && NAME=$NAME PORT=$PORT UDID=${UDID:-} MODE=$MODE TIMEOUT=${TIMEOUT:-} CLEAN=${CLEAN:-0} KEEP_INSTALL=${KEEP_INSTALL:-0} MOCK_HIDDEN_SECTIONS=${MOCK_HIDDEN_SECTIONS:-} SHOT_SCRIPT=${SHOT_SCRIPT:-} LAUNCH_ENV='${LAUNCH_ENV:-}' bash marketing/shots/mac-run.sh" < /dev/null > "$LOG" 2>&1
+ssh "$MAC" "cd $REMOTE && NAME=$NAME PORT=$PORT UDID=${UDID:-} MODE=$MODE APP_LANGUAGE=${APP_LANGUAGE:-en} APP_LOCALE=${APP_LOCALE:-en_US} TIMEOUT=${TIMEOUT:-} CLEAN=${CLEAN:-0} KEEP_INSTALL=${KEEP_INSTALL:-0} MOCK_HIDDEN_SECTIONS=${MOCK_HIDDEN_SECTIONS:-} SHOT_SCRIPT=${SHOT_SCRIPT:-} LAUNCH_ENV='${LAUNCH_ENV:-}' bash marketing/shots/mac-run.sh" < /dev/null > "$LOG" 2>&1
 status=$?
 set -e
 
