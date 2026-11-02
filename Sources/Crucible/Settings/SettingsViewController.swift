@@ -152,7 +152,7 @@ final class SettingsViewController: UICollectionViewController {
                 )
             case .skipIntro:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "forward.end", title: PreferenceSetting.skipIntro.title, badge: "NEW",
+                    symbol: "forward.end", title: PreferenceSetting.skipIntro.title, badge: String(localized: "NEW", comment: "Badge on a setting that is new in this version"),
                     value: PreferenceSetting.skipIntro.valueLabel, menu: menu(for: .skipIntro, item: .skipIntro)
                 )
             case .skipOutro:

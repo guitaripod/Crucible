@@ -173,12 +173,12 @@ enum DownloadFormat {
         let total = Int(seconds.rounded())
         let hours = total / 3600
         let minutes = (total % 3600) / 60
-        return hours > 0 ? String(format: "%d h %02d m", hours, minutes) : "\(max(minutes, 1)) m"
+        return hours > 0 ? String(localized: "\(hours) h \(String(format: "%02d", minutes)) m") : String(localized: "\(max(minutes, 1)) m")
     }
 
     static func rate(_ bytesPerSecond: Double) -> String {
         let megabytes = bytesPerSecond / 1_048_576
-        if megabytes >= 1 { return String(format: "%.1f MB/s", megabytes) }
+        if megabytes >= 1 { return String(format: "%.1f MB/s", locale: Formatters.interfaceLocale, megabytes) }
         return String(format: "%.0f KB/s", bytesPerSecond / 1024)
     }
 

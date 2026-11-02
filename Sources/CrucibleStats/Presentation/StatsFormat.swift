@@ -1,4 +1,5 @@
 import Foundation
+import CrucibleCore
 
 /// Number and label formatting shared by every statistics surface.
 package enum StatsFormat {
@@ -36,6 +37,6 @@ package enum StatsFormat {
         if rounded == rounded.rounded() {
             return String(Int(rounded))
         }
-        return String(format: "%.1f", rounded)
+        return String(format: "%.1f", locale: Formatters.interfaceLocale, rounded)
     }
 }

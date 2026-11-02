@@ -1,6 +1,11 @@
 import Foundation
 
 package enum Formatters {
+    /// The locale of the language the interface runs in, so a decimal reads "19,8" beside German words and "19.8" beside English ones.
+    package static var interfaceLocale: Locale {
+        Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+    }
+
     package static func duration(_ seconds: Double?) -> String {
         guard let seconds, seconds.isFinite, seconds >= 0 else { return "" }
         let total = Int(seconds)
@@ -28,7 +33,7 @@ package enum Formatters {
     package static func fileSize(_ bytes: Int64) -> String {
         let gb = Double(bytes) / 1_073_741_824
         if gb >= 1 {
-            let text = String(format: "%.1f", gb)
+            let text = String(format: "%.1f", locale: interfaceLocale, gb)
             return String(localized: "\(text) GB")
         }
         let mb = Double(bytes) / 1_048_576
@@ -54,7 +59,7 @@ package enum Formatters {
 
     package static func rating(_ value: Double?) -> String? {
         guard let value else { return nil }
-        return String(format: "%.1f", value)
+        return String(format: "%.1f", locale: interfaceLocale, value)
     }
 
     static func channelDescription(_ channels: Int?) -> String {

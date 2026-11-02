@@ -106,7 +106,7 @@ public struct DownloadActivityAttributes: ActivityAttributes {
         private static func byteString(_ b: Int64) -> String {
             let gb = Double(b) / 1_073_741_824
             if gb >= 1 {
-                let gigabytes = String(format: "%.1f", gb)
+                let gigabytes = String(format: "%.1f", locale: Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en"), gb)
                 return String(localized: "\(gigabytes) GB")
             }
             let megabytes = String(format: "%.0f", Double(b) / 1_048_576)
