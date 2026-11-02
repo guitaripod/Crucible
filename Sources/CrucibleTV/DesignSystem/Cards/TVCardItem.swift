@@ -57,9 +57,9 @@ struct TVCardItem: Hashable, Sendable {
     }
 
     var spokenValue: String? {
-        if hasProgress, let progress { return "\(Int((progress * 100).rounded())) percent watched" }
-        if isWatched { return "Watched" }
-        if isUnwatched { return "Unwatched" }
+        if hasProgress, let progress { return String(localized: "\(Int((progress * 100).rounded())) percent watched") }
+        if isWatched { return String(localized: "Watched", comment: "Watch state of an item") }
+        if isUnwatched { return String(localized: "Unwatched", comment: "Watch state of an item") }
         return nil
     }
 }

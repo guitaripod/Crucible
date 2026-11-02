@@ -37,9 +37,9 @@ struct TVLibraryHeaderContent: Hashable {
 final class TVLibraryHeaderView: UIView {
     private let titleView = TVScreenTitleView(clearsTabBar: false)
     private let chips = TVChipRow()
-    private let genreButton = TVButton.menuButton(style: .chip(selected: false), title: "Genre", menu: UIMenu())
-    private let sortButton = TVButton.menuButton(style: .chip(selected: false), title: "Sort", menu: UIMenu())
-    private let foldersButton = TVButton.make(.chip(selected: false), title: "Browse Folders", symbol: "folder")
+    private let genreButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Genre"), menu: UIMenu())
+    private let sortButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"), menu: UIMenu())
+    private let foldersButton = TVButton.make(.chip(selected: false), title: String(localized: "Browse Folders"), symbol: "folder")
     private let upGuide = UIFocusGuide()
     private var handlers = TVLibraryHeaderContent.Handlers()
 
@@ -110,7 +110,7 @@ final class TVLibraryHeaderView: UIView {
     }
 
     private func genreMenu(_ content: TVLibraryHeaderContent) -> UIMenu {
-        let all = UIAction(title: "All Genres", state: content.isGenreSelected ? .off : .on) { [weak self] _ in
+        let all = UIAction(title: String(localized: "All Genres"), state: content.isGenreSelected ? .off : .on) { [weak self] _ in
             self?.handlers.onGenre(nil)
         }
         let genres = content.genres.map { genre in
@@ -118,11 +118,11 @@ final class TVLibraryHeaderView: UIView {
                 self?.handlers.onGenre(genre.key)
             }
         }
-        return UIMenu(title: "Genre", children: [all] + genres)
+        return UIMenu(title: String(localized: "Genre"), children: [all] + genres)
     }
 
     private func sortMenu(_ content: TVLibraryHeaderContent) -> UIMenu {
-        UIMenu(title: "Sort By", children: content.sorts.map { sort in
+        UIMenu(title: String(localized: "Sort By"), children: content.sorts.map { sort in
             UIAction(title: sort.title, state: sort.isSelected ? .on : .off) { [weak self] _ in
                 self?.handlers.onSort(sort.key)
             }

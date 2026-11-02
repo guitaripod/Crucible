@@ -1,0 +1,91 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Crucible"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Privacy - Local Network Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible verbindet sich in deinem Heimnetzwerk mit deinem Plex Media Server, um deine Mediathek zu durchsuchen und abzuspielen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Crucible connects to your Plex Media Server on your home network to browse and play your library."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible se conecta a tu servidor de Plex Media Server en tu red doméstica para explorar y reproducir tu biblioteca."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible se connecte à votre serveur Plex Media Server sur votre réseau domestique pour parcourir et lire votre bibliothèque."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible si connette al tuo Plex Media Server nella rete domestica per sfogliare e riprodurre la tua libreria."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は、ホームネットワーク上の Plex Media Server に接続して、ライブラリを閲覧および再生します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 홈 네트워크의 Plex Media Server에 연결해 보관함을 둘러보고 재생해요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible łączy się z Twoim serwerem Plex Media Server w sieci domowej, aby przeglądać i odtwarzać Twoją bibliotekę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible se conecta ao seu Plex Media Server na sua rede doméstica para navegar e reproduzir sua biblioteca."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 会在你的家庭网络中连接 Plex 媒体服务器，以浏览和播放你的资料库。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 會連線到您家中網路上的 Plex 媒體伺服器，以瀏覽及播放您的媒體庫。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

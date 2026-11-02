@@ -12,7 +12,7 @@ final class AddServerSheetViewController: UIViewController {
     private let textField = UITextField()
     private let fieldBox = UIView()
     private let errorLabel = UILabel()
-    private let connectButton = UIButton(configuration: ThemeButton.primaryConfiguration(title: "Connect"))
+    private let connectButton = UIButton(configuration: ThemeButton.primaryConfiguration(title: String(localized: "Connect")))
     private var connectTask: Task<Void, Never>?
 
     init(token: String) {
@@ -30,7 +30,7 @@ final class AddServerSheetViewController: UIViewController {
         view.backgroundColor = Theme.Color.canvas
 
         let titleLabel = UILabel()
-        titleLabel.text = "Add Server by Address"
+        titleLabel.text = String(localized: "Add Server by Address")
         titleLabel.font = Theme.Font.title2
         titleLabel.textColor = Theme.Color.label
         titleLabel.adjustsFontForContentSizeCategory = true
@@ -38,7 +38,7 @@ final class AddServerSheetViewController: UIViewController {
         titleLabel.accessibilityTraits = .header
 
         let hintLabel = UILabel()
-        hintLabel.text = "Enter an IP address, hostname or full URL. The default port is 32400."
+        hintLabel.text = String(localized: "Enter an IP address, hostname or full URL. The default port is 32400.")
         hintLabel.font = Theme.Font.footnote
         hintLabel.textColor = Theme.Color.labelSecondary
         hintLabel.adjustsFontForContentSizeCategory = true
@@ -77,7 +77,7 @@ final class AddServerSheetViewController: UIViewController {
     }
 
     private func configureField() {
-        textField.placeholder = "192.168.1.20 or https://host:32400"
+        textField.placeholder = String(localized: "192.168.1.20 or https://host:32400")
         textField.font = Theme.Font.body
         textField.adjustsFontForContentSizeCategory = true
         textField.textColor = Theme.Color.label
@@ -87,7 +87,7 @@ final class AddServerSheetViewController: UIViewController {
         textField.spellCheckingType = .no
         textField.returnKeyType = .go
         textField.clearButtonMode = .whileEditing
-        textField.accessibilityLabel = "Server address"
+        textField.accessibilityLabel = String(localized: "Server address")
         textField.addAction(UIAction { [weak self] _ in self?.clearError() }, for: .editingChanged)
         textField.addAction(UIAction { [weak self] _ in self?.connect() }, for: .editingDidEndOnExit)
 
@@ -124,7 +124,7 @@ final class AddServerSheetViewController: UIViewController {
     }
 
     private func setConnecting(_ connecting: Bool) {
-        var config = ThemeButton.primaryConfiguration(title: connecting ? "Connecting…" : "Connect")
+        var config = ThemeButton.primaryConfiguration(title: connecting ? String(localized: "Connecting…") : String(localized: "Connect"))
         config.showsActivityIndicator = connecting
         connectButton.configuration = config
         connectButton.isEnabled = !connecting

@@ -61,16 +61,16 @@ extension ProEntitlement {
     package func summary(now: Date = Date(), calendar: Calendar = .current) -> String {
         switch kind {
         case .included:
-            return "Included in this build"
+            return String(localized: "Included in this build")
         case .lifetime:
-            return isFamilyShared ? "Lifetime, shared by your family" : "Lifetime"
+            return isFamilyShared ? String(localized: "Lifetime, shared by your family") : String(localized: "Lifetime")
         case .subscription:
-            let base = isTrial ? "Free trial" : "Annual"
+            let base = isTrial ? String(localized: "Free trial") : String(localized: "Annual")
             guard let expiresAt else { return base }
             let date = expiresAt.formatted(date: .abbreviated, time: .omitted)
-            if hasBillingIssue { return "\(base) · payment problem, access until \(date)" }
-            if willRenew { return "\(base) · renews \(date)" }
-            return expiresAt > now ? "\(base) · ends \(date)" : "\(base) · ended \(date)"
+            if hasBillingIssue { return String(localized: "\(base) · payment problem, access until \(date)") }
+            if willRenew { return String(localized: "\(base) · renews \(date)") }
+            return expiresAt > now ? String(localized: "\(base) · ends \(date)") : String(localized: "\(base) · ended \(date)")
         }
     }
 }

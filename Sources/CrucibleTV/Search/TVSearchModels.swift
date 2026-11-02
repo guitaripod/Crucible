@@ -6,12 +6,12 @@ enum TVSearchSection: Hashable {
     var title: String? {
         switch self {
         case .scopes, .topResult: return nil
-        case .recent: return "Recent Searches"
-        case .browse: return "Browse Genres"
-        case .recentlyAdded: return "Recently Added"
-        case .movies: return "Movies"
-        case .shows: return "Shows"
-        case .episodes: return "Episodes"
+        case .recent: return String(localized: "Recent Searches")
+        case .browse: return String(localized: "Browse Genres")
+        case .recentlyAdded: return String(localized: "Recently Added")
+        case .movies: return String(localized: "Movies")
+        case .shows: return String(localized: "Shows")
+        case .episodes: return String(localized: "Episodes")
         }
     }
 }

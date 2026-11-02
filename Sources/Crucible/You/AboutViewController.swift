@@ -18,7 +18,7 @@ final class AboutViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "About Crucible"
+        title = String(localized: "About Crucible")
         navigationItem.largeTitleDisplayMode = .never
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.allowsKeyboardFocus()
@@ -43,13 +43,13 @@ final class AboutViewController: UICollectionViewController {
             var content: IconRowContentConfiguration
             switch item {
             case .version:
-                content = IconRowContentConfiguration(symbol: "info.circle", title: "Version", value: AppInfo.versionText)
+                content = IconRowContentConfiguration(symbol: "info.circle", title: String(localized: "Version"), value: AppInfo.versionText)
             case .build:
-                content = IconRowContentConfiguration(symbol: "hammer", title: "Build", value: AppInfo.buildText)
+                content = IconRowContentConfiguration(symbol: "hammer", title: String(localized: "Build", comment: "About row showing the app build number"), value: AppInfo.buildText)
             case .license:
-                content = IconRowContentConfiguration(symbol: "doc.text", title: "License", value: AppInfo.licenseName)
+                content = IconRowContentConfiguration(symbol: "doc.text", title: String(localized: "License"), value: AppInfo.licenseName)
             case .source:
-                content = IconRowContentConfiguration(symbol: "chevron.left.forwardslash.chevron.right", title: "Source Code", value: "GitHub")
+                content = IconRowContentConfiguration(symbol: "chevron.left.forwardslash.chevron.right", title: String(localized: "Source Code"), value: "GitHub")
             }
             cell.contentConfiguration = content
             cell.accessories = []

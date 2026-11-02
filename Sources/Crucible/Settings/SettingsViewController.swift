@@ -10,11 +10,11 @@ final class SettingsViewController: UICollectionViewController {
         var title: String? {
             switch self {
             case .pro: return nil
-            case .playback: return "Playback"
-            case .downloads: return "Downloads"
-            case .home: return "Home & Statistics"
-            case .appearance: return "Appearance"
-            case .support: return "Support"
+            case .playback: return String(localized: "Playback")
+            case .downloads: return String(localized: "Downloads")
+            case .home: return String(localized: "Home & Statistics")
+            case .appearance: return String(localized: "Appearance")
+            case .support: return String(localized: "Support")
             case .account: return nil
             }
         }
@@ -40,7 +40,7 @@ final class SettingsViewController: UICollectionViewController {
     private let api: APIClient
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var loadTask: Task<Void, Never>?
-    private var storageText = "None"
+    private var storageText = String(localized: "None")
     private var cacheText = "…"
     private var proObservation: ProObservation?
     private var demoObservation: DemoObservation?
@@ -59,7 +59,7 @@ final class SettingsViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Settings"
+        title = String(localized: "Settings")
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
@@ -122,7 +122,7 @@ final class SettingsViewController: UICollectionViewController {
             let usedBytes = await DownloadManager.shared.totalBytesOnDisk()
             let cacheBytes = await ImageCacheMeter.totalBytes()
             guard let self, !Task.isCancelled else { return }
-            storageText = usedBytes > 0 ? Formatters.fileSize(usedBytes) : "None"
+            storageText = usedBytes > 0 ? Formatters.fileSize(usedBytes) : String(localized: "None")
             cacheText = ImageCacheMeter.formatted(cacheBytes)
             reconfigure([.manageStorage, .clearCache])
         }
@@ -185,48 +185,48 @@ final class SettingsViewController: UICollectionViewController {
                 )
             case .downloadQuality:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "arrow.down.circle", title: "Download Quality",
+                    symbol: "arrow.down.circle", title: String(localized: "Download Quality"),
                     value: Preferences.downloadQuality.title, menu: downloadQualityMenu()
                 )
             case .downloadCellular:
-                toggleRow(cell, symbol: "cellularbars", title: "Download over Cellular", isOn: Preferences.downloadOverCellular) { newValue in
+                toggleRow(cell, symbol: "cellularbars", title: String(localized: "Download over Cellular"), isOn: Preferences.downloadOverCellular) { newValue in
                     Preferences.downloadOverCellular = newValue
                     DownloadManager.shared.cellularPreferenceChanged()
                 }
             case .deleteWatched:
-                toggleRow(cell, symbol: "trash", title: "Delete Watched Downloads", isOn: Preferences.deleteWatchedDownloads) { newValue in
+                toggleRow(cell, symbol: "trash", title: String(localized: "Delete Watched Downloads"), isOn: Preferences.deleteWatchedDownloads) { newValue in
                     Preferences.deleteWatchedDownloads = newValue
                 }
             case .manageStorage:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "internaldrive", title: "Manage Storage", value: storageText)
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "internaldrive", title: String(localized: "Manage Storage"), value: storageText)
                 cell.accessories = [.disclosureIndicator()]
             case .libraries:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "rectangle.stack", title: "Libraries", value: LibrariesSettings.summary
+                    symbol: "rectangle.stack", title: String(localized: "Libraries"), value: LibrariesSettings.summary
                 )
                 cell.accessories = [.disclosureIndicator()]
             case .appearance:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "sun.max", title: "Appearance",
+                    symbol: "sun.max", title: String(localized: "Appearance"),
                     value: Preferences.appearance.title, menu: appearanceMenu()
                 )
             case .libraryGrid:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "square.grid.3x3", title: "Library Grid",
+                    symbol: "square.grid.3x3", title: String(localized: "Library Grid"),
                     value: gridTitle(Preferences.libraryColumns), menu: libraryGridMenu()
                 )
             case .shareLogs:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: "Share Diagnostic Logs")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: String(localized: "Share Diagnostic Logs"))
                 cell.accessories = [.disclosureIndicator()]
             case .clearCache:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "trash", title: "Clear Image Cache", value: cacheText)
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "trash", title: String(localized: "Clear Image Cache"), value: cacheText)
             case .sourceCode:
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "chevron.left.forwardslash.chevron.right", title: "Source Code", value: "GitHub"
+                    symbol: "chevron.left.forwardslash.chevron.right", title: String(localized: "Source Code"), value: "GitHub"
                 )
             case .signOut, .leaveDemo:
                 var content = UIListContentConfiguration.cell()
-                content.text = item == .leaveDemo ? DemoPhoneCopy.leaveTitle : "Sign Out"
+                content.text = item == .leaveDemo ? DemoPhoneCopy.leaveTitle : String(localized: "Sign Out")
                 content.textProperties.color = Theme.Color.destructive
                 content.textProperties.font = Theme.Font.headline
                 content.textProperties.alignment = .center
@@ -254,11 +254,11 @@ final class SettingsViewController: UICollectionViewController {
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .playback:
                 content.text = ([PreferenceSetting.skipIntro, .skipOutro, .rewindAfterBreak, .stillWatching].compactMap(\.explanation)
-                    + ["Skip Back and Skip Ahead set the skip buttons on the Lock Screen, in Control Center and on headphones."]).joined(separator: " ")
+                    + [String(localized: "Skip Back and Skip Ahead set the skip buttons on the Lock Screen, in Control Center and on headphones.")]).joined(separator: " ")
             case .home:
                 content.text = LibrariesSettings.homeFooterText
             case .account:
-                content.text = "Crucible \(AppInfo.versionSummary)"
+                content.text = String(localized: "Crucible \(AppInfo.versionSummary)")
                 content.textProperties.alignment = .center
                 content.textProperties.color = Theme.Color.labelTertiary
             default:
@@ -315,7 +315,7 @@ final class SettingsViewController: UICollectionViewController {
             }
             return action
         }
-        return UIMenu(title: "Download Quality", children: actions)
+        return UIMenu(title: String(localized: "Download Quality"), children: actions)
     }
 
     private func appearanceMenu() -> UIMenu {
@@ -326,7 +326,7 @@ final class SettingsViewController: UICollectionViewController {
                 self?.apply(appearance)
             }
         }
-        return UIMenu(title: "Appearance", children: actions)
+        return UIMenu(title: String(localized: "Appearance"), children: actions)
     }
 
     private func apply(_ appearance: Preferences.Appearance) {
@@ -348,8 +348,8 @@ final class SettingsViewController: UICollectionViewController {
 
     /// A phone names the grid by its column count; a large window shows more columns than that, so it names the poster size instead.
     private func gridTitle(_ columns: Int) -> String {
-        guard Theme.Room(width: view.bounds.width, height: view.bounds.height) != .compact else { return "\(columns) Columns" }
-        return columns == 2 ? "Large Posters" : "Compact Posters"
+        guard Theme.Room(width: view.bounds.width, height: view.bounds.height) != .compact else { return String(localized: "\(columns) Columns") }
+        return columns == 2 ? String(localized: "Large Posters") : String(localized: "Compact Posters")
     }
 
     private func libraryGridMenu() -> UIMenu {
@@ -361,7 +361,7 @@ final class SettingsViewController: UICollectionViewController {
                 self?.reconfigure([.libraryGrid])
             }
         }
-        return UIMenu(title: "Library Grid", children: actions)
+        return UIMenu(title: String(localized: "Library Grid"), children: actions)
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
@@ -411,8 +411,8 @@ final class SettingsViewController: UICollectionViewController {
             ))
             guard let self else { return }
             guard let url else {
-                let alert = UIAlertController(title: "No Logs Yet", message: "There are no diagnostic logs to share.", preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                let alert = UIAlertController(title: String(localized: "No Logs Yet"), message: String(localized: "There are no diagnostic logs to share."), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
                 present(alert, animated: true)
                 return
             }
@@ -428,31 +428,31 @@ final class SettingsViewController: UICollectionViewController {
 
     private func confirmClearCache() {
         let alert = UIAlertController(
-            title: "Clear Image Cache?",
-            message: "Posters and backdrops will be downloaded again as you browse.",
+            title: String(localized: "Clear Image Cache?"),
+            message: String(localized: "Posters and backdrops will be downloaded again as you browse."),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Clear", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: String(localized: "Clear"), style: .destructive) { [weak self] _ in
             Task { [weak self] in
                 await ImageLoader.shared.clearCache()
                 Haptics.success()
                 self?.loadSizes()
             }
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(alert, animated: true)
     }
 
     private func confirmSignOut() {
-        let alert = UIAlertController(title: "Sign Out", message: "Are you sure you want to sign out?", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in
+        let alert = UIAlertController(title: String(localized: "Sign Out"), message: String(localized: "Are you sure you want to sign out?"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Sign Out"), style: .destructive) { [weak self] _ in
             guard let self else { return }
             AccountSessionReset.signOut(.phone)
             if let scene = view.window?.windowScene?.delegate as? SceneDelegate {
                 scene.reconfigureRoot()
             }
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(alert, animated: true)
     }
 }

@@ -68,6 +68,6 @@ final class DemoProgressContentView: UIView, UIContentView {
         progressLabel.text = config.progressText
         bar.progress = config.fraction
         captionLabel.text = config.caption
-        accessibilityLabel = "\(config.progressText). \(config.caption)"
+        accessibilityLabel = String(localized: "\(config.progressText). \(config.caption)")
     }
 }

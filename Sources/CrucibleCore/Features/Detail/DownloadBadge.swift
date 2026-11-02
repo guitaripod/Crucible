@@ -22,10 +22,10 @@ package enum DownloadBadge: Equatable, Sendable {
     package var metaText: String? {
         switch self {
         case .progress(let value): return "\(Self.percent(value))%"
-        case .queued: return "Queued"
-        case .paused(let value): return "Paused · \(Self.percent(value))%"
-        case .completed: return "Downloaded"
-        case .failed: return "Download failed"
+        case .queued: return String(localized: "Queued", comment: "Download is waiting to start")
+        case .paused(let value): return String(localized: "Paused · \(Self.percent(value))%")
+        case .completed: return String(localized: "Downloaded", comment: "Download has finished")
+        case .failed: return String(localized: "Download failed")
         case .idle: return nil
         }
     }
@@ -33,11 +33,11 @@ package enum DownloadBadge: Equatable, Sendable {
     /// The download fragment of an episode's spoken description.
     package var spokenText: String? {
         switch self {
-        case .progress(let value): return "downloading \(Self.percent(value)) percent"
-        case .queued: return "download queued"
-        case .paused(let value): return "download paused at \(Self.percent(value)) percent"
-        case .completed: return "downloaded"
-        case .failed: return "download failed"
+        case .progress(let value): return String(localized: "downloading \(Self.percent(value)) percent")
+        case .queued: return String(localized: "download queued")
+        case .paused(let value): return String(localized: "download paused at \(Self.percent(value)) percent")
+        case .completed: return String(localized: "downloaded")
+        case .failed: return String(localized: "download failed")
         case .idle: return nil
         }
     }

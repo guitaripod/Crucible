@@ -48,7 +48,7 @@ struct TVHeroInfo: Equatable, Sendable {
 
     var spokenProgress: String? {
         guard let progress, progress > 0, progress < 1 else { return nil }
-        return "\(Int((progress * 100).rounded())) percent watched"
+        return String(localized: "\(Int((progress * 100).rounded())) percent watched")
     }
 }
 

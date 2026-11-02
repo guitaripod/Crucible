@@ -45,7 +45,7 @@ extension DownloadManager {
                 guard let name = job.names.first(where: { !job.onDisk.contains(HLSDownloader.localName(for: $0)) }) else { return }
                 let local = HLSDownloader.localName(for: name)
                 guard let url = HLSDownloader.segmentURL(name: name, base: job.base) else {
-                    self.failItem(ratingKey, message: "Could not build segment URL")
+                    self.failItem(ratingKey, message: String(localized: "Could not build segment URL"))
                     return
                 }
                 var request = URLRequest(url: url)

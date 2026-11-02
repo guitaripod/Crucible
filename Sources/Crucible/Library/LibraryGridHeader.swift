@@ -123,7 +123,7 @@ final class ContinueBannerView: UIControl {
         thumbView.layer.cornerCurve = .continuous
         thumbView.backgroundColor = Theme.Color.surfaceRaised
 
-        captionLabel.text = "CONTINUE"
+        captionLabel.text = String(localized: "CONTINUE")
         captionLabel.font = Theme.Font.scaled(.caption2, 11, .bold, maximum: 16)
         captionLabel.adjustsFontForContentSizeCategory = true
         captionLabel.textColor = Theme.Color.accentText
@@ -175,7 +175,7 @@ final class ContinueBannerView: UIControl {
 
         isAccessibilityElement = true
         accessibilityTraits = .button
-        accessibilityHint = "Plays from where you left off."
+        accessibilityHint = String(localized: "Plays from where you left off.")
         isContextMenuInteractionEnabled = true
     }
 
@@ -185,10 +185,10 @@ final class ContinueBannerView: UIControl {
     ) -> UIContextMenuConfiguration? {
         UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             UIMenu(children: [
-                UIAction(title: "Resume", image: UIImage(systemName: "play.fill")) { _ in
+                UIAction(title: String(localized: "Resume", comment: "Context menu action that resumes playback"), image: UIImage(systemName: "play.fill")) { _ in
                     self?.onPlay?()
                 },
-                UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { _ in
+                UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { _ in
                     self?.onDetails?()
                 },
             ])
@@ -199,7 +199,7 @@ final class ContinueBannerView: UIControl {
         detailLabel.text = model.detail
         accessibilityLabel = model.spokenLabel
         accessibilityCustomActions = [
-            UIAccessibilityCustomAction(name: "View Details") { [weak self] _ in
+            UIAccessibilityCustomAction(name: String(localized: "View Details")) { [weak self] _ in
                 self?.onDetails?()
                 return true
             },

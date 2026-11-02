@@ -17,13 +17,13 @@ extension TVPlayerCoordinator {
         var menus: [UIMenuElement] = []
         if stream.audioTracks.count > 1 {
             let options = PlaybackTrackMenu.audioOptions(stream.audioTracks, selectedId: session.selectedAudioStreamId)
-            menus.append(menu(title: "Audio", symbol: "speaker.wave.2", options: options) { [weak self] id in
+            menus.append(menu(title: String(localized: "Audio"), symbol: "speaker.wave.2", options: options) { [weak self] id in
                 self?.selectStreams(subtitleId: session.selectedSubtitleId, audioId: id)
             })
         }
         if !stream.subtitles.isEmpty {
             let options = PlaybackTrackMenu.subtitleOptions(stream.subtitles, selectedId: session.selectedSubtitleId)
-            menus.append(menu(title: "Subtitles", symbol: "captions.bubble", options: options) { [weak self] id in
+            menus.append(menu(title: String(localized: "Subtitles"), symbol: "captions.bubble", options: options) { [weak self] id in
                 self?.selectStreams(subtitleId: id, audioId: session.selectedAudioStreamId)
             })
         }

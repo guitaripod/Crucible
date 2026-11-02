@@ -55,10 +55,10 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
 
     private func showEmptyState() {
         show(state: .empty(
-            title: "Nothing Here",
-            message: "This list is empty right now.",
+            title: String(localized: "Nothing Here"),
+            message: String(localized: "This list is empty right now."),
             symbol: "rectangle.stack",
-            action: TVStateView.Action(title: "Back") { [weak self] in
+            action: TVStateView.Action(title: String(localized: "Back")) { [weak self] in
                 guard let self else { return }
                 TVNavigation.pop(from: self)
             }
@@ -106,7 +106,7 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
     }
 
     private static func countText(_ count: Int) -> String {
-        count == 1 ? "1 title" : "\(count) titles"
+        count == 1 ? String(localized: "1 title") : String(localized: "\(count) titles")
     }
 
     private func media(at indexPath: IndexPath) -> PlexMetadata? {

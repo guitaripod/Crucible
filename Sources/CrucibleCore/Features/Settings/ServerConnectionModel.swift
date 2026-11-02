@@ -102,7 +102,7 @@ package final class ServerConnectionModel {
     package var card: Card {
         var subtitle = "Plex Media Server"
         if let version { subtitle += " \(version)" }
-        if let isOwned { subtitle += isOwned ? " · Owned by you" : " · Shared with you" }
+        if let isOwned { subtitle += isOwned ? String(localized: " · Owned by you") : String(localized: " · Shared with you") }
 
         let activeURL = activeRouteURL
         let status: String
@@ -110,16 +110,16 @@ package final class ServerConnectionModel {
         switch probes[activeURL] {
         case .reachable(let milliseconds):
             let scheme = ConnectionRoute.isHTTPS(activeURL) ? "HTTPS" : "HTTP"
-            status = "Connected · \(kind(of: activeURL).title) · \(scheme) · \(milliseconds) ms"
+            status = String(localized: "Connected · \(kind(of: activeURL).title) · \(scheme) · \(milliseconds) ms")
             tone = .ok
         case .unreachable:
-            status = "Unreachable · \(kind(of: activeURL).title)"
+            status = String(localized: "Unreachable · \(kind(of: activeURL).title)")
             tone = .failure
         case .probing, nil:
-            status = "Checking connection…"
+            status = String(localized: "Checking connection…")
             tone = .neutral
         }
-        return Card(name: environment.connection()?.serverName ?? "Plex Server", subtitle: subtitle, status: status, tone: tone)
+        return Card(name: environment.connection()?.serverName ?? String(localized: "Plex Server"), subtitle: subtitle, status: status, tone: tone)
     }
 
     package var routeRows: [RouteRow] {
@@ -133,8 +133,8 @@ package final class ServerConnectionModel {
 
         let latency: String
         switch state {
-        case .reachable(let milliseconds): latency = "\(milliseconds) ms"
-        case .unreachable: latency = "Unreachable"
+        case .reachable(let milliseconds): latency = String(localized: "\(milliseconds) ms")
+        case .unreachable: latency = String(localized: "Unreachable")
         case .probing, nil: latency = "…"
         }
 
@@ -143,7 +143,7 @@ package final class ServerConnectionModel {
             kind: routeKind,
             kindTitle: routeKind.title,
             isInUse: url == activeRouteURL,
-            detail: isRelay ? "Bandwidth limited, may force transcoding" : url.absoluteString,
+            detail: isRelay ? String(localized: "Bandwidth limited, may force transcoding") : url.absoluteString,
             detailIsMonospaced: !isRelay,
             latencyText: latency,
             showsWarning: isRelay,

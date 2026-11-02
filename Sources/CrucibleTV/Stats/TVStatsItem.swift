@@ -25,11 +25,11 @@ enum TVStatsSection: Hashable, CaseIterable {
 
     var headerTitle: String? {
         switch self {
-        case .topShows: "Top Shows"
-        case .topMovies: "Top Movies"
-        case .binges: "Binges & Streaks"
-        case .onThisDay: "On This Day"
-        case .superlatives: "Wrapped Moments"
+        case .topShows: String(localized: "Top Shows")
+        case .topMovies: String(localized: "Top Movies")
+        case .binges: String(localized: "Binges & Streaks")
+        case .onThisDay: String(localized: "On This Day")
+        case .superlatives: String(localized: "Wrapped Moments")
         default: nil
         }
     }

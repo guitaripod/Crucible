@@ -8,8 +8,8 @@ package enum ProTVPresentation {
         package var message: String
     }
 
-    package static let pitch = "Unlock full Statistics and Top Shelf"
-    package static let manageSubscriptionText = "To manage or cancel: Settings > Users & Accounts > your account > Subscriptions"
+    package static let pitch = String(localized: "Unlock full Statistics and Top Shelf")
+    package static let manageSubscriptionText = String(localized: "To manage or cancel: Settings > Users & Accounts > your account > Subscriptions")
 
     /// Locks belong to installs that can buy Pro and do not have it. Source builds, which cannot sell anything, and Pro installs
     /// never show one; a status the store has not answered yet reads as locked, like `ProStatus.unknown`.
@@ -26,14 +26,16 @@ package enum ProTVPresentation {
     package static func reasonLine(for feature: ProFeature?) -> String? {
         guard let feature else { return nil }
         switch feature {
-        case .fullStatistics: return "Month, Year, All and the library filter are part of Crucible Pro."
-        case .unlimitedDownloads, .yearInReviewPoster, .topShelf: return "\(feature.title) is part of Crucible Pro."
+        case .fullStatistics: return String(localized: "Month, Year, All and the library filter are part of Crucible Pro.")
+        case .unlimitedDownloads, .yearInReviewPoster, .topShelf: return String(localized: "\(feature.title) is part of Crucible Pro.")
         }
     }
 
     /// The legal pages as plain text, each address on a line of its own so it never breaks mid-address: tvOS cannot open links.
     package static var legalText: String {
-        "Terms of Use\n\(ProLinks.termsOfUse.absoluteString)\nPrivacy Policy\n\(ProLinks.privacyPolicy.absoluteString)"
+        let terms = ProLinks.termsOfUse.absoluteString
+        let privacy = ProLinks.privacyPolicy.absoluteString
+        return String(localized: "Terms of Use\n\(terms)\nPrivacy Policy\n\(privacy)")
     }
 
     /// `legalText` with a break opportunity after each slash of an address, so a column too narrow for the whole address wraps
@@ -49,11 +51,11 @@ package enum ProTVPresentation {
     package static func restoreAlert(for outcome: ProRestoreOutcome, isPro: Bool) -> Alert {
         switch outcome {
         case .restored where isPro:
-            return Alert(title: "Crucible Pro Restored", message: "Your purchase is back on this Apple TV.")
+            return Alert(title: String(localized: "Crucible Pro Restored"), message: String(localized: "Your purchase is back on this Apple TV."))
         case .restored, .nothingToRestore:
-            return Alert(title: "Nothing to Restore", message: PaywallModel.message(for: .nothingToRestore))
+            return Alert(title: String(localized: "Nothing to Restore"), message: PaywallModel.message(for: .nothingToRestore))
         case .failed(let failure):
-            return Alert(title: "Couldn\u{2019}t Restore", message: PaywallModel.message(for: failure))
+            return Alert(title: String(localized: "Couldn\u{2019}t Restore"), message: PaywallModel.message(for: failure))
         }
     }
 }

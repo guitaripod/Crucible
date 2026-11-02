@@ -29,7 +29,7 @@ package struct StatsPoster: Hashable, Sendable {
     package init(_ movie: MovieStat) {
         posterPath = movie.thumb
         title = movie.title
-        subtitle = movie.count > 1 ? "\(movie.count)× watched" : nil
+        subtitle = movie.count > 1 ? String(localized: "\(movie.count)× watched") : nil
         placeholderSymbol = "film"
         destination = .movie(ratingKey: movie.ratingKey)
     }
@@ -38,7 +38,7 @@ package struct StatsPoster: Hashable, Sendable {
     package init(onThisDay item: OnThisDayItem) {
         posterPath = item.thumb ?? item.grandparentThumb
         title = item.grandparentTitle ?? item.title
-        subtitle = item.yearsAgo == 1 ? "1 year ago" : "\(item.yearsAgo) years ago"
+        subtitle = item.yearsAgo == 1 ? String(localized: "1 year ago") : String(localized: "\(item.yearsAgo) years ago")
         placeholderSymbol = item.type == "episode" ? "tv" : "film"
         destination = StatsDestination(item)
     }

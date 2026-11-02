@@ -120,17 +120,17 @@ extension StatisticsViewController {
             let heatmap = ContributionHeatmapView()
             heatmap.setModel(page.heatmap)
             heatmap.onSelectDay = { [weak self] dayEpoch in self?.pushDayDetail(dayEpoch: dayEpoch) }
-            host(StatsCardView(title: "Activity", accessory: StatsHeatLegendView(), content: heatmap), in: cell)
+            host(StatsCardView(title: String(localized: "Activity"), accessory: StatsHeatLegendView(), content: heatmap), in: cell)
         }
 
         let showsReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(StatsCardView(title: "Top Shows", content: makeTopShowsView()), in: cell)
+            host(StatsCardView(title: String(localized: "Top Shows"), content: makeTopShowsView()), in: cell)
         }
 
         let clockReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(StatsCardView(title: "When You Watch", content: makeClockView()), in: cell)
+            host(StatsCardView(title: String(localized: "When You Watch"), content: makeClockView()), in: cell)
         }
 
         let momentumReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
@@ -142,7 +142,7 @@ extension StatisticsViewController {
             trend.isAccessibilityElement = true
             trend.accessibilityTraits = .image
             trend.accessibilityLabel = momentum.summary
-            host(StatsCardView(title: "Your Momentum", content: trend), in: cell)
+            host(StatsCardView(title: String(localized: "Your Momentum"), content: trend), in: cell)
         }
 
         let movieReg = UICollectionView.CellRegistration<UICollectionViewCell, StatsPoster> { cell, _, poster in
@@ -151,19 +151,19 @@ extension StatisticsViewController {
 
         let librariesReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(StatsCardView(title: "Your Libraries", content: makeLibrariesView()), in: cell)
+            host(StatsCardView(title: String(localized: "Your Libraries"), content: makeLibrariesView()), in: cell)
         }
 
         let bingesReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
             let timeline = BingeTimelineView()
             timeline.setSessions(page.binges)
-            host(StatsCardView(title: "Binges & Streaks", content: timeline), in: cell)
+            host(StatsCardView(title: String(localized: "Binges & Streaks"), content: timeline), in: cell)
         }
 
         let genresReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
             guard let self else { return }
-            host(StatsCardView(title: "Your Taste", content: makeGenresView()), in: cell)
+            host(StatsCardView(title: String(localized: "Your Taste"), content: makeGenresView()), in: cell)
         }
 
         let onThisDayReg = UICollectionView.CellRegistration<UICollectionViewCell, StatsPoster> { cell, _, poster in
@@ -380,8 +380,8 @@ extension StatisticsViewController {
 
     private func makeShareButton() -> UIButton {
         let locked = ProAccess.shared.showsLocks
-        let button = ThemeButton.primary(title: "Share Your Year", symbol: locked ? ProLock.symbolName : nil)
-        button.accessibilityHint = locked ? "Requires Crucible Pro" : nil
+        let button = ThemeButton.primary(title: String(localized: "Share Your Year"), symbol: locked ? ProLock.symbolName : nil)
+        button.accessibilityHint = locked ? String(localized: "Requires Crucible Pro") : nil
         button.addAction(UIAction { [weak self] action in
             self?.shareWrapped(from: action.sender as? UIButton)
         }, for: .touchUpInside)

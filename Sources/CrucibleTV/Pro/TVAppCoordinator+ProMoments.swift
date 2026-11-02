@@ -77,7 +77,7 @@ extension TVAppCoordinator {
         let action = UIAlertAction(title: moment.actionTitle, style: .default) { [weak self] _ in self?.perform(moment.action) }
         alert.addAction(action)
         if moment.action != .acknowledge {
-            alert.addAction(UIAlertAction(title: "Not Now", style: .cancel))
+            alert.addAction(UIAlertAction(title: String(localized: "Not Now"), style: .cancel))
         }
         alert.preferredAction = action
         presenter.present(alert, animated: true)

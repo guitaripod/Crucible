@@ -13,8 +13,8 @@ package enum LibraryGridKind: Sendable {
 
     package var defaultTitle: String {
         switch self {
-        case .movie: return "Movies"
-        case .show: return "TV Shows"
+        case .movie: return String(localized: "Movies", comment: "Media type: films, as a plural")
+        case .show: return String(localized: "TV Shows")
         }
     }
 
@@ -22,16 +22,16 @@ package enum LibraryGridKind: Sendable {
         switch self {
         case .movie:
             return [
-                LibrarySortOption(key: LibraryGridOptions.titleAscending, title: "Title"),
-                LibrarySortOption(key: "year:desc", title: "Year"),
-                LibrarySortOption(key: "addedAt:desc", title: "Recently Added"),
-                LibrarySortOption(key: "rating:desc", title: "Rating"),
+                LibrarySortOption(key: LibraryGridOptions.titleAscending, title: String(localized: "Title", comment: "Sort option: by title")),
+                LibrarySortOption(key: "year:desc", title: String(localized: "Year", comment: "Sort option: by release year")),
+                LibrarySortOption(key: "addedAt:desc", title: String(localized: "Recently Added")),
+                LibrarySortOption(key: "rating:desc", title: String(localized: "Rating", comment: "Sort option: by rating")),
             ]
         case .show:
             return [
-                LibrarySortOption(key: LibraryGridOptions.titleAscending, title: "Name"),
-                LibrarySortOption(key: "addedAt:desc", title: "Recently Added"),
-                LibrarySortOption(key: "rating:desc", title: "Rating"),
+                LibrarySortOption(key: LibraryGridOptions.titleAscending, title: String(localized: "Name", comment: "Sort option: by name")),
+                LibrarySortOption(key: "addedAt:desc", title: String(localized: "Recently Added")),
+                LibrarySortOption(key: "rating:desc", title: String(localized: "Rating", comment: "Sort option: by rating")),
             ]
         }
     }
@@ -45,8 +45,8 @@ package enum LibraryGridKind: Sendable {
 
     package var emptyTitle: String {
         switch self {
-        case .movie: return "No Movies"
-        case .show: return "No Shows"
+        case .movie: return String(localized: "No Movies")
+        case .show: return String(localized: "No Shows")
         }
     }
 
@@ -86,9 +86,9 @@ package enum LibraryWatchFilter: String, CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .all: return "All"
-        case .unwatched: return "Unwatched"
-        case .inProgress: return "In Progress"
+        case .all: return String(localized: "All", comment: "Filter option that shows every item")
+        case .unwatched: return String(localized: "Unwatched", comment: "Filter option that shows unwatched items")
+        case .inProgress: return String(localized: "In Progress")
         }
     }
 
@@ -151,10 +151,10 @@ package struct LibraryGridOptions: Equatable, Sendable {
     }
 
     package func genreTitle(in genres: [LibraryGenre]) -> String {
-        genres.first { $0.key == genre }?.title ?? "Genre"
+        genres.first { $0.key == genre }?.title ?? String(localized: "Genre", comment: "Filter label for the genre menu")
     }
 
     package func sortTitle(for kind: LibraryGridKind) -> String {
-        kind.sortOptions.first { $0.key == sort }?.title ?? "Title"
+        kind.sortOptions.first { $0.key == sort }?.title ?? String(localized: "Title", comment: "Sort option: by title")
     }
 }

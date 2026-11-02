@@ -39,21 +39,21 @@ package struct EpisodeStatus: Equatable, Sendable {
         let progress: Double? = !isWatched && position > 0 && duration > 0 ? position / duration : nil
         let inProgress = !isWatched && (progress ?? 0) > 0
 
-        let number = episode.index.map { "E\($0)" } ?? "EPISODE"
+        let number = episode.index.map { "E\($0)" } ?? String(localized: "EPISODE")
         let marker: Marker
         let eyebrow: String
         if isWatched {
             marker = .watched
-            eyebrow = "\(number) · WATCHED"
+            eyebrow = String(localized: "\(number) · WATCHED")
         } else if inProgress {
             marker = .inProgress
-            eyebrow = "\(number) · CONTINUE"
+            eyebrow = String(localized: "\(number) · CONTINUE")
         } else if download.isDownloading {
             marker = .downloading
-            eyebrow = "\(number) · DOWNLOADING"
+            eyebrow = String(localized: "\(number) · DOWNLOADING")
         } else if isUpNext {
             marker = .upNext
-            eyebrow = "\(number) · UP NEXT"
+            eyebrow = String(localized: "\(number) · UP NEXT")
         } else {
             marker = .plain
             eyebrow = number
@@ -76,7 +76,7 @@ package struct EpisodeStatus: Equatable, Sendable {
         self.metaParts = meta
         self.spokenText = Self.spokenDescription(episode: episode, inProgress: inProgress, download: download)
         self.download = download
-        self.playTitle = inProgress ? "Resume" : "Play"
+        self.playTitle = inProgress ? String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position") : String(localized: "Play", comment: "Button or menu label that starts playback")
         self.canPlayFromBeginning = inProgress
         self.watchedToggleTitle = WatchedService.title(isWatched: isWatched)
     }
@@ -92,12 +92,12 @@ package struct EpisodeStatus: Equatable, Sendable {
 
     private static func spokenDescription(episode: PlexMetadata, inProgress: Bool, download: DownloadBadge) -> String {
         var parts: [String] = []
-        if let number = episode.index { parts.append("Episode \(number)") }
+        if let number = episode.index { parts.append(String(localized: "Episode \(number)")) }
         parts.append(episode.title)
         if episode.isWatched {
-            parts.append("watched")
+            parts.append(String(localized: "watched"))
         } else if inProgress, let left = DetailFormat.spokenDuration(episode.durationSecs - episode.positionSecs) {
-            parts.append("\(left) left")
+            parts.append(String(localized: "\(left) left"))
         } else if let duration = DetailFormat.spokenDuration(episode.durationSecs) {
             parts.append(duration)
         }

@@ -5,9 +5,9 @@ package enum HistoryFilter: String, CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .all: return "All"
-        case .movies: return "Movies"
-        case .tv: return "TV"
+        case .all: return String(localized: "All", comment: "Filter option that shows every item")
+        case .movies: return String(localized: "Movies", comment: "Media type: films, as a plural")
+        case .tv: return String(localized: "TV", comment: "Media type: television")
         }
     }
 

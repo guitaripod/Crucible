@@ -24,7 +24,7 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
         super.init(collectionViewLayout: UICollectionViewCompositionalLayout { _, environment in
             Theme.gridLayout(environment: environment)
         })
-        title = "Recently Watched"
+        title = String(localized: "Recently Watched")
     }
 
     @available(*, unavailable)
@@ -78,8 +78,8 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
         }
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: kind.placeholderIcon)
-        config.text = "Nothing Watched Yet"
-        config.secondaryText = "Titles you watch from this library appear here."
+        config.text = String(localized: "Nothing Watched Yet")
+        config.secondaryText = String(localized: "Titles you watch from this library appear here.")
         contentUnavailableConfiguration = config
     }
 

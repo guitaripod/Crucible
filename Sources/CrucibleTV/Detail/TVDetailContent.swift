@@ -104,8 +104,8 @@ enum TVDetailMapping {
 
     private static func eyebrow(for marker: EpisodeStatus.Marker) -> String? {
         switch marker {
-        case .inProgress: "Continue"
-        case .upNext: "Up Next"
+        case .inProgress: String(localized: "Continue", comment: "Action title that resumes a partly watched item")
+        case .upNext: String(localized: "Up Next")
         default: nil
         }
     }
@@ -122,7 +122,7 @@ enum TVDetailMapping {
             isWatched: status.isWatched,
             isDimmed: status.isWatched,
             placeholderSymbol: "tv",
-            accessibilityHint: "Press and hold for more options"
+            accessibilityHint: String(localized: "Press and hold for more options")
         )
     }
 }

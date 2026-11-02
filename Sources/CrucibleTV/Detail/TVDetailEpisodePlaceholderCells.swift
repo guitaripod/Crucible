@@ -35,7 +35,7 @@ final class TVDetailEpisodePlaceholderCell: UICollectionViewCell {
 
     func configure(index: Int) {
         isAccessibilityElement = index == 0
-        accessibilityLabel = "Loading episodes"
+        accessibilityLabel = String(localized: "Loading episodes")
         accessibilityIdentifier = "detail.episodes.loading"
     }
 
@@ -69,12 +69,12 @@ final class TVDetailEpisodesFailedCell: UICollectionViewCell {
         message.font = Theme.Font.callout
         message.textColor = Theme.Color.labelSecondary
         message.numberOfLines = 3
-        message.text = "Couldn\u{2019}t load this season."
+        message.text = String(localized: "Couldn\u{2019}t load this season.")
         message.accessibilityIdentifier = "detail.episodes.failed"
 
-        retryButton.configuration = TVButton.configuration(.glass, title: "Retry")
+        retryButton.configuration = TVButton.configuration(.glass, title: String(localized: "Retry", comment: "Button that retries loading the season"))
         retryButton.accessibilityIdentifier = "detail.episodes.retry"
-        retryButton.accessibilityLabel = "Retry loading episodes"
+        retryButton.accessibilityLabel = String(localized: "Retry loading episodes")
 
         let stack = UIStackView(arrangedSubviews: [message, retryButton])
         stack.axis = .vertical

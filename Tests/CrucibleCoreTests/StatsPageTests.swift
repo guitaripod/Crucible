@@ -227,9 +227,9 @@ struct StatsPageTests {
     @Test func clockSummaryNamesTheBusiestHour() {
         var snapshot = F.baseSnapshot()
         snapshot.hourHistogram = F.hours([0: 3, 15: 9])
-        #expect(F.page(snapshot).clock.accessibilitySummary == "Plays by hour of day. Busiest at 3 PM, 75 percent of plays.")
+        #expect(F.page(snapshot).clock.accessibilitySummary == "Plays by hour of day. Busiest at \(StatsFormat.hour(15)), 75 percent of plays.")
         snapshot.hourHistogram = F.hours([0: 4])
-        #expect(F.page(snapshot).clock.accessibilitySummary == "Plays by hour of day. Busiest at 12 AM, 100 percent of plays.")
+        #expect(F.page(snapshot).clock.accessibilitySummary == "Plays by hour of day. Busiest at \(StatsFormat.hour(0)), 100 percent of plays.")
         snapshot.hourHistogram = Array(repeating: 0, count: 24)
         #expect(F.page(snapshot).clock.accessibilitySummary == "Plays by hour of day.")
     }

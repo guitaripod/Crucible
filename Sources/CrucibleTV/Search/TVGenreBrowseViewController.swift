@@ -56,7 +56,7 @@ final class TVGenreBrowseViewController: TVScreenViewController {
 
     private var countText: String {
         let count = model.pager.totalCount ?? model.items.count
-        return count == 1 ? "1 title" : "\(count) titles"
+        return count == 1 ? String(localized: "1 title") : String(localized: "\(count) titles")
     }
 
     private func render(_ update: GenreGridModel.Update) {
@@ -82,7 +82,7 @@ final class TVGenreBrowseViewController: TVScreenViewController {
                 title: SearchCopy.genreEmptyTitle(genre.title),
                 message: SearchCopy.genreEmptyMessage,
                 symbol: "film.stack",
-                action: TVStateView.Action(title: "Back") { [weak self] in
+                action: TVStateView.Action(title: String(localized: "Back")) { [weak self] in
                     guard let self else { return }
                     TVNavigation.pop(from: self)
                 }

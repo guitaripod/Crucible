@@ -44,7 +44,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         } catch {
             guard !Task.isCancelled else { return }
             MidgarLog.error("Show load failed ratingKey=\(showKey): \(error.localizedDescription)", category: .networking)
-            if !hasContent { showFailure(title: "Failed to load", message: error.localizedDescription) }
+            if !hasContent { showFailure(title: String(localized: "Failed to load"), message: error.localizedDescription) }
         }
     }
 
@@ -85,27 +85,27 @@ final class TVShowDetailViewController: TVDetailViewController {
             },
         ]
         if status.canPlayFromBeginning {
-            children.append(UIAction(title: "Play from Beginning", image: UIImage(systemName: "gobackward")) { [weak self] _ in
+            children.append(UIAction(title: String(localized: "Play from Beginning"), image: UIImage(systemName: "gobackward")) { [weak self] _ in
                 self?.play(TVPlaybackRequest(item: episode, resumeSeconds: 0))
             })
         }
-        children.append(UIMenu(title: "Watched", image: UIImage(systemName: "eye"), children: [
+        children.append(UIMenu(title: String(localized: "Watched", comment: "Watch state of an item or season"), image: UIImage(systemName: "eye"), children: [
             UIAction(
-                title: "Mark Watched",
+                title: String(localized: "Mark Watched"),
                 image: UIImage(systemName: "checkmark.circle"),
                 state: episode.isWatched ? .on : .off
             ) { [weak self] _ in
                 self?.markWatched(true, ratingKey: episode.id)
             },
             UIAction(
-                title: "Mark Unwatched",
+                title: String(localized: "Mark Unwatched"),
                 image: UIImage(systemName: "eye.slash"),
                 state: episode.isWatched ? .off : .on
             ) { [weak self] _ in
                 self?.markWatched(false, ratingKey: episode.id)
             },
         ]))
-        children.append(UIAction(title: "Episode Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+        children.append(UIAction(title: String(localized: "Episode Details"), image: UIImage(systemName: "info.circle")) { [weak self] _ in
             self?.push(.item(ratingKey: episode.id, mediaType: "episode", showRatingKey: self?.showKey, seasonRatingKey: model.selectedSeasonKey))
         })
         return UIMenu(children: children)
@@ -154,7 +154,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         if let menu = watchedMenu(for: model) {
             actions.append(TVDetailAction(
                 kind: .watched,
-                title: model.isWatched ? "Watched" : WatchedService.title(isWatched: false),
+                title: model.isWatched ? String(localized: "Watched", comment: "Watch state of an item or season") : WatchedService.title(isWatched: false),
                 menu: menu,
                 accessibilityLabel: model.watchedAccessibilityLabel
             ))
@@ -211,6 +211,6 @@ final class TVShowDetailViewController: TVDetailViewController {
     }
 
     private static func episodeCount(_ count: Int) -> String {
-        count == 1 ? "1 episode" : "\(count) episodes"
+        count == 1 ? String(localized: "1 episode") : String(localized: "\(count) episodes")
     }
 }

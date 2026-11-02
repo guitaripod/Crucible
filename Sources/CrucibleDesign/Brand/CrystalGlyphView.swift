@@ -45,7 +45,8 @@ package final class CrystalGlyphView: UIView {
         super.init(frame: frame)
         isUserInteractionEnabled = false
         isAccessibilityElement = true
-        accessibilityLabel = "Crucible"
+        let brandName = "Crucible"
+        accessibilityLabel = brandName
 
         ambient.type = .radial
         ambient.colors = [

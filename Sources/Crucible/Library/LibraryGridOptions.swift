@@ -20,7 +20,7 @@ enum LibraryGridSizeMenu {
         onChange: @escaping @MainActor @Sendable () -> Void
     ) -> UIBarButtonItem {
         let item = UIBarButtonItem(image: UIImage(systemName: "square.grid.2x2"), menu: menu(width: width, onChange: onChange))
-        item.accessibilityLabel = "Grid Size"
+        item.accessibilityLabel = String(localized: "Grid Size")
         return item
     }
 
@@ -30,11 +30,11 @@ enum LibraryGridSizeMenu {
             let large = Theme.gridColumns(forWidth: width(), preferred: 2)
             let compact = Theme.gridColumns(forWidth: width(), preferred: 3)
             completion([
-                action(title: "Large (\(large) columns)", symbol: "square.grid.2x2", columns: 2, current: current, onChange: onChange),
-                action(title: "Compact (\(compact) columns)", symbol: "square.grid.3x3", columns: 3, current: current, onChange: onChange),
+                action(title: String(localized: "Large (\(large) columns)"), symbol: "square.grid.2x2", columns: 2, current: current, onChange: onChange),
+                action(title: String(localized: "Compact (\(compact) columns)"), symbol: "square.grid.3x3", columns: 3, current: current, onChange: onChange),
             ])
         }
-        return UIMenu(title: "Grid Size", children: [deferred])
+        return UIMenu(title: String(localized: "Grid Size"), children: [deferred])
     }
 
     private static func action(

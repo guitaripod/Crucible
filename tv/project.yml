@@ -27,6 +27,10 @@ targets:
         buildPhase: resources
       - path: Resources/PrivacyInfo.xcprivacy
         buildPhase: resources
+      - path: Resources/InfoPlist.xcstrings
+        buildPhase: resources
+      - path: ../Localization/Localizable.xcstrings
+        buildPhase: resources
     dependencies:
       - package: Crucible
         product: CrucibleTV
@@ -79,6 +83,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: TopShelf
+      - path: ../Localization/Localizable.xcstrings
+        buildPhase: resources
     dependencies:
       - package: Crucible
         product: CrucibleTopShelf

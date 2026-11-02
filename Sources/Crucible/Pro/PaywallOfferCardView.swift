@@ -107,12 +107,12 @@ final class PaywallOfferCardView: UIControl {
         radio.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 24, weight: .regular))
         radio.tintColor = isSelected ? Theme.Color.accent : Theme.Color.labelTertiary
         accessibilityTraits = isSelected ? [.button, .selected] : .button
-        accessibilityValue = isSelected ? "Selected" : "Not selected"
+        accessibilityValue = isSelected ? String(localized: "Selected") : String(localized: "Not selected")
     }
 
     private static func trialBadge(days: Int) -> UIView {
         let label = UILabel()
-        label.text = "Free for \(days) days"
+        label.text = String(localized: "Free for \(days) days")
         label.font = Theme.Font.badge
         label.textColor = Theme.Color.onAccent
         label.adjustsFontForContentSizeCategory = true
@@ -136,7 +136,7 @@ final class PaywallOfferCardView: UIControl {
 
     private static func spokenLabel(for offer: ProOffer) -> String {
         var parts = [offer.title, offer.priceLine, offer.detail]
-        if let trial = offer.trial { parts.insert("Free for \(trial.days) days", at: 1) }
+        if let trial = offer.trial { parts.insert(String(localized: "Free for \(trial.days) days"), at: 1) }
         return parts.joined(separator: ", ")
     }
 }

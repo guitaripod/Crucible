@@ -8,7 +8,7 @@ package enum ConnectionTone: Equatable, Sendable {
 }
 
 extension PlexAccountName {
-    package static let fallbackName = "Plex User"
+    package static let fallbackName = String(localized: "Plex User")
 
     /// The display name `refresh(token:)` stored, or "Plex User" before it has run or when it came back blank.
     package static var stored: String {
@@ -23,8 +23,8 @@ extension YouConnectionState {
     package var routeSummary: String? {
         switch self {
         case .connecting: return nil
-        case .reachable(let route, _): return route.rawValue
-        case .unreachable: return "Unreachable"
+        case .reachable(let route, _): return route.displayName
+        case .unreachable: return String(localized: "Unreachable")
         }
     }
 }
@@ -36,17 +36,17 @@ package struct YouProfile: Equatable, Sendable {
     package let tone: ConnectionTone
 
     package static var currentServerName: String {
-        ServerBootstrap.connection()?.serverName ?? "Plex Server"
+        ServerBootstrap.connection()?.serverName ?? String(localized: "Plex Server")
     }
 
     package static func make(accountName: String, serverName: String = currentServerName, state: YouConnectionState) -> YouProfile {
         switch state {
         case .connecting:
-            return YouProfile(name: accountName, statusText: "\(serverName) · Connecting…", tone: .neutral)
+            return YouProfile(name: accountName, statusText: String(localized: "\(serverName) · Connecting…"), tone: .neutral)
         case .reachable(let route, let latency):
-            return YouProfile(name: accountName, statusText: "\(serverName) · \(route.rawValue) · \(latency) ms", tone: .ok)
+            return YouProfile(name: accountName, statusText: String(localized: "\(serverName) · \(route.displayName) · \(latency) ms"), tone: .ok)
         case .unreachable:
-            return YouProfile(name: accountName, statusText: "\(serverName) · Unreachable", tone: .failure)
+            return YouProfile(name: accountName, statusText: String(localized: "\(serverName) · Unreachable"), tone: .failure)
         }
     }
 }
@@ -63,6 +63,6 @@ package enum YouHistoryHeadline {
         let name = grandparentTitle ?? title
         guard !name.isEmpty else { return nil }
         guard let when = Formatters.unixRelativeDate(viewedAt) else { return name }
-        return "\(name) · \(when)"
+        return String(localized: "\(name) · \(when)")
     }
 }

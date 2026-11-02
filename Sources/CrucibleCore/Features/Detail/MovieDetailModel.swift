@@ -49,15 +49,15 @@ package struct MovieDetailModel: Sendable {
     }
 
     package var playTitle: String {
-        hasResumePosition ? "Resume" : "Play"
+        hasResumePosition ? String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position") : String(localized: "Play", comment: "Button or menu label that starts playback")
     }
 
     package var playAccessibilityLabel: String {
-        guard hasResumePosition else { return "Play \(item.title)" }
+        guard hasResumePosition else { return String(localized: "Play \(item.title)") }
         if let left = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs), item.durationSecs > item.positionSecs {
-            return "Resume \(item.title), \(left) left"
+            return String(localized: "Resume \(item.title), \(left) left")
         }
-        return "Resume \(item.title)"
+        return String(localized: "Resume \(item.title)")
     }
 
     package var watchedToggleTitle: String {
@@ -84,11 +84,11 @@ package struct MovieDetailModel: Sendable {
     package var progress: PlaybackProgress {
         let fraction = item.durationSecs > 0 ? item.positionSecs / item.durationSecs : 0
         let text = DetailFormat.remaining(position: item.positionSecs, duration: item.durationSecs) ?? ""
-        let spokenLeft = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs).map { "\($0) left" } ?? ""
+        let spokenLeft = DetailFormat.spokenDuration(item.durationSecs - item.positionSecs).map { String(localized: "\($0) left") } ?? ""
         return PlaybackProgress(
             fraction: fraction,
             text: text,
-            accessibilityText: "\(Int((fraction * 100).rounded())) percent watched, \(spokenLeft)"
+            accessibilityText: String(localized: "\(Int((fraction * 100).rounded())) percent watched, \(spokenLeft)")
         )
     }
 
@@ -108,7 +108,7 @@ package struct MovieDetailModel: Sendable {
         var spoken = [item.title]
         if isEpisode {
             if let show = item.grandparentTitle { spoken.append(show) }
-            if let season = item.parentIndex, let episode = item.index { spoken.append("season \(season) episode \(episode)") }
+            if let season = item.parentIndex, let episode = item.index { spoken.append(String(localized: "season \(season) episode \(episode)")) }
         } else if !eyebrow.isEmpty {
             spoken.append(eyebrow.lowercased())
         }
@@ -129,10 +129,10 @@ package struct MovieDetailModel: Sendable {
     private var eyebrow: String {
         switch item.mediaType {
         case "episode":
-            return ["EPISODE", DetailFormat.episodeCode(season: item.parentIndex, episode: item.index)]
+            return [String(localized: "EPISODE"), DetailFormat.episodeCode(season: item.parentIndex, episode: item.index)]
                 .compactMap { $0 }
                 .joined(separator: " · ")
-        case "movie": return "MOVIE"
+        case "movie": return String(localized: "MOVIE")
         default: return item.mediaType == "unknown" ? "" : item.mediaType.uppercased()
         }
     }
@@ -171,14 +171,14 @@ package struct MovieDetailModel: Sendable {
     /// The Audio button's value, or nil when the item has no audio tracks.
     package func audioButtonValue(selectedId: Int?) -> String? {
         guard !item.audioStreams.isEmpty else { return nil }
-        return DetailFormat.primaryAudioStream(item, selectedId: selectedId).map(DetailFormat.audioValue) ?? "Default"
+        return DetailFormat.primaryAudioStream(item, selectedId: selectedId).map(DetailFormat.audioValue) ?? String(localized: "Default", comment: "Audio or subtitle track that is selected by default")
     }
 
     /// The Subtitles button's value, or nil when the item has no subtitle tracks.
     package func subtitleButtonValue(selectedId: Int?) -> String? {
         let subtitles = item.subtitleStreams
         guard !subtitles.isEmpty else { return nil }
-        return subtitles.first { $0.id != nil && $0.id == selectedId }.map(DetailFormat.subtitleValue) ?? "Off"
+        return subtitles.first { $0.id != nil && $0.id == selectedId }.map(DetailFormat.subtitleValue) ?? String(localized: "Off", comment: "Subtitle track setting: subtitles are turned off")
     }
 
     package func audioOptions(selectedId: Int?) -> [TrackOption] {
@@ -212,8 +212,8 @@ package struct MovieDetailModel: Sendable {
     package var crew: [PlexRole] {
         var order = [String]()
         var roles = [String: [String]]()
-        let directors = item.directors.prefix(Self.crewLimit).map { ($0, "Director") }
-        let writers = item.writers.prefix(Self.crewLimit).map { ($0, "Writer") }
+        let directors = item.directors.prefix(Self.crewLimit).map { ($0, String(localized: "Director", comment: "Crew role label for a film or episode director")) }
+        let writers = item.writers.prefix(Self.crewLimit).map { ($0, String(localized: "Writer", comment: "Crew role label for a writer")) }
         for (name, role) in directors + writers {
             if roles[name] == nil { order.append(name) }
             roles[name, default: []].append(role)
@@ -235,16 +235,16 @@ package struct MovieDetailModel: Sendable {
             facts.append(DetailFact(key: key, value: value))
         }
         let directors = item.directors.prefix(Self.crewLimit)
-        add(directors.count > 1 ? "Directors" : "Director", directors.isEmpty ? nil : directors.joined(separator: ", "))
+        add(directors.count > 1 ? String(localized: "Directors") : String(localized: "Director", comment: "Crew role label for a film or episode director"), directors.isEmpty ? nil : directors.joined(separator: ", "))
         let writers = item.writers.prefix(Self.crewLimit)
-        add(writers.count > 1 ? "Writers" : "Writer", writers.isEmpty ? nil : writers.joined(separator: ", "))
-        add("Studio", item.studio)
+        add(writers.count > 1 ? String(localized: "Writers") : String(localized: "Writer", comment: "Crew role label for a writer"), writers.isEmpty ? nil : writers.joined(separator: ", "))
+        add(String(localized: "Studio", comment: "Details row label for the studio"), item.studio)
         if isEpisode {
-            add("Aired", Formatters.plexDate(item.originallyAvailableAt))
+            add(String(localized: "Aired", comment: "Details row label for the original air date"), Formatters.plexDate(item.originallyAvailableAt))
         }
-        add("Added", DetailFormat.addedDate(item.addedAt))
-        add("File", DetailFormat.fileFact(item))
-        add("Audio", DetailFormat.audioFact(DetailFormat.primaryAudioStream(item)))
+        add(String(localized: "Added", comment: "Details row label for when the item was added"), DetailFormat.addedDate(item.addedAt))
+        add(String(localized: "File", comment: "Details row label for the media file"), DetailFormat.fileFact(item))
+        add(String(localized: "Audio", comment: "Details row label for the audio tracks"), DetailFormat.audioFact(DetailFormat.primaryAudioStream(item)))
         var seen = Set<DetailFact>()
         return facts.filter { seen.insert($0).inserted }
     }

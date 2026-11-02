@@ -22,11 +22,11 @@ package struct ServerPickerState: Sendable {
 
         package var title: String {
             switch self {
-            case .chooseServer: return "Choose a Server"
-            case .testing: return "Testing connections…"
-            case .noRoute(let name): return "No route to \(name)"
-            case .ready(let name): return "Connect to \(name)"
-            case .connecting: return "Connecting…"
+            case .chooseServer: return String(localized: "Choose a Server")
+            case .testing: return String(localized: "Testing connections…")
+            case .noRoute(let name): return String(localized: "No route to \(name)")
+            case .ready(let name): return String(localized: "Connect to \(name)")
+            case .connecting: return String(localized: "Connecting…")
             }
         }
 

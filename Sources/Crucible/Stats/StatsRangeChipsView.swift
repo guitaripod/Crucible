@@ -49,7 +49,7 @@ final class StatsRangeChipsView: UIView {
             track.addArrangedSubview(button)
         }
         isAccessibilityElement = false
-        accessibilityLabel = "Time range"
+        accessibilityLabel = String(localized: "Time range")
         accessibilityContainerType = .semanticGroup
         refresh()
     }
@@ -91,7 +91,7 @@ final class StatsRangeChipsView: UIView {
             }
             button.configuration = config
             button.accessibilityTraits = isSelected ? [.button, .selected] : .button
-            button.accessibilityHint = isLocked ? "Requires Crucible Pro" : nil
+            button.accessibilityHint = isLocked ? String(localized: "Requires Crucible Pro") : nil
         }
     }
 }

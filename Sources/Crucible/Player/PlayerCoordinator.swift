@@ -128,8 +128,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 isPresenting = false
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Stream resolve failed for ratingKey=\(request.ratingKey): \(error.localizedDescription)", category: .playback)
-                let alert = UIAlertController(title: "Playback Error", message: error.localizedDescription, preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                let alert = UIAlertController(title: String(localized: "Playback Error"), message: error.localizedDescription, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
                 viewController.present(alert, animated: true)
             }
         }
@@ -257,8 +257,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func showPlaybackError(_ message: String) {
-        let alert = UIAlertController(title: "Playback Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        let alert = UIAlertController(title: String(localized: "Playback Error"), message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         (playerVC ?? presentingVC)?.present(alert, animated: true)
     }
 
@@ -328,7 +328,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func showSkipToast(returningTo position: Double) {
         guard let host = playerVC?.contentOverlayView else { return }
         removeSkipToast(animated: false)
-        let toast = SkipToastView(message: "Skipped intro") { [weak self] in
+        let toast = SkipToastView(message: String(localized: "Skipped intro")) { [weak self] in
             Haptics.light()
             self?.viewerActed()
             self?.undoSkip(returningTo: position)

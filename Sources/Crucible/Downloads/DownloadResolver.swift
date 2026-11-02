@@ -8,8 +8,8 @@ enum DownloadResolverError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noMediaFound: return "No downloadable media found"
-        case .noURL: return "Could not build download URL"
+        case .noMediaFound: return String(localized: "No downloadable media found")
+        case .noURL: return String(localized: "Could not build download URL")
         }
     }
 }

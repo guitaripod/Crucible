@@ -8,14 +8,14 @@ package enum DetailFormat {
         let totalMinutes = max(1, Int((seconds / 60).rounded()))
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
-        if hours == 0 { return "\(minutes) min" }
-        if minutes == 0 { return "\(hours) h" }
-        return "\(hours) h \(minutes) m"
+        if hours == 0 { return String(localized: "\(minutes) min") }
+        if minutes == 0 { return String(localized: "\(hours) h") }
+        return String(localized: "\(hours) h \(minutes) m")
     }
 
     package static func remaining(position: Double, duration: Double) -> String? {
         guard duration > 0, position > 0, position < duration else { return nil }
-        return runtime(duration - position).map { "\($0) left" }
+        return runtime(duration - position).map { String(localized: "\($0) left") }
     }
 
     package static func spokenDuration(_ seconds: Double) -> String? {
@@ -37,7 +37,7 @@ package enum DetailFormat {
     package static func ratingParts(audience: Double?, critic: Double?) -> (star: String?, trailing: [String]) {
         if let audience, audience > 0 {
             var trailing: [String] = []
-            if let critic, critic > 0 { trailing.append("\(Int((critic * 10).rounded()))% critics") }
+            if let critic, critic > 0 { trailing.append(String(localized: "\(Int((critic * 10).rounded()))% critics")) }
             return (Formatters.rating(audience), trailing)
         }
         if let critic, critic > 0 { return (Formatters.rating(critic), []) }
@@ -47,7 +47,7 @@ package enum DetailFormat {
     package static func spokenRating(audience: Double?, critic: Double?) -> String? {
         let value = (audience ?? 0) > 0 ? audience : critic
         guard let value, value > 0, let text = Formatters.rating(value) else { return nil }
-        return "rated \(text) out of 10"
+        return String(localized: "rated \(text) out of 10")
     }
 
     package static func primaryAudioStream(_ item: PlexMetadata, selectedId: Int? = nil) -> PlexStream? {
@@ -95,14 +95,14 @@ package enum DetailFormat {
         switch channels {
         case 8: return "7.1"
         case 6: return "5.1"
-        case 2: return "Stereo"
-        case 1: return "Mono"
-        default: return "\(channels)ch"
+        case 2: return String(localized: "Stereo", comment: "Audio channel layout: two channels")
+        case 1: return String(localized: "Mono", comment: "Audio channel layout: one channel")
+        default: return String(localized: "\(channels)ch")
         }
     }
 
     package static func languageName(_ stream: PlexStream) -> String {
-        stream.language ?? stream.displayTitle ?? stream.title ?? stream.id.map { "Track \($0)" } ?? "Unknown"
+        stream.language ?? stream.displayTitle ?? stream.title ?? stream.id.map { String(localized: "Track \($0)") } ?? String(localized: "Unknown", comment: "Track language is not known")
     }
 
     /// Short "English · Atmos" summary for the Audio menu button.
@@ -115,22 +115,22 @@ package enum DetailFormat {
         var parts: [String] = []
         if isAtmos(stream) { parts.append("Atmos") } else if let codec = audioCodecLabel(stream.codec) { parts.append(codec) }
         if let channels = channelLabel(stream.channels) { parts.append(channels) }
-        if let bitrate = stream.bitrate { parts.append("\(bitrate) kbps") }
+        if let bitrate = stream.bitrate { parts.append(String(localized: "\(bitrate) kbps")) }
         return parts.joined(separator: " · ")
     }
 
     package static func subtitleValue(_ stream: PlexStream) -> String {
         var parts = [languageName(stream)]
-        if stream.forced == true { parts.append("Forced") }
+        if stream.forced == true { parts.append(String(localized: "Forced", comment: "Subtitle track flagged as forced")) }
         return parts.joined(separator: " · ")
     }
 
     package static func subtitleDetail(_ stream: PlexStream) -> String {
-        if stream.isBitmap { return "Image-based" }
+        if stream.isBitmap { return String(localized: "Image-based") }
         var parts: [String] = []
         if let codec = stream.codec { parts.append(codec.uppercased()) }
-        if stream.forced == true { parts.append("Forced") }
-        if stream.isDefault == true { parts.append("Default") }
+        if stream.forced == true { parts.append(String(localized: "Forced", comment: "Subtitle track flagged as forced")) }
+        if stream.isDefault == true { parts.append(String(localized: "Default", comment: "Audio or subtitle track that is selected by default")) }
         return parts.joined(separator: " · ")
     }
 

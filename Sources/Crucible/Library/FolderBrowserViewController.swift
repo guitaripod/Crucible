@@ -46,7 +46,7 @@ final class FolderBrowserViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = folderTitle ?? "Browse"
+        title = folderTitle ?? String(localized: "Browse", comment: "Navigation title of the folder browser when no folder name is known")
         navigationItem.largeTitleDisplayMode = .never
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.allowsKeyboardFocus()
@@ -141,7 +141,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 if listing.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
                     config.image = UIImage(systemName: "folder")
-                    config.text = "Empty folder"
+                    config.text = String(localized: "Empty folder")
                     contentUnavailableConfiguration = config
                 } else {
                     contentUnavailableConfiguration = nil
@@ -150,7 +150,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 guard !Task.isCancelled else { return }
                 var config = UIContentUnavailableConfiguration.empty()
                 config.image = UIImage(systemName: "exclamationmark.triangle")
-                config.text = "Failed to load"
+                config.text = String(localized: "Failed to load")
                 config.secondaryText = error.localizedDescription
                 contentUnavailableConfiguration = config
             }

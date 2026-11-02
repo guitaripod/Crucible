@@ -9,7 +9,7 @@ final class TVWelcomeViewController: TVOnboardingViewController {
     private static let glyphSide: CGFloat = 280
 
     private let glyph = CrystalGlyphView()
-    private lazy var signInButton = TVButton.make(.primary, title: "Sign in with Plex") { [weak self] in
+    private lazy var signInButton = TVButton.make(.primary, title: String(localized: "Sign in with Plex")) { [weak self] in
         guard let self else { return }
         flow.beginSignIn(from: self)
     }
@@ -71,8 +71,8 @@ final class TVWelcomeViewController: TVOnboardingViewController {
                 MidgarLog.error("The demo could not start: \(String(describing: error))", category: .lifecycle)
                 self?.setEnteringDemo(false)
                 self?.presentAlert(
-                    title: "Couldn\u{2019}t Start the Demo",
-                    message: "The demo library could not start on this Apple TV. Try again, or sign in with Plex."
+                    title: String(localized: "Couldn\u{2019}t Start the Demo"),
+                    message: String(localized: "The demo library could not start on this Apple TV. Try again, or sign in with Plex.")
                 )
             }
         }
@@ -80,9 +80,9 @@ final class TVWelcomeViewController: TVOnboardingViewController {
 
     private func setEnteringDemo(_ entering: Bool) {
         isEnteringDemo = entering
-        demoButton.configuration?.title = entering ? "Starting the demo\u{2026}" : DemoCopy.welcomeButton
+        demoButton.configuration?.title = entering ? String(localized: "Starting the demo\u{2026}") : DemoCopy.welcomeButton
         demoButton.configuration?.showsActivityIndicator = entering
-        demoButton.accessibilityLabel = entering ? "Starting the demo" : DemoCopy.welcomeButton
+        demoButton.accessibilityLabel = entering ? String(localized: "Starting the demo") : DemoCopy.welcomeButton
         demoButton.accessibilityTraits = entering ? [.button, .notEnabled] : .button
     }
 
@@ -97,7 +97,7 @@ final class TVWelcomeViewController: TVOnboardingViewController {
         title.accessibilityTraits = .header
 
         let tagline = UILabel()
-        tagline.text = "Your Plex library, beautifully on Apple TV."
+        tagline.text = String(localized: "Your Plex library, beautifully on Apple TV.")
         tagline.font = Theme.Font.callout
         tagline.textColor = Theme.Color.labelSecondary
         tagline.textAlignment = .center

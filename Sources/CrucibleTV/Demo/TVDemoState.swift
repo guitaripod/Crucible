@@ -21,6 +21,6 @@ enum TVDemoState {
     /// "2 of 4 done", the progress line of the You row, the tour screen and its accessibility value.
     @MainActor
     static func progressText(for tour: DemoTour = .shared) -> String {
-        "\(tour.completedCount) of \(tour.steps.count) done"
+        String(localized: "\(tour.completedCount) of \(tour.steps.count) done")
     }
 }

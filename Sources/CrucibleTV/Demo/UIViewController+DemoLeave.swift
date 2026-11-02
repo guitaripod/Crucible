@@ -10,15 +10,15 @@ extension UIViewController {
         if connecting {
             return presentConfirmation(
                 title: DemoCopy.connectTitle,
-                message: DemoCopy.connectBody + " The demo, its viewing history and your tour progress are removed.",
-                confirmTitle: "Connect",
+                message: String(localized: "\(DemoCopy.connectBody) The demo, its viewing history and your tour progress are removed."),
+                confirmTitle: String(localized: "Connect"),
                 handler: handler
             )
         }
         return presentConfirmation(
-            title: "Leave the Demo?",
-            message: "The demo library, its viewing history and your tour progress are removed. You can try the demo again from the welcome screen.",
-            confirmTitle: "Leave the Demo",
+            title: String(localized: "Leave the Demo?"),
+            message: String(localized: "The demo library, its viewing history and your tour progress are removed. You can try the demo again from the welcome screen."),
+            confirmTitle: String(localized: "Leave the Demo"),
             handler: handler
         )
     }

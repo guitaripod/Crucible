@@ -4,7 +4,7 @@ import CrucibleDesign
 
 /// Ember primary pill, then a 52pt glass download ring and a 52pt glass watched toggle.
 struct DetailActionsConfiguration: UIContentConfiguration {
-    var primaryTitle: String = "Play"
+    var primaryTitle: String = String(localized: "Play")
     var primarySymbol: String = "play.fill"
     var primaryAccessibilityLabel: String?
     var isPrimaryEnabled = true
@@ -33,11 +33,11 @@ final class DetailActionsContentView: UIView, UIContentView {
         didSet { apply() }
     }
 
-    private let primaryButton = ThemeButton.primary(title: "Play", symbol: "play.fill")
+    private let primaryButton = ThemeButton.primary(title: String(localized: "Play"), symbol: "play.fill")
     private let downloadWrap = UIView()
     private let downloadBackground = UIButton(configuration: ThemeButton.glassConfiguration())
     private let downloadRing = DownloadRingButton()
-    private let watchedButton = ThemeButton.icon(symbol: "checkmark.circle", label: "Mark Watched", size: Theme.Size.primaryButtonHeight)
+    private let watchedButton = ThemeButton.icon(symbol: "checkmark.circle", label: String(localized: "Mark Watched"), size: Theme.Size.primaryButtonHeight)
     private var appliedPrimary: (String, String)?
 
     init(configuration: DetailActionsConfiguration) {
@@ -296,8 +296,8 @@ final class DetailTracksContentView: UIView, UIContentView {
         didSet { apply() }
     }
 
-    private let audioButton = ThemeButton.menuButton(caption: "Audio", value: "")
-    private let subtitleButton = ThemeButton.menuButton(caption: "Subtitles", value: "")
+    private let audioButton = ThemeButton.menuButton(caption: String(localized: "Audio"), value: "")
+    private let subtitleButton = ThemeButton.menuButton(caption: String(localized: "Subtitles"), value: "")
 
     init(configuration: DetailTracksConfiguration) {
         self.configuration = configuration
@@ -325,8 +325,8 @@ final class DetailTracksContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? DetailTracksConfiguration else { return }
-        configure(audioButton, caption: "Audio", value: config.audioValue, menu: config.audioMenu)
-        configure(subtitleButton, caption: "Subtitles", value: config.subtitleValue, menu: config.subtitleMenu)
+        configure(audioButton, caption: String(localized: "Audio"), value: config.audioValue, menu: config.audioMenu)
+        configure(subtitleButton, caption: String(localized: "Subtitles"), value: config.subtitleValue, menu: config.subtitleMenu)
     }
 
     private func configure(_ button: UIButton, caption: String, value: String?, menu: UIMenu?) {
@@ -440,15 +440,15 @@ final class DetailOverviewContentView: UIView, UIContentView {
         label.attributedText = DetailOverviewConfiguration.attributedText(config.text)
         label.numberOfLines = config.isExpanded ? 0 : config.collapsedLines
         toggleButton.isHidden = !config.isTruncatable
-        toggleButton.configuration?.title = config.isExpanded ? "less" : "more"
-        toggleButton.accessibilityLabel = config.isExpanded ? "Show less" : "Show more"
+        toggleButton.configuration?.title = config.isExpanded ? String(localized: "less") : String(localized: "more")
+        toggleButton.accessibilityLabel = config.isExpanded ? String(localized: "Show less") : String(localized: "Show more")
     }
 }
 
 /// Plain, non-interactive capsule chips (genres) in a horizontally scrolling row.
 struct DetailChipsConfiguration: UIContentConfiguration {
     var chips: [String] = []
-    var accessibilityPrefix = "Genres"
+    var accessibilityPrefix = String(localized: "Genres")
 
     func makeContentView() -> UIView & UIContentView {
         DetailChipsContentView(configuration: self)
@@ -501,7 +501,7 @@ final class DetailChipsContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? DetailChipsConfiguration else { return }
-        accessibilityLabel = "\(config.accessibilityPrefix): \(config.chips.joined(separator: ", "))"
+        accessibilityLabel = String(localized: "\(config.accessibilityPrefix): \(config.chips.joined(separator: ", "))")
         guard config.chips != appliedChips else { return }
         appliedChips = config.chips
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -614,7 +614,7 @@ final class DetailFactContentView: UIView, UIContentView {
         guard let config = configuration as? DetailFactConfiguration else { return }
         keyLabel.attributedText = DetailFormat.eyebrow(config.key, color: Theme.Color.labelTertiary)
         valueLabel.text = config.value
-        accessibilityLabel = "\(config.key), \(config.value)"
+        accessibilityLabel = String(localized: "\(config.key), \(config.value)")
     }
 }
 
@@ -691,7 +691,7 @@ final class DetailSeasonBarContentView: UIView, UIContentView {
         seasonButton.configuration = buttonConfig
         seasonButton.menu = config.menu
         seasonButton.isEnabled = config.menu != nil
-        seasonButton.accessibilityLabel = "\(config.seasonTitle), choose season"
+        seasonButton.accessibilityLabel = String(localized: "\(config.seasonTitle), choose season")
         watchedLabel.text = config.watchedText
         watchedLabel.isHidden = config.watchedText == nil
     }

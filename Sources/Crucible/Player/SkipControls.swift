@@ -172,7 +172,7 @@ final class SkipToastView: UIView {
         label.setContentHuggingPriority(.required, for: .horizontal)
 
         var config = UIButton.Configuration.plain()
-        config.title = "Undo"
+        config.title = String(localized: "Undo")
         config.baseForegroundColor = Theme.Color.accent
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 8, bottom: 0, trailing: 8)
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
@@ -182,7 +182,7 @@ final class SkipToastView: UIView {
         }
         let undo = UIButton(configuration: config)
         undo.isPointerInteractionEnabled = true
-        undo.accessibilityLabel = "Undo skip"
+        undo.accessibilityLabel = String(localized: "Undo skip")
         undo.addAction(UIAction { [weak self] _ in self?.undoTapped() }, for: .primaryActionTriggered)
         undo.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
 
@@ -216,7 +216,7 @@ final class SkipToastView: UIView {
     func present(in host: UIView) {
         anchorAboveTransport(self, in: host)
         fadeIn(self)
-        UIAccessibility.post(notification: .announcement, argument: "Skipped intro. Undo available.")
+        UIAccessibility.post(notification: .announcement, argument: String(localized: "Skipped intro. Undo available."))
     }
 
     func dismiss(animated: Bool) {

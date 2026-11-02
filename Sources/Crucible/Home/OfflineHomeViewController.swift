@@ -40,7 +40,7 @@ final class OfflineHomeViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Home"
+        title = String(localized: "Home", comment: "Navigation title of the Home tab")
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
@@ -76,7 +76,7 @@ final class OfflineHomeViewController: UICollectionViewController {
             image: UIImage(systemName: "arrow.down.circle"),
             primaryAction: UIAction { [weak self] _ in self?.openDownloads() }
         )
-        downloadsItem.accessibilityLabel = "All Downloads"
+        downloadsItem.accessibilityLabel = String(localized: "All Downloads")
         navigationItem.rightBarButtonItem = downloadsItem
     }
 
@@ -126,9 +126,9 @@ final class OfflineHomeViewController: UICollectionViewController {
         }
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "wifi.slash")
-        config.text = "No Downloads"
-        config.secondaryText = "You're offline and nothing is saved on this iPhone yet."
-        config.button = ThemeButton.primaryConfiguration(title: "Retry")
+        config.text = String(localized: "No Downloads")
+        config.secondaryText = String(localized: "You're offline and nothing is saved on this iPhone yet.")
+        config.button = ThemeButton.primaryConfiguration(title: String(localized: "Retry"))
         config.buttonProperties.primaryAction = UIAction { [weak self] _ in self?.retry() }
         contentUnavailableConfiguration = config
     }
@@ -140,7 +140,7 @@ final class OfflineHomeViewController: UICollectionViewController {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
         let synced = Date(timeIntervalSince1970: TimeInterval(snapshot.savedAt))
-        return "Last synced \(formatter.localizedString(for: synced, relativeTo: Date())) · \(connection.serverName)"
+        return String(localized: "Last synced \(formatter.localizedString(for: synced, relativeTo: Date())) · \(connection.serverName)")
     }
 
     private static func subtitle(for item: DownloadItem) -> String? {
@@ -257,7 +257,7 @@ final class OfflineHomeViewController: UICollectionViewController {
 
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
             var config = SectionHeaderConfiguration()
-            config.title = "Ready to Watch"
+            config.title = String(localized: "Ready to Watch")
             cell.contentConfiguration = config
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
@@ -270,15 +270,15 @@ final class OfflineHomeViewController: UICollectionViewController {
         let ratingKey = item.ratingKey
         let resuming = item.resumeSecs > 0
         config.artwork = .offlinePoster(ratingKey)
-        config.eyebrow = "Downloaded"
+        config.eyebrow = String(localized: "Downloaded")
         config.title = item.displayTitle
         config.subtitle = Self.subtitle(for: item)
-        config.actionTitle = resuming ? "Resume" : "Play"
+        config.actionTitle = resuming ? String(localized: "Resume") : String(localized: "Play")
         config.progress = resuming ? item.watchProgress : nil
         config.showsInfoButton = false
         config.minimumHeight = 220
         let episode = item.mediaType == "episode" ? HomeFormat.spokenEpisode(season: item.seasonNumber, episode: item.episodeNumber) : nil
-        config.spokenLabel = ["\(config.actionTitle) \(item.displayTitle)", episode, "downloaded"]
+        config.spokenLabel = ["\(config.actionTitle) \(item.displayTitle)", episode, String(localized: "downloaded")]
             .compactMap { $0 }
             .joined(separator: ", ")
         config.onPrimary = { [weak self] in self?.play(ratingKey: ratingKey) }
@@ -313,13 +313,13 @@ final class OfflineHomeViewController: UICollectionViewController {
               case .download(let key)? = dataSource.itemIdentifier(for: indexPath),
               let item = downloads[key] else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            let play = UIAction(title: item.resumeSecs > 0 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { _ in
+            let play = UIAction(title: item.resumeSecs > 0 ? String(localized: "Resume") : String(localized: "Play", comment: "Context menu action that starts playback of a download"), image: UIImage(systemName: "play.fill")) { _ in
                 self?.play(ratingKey: key)
             }
-            let details = UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { _ in
+            let details = UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { _ in
                 self?.openDetail(ratingKey: key)
             }
-            let remove = UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+            let remove = UIAction(title: String(localized: "Remove Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                 DownloadManager.shared.delete(key)
             }
             return UIMenu(children: [play, details, remove])
@@ -344,8 +344,8 @@ final class OfflineHomeViewController: UICollectionViewController {
         guard let item = downloads[ratingKey] else { return }
         guard DownloadManager.shared.offlineAsset(for: ratingKey) != nil else {
             Haptics.error()
-            let alert = UIAlertController(title: "File Missing", message: "This download could not be found on disk. Try downloading it again.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert = UIAlertController(title: String(localized: "File Missing"), message: String(localized: "This download could not be found on disk. Try downloading it again."), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
             present(alert, animated: true)
             return
         }
@@ -395,13 +395,13 @@ final class OfflineBannerContentView: UIView, UIContentView {
         glyph.isAccessibilityElement = false
 
         let titleLabel = UILabel()
-        titleLabel.text = "Offline"
+        titleLabel.text = String(localized: "Offline")
         titleLabel.font = Theme.Font.subheadlineSemibold
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = Theme.Color.label
 
         let detailLabel = UILabel()
-        detailLabel.text = "Showing what's on this iPhone"
+        detailLabel.text = String(localized: "Showing what's on this iPhone")
         detailLabel.font = Theme.Font.footnote
         detailLabel.adjustsFontForContentSizeCategory = true
         detailLabel.textColor = Theme.Color.labelSecondary
@@ -411,10 +411,10 @@ final class OfflineBannerContentView: UIView, UIContentView {
         textStack.axis = .vertical
         textStack.spacing = 1
         textStack.isAccessibilityElement = true
-        textStack.accessibilityLabel = "Offline. Showing what's on this iPhone"
+        textStack.accessibilityLabel = String(localized: "Offline. Showing what's on this iPhone")
 
         var retryConfig = UIButton.Configuration.filled()
-        retryConfig.title = "Retry"
+        retryConfig.title = String(localized: "Retry")
         retryConfig.baseBackgroundColor = Theme.Color.accentTint
         retryConfig.baseForegroundColor = Theme.Color.accentText
         retryConfig.cornerStyle = .capsule
@@ -425,7 +425,7 @@ final class OfflineBannerContentView: UIView, UIContentView {
             return outgoing
         }
         let retryButton = ExpandedHitButton(configuration: retryConfig)
-        retryButton.accessibilityHint = "Tries to reconnect to the server"
+        retryButton.accessibilityHint = String(localized: "Tries to reconnect to the server")
         retryButton.setContentHuggingPriority(.required, for: .horizontal)
         retryButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         retryButton.addAction(UIAction { [weak self] _ in self?.onRetry?() }, for: .primaryActionTriggered)
@@ -587,7 +587,7 @@ final class OfflinePosterContentView: UIView, UIContentView {
         titleLabel.text = config.title
         subtitleLabel.text = config.subtitle
         subtitleLabel.isHidden = (config.subtitle ?? "").isEmpty
-        accessibilityLabel = HomeFormat.joined([config.title, config.subtitle, "downloaded"])?
+        accessibilityLabel = HomeFormat.joined([config.title, config.subtitle, String(localized: "downloaded")])?
             .replacingOccurrences(of: " · ", with: ", ")
 
         guard config.ratingKey != currentKey else { return }

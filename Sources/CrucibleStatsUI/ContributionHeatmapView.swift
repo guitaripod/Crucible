@@ -87,9 +87,9 @@ package final class ContributionHeatmapView: UIView {
 
     private static func summary(for model: HeatmapModel) -> String {
         let active = model.cells.count
-        guard active > 0 else { return "Activity heatmap. No watched days." }
+        guard active > 0 else { return String(localized: "Activity heatmap. No watched days.") }
         let busiest = model.cells.map(\.count).max() ?? 0
-        return "Activity heatmap. \(active) active days, busiest day with \(busiest) plays."
+        return String(localized: "Activity heatmap. \(active) active days, busiest day with \(busiest) plays.")
     }
 
     private func performReveal(width: CGFloat) {

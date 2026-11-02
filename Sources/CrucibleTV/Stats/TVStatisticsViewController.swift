@@ -40,7 +40,7 @@ final class TVStatisticsViewController: TVScreenViewController {
         let layout = Self.makeLayout(source)
         super.init(layout: layout)
         source.screen = self
-        title = "Statistics"
+        title = String(localized: "Statistics")
     }
 
     @available(*, unavailable)
@@ -129,9 +129,9 @@ final class TVStatisticsViewController: TVScreenViewController {
     private func loadFailed() {
         guard page.isEmpty else { return }
         show(state: .error(
-            title: "Couldn\u{2019}t Load Statistics",
-            message: "The local statistics store could not be read.",
-            retryTitle: "Try Again"
+            title: String(localized: "Couldn\u{2019}t Load Statistics"),
+            message: String(localized: "The local statistics store could not be read."),
+            retryTitle: String(localized: "Try Again")
         ) { [weak self] in
             self?.load(animateHero: true)
         })
@@ -191,7 +191,7 @@ final class TVStatisticsViewController: TVScreenViewController {
     }
 
     private func includeAllLibrariesAction() -> TVStateView.Action {
-        TVStateView.Action(title: "Include All Libraries") {
+        TVStateView.Action(title: String(localized: "Include All Libraries")) {
             let filter = StatsLibraryFilter.current()
             filter.entries.filter { !$0.isIncluded }.forEach { filter.toggle($0) }
         }

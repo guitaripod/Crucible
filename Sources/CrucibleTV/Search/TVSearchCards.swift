@@ -51,14 +51,14 @@ enum TVSearchCards {
         )
     }
 
-    private static let opensDetails = "Opens details"
+    private static let opensDetails = String(localized: "Opens details")
 
     static func genre(_ genre: SearchGenre) -> TVTileItem {
         let pair = GenrePalette.pair(for: genre.title)
         return TVTileItem(
             id: genre.title,
             title: genre.title,
-            accessibilityHint: "Browse \(genre.title) titles",
+            accessibilityHint: String(localized: "Browse \(genre.title) titles"),
             gradient: TVTileGradient(top: pair.end, bottom: pair.start)
         )
     }

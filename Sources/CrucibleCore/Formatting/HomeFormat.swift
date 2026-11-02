@@ -9,16 +9,17 @@ package enum HomeFormat {
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         if hours > 0 {
-            return "\(hours) h " + String(format: "%02d", minutes) + " m"
+            let paddedMinutes = String(format: "%02d", minutes)
+            return String(localized: "\(hours) h \(paddedMinutes) m")
         }
-        return "\(minutes) min"
+        return String(localized: "\(minutes) min")
     }
 
     /// "31 min left" / "1 h 12 m left" for a partially watched item, nil when nothing remains. Pass
     /// the position a Continue Watching card carries when it differs from the plain stored offset.
     package static func remaining(_ item: PlexMetadata, position: Double? = nil) -> String? {
         guard let seconds = remainingSeconds(item, position: position) else { return nil }
-        return runtime(seconds).map { "\($0) left" }
+        return runtime(seconds).map { String(localized: "\($0) left") }
     }
 
     package static func remainingSeconds(_ item: PlexMetadata, position: Double? = nil) -> Double? {
@@ -32,7 +33,7 @@ package enum HomeFormat {
     package static func elapsed(_ item: PlexMetadata, position: Double? = nil) -> String? {
         let position = position ?? item.positionSecs
         guard position > 0 else { return nil }
-        return runtime(position).map { "\($0) in" }
+        return runtime(position).map { String(localized: "\($0) in") }
     }
 
     /// Week total in the "7 h 20 m" style of the This Week card.
@@ -40,14 +41,14 @@ package enum HomeFormat {
         let minutes = max(0, seconds) / 60
         let hours = minutes / 60
         if hours > 0 {
-            return "\(hours) h \(minutes % 60) m"
+            return String(localized: "\(hours) h \(minutes % 60) m")
         }
-        return "\(minutes) min"
+        return String(localized: "\(minutes) min")
     }
 
     /// Spelled-out duration for VoiceOver, e.g. "1 hour, 12 minutes".
     package static func spoken(_ seconds: Double) -> String {
-        guard seconds.isFinite, seconds >= 60 else { return "less than a minute" }
+        guard seconds.isFinite, seconds >= 60 else { return String(localized: "less than a minute") }
         let formatter = DateComponentsFormatter()
         formatter.unitsStyle = .full
         formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
@@ -58,8 +59,8 @@ package enum HomeFormat {
     /// "S2 · E4" followed by an optional tail ("Low Tide", "44 min").
     package static func episodeLine(season: Int?, episode: Int?, tail: String?) -> String {
         var parts = [String]()
-        if let season { parts.append("S\(season)") }
-        if let episode { parts.append("E\(episode)") }
+        if let season { parts.append(String(localized: "S\(season)")) }
+        if let episode { parts.append(String(localized: "E\(episode)")) }
         if let tail, !tail.isEmpty { parts.append(tail) }
         return parts.joined(separator: " · ")
     }
@@ -86,7 +87,7 @@ package enum HomeFormat {
         if item.mediaType == "episode" {
             return episodeLine(season: item.parentIndex, episode: item.index, tail: item.title)
         }
-        return joined(["Movie", runtime(item.durationSecs)])
+        return joined([String(localized: "Movie"), runtime(item.durationSecs)])
     }
 
     /// Up Next poster subtitle: "S2 · E5 · 44 min".
@@ -100,7 +101,7 @@ package enum HomeFormat {
     /// Recently Added poster subtitle: the year, "Series", the season name, or the episode code.
     package static func recentSubtitle(for item: PlexMetadata) -> String? {
         switch item.mediaType {
-        case "show": return item.year.map(String.init) ?? "Series"
+        case "show": return item.year.map(String.init) ?? String(localized: "Series")
         case "season": return item.title
         case "episode": return episodeLine(season: item.parentIndex, episode: item.index, tail: item.title)
         default: return item.year.map(String.init)
@@ -110,8 +111,8 @@ package enum HomeFormat {
     /// VoiceOver phrase for the season/episode position, e.g. "season 2 episode 4".
     package static func spokenEpisode(season: Int?, episode: Int?) -> String? {
         var parts = [String]()
-        if let season { parts.append("season \(season)") }
-        if let episode { parts.append("episode \(episode)") }
+        if let season { parts.append(String(localized: "season \(season)")) }
+        if let episode { parts.append(String(localized: "episode \(episode)")) }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 

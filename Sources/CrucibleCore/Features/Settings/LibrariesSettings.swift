@@ -14,10 +14,10 @@ package enum LibrariesSettings {
         package let isLocked: Bool
     }
 
-    package static let footerText = "Libraries Plex hides from Home start switched off. At least one library stays on."
-    package static let homeFooterText = "Choose which libraries appear on Home and count toward your statistics."
-    package static let resetTitle = "Reset to Plex Defaults"
-    package static let loadingTitle = "Loading Libraries"
+    package static let footerText = String(localized: "Libraries Plex hides from Home start switched off. At least one library stays on.")
+    package static let homeFooterText = String(localized: "Choose which libraries appear on Home and count toward your statistics.")
+    package static let resetTitle = String(localized: "Reset to Plex Defaults")
+    package static let loadingTitle = String(localized: "Loading Libraries")
 
     package static var libraryIDs: [Int] {
         LibraryVisibility.libraries.map(\.id)
@@ -59,7 +59,7 @@ package enum LibrariesSettings {
                 id: library.id,
                 symbol: library.symbol,
                 title: library.title,
-                subtitle: library.hiddenOnPlex ? "Hidden from Home in Plex" : nil,
+                subtitle: library.hiddenOnPlex ? String(localized: "Hidden from Home in Plex") : nil,
                 isIncluded: included,
                 isLocked: included && includedCount <= 1
             )
@@ -69,6 +69,6 @@ package enum LibrariesSettings {
     static func summary(for libraries: [LibraryVisibility.Library], isIncluded: (Int) -> Bool) -> String? {
         guard !libraries.isEmpty else { return nil }
         let included = libraries.filter { isIncluded($0.id) }.count
-        return included == libraries.count ? "All" : "\(included) of \(libraries.count)"
+        return included == libraries.count ? String(localized: "All") : String(localized: "\(included) of \(libraries.count)")
     }
 }

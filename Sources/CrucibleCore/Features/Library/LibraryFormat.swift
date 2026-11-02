@@ -8,9 +8,9 @@ package enum LibraryFormat {
         if minutes >= 60 {
             let hours = minutes / 60
             let rest = minutes % 60
-            return rest > 0 ? "\(hours) h \(rest) m left" : "\(hours) h left"
+            return rest > 0 ? String(localized: "\(hours) h \(rest) m left") : String(localized: "\(hours) h left")
         }
-        return minutes > 0 ? "\(minutes) min left" : "Less than a minute left"
+        return minutes > 0 ? String(localized: "\(minutes) min left") : String(localized: "Less than a minute left")
     }
 
     package static func continueTitle(_ item: PlexMetadata) -> String {

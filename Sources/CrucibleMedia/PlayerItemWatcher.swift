@@ -27,7 +27,7 @@ final class PlayerItemWatcher {
                 domain: error?.domain,
                 code: error?.code,
                 description: observedItem.error?.localizedDescription,
-                unknown: "unknown"
+                unknown: String(localized: "unknown")
             )
             Task { @MainActor in handler(.failed(message)) }
         }
@@ -37,7 +37,7 @@ final class PlayerItemWatcher {
                 domain: error?.domain,
                 code: error?.code,
                 description: error?.localizedDescription,
-                unknown: "failed to play to end"
+                unknown: String(localized: "failed to play to end")
             )
             Task { @MainActor in handler(.failed(message)) }
         }

@@ -7,8 +7,8 @@ enum HLSDownloadError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .badPlaylist: return "Could not read the stream playlist"
-        case .noSegments: return "The stream has no segments"
+        case .badPlaylist: return String(localized: "Could not read the stream playlist")
+        case .noSegments: return String(localized: "The stream has no segments")
         }
     }
 }

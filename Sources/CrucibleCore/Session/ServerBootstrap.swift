@@ -38,7 +38,7 @@ package enum ServerBootstrap {
               let uri = URL(string: uriString),
               let machineId = UserDefaults.standard.string(forKey: machineIdKey)
         else { return nil }
-        let name = UserDefaults.standard.string(forKey: serverNameKey) ?? "Plex Server"
+        let name = UserDefaults.standard.string(forKey: serverNameKey) ?? String(localized: "Plex Server")
         let candidates = UserDefaults.standard.stringArray(forKey: candidateURIsKey)?
             .compactMap(URL.init(string:)) ?? []
         let ordered = orderedRoutes(primary: uri, others: candidates)

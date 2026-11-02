@@ -100,15 +100,15 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         picker = nil
         singleServer = nil
         recovery = nil
-        setBusy("Finding your servers…")
+        setBusy(String(localized: "Finding your servers…"))
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
                 switch try await discovery.listing(progress: { [weak self] in self?.setBusy($0.message) }) {
                 case .none:
                     show(
-                        title: "No Plex Server Found",
-                        subtitle: "This account doesn’t own or share a Plex Media Server. Sign in with the account that has your server, or add one by its address.",
+                        title: String(localized: "No Plex Server Found"),
+                        subtitle: String(localized: "This account doesn’t own or share a Plex Media Server. Sign in with the account that has your server, or add one by its address."),
                         rows: [Self.addAddressID, Self.retryID]
                     )
                 case .single(let server):
@@ -127,13 +127,13 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     private func showLoadFailure(_ error: Error) {
         if let apiError = error as? APIError, case .unauthorized = apiError {
             show(
-                title: "Sign-in Expired",
-                subtitle: "Plex needs you to sign in again before Crucible can list your servers.",
+                title: String(localized: "Sign-in Expired"),
+                subtitle: String(localized: "Plex needs you to sign in again before Crucible can list your servers."),
                 rows: [Self.signInAgainID, Self.addAddressID]
             )
         } else {
             show(
-                title: "Couldn’t Load Your Servers",
+                title: String(localized: "Couldn’t Load Your Servers"),
                 subtitle: ConnectionError.message(for: error),
                 rows: [Self.retryID, Self.addAddressID]
             )
@@ -153,12 +153,12 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
             recovery = advice
             tailnetWhenRecoveryShown = TailnetPresence.isConnected
             show(
-                title: "Couldn’t Reach \(server.name)",
-                subtitle: message ?? "Crucible found no route to this server. Enter its address instead.",
+                title: String(localized: "Couldn’t Reach \(server.name)"),
+                subtitle: message ?? String(localized: "Crucible found no route to this server. Enter its address instead."),
                 rows: [Self.addAddressID, Self.retryID] + advice.steps.indices.map { Self.recoveryPrefix + String($0) }
             )
         case .failed(let message):
-            show(title: "Couldn’t Connect to \(server.name)", subtitle: message, rows: [Self.retryID, Self.addAddressID])
+            show(title: String(localized: "Couldn’t Connect to \(server.name)"), subtitle: message, rows: [Self.retryID, Self.addAddressID])
         case .cancelled:
             break
         }
@@ -173,8 +173,8 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
         userMovedFocus = false
         allowsAutoContinue = true
         show(
-            title: "Choose Server",
-            subtitle: "Crucible tests every connection and picks the fastest.",
+            title: String(localized: "Choose Server"),
+            subtitle: String(localized: "Crucible tests every connection and picks the fastest."),
             rows: servers.map { Self.rowID(forServer: $0.id) } + [Self.addAddressID]
         )
         startProbing(state.probeTargets)
@@ -225,7 +225,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     private func connect(_ choice: ServerChoice, route: ServerRoute) {
         guard !isConnecting else { return }
         errorLabel.isHidden = true
-        setBusy("Connecting to \(choice.name)…")
+        setBusy(String(localized: "Connecting to \(choice.name)…"))
         connectTask?.cancel()
         connectTask = Task { [weak self] in
             guard let self else { return }
@@ -365,7 +365,7 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
     private func rowItem(for id: String) -> TVRowItem {
         switch kind(of: id) {
         case .server(let serverID):
-            guard let choice = picker?.choice(withID: serverID) else { return TVRowItem(id: id, title: "Server") }
+            guard let choice = picker?.choice(withID: serverID) else { return TVRowItem(id: id, title: String(localized: "Server", comment: "Fallback row title for a server that is no longer listed")) }
             return TVRowItem(
                 id: id,
                 title: choice.name,
@@ -376,11 +376,11 @@ final class TVChooseServerViewController: TVOnboardingViewController, UICollecti
                 isEnabled: choice.reachability != .offline
             )
         case .addAddress:
-            return TVRowItem(id: id, title: "Add by Address", subtitle: "Type an IP address or hostname", symbol: "plus", accessory: .chevron)
+            return TVRowItem(id: id, title: String(localized: "Add by Address"), subtitle: String(localized: "Type an IP address or hostname"), symbol: "plus", accessory: .chevron)
         case .retry:
-            return TVRowItem(id: id, title: "Try Again", symbol: "arrow.clockwise")
+            return TVRowItem(id: id, title: String(localized: "Try Again"), symbol: "arrow.clockwise")
         case .signInAgain:
-            return TVRowItem(id: id, title: "Sign In Again", symbol: "person.crop.circle.badge.checkmark", accessory: .chevron)
+            return TVRowItem(id: id, title: String(localized: "Sign In Again"), symbol: "person.crop.circle.badge.checkmark", accessory: .chevron)
         case .recovery(let step):
             guard let recovery else { return TVRowItem(id: id, title: "") }
             return TVRowItem(id: id, title: recovery.title(of: step), subtitle: recovery.detail(of: step), symbol: recovery.symbol(of: step), isStatic: true)

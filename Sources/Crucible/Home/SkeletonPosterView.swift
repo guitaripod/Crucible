@@ -86,7 +86,7 @@ final class HomeSkeletonContentView: UIView, UIContentView {
         preferContentHeight()
         clipsToBounds = true
         isAccessibilityElement = true
-        accessibilityLabel = "Loading"
+        accessibilityLabel = String(localized: "Loading")
         accessibilityTraits = .updatesFrequently
 
         let hero = ShimmerView(cornerRadius: Theme.Radius.hero)

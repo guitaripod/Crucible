@@ -7,7 +7,7 @@ final class LaunchViewController: UIViewController {
     var onRetry: (() -> Void)?
     var onSwitchServer: (() -> Void)?
     var onOpenDownloads: (() -> Void)?
-    var switchTitle = "Switch Server" {
+    var switchTitle = String(localized: "Switch Server") {
         didSet { applySwitchTitle() }
     }
 
@@ -29,7 +29,7 @@ final class LaunchViewController: UIViewController {
         view.backgroundColor = CrystalGlyphView.canvas
         installBackdrop()
         installContent()
-        showLoading(status: "Connecting…")
+        showLoading(status: String(localized: "Connecting…"))
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -100,7 +100,8 @@ final class LaunchViewController: UIViewController {
             glyph.heightAnchor.constraint(equalToConstant: 168),
         ])
 
-        wordmark.text = "Crucible"
+        let wordmarkText = "Crucible"
+        wordmark.text = wordmarkText
         wordmark.font = UIFont.systemFont(ofSize: 34, weight: .bold).rounded()
         wordmark.textColor = Theme.Color.onArt
         wordmark.textAlignment = .center
@@ -124,7 +125,7 @@ final class LaunchViewController: UIViewController {
             fallback.baseForegroundColor = Theme.Color.onAccent
             return fallback
         }
-        retry.title = "Try Again"
+        retry.title = String(localized: "Try Again")
         retry.image = UIImage(systemName: "arrow.clockwise")
         retry.imagePadding = 8
         retry.cornerStyle = .capsule
@@ -139,7 +140,7 @@ final class LaunchViewController: UIViewController {
             fallback.baseForegroundColor = Theme.Color.onArt
             return fallback
         }
-        switchConfig.title = "Switch Server"
+        switchConfig.title = String(localized: "Switch Server")
         switchConfig.image = UIImage(systemName: "arrow.left.arrow.right")
         switchConfig.imagePadding = 8
         switchConfig.cornerStyle = .capsule
@@ -151,7 +152,7 @@ final class LaunchViewController: UIViewController {
         switchButton.isPointerInteractionEnabled = true
 
         var downloads = UIButton.Configuration.plain()
-        downloads.title = "Watch Downloads Offline"
+        downloads.title = String(localized: "Watch Downloads Offline")
         downloads.image = UIImage(systemName: "arrow.down.circle")
         downloads.imagePadding = 6
         downloads.baseForegroundColor = Theme.Color.onArtSecondary

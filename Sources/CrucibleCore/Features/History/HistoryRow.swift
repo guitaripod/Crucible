@@ -24,7 +24,7 @@ extension HistoryItem {
             if let index { subtitleParts.append("E\(index)") }
             subtitleParts.append(title)
         } else {
-            subtitleParts.append(type == "show" ? "Show" : "Movie")
+            subtitleParts.append(type == "show" ? String(localized: "Show", comment: "Media type: a TV show") : String(localized: "Movie", comment: "Media type: a film"))
         }
         return HistoryRowPresentation(
             posterPath: isEpisode ? (grandparentThumb ?? thumb) : thumb,

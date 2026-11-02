@@ -4,23 +4,23 @@ extension ServerRoute {
     /// "Local · 4 ms" once the route answered, the kind alone before.
     package var badgeText: String {
         guard let milliseconds else { return kind.title }
-        return "\(kind.title) · \(milliseconds) ms"
+        return String(localized: "\(kind.title) · \(milliseconds) ms")
     }
 }
 
 extension ServerChoice {
     /// The line under the server name: how it is shared, or why it cannot be used.
     package var statusLine: String {
-        reachability == .unreachable ? "This server is unreachable. Select to test again." : detailText
+        reachability == .unreachable ? String(localized: "This server is unreachable. Select to test again.") : detailText
     }
 
     /// The trailing value of a server row: the best route with its latency, or the state.
     package var routeValue: String {
         switch reachability {
-        case .offline: return "Offline"
-        case .probing: return "Testing…"
-        case .reachable: return bestRoute?.badgeText ?? "Reachable"
-        case .unreachable: return "Unreachable"
+        case .offline: return String(localized: "Offline", comment: "Server state: it cannot be reached on the network")
+        case .probing: return String(localized: "Testing…")
+        case .reachable: return bestRoute?.badgeText ?? String(localized: "Reachable", comment: "Server route state: the server answered")
+        case .unreachable: return String(localized: "Unreachable", comment: "Server state: it did not answer")
         }
     }
 

@@ -108,17 +108,17 @@ package struct LibraryItemAction: Equatable, Sendable {
         var actions = [LibraryItemAction]()
         switch kind {
         case .movie:
-            actions.append(LibraryItemAction(kind: .play, title: item.isResumable ? "Resume" : "Play", symbol: "play.fill"))
+            actions.append(LibraryItemAction(kind: .play, title: item.isResumable ? String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position") : String(localized: "Play", comment: "Button or menu label that starts playback"), symbol: "play.fill"))
             if item.isResumable {
-                actions.append(LibraryItemAction(kind: .playFromBeginning, title: "Play from Beginning", symbol: "gobackward"))
+                actions.append(LibraryItemAction(kind: .playFromBeginning, title: String(localized: "Play from Beginning"), symbol: "gobackward"))
             }
-            actions.append(LibraryItemAction(kind: .setWatched(true), title: "Mark Watched", symbol: "checkmark.circle"))
-            actions.append(LibraryItemAction(kind: .setWatched(false), title: "Mark Unwatched", symbol: "eye.slash"))
+            actions.append(LibraryItemAction(kind: .setWatched(true), title: String(localized: "Mark Watched"), symbol: "checkmark.circle"))
+            actions.append(LibraryItemAction(kind: .setWatched(false), title: String(localized: "Mark Unwatched"), symbol: "eye.slash"))
         case .show:
-            actions.append(LibraryItemAction(kind: .setWatched(true), title: "Mark Show Watched", symbol: "checkmark.circle"))
-            actions.append(LibraryItemAction(kind: .setWatched(false), title: "Mark Show Unwatched", symbol: "eye.slash"))
+            actions.append(LibraryItemAction(kind: .setWatched(true), title: String(localized: "Mark Show Watched"), symbol: "checkmark.circle"))
+            actions.append(LibraryItemAction(kind: .setWatched(false), title: String(localized: "Mark Show Unwatched"), symbol: "eye.slash"))
         }
-        actions.append(LibraryItemAction(kind: .viewDetails, title: "View Details", symbol: "info.circle"))
+        actions.append(LibraryItemAction(kind: .viewDetails, title: String(localized: "View Details"), symbol: "info.circle"))
         return actions
     }
 
@@ -127,14 +127,14 @@ package struct LibraryItemAction: Equatable, Sendable {
     package static func recent(for item: PlexMetadata, kind: LibraryGridKind) -> [LibraryItemAction] {
         var actions = [LibraryItemAction]()
         if kind == .show, let showKey = item.grandparentRatingKey {
-            actions.append(LibraryItemAction(kind: .goToShow(showKey), title: "Go to Show", symbol: "tv"))
+            actions.append(LibraryItemAction(kind: .goToShow(showKey), title: String(localized: "Go to Show"), symbol: "tv"))
         }
-        actions.append(LibraryItemAction(kind: .play, title: "Play Again", symbol: "play.fill"))
-        actions.append(LibraryItemAction(kind: .setWatched(true), title: "Mark Watched", symbol: "checkmark.circle"))
-        actions.append(LibraryItemAction(kind: .setWatched(false), title: "Mark Unwatched", symbol: "eye.slash"))
+        actions.append(LibraryItemAction(kind: .play, title: String(localized: "Play Again"), symbol: "play.fill"))
+        actions.append(LibraryItemAction(kind: .setWatched(true), title: String(localized: "Mark Watched"), symbol: "checkmark.circle"))
+        actions.append(LibraryItemAction(kind: .setWatched(false), title: String(localized: "Mark Unwatched"), symbol: "eye.slash"))
         actions.append(LibraryItemAction(
             kind: .viewDetails,
-            title: kind == .show ? "Episode Details" : "View Details",
+            title: kind == .show ? String(localized: "Episode Details") : String(localized: "View Details"),
             symbol: "info.circle"
         ))
         return actions

@@ -72,7 +72,7 @@ final class HistoryRowContentView: UIView, UIContentView {
         config.image = UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold))
         config.contentInsets = .zero
         playButton.configuration = config
-        playButton.accessibilityLabel = "Play again"
+        playButton.accessibilityLabel = String(localized: "Play again")
         playButton.addAction(UIAction { [weak self] _ in self?.onPlay() }, for: .primaryActionTriggered)
         playButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([

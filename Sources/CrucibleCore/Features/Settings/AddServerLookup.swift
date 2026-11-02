@@ -24,10 +24,10 @@ package enum AddServerLookup {
         )
     }
 
-    package static let invalidAddressMessage = "Enter an address like 192.168.1.20 or https://plex.example.com:32400."
+    package static let invalidAddressMessage = String(localized: "Enter an address like 192.168.1.20 or https://plex.example.com:32400.")
 
     package static func notFoundMessage(for input: String) -> String {
-        "Couldn't find a Plex server at \(input.trimmingCharacters(in: .whitespacesAndNewlines)). Check the address and that the server is online."
+        String(localized: "Couldn't find a Plex server at \(input.trimmingCharacters(in: .whitespacesAndNewlines)). Check the address and that the server is online.")
     }
 
     /// The URLs worth probing for `input`, https first, or nil when it is not an address.

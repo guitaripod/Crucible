@@ -11,7 +11,7 @@ extension TVScreens {
         searchController.searchBar.autocorrectionType = .no
         searchController.searchBar.accessibilityIdentifier = "search.field"
         let container = UISearchContainerViewController(searchController: searchController)
-        container.title = "Search"
+        container.title = String(localized: "Search", comment: "Navigation title of the search screen")
         results.searchController = searchController
         results.host = container
         return container

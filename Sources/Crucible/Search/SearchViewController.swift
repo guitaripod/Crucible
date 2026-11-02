@@ -39,7 +39,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Search"
+        title = String(localized: "Search")
         view.backgroundColor = Theme.Color.canvas
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
@@ -529,7 +529,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             })
         }
         if let showKey = SearchItemActions.showKey(for: item) {
-            actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self] _ in
+            actions.append(UIAction(title: String(localized: "Go to Show"), image: UIImage(systemName: "tv")) { [weak self] _ in
                 guard let self else { return }
                 self.navigationController?.pushViewController(ShowDetailViewController(api: self.api, showRatingKey: showKey), animated: true)
             })

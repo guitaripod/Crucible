@@ -11,23 +11,23 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .play: return "Play something"
-        case .browse: return "Browse a library"
-        case .search: return "Search the library"
-        case .statistics: return "Open Statistics"
-        case .poster: return "Preview your Year in Review"
-        case .download: return "Download an episode"
+        case .play: return String(localized: "Play something")
+        case .browse: return String(localized: "Browse a library")
+        case .search: return String(localized: "Search the library")
+        case .statistics: return String(localized: "Open Statistics")
+        case .poster: return String(localized: "Preview your Year in Review")
+        case .download: return String(localized: "Download an episode")
         }
     }
 
     package var detail: String {
         switch self {
-        case .play: return "Resume the highlighted title and try Skip Intro."
-        case .browse: return "Filter by genre and watch state, sort, and jump with the A–Z index."
-        case .search: return "Results group by type, with a top result."
-        case .statistics: return "Your viewing, drawn from your Plex history."
-        case .poster: return "A poster of your year, ready to share."
-        case .download: return "Save it to watch offline, with progress on the Lock Screen."
+        case .play: return String(localized: "Resume the highlighted title and try Skip Intro.")
+        case .browse: return String(localized: "Filter by genre and watch state, sort, and jump with the A–Z index.")
+        case .search: return String(localized: "Results group by type, with a top result.")
+        case .statistics: return String(localized: "Your viewing, drawn from your Plex history.")
+        case .poster: return String(localized: "A poster of your year, ready to share.")
+        case .download: return String(localized: "Save it to watch offline, with progress on the Lock Screen.")
         }
     }
 
@@ -50,19 +50,19 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
 
 /// Words the demo says on both platforms, in one place so the iPhone and Apple TV never drift apart.
 package enum DemoCopy {
-    package static let welcomeButton = "Try the demo"
-    package static let welcomeCaption = "No server needed. Explore a fictional library."
-    package static let introTitle = "Welcome to the demo"
-    package static let introBody = "Everything here is fictional: the titles, the artwork and the viewing history. All of Crucible is unlocked so you can try it."
-    package static let introStart = "Start exploring"
-    package static let bannerTitle = "Demo library"
-    package static let connectTitle = "Connect your Plex server"
-    package static let connectBody = "Leave the demo and sign in with Plex to use Crucible with your own library."
-    package static let tourTitle = "Demo tour"
-    package static let finaleTitle = "Enjoying the demo?"
-    package static let finaleBody = "Crucible is free to use with your own server. Crucible Pro adds unlimited downloads, full Statistics, the Year in Review poster and Top Shelf, once, for every device."
-    package static let finaleKeepExploring = "Keep exploring"
-    package static let finalePro = "See Crucible Pro"
+    package static let welcomeButton = String(localized: "Try the demo")
+    package static let welcomeCaption = String(localized: "No server needed. Explore a fictional library.")
+    package static let introTitle = String(localized: "Welcome to the demo")
+    package static let introBody = String(localized: "Everything here is fictional: the titles, the artwork and the viewing history. All of Crucible is unlocked so you can try it.")
+    package static let introStart = String(localized: "Start exploring")
+    package static let bannerTitle = String(localized: "Demo library")
+    package static let connectTitle = String(localized: "Connect your Plex server")
+    package static let connectBody = String(localized: "Leave the demo and sign in with Plex to use Crucible with your own library.")
+    package static let tourTitle = String(localized: "Demo tour")
+    package static let finaleTitle = String(localized: "Enjoying the demo?")
+    package static let finaleBody = String(localized: "Crucible is free to use with your own server. Crucible Pro adds unlimited downloads, full Statistics, the Year in Review poster and Top Shelf, once, for every device.")
+    package static let finaleKeepExploring = String(localized: "Keep exploring")
+    package static let finalePro = String(localized: "See Crucible Pro")
 }
 
 /// The demo's guided tour: which steps the user has done, saved per demo session. When enough are done the soft paywall appears once.

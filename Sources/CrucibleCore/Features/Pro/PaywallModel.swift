@@ -148,7 +148,7 @@ package final class PaywallModel {
             if access.isPro {
                 finish(unlocked: true)
             } else {
-                state.notice = .failure("The purchase went through but Pro has not turned on yet. Try Restore Purchases in a moment.")
+                state.notice = .failure(String(localized: "The purchase went through but Pro has not turned on yet. Try Restore Purchases in a moment."))
             }
         case .cancelled:
             state.busy = .idle
@@ -189,25 +189,25 @@ package final class PaywallModel {
 
     package static func message(for error: ProOffersError) -> String {
         switch error {
-        case .offline: return "Crucible Pro could not be loaded because you appear to be offline. Check your connection and try again."
-        case .storeUnavailable: return "The App Store did not answer. Try again in a moment."
-        case .noOffers: return "Crucible Pro is not available in your region right now."
+        case .offline: return String(localized: "Crucible Pro could not be loaded because you appear to be offline. Check your connection and try again.")
+        case .storeUnavailable: return String(localized: "The App Store did not answer. Try again in a moment.")
+        case .noOffers: return String(localized: "Crucible Pro is not available in your region right now.")
         }
     }
 
     package static func message(for failure: ProStoreFailure) -> String {
         switch failure.reason {
-        case .offline: return "You appear to be offline. Check your connection and try again. You have not been charged."
-        case .storeUnavailable: return "The App Store did not answer. Try again in a moment. You have not been charged unless the App Store says otherwise."
-        case .notAllowed: return "Purchases are turned off on this device. You can change that in Screen Time or in your Apple Account settings."
-        case .unknown: return "The purchase could not be completed. You have not been charged. Try again, or use Restore Purchases if you already own Pro."
+        case .offline: return String(localized: "You appear to be offline. Check your connection and try again. You have not been charged.")
+        case .storeUnavailable: return String(localized: "The App Store did not answer. Try again in a moment. You have not been charged unless the App Store says otherwise.")
+        case .notAllowed: return String(localized: "Purchases are turned off on this device. You can change that in Screen Time or in your Apple Account settings.")
+        case .unknown: return String(localized: "The purchase could not be completed. You have not been charged. Try again, or use Restore Purchases if you already own Pro.")
         }
     }
 
     package static func message(for notice: Notice) -> String {
         switch notice {
-        case .pending: return "Your purchase is waiting for approval. Crucible Pro turns on as soon as it is approved."
-        case .nothingToRestore: return "No Crucible Pro purchase was found for this Apple Account."
+        case .pending: return String(localized: "Your purchase is waiting for approval. Crucible Pro turns on as soon as it is approved.")
+        case .nothingToRestore: return String(localized: "No Crucible Pro purchase was found for this Apple Account.")
         case .failure(let text): return text
         }
     }

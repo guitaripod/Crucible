@@ -36,7 +36,7 @@ class LibraryGridViewController: UIViewController {
 
     private lazy var optionsItem: UIBarButtonItem = {
         let item = UIBarButtonItem(image: LibraryGridOptions.optionsImage(filtering: false), menu: nil)
-        item.accessibilityLabel = "Sort and Filter"
+        item.accessibilityLabel = String(localized: "Sort and Filter")
         return item
     }()
 
@@ -263,8 +263,8 @@ class LibraryGridViewController: UIViewController {
 
         let railHeaderRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, _ in
             var config = SectionHeaderConfiguration()
-            config.title = "Recently Watched"
-            config.actionTitle = "See All"
+            config.title = String(localized: "Recently Watched")
+            config.actionTitle = String(localized: "See All")
             config.onAction = { [weak self] in self?.showAllRecent() }
             cell.contentConfiguration = config
         }
@@ -377,9 +377,9 @@ class LibraryGridViewController: UIViewController {
         case .failed(let message):
             var config = UIContentUnavailableConfiguration.empty()
             config.image = UIImage(systemName: "exclamationmark.triangle")
-            config.text = "Couldn’t Load Library"
+            config.text = String(localized: "Couldn’t Load Library")
             config.secondaryText = message
-            config.button = ThemeButton.primaryConfiguration(title: "Retry")
+            config.button = ThemeButton.primaryConfiguration(title: String(localized: "Retry"))
             config.buttonProperties.primaryAction = UIAction { [weak self] _ in
                 self?.contentUnavailableConfiguration = nil
                 self?.model.refreshAll()
@@ -388,9 +388,9 @@ class LibraryGridViewController: UIViewController {
         case .noMatches:
             var config = UIContentUnavailableConfiguration.empty()
             config.image = UIImage(systemName: "line.3.horizontal.decrease.circle")
-            config.text = "No Matches"
-            config.secondaryText = "Nothing in this library matches the current filters."
-            config.button = ThemeButton.primaryConfiguration(title: "Clear Filters")
+            config.text = String(localized: "No Matches")
+            config.secondaryText = String(localized: "Nothing in this library matches the current filters.")
+            config.button = ThemeButton.primaryConfiguration(title: String(localized: "Clear Filters"))
             config.buttonProperties.primaryAction = UIAction { [weak self] _ in
                 self?.clearFilters()
             }
@@ -399,7 +399,7 @@ class LibraryGridViewController: UIViewController {
             var config = UIContentUnavailableConfiguration.empty()
             config.image = UIImage(systemName: kind.placeholderIcon)
             config.text = kind.emptyTitle
-            config.secondaryText = "Add media to this library on your Plex server to see it here."
+            config.secondaryText = String(localized: "Add media to this library on your Plex server to see it here.")
             contentUnavailableConfiguration = config
         }
     }
@@ -430,16 +430,16 @@ class LibraryGridViewController: UIViewController {
             FilterChipsView.Chip(id: filter.rawValue, title: filter.title, isSelected: options.isChipSelected(filter))
         }
         if !model.genres.isEmpty {
-            chips.append(FilterChipsView.Chip(id: "genre", title: options.genreTitle(in: model.genres), isSelected: options.genre != nil, menu: genreMenu(title: "Genre")))
+            chips.append(FilterChipsView.Chip(id: "genre", title: options.genreTitle(in: model.genres), isSelected: options.genre != nil, menu: genreMenu(title: String(localized: "Genre"))))
         }
-        chips.append(FilterChipsView.Chip(id: "sort", title: "Sort: \(options.sortTitle(for: kind))", menu: sortMenu(title: "Sort By", inline: false)))
+        chips.append(FilterChipsView.Chip(id: "sort", title: String(localized: "Sort: \(options.sortTitle(for: kind))"), menu: sortMenu(title: String(localized: "Sort By"), inline: false)))
         return chips
     }
 
     func optionsMenu() -> UIMenu {
         var children: [UIMenuElement] = [
-            sortMenu(title: "Sort By", inline: true),
-            UIMenu(title: "Show", options: .displayInline, children: LibraryWatchFilter.allCases.map { filter in
+            sortMenu(title: String(localized: "Sort By"), inline: true),
+            UIMenu(title: String(localized: "Show"), options: .displayInline, children: LibraryWatchFilter.allCases.map { filter in
                 UIAction(title: filter.title, image: UIImage(systemName: filter.symbol), state: model.options.watch == filter ? .on : .off) { [weak self] _ in
                     Haptics.selection()
                     self?.model.setWatch(filter)
@@ -451,7 +451,7 @@ class LibraryGridViewController: UIViewController {
         }
         if host == nil {
             children.append(UIMenu(options: .displayInline, children: [
-                UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
+                UIAction(title: String(localized: "Browse Folders"), image: UIImage(systemName: "folder")) { [weak self] _ in
                     self?.openFolderBrowser()
                 },
             ]))
@@ -469,7 +469,7 @@ class LibraryGridViewController: UIViewController {
     }
 
     private func genreMenu(title: String, image: UIImage? = nil) -> UIMenu {
-        var actions = [UIAction(title: "All Genres", state: model.options.genre == nil ? .on : .off) { [weak self] _ in
+        var actions = [UIAction(title: String(localized: "All Genres"), state: model.options.genre == nil ? .on : .off) { [weak self] _ in
             Haptics.selection()
             self?.model.setGenre(nil)
         }]
@@ -568,7 +568,7 @@ class LibraryGridViewController: UIViewController {
 
     func openFolderBrowser() {
         MidgarLog.info("Folder browse tapped section=\(sectionId)", category: .ui)
-        navigationController?.pushViewController(FolderBrowserViewController(api: api, source: .section(sectionId), folderTitle: "Browse Folders"), animated: true)
+        navigationController?.pushViewController(FolderBrowserViewController(api: api, source: .section(sectionId), folderTitle: String(localized: "Browse Folders")), animated: true)
     }
 
     private func showAllRecent() {

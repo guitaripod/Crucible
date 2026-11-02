@@ -9,14 +9,14 @@ package struct HomeStateCopy: Equatable, Sendable {
     package static func empty(librariesAreFiltered: Bool) -> HomeStateCopy {
         if librariesAreFiltered {
             return HomeStateCopy(
-                title: "Nothing From These Libraries",
-                message: "Home is limited to the libraries you chose in Settings."
+                title: String(localized: "Nothing From These Libraries"),
+                message: String(localized: "Home is limited to the libraries you chose in Settings.")
             )
         }
-        return HomeStateCopy(title: "Nothing Here Yet", message: "Add media to your Plex libraries to see it here.")
+        return HomeStateCopy(title: String(localized: "Nothing Here Yet"), message: String(localized: "Add media to your Plex libraries to see it here."))
     }
 
     package static func loadFailed(_ error: Error) -> HomeStateCopy {
-        HomeStateCopy(title: "Couldn't Reach Server", message: ConnectionError.message(for: error))
+        HomeStateCopy(title: String(localized: "Couldn't Reach Server"), message: ConnectionError.message(for: error))
     }
 }

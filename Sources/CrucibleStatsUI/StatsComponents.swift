@@ -90,7 +90,7 @@ package final class StatsRangeControl: UIView {
             .foregroundColor: Theme.Color.label,
             .font: font,
         ], for: .selected)
-        segmented.accessibilityLabel = "Time range"
+        segmented.accessibilityLabel = String(localized: "Time range")
         segmented.addAction(UIAction { [weak self] _ in
             guard let self, let selected = StatsRange(rawValue: segmented.selectedSegmentIndex) else { return }
             Haptics.selection()
@@ -210,7 +210,7 @@ package final class StatsHeroView: UIView {
         detailLabel.text = detail
         sinceLabel.text = since
         odometer.setValue(value, animated: animate)
-        accessibilityLabel = [eyebrow, "\(value) \(unit)", detail, since].filter { !$0.isEmpty }.joined(separator: ". ")
+        accessibilityLabel = [eyebrow, String(localized: "\(value) \(unit)"), detail, since].filter { !$0.isEmpty }.joined(separator: ". ")
     }
 }
 
@@ -219,8 +219,8 @@ package final class StatsHeatLegendView: UIView {
     package init(metrics: StatsMetrics = .platform) {
         super.init(frame: .zero)
 
-        let less = Self.caption("less")
-        let more = Self.caption("more")
+        let less = Self.caption(String(localized: "less"))
+        let more = Self.caption(String(localized: "more"))
         let swatches = [StatsStyle.heatColor(level: 0), StatsStyle.heatColor(level: 2), StatsStyle.heatColor(level: 5)].map { Self.swatch($0, metrics: metrics.heatLegend) }
 
         let stack = UIStackView(arrangedSubviews: [less] + swatches + [more])

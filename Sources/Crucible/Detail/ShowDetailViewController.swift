@@ -287,7 +287,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
             var config = SectionHeaderConfiguration()
-            config.title = "More Like This"
+            config.title = String(localized: "More Like This")
             cell.contentConfiguration = config
         }
         dataSource.supplementaryViewProvider = { cv, _, indexPath in
@@ -341,7 +341,7 @@ final class ShowDetailViewController: UICollectionViewController {
             action.subtitle = chip.watchedText
             return action
         }
-        return UIMenu(title: "Seasons", options: .singleSelection, children: actions)
+        return UIMenu(title: String(localized: "Seasons"), options: .singleSelection, children: actions)
     }
 
     private func episodeConfiguration(_ episode: PlexMetadata, model: ShowDetailModel) -> EpisodeContentConfiguration {
@@ -370,12 +370,12 @@ final class ShowDetailViewController: UICollectionViewController {
         }
         let downloadName: String
         switch DownloadManager.shared.item(for: episode.id)?.state {
-        case nil: downloadName = "Download"
-        case .queued?, .waitingForWiFi?: downloadName = "Cancel Download"
-        case .downloading?: downloadName = "Pause Download"
-        case .paused?: downloadName = "Resume Download"
-        case .failed?: downloadName = "Retry Download"
-        case .completed?: downloadName = "Remove Download"
+        case nil: downloadName = String(localized: "Download")
+        case .queued?, .waitingForWiFi?: downloadName = String(localized: "Cancel Download")
+        case .downloading?: downloadName = String(localized: "Pause Download")
+        case .paused?: downloadName = String(localized: "Resume Download")
+        case .failed?: downloadName = String(localized: "Retry Download")
+        case .completed?: downloadName = String(localized: "Remove Download")
         }
         let download = UIAccessibilityCustomAction(name: downloadName) { [weak self] _ in
             guard let self else { return false }
@@ -405,8 +405,8 @@ final class ShowDetailViewController: UICollectionViewController {
     private func downloadAccessibilityLabel(_ model: ShowDetailModel) -> String {
         let manager = DownloadManager.shared
         let completed = model.episodes.filter { manager.state(for: $0.id) == .completed }.count
-        guard completed > 0 else { return "Download options" }
-        return "Download options, \(completed) of \(model.episodes.count) episodes downloaded"
+        guard completed > 0 else { return String(localized: "Download options") }
+        return String(localized: "Download options, \(completed) of \(model.episodes.count) episodes downloaded")
     }
 
     private func downloadMenu(_ model: ShowDetailModel) -> UIMenu {
@@ -418,16 +418,16 @@ final class ShowDetailViewController: UICollectionViewController {
 
         let seasonRemaining = episodes.filter { manager.item(for: $0.id) == nil }
         if !seasonRemaining.isEmpty {
-            let action = UIAction(title: "Download Season", image: UIImage(systemName: "arrow.down.circle")) { [weak self] _ in
+            let action = UIAction(title: String(localized: "Download Season"), image: UIImage(systemName: "arrow.down.circle")) { [weak self] _ in
                 self?.enqueue(seasonRemaining, reason: "season")
             }
-            action.subtitle = "\(seasonName) · \(Self.episodeCount(seasonRemaining.count))"
+            action.subtitle = String(localized: "\(seasonName) · \(Self.episodeCount(seasonRemaining.count))")
             downloads.append(action)
         }
 
         let unwatched = pool.filter { !$0.isWatched && manager.item(for: $0.id) == nil }
         if !unwatched.isEmpty {
-            let action = UIAction(title: "Download Unwatched", image: UIImage(systemName: "eye")) { [weak self] _ in
+            let action = UIAction(title: String(localized: "Download Unwatched"), image: UIImage(systemName: "eye")) { [weak self] _ in
                 self?.enqueue(unwatched, reason: "unwatched")
             }
             action.subtitle = Self.episodeCount(unwatched.count)
@@ -437,16 +437,16 @@ final class ShowDetailViewController: UICollectionViewController {
         if let upNext = model.upNext, let start = pool.firstIndex(where: { $0.id == upNext.episode.id }) {
             let next = Array(pool[start...].prefix(5)).filter { manager.item(for: $0.id) == nil }
             if !next.isEmpty {
-                let action = UIAction(title: "Download Next 5", image: UIImage(systemName: "text.badge.plus")) { [weak self] _ in
+                let action = UIAction(title: String(localized: "Download Next 5"), image: UIImage(systemName: "text.badge.plus")) { [weak self] _ in
                     self?.enqueue(next, reason: "next5")
                 }
                 action.subtitle = DetailFormat.episodeCode(season: upNext.episode.parentIndex, episode: upNext.episode.index)
-                    .map { "From \($0)" }
+                    .map { String(localized: "From \($0)") }
                 downloads.append(action)
             }
         }
 
-        downloads.append(UIAction(title: "Options\u{2026}", image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in
+        downloads.append(UIAction(title: String(localized: "Options\u{2026}"), image: UIImage(systemName: "slider.horizontal.3")) { [weak self] _ in
             self?.presentDownloadOptions()
         })
 
@@ -454,18 +454,18 @@ final class ShowDetailViewController: UICollectionViewController {
         let seasonItems = episodes.compactMap { manager.item(for: $0.id) }
         let activeKeys = seasonItems.filter { $0.state.isActive }.map(\.ratingKey)
         if !activeKeys.isEmpty {
-            manage.append(UIAction(title: "Pause Season Downloads", image: UIImage(systemName: "pause.fill")) { _ in
+            manage.append(UIAction(title: String(localized: "Pause Season Downloads"), image: UIImage(systemName: "pause.fill")) { _ in
                 activeKeys.forEach { manager.pause($0) }
             })
         }
         let resumable = episodes.filter { manager.state(for: $0.id) == .failed || manager.state(for: $0.id) == .paused }
         if !resumable.isEmpty {
-            manage.append(UIAction(title: "Resume Season Downloads", image: UIImage(systemName: "arrow.clockwise")) { [weak self] _ in
+            manage.append(UIAction(title: String(localized: "Resume Season Downloads"), image: UIImage(systemName: "arrow.clockwise")) { [weak self] _ in
                 self?.enqueue(resumable, reason: "resume")
             })
         }
         if !seasonItems.isEmpty {
-            let title = activeKeys.isEmpty ? "Remove Season Downloads" : "Cancel Season Downloads"
+            let title = activeKeys.isEmpty ? String(localized: "Remove Season Downloads") : String(localized: "Cancel Season Downloads")
             manage.append(UIAction(title: title, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.removeSeasonDownloads()
             })
@@ -477,7 +477,7 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private static func episodeCount(_ count: Int) -> String {
-        count == 1 ? "1 episode" : "\(count) episodes"
+        count == 1 ? String(localized: "1 episode") : String(localized: "\(count) episodes")
     }
 
     private func enqueue(_ items: [PlexMetadata], reason: String) {
@@ -595,10 +595,10 @@ final class ShowDetailViewController: UICollectionViewController {
     private func showLoadError(message: String) {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "exclamationmark.triangle")
-        config.text = "Failed to load"
+        config.text = String(localized: "Failed to load")
         config.secondaryText = message
         var button = UIButton.Configuration.filled()
-        button.title = "Retry"
+        button.title = String(localized: "Retry")
         button.baseBackgroundColor = Theme.Color.accent
         button.baseForegroundColor = Theme.Color.onAccent
         button.cornerStyle = .capsule
@@ -771,7 +771,7 @@ final class ShowDetailViewController: UICollectionViewController {
         action.backgroundColor = Theme.Color.accent
         action.image = SwipeActionArt.image(
             symbol: markWatched ? "eye" : "eye.slash",
-            title: markWatched ? "Watched" : "Unwatched",
+            title: markWatched ? String(localized: "Watched") : String(localized: "Unwatched"),
             spokenTitle: WatchedService.title(isWatched: !markWatched),
             color: Theme.Color.onAccent,
             traits: traitCollection
@@ -811,31 +811,31 @@ final class ShowDetailViewController: UICollectionViewController {
         switch manager.item(for: key)?.state {
         case nil:
             configuration = UISwipeActionsConfiguration(actions: [
-                graphite("arrow.down", "Download", "Download") { manager.requestDownload(metadata: episode) },
+                graphite("arrow.down", String(localized: "Download"), String(localized: "Download")) { manager.requestDownload(metadata: episode) },
             ])
         case .completed?:
             configuration = UISwipeActionsConfiguration(actions: [
-                destructive("Remove", "Remove Download") { [weak self] in
+                destructive(String(localized: "Remove"), String(localized: "Remove Download")) { [weak self] in
                     guard let self else { return }
                     DetailDownload.confirmRemoval(title: episode.title, ratingKey: key, from: self, sourceView: sourceView)
                 },
             ])
         case .queued?, .waitingForWiFi?, .downloading?:
             configuration = UISwipeActionsConfiguration(actions: [
-                destructive("Cancel", "Cancel Download") { Haptics.medium(); manager.delete(key) },
-                graphite("pause.fill", "Pause", "Pause Download") { manager.pause(key) },
+                destructive(String(localized: "Cancel"), String(localized: "Cancel Download")) { Haptics.medium(); manager.delete(key) },
+                graphite("pause.fill", String(localized: "Pause"), String(localized: "Pause Download")) { manager.pause(key) },
             ])
             configuration.performsFirstActionWithFullSwipe = false
         case .paused?:
             configuration = UISwipeActionsConfiguration(actions: [
-                destructive("Delete", "Delete Download") { Haptics.medium(); manager.delete(key) },
-                graphite("arrow.down", "Resume", "Resume Download") { manager.requestResume(key) },
+                destructive(String(localized: "Delete"), String(localized: "Delete Download")) { Haptics.medium(); manager.delete(key) },
+                graphite("arrow.down", String(localized: "Resume"), String(localized: "Resume Download")) { manager.requestResume(key) },
             ])
             configuration.performsFirstActionWithFullSwipe = false
         case .failed?:
             configuration = UISwipeActionsConfiguration(actions: [
-                destructive("Delete", "Delete Download") { Haptics.medium(); manager.delete(key) },
-                graphite("arrow.clockwise", "Retry", "Retry Download") { manager.requestResume(key) },
+                destructive(String(localized: "Delete"), String(localized: "Delete Download")) { Haptics.medium(); manager.delete(key) },
+                graphite("arrow.clockwise", String(localized: "Retry"), String(localized: "Retry Download")) { manager.requestResume(key) },
             ])
             configuration.performsFirstActionWithFullSwipe = false
         }
@@ -844,14 +844,14 @@ final class ShowDetailViewController: UICollectionViewController {
     #endif
 
     private func selectionToolbarItems(count: Int) -> [UIBarButtonItem] {
-        let selectAll = UIBarButtonItem(primaryAction: UIAction(title: "Select All") { [weak self] _ in
+        let selectAll = UIBarButtonItem(primaryAction: UIAction(title: String(localized: "Select All")) { [weak self] _ in
             self?.selectAllEpisodes()
         })
 
-        let downloadItem = UIBarButtonItem(title: count > 0 ? "Download \(count)" : "Download", menu: selectedDownloadMenu())
+        let downloadItem = UIBarButtonItem(title: count > 0 ? String(localized: "Download \(count)") : String(localized: "Download"), menu: selectedDownloadMenu())
         downloadItem.isEnabled = count > 0
 
-        let removeAction = UIAction(title: count > 0 ? "Remove \(count)" : "Remove") { [weak self] _ in
+        let removeAction = UIAction(title: count > 0 ? String(localized: "Remove \(count)") : String(localized: "Remove")) { [weak self] _ in
             self?.removeSelectedEpisodes()
         }
         let removeItem = UIBarButtonItem(primaryAction: removeAction)
@@ -864,11 +864,11 @@ final class ShowDetailViewController: UICollectionViewController {
     private func selectedDownloadMenu() -> UIMenu {
         let current = Preferences.downloadQuality
         let actions = DownloadQuality.allCases.map { quality in
-            UIAction(title: "\(quality.title) · \(quality.detail)", state: quality == current ? .on : .off) { [weak self] _ in
+            UIAction(title: String(localized: "\(quality.title) · \(quality.detail)"), state: quality == current ? .on : .off) { [weak self] _ in
                 self?.downloadSelectedEpisodes(quality: quality)
             }
         }
-        return UIMenu(title: "Download Quality", children: actions)
+        return UIMenu(title: String(localized: "Download Quality"), children: actions)
     }
 
     private func selectedEpisodes() -> [PlexMetadata] {
@@ -927,7 +927,7 @@ final class ShowDetailViewController: UICollectionViewController {
                 },
             ]
             if status.canPlayFromBeginning {
-                children.insert(UIAction(title: "Play from Beginning", image: UIImage(systemName: "gobackward")) { [weak self] _ in
+                children.insert(UIAction(title: String(localized: "Play from Beginning"), image: UIImage(systemName: "gobackward")) { [weak self] _ in
                     Haptics.light()
                     self?.playFromBeginning(episode)
                 }, at: 1)

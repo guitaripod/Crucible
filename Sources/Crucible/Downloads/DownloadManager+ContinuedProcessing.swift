@@ -30,7 +30,7 @@ extension DownloadManager {
             let request = BGContinuedProcessingTaskRequest(
                 identifier: Self.continuedTaskIdentifier,
                 title: title,
-                subtitle: "Downloading for offline playback"
+                subtitle: String(localized: "Downloading for offline playback")
             )
             request.strategy = strategy
             return request

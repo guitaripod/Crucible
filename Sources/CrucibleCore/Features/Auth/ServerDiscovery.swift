@@ -70,11 +70,11 @@ package enum ConnectProgress: Equatable, Sendable {
 
     package var message: String {
         switch self {
-        case .searchingTailnet: return "Looking for your server on your tailnet…"
-        case .findingRoute(let name): return "Finding the best route to \(name)…"
-        case .connectingToAddress(let host): return "Connecting to \(host)…"
-        case .connectingToRoute(let url): return "Connecting to \(url.absoluteString)..."
-        case .connected(let name): return "Connected to \(name)"
+        case .searchingTailnet: return String(localized: "Looking for your server on your tailnet…")
+        case .findingRoute(let name): return String(localized: "Finding the best route to \(name)…")
+        case .connectingToAddress(let host): return String(localized: "Connecting to \(host)…")
+        case .connectingToRoute(let url): return String(localized: "Connecting to \(url.absoluteString)...")
+        case .connected(let name): return String(localized: "Connected to \(name)")
         }
     }
 
@@ -156,14 +156,14 @@ package struct ServerDiscovery: Sendable {
         let best = await environment.firstReachable(advertised, token)
         guard !Task.isCancelled else { return .cancelled }
         guard let best else {
-            return .needsAddress(message: "Could not reach \(server.name). Enter its address instead.")
+            return .needsAddress(message: String(localized: "Could not reach \(server.name). Enter its address instead."))
         }
         return await finish(url: best, name: server.name, machineIdentifier: server.id, candidates: advertised, progress: progress)
     }
 
     /// Connects to the route the person picked on a server card.
     package func connect(to choice: ServerChoice, route: ServerRoute, progress: @MainActor @Sendable (ConnectProgress) -> Void) async -> ServerConnectOutcome {
-        guard let url = URL(string: route.uri) else { return .failed("Invalid server address") }
+        guard let url = URL(string: route.uri) else { return .failed(String(localized: "Invalid server address")) }
         let advertised = choice.routes.compactMap { URL(string: $0.uri) }.filter { $0 != url }
         return await finish(url: url, name: choice.name, machineIdentifier: choice.id, candidates: advertised, progress: progress)
     }
@@ -174,7 +174,7 @@ package struct ServerDiscovery: Sendable {
     package func connect(toAddress address: ServerAddress, known: ServerChoice?, progress: @MainActor @Sendable (ConnectProgress) -> Void) async -> ServerConnectOutcome {
         await progress(.connectingToAddress(host: address.host))
         guard let url = await environment.firstReachable(address.candidateURLs, token) else {
-            return .failed("Couldn't reach \(address.host). Check the address and that the server is online.")
+            return .failed(String(localized: "Couldn't reach \(address.host). Check the address and that the server is online."))
         }
         let machineIdentifier: String
         let name: String
@@ -231,12 +231,12 @@ package struct ServerDiscovery: Sendable {
     ) async -> ServerConnectOutcome {
         await progress(.connectingToRoute(url))
         guard await environment.probe(url, token) else {
-            return .failed("Could not reach server at \(url.absoluteString)")
+            return .failed(String(localized: "Could not reach server at \(url.absoluteString)"))
         }
         await progress(.connected(serverName: name))
         guard !Task.isCancelled else { return .cancelled }
         guard let connection = environment.save(url, name, machineIdentifier, candidates.filter { $0 != url }) else {
-            return .failed("Failed to save connection")
+            return .failed(String(localized: "Failed to save connection"))
         }
         return .connected(connection)
     }

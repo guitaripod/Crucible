@@ -9,7 +9,7 @@ final class TVSynopsisViewController: UIViewController {
     private let panel = Glass.effectView(fallback: .regular)
     private let textView = UITextView()
     private var textHeight: NSLayoutConstraint?
-    private lazy var closeButton = TVButton.make(.glass, title: "Close") { [weak self] in
+    private lazy var closeButton = TVButton.make(.glass, title: String(localized: "Close", comment: "Button that dismisses the synopsis")) { [weak self] in
         self?.dismiss(animated: TVMotion.animationsEnabled)
     }
 

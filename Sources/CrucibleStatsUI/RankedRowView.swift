@@ -120,7 +120,7 @@ package final class RankedRowView: UIView {
         titleLabel.text = title
         valueLabel.text = valueText
         fill.backgroundColor = StatsStyle.categoricalColor(colorIndex)
-        tapButton.accessibilityLabel = [rank.map { "Number \($0)" }, title, valueText].compactMap { $0 }.joined(separator: ", ")
+        tapButton.accessibilityLabel = [rank.map { String(localized: "Number \($0)") }, title, valueText].compactMap { $0 }.joined(separator: ", ")
 
         rankLabel.isHidden = rank == nil
         rankLabel.text = rank.map(String.init)

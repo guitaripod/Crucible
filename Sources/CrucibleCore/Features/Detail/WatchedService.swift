@@ -5,7 +5,7 @@ import MidgarCore
 package enum WatchedService {
     /// The title of the action that flips `isWatched`, the item's current state: Mark Watched for an unwatched title.
     package static func title(isWatched: Bool) -> String {
-        isWatched ? "Mark Unwatched" : "Mark Watched"
+        isWatched ? String(localized: "Mark Unwatched") : String(localized: "Mark Watched")
     }
 
     /// Scrobbles or unscrobbles `ratingKey`, then drops the container cache so the reload the caller

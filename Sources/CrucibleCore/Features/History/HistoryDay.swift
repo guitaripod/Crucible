@@ -53,10 +53,10 @@ package enum HistoryDay {
     /// "Today", "Yesterday", "Earlier" for the undated bucket, otherwise the weekday and date, with the
     /// year only when it is not the current one.
     package static func title(for day: Date, now: Date, calendar: Calendar) -> String {
-        if day == .distantPast { return "Earlier" }
-        if calendar.isDate(day, inSameDayAs: now) { return "Today" }
+        if day == .distantPast { return String(localized: "Earlier", comment: "History section header for older days") }
+        if calendar.isDate(day, inSameDayAs: now) { return String(localized: "Today", comment: "History section header for today") }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(day, inSameDayAs: yesterday) {
-            return "Yesterday"
+            return String(localized: "Yesterday", comment: "History section header for yesterday")
         }
         let sameYear = calendar.isDate(day, equalTo: now, toGranularity: .year)
         return (sameYear ? dayFormatter : dayWithYearFormatter).string(from: day)

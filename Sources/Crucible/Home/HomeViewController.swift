@@ -52,7 +52,7 @@ final class HomeViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Home"
+        title = String(localized: "Home", comment: "Navigation title of the Home tab")
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
@@ -297,11 +297,11 @@ final class HomeViewController: UICollectionViewController {
                 config.title = feed.arrangement.title(for: .continueWatching)
             case .upNext:
                 config.title = feed.arrangement.title(for: .upNext)
-                config.actionTitle = "See All"
+                config.actionTitle = String(localized: "See All")
                 config.onAction = { [weak self] in self?.showAll(.upNext) }
             case .recentlyAdded:
                 config.title = feed.arrangement.title(for: .recentlyAdded)
-                config.actionTitle = "See All"
+                config.actionTitle = String(localized: "See All")
                 config.onAction = { [weak self] in self?.showAll(.recentlyAdded) }
             case .skeleton, .hero, .week:
                 break
@@ -336,13 +336,13 @@ final class HomeViewController: UICollectionViewController {
 
     private func configureNavButtons() {
         surpriseMenuItem.image = UIImage(systemName: "shuffle")
-        surpriseMenuItem.accessibilityLabel = "Surprise Me"
+        surpriseMenuItem.accessibilityLabel = String(localized: "Surprise Me")
         let kinds: [(SurpriseMe.Kind, String)] = [
             (.any, "sparkles"),
             (.movie, "film"),
             (.show, "tv"),
         ]
-        surpriseMenuItem.menu = UIMenu(title: "Surprise Me", children: kinds.map { kind, symbol in
+        surpriseMenuItem.menu = UIMenu(title: String(localized: "Surprise Me"), children: kinds.map { kind, symbol in
             UIAction(title: kind.menuTitle, image: UIImage(systemName: symbol)) { [weak self] _ in self?.surprise(kind) }
         })
 
@@ -353,20 +353,20 @@ final class HomeViewController: UICollectionViewController {
 
     private func updateServerMenu() {
         let connection = ServerBootstrap.connection()
-        let name = connection?.serverName ?? "Plex Server"
+        let name = connection?.serverName ?? String(localized: "Plex Server")
         let route = connection.map { HomeServerRoute.classify($0.serverURI) }
         let status = UIAction(
-            title: "Connected to \(name)",
+            title: String(localized: "Connected to \(name)"),
             image: UIImage(systemName: route?.symbol ?? "checkmark.circle.fill"),
             attributes: [.disabled],
             handler: { _ in }
         )
-        status.subtitle = route.map { "\($0.title) connection" }
-        let switchServer = UIAction(title: "Switch Server", image: UIImage(systemName: "arrow.left.arrow.right")) { [weak self] _ in
+        status.subtitle = route.map { String(localized: "\($0.title) connection") }
+        let switchServer = UIAction(title: String(localized: "Switch Server"), image: UIImage(systemName: "arrow.left.arrow.right")) { [weak self] _ in
             self?.presentServerSwitcher()
         }
         serverMenuItem.menu = UIMenu(children: DemoMode.shared.isActive ? [status] : [status, switchServer])
-        serverMenuItem.accessibilityLabel = route.map { "Server: \(name), \($0.title.lowercased())" } ?? "Server: \(name)"
+        serverMenuItem.accessibilityLabel = route.map { String(localized: "Server: \(name), \($0.title.lowercased())") } ?? String(localized: "Server: \(name)")
     }
 
     private func presentServerSwitcher() {
@@ -417,13 +417,13 @@ final class HomeViewController: UICollectionViewController {
 
     private func presentSurpriseFailure(_ failure: SurpriseMe.LookupFailure) {
         let alert = UIAlertController(title: SurpriseMe.lookupFailedTitle, message: failure.message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         present(alert, animated: true)
     }
 
     private func presentNothingToPick(_ kind: SurpriseMe.Kind) {
         let alert = UIAlertController(title: SurpriseMe.nothingToPickTitle, message: SurpriseMe.nothingToPickMessage(for: kind), preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         present(alert, animated: true)
     }
 
@@ -457,7 +457,7 @@ final class HomeViewController: UICollectionViewController {
         config.image = UIImage(systemName: "wifi.exclamationmark")
         config.text = copy.title
         config.secondaryText = copy.message
-        config.button = ThemeButton.primaryConfiguration(title: "Retry")
+        config.button = ThemeButton.primaryConfiguration(title: String(localized: "Retry"))
         config.buttonProperties.primaryAction = UIAction { [weak self] _ in
             guard let self else { return }
             contentUnavailableConfiguration = nil
@@ -620,7 +620,7 @@ extension HomeViewController: CommandHandling {
     /// Space resumes what the Home hero offers, named in the menu bar.
     func title(for command: AppCommand) -> String? {
         guard command == .play, let item = feed.arrangement.hero ?? feed.arrangement.continueRail.first else { return nil }
-        return "\(feed.heroModel(for: item).actionTitle) \u{201C}\(item.grandparentTitle ?? item.title)\u{201D}"
+        return String(localized: "\(feed.heroModel(for: item).actionTitle) \u{201C}\(item.grandparentTitle ?? item.title)\u{201D}")
     }
 }
 

@@ -12,7 +12,7 @@ extension DownloadManager {
         }
         postDownloadNotification(
             title: item.displayTitle,
-            subtitle: "Download complete",
+            subtitle: String(localized: "Download complete"),
             body: parts.joined(separator: " · "),
             ratingKey: item.ratingKey,
             mediaType: item.mediaType
@@ -27,7 +27,7 @@ extension DownloadManager {
         parts.append(message)
         postDownloadNotification(
             title: item.displayTitle,
-            subtitle: "Download failed",
+            subtitle: String(localized: "Download failed"),
             body: parts.joined(separator: " · "),
             ratingKey: item.ratingKey,
             mediaType: item.mediaType

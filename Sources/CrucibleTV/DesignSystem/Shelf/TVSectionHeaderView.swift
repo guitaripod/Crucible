@@ -42,7 +42,7 @@ final class TVSectionHeaderView: UICollectionReusableView {
         titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         secondaryLabel.font = Theme.Font.callout
         secondaryLabel.textColor = Theme.Color.labelSecondary
-        seeAllButton.configuration = TVButton.configuration(.plain, title: "See All", symbol: "chevron.right", symbolTrailing: true)
+        seeAllButton.configuration = TVButton.configuration(.plain, title: String(localized: "See All"), symbol: "chevron.right", symbolTrailing: true)
         seeAllButton.accessibilityIdentifier = "tv.sectionHeader.seeAll"
 
         let row = UIStackView(arrangedSubviews: [titleLabel, secondaryLabel, seeAllButton, UIView()])
@@ -85,7 +85,7 @@ final class TVSectionHeaderView: UICollectionReusableView {
             seeAllActionIdentifier = seeAll.identifier
             seeAllButton.addAction(seeAll, for: .primaryActionTriggered)
         }
-        seeAllButton.accessibilityLabel = header.map { "See all \($0.title)" }
+        seeAllButton.accessibilityLabel = header.map { String(localized: "See all \($0.title)") }
     }
 
     override func prepareForReuse() {

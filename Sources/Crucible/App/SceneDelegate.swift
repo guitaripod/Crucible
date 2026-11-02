@@ -126,7 +126,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         launchTask?.cancel()
         launchTask = nil
         guard !isShowingServerSetup else { return }
-        launchGate().showLoading(status: "Connecting…")
+        launchGate().showLoading(status: String(localized: "Connecting…"))
     }
 
     private var isShowingServerSetup: Bool {
@@ -164,7 +164,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func launch(connection: PlexConnection) {
         AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, .phone)
         let gate = launchGate()
-        showLoading("Connecting to \(connection.serverName)…")
+        showLoading(String(localized: "Connecting to \(connection.serverName)…"))
         launchTask = Task { @MainActor [weak self, weak gate] in
             let outcome = await AppLaunchSession.run(connection: connection) { message in
                 Task { @MainActor in self?.showLoading(message) }
@@ -194,7 +194,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let gate = launchGate()
         let hasOffline = DownloadManager.shared.items.contains { $0.state == .completed }
         gate.showFailure(
-            title: "Couldn't Reach \(connection.serverName)",
+            title: String(localized: "Couldn't Reach \(connection.serverName)"),
             message: failure.message,
             canOpenDownloads: hasOffline
         )
@@ -222,7 +222,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let gate = LaunchViewController()
         gate.onRetry = { [weak self] in self?.reconfigureRoot() }
         gate.onSwitchServer = { [weak self] in self?.switchServerFromLaunchFailure() }
-        gate.switchTitle = DemoMode.shared.isActive ? DemoPhoneCopy.leaveTitle : "Switch Server"
+        gate.switchTitle = DemoMode.shared.isActive ? DemoPhoneCopy.leaveTitle : String(localized: "Switch Server")
         window?.rootViewController = gate
         return gate
     }

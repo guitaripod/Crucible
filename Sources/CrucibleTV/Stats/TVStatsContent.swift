@@ -44,10 +44,10 @@ enum TVStatsContent {
         let active = page.heatmap.cells.count
         let busiest = page.heatmap.cells.map(\.count).max() ?? 0
         return TVStatsPanel(
-            title: "Activity",
+            title: String(localized: "Activity"),
             accessory: StatsHeatLegendView(metrics: metrics),
             content: heatmap,
-            summary: "Activity heatmap. \(active) active days, busiest day with \(busiest) plays."
+            summary: String(localized: "Activity heatmap. \(active) active days, busiest day with \(busiest) plays.")
         )
     }
 
@@ -77,7 +77,7 @@ enum TVStatsContent {
         let stack = UIStackView(arrangedSubviews: [charts, verdict])
         stack.axis = .vertical
         stack.spacing = Theme.Space.m
-        return TVStatsPanel(title: "When You Watch", content: stack, summary: "\(page.clock.verdict). \(page.clock.accessibilitySummary)")
+        return TVStatsPanel(title: String(localized: "When You Watch"), content: stack, summary: String(localized: "\(page.clock.verdict). \(page.clock.accessibilitySummary)"))
     }
 
     static func momentum(_ page: StatsPage) -> UIView? {
@@ -86,7 +86,7 @@ enum TVStatsContent {
         trend.showsAxes = true
         trend.peakAnnotation = momentum.peakText
         trend.setValues(momentum.values, animated: true)
-        return TVStatsPanel(title: "Your Momentum", content: trend, summary: momentum.summary)
+        return TVStatsPanel(title: String(localized: "Your Momentum"), content: trend, summary: momentum.summary)
     }
 
     static func libraries(_ page: StatsPage) -> UIView {
@@ -114,7 +114,7 @@ enum TVStatsContent {
         stack.axis = .horizontal
         stack.spacing = Theme.Space.xl
         stack.alignment = .fill
-        return TVStatsPanel(title: "Your Libraries", content: stack, summary: libraries.accessibilitySummary)
+        return TVStatsPanel(title: String(localized: "Your Libraries"), content: stack, summary: libraries.accessibilitySummary)
     }
 
     private static func legendRow(_ row: StatsPage.LegendRow, share: Int) -> UIView {
@@ -151,11 +151,11 @@ enum TVStatsContent {
     static func genres(_ page: StatsPage) -> UIView {
         switch page.genres {
         case .pending(let pending):
-            return TVStatsPanel(title: "Your Taste", content: pendingView(pending), summary: pending.accessibilityLabel)
+            return TVStatsPanel(title: String(localized: "Your Taste"), content: pendingView(pending), summary: pending.accessibilityLabel)
         case .ranked(let rows):
             let columns = rankedColumns(rows)
             let summary = rows.map(\.accessibilityLabel).joined(separator: ". ")
-            return TVStatsPanel(title: "Your Taste", content: columns, summary: "Top genres. \(summary)")
+            return TVStatsPanel(title: String(localized: "Your Taste"), content: columns, summary: String(localized: "Top genres. \(summary)"))
         }
     }
 

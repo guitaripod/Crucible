@@ -10,7 +10,7 @@ final class TVDetailSkeletonView: TVPulsingView {
         super.init(frame: frame)
         backgroundColor = Theme.Color.canvas
         isAccessibilityElement = true
-        accessibilityLabel = "Loading"
+        accessibilityLabel = String(localized: "Loading")
         accessibilityIdentifier = "detail.loading"
 
         blocks.axis = .vertical

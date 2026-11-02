@@ -115,7 +115,7 @@ final class DownloadedShowViewController: UICollectionViewController {
 
     private func swipeActions(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         guard let ratingKey = dataSource.itemIdentifier(for: indexPath) else { return nil }
-        let delete = UIContextualAction(style: .destructive, title: "Delete") { _, _, completion in
+        let delete = UIContextualAction(style: .destructive, title: String(localized: "Delete")) { _, _, completion in
             DownloadManager.shared.delete(ratingKey)
             completion(true)
         }
@@ -147,11 +147,11 @@ final class DownloadedShowViewController: UICollectionViewController {
               let item = DownloadManager.shared.item(for: ratingKey) else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             UIMenu(children: [
-                UIAction(title: item.resumeSecs > 1 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { _ in
+                UIAction(title: item.resumeSecs > 1 ? String(localized: "Resume") : String(localized: "Play"), image: UIImage(systemName: "play.fill")) { _ in
                     guard let self else { return }
                     self.playerCoordinator = OfflinePlayback.start(item, api: self.api, from: self)
                 },
-                UIAction(title: "Delete Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+                UIAction(title: String(localized: "Delete Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                     DownloadManager.shared.delete(ratingKey)
                 },
             ])

@@ -119,7 +119,7 @@ package final class MidgarProAccess: ProAccessProviding {
                     id: product.id,
                     kind: .annual,
                     priceText: product.displayPrice,
-                    monthlyEquivalentText: Self.monthlyEquivalent(of: product).map { "\($0) a month" },
+                    monthlyEquivalentText: Self.monthlyEquivalent(of: product).map { String(localized: "\($0) a month") },
                     trial: await Self.trial(for: product)
                 ))
             default:

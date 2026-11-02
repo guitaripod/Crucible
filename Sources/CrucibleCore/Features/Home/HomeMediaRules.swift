@@ -60,7 +60,7 @@ package enum HomeMediaRules {
 
     /// "Resume" once playback has started, "Play" otherwise.
     package static func playTitle(for item: PlexMetadata) -> String {
-        isResuming(item) ? "Resume" : "Play"
+        isResuming(item) ? String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position") : String(localized: "Play", comment: "Button or menu label that starts playback")
     }
 
     /// Shows and seasons have no file to download.

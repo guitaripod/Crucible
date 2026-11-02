@@ -37,6 +37,10 @@ targets:
         buildPhase: resources
       - path: Resources/PrivacyInfo.xcprivacy
         buildPhase: resources
+      - path: Resources/InfoPlist.xcstrings
+        buildPhase: resources
+      - path: ../Localization/Localizable.xcstrings
+        buildPhase: resources
     dependencies:
       - package: Crucible
         product: CrucibleCore
@@ -118,6 +122,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: ../Sources/CrucibleWidgets
+      - path: ../Localization/Localizable.xcstrings
+        buildPhase: resources
     dependencies:
       - package: Crucible
         product: CrucibleActivity

@@ -23,7 +23,7 @@ final class TVLinkViewController: TVOnboardingViewController {
     private let qrCard = UIView()
     private let qrCaption = UILabel()
     private let statusRow = TVStatusRow()
-    private lazy var retryButton = TVButton.make(.primary, title: "Get a New Code", symbol: "arrow.clockwise") { [weak self] in
+    private lazy var retryButton = TVButton.make(.primary, title: String(localized: "Get a New Code"), symbol: "arrow.clockwise") { [weak self] in
         self?.startSession()
     }
 
@@ -101,7 +101,7 @@ final class TVLinkViewController: TVOnboardingViewController {
     /// the moment it arrives and, with VoiceOver on, the code row can be focused to hear it again.
     private func announce(_ code: String) {
         let spoken = code.uppercased().map(String.init).joined(separator: " ")
-        UIAccessibility.post(notification: .announcement, argument: "Link code \(spoken). Go to plex dot tv slash link and enter it.")
+        UIAccessibility.post(notification: .announcement, argument: String(localized: "Link code \(spoken). Go to plex dot tv slash link and enter it."))
         guard tiles.canBecomeFocused else { return }
         setNeedsFocusUpdate()
         updateFocusIfNeeded()
@@ -111,21 +111,21 @@ final class TVLinkViewController: TVOnboardingViewController {
         let offersRetry: Bool
         switch phase {
         case .requesting:
-            statusRow.show("Requesting a code…", isBusy: true)
+            statusRow.show(String(localized: "Requesting a code…"), isBusy: true)
             offersRetry = false
         case .waiting:
-            statusRow.show("Waiting for approval…", isBusy: true)
+            statusRow.show(String(localized: "Waiting for approval…"), isBusy: true)
             offersRetry = false
         case .signedIn:
-            statusRow.show("Signed in. Finding your servers…", isBusy: true)
+            statusRow.show(String(localized: "Signed in. Finding your servers…"), isBusy: true)
             offersRetry = false
         case .expired:
-            statusRow.show("This code has expired.")
-            retryButton.configuration = TVButton.configuration(.primary, title: "Get a New Code", symbol: "arrow.clockwise")
+            statusRow.show(String(localized: "This code has expired."))
+            retryButton.configuration = TVButton.configuration(.primary, title: String(localized: "Get a New Code"), symbol: "arrow.clockwise")
             offersRetry = true
         case .failed(let message):
             statusRow.show(message, tone: .error)
-            retryButton.configuration = TVButton.configuration(.primary, title: "Try Again", symbol: "arrow.clockwise")
+            retryButton.configuration = TVButton.configuration(.primary, title: String(localized: "Try Again"), symbol: "arrow.clockwise")
             offersRetry = true
         }
         retryButton.isHidden = !offersRetry
@@ -139,12 +139,12 @@ final class TVLinkViewController: TVOnboardingViewController {
     }
 
     private func installContent() {
-        titleView.configure(TVScreenTitleContent(title: "Link your Plex account"))
+        titleView.configure(TVScreenTitleContent(title: String(localized: "Link your Plex account")))
 
         let steps = UIStackView(arrangedSubviews: [
             Self.stepRow(number: 1, text: Self.linkInstruction()),
-            Self.stepRow(number: 2, text: NSAttributedString(string: "Enter this code", attributes: Self.stepAttributes)),
-            Self.stepRow(number: 3, text: NSAttributedString(string: "Approve Crucible", attributes: Self.stepAttributes)),
+            Self.stepRow(number: 2, text: NSAttributedString(string: String(localized: "Enter this code"), attributes: Self.stepAttributes)),
+            Self.stepRow(number: 3, text: NSAttributedString(string: String(localized: "Approve Crucible"), attributes: Self.stepAttributes)),
         ])
         steps.axis = .vertical
         steps.alignment = .leading
@@ -162,7 +162,7 @@ final class TVLinkViewController: TVOnboardingViewController {
         left.setCustomSpacing(Theme.Space.xl, after: tiles)
 
         installQRCard()
-        qrCaption.text = "Or scan with your iPhone camera"
+        qrCaption.text = String(localized: "Or scan with your iPhone camera")
         qrCaption.font = Theme.Font.body
         qrCaption.textColor = Theme.Color.labelSecondary
         qrCaption.textAlignment = .center
@@ -222,7 +222,7 @@ final class TVLinkViewController: TVOnboardingViewController {
     ]
 
     private static func linkInstruction() -> NSAttributedString {
-        let text = NSMutableAttributedString(string: "On your iPhone or computer, go to ", attributes: stepAttributes)
+        let text = NSMutableAttributedString(string: String(localized: "On your iPhone or computer, go to "), attributes: stepAttributes)
         var emphasis = stepAttributes
         emphasis[.font] = Theme.Font.scaled(.callout, 31, .bold, maximum: 42)
         emphasis[.foregroundColor] = Theme.Color.accentText
@@ -233,7 +233,7 @@ final class TVLinkViewController: TVOnboardingViewController {
     private static func stepRow(number: Int, text: NSAttributedString) -> UIView {
         let badgeSide: CGFloat = 56
         let badge = UILabel()
-        badge.text = "\(number)"
+        badge.text = String(number)
         badge.font = Theme.Font.scaled(.body, 29, .bold, maximum: 36)
         badge.textColor = Theme.Color.accentText
         badge.textAlignment = .center
@@ -246,7 +246,7 @@ final class TVLinkViewController: TVOnboardingViewController {
         let label = UILabel()
         label.attributedText = text
         label.numberOfLines = 2
-        label.accessibilityLabel = "Step \(number). \(text.string)"
+        label.accessibilityLabel = String(localized: "Step \(number). \(text.string)")
 
         let row = UIStackView(arrangedSubviews: [badge, label])
         row.axis = .horizontal

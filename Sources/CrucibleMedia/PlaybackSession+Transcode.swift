@@ -97,7 +97,7 @@ extension PlaybackSession {
         guard !isRestarting, !isRecovering else { return }
         if let earlier = prematureEndPosition, abs(earlier - position) < ItemEndRule.endWindow(duration: request.durationSecs) {
             MidgarLog.error("The stream ended early twice ratingKey=\(request.ratingKey) position=\(Int(position)) duration=\(Int(request.durationSecs))", category: .playback)
-            emit(.failed("The stream stopped at \(Formatters.timestamp(position)) before the end of the video."))
+            emit(.failed(String(localized: "The stream stopped at \(Formatters.timestamp(position)) before the end of the video.")))
             return
         }
         prematureEndPosition = position
@@ -190,7 +190,7 @@ extension PlaybackSession {
         case .giveUp:
             hasGivenUp = true
             MidgarLog.error("Giving up on healing ratingKey=\(request.ratingKey) after repeated rebuilds: \(reason)", category: .playback)
-            emit(.failed("The server keeps stopping this stream."))
+            emit(.failed(String(localized: "The server keeps stopping this stream.")))
         case .heal:
             let position = bestKnownPosition
             let playing = (player?.rate ?? 0) > 0 || player?.timeControlStatus == .waitingToPlayAtSpecifiedRate

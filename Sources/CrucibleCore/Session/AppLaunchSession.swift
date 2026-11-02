@@ -18,7 +18,7 @@ package enum LaunchFailure: Error, Sendable {
     package var message: String {
         switch self {
         case .unreachable:
-            return "None of the server's known addresses answered. Check that it's online and reachable from this network."
+            return String(localized: "None of the server's known addresses answered. Check that it's online and reachable from this network.")
         case .signInExpired:
             return ConnectionError.message(for: APIError.unauthorized)
         case .fetch(let error):
@@ -55,7 +55,7 @@ package enum AppLaunchSession {
         validate: (PlexConnection) async -> ServerConnectionResolver.Outcome,
         tokenRejected: (String) async -> Bool
     ) async -> Result<LaunchPayload, LaunchFailure> {
-        progress("Connecting to \(saved.serverName)…")
+        progress(String(localized: "Connecting to \(saved.serverName)…"))
         let connection: PlexConnection
         switch await validate(saved) {
         case .connection(let validated):
@@ -64,7 +64,7 @@ package enum AppLaunchSession {
             return .failure(await tokenRejected(saved.authToken) ? .signInExpired : .unreachable)
         }
 
-        progress("Loading your library…")
+        progress(String(localized: "Loading your library…"))
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
         await PlaybackResumeSync.flush(api: api, server: connection.machineIdentifier)
         do {

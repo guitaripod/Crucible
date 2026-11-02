@@ -59,7 +59,7 @@ extension DownloadManager {
         if countAsFailure {
             refreshes += 1
             if refreshes > Self.maxSessionRefreshes {
-                failItem(ratingKey, message: "Download failed")
+                failItem(ratingKey, message: String(localized: "Download failed"))
                 return
             }
         }

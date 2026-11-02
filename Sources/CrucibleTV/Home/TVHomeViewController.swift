@@ -43,7 +43,7 @@ final class TVHomeViewController: TVScreenViewController {
         homeCollectionView = TVHomeCollectionView(frame: .zero, collectionViewLayout: layout)
         super.init(layout: layout, collectionView: homeCollectionView)
         source.screen = self
-        title = "Home"
+        title = String(localized: "Home")
         feed.apply(container: env.hubs)
     }
 
@@ -294,7 +294,7 @@ final class TVHomeViewController: TVScreenViewController {
             title: copy.title,
             message: copy.message,
             symbol: "play.rectangle",
-            action: TVStateView.Action(title: "Refresh") { [weak self] in self?.retry() }
+            action: TVStateView.Action(title: String(localized: "Refresh", comment: "Button that retries loading the home screen")) { [weak self] in self?.retry() }
         ))
     }
 
@@ -302,7 +302,7 @@ final class TVHomeViewController: TVScreenViewController {
         let copy = HomeStateCopy.loadFailed(error)
         skeleton.isHidden = true
         backdrop.show(path: nil)
-        show(state: .error(title: copy.title, message: copy.message, retryTitle: "Retry") { [weak self] in self?.retry() })
+        show(state: .error(title: copy.title, message: copy.message, retryTitle: String(localized: "Retry")) { [weak self] in self?.retry() })
     }
 
     /// The skeleton stands in for the content while a refresh from the empty or error state runs;
@@ -401,11 +401,11 @@ final class TVHomeViewController: TVScreenViewController {
 
     private func presentSurpriseMenu() {
         guard presentedViewController == nil else { return }
-        let menu = UIAlertController(title: "Surprise Me", message: nil, preferredStyle: .alert)
+        let menu = UIAlertController(title: String(localized: "Surprise Me"), message: nil, preferredStyle: .alert)
         for kind in [SurpriseMe.Kind.any, .movie, .show] {
             menu.addAction(UIAlertAction(title: kind.menuTitle, style: .default) { [weak self] _ in self?.surprise(kind) })
         }
-        menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        menu.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(menu, animated: TVMotion.animationsEnabled)
     }
 

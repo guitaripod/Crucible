@@ -192,7 +192,7 @@ package final class BingeCardView: UIView {
         captionLabel.lineBreakMode = .byTruncatingTail
 
         titleLabel.text = session.showTitle
-        let epsText = episodeCount == 1 ? "1 ep" : "\(episodeCount) eps"
+        let epsText = episodeCount == 1 ? String(localized: "1 ep") : String(localized: "\(episodeCount) eps")
         epsLabel.text = epsText
         let captionText = session.endedCaption ?? ""
         captionLabel.text = captionText

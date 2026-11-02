@@ -155,10 +155,10 @@ final class TVFolderBrowserViewController: TVScreenViewController {
                 applySnapshot()
                 if loaded.isEmpty {
                     show(state: .empty(
-                        title: "Empty Folder",
-                        message: "Nothing is stored in this folder.",
+                        title: String(localized: "Empty Folder"),
+                        message: String(localized: "Nothing is stored in this folder."),
                         symbol: "folder",
-                        action: .init(title: "Go Back") { [weak self] in
+                        action: .init(title: String(localized: "Go Back")) { [weak self] in
                             guard let self else { return }
                             TVNavigation.pop(from: self)
                         }
@@ -169,7 +169,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Folder listing failed: \(error.localizedDescription)", category: .networking)
-                show(state: .error(title: "Couldn’t Load Folder", message: ConnectionError.message(for: error), retryTitle: "Try Again", retry: { [weak self] in
+                show(state: .error(title: String(localized: "Couldn’t Load Folder"), message: ConnectionError.message(for: error), retryTitle: String(localized: "Try Again"), retry: { [weak self] in
                     self?.load()
                 }))
             }

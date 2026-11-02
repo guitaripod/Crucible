@@ -24,10 +24,10 @@ final class TVDetailSynopsisCell: UICollectionViewCell {
         label.numberOfLines = Self.lineLimit
         label.lineBreakMode = .byTruncatingTail
 
-        moreButton.configuration = TVButton.configuration(.plain, title: "More")
+        moreButton.configuration = TVButton.configuration(.plain, title: String(localized: "More", comment: "Button that expands the synopsis"))
         moreButton.accessibilityIdentifier = "detail.synopsis.more"
-        moreButton.accessibilityLabel = "More"
-        moreButton.accessibilityHint = "Shows the full synopsis"
+        moreButton.accessibilityLabel = String(localized: "More", comment: "Button that expands the synopsis")
+        moreButton.accessibilityHint = String(localized: "Shows the full synopsis")
 
         [label, moreButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false

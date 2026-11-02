@@ -31,29 +31,29 @@ package enum PreferenceSetting: CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .streamingQuality: return "Streaming Quality"
-        case .skipIntro: return "Skip Intro"
-        case .skipOutro: return "Skip Outro"
-        case .autoplayNextEpisode: return "Autoplay Next Episode"
-        case .rewindAfterBreak: return "Rewind After a Break"
-        case .stillWatching: return "Ask If Still Watching"
-        case .skipBack: return "Skip Back"
-        case .skipForward: return "Skip Ahead"
-        case .holdLeft: return "Hold Left"
-        case .holdRight: return "Hold Right"
-        case .preferLocalConnection: return "Prefer Local Connection"
-        case .allowRelayConnection: return "Allow Relay"
+        case .streamingQuality: return String(localized: "Streaming Quality")
+        case .skipIntro: return String(localized: "Skip Intro")
+        case .skipOutro: return String(localized: "Skip Outro")
+        case .autoplayNextEpisode: return String(localized: "Autoplay Next Episode")
+        case .rewindAfterBreak: return String(localized: "Rewind After a Break")
+        case .stillWatching: return String(localized: "Ask If Still Watching")
+        case .skipBack: return String(localized: "Skip Back")
+        case .skipForward: return String(localized: "Skip Ahead")
+        case .holdLeft: return String(localized: "Hold Left")
+        case .holdRight: return String(localized: "Hold Right")
+        case .preferLocalConnection: return String(localized: "Prefer Local Connection")
+        case .allowRelayConnection: return String(localized: "Allow Relay")
         }
     }
 
     package var explanation: String? {
         switch self {
-        case .skipIntro: return "Skip Intro can show a button, skip automatically, or stay out of the way."
-        case .skipOutro: return "Skip Outro decides what the credits do: show the Up Next card, start the next episode automatically, or stay out of the way."
-        case .rewindAfterBreak: return "After a break, playback backs up a few seconds, more the longer you were away."
-        case .stillWatching: return "Asks before the next episode once this many have played in a row without the remote."
-        case .skipBack, .skipForward: return "How far one skip goes: a click on the left or right of the Siri Remote's clickpad, or the skip buttons on the Lock Screen, in Control Center and on headphones."
-        case .holdLeft, .holdRight: return "What holding the left or right of the clickpad does: the system's rewind and fast forward, a jump, or Start Over and Next Episode."
+        case .skipIntro: return String(localized: "Skip Intro can show a button, skip automatically, or stay out of the way.")
+        case .skipOutro: return String(localized: "Skip Outro decides what the credits do: show the Up Next card, start the next episode automatically, or stay out of the way.")
+        case .rewindAfterBreak: return String(localized: "After a break, playback backs up a few seconds, more the longer you were away.")
+        case .stillWatching: return String(localized: "Asks before the next episode once this many have played in a row without the remote.")
+        case .skipBack, .skipForward: return String(localized: "How far one skip goes: a click on the left or right of the Siri Remote's clickpad, or the skip buttons on the Lock Screen, in Control Center and on headphones.")
+        case .holdLeft, .holdRight: return String(localized: "What holding the left or right of the clickpad does: the system's rewind and fast forward, a jump, or Start Over and Next Episode.")
         default: return nil
         }
     }
@@ -103,7 +103,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     package var valueLabel: String {
         switch control {
         case .choice(let choices): return choices.first(where: \.isSelected)?.title ?? ""
-        case .toggle(let isOn): return isOn ? "On" : "Off"
+        case .toggle(let isOn): return isOn ? String(localized: "On") : String(localized: "Off")
         }
     }
 

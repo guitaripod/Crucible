@@ -11,8 +11,8 @@ final class DownloadsViewController: UICollectionViewController {
         var title: String? {
             switch self {
             case .summary: return nil
-            case .active: return "Downloading"
-            case .ready: return "Ready to Watch"
+            case .active: return String(localized: "Downloading")
+            case .ready: return String(localized: "Ready to Watch")
             }
         }
     }
@@ -54,7 +54,7 @@ final class DownloadsViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Downloads"
+        title = String(localized: "Downloads")
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         collectionView.backgroundColor = Theme.Color.canvas
@@ -218,17 +218,16 @@ final class DownloadsViewController: UICollectionViewController {
     private func confirmFreeUp(from source: UIView) {
         let keys = watchedKeys
         guard !keys.isEmpty else { return }
-        let noun = keys.count == 1 ? "download" : "downloads"
         let sheet = UIAlertController(
-            title: "Delete \(keys.count) watched \(noun)?",
-            message: "Frees up \(Formatters.fileSize(reclaimableBytes)) on this device.",
+            title: String(localized: "Delete \(keys.count) watched downloads?"),
+            message: String(localized: "Frees up \(Formatters.fileSize(reclaimableBytes)) on this device."),
             preferredStyle: .actionSheet
         )
-        sheet.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+        sheet.addAction(UIAlertAction(title: String(localized: "Delete"), style: .destructive) { _ in
             Haptics.medium()
             DownloadManager.shared.deleteItems(keys)
         })
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         sheet.popoverPresentationController?.sourceView = source
         sheet.popoverPresentationController?.sourceRect = source.bounds
         present(sheet, animated: true)
@@ -291,10 +290,10 @@ final class DownloadsViewController: UICollectionViewController {
             config.image = UIImage(systemName: "arrow.down.circle")
             config.imageProperties.tintColor = Theme.Color.accentText
             config.imageProperties.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 44, weight: .light)
-            config.text = "No Downloads"
+            config.text = String(localized: "No Downloads")
             config.textProperties.font = Theme.Font.title3
             config.textProperties.color = Theme.Color.label
-            config.secondaryText = "Movies and episodes you download appear here, ready to watch offline."
+            config.secondaryText = String(localized: "Movies and episodes you download appear here, ready to watch offline.")
             config.secondaryTextProperties.font = Theme.Font.subheadline
             config.secondaryTextProperties.color = Theme.Color.labelSecondary
             contentUnavailableConfiguration = config
@@ -310,7 +309,7 @@ final class DownloadsViewController: UICollectionViewController {
             return
         }
         if multiSelect.isEditing {
-            navigationItem.leftBarButtonItem = UIBarButtonItem(primaryAction: UIAction(title: "Select All") { [weak self] _ in
+            navigationItem.leftBarButtonItem = UIBarButtonItem(primaryAction: UIAction(title: String(localized: "Select All")) { [weak self] _ in
                 self?.selectAllItems()
             })
             navigationItem.rightBarButtonItems = [multiSelect.barButton]
@@ -318,17 +317,17 @@ final class DownloadsViewController: UICollectionViewController {
         }
         navigationItem.leftBarButtonItem = closeItem
         let menu = UIMenu(children: [
-            UIAction(title: "Delete All Downloads", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+            UIAction(title: String(localized: "Delete All Downloads"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.confirmDeleteAll()
             }
         ])
         let menuButton = UIBarButtonItem(image: UIImage(systemName: "ellipsis"), menu: menu)
-        menuButton.accessibilityLabel = "More"
+        menuButton.accessibilityLabel = String(localized: "More")
         navigationItem.rightBarButtonItems = [multiSelect.barButton, menuButton]
     }
 
     private func selectionToolbarItems(count: Int) -> [UIBarButtonItem] {
-        let title = count > 0 ? "Delete \(count)" : "Delete"
+        let title = count > 0 ? String(localized: "Delete \(count)") : String(localized: "Delete")
         let action = UIAction(title: title, image: UIImage(systemName: "trash")) { [weak self] _ in
             self?.confirmDeleteSelected()
         }
@@ -356,36 +355,35 @@ final class DownloadsViewController: UICollectionViewController {
         let rows = (collectionView.indexPathsForSelectedItems ?? []).compactMap { dataSource.itemIdentifier(for: $0) }
         let keys = rows.flatMap { ratingKeys(for: $0) }
         guard !keys.isEmpty else { return }
-        let noun = keys.count == 1 ? "Download" : "Downloads"
-        let alert = UIAlertController(title: "Delete \(keys.count) \(noun)?", message: "This removes the selected items from this device.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+        let alert = UIAlertController(title: String(localized: "Delete \(keys.count) Downloads?"), message: String(localized: "This removes the selected items from this device."), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Delete"), style: .destructive) { [weak self] _ in
             DownloadManager.shared.deleteItems(keys)
             self?.multiSelect.setEditing(false)
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(alert, animated: true)
     }
 
     private func confirmDeleteAll() {
-        let alert = UIAlertController(title: "Delete All Downloads?", message: "This removes every downloaded movie and episode from this device.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Delete All", style: .destructive) { _ in
+        let alert = UIAlertController(title: String(localized: "Delete All Downloads?"), message: "This removes every downloaded movie and episode from this device.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Delete All"), style: .destructive) { _ in
             DownloadManager.shared.deleteAll()
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(alert, animated: true)
     }
 
     private func confirmDeleteShow(_ group: DownloadedShowGroup) {
         let count = group.items.count
         let alert = UIAlertController(
-            title: "Delete \(group.title)?",
-            message: "This removes \(count) downloaded \(count == 1 ? "episode" : "episodes") from this device.",
+            title: String(localized: "Delete \(group.title)?"),
+            message: String(localized: "This removes \(count) downloaded episodes from this device."),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+        alert.addAction(UIAlertAction(title: String(localized: "Delete"), style: .destructive) { _ in
             DownloadManager.shared.deleteItems(group.ratingKeys)
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(alert, animated: true)
     }
 
@@ -396,12 +394,12 @@ final class DownloadsViewController: UICollectionViewController {
         case .summary:
             return nil
         case .download(let ratingKey):
-            delete = UIContextualAction(style: .destructive, title: "Delete") { _, _, completion in
+            delete = UIContextualAction(style: .destructive, title: String(localized: "Delete")) { _, _, completion in
                 DownloadManager.shared.delete(ratingKey)
                 completion(true)
             }
         case .show(let key):
-            delete = UIContextualAction(style: .destructive, title: "Delete") { [weak self] _, _, completion in
+            delete = UIContextualAction(style: .destructive, title: String(localized: "Delete")) { [weak self] _, _, completion in
                 if let group = self?.showGroups[key] { self?.confirmDeleteShow(group) }
                 completion(true)
             }
@@ -468,10 +466,10 @@ final class DownloadsViewController: UICollectionViewController {
             guard let group = showGroups[key] else { return nil }
             return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
                 UIMenu(children: [
-                    UIAction(title: "View Episodes", image: UIImage(systemName: "list.bullet")) { _ in
+                    UIAction(title: String(localized: "View Episodes"), image: UIImage(systemName: "list.bullet")) { _ in
                         self?.openShow(group)
                     },
-                    UIAction(title: "Delete All Episodes", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+                    UIAction(title: String(localized: "Delete All Episodes"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                         self?.confirmDeleteShow(group)
                     },
                 ])
@@ -484,26 +482,26 @@ final class DownloadsViewController: UICollectionViewController {
         var actions = [UIMenuElement]()
         switch item.state {
         case .completed:
-            actions.append(UIAction(title: item.resumeSecs > 1 ? "Resume" : "Play", image: UIImage(systemName: "play.fill")) { [weak self] _ in
+            actions.append(UIAction(title: item.resumeSecs > 1 ? String(localized: "Resume") : String(localized: "Play"), image: UIImage(systemName: "play.fill")) { [weak self] _ in
                 self?.playOffline(item)
             })
         case .downloading, .queued, .waitingForWiFi:
-            actions.append(UIAction(title: "Pause", image: UIImage(systemName: "pause.fill")) { _ in
+            actions.append(UIAction(title: String(localized: "Pause"), image: UIImage(systemName: "pause.fill")) { _ in
                 DownloadManager.shared.pause(ratingKey)
             })
         case .paused:
-            actions.append(UIAction(title: "Resume", image: UIImage(systemName: "arrow.down.to.line")) { _ in
+            actions.append(UIAction(title: String(localized: "Resume"), image: UIImage(systemName: "arrow.down.to.line")) { _ in
                 DownloadManager.shared.requestResume(ratingKey)
             })
         case .failed:
-            actions.append(UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { _ in
+            actions.append(UIAction(title: String(localized: "Retry"), image: UIImage(systemName: "arrow.clockwise")) { _ in
                 DownloadManager.shared.requestResume(ratingKey)
             })
         }
-        actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self] _ in
+        actions.append(UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { [weak self] _ in
             self?.openDetail(item)
         })
-        actions.append(UIAction(title: "Delete Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+        actions.append(UIAction(title: String(localized: "Delete Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
             DownloadManager.shared.delete(ratingKey)
         })
         return actions

@@ -257,7 +257,7 @@ final class UpNextOverlayView: UIView {
         ])
 
         accessibilityElements = [titleLabel, countdownLabel, leaveButton, playButton]
-        titleLabel.accessibilityLabel = content.asksStillWatching ? questionText : "Up next, \(content.episodeTitle)"
+        titleLabel.accessibilityLabel = content.asksStillWatching ? questionText : String(localized: "Up next, \(content.episodeTitle)")
     }
 
     /// Side by side with Play Now a little wider, except at the largest text sizes, where the two stack so neither label has to wrap.
@@ -376,13 +376,13 @@ final class UpNextOverlayView: UIView {
 
     private func episodeCode() -> String? {
         guard let season = content.seasonNumber, let episode = content.episodeNumber else { return nil }
-        return "S\(season) · E\(episode)"
+        return String(localized: "S\(season) · E\(episode)", comment: "Season and episode code shown on the Up Next card, for example S2 · E5")
     }
 
     private func updateSecondaryText() {
         var parts = [String]()
         if let code = episodeCode() { parts.append(code) }
-        parts.append(isCounting ? "Playing in \(remaining) s" : "Next episode")
+        parts.append(isCounting ? String(localized: "Playing in \(remaining) s", comment: "Up Next countdown, remaining seconds until the next episode plays") : String(localized: "Next episode"))
         countdownLabel.text = parts.joined(separator: " · ")
     }
 

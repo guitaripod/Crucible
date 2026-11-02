@@ -7,11 +7,11 @@ package enum Formatters {
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         if hours > 0 {
-            return "\(hours)h \(minutes)m"
+            return String(localized: "\(hours)h \(minutes)m")
         } else if minutes > 0 {
-            return "\(minutes)m"
+            return String(localized: "\(minutes)m")
         }
-        return "< 1m"
+        return String(localized: "< 1m")
     }
 
     package static func timestamp(_ seconds: Double) -> String {
@@ -28,10 +28,12 @@ package enum Formatters {
     package static func fileSize(_ bytes: Int64) -> String {
         let gb = Double(bytes) / 1_073_741_824
         if gb >= 1 {
-            return String(format: "%.1f GB", gb)
+            let text = String(format: "%.1f", gb)
+            return String(localized: "\(text) GB")
         }
         let mb = Double(bytes) / 1_048_576
-        return String(format: "%.0f MB", mb)
+        let text = String(format: "%.0f", mb)
+        return String(localized: "\(text) MB")
     }
 
     package static func resolution(_ width: Int?, _ height: Int?) -> String? {
@@ -40,12 +42,14 @@ package enum Formatters {
         if height >= 1080 { return "1080p" }
         if height >= 720 { return "720p" }
         if height >= 480 { return "480p" }
-        return "\(height)p"
+        return String(localized: "\(height)p")
     }
 
     package static func episodeCode(_ season: Int?, _ episode: Int?) -> String? {
         guard let season, let episode else { return nil }
-        return String(format: "S%02dE%02d", season, episode)
+        let seasonText = String(format: "%02d", season)
+        let episodeText = String(format: "%02d", episode)
+        return String(localized: "S\(seasonText)E\(episodeText)")
     }
 
     package static func rating(_ value: Double?) -> String? {
@@ -57,10 +61,10 @@ package enum Formatters {
         switch channels {
         case 8: return "7.1"
         case 6: return "5.1"
-        case 2: return "Stereo"
-        case 1: return "Mono"
-        case let n?: return "\(n)ch"
-        case nil: return "Unknown"
+        case 2: return String(localized: "Stereo")
+        case 1: return String(localized: "Mono")
+        case let n?: return String(localized: "\(n)ch")
+        case nil: return String(localized: "Unknown")
         }
     }
 

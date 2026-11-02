@@ -30,7 +30,7 @@ final class TVRecentlyWatchedViewController: TVScreenViewController {
         self.section = section
         self.items = items
         super.init(layout: UICollectionViewLayout())
-        title = "Recently Watched"
+        title = String(localized: "Recently Watched")
     }
 
     override func viewDidLoad() {
@@ -96,7 +96,7 @@ final class TVRecentlyWatchedViewController: TVScreenViewController {
         let ids = newItems.map(\.id).filter { seen.insert($0).inserted }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.title])
-        snapshot.appendItems([.title(TVScreenTitleContent(title: "Recently Watched"))], toSection: .title)
+        snapshot.appendItems([.title(TVScreenTitleContent(title: String(localized: "Recently Watched")))], toSection: .title)
         snapshot.appendSections([.grid])
         snapshot.appendItems(ids.map(Item.recent), toSection: .grid)
         dataSource.applyReconfiguringExisting(snapshot)

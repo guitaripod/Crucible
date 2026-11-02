@@ -18,7 +18,7 @@ final class TVCodeTilesView: UIStackView {
         distribution = .fillEqually
         tiles.forEach(addArrangedSubview)
         isAccessibilityElement = true
-        accessibilityLabel = "Link code"
+        accessibilityLabel = String(localized: "Link code")
         accessibilityIdentifier = "onboarding.code"
         setCode(nil)
     }
@@ -48,9 +48,9 @@ final class TVCodeTilesView: UIStackView {
         }
         if let code {
             accessibilityValue = code.uppercased().map(String.init).joined(separator: " ")
-            accessibilityHint = "Enter this code at plex.tv/link"
+            accessibilityHint = String(localized: "Enter this code at plex.tv/link")
         } else {
-            accessibilityValue = "Not ready yet"
+            accessibilityValue = String(localized: "Not ready yet")
             accessibilityHint = nil
         }
     }

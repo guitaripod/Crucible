@@ -10,19 +10,19 @@ package enum ProFeature: String, CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .unlimitedDownloads: return "Unlimited downloads"
-        case .fullStatistics: return "Full Statistics"
-        case .yearInReviewPoster: return "Year in Review poster"
-        case .topShelf: return "Top Shelf"
+        case .unlimitedDownloads: return String(localized: "Unlimited downloads")
+        case .fullStatistics: return String(localized: "Full Statistics")
+        case .yearInReviewPoster: return String(localized: "Year in Review poster")
+        case .topShelf: return String(localized: "Top Shelf")
         }
     }
 
     package var summary: String {
         switch self {
-        case .unlimitedDownloads: return "Download whole seasons, queue as many titles as you like and keep the next episodes ready."
-        case .fullStatistics: return "Every range, the library filter, patterns, binges and taste, built from your own Plex history."
-        case .yearInReviewPoster: return "Preview and share your year as a Story or Square poster."
-        case .topShelf: return "Continue Watching and Up Next on the Apple TV Home screen."
+        case .unlimitedDownloads: return String(localized: "Download whole seasons, queue as many titles as you like and keep the next episodes ready.")
+        case .fullStatistics: return String(localized: "Every range, the library filter, patterns, binges and taste, built from your own Plex history.")
+        case .yearInReviewPoster: return String(localized: "Preview and share your year as a Story or Square poster.")
+        case .topShelf: return String(localized: "Continue Watching and Up Next on the Apple TV Home screen.")
         }
     }
 

@@ -148,7 +148,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
         countdownLabel.accessibilityTraits = .updatesFrequently
         updateSecondaryText()
 
-        let leave = TVButton.make(.glass, title: "Close") { [weak self] in
+        let leave = TVButton.make(.glass, title: String(localized: "Close", comment: "Button that dismisses the Up Next card, not the verb")) { [weak self] in
             self?.leaveCard()
         }
         leaveButton = leave

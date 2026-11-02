@@ -9,17 +9,17 @@ package enum SurpriseMe {
 
         package var menuTitle: String {
             switch self {
-            case .any: return "Any"
-            case .movie: return "Movie"
-            case .show: return "Show"
+            case .any: return String(localized: "Any", comment: "Surprise Me filter: any kind of title")
+            case .movie: return String(localized: "Movie", comment: "Media type: a film")
+            case .show: return String(localized: "Show", comment: "Media type: a TV show")
             }
         }
 
         fileprivate var noun: String {
             switch self {
-            case .any: return "titles"
-            case .movie: return "movies"
-            case .show: return "shows"
+            case .any: return String(localized: "titles")
+            case .movie: return String(localized: "movies")
+            case .show: return String(localized: "shows")
             }
         }
     }
@@ -72,10 +72,10 @@ package enum SurpriseMe {
         Set(pool.compactMap { target(for: $0, kind: kind) }).randomElement(using: &generator)
     }
 
-    package static let nothingToPickTitle = "Nothing to Pick"
-    package static let lookupFailedTitle = "Couldn't Pick Something"
+    package static let nothingToPickTitle = String(localized: "Nothing to Pick")
+    package static let lookupFailedTitle = String(localized: "Couldn't Pick Something")
 
     package static func nothingToPickMessage(for kind: Kind) -> String {
-        "There are no recently added \(kind.noun) to choose from."
+        String(localized: "There are no recently added \(kind.noun) to choose from.")
     }
 }

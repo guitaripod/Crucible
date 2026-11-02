@@ -98,7 +98,7 @@ struct PlayTimeComponents {
 /// dayEpoch is a proleptic day index (consecutive local days differ by exactly 1) so streaks and
 /// the heatmap stay DST-correct.
 package struct StatsTime {
-    package static let monthSymbols = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    package static let monthSymbols = [String(localized: "Jan"), String(localized: "Feb"), String(localized: "Mar"), String(localized: "Apr"), String(localized: "May"), String(localized: "Jun"), String(localized: "Jul"), String(localized: "Aug"), String(localized: "Sep"), String(localized: "Oct"), String(localized: "Nov"), String(localized: "Dec")]
 
     package let calendar: Calendar
     private let dayZero: Date
@@ -196,10 +196,10 @@ package enum StatsRange: Int, CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .week: return "Week"
-        case .month: return "Month"
-        case .year: return "Year"
-        case .allTime: return "All"
+        case .week: return String(localized: "Week")
+        case .month: return String(localized: "Month")
+        case .year: return String(localized: "Year")
+        case .allTime: return String(localized: "All")
         }
     }
 

@@ -128,12 +128,12 @@ final class DownloadRingButton: UIButton {
 
     private static func spokenDescription(for state: State) -> String {
         switch state {
-        case .idle: return "Download"
-        case .queued: return "Queued. Double tap to cancel"
-        case .progress(let value): return "Downloading, \(Int(value * 100)) percent. Double tap to pause"
-        case .paused(let value): return "Paused, \(Int(value * 100)) percent. Double tap to resume"
-        case .completed: return "Downloaded"
-        case .failed: return "Download failed. Double tap to retry"
+        case .idle: return String(localized: "Download")
+        case .queued: return String(localized: "Queued. Double tap to cancel")
+        case .progress(let value): return String(localized: "Downloading, \(Int(value * 100)) percent. Double tap to pause")
+        case .paused(let value): return String(localized: "Paused, \(Int(value * 100)) percent. Double tap to resume")
+        case .completed: return String(localized: "Downloaded")
+        case .failed: return String(localized: "Download failed. Double tap to retry")
         }
     }
 }

@@ -16,7 +16,7 @@ package struct YearInReviewSummary: Equatable, Sendable {
     package static var stripCount: Int { stripColumns * stripRows }
 
     package var spokenText: String {
-        "\(caption.capitalized). \(primary) \(unit). \(detail). Statistics"
+        String(localized: "\(caption.capitalized). \(primary) \(unit). \(detail). Statistics")
     }
 
     /// Builds the card from the shared statistics mirror.
@@ -41,18 +41,18 @@ package struct YearInReviewSummary: Equatable, Sendable {
         if let hours = overview.estHours {
             let rounded = Int(hours.rounded())
             primary = rounded == 0 ? "<1" : "\(rounded)"
-            unit = rounded == 1 ? "hour" : "hours"
+            unit = rounded == 1 ? String(localized: "hour") : String(localized: "hours")
         } else {
             primary = "\(overview.totalPlays)"
-            unit = overview.totalPlays == 1 ? "play" : "plays"
+            unit = overview.totalPlays == 1 ? String(localized: "play") : String(localized: "plays")
         }
 
         var parts = [String]()
-        if overview.moviesWatched > 0 { parts.append("\(overview.moviesWatched) \(overview.moviesWatched == 1 ? "movie" : "movies")") }
-        if overview.episodes > 0 { parts.append("\(overview.episodes) \(overview.episodes == 1 ? "episode" : "episodes")") }
-        if overview.currentStreak > 0 { parts.append("\(overview.currentStreak)-day streak") }
+        if overview.moviesWatched > 0 { parts.append(overview.moviesWatched == 1 ? String(localized: "1 movie") : String(localized: "\(overview.moviesWatched) movies")) }
+        if overview.episodes > 0 { parts.append(overview.episodes == 1 ? String(localized: "1 episode") : String(localized: "\(overview.episodes) episodes")) }
+        if overview.currentStreak > 0 { parts.append(String(localized: "\(overview.currentStreak)-day streak")) }
 
-        caption = "\(year) SO FAR"
+        caption = String(localized: "\(String(year)) SO FAR")
         self.primary = primary
         self.unit = unit
         detail = parts.joined(separator: " · ")

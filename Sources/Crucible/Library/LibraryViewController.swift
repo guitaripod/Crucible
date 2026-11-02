@@ -21,7 +21,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
 
     private lazy var optionsItem: UIBarButtonItem = {
         let item = UIBarButtonItem(image: LibraryGridOptions.optionsImage(filtering: false), menu: nil)
-        item.accessibilityLabel = "Sort and Filter"
+        item.accessibilityLabel = String(localized: "Sort and Filter")
         return item
     }()
 
@@ -53,7 +53,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Library"
+        title = String(localized: "Library", comment: "Navigation title of the Library tab")
         view.backgroundColor = Theme.Color.canvas
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .never
@@ -114,17 +114,17 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
     private func showEmptyState() {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "rectangle.stack")
-        config.text = "No Libraries"
-        config.secondaryText = "Add a movie or TV show library to your Plex server to browse it here."
+        config.text = String(localized: "No Libraries")
+        config.secondaryText = String(localized: "Add a movie or TV show library to your Plex server to browse it here.")
         contentUnavailableConfiguration = config
     }
 
     private func showErrorState(_ error: Error) {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "exclamationmark.triangle")
-        config.text = "Couldn’t Load Libraries"
+        config.text = String(localized: "Couldn’t Load Libraries")
         config.secondaryText = ConnectionError.message(for: error)
-        config.button = ThemeButton.primaryConfiguration(title: "Retry")
+        config.button = ThemeButton.primaryConfiguration(title: String(localized: "Retry"))
         config.buttonProperties.primaryAction = UIAction { [weak self] _ in
             self?.loadSections()
         }
@@ -134,7 +134,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
     /// The library name is the large title and doubles as the switcher: the system title menu lists
     /// every library plus folder browsing.
     private func configureNavigation() {
-        title = libraries.indices.contains(currentIndex) ? libraries[currentIndex].title : "Library"
+        title = libraries.indices.contains(currentIndex) ? libraries[currentIndex].title : String(localized: "Library")
         guard !libraries.isEmpty else {
             navigationItem.titleMenuProvider = nil
             navigationItem.rightBarButtonItems = nil
@@ -156,7 +156,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
                 self?.selectLibrary(section, at: index)
             }
         }
-        let folders = UIAction(title: "Browse Folders", image: UIImage(systemName: "folder")) { [weak self] _ in
+        let folders = UIAction(title: String(localized: "Browse Folders"), image: UIImage(systemName: "folder")) { [weak self] _ in
             self?.currentChild?.openFolderBrowser()
         }
         return UIMenu(children: [

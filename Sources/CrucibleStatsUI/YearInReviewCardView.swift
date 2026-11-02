@@ -58,7 +58,7 @@ package final class YearInReviewCardView: UIView {
         captionLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
 
         let linkLabel = UILabel()
-        linkLabel.text = "Statistics"
+        linkLabel.text = String(localized: "Statistics")
         linkLabel.font = metrics.linkFont.uiFont
         linkLabel.textColor = Theme.Color.onArtSecondary
         linkLabel.adjustsFontForContentSizeCategory = true

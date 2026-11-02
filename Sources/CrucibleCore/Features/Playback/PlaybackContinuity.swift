@@ -138,7 +138,7 @@ package enum StillWatchingRule {
     }
 
     package static func label(for limit: Int) -> String {
-        limit > 0 ? "After \(limit) Episodes" : "Off"
+        limit > 0 ? String(localized: "After \(limit) Episodes") : String(localized: "Off")
     }
 }
 

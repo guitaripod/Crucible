@@ -5,9 +5,9 @@ import UIKit
 /// Playback: streaming quality, skip intro, skip outro, still watching, the skip distances and the hold actions open a single-select list;
 /// autoplay and rewind flip in place.
 final class TVPlaybackSettingsViewController: TVSettingsScaffold {
-    private static let intro = "How Crucible plays what you pick from your server."
+    private static let intro = String(localized: "How Crucible plays what you pick from your server.")
 
-    private let heading = TVSettingsHeading(title: "Playback", body: TVPlaybackSettingsViewController.intro)
+    private let heading = TVSettingsHeading(title: String(localized: "Playback", comment: "Settings section title for playback options"), body: TVPlaybackSettingsViewController.intro)
 
     private static let symbols: [PreferenceSetting: String] = [
         .streamingQuality: "dial.high",
@@ -29,7 +29,7 @@ final class TVPlaybackSettingsViewController: TVSettingsScaffold {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Playback"
+        title = String(localized: "Playback", comment: "Settings section title for playback options")
         installHeading(heading)
         refreshRows()
     }

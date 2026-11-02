@@ -8,9 +8,9 @@ package enum HomeServerRoute: Equatable {
 
     package var title: String {
         switch self {
-        case .local: return "Local"
-        case .remote: return "Remote"
-        case .relay: return "Relay"
+        case .local: return String(localized: "Local")
+        case .remote: return String(localized: "Remote")
+        case .relay: return String(localized: "Relay")
         }
     }
 

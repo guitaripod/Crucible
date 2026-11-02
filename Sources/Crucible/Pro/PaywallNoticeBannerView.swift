@@ -29,7 +29,7 @@ final class PaywallNoticeBannerView: UIView {
         config.baseForegroundColor = Theme.Color.labelSecondary
         config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         dismissButton.configuration = config
-        dismissButton.accessibilityLabel = "Dismiss message"
+        dismissButton.accessibilityLabel = String(localized: "Dismiss message")
         dismissButton.setContentHuggingPriority(.required, for: .horizontal)
         dismissButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         dismissButton.addAction(UIAction { [weak self] _ in self?.onDismiss?() }, for: .primaryActionTriggered)

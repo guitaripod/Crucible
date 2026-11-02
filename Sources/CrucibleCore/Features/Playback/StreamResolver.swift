@@ -37,8 +37,8 @@ enum StreamResolverError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noMediaFound: return "No playable media found"
-        case .noConnectionURL: return "Could not build stream URL"
+        case .noMediaFound: return String(localized: "No playable media found")
+        case .noConnectionURL: return String(localized: "Could not build stream URL")
         }
     }
 }

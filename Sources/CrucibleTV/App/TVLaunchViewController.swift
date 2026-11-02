@@ -28,7 +28,7 @@ final class TVLaunchViewController: UIViewController {
         view.backgroundColor = CrystalGlyphView.canvas
         installBackdrop()
         installContent()
-        showLoading(status: "Connecting…")
+        showLoading(status: String(localized: "Connecting…"))
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -61,19 +61,19 @@ final class TVLaunchViewController: UIViewController {
     /// sign out, not to retry.
     func showSignInExpired() {
         show(.error(
-            title: "Your Plex sign-in expired",
-            message: "Sign in again to keep using Crucible, or sign out to remove this account from this Apple TV.",
-            retryTitle: "Sign In Again",
+            title: String(localized: "Your Plex sign-in expired"),
+            message: String(localized: "Sign in again to keep using Crucible, or sign out to remove this account from this Apple TV."),
+            retryTitle: String(localized: "Sign In Again"),
             retry: { [weak self] in self?.onSignInAgain?() },
-            secondary: TVStateView.Action(title: "Sign Out") { [weak self] in self?.onSignOut?() }
+            secondary: TVStateView.Action(title: String(localized: "Sign Out")) { [weak self] in self?.onSignOut?() }
         ))
     }
 
-    func showFailure(title: String, message: String, secondaryTitle: String = "Switch Server") {
+    func showFailure(title: String, message: String, secondaryTitle: String = String(localized: "Switch Server")) {
         show(.error(
             title: title,
             message: message,
-            retryTitle: "Try Again",
+            retryTitle: String(localized: "Try Again"),
             retry: { [weak self] in self?.onRetry?() },
             secondary: TVStateView.Action(title: secondaryTitle) { [weak self] in self?.onSwitchServer?() }
         ))
@@ -133,7 +133,7 @@ final class TVLaunchViewController: UIViewController {
     private func installContent() {
         glyph.translatesAutoresizingMaskIntoConstraints = false
         glyph.isAccessibilityElement = true
-        glyph.accessibilityLabel = "Crucible"
+        glyph.accessibilityLabel = String(localized: "Crucible")
         glyph.accessibilityTraits = .image
 
         loadingStack.axis = .vertical

@@ -46,15 +46,15 @@ enum DetailDownload {
 
     static func confirmRemoval(title: String, ratingKey: String, from host: UIViewController, sourceView: UIView?) {
         let sheet = UIAlertController(
-            title: "Remove Download?",
-            message: "\u{201C}\(title)\u{201D} will be deleted from this device. You can download it again later.",
+            title: String(localized: "Remove Download?"),
+            message: String(localized: "\u{201C}\(title)\u{201D} will be deleted from this device. You can download it again later."),
             preferredStyle: .actionSheet
         )
-        sheet.addAction(UIAlertAction(title: "Remove Download", style: .destructive) { _ in
+        sheet.addAction(UIAlertAction(title: String(localized: "Remove Download"), style: .destructive) { _ in
             Haptics.medium()
             DownloadManager.shared.delete(ratingKey)
         })
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         if let popover = sheet.popoverPresentationController {
             if let sourceView {
                 popover.sourceView = sourceView
@@ -70,11 +70,11 @@ enum DetailDownload {
     /// What the download control does next, as a menu bar title.
     static func commandTitle(for ratingKey: String) -> String {
         switch DownloadManager.shared.item(for: ratingKey)?.state {
-        case nil: return "Download"
-        case .queued?, .waitingForWiFi?: return "Cancel Download"
-        case .downloading?: return "Pause Download"
-        case .paused?, .failed?: return "Resume Download"
-        case .completed?: return "Remove Download…"
+        case nil: return String(localized: "Download")
+        case .queued?, .waitingForWiFi?: return String(localized: "Cancel Download")
+        case .downloading?: return String(localized: "Pause Download")
+        case .paused?, .failed?: return String(localized: "Resume Download")
+        case .completed?: return String(localized: "Remove Download…")
         }
     }
 
@@ -91,34 +91,34 @@ enum DetailDownload {
                     manager.requestDownload(metadata: metadata, quality: quality)
                 }
             }
-            return UIMenu(title: "Download Quality", children: actions)
+            return UIMenu(title: String(localized: "Download Quality"), children: actions)
         case .queued?, .waitingForWiFi?, .downloading?:
             return UIMenu(title: item?.statusLine ?? "", children: [
-                UIAction(title: "Pause", image: UIImage(systemName: "pause.fill")) { _ in manager.pause(key) },
-                UIAction(title: "Cancel Download", image: UIImage(systemName: "xmark.circle"), attributes: .destructive) { _ in
+                UIAction(title: String(localized: "Pause"), image: UIImage(systemName: "pause.fill")) { _ in manager.pause(key) },
+                UIAction(title: String(localized: "Cancel Download"), image: UIImage(systemName: "xmark.circle"), attributes: .destructive) { _ in
                     manager.delete(key)
                 },
             ])
         case .paused?:
             return UIMenu(title: item?.statusLine ?? "", children: [
-                UIAction(title: "Resume Download", image: UIImage(systemName: "arrow.down.to.line")) { _ in manager.requestResume(key) },
-                UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+                UIAction(title: String(localized: "Resume Download"), image: UIImage(systemName: "arrow.down.to.line")) { _ in manager.requestResume(key) },
+                UIAction(title: String(localized: "Remove Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                     manager.delete(key)
                 },
             ])
         case .failed?:
-            return UIMenu(title: item?.errorMessage ?? "Download Failed", children: [
-                UIAction(title: "Retry", image: UIImage(systemName: "arrow.clockwise")) { _ in manager.requestResume(key) },
-                UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+            return UIMenu(title: item?.errorMessage ?? String(localized: "Download Failed"), children: [
+                UIAction(title: String(localized: "Retry"), image: UIImage(systemName: "arrow.clockwise")) { _ in manager.requestResume(key) },
+                UIAction(title: String(localized: "Remove Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                     manager.delete(key)
                 },
             ])
         case .completed?:
             var children: [UIMenuElement] = []
             if let onPlayOffline {
-                children.append(UIAction(title: "Play Offline", image: UIImage(systemName: "play.fill")) { _ in onPlayOffline() })
+                children.append(UIAction(title: String(localized: "Play Offline"), image: UIImage(systemName: "play.fill")) { _ in onPlayOffline() })
             }
-            children.append(UIAction(title: "Delete Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+            children.append(UIAction(title: String(localized: "Delete Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                 manager.delete(key)
             })
             return UIMenu(title: item?.statusLine ?? "", children: children)
@@ -128,12 +128,12 @@ enum DetailDownload {
     static func spokenState(for ratingKey: String) -> String? {
         guard let item = DownloadManager.shared.item(for: ratingKey) else { return nil }
         switch item.state {
-        case .queued: return "download queued"
-        case .waitingForWiFi: return "download waiting for Wi-Fi"
-        case .downloading: return "downloading \(Int((item.progress * 100).rounded())) percent"
-        case .paused: return "download paused at \(Int((item.progress * 100).rounded())) percent"
-        case .completed: return "downloaded"
-        case .failed: return "download failed"
+        case .queued: return String(localized: "download queued")
+        case .waitingForWiFi: return String(localized: "download waiting for Wi-Fi")
+        case .downloading: return String(localized: "downloading \(Int((item.progress * 100).rounded())) percent")
+        case .paused: return String(localized: "download paused at \(Int((item.progress * 100).rounded())) percent")
+        case .completed: return String(localized: "downloaded")
+        case .failed: return String(localized: "download failed")
         }
     }
 }

@@ -8,7 +8,7 @@ package struct DemoPhoneTourRow: Equatable, Sendable {
 
     package var accessibilityLabel: String {
         let state = isDone ? DemoPhoneCopy.stepDone : DemoPhoneCopy.stepNotDone
-        return "\(step.title). \(step.detail) \(state)."
+        return String(localized: "\(step.title). \(step.detail) \(state).")
     }
 }
 

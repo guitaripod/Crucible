@@ -85,6 +85,6 @@ final class YouProfileContentView: UIView, UIContentView {
         nameLabel.text = config.name
         statusLabel.text = config.statusText
         statusDot.backgroundColor = config.statusColor
-        accessibilityLabel = "\(config.name), \(config.statusText)"
+        accessibilityLabel = String(localized: "\(config.name), \(config.statusText)")
     }
 }

@@ -39,7 +39,7 @@ final class TVInformationSurface: TVFocusableSurface {
             if pair.count == 1 { row.addArrangedSubview(UIView()) }
             grid.addArrangedSubview(row)
         }
-        accessibilityLabel = "Information, " + facts.map { "\($0.key) \($0.value)" }.joined(separator: ", ")
+        accessibilityLabel = String(localized: "Information, \(facts.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
     }
 
     private static func factView(_ fact: DetailFact) -> UIView {

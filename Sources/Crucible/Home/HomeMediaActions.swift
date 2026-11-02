@@ -63,7 +63,7 @@ enum HomeMediaActions {
                 play(item)
             })
         }
-        actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { _ in
+        actions.append(UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { _ in
             openDetail(item, api: api, from: navigation())
         })
         let toggle = HomeMediaRules.watchedToggle(for: item)
@@ -82,7 +82,7 @@ enum HomeMediaActions {
             actions.append(DownloadMenu.action(for: item))
         }
         if let showKey = HomeMediaRules.showRatingKey(for: item) {
-            actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { _ in
+            actions.append(UIAction(title: String(localized: "Go to Show"), image: UIImage(systemName: "tv")) { _ in
                 navigation()?.pushViewController(ShowDetailViewController(api: api, showRatingKey: showKey), animated: true)
             })
         }

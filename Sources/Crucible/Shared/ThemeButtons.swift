@@ -110,6 +110,6 @@ enum ThemeButton {
         config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 11, weight: .bold)
         button.configuration = config
         button.contentHorizontalAlignment = .leading
-        button.accessibilityLabel = "\(caption), \(value)"
+        button.accessibilityLabel = String(localized: "\(caption), \(value)")
     }
 }

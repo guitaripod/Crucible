@@ -42,7 +42,7 @@ final class TVPaywallViewController: UIViewController {
         self.completion = completion
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .fullScreen
-        title = "Crucible Pro"
+        title = String(localized: "Crucible Pro")
     }
 
     @available(*, unavailable)
@@ -95,14 +95,14 @@ final class TVPaywallViewController: UIViewController {
     private func render(_ state: PaywallModel.State) {
         switch state.phase {
         case .loading:
-            showState(.loading(title: "Loading Crucible Pro\u{2026}"))
+            showState(.loading(title: String(localized: "Loading Crucible Pro\u{2026}")))
         case .unavailable(let message):
             showState(.error(
-                title: "Crucible Pro Is Unavailable",
+                title: String(localized: "Crucible Pro Is Unavailable"),
                 message: message,
-                retryTitle: "Retry",
+                retryTitle: String(localized: "Retry"),
                 retry: { [weak self] in self?.model.retry() },
-                secondary: TVStateView.Action(title: "Close") { [weak self] in self?.model.cancel() }
+                secondary: TVStateView.Action(title: String(localized: "Close", comment: "Button that dismisses the paywall")) { [weak self] in self?.model.cancel() }
             ))
         case .ready(let offers):
             showContent()
@@ -155,9 +155,9 @@ final class TVPaywallViewController: UIViewController {
         let restoring = state.busy == .restoring
         if case .purchasing = state.busy { purchasing = true } else { purchasing = false }
 
-        let buyTitle = purchasing ? "Purchasing\u{2026}" : (state.selectedOffer?.buttonTitle ?? "Continue")
+        let buyTitle = purchasing ? String(localized: "Purchasing\u{2026}") : (state.selectedOffer?.buttonTitle ?? String(localized: "Continue"))
         update(buyButton, title: buyTitle, showsSpinner: purchasing, isDimmed: restoring)
-        update(restoreButton, title: restoring ? "Restoring\u{2026}" : "Restore Purchases", showsSpinner: restoring, isDimmed: purchasing)
+        update(restoreButton, title: restoring ? String(localized: "Restoring\u{2026}") : String(localized: "Restore Purchases"), showsSpinner: restoring, isDimmed: purchasing)
 
         let disclosure = state.selectedOffer?.renewalDisclosure
         disclosureLabel.text = disclosure
@@ -175,9 +175,9 @@ final class TVPaywallViewController: UIViewController {
     private func renderStatus(_ state: PaywallModel.State) {
         switch state.busy {
         case .purchasing:
-            statusPanel.show("Waiting for the App Store\u{2026}", isBusy: true)
+            statusPanel.show(String(localized: "Waiting for the App Store\u{2026}"), isBusy: true)
         case .restoring:
-            statusPanel.show("Restoring your purchases\u{2026}", isBusy: true)
+            statusPanel.show(String(localized: "Restoring your purchases\u{2026}"), isBusy: true)
         case .idle:
             guard let notice = state.notice else {
                 statusPanel.show(nil)
@@ -193,7 +193,7 @@ final class TVPaywallViewController: UIViewController {
     private func finish(unlocked: Bool) {
         guard !isFinished else { return }
         isFinished = true
-        if unlocked { UIAccessibility.post(notification: .announcement, argument: "Crucible Pro is on") }
+        if unlocked { UIAccessibility.post(notification: .announcement, argument: String(localized: "Crucible Pro is on")) }
         let completion = completion
         dismiss(animated: TVMotion.animationsEnabled) { completion(unlocked) }
     }
@@ -212,13 +212,13 @@ final class TVPaywallViewController: UIViewController {
     }
 
     private func makeBuyButton() -> UIButton {
-        let button = TVButton.make(.primary, title: "Continue") { [weak self] in self?.model.purchaseSelected() }
+        let button = TVButton.make(.primary, title: String(localized: "Continue")) { [weak self] in self?.model.purchaseSelected() }
         button.accessibilityIdentifier = "paywall.buy"
         return button
     }
 
     private func makeRestoreButton() -> UIButton {
-        let button = TVButton.make(.glass, title: "Restore Purchases") { [weak self] in self?.model.restore() }
+        let button = TVButton.make(.glass, title: String(localized: "Restore Purchases")) { [weak self] in self?.model.restore() }
         button.accessibilityIdentifier = "paywall.restore"
         return button
     }

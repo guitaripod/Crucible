@@ -185,7 +185,7 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     }
 
     private func renderEmpty(query: String, scope emptyScope: SearchScope) {
-        let action = emptyScope == .all ? nil : TVStateView.Action(title: "Search All") { [weak self] in
+        let action = emptyScope == .all ? nil : TVStateView.Action(title: String(localized: "Search All")) { [weak self] in
             self?.select(scope: .all)
         }
         showMessage(.empty(
@@ -303,23 +303,23 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
                 id: "scope.\(chipScope.rawValue)",
                 title: chipScope.title,
                 isSelected: chipScope == scope,
-                accessibilityHint: "Filters the results"
+                accessibilityHint: String(localized: "Filters the results")
             )
         case .recent(let query):
             return TVChipItem(
                 id: "recent.\(query)",
                 title: query,
                 symbol: "clock.arrow.circlepath",
-                accessibilityLabel: "Recent search, \(query)",
-                accessibilityHint: "Searches again"
+                accessibilityLabel: String(localized: "Recent search, \(query)"),
+                accessibilityHint: String(localized: "Searches again")
             )
         case .clearRecents:
             return TVChipItem(
                 id: "recent.clear",
                 title: SearchCopy.clearRecents,
                 symbol: "xmark",
-                accessibilityLabel: "Clear recent searches",
-                accessibilityHint: "Removes every recent search"
+                accessibilityLabel: String(localized: "Clear recent searches"),
+                accessibilityHint: String(localized: "Removes every recent search")
             )
         default:
             return nil
@@ -368,9 +368,9 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
 
     private static func openTitle(for item: PlexMetadata) -> String {
         switch item.mediaType {
-        case "show": return "Open Show"
-        case "episode": return "Open Episode"
-        default: return "Open Movie"
+        case "show": return String(localized: "Open Show")
+        case "episode": return String(localized: "Open Episode")
+        default: return String(localized: "Open Movie")
         }
     }
 

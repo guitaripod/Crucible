@@ -7,7 +7,7 @@ import UIKit
 final class TVAboutViewController: TVSettingsScaffold {
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "About Crucible"
+        title = String(localized: "About Crucible")
         buildContextColumn()
         setRows(rows())
     }
@@ -24,7 +24,7 @@ final class TVAboutViewController: TVSettingsScaffold {
         nameLabel.accessibilityTraits = .header
 
         let versionLabel = UILabel()
-        versionLabel.text = "Version \(AppInfo.versionSummary)"
+        versionLabel.text = String(localized: "Version \(AppInfo.versionSummary)")
         versionLabel.font = Theme.Font.callout
         versionLabel.textColor = Theme.Color.labelSecondary
 
@@ -44,7 +44,7 @@ final class TVAboutViewController: TVSettingsScaffold {
             glyph.heightAnchor.constraint(equalToConstant: 220),
         ])
         let panel = TVReadOnlyPanel(wrapping: stack) {
-            "Crucible. Version \(AppInfo.versionSummary). \(AppInfo.licenseSummary)"
+            String(localized: "Crucible. Version \(AppInfo.versionSummary). \(AppInfo.licenseSummary)")
         }
         panel.accessibilityIdentifier = "about.context"
         installContext(panel)
@@ -52,14 +52,14 @@ final class TVAboutViewController: TVSettingsScaffold {
 
     private func rows() -> [TVRowItem] {
         var rows = [
-            TVRowItem(id: "about.version", title: "Version", value: AppInfo.versionText, symbol: "info.circle"),
-            TVRowItem(id: "about.build", title: "Build", value: AppInfo.buildText, symbol: "hammer"),
-            TVRowItem(id: "about.license", title: "License", value: AppInfo.licenseName, symbol: "doc.text"),
+            TVRowItem(id: "about.version", title: String(localized: "Version"), value: AppInfo.versionText, symbol: "info.circle"),
+            TVRowItem(id: "about.build", title: String(localized: "Build", comment: "Build number of the app"), value: AppInfo.buildText, symbol: "hammer"),
+            TVRowItem(id: "about.license", title: String(localized: "License"), value: AppInfo.licenseName, symbol: "doc.text"),
         ]
         if let source = AppInfo.sourceURL {
             rows.append(TVRowItem(
                 id: "about.source",
-                title: "Source Code",
+                title: String(localized: "Source Code"),
                 subtitle: (source.host ?? "") + source.path,
                 symbol: "chevron.left.forwardslash.chevron.right"
             ))

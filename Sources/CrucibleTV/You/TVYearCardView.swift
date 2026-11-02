@@ -19,7 +19,7 @@ final class TVYearCardView: TVFocusableSurface {
             card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
         accessibilityIdentifier = "you.yearCard"
-        accessibilityHint = "Opens Statistics"
+        accessibilityHint = String(localized: "Opens Statistics")
     }
 
     @available(*, unavailable)

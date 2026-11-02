@@ -20,7 +20,7 @@ final class NowPlayingBridge {
         var info = [String: Any]()
 
         if let showName, let code = Formatters.episodeCode(seasonNumber, episodeNumber) {
-            info[MPMediaItemPropertyTitle] = "\(showName) — \(code)"
+            info[MPMediaItemPropertyTitle] = String(localized: "\(showName) — \(code)")
             info[MPMediaItemPropertyAlbumTitle] = title
         } else {
             info[MPMediaItemPropertyTitle] = title

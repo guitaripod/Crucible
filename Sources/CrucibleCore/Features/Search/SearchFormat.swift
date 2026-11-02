@@ -1,7 +1,9 @@
+import Foundation
+
 package enum SearchFormat {
     package static func episodeCode(_ item: PlexMetadata) -> String? {
         guard let season = item.parentIndex, let episode = item.index else { return nil }
-        return "S\(season) E\(episode)"
+        return String(localized: "S\(season) E\(episode)")
     }
 
     /// The "S# E# · Title" line shown under an episode's show name.
@@ -13,17 +15,17 @@ package enum SearchFormat {
         var parts = [String]()
         switch item.mediaType {
         case "show":
-            parts.append("Show")
+            parts.append(String(localized: "Show"))
             if let year = item.year { parts.append("\(year)") }
             if let seasons = item.childCount, seasons > 0 {
-                parts.append(seasons == 1 ? "1 season" : "\(seasons) seasons")
+                parts.append(seasons == 1 ? String(localized: "1 season") : String(localized: "\(seasons) seasons"))
             }
         case "episode":
-            parts.append("Episode")
+            parts.append(String(localized: "Episode"))
             if let code = episodeCode(item) { parts.append(code) }
             if item.grandparentTitle != nil { parts.append(item.title) }
         default:
-            parts.append("Movie")
+            parts.append(String(localized: "Movie"))
             if let year = item.year { parts.append("\(year)") }
             let duration = Formatters.duration(item.durationSecs)
             if !duration.isEmpty { parts.append(duration) }

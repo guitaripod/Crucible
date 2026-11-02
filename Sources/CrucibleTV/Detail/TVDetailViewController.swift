@@ -111,10 +111,10 @@ class TVDetailViewController: TVScreenViewController {
         hasContent = false
         skeleton.isHidden = true
         show(state: .empty(
-            title: "Not Available",
+            title: String(localized: "Not Available"),
             message: message,
             symbol: "questionmark.circle",
-            action: TVStateView.Action(title: "Go Back") { [weak self] in
+            action: TVStateView.Action(title: String(localized: "Go Back")) { [weak self] in
                 guard let self else { return }
                 TVNavigation.pop(from: self)
             }
@@ -124,7 +124,7 @@ class TVDetailViewController: TVScreenViewController {
     func showFailure(title: String, message: String) {
         hasContent = false
         skeleton.isHidden = true
-        show(state: .error(title: title, message: message, retryTitle: "Retry") { [weak self] in
+        show(state: .error(title: title, message: message, retryTitle: String(localized: "Retry", comment: "Button that retries loading the screen")) { [weak self] in
             self?.showLoading()
             self?.reload()
         })
@@ -150,7 +150,7 @@ class TVDetailViewController: TVScreenViewController {
                 try await WatchedService.setWatched(watched, ratingKey: ratingKey, api: env.api)
                 reload()
             } catch {
-                presentAlert(title: "Couldn\u{2019}t Update", message: error.localizedDescription)
+                presentAlert(title: String(localized: "Couldn\u{2019}t Update"), message: error.localizedDescription)
             }
         }
     }
@@ -314,7 +314,7 @@ class TVDetailViewController: TVScreenViewController {
         let failed = TVDetailEpisodesFailedCell.registration { [weak self] in self?.retryEpisodes() }
         let empty = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
             var configuration = UIListContentConfiguration.cell()
-            configuration.text = "No episodes in this season"
+            configuration.text = String(localized: "No episodes in this season")
             configuration.textProperties.font = Theme.Font.body
             configuration.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = configuration
@@ -370,9 +370,9 @@ class TVDetailViewController: TVScreenViewController {
         guard let section = dataSource.sectionIdentifier(for: indexPath.section) else { return nil }
         switch section {
         case .episodes: return content?.episodesHeader
-        case .cast: return TVSectionHeader(title: "Cast & Crew")
-        case .related: return TVSectionHeader(title: "More Like This")
-        case .information: return TVSectionHeader(title: "Information")
+        case .cast: return TVSectionHeader(title: String(localized: "Cast & Crew"))
+        case .related: return TVSectionHeader(title: String(localized: "More Like This"))
+        case .information: return TVSectionHeader(title: String(localized: "Information"))
         default: return nil
         }
     }

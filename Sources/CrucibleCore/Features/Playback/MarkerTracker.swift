@@ -19,7 +19,7 @@ package struct SkipMarker: Equatable, Hashable, Sendable {
     }
 
     package var isCredits: Bool { kind == .credits }
-    package var title: String { isCredits ? "Skip Credits" : "Skip Intro" }
+    package var title: String { isCredits ? String(localized: "Skip Credits") : String(localized: "Skip Intro") }
 
     /// How far through the marker `absolute` is.
     package func progress(at absolute: Double) -> Double {

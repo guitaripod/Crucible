@@ -92,13 +92,15 @@ package struct ServerChoice: Hashable, Sendable {
 
     package var detailText: String {
         guard isOnline else {
-            guard let lastSeen else { return "Offline" }
+            guard let lastSeen else { return String(localized: "Offline") }
             let relative = RelativeDateTimeFormatter()
             relative.unitsStyle = .full
-            return "Offline · last seen \(relative.localizedString(for: lastSeen, relativeTo: Date()))"
+            return String(localized: "Offline · last seen \(relative.localizedString(for: lastSeen, relativeTo: Date()))")
         }
-        let owner = isOwned ? "Owned by you" : "Shared with you"
-        return "\(owner) · \(routes.count) \(routes.count == 1 ? "connection" : "connections")"
+        if isOwned {
+            return routes.count == 1 ? String(localized: "Owned by you · 1 connection") : String(localized: "Owned by you · \(routes.count) connections")
+        }
+        return routes.count == 1 ? String(localized: "Shared with you · 1 connection") : String(localized: "Shared with you · \(routes.count) connections")
     }
 
     /// Adds routes found on the tailnet after the local ones and before remote and relay routes,

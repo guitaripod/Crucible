@@ -14,13 +14,13 @@ final class TVSearchTopResultView: UIView {
     init(card: TVCardItem, playTitle: String?, openTitle: String, onPlay: @escaping @MainActor () -> Void, onOpen: @escaping @MainActor () -> Void) {
         playButton = playTitle.map { title in
             let button = TVButton.make(.primary, title: title, symbol: "play.fill", action: onPlay)
-            button.accessibilityLabel = "\(title) \(card.title)"
+            button.accessibilityLabel = String(localized: "\(title) \(card.title)")
             button.accessibilityIdentifier = "search.top.play"
             return button
         }
         openButton = TVButton.make(.glass, title: openTitle, action: onOpen)
         super.init(frame: .zero)
-        openButton.accessibilityLabel = "\(openTitle), \(card.title)"
+        openButton.accessibilityLabel = String(localized: "\(openTitle), \(card.title)")
         openButton.accessibilityIdentifier = "search.top.open"
         buildHierarchy(card: card)
     }

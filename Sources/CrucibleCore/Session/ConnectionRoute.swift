@@ -8,10 +8,10 @@ package enum ConnectionKind: Sendable, Hashable {
 
     package var title: String {
         switch self {
-        case .local: return "Local"
-        case .tailscale: return "Tailscale"
-        case .remote: return "Remote"
-        case .relay: return "Plex Relay"
+        case .local: return String(localized: "Local")
+        case .tailscale: return String(localized: "Tailscale")
+        case .remote: return String(localized: "Remote")
+        case .relay: return String(localized: "Plex Relay")
         }
     }
 

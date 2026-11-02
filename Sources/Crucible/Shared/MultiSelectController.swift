@@ -58,7 +58,7 @@ final class MultiSelectController {
     }
 
     private func configureBarButton(editing: Bool) {
-        barButton.primaryAction = UIAction(title: editing ? "Done" : "Select") { [weak self] _ in
+        barButton.primaryAction = UIAction(title: editing ? String(localized: "Done") : String(localized: "Select")) { [weak self] _ in
             self?.setEditing(!editing)
         }
         barButton.style = editing ? .done : .plain

@@ -27,9 +27,9 @@ enum SearchDownloadState: Hashable {
 
     var label: String {
         switch self {
-        case .hidden, .idle: return "Download"
-        case .active: return "Downloading"
-        case .completed: return "Downloaded"
+        case .hidden, .idle: return String(localized: "Download")
+        case .active: return String(localized: "Downloading")
+        case .completed: return String(localized: "Downloaded")
         }
     }
 }
@@ -155,7 +155,7 @@ final class TopResultContentView: UIView, UIContentView {
         posterView.addSubview(placeholderView)
 
         captionLabel.attributedText = NSAttributedString(
-            string: "TOP RESULT",
+            string: String(localized: "TOP RESULT"),
             attributes: [.font: Theme.Font.caption2, .foregroundColor: Theme.Color.accentText, .kern: 1.0]
         )
         captionLabel.adjustsFontForContentSizeCategory = true
@@ -221,7 +221,7 @@ final class TopResultContentView: UIView, UIContentView {
     }
 
     private func configurePlayButton() {
-        var config = ThemeButton.primaryConfiguration(title: "Play", symbol: "play.fill")
+        var config = ThemeButton.primaryConfiguration(title: String(localized: "Play"), symbol: "play.fill")
         config.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16)
         config.imagePadding = 6
         config.image = UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
@@ -231,7 +231,7 @@ final class TopResultContentView: UIView, UIContentView {
             return outgoing
         }
         playButton.configuration = config
-        playButton.accessibilityLabel = "Play"
+        playButton.accessibilityLabel = String(localized: "Play")
         playButton.setContentHuggingPriority(.required, for: .horizontal)
         playButton.addAction(UIAction { [weak self] _ in self?.onPlay?() }, for: .primaryActionTriggered)
     }
@@ -282,16 +282,16 @@ final class TopResultContentView: UIView, UIContentView {
     }
 
     private func updateAccessibility(for config: TopResultConfiguration) {
-        accessibilityLabel = "Top result, \(config.title), \(config.meta)"
+        accessibilityLabel = String(localized: "Top result, \(config.title), \(config.meta)")
         var actions = [UIAccessibilityCustomAction]()
         if config.canPlay {
-            actions.append(UIAccessibilityCustomAction(name: "Play") { [weak self] _ in
+            actions.append(UIAccessibilityCustomAction(name: String(localized: "Play")) { [weak self] _ in
                 self?.onPlay?()
                 return true
             })
         }
         if config.downloadState == .idle {
-            actions.append(UIAccessibilityCustomAction(name: "Download") { [weak self] _ in
+            actions.append(UIAccessibilityCustomAction(name: String(localized: "Download")) { [weak self] _ in
                 self?.onDownload?()
                 return true
             })
@@ -530,7 +530,7 @@ final class SearchGenreContentView: UIView, UIContentView {
         titleLabel.text = config.title
         let pair = GenrePalette.pair(for: config.title)
         gradientLayer.colors = [UIColor(hex: pair.start).cgColor, UIColor(hex: pair.end).cgColor]
-        accessibilityLabel = "\(config.title), browse genre"
+        accessibilityLabel = String(localized: "\(config.title), browse genre")
     }
 }
 
@@ -606,7 +606,7 @@ final class SearchChipContentView: UIView, UIContentView {
     private func apply() {
         guard let config = configuration as? SearchChipConfiguration else { return }
         titleLabel.text = config.title
-        accessibilityLabel = "Recent search, \(config.title)"
+        accessibilityLabel = String(localized: "Recent search, \(config.title)")
     }
 }
 
@@ -696,6 +696,6 @@ final class SearchHeaderContentView: UIView, UIContentView {
             return outgoing
         }
         actionButton.configuration = button
-        actionButton.accessibilityLabel = "\(actionTitle) \(config.title)"
+        actionButton.accessibilityLabel = String(localized: "\(actionTitle) \(config.title)")
     }
 }

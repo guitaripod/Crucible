@@ -9,27 +9,27 @@ package enum DownloadQuality: Int, Codable, CaseIterable, Sendable {
 
     package var title: String {
         switch self {
-        case .original: return "Original"
-        case .high: return "High"
-        case .medium: return "Medium"
-        case .low: return "Low"
-        case .saver: return "Data Saver"
+        case .original: return String(localized: "Original")
+        case .high: return String(localized: "High")
+        case .medium: return String(localized: "Medium")
+        case .low: return String(localized: "Low")
+        case .saver: return String(localized: "Data Saver")
         }
     }
 
     package var detail: String {
         switch self {
-        case .original: return "Source file · highest fidelity"
-        case .high: return "1080p · 20 Mbps"
-        case .medium: return "720p · 8 Mbps"
-        case .low: return "480p · 3 Mbps"
-        case .saver: return "360p · 0.7 Mbps"
+        case .original: return String(localized: "Source file · highest fidelity")
+        case .high: return String(localized: "1080p · 20 Mbps")
+        case .medium: return String(localized: "720p · 8 Mbps")
+        case .low: return String(localized: "480p · 3 Mbps")
+        case .saver: return String(localized: "360p · 0.7 Mbps")
         }
     }
 
     package var shortLabel: String {
         switch self {
-        case .original: return "Original"
+        case .original: return String(localized: "Original")
         case .high: return "1080p"
         case .medium: return "720p"
         case .low: return "480p"

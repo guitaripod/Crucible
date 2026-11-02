@@ -31,16 +31,16 @@ package struct ProOffer: Equatable, Sendable, Identifiable {
 
     package var title: String {
         switch kind {
-        case .lifetime: return "Lifetime"
-        case .annual: return "Annual"
+        case .lifetime: return String(localized: "Lifetime")
+        case .annual: return String(localized: "Annual")
         }
     }
 
     /// "Pay once · every update" or "Renews every year".
     package var detail: String {
         switch kind {
-        case .lifetime: return "Pay once. Every update, on every device."
-        case .annual: return "Renews every year. Cancel any time."
+        case .lifetime: return String(localized: "Pay once. Every update, on every device.")
+        case .annual: return String(localized: "Renews every year. Cancel any time.")
         }
     }
 
@@ -49,24 +49,24 @@ package struct ProOffer: Equatable, Sendable, Identifiable {
         switch kind {
         case .lifetime: return priceText
         case .annual:
-            guard let trial else { return "\(priceText) per year" }
-            return "\(trial.days)-day free trial, then \(priceText) per year"
+            guard let trial else { return String(localized: "\(priceText) per year") }
+            return String(localized: "\(trial.days)-day free trial, then \(priceText) per year")
         }
     }
 
     /// The text of the button that buys this offer.
     package var buttonTitle: String {
         switch kind {
-        case .lifetime: return "Unlock for \(priceText)"
-        case .annual: return trial == nil ? "Subscribe for \(priceText) a year" : "Start \(trial?.days ?? 0)-day free trial"
+        case .lifetime: return String(localized: "Unlock for \(priceText)")
+        case .annual: return trial == nil ? String(localized: "Subscribe for \(priceText) a year") : String(localized: "Start \(trial?.days ?? 0)-day free trial")
         }
     }
 
     /// The auto-renewal terms Apple requires next to a subscription's price.
     package var renewalDisclosure: String? {
         guard kind == .annual else { return nil }
-        let charge = trial.map { "Your \($0.days)-day free trial starts today. After it ends, your Apple Account is charged \(priceText) per year." }
-            ?? "Your Apple Account is charged \(priceText) per year."
-        return "\(charge) The subscription renews automatically unless you cancel at least 24 hours before the end of the current period. Manage or cancel it any time in your Apple Account settings."
+        let charge = trial.map { String(localized: "Your \($0.days)-day free trial starts today. After it ends, your Apple Account is charged \(priceText) per year.") }
+            ?? String(localized: "Your Apple Account is charged \(priceText) per year.")
+        return String(localized: "\(charge) The subscription renews automatically unless you cancel at least 24 hours before the end of the current period. Manage or cancel it any time in your Apple Account settings.")
     }
 }

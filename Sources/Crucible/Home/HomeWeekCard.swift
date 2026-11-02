@@ -53,7 +53,7 @@ final class HomeWeekContentView: UIView, UIContentView {
         cardView.layer.borderWidth = 1
         applyBorderColor()
 
-        captionLabel.attributedText = NSAttributedString(string: "THIS WEEK", attributes: [.kern: 1.0])
+        captionLabel.attributedText = NSAttributedString(string: String(localized: "THIS WEEK"), attributes: [.kern: 1.0])
         captionLabel.font = Theme.Font.scaled(.caption2, 11, .bold, maximum: 16)
         captionLabel.adjustsFontForContentSizeCategory = true
         captionLabel.textColor = Theme.Color.labelTertiary
@@ -120,7 +120,7 @@ final class HomeWeekContentView: UIView, UIContentView {
 
         isAccessibilityElement = true
         accessibilityTraits = .button
-        accessibilityHint = "Opens statistics"
+        accessibilityHint = String(localized: "Opens statistics")
     }
 
     private func applyBorderColor() {

@@ -159,11 +159,11 @@ final class ChooseServerCardView: UIView, UIContentView {
         var parts = [choice.name, choice.detailText]
         if config.isSelected, choice.isOnline {
             if let best = choice.bestRoute, let ms = best.milliseconds {
-                parts.append("Selected. Fastest route \(best.kind.title), \(ms) milliseconds")
+                parts.append(String(localized: "Selected. Fastest route \(best.kind.title), \(ms) milliseconds"))
             } else if choice.isProbing {
-                parts.append("Selected. Testing connections")
+                parts.append(String(localized: "Selected. Testing connections"))
             } else {
-                parts.append("Selected. No reachable connection")
+                parts.append(String(localized: "Selected. No reachable connection"))
             }
         }
         accessibilityLabel = parts.joined(separator: ", ")
@@ -183,7 +183,7 @@ final class ChooseServerCardView: UIView, UIContentView {
         kind.textColor = Theme.Color.label
 
         let address = UILabel()
-        address.text = route.kind == .relay ? "Bandwidth limited, may force transcoding" : route.address
+        address.text = route.kind == .relay ? String(localized: "Bandwidth limited, may force transcoding") : route.address
         address.font = route.kind == .relay
             ? Theme.Font.caption1Regular
             : UIFontMetrics(forTextStyle: .caption1).scaledFont(for: .monospacedSystemFont(ofSize: 12, weight: .regular))
@@ -201,10 +201,10 @@ final class ChooseServerCardView: UIView, UIContentView {
         latency.setContentCompressionResistancePriority(.required, for: .horizontal)
         switch route.state {
         case .reachable(let ms):
-            latency.text = "\(ms) ms"
+            latency.text = String(localized: "\(ms) ms")
             latency.textColor = isBest ? Theme.Color.label : Theme.Color.labelSecondary
         case .unreachable:
-            latency.text = "Unreachable"
+            latency.text = String(localized: "Unreachable")
             latency.textColor = Theme.Color.labelTertiary
         case .probing:
             latency.text = nil

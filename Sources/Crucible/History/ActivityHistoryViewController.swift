@@ -37,7 +37,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Watch History"
+        title = String(localized: "Watch History")
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas
@@ -212,7 +212,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
             config.secondaryTextProperties.color = Theme.Color.labelSecondary
         }
         if state == .loadFailed {
-            config.button = ThemeButton.primaryConfiguration(title: "Try Again")
+            config.button = ThemeButton.primaryConfiguration(title: String(localized: "Try Again"))
             config.buttonProperties.primaryAction = UIAction { [weak self] _ in
                 self?.contentUnavailableConfiguration = nil
                 self?.feed.retry()
@@ -256,8 +256,8 @@ final class ActivityHistoryViewController: UICollectionViewController {
 
     private func presentPlaybackError() {
         Haptics.error()
-        let alert = UIAlertController(title: "Couldn't Start Playback", message: "The server didn't return this title. Try again in a moment.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        let alert = UIAlertController(title: String(localized: "Couldn't Start Playback"), message: String(localized: "The server didn't return this title. Try again in a moment."), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         present(alert, animated: true)
     }
 

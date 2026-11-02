@@ -23,7 +23,7 @@ final class TVMoreViewController: TVScreenViewController {
     init(env: TVAppEnvironment) {
         self.env = env
         super.init(layout: UICollectionViewLayout())
-        title = "More"
+        title = String(localized: "More")
     }
 
     override func viewDidLoad() {
@@ -70,21 +70,29 @@ final class TVMoreViewController: TVScreenViewController {
     private func tile(for key: String) -> TVTileItem? {
         guard let directory = libraries.first(where: { $0.key == key }) else { return nil }
         let kind = LibraryGridKind(sectionType: directory.type)
-        let noun = kind == .show ? "shows" : "movies"
-        let subtitle = counts[key].map { "\($0.formatted(.number)) \($0 == 1 ? String(noun.dropLast()) : noun)" } ?? kind?.defaultTitle
-        return TVTileItem(id: key, title: directory.title ?? "Library", subtitle: subtitle, symbol: kind?.placeholderIcon)
+        let isShow = kind == .show
+        let subtitle = counts[key].map { (count: Int) -> String in
+            let formatted = count.formatted(.number)
+            switch (isShow, count == 1) {
+            case (true, true): return String(localized: "\(formatted) show")
+            case (true, false): return String(localized: "\(formatted) shows")
+            case (false, true): return String(localized: "\(formatted) movie")
+            case (false, false): return String(localized: "\(formatted) movies")
+            }
+        } ?? kind?.defaultTitle
+        return TVTileItem(id: key, title: directory.title ?? String(localized: "Library"), subtitle: subtitle, symbol: kind?.placeholderIcon)
     }
 
     private func reloadLibraries() {
         libraries = env.libraryLayout.overflow
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.title])
-        snapshot.appendItems([.title(TVScreenTitleContent(title: "More Libraries"))], toSection: .title)
+        snapshot.appendItems([.title(TVScreenTitleContent(title: String(localized: "More Libraries")))], toSection: .title)
         snapshot.appendSections([.tiles])
         snapshot.appendItems(libraries.compactMap(\.key).map(Item.library), toSection: .tiles)
         dataSource.applyReconfiguringExisting(snapshot)
         if libraries.isEmpty {
-            show(state: .empty(title: "No More Libraries", message: "Every library is in the tab bar.", symbol: "rectangle.stack", action: nil))
+            show(state: .empty(title: String(localized: "No More Libraries"), message: String(localized: "Every library is in the tab bar."), symbol: "rectangle.stack", action: nil))
         } else {
             showContent()
         }

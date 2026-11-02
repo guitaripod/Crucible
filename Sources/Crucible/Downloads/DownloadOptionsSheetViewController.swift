@@ -42,7 +42,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
     private let keepTitleLabel = UILabel()
     private let keepLockView = UIImageView()
     private let estimateLabel = UILabel()
-    private let confirmButton = ThemeButton.primary(title: "Download")
+    private let confirmButton = ThemeButton.primary(title: String(localized: "Download"))
 
     init(context: Context, onFinish: @escaping () -> Void) {
         self.context = context
@@ -163,13 +163,13 @@ final class DownloadOptionsSheetViewController: UIViewController {
 
     private func makeHeader() -> UIView {
         let title = UILabel()
-        title.text = "Download"
+        title.text = String(localized: "Download")
         title.font = Theme.Font.title3
         title.textColor = Theme.Color.label
         title.adjustsFontForContentSizeCategory = true
         title.accessibilityTraits = .header
 
-        let close = ThemeButton.icon(symbol: "xmark", label: "Close", size: 36)
+        let close = ThemeButton.icon(symbol: "xmark", label: String(localized: "Close"), size: 36)
         close.addAction(UIAction { [weak self] _ in self?.dismiss(animated: true) }, for: .primaryActionTriggered)
 
         let row = UIStackView(arrangedSubviews: [title, UIView(), close])
@@ -192,12 +192,12 @@ final class DownloadOptionsSheetViewController: UIViewController {
         ])
 
         let title = UILabel()
-        title.text = "\(context.showTitle) · \(context.seasonTitle)"
+        title.text = String(localized: "\(context.showTitle) · \(context.seasonTitle)")
         title.font = Theme.Font.scaled(.callout, 16, .semibold)
         title.textColor = Theme.Color.label
         let watched = episodes.filter(\.isWatched).count
         let subtitle = UILabel()
-        subtitle.text = "\(episodes.count) \(episodes.count == 1 ? "episode" : "episodes") · \(watched) watched"
+        subtitle.text = String(localized: "\(episodes.count) episodes · \(watched) watched")
         subtitle.font = Theme.Font.footnote
         subtitle.textColor = Theme.Color.labelSecondary
         for label in [title, subtitle] {
@@ -232,7 +232,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
             Haptics.selection()
             self.refreshAll()
         }, for: .valueChanged)
-        segmented.accessibilityLabel = "Episodes to download"
+        segmented.accessibilityLabel = String(localized: "Episodes to download")
         segmented.heightAnchor.constraint(greaterThanOrEqualToConstant: Theme.Size.minTarget).isActive = true
         return segmented
     }
@@ -240,9 +240,9 @@ final class DownloadOptionsSheetViewController: UIViewController {
     private func title(for scope: Scope) -> String {
         let unwatched = episodes.filter { !$0.isWatched }.count
         switch scope {
-        case .all: return "All \(episodes.count)"
-        case .unwatched: return "Unwatched \(unwatched)"
-        case .next: return "Next \(min(Self.nextCount, unwatched))"
+        case .all: return String(localized: "All \(episodes.count)")
+        case .unwatched: return String(localized: "Unwatched \(unwatched)")
+        case .next: return String(localized: "Next \(min(Self.nextCount, unwatched))")
         }
     }
 
@@ -293,7 +293,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
     }
 
     private func makeQualityRow() -> UIView {
-        let label = rowLabel("Quality")
+        let label = rowLabel(String(localized: "Quality"))
         label.setContentHuggingPriority(.defaultLow, for: .horizontal)
         qualityButton.showsMenuAsPrimaryAction = true
         qualityButton.isPointerInteractionEnabled = true
@@ -304,7 +304,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
     }
 
     private func qualityValue(_ quality: DownloadQuality) -> String {
-        quality == .original ? quality.title : "\(quality.title) · \(quality.shortLabel)"
+        quality == .original ? quality.title : String(localized: "\(quality.title) · \(quality.shortLabel)")
     }
 
     private func updateQualityButton() {
@@ -321,22 +321,22 @@ final class DownloadOptionsSheetViewController: UIViewController {
             return outgoing
         }
         qualityButton.configuration = config
-        qualityButton.menu = UIMenu(title: "Download Quality", children: DownloadQuality.allCases.map { option in
+        qualityButton.menu = UIMenu(title: String(localized: "Download Quality"), children: DownloadQuality.allCases.map { option in
             UIAction(title: option.title, subtitle: option.detail, state: option == quality ? .on : .off) { [weak self] _ in
                 self?.quality = option
                 self?.updateQualityButton()
                 self?.refreshAll()
             }
         })
-        qualityButton.accessibilityLabel = "Quality, \(qualityValue(quality))"
+        qualityButton.accessibilityLabel = String(localized: "Quality, \(qualityValue(quality))")
     }
 
     private func makeKeepRow() -> UIView {
-        keepTitleLabel.text = "Keep next \(keepCount) downloaded"
+        keepTitleLabel.text = String(localized: "Keep next \(keepCount) downloaded")
         keepTitleLabel.font = Theme.Font.scaled(.callout, 16, .regular)
         keepTitleLabel.textColor = Theme.Color.label
         let caption = UILabel()
-        caption.text = "Fetches new episodes as you watch and removes watched ones."
+        caption.text = String(localized: "Fetches new episodes as you watch and removes watched ones.")
         caption.font = Theme.Font.caption1Regular
         caption.textColor = Theme.Color.labelSecondary
         for label in [keepTitleLabel, caption] {
@@ -358,7 +358,7 @@ final class DownloadOptionsSheetViewController: UIViewController {
         keepSwitch.isOn = keepNext
         keepSwitch.onTintColor = Theme.Color.accent
         keepSwitch.setContentHuggingPriority(.required, for: .horizontal)
-        keepSwitch.accessibilityLabel = "Keep next \(keepCount) downloaded"
+        keepSwitch.accessibilityLabel = String(localized: "Keep next \(keepCount) downloaded")
         keepSwitch.addAction(UIAction { [weak self] _ in self?.keepSwitchChanged() }, for: .valueChanged)
         updateKeepLock()
         return makeRow([text, keepSwitch])
@@ -384,21 +384,21 @@ final class DownloadOptionsSheetViewController: UIViewController {
     private func updateKeepLock() {
         let locked = ProAccess.shared.showsLocks
         keepLockView.isHidden = !locked
-        keepSwitch.accessibilityHint = locked ? "Requires Crucible Pro" : nil
+        keepSwitch.accessibilityHint = locked ? String(localized: "Requires Crucible Pro") : nil
     }
 
     private func makeWiFiRow() -> UIView {
         wifiSwitch.isOn = !Preferences.downloadOverCellular
         wifiSwitch.onTintColor = Theme.Color.accent
         wifiSwitch.setContentHuggingPriority(.required, for: .horizontal)
-        wifiSwitch.accessibilityLabel = "Wi-Fi only"
+        wifiSwitch.accessibilityLabel = String(localized: "Wi-Fi only")
         wifiSwitch.addAction(UIAction { [weak self] _ in
             guard let self else { return }
             Preferences.downloadOverCellular = !self.wifiSwitch.isOn
             DownloadManager.shared.cellularPreferenceChanged()
             Haptics.selection()
         }, for: .valueChanged)
-        return makeRow([rowLabel("Wi-Fi only"), wifiSwitch])
+        return makeRow([rowLabel(String(localized: "Wi-Fi only")), wifiSwitch])
     }
 
     private func refreshAll() {
@@ -415,9 +415,9 @@ final class DownloadOptionsSheetViewController: UIViewController {
     private func updateEstimate() {
         let pending = pendingEpisodes
         let sizes = pending.compactMap { estimatedBytes(for: $0) }
-        let size = sizes.isEmpty ? "—" : "≈ \(Formatters.fileSize(sizes.reduce(0, +)))"
+        let size = sizes.isEmpty ? "—" : String(localized: "≈ \(Formatters.fileSize(sizes.reduce(0, +)))")
         var parts = [size]
-        if freeBytes > 0 { parts.append("\(Formatters.fileSize(freeBytes)) free") }
+        if freeBytes > 0 { parts.append(String(localized: "\(Formatters.fileSize(freeBytes)) free")) }
         estimateLabel.text = parts.joined(separator: " · ")
     }
 
@@ -438,13 +438,13 @@ final class DownloadOptionsSheetViewController: UIViewController {
         let title: String
         let enabled: Bool
         if count > 0 {
-            title = "Download \(count) \(count == 1 ? "Episode" : "Episodes")"
+            title = count == 1 ? String(localized: "Download \(count) Episode") : String(localized: "Download \(count) Episodes")
             enabled = true
         } else if keepChanged {
-            title = "Save"
+            title = String(localized: "Save")
             enabled = true
         } else {
-            title = selectedEpisodes.isEmpty ? "Download" : "Already Downloaded"
+            title = selectedEpisodes.isEmpty ? String(localized: "Download") : String(localized: "Already Downloaded")
             enabled = false
         }
         var config = confirmButton.configuration ?? ThemeButton.primaryConfiguration(title: title)

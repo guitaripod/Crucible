@@ -44,7 +44,7 @@ final class TVAddressViewController: TVOnboardingViewController {
             return
         }
         RememberedServerAddress.remember(address)
-        form.setBusy(true, status: "Connecting to \(address.host)…")
+        form.setBusy(true, status: String(localized: "Connecting to \(address.host)…"))
         refocus()
         connectTask = Task { [weak self] in
             guard let self else { return }
@@ -68,7 +68,7 @@ final class TVAddressViewController: TVOnboardingViewController {
     }
 
     private static func detail(for known: ServerChoice?) -> String {
-        let base = "Enter your server’s IP address or hostname, such as 192.168.1.20 or a Tailscale name. The default port is 32400."
+        let base = String(localized: "Enter your server’s IP address or hostname, such as 192.168.1.20 or a Tailscale name. The default port is 32400.")
         guard let known, TailnetPresence.isConnected, let note = ConnectRecovery.tailnetLookupNote(serverName: known.name) else { return base }
         return base + " " + note
     }
@@ -81,7 +81,7 @@ final class TVAddressViewController: TVOnboardingViewController {
     private func installContent() {
         let title = TVScreenTitleView(clearsTabBar: false, column: TVMetrics.Column.form)
         title.configure(TVScreenTitleContent(
-            title: "Add by Address",
+            title: String(localized: "Add by Address"),
             detail: Self.detail(for: known)
         ))
 

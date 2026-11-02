@@ -13,7 +13,7 @@ final class TailnetAccessSheetViewController: UIViewController {
     private let field = UITextField()
     private let fieldBox = UIView()
     private let errorLabel = UILabel()
-    private let saveButton = UIButton(configuration: ThemeButton.primaryConfiguration(title: "Search My Tailnet"))
+    private let saveButton = UIButton(configuration: ThemeButton.primaryConfiguration(title: String(localized: "Search My Tailnet")))
     private var checkTask: Task<Void, Never>?
 
     init() {
@@ -38,23 +38,23 @@ final class TailnetAccessSheetViewController: UIViewController {
     }
 
     private func layoutContent() {
-        let title = label("Search Your Tailnet", font: Theme.Font.title2, color: Theme.Color.label)
+        let title = label(String(localized: "Search Your Tailnet"), font: Theme.Font.title2, color: Theme.Color.label)
         title.accessibilityTraits = .header
         let intro = label(
-            "Crucible can ask each online computer on your Tailscale network whether it's your Plex server. It needs read access to your device list.",
+            String(localized: "Crucible can ask each online computer on your Tailscale network whether it's your Plex server. It needs read access to your device list."),
             font: Theme.Font.subheadline,
             color: Theme.Color.labelSecondary
         )
         let steps = UIStackView(arrangedSubviews: [
-            step("1", "Open the Tailscale keys page and choose Generate access token."),
-            step("2", "Copy the token. It starts with tskey-api-."),
-            step("3", "Paste it below."),
+            step("1", String(localized: "Open the Tailscale keys page and choose Generate access token.")),
+            step("2", String(localized: "Copy the token. It starts with tskey-api-.")),
+            step("3", String(localized: "Paste it below.")),
         ])
         steps.axis = .vertical
         steps.spacing = Theme.Space.xs
 
         var keysConfig = UIButton.Configuration.plain()
-        keysConfig.title = "Open the Keys Page"
+        keysConfig.title = String(localized: "Open the Keys Page")
         keysConfig.image = UIImage(systemName: "arrow.up.right.square")
         keysConfig.imagePadding = 6
         keysConfig.baseForegroundColor = Theme.Color.accentText
@@ -65,7 +65,7 @@ final class TailnetAccessSheetViewController: UIViewController {
         keysButton.addAction(UIAction { _ in UIApplication.shared.open(Self.keysPage) }, for: .touchUpInside)
 
         let note = label(
-            "The token stays in this iPhone's Keychain and is only sent to Tailscale, to read your device list. Tailscale tokens last at most 90 days; Crucible tells you when this one needs replacing.",
+            String(localized: "The token stays in this iPhone's Keychain and is only sent to Tailscale, to read your device list. Tailscale tokens last at most 90 days; Crucible tells you when this one needs replacing."),
             font: Theme.Font.caption1Regular,
             color: Theme.Color.labelTertiary
         )
@@ -83,7 +83,7 @@ final class TailnetAccessSheetViewController: UIViewController {
         var arranged: [UIView] = [title, intro, steps, keysButton, fieldBox, errorLabel, saveButton]
         if TailnetAccess.state != .none {
             var removeConfig = UIButton.Configuration.plain()
-            removeConfig.title = "Remove Saved Token"
+            removeConfig.title = String(localized: "Remove Saved Token")
             removeConfig.baseForegroundColor = Theme.Color.destructive
             let remove = UIButton(configuration: removeConfig)
             remove.isPointerInteractionEnabled = true
@@ -153,7 +153,7 @@ final class TailnetAccessSheetViewController: UIViewController {
         field.spellCheckingType = .no
         field.returnKeyType = .go
         field.clearButtonMode = .whileEditing
-        field.accessibilityLabel = "Tailscale access token"
+        field.accessibilityLabel = String(localized: "Tailscale access token")
         field.addAction(UIAction { [weak self] _ in self?.clearError() }, for: .editingChanged)
         field.addAction(UIAction { [weak self] _ in self?.check() }, for: .editingDidEndOnExit)
 
@@ -190,7 +190,7 @@ final class TailnetAccessSheetViewController: UIViewController {
     }
 
     private func setChecking(_ checking: Bool) {
-        var config = ThemeButton.primaryConfiguration(title: checking ? "Checking…" : "Search My Tailnet")
+        var config = ThemeButton.primaryConfiguration(title: checking ? String(localized: "Checking…") : String(localized: "Search My Tailnet"))
         config.showsActivityIndicator = checking
         saveButton.configuration = config
         saveButton.isEnabled = !checking
@@ -202,7 +202,7 @@ final class TailnetAccessSheetViewController: UIViewController {
         guard checkTask == nil else { return }
         let token = (field.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty else {
-            showError("Paste the token you generated on the Tailscale keys page.")
+            showError(String(localized: "Paste the token you generated on the Tailscale keys page."))
             return
         }
         clearError()
@@ -216,9 +216,9 @@ final class TailnetAccessSheetViewController: UIViewController {
                 Haptics.success()
                 dismiss(animated: true) { [onChange] in onChange?() }
             } catch TailscaleAPIError.tokenRejected {
-                self?.finishFailed("Tailscale didn't accept that token. Check that you copied all of it and that it hasn't expired.")
+                self?.finishFailed(String(localized: "Tailscale didn't accept that token. Check that you copied all of it and that it hasn't expired."))
             } catch {
-                self?.finishFailed("Couldn't reach Tailscale. Check your connection and try again.")
+                self?.finishFailed(String(localized: "Couldn't reach Tailscale. Check your connection and try again."))
             }
         }
     }

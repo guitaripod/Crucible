@@ -41,7 +41,7 @@ final class AlphabetScrubberView: UIControl {
         ])
 
         isAccessibilityElement = true
-        accessibilityLabel = "Jump to letter"
+        accessibilityLabel = String(localized: "Jump to letter")
         accessibilityTraits = .adjustable
     }
 

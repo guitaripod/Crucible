@@ -190,15 +190,15 @@ package struct TopShelfStoreDiagnostics: Sendable {
     }
 
     package var snapshotSummary: String {
-        guard hasContainer else { return "No App Group" }
-        guard writablePath != nil else { return "No write access" }
-        guard let snapshot else { return "No snapshot" }
-        return "\(snapshot.itemCount) items · \(Self.time(snapshot.savedAt))"
+        guard hasContainer else { return String(localized: "No App Group") }
+        guard writablePath != nil else { return String(localized: "No write access") }
+        guard let snapshot else { return String(localized: "No snapshot") }
+        return String(localized: "\(snapshot.itemCount) items · \(Self.time(snapshot.savedAt))")
     }
 
     package var receiptSummary: String {
-        guard let receipt else { return "Never" }
-        return "\(receipt.itemCount) items · \(Self.time(receipt.readAt))"
+        guard let receipt else { return String(localized: "Never") }
+        return String(localized: "\(receipt.itemCount) items · \(Self.time(receipt.readAt))")
     }
 
     package var logSummary: String {

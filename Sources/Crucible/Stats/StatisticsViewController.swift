@@ -42,9 +42,9 @@ final class StatisticsViewController: UICollectionViewController {
     var dataSource: UICollectionViewDiffableDataSource<StatSection, Row>!
 
     static let sectionTitles: [StatSection: String] = [
-        .topMovies: "Top Movies",
-        .onThisDay: "On This Day",
-        .superlatives: "Wrapped Moments",
+        .topMovies: String(localized: "Top Movies"),
+        .onThisDay: String(localized: "On This Day"),
+        .superlatives: String(localized: "Wrapped Moments"),
     ]
 
     init(api: APIClient) {
@@ -65,7 +65,7 @@ final class StatisticsViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Statistics"
+        title = String(localized: "Statistics", comment: "Navigation title of the Statistics screen")
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
         collectionView.backgroundColor = Theme.Color.canvas

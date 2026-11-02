@@ -140,7 +140,7 @@ final class DemoCoordinator {
         alert.addAction(UIAlertAction(title: DemoPhoneCopy.leaveTitle, style: .destructive) { [weak self] _ in
             self?.leave(scene: scene)
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         presenter.present(alert, animated: true)
     }
 

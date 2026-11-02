@@ -119,7 +119,7 @@ final class StorageSummaryView: UIView, UIContentView {
     private func build() {
         usedLabel.font = Theme.Font.title1
         usedLabel.textColor = Theme.Color.label
-        captionLabel.text = "in Crucible"
+        captionLabel.text = String(localized: "in Crucible")
         captionLabel.font = Theme.Font.footnote
         captionLabel.textColor = Theme.Color.labelSecondary
         freeLabel.font = Theme.Font.footnote
@@ -200,7 +200,7 @@ final class StorageSummaryView: UIView, UIContentView {
         onFreeUp = config.onFreeUp
 
         usedLabel.text = Formatters.fileSize(config.storage.usedBytes)
-        freeLabel.text = "\(Formatters.fileSize(config.storage.freeBytes)) free"
+        freeLabel.text = String(localized: "\(Formatters.fileSize(config.storage.freeBytes)) free")
         capacityBar.set(config.storage)
         applyChip(isOn: config.isWiFiOnly)
         applyFreeUp(bytes: config.reclaimableBytes)
@@ -209,7 +209,7 @@ final class StorageSummaryView: UIView, UIContentView {
     private func applyChip(isOn: Bool) {
         var config = UIButton.Configuration.filled()
         config.cornerStyle = .capsule
-        config.title = "Wi-Fi only"
+        config.title = String(localized: "Wi-Fi only")
         config.image = UIImage(systemName: "wifi", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
         config.imagePadding = 6
         config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14)
@@ -223,9 +223,9 @@ final class StorageSummaryView: UIView, UIContentView {
             return outgoing
         }
         wifiChip.configuration = config
-        wifiChip.accessibilityLabel = "Wi-Fi only"
-        wifiChip.accessibilityValue = isOn ? "On" : "Off"
-        wifiChip.accessibilityHint = "Double tap to change whether downloads may use cellular data"
+        wifiChip.accessibilityLabel = String(localized: "Wi-Fi only")
+        wifiChip.accessibilityValue = isOn ? String(localized: "On") : String(localized: "Off")
+        wifiChip.accessibilityHint = String(localized: "Double tap to change whether downloads may use cellular data")
     }
 
     private func applyFreeUp(bytes: Int64) {
@@ -235,7 +235,7 @@ final class StorageSummaryView: UIView, UIContentView {
         }
         freeUpButton.isHidden = false
         var config = UIButton.Configuration.plain()
-        config.title = "Free up \(Formatters.fileSize(bytes))"
+        config.title = String(localized: "Free up \(Formatters.fileSize(bytes))")
         config.image = UIImage(systemName: "trash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold))
         config.imagePadding = 6
         config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 0)
@@ -246,6 +246,6 @@ final class StorageSummaryView: UIView, UIContentView {
             return outgoing
         }
         freeUpButton.configuration = config
-        freeUpButton.accessibilityLabel = "Free up \(Formatters.fileSize(bytes)) by deleting watched downloads"
+        freeUpButton.accessibilityLabel = String(localized: "Free up \(Formatters.fileSize(bytes)) by deleting watched downloads")
     }
 }

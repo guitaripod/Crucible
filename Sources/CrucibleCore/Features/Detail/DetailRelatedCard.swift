@@ -18,7 +18,7 @@ package struct DetailRelatedCard: Equatable, Sendable {
         title = item.title
         isShow = item.mediaType == "show"
         if isShow, let count = item.childCount, count > 0 {
-            subtitle = count == 1 ? "1 season" : "\(count) seasons"
+            subtitle = count == 1 ? String(localized: "1 season") : String(localized: "\(count) seasons")
         } else {
             subtitle = item.year.map(String.init)
         }

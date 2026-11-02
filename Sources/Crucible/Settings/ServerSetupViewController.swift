@@ -15,7 +15,7 @@ final class ServerSetupViewController: UIViewController {
     private let subtitleLabel = UILabel()
     private let statusLabel = UILabel()
     private let footerLabel = UILabel()
-    private let signInButton = ThemeButton.primary(title: "Sign in with Plex")
+    private let signInButton = ThemeButton.primary(title: String(localized: "Sign in with Plex"))
     private let addressButton = UIButton(configuration: .plain())
     private let demoButton = UIButton(configuration: ThemeButton.glassConfiguration(title: DemoCopy.welcomeButton, symbol: "play.circle"))
     private let demoCaptionLabel = UILabel()
@@ -68,7 +68,7 @@ final class ServerSetupViewController: UIViewController {
     }
 
     private func installCancelButton() {
-        let close = ThemeButton.icon(symbol: "xmark", label: "Cancel")
+        let close = ThemeButton.icon(symbol: "xmark", label: String(localized: "Cancel"))
         close.addAction(UIAction { [weak self] _ in self?.dismiss(animated: true) }, for: .touchUpInside)
         close.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(close)
@@ -92,7 +92,7 @@ final class ServerSetupViewController: UIViewController {
         titleLabel.textAlignment = .center
         titleLabel.accessibilityTraits = .header
 
-        subtitleLabel.text = "Your personal Plex client"
+        subtitleLabel.text = String(localized: "Your personal Plex client")
         subtitleLabel.font = Theme.Font.body
         subtitleLabel.adjustsFontForContentSizeCategory = true
         subtitleLabel.textColor = Theme.Color.labelSecondary
@@ -105,7 +105,7 @@ final class ServerSetupViewController: UIViewController {
         statusLabel.numberOfLines = 0
         statusLabel.isHidden = true
 
-        footerLabel.text = "Works with any Plex Media Server"
+        footerLabel.text = String(localized: "Works with any Plex Media Server")
         footerLabel.font = Theme.Font.caption1Regular
         footerLabel.adjustsFontForContentSizeCategory = true
         footerLabel.textColor = Theme.Color.labelTertiary
@@ -116,7 +116,7 @@ final class ServerSetupViewController: UIViewController {
         signInButton.addAction(UIAction { [weak self] _ in self?.startAuth() }, for: .touchUpInside)
 
         var addressConfig = UIButton.Configuration.plain()
-        addressConfig.title = "Connect with a server address"
+        addressConfig.title = String(localized: "Connect with a server address")
         addressConfig.baseForegroundColor = Theme.Color.accentText
         addressConfig.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
         addressConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
@@ -194,7 +194,7 @@ final class ServerSetupViewController: UIViewController {
     private static let actionsMaxWidth: CGFloat = 440
 
     private func setBusy(_ busy: Bool) {
-        var config = ThemeButton.primaryConfiguration(title: "Sign in with Plex")
+        var config = ThemeButton.primaryConfiguration(title: String(localized: "Sign in with Plex"))
         config.showsActivityIndicator = busy
         signInButton.configuration = config
         signInButton.isEnabled = !busy
@@ -257,8 +257,8 @@ final class ServerSetupViewController: UIViewController {
     private func presentDemoFailure() {
         Haptics.error()
         let alert = UIAlertController(title: DemoPhoneCopy.failureTitle, message: DemoPhoneCopy.failureMessage, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Try Again", style: .default) { [weak self] _ in self?.startDemo() })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Try Again"), style: .default) { [weak self] _ in self?.startDemo() })
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         present(alert, animated: true)
     }
 
@@ -273,7 +273,7 @@ final class ServerSetupViewController: UIViewController {
                 guard let token = try await authorize(), !Task.isCancelled else { return }
                 PlexSignIn.complete(token: token)
                 signedInToken = token
-                showStatus("Signed in! Discovering servers...", color: Theme.Color.statusOK)
+                showStatus(String(localized: "Signed in! Discovering servers..."), color: Theme.Color.statusOK)
 
                 if let address = pendingManualAddress {
                     pendingManualAddress = nil
@@ -308,20 +308,20 @@ final class ServerSetupViewController: UIViewController {
             guard !Task.isCancelled else { return nil }
             switch state {
             case .requesting:
-                showStatus("Requesting PIN...", color: Theme.Color.labelSecondary)
+                showStatus(String(localized: "Requesting PIN..."), color: Theme.Color.labelSecondary)
             case .waiting(let pin):
                 guard let authURL = PlexAuthURL.url(clientIdentifier: PlexHeaders.clientIdentifier, code: pin.code) else {
-                    throw SignInFailure(message: "Failed to build auth URL")
+                    throw SignInFailure(message: String(localized: "Failed to build auth URL"))
                 }
                 let nav = UINavigationController(rootViewController: PlexWebAuthViewController(url: authURL))
                 present(nav, animated: true)
                 sheet = nav
-                showStatus("Waiting for authorization...", color: Theme.Color.labelSecondary)
+                showStatus(String(localized: "Waiting for authorization..."), color: Theme.Color.labelSecondary)
             case .claimed(let token):
                 sheet?.dismiss(animated: true)
                 return token
             case .expired:
-                throw APIError.httpError(statusCode: 408, message: "Authentication timed out. Please try again.")
+                throw APIError.httpError(statusCode: 408, message: String(localized: "Authentication timed out. Please try again."))
             case .failed(let message):
                 throw SignInFailure(message: message)
             }
@@ -333,7 +333,7 @@ final class ServerSetupViewController: UIViewController {
         let discovery = ServerDiscovery(token: token)
         switch try await discovery.listing(progress: { [weak self] in self?.show($0) }) {
         case .none:
-            showError("No Plex server found on your account")
+            showError(String(localized: "No Plex server found on your account"))
             setBusy(false)
         case .single(let server):
             await connectToOnlyServer(server, discovery: discovery)
@@ -490,7 +490,7 @@ final class ServerSetupViewController: UIViewController {
     }
 
     private func connectFromChooser(_ choice: ServerChoice, route: ServerRoute) async -> String? {
-        guard let token = signedInToken else { return "Invalid server address" }
+        guard let token = signedInToken else { return String(localized: "Invalid server address") }
         let outcome = await ServerDiscovery(token: token).connect(to: choice, route: route, progress: { [weak self] in self?.show($0) })
         return await deliver(outcome)
     }
@@ -577,7 +577,7 @@ final class PlexWebAuthViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Sign in to Plex"
+        title = String(localized: "Sign in to Plex")
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             systemItem: .done,

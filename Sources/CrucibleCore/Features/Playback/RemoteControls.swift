@@ -32,7 +32,8 @@ package enum SkipRule {
     }
 
     package static func label(for seconds: Int) -> String {
-        seconds % 60 == 0 ? "\(seconds / 60) Minute" + (seconds == 60 ? "" : "s") : "\(seconds) Seconds"
+        if seconds == 60 { return String(localized: "1 Minute") }
+        return seconds % 60 == 0 ? String(localized: "\(seconds / 60) Minutes") : String(localized: "\(seconds) Seconds")
     }
 }
 
@@ -58,12 +59,12 @@ package enum HoldAction: Int, CaseIterable, Sendable {
     /// the start of the item on the left and the next episode on the right.
     package func title(forward: Bool) -> String {
         switch self {
-        case .scan: return forward ? "Fast Forward" : "Rewind"
-        case .edge: return forward ? "Next Episode" : "Start Over"
+        case .scan: return forward ? String(localized: "Fast Forward") : String(localized: "Rewind")
+        case .edge: return forward ? String(localized: "Next Episode") : String(localized: "Start Over")
         default:
             let minutes = rawValue / 60
-            let amount = "\(minutes) Minute" + (minutes == 1 ? "" : "s")
-            return forward ? "Jump Ahead \(amount)" : "Jump Back \(amount)"
+            let amount = minutes == 1 ? String(localized: "1 Minute") : String(localized: "\(minutes) Minutes")
+            return forward ? String(localized: "Jump Ahead \(amount)") : String(localized: "Jump Back \(amount)")
         }
     }
 }

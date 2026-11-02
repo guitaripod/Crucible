@@ -25,7 +25,7 @@ final class ServerAddressSheetViewController: UIViewController {
     private let hintLabel = UILabel()
     private let field = UITextField()
     private let errorLabel = UILabel()
-    private let connectButton = ThemeButton.primary(title: "Connect")
+    private let connectButton = ThemeButton.primary(title: String(localized: "Connect"))
     private var submitTask: Task<Void, Never>?
     private var activeObserver: NSObjectProtocol?
     private var isSubmitting = false
@@ -84,20 +84,20 @@ final class ServerAddressSheetViewController: UIViewController {
     }
 
     private func configureViews() {
-        titleLabel.text = "Server Address"
+        titleLabel.text = String(localized: "Server Address")
         titleLabel.font = Theme.Font.title2
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = Theme.Color.label
         titleLabel.accessibilityTraits = .header
 
-        hintLabel.text = recovery.map { "\($0.model.headline) Fix one of these, or enter its address below." }
-            ?? "A hostname or IP such as 100.x.x.x for Tailscale. Crucible tries HTTPS first."
+        hintLabel.text = recovery.map { String(localized: "\($0.model.headline) Fix one of these, or enter its address below.") }
+            ?? String(localized: "A hostname or IP such as 100.x.x.x for Tailscale. Crucible tries HTTPS first.")
         hintLabel.font = Theme.Font.footnote
         hintLabel.adjustsFontForContentSizeCategory = true
         hintLabel.textColor = Theme.Color.labelSecondary
         hintLabel.numberOfLines = 0
 
-        field.placeholder = "100.64.0.12 or nas.local"
+        field.placeholder = String(localized: "100.64.0.12 or nas.local")
         field.font = Theme.Font.body
         field.adjustsFontForContentSizeCategory = true
         field.textColor = Theme.Color.label
@@ -113,7 +113,7 @@ final class ServerAddressSheetViewController: UIViewController {
         field.clearButtonMode = .whileEditing
         field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1))
         field.leftViewMode = .always
-        field.accessibilityLabel = "Server address"
+        field.accessibilityLabel = String(localized: "Server address")
         field.addAction(UIAction { [weak self] _ in self?.fieldChanged() }, for: .editingChanged)
         field.addAction(UIAction { [weak self] _ in self?.expandForKeyboard() }, for: .editingDidBegin)
         field.addAction(UIAction { [weak self] _ in self?.submit() }, for: .editingDidEndOnExit)
@@ -153,7 +153,7 @@ final class ServerAddressSheetViewController: UIViewController {
         var actions: [UIView] = [connectButton]
         if recovery != nil {
             var retryConfig = UIButton.Configuration.plain()
-            retryConfig.title = "Search Again"
+            retryConfig.title = String(localized: "Search Again")
             retryConfig.baseForegroundColor = Theme.Color.accentText
             let retry = UIButton(configuration: retryConfig)
             retry.isPointerInteractionEnabled = true
@@ -197,13 +197,13 @@ final class ServerAddressSheetViewController: UIViewController {
         refreshState()
         let text = field.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !text.isEmpty, typedAddress == nil {
-            showError("Enter a hostname or IP address, optionally with a port.")
+            showError(String(localized: "Enter a hostname or IP address, optionally with a port."))
         }
     }
 
     private func refreshState() {
-        var config = connectButton.configuration ?? ThemeButton.primaryConfiguration(title: "Connect")
-        config.title = isSubmitting ? "Connecting…" : "Connect"
+        var config = connectButton.configuration ?? ThemeButton.primaryConfiguration(title: String(localized: "Connect"))
+        config.title = isSubmitting ? String(localized: "Connecting…") : String(localized: "Connect")
         config.showsActivityIndicator = isSubmitting
         connectButton.configuration = config
         connectButton.isEnabled = typedAddress != nil && !isSubmitting

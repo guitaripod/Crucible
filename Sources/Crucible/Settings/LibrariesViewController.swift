@@ -22,7 +22,7 @@ final class LibrariesViewController: UICollectionViewController {
     init(api: APIClient) {
         self.api = api
         super.init(collectionViewLayout: UICollectionViewLayout())
-        title = "Libraries"
+        title = String(localized: "Libraries")
     }
 
     @available(*, unavailable)

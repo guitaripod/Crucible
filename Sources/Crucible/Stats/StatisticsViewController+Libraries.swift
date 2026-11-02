@@ -8,7 +8,7 @@ extension StatisticsViewController {
     /// statistics; it shares its choices with Home and Settings.
     func configureLibrariesItem() {
         let item = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal.decrease"), menu: nil)
-        item.accessibilityLabel = "Libraries"
+        item.accessibilityLabel = String(localized: "Libraries")
         navigationItem.rightBarButtonItem = item
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
             self?.updateLibrariesMenu()
@@ -41,9 +41,9 @@ extension StatisticsViewController {
                 filter.toggle(entry)
             }
         }
-        var children: [UIMenuElement] = [UIMenu(title: "Include in Statistics", options: .displayInline, children: toggles)]
+        var children: [UIMenuElement] = [UIMenu(title: String(localized: "Include in Statistics"), options: .displayInline, children: toggles)]
         if filter.hasOverrides {
-            children.append(UIAction(title: "Reset to Plex Defaults", image: UIImage(systemName: "arrow.counterclockwise")) { _ in
+            children.append(UIAction(title: String(localized: "Reset to Plex Defaults"), image: UIImage(systemName: "arrow.counterclockwise")) { _ in
                 filter.resetToPlexDefaults()
             })
         }
@@ -54,8 +54,8 @@ extension StatisticsViewController {
     private func showLockedLibraries(on item: UIBarButtonItem, symbol: String) {
         item.menu = nil
         item.image = ProLock.badged(symbol: symbol)
-        item.accessibilityValue = "Requires Crucible Pro"
-        item.primaryAction = UIAction(title: "Libraries", image: ProLock.badged(symbol: symbol)) { _ in
+        item.accessibilityValue = String(localized: "Requires Crucible Pro")
+        item.primaryAction = UIAction(title: String(localized: "Libraries"), image: ProLock.badged(symbol: symbol)) { _ in
             ProAccess.shared.requestUnlock(.fullStatistics)
         }
     }

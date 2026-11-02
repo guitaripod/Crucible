@@ -198,7 +198,7 @@ final class IconRowContentView: UIView, UIContentView {
         menuButton.isHidden = config.menu == nil
         menuButton.isAccessibilityElement = config.menu != nil && config.exposesToAccessibility
         menuButton.accessibilityLabel = spoken
-        menuButton.accessibilityHint = "Opens a menu"
+        menuButton.accessibilityHint = String(localized: "Opens a menu")
         toggleSwitch.accessibilityLabel = config.title
         toggleSwitch.accessibilityHint = config.subtitle
         isAccessibilityElement = config.menu == nil && config.toggle == nil && config.exposesToAccessibility

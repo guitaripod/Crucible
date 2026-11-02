@@ -38,7 +38,7 @@ final class TVDemoIntroViewController: TVDemoModalViewController {
 /// The steps of the tour as a read-only list of symbol, name and one line, headed "Things to try". Nothing in it takes focus;
 /// VoiceOver reaches it as one stop.
 final class TVDemoStepsPanel: TVReadOnlyPanel {
-    private static let heading = "Things to try"
+    private static let heading = String(localized: "Things to try")
 
     init(steps: [DemoTourStep]) {
         super.init(frame: .zero)
@@ -59,7 +59,7 @@ final class TVDemoStepsPanel: TVReadOnlyPanel {
             stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
-        spokenLabel = { Self.heading + ". " + steps.map { "\($0.title). \($0.detail)" }.joined(separator: " ") }
+        spokenLabel = { Self.heading + ". " + steps.map { String(localized: "\($0.title). \($0.detail)") }.joined(separator: " ") }
         accessibilityIdentifier = "demo.steps"
     }
 

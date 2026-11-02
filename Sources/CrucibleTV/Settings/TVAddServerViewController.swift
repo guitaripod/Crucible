@@ -14,7 +14,7 @@ final class TVAddServerViewController: UIViewController {
     init(env: TVAppEnvironment) {
         self.env = env
         super.init(nibName: nil, bundle: nil)
-        title = "Add Server by Address"
+        title = String(localized: "Add Server by Address")
     }
 
     @available(*, unavailable)
@@ -29,8 +29,8 @@ final class TVAddServerViewController: UIViewController {
         view.backgroundColor = Theme.Color.canvas
 
         let heading = TVSettingsHeading(
-            title: "Add Server by Address",
-            body: "Enter an IP address, hostname or full URL. The default port is 32400."
+            title: String(localized: "Add Server by Address"),
+            body: String(localized: "Enter an IP address, hostname or full URL. The default port is 32400.")
         )
         heading.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(heading)

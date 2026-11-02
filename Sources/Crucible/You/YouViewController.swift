@@ -33,7 +33,7 @@ final class YouViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "You"
+        title = String(localized: "You", comment: "Navigation title of the You tab")
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
@@ -125,21 +125,21 @@ final class YouViewController: UICollectionViewController {
                 cell.contentConfiguration = profileConfiguration()
                 cell.accessories = isInDemo ? [] : [.disclosureIndicator()]
             case .history:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "clock", title: "Watch History", subtitle: historySubtitle)
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "clock", title: String(localized: "Watch History"), subtitle: historySubtitle)
                 cell.accessories = [.disclosureIndicator()]
             case .statistics:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "chart.bar", title: "Statistics")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "chart.bar", title: String(localized: "Statistics"))
                 cell.accessories = [.disclosureIndicator()]
             case .settings:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "gearshape", title: "Settings")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "gearshape", title: String(localized: "Settings"))
                 cell.accessories = [.disclosureIndicator()]
             case .server:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "server.rack", title: "Server & Connection", value: YouConnectionStatus.shared.state.routeSummary)
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "server.rack", title: String(localized: "Server & Connection"), value: YouConnectionStatus.shared.state.routeSummary)
                 cell.accessories = [.disclosureIndicator()]
             case .about:
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "info.circle",
-                    title: "About Crucible",
+                    title: String(localized: "About Crucible"),
                     value: AppInfo.versionSummary
                 )
                 cell.accessories = [.disclosureIndicator()]

@@ -13,27 +13,27 @@ enum AppCommand: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .home: return "Home"
-        case .library: return "Library"
-        case .downloads: return "Downloads"
-        case .you: return "You"
-        case .search: return "Search"
-        case .back: return "Back"
-        case .statistics: return "Statistics"
-        case .history: return "Watch History"
-        case .surpriseMe: return "Surprise Me"
-        case .refresh: return "Refresh"
-        case .largerPosters: return "Larger Posters"
-        case .smallerPosters: return "Smaller Posters"
-        case .play: return "Play"
-        case .skip: return "Skip Intro"
-        case .playNext: return "Play Next Episode"
-        case .closePlayer: return "Close Player"
-        case .toggleWatched: return "Mark as Watched"
-        case .download: return "Download"
-        case .settings: return "Settings…"
-        case .switchServer: return "Switch Server…"
-        case .newWindow: return "New Window"
+        case .home: return String(localized: "Home")
+        case .library: return String(localized: "Library")
+        case .downloads: return String(localized: "Downloads")
+        case .you: return String(localized: "You")
+        case .search: return String(localized: "Search")
+        case .back: return String(localized: "Back")
+        case .statistics: return String(localized: "Statistics")
+        case .history: return String(localized: "Watch History")
+        case .surpriseMe: return String(localized: "Surprise Me")
+        case .refresh: return String(localized: "Refresh")
+        case .largerPosters: return String(localized: "Larger Posters")
+        case .smallerPosters: return String(localized: "Smaller Posters")
+        case .play: return String(localized: "Play")
+        case .skip: return String(localized: "Skip Intro")
+        case .playNext: return String(localized: "Play Next Episode")
+        case .closePlayer: return String(localized: "Close Player")
+        case .toggleWatched: return String(localized: "Mark as Watched")
+        case .download: return String(localized: "Download")
+        case .settings: return String(localized: "Settings…")
+        case .switchServer: return String(localized: "Switch Server…")
+        case .newWindow: return String(localized: "New Window")
         }
     }
 
@@ -177,11 +177,11 @@ enum AppMenu {
         if !extras.isEmpty {
             sections.append(UIMenu(options: .displayInline, children: extras.map { $0.menuElement() }))
         }
-        return UIMenu(title: "Go", identifier: goIdentifier, children: sections)
+        return UIMenu(title: String(localized: "Go"), identifier: goIdentifier, children: sections)
     }
 
     private static var media: UIMenu {
-        UIMenu(title: "Media", identifier: mediaIdentifier, children: [
+        UIMenu(title: String(localized: "Media"), identifier: mediaIdentifier, children: [
             UIMenu(options: .displayInline, children: [AppCommand.play, .skip, .playNext, .closePlayer].map { $0.menuElement() }),
             UIMenu(options: .displayInline, children: [AppCommand.toggleWatched, .download].map { $0.menuElement() }),
         ])

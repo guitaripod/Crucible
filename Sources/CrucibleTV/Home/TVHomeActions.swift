@@ -69,18 +69,18 @@ final class TVHomeActions {
                 play(media, from: screen)
             })
             if HomeMediaRules.isResuming(media) {
-                actions.append(UIAction(title: "Play from Beginning", image: UIImage(systemName: "gobackward")) { [weak self, weak screen] _ in
+                actions.append(UIAction(title: String(localized: "Play from Beginning"), image: UIImage(systemName: "gobackward")) { [weak self, weak screen] _ in
                     guard let self, let screen else { return }
                     play(media, restarting: true, from: screen)
                 })
             }
         }
-        actions.append(UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { [weak self, weak screen] _ in
+        actions.append(UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { [weak self, weak screen] _ in
             guard let self, let screen else { return }
             openDetail(media, from: screen)
         })
         if let showKey = HomeMediaRules.showRatingKey(for: media) {
-            actions.append(UIAction(title: "Go to Show", image: UIImage(systemName: "tv")) { [weak self, weak screen] _ in
+            actions.append(UIAction(title: String(localized: "Go to Show"), image: UIImage(systemName: "tv")) { [weak self, weak screen] _ in
                 guard let self, let screen else { return }
                 TVNavigation.push(TVScreens.showDetail(env, ratingKey: showKey, initialSeasonKey: nil), from: screen)
             })

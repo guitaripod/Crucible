@@ -3,8 +3,8 @@ import MidgarCore
 
 /// Messages for a detail screen whose item the server no longer has.
 package enum DetailMessage {
-    package static let itemUnavailable = "This item is no longer available on the server."
-    package static let showUnavailable = "This show is no longer available on the server."
+    package static let itemUnavailable = String(localized: "This item is no longer available on the server.")
+    package static let showUnavailable = String(localized: "This show is no longer available on the server.")
 }
 
 /// Loads the movie or episode behind a detail screen.

@@ -11,14 +11,14 @@ final class TVAddressForm: UIStackView {
         case leading
     }
 
-    static let placeholder = "192.168.1.20 or https://host:32400"
+    static let placeholder = String(localized: "192.168.1.20 or https://host:32400")
 
     var onSubmit: (@MainActor (String) -> Void)?
 
     let textField = UITextField()
     private let errorLabel = UILabel()
     private let statusRow = TVStatusRow()
-    private lazy var connectButton = TVButton.make(.primary, title: "Connect") { [weak self] in
+    private lazy var connectButton = TVButton.make(.primary, title: String(localized: "Connect", comment: "Button that connects to the entered server address")) { [weak self] in
         self?.submit()
     }
 
@@ -47,7 +47,7 @@ final class TVAddressForm: UIStackView {
     /// rest on the screen and Menu pops it, instead of focus falling to a tab bar where Menu
     /// leaves the app; the owner ignores a second submit while it is busy.
     func setBusy(_ busy: Bool, status: String? = nil) {
-        var configuration = TVButton.configuration(.primary, title: busy ? "Connecting…" : "Connect")
+        var configuration = TVButton.configuration(.primary, title: busy ? String(localized: "Connecting…") : String(localized: "Connect", comment: "Button that connects to the entered server address"))
         configuration.showsActivityIndicator = busy
         connectButton.configuration = configuration
         textField.isEnabled = !busy
@@ -78,7 +78,7 @@ final class TVAddressForm: UIStackView {
         textField.autocorrectionType = .no
         textField.spellCheckingType = .no
         textField.returnKeyType = .go
-        textField.accessibilityLabel = "Server address"
+        textField.accessibilityLabel = String(localized: "Server address")
         textField.accessibilityIdentifier = "\(identifierPrefix).address"
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.heightAnchor.constraint(greaterThanOrEqualToConstant: TVMetrics.Control.primaryHeight).isActive = true

@@ -27,14 +27,14 @@ final class TVPaywallOfferCard: TVFocusableSurface {
         titleLabel.text = offer.title
         priceLabel.text = offer.priceLine
         detailLabel.text = offer.detail
-        badge.setText(offer.trial.map { "Free for \($0.days) days" })
+        badge.setText(offer.trial.map { String(localized: "Free for \($0.days) days") })
         selectionRim.alpha = isSelected ? 1 : 0
         indicator.image = UIImage(systemName: isSelected ? "checkmark.circle.fill" : "circle")
         indicator.tintColor = isSelected ? Theme.Color.accent : Theme.Color.labelTertiary
         alpha = isDimmed ? 0.5 : 1
         accessibilityLabel = [offer.title, offer.priceLine, offer.detail].joined(separator: ". ")
-        accessibilityValue = isSelected ? "Selected" : nil
-        accessibilityHint = isSelected ? nil : "Select to choose this plan"
+        accessibilityValue = isSelected ? String(localized: "Selected") : nil
+        accessibilityHint = isSelected ? nil : String(localized: "Select to choose this plan")
         accessibilityTraits = Self.traits(isSelected: isSelected, isDimmed: isDimmed)
     }
 

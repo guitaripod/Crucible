@@ -25,7 +25,7 @@ final class TVSkeletonShelfView: TVPulsingView {
             row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -TVMetrics.shelfVerticalInset),
         ])
         isAccessibilityElement = true
-        accessibilityLabel = "Loading"
+        accessibilityLabel = String(localized: "Loading")
         clipsToBounds = true
     }
 

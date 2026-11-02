@@ -14,7 +14,7 @@ final class TVProViewController: TVSettingsScaffold {
         }
     }
 
-    private let heading = TVSettingsHeading(title: "Crucible Pro")
+    private let heading = TVSettingsHeading(title: String(localized: "Crucible Pro"))
     private let managePanel = TVProViewController.makeManagePanel()
     private lazy var restoreSlot = makeTaskSlot()
     private var isRestoring = false
@@ -22,7 +22,7 @@ final class TVProViewController: TVSettingsScaffold {
 
     override init() {
         super.init()
-        title = "Crucible Pro"
+        title = String(localized: "Crucible Pro")
     }
 
     @available(*, unavailable)
@@ -62,7 +62,7 @@ final class TVProViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.feature(feature), title: feature.title, subtitle: feature.summary, symbol: feature.symbol, accessory: .checkmark)
         }
         rows.insert(
-            TVRowItem(id: RowID.restore, title: "Restore Purchases", value: isRestoring ? "Restoring\u{2026}" : nil, symbol: "arrow.clockwise"),
+            TVRowItem(id: RowID.restore, title: String(localized: "Restore Purchases"), value: isRestoring ? String(localized: "Restoring\u{2026}") : nil, symbol: "arrow.clockwise"),
             at: 0
         )
         setRows(rows)

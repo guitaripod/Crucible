@@ -10,15 +10,15 @@ enum DownloadMenu {
         let item = DownloadManager.shared.item(for: metadata.id)
         switch item?.state {
         case .completed:
-            return UIAction(title: "Remove Download", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
+            return UIAction(title: String(localized: "Remove Download"), image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                 DownloadManager.shared.delete(metadata.id)
             }
         case .some(let state) where state != .failed:
-            return UIAction(title: "Cancel Download", image: UIImage(systemName: "xmark.circle"), attributes: .destructive) { _ in
+            return UIAction(title: String(localized: "Cancel Download"), image: UIImage(systemName: "xmark.circle"), attributes: .destructive) { _ in
                 DownloadManager.shared.delete(metadata.id)
             }
         default:
-            return UIAction(title: "Download", image: UIImage(systemName: "arrow.down.circle")) { _ in
+            return UIAction(title: String(localized: "Download"), image: UIImage(systemName: "arrow.down.circle")) { _ in
                 DownloadManager.shared.requestDownload(metadata: metadata, quality: quality)
             }
         }
@@ -46,19 +46,19 @@ extension DownloadItem {
     var statusLine: String {
         switch state {
         case .queued:
-            return "Queued · \(quality.shortLabel)"
+            return String(localized: "Queued · \(quality.shortLabel)")
         case .waitingForWiFi:
-            return "Waiting for Wi-Fi · \(quality.shortLabel)"
+            return String(localized: "Waiting for Wi-Fi · \(quality.shortLabel)")
         case .downloading:
-            return "Downloading · \(percentText)"
+            return String(localized: "Downloading · \(percentText)")
         case .paused:
-            return "Paused · \(percentText)"
+            return String(localized: "Paused · \(percentText)")
         case .failed:
-            return errorMessage ?? "Download failed"
+            return errorMessage ?? String(localized: "Download failed")
         case .completed:
             var parts = [quality.shortLabel]
             if totalBytes > 0 { parts.append(Formatters.fileSize(totalBytes)) }
-            if isWatched { parts.append("Watched") }
+            if isWatched { parts.append(String(localized: "Watched")) }
             return parts.joined(separator: " · ")
         }
     }
@@ -77,8 +77,8 @@ extension DownloadItem {
 enum OfflinePlayback {
     static func start(_ item: DownloadItem, api: APIClient, from host: UIViewController) -> PlayerCoordinator? {
         guard let asset = DownloadManager.shared.offlineAsset(for: item.ratingKey) else {
-            let alert = UIAlertController(title: "File Missing", message: "This download could not be found on disk. Try downloading it again.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert = UIAlertController(title: String(localized: "File Missing"), message: String(localized: "This download could not be found on disk. Try downloading it again."), preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
             host.present(alert, animated: true)
             return nil
         }
@@ -184,11 +184,11 @@ enum DownloadFormat {
 
     static func remaining(_ seconds: Double) -> String {
         let minutes = Int((seconds / 60).rounded(.up))
-        if minutes < 1 { return "< 1 min left" }
-        if minutes < 60 { return "\(minutes) min left" }
+        if minutes < 1 { return String(localized: "< 1 min left") }
+        if minutes < 60 { return String(localized: "\(minutes) min left") }
         let hours = minutes / 60
         let rest = minutes % 60
-        return rest == 0 ? "\(hours) h left" : "\(hours) h \(rest) min left"
+        return rest == 0 ? String(localized: "\(hours) h left") : String(localized: "\(hours) h \(rest) min left")
     }
 }
 

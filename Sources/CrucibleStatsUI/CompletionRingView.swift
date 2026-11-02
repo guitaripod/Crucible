@@ -143,8 +143,8 @@ package final class CompletionRingView: UIView {
 
     private func updatePercentLabel() {
         let percent = Int((progress * 100).rounded())
-        percentLabel.text = "\(percent)%"
-        accessibilityValue = "\(percent)%"
+        percentLabel.text = String(localized: "\(percent)%")
+        accessibilityValue = String(localized: "\(percent)%")
     }
 
     private func normalized(_ fraction: Double) -> Double {

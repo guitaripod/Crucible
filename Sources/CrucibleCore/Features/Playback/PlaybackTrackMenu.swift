@@ -26,7 +26,7 @@ package enum PlaybackTrackMenu {
 
     /// "Off" first, then every subtitle stream.
     package static func subtitleOptions(_ tracks: [PlexStream], selectedId: Int?) -> [TrackOption] {
-        let off = TrackOption(id: nil, title: "Off", detail: nil, isSelected: selectedId == nil, isEnabled: true)
+        let off = TrackOption(id: nil, title: String(localized: "Off"), detail: nil, isSelected: selectedId == nil, isEnabled: true)
         let streams = tracks.map { stream in
             let detail = DetailFormat.subtitleDetail(stream)
             return TrackOption(

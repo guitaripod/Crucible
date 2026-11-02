@@ -235,9 +235,9 @@ final class MediaDetailViewController: UICollectionViewController {
             guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else { return }
             var config = SectionHeaderConfiguration()
             switch section {
-            case .cast: config.title = "Cast & Crew"
-            case .details: config.title = "Details"
-            case .related: config.title = "More Like This"
+            case .cast: config.title = String(localized: "Cast & Crew")
+            case .details: config.title = String(localized: "Details")
+            case .related: config.title = String(localized: "More Like This")
             default: break
             }
             cell.contentConfiguration = config
@@ -291,14 +291,14 @@ final class MediaDetailViewController: UICollectionViewController {
         if model.showKey != nil {
             let showTitle = model.item.grandparentTitle
             pills.append(.init(
-                title: showTitle ?? "Go to Show",
+                title: showTitle ?? String(localized: "Go to Show"),
                 symbol: "tv",
-                accessibilityLabel: showTitle.map { "Go to show, \($0)" } ?? "Go to Show",
+                accessibilityLabel: showTitle.map { String(localized: "Go to show, \($0)") } ?? String(localized: "Go to Show"),
                 action: { [weak self] in self?.navigateToShow() }
             ))
         }
         if model.seasonKey != nil {
-            pills.append(.init(title: "Next Episode", symbol: "forward.end.fill", accessibilityLabel: nil, action: { [weak self] in
+            pills.append(.init(title: String(localized: "Next Episode"), symbol: "forward.end.fill", accessibilityLabel: nil, action: { [weak self] in
                 self?.goToNextEpisode()
             }))
         }
@@ -328,11 +328,11 @@ final class MediaDetailViewController: UICollectionViewController {
             action.subtitle = option.detail
             return action
         }
-        return UIMenu(title: "Audio", options: .singleSelection, children: actions)
+        return UIMenu(title: String(localized: "Audio"), options: .singleSelection, children: actions)
     }
 
     private func subtitleMenu(_ options: [TrackOption]) -> UIMenu {
-        let off = UIAction(title: "Off", state: selectedSubtitleId == nil ? .on : .off) { [weak self] _ in
+        let off = UIAction(title: String(localized: "Off"), state: selectedSubtitleId == nil ? .on : .off) { [weak self] _ in
             Haptics.selection()
             self?.selectedSubtitleId = nil
             self?.reconfigure([.tracks])
@@ -351,7 +351,7 @@ final class MediaDetailViewController: UICollectionViewController {
             action.subtitle = option.detail
             return action
         }
-        return UIMenu(title: "Subtitles", options: .singleSelection, children: [off] + actions)
+        return UIMenu(title: String(localized: "Subtitles"), options: .singleSelection, children: [off] + actions)
     }
 
     private func loadData() {
@@ -408,10 +408,10 @@ final class MediaDetailViewController: UICollectionViewController {
     private func showLoadError(message: String) {
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "exclamationmark.triangle")
-        config.text = "Couldn\u{2019}t Load"
+        config.text = String(localized: "Couldn\u{2019}t Load")
         config.secondaryText = message
         var button = UIButton.Configuration.filled()
-        button.title = "Retry"
+        button.title = String(localized: "Retry")
         button.baseBackgroundColor = Theme.Color.accent
         button.baseForegroundColor = Theme.Color.onAccent
         button.cornerStyle = .capsule
@@ -510,7 +510,7 @@ final class MediaDetailViewController: UICollectionViewController {
         guard let indexPath = indexPaths.first, let related = related(at: indexPath),
               let open = WindowActivity.openInNewWindowAction(for: related) else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            let details = UIAction(title: "View Details", image: UIImage(systemName: "info.circle")) { _ in self?.openRelated(related) }
+            let details = UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { _ in self?.openRelated(related) }
             return UIMenu(children: [details, UIMenu(options: .displayInline, children: [open])])
         })
     }
@@ -615,7 +615,7 @@ extension MediaDetailViewController: CommandHandling, MediaScreen {
     func title(for command: AppCommand) -> String? {
         switch command {
         case .play: return model?.playTitle
-        case .toggleWatched: return model?.item.isWatched == true ? "Mark as Unwatched" : "Mark as Watched"
+        case .toggleWatched: return model?.item.isWatched == true ? String(localized: "Mark as Unwatched") : String(localized: "Mark as Watched")
         case .download: return DetailDownload.commandTitle(for: ratingKey)
         default: return nil
         }

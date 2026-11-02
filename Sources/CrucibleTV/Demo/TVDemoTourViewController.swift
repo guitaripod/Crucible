@@ -78,7 +78,7 @@ final class TVDemoTourViewController: TVSettingsScaffold {
                 id: RowID.step(step),
                 title: step.title,
                 subtitle: step.detail,
-                value: done ? "Done" : "Show me",
+                value: done ? String(localized: "Done") : String(localized: "Show me"),
                 symbol: step.symbol,
                 accessory: done ? .checkmark : .chevron
             )
@@ -87,7 +87,7 @@ final class TVDemoTourViewController: TVSettingsScaffold {
         if ProAccess.shared.isStoreBacked {
             rows.append(TVRowItem(id: RowID.pro, title: DemoCopy.finalePro, symbol: "sparkles", accessory: .chevron))
         }
-        rows.append(TVRowItem(id: RowID.leave, title: "Leave the Demo", symbol: "rectangle.portrait.and.arrow.right", isDestructive: true))
+        rows.append(TVRowItem(id: RowID.leave, title: String(localized: "Leave the Demo"), symbol: "rectangle.portrait.and.arrow.right", isDestructive: true))
         setRows(rows)
     }
 

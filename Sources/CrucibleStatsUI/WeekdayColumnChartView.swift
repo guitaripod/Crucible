@@ -30,7 +30,7 @@ package final class WeekdayColumnChartView: UIView {
         isOpaque = false
         isAccessibilityElement = true
         accessibilityTraits = .image
-        accessibilityLabel = "Plays by weekday"
+        accessibilityLabel = String(localized: "Plays by weekday")
 
         for i in 0..<7 {
             let track = CALayer()
@@ -233,9 +233,9 @@ package final class WeekdayColumnChartView: UIView {
     private func updateAccessibility() {
         guard values.count == 7, let maxCount = values.max(), maxCount > 0,
               let index = values.firstIndex(of: maxCount) else {
-            accessibilityLabel = "Plays by weekday"
+            accessibilityLabel = String(localized: "Plays by weekday")
             return
         }
-        accessibilityLabel = "Plays by weekday. Busiest \(StatsFormat.weekdayShort(index + 1)) with \(maxCount)."
+        accessibilityLabel = String(localized: "Plays by weekday. Busiest \(StatsFormat.weekdayShort(index + 1)) with \(maxCount).")
     }
 }

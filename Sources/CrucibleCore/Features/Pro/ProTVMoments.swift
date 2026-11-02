@@ -35,19 +35,19 @@ package enum ProTVMoments {
         case .free:
             return ProMoment(
                 kind: .firstFinish,
-                title: "Go further with Crucible Pro",
-                message: "Full Statistics for every range and library, and Top Shelf with Continue Watching on the Apple TV Home screen. Pro unlocks the moment you buy it, yearly or once for good.",
+                title: String(localized: "Go further with Crucible Pro"),
+                message: String(localized: "Full Statistics for every range and library, and Top Shelf with Continue Watching on the Apple TV Home screen. Pro unlocks the moment you buy it, yearly or once for good."),
                 action: .seePro,
-                actionTitle: "See Crucible Pro"
+                actionTitle: String(localized: "See Crucible Pro")
             )
         case .pro(let entitlement):
             guard entitlement.isTrial else { return nil }
             return ProMoment(
                 kind: .firstFinish,
-                title: "Your Crucible Pro trial is on",
-                message: "Statistics now covers every range and library, and Top Shelf shows Continue Watching on the Apple TV Home screen.",
+                title: String(localized: "Your Crucible Pro trial is on"),
+                message: String(localized: "Statistics now covers every range and library, and Top Shelf shows Continue Watching on the Apple TV Home screen."),
                 action: .openStatistics,
-                actionTitle: "Open Statistics"
+                actionTitle: String(localized: "Open Statistics")
             )
         }
     }
@@ -65,19 +65,20 @@ package enum ProTVMoments {
         let date = endsAt.formatted(date: .abbreviated, time: .omitted)
         var lines = [
             entitlement.willRenew
-                ? "Your free trial ends on \(date) and Crucible Pro then renews yearly."
-                : "Your free trial ends on \(date) and Crucible Pro will not renew."
+                ? String(localized: "Your free trial ends on \(date) and Crucible Pro then renews yearly.")
+                : String(localized: "Your free trial ends on \(date) and Crucible Pro will not renew.")
         ]
         if let weekWatchSeconds, weekWatchSeconds > 0 {
-            lines.append("This week you watched \(Formatters.duration(Double(weekWatchSeconds))); full Statistics keeps every week.")
+            let watched = Formatters.duration(Double(weekWatchSeconds))
+            lines.append(String(localized: "This week you watched \(watched); full Statistics keeps every week."))
         }
-        lines.append(entitlement.willRenew ? ProTVPresentation.manageSubscriptionText : "Full Statistics and Top Shelf lock again after that date.")
+        lines.append(entitlement.willRenew ? ProTVPresentation.manageSubscriptionText : String(localized: "Full Statistics and Top Shelf lock again after that date."))
         return ProMoment(
             kind: .trialEnding(endsAt),
-            title: "Your free trial ends soon",
+            title: String(localized: "Your free trial ends soon"),
             message: lines.joined(separator: "\n"),
             action: .acknowledge,
-            actionTitle: "OK"
+            actionTitle: String(localized: "OK")
         )
     }
 }

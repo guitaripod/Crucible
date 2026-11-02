@@ -155,16 +155,16 @@ package struct StatsPage: Equatable, Sendable {
 
     private static func tiles(_ snapshot: StatsSnapshot, binge: LongestBinge?) -> [Tile] {
         let o = snapshot.overview
-        let streakCaption = o.longestStreak > o.currentStreak ? "days · best \(o.longestStreak)" : "days"
+        let streakCaption = o.longestStreak > o.currentStreak ? String(localized: "days · best \(o.longestStreak)") : String(localized: "days")
         var tiles: [Tile] = [
-            Tile(key: "days", title: "Days Active", value: "\(o.daysActive)", systemImage: "calendar", caption: nil, sparkline: snapshot.weeklySparkline),
-            Tile(key: "streak", title: "Streak", value: "\(o.currentStreak)", systemImage: "flame", caption: streakCaption, sparkline: []),
-            Tile(key: "shows", title: "Shows", value: StatsFormat.abbreviatedCount(o.showsWatched), systemImage: "tv", caption: nil, sparkline: []),
-            Tile(key: "movies", title: "Movies", value: StatsFormat.abbreviatedCount(o.moviesWatched), systemImage: "film", caption: nil, sparkline: []),
-            Tile(key: "episodes", title: "Episodes", value: StatsFormat.abbreviatedCount(o.episodes), systemImage: "play", caption: nil, sparkline: []),
+            Tile(key: "days", title: String(localized: "Days Active"), value: "\(o.daysActive)", systemImage: "calendar", caption: nil, sparkline: snapshot.weeklySparkline),
+            Tile(key: "streak", title: String(localized: "Streak"), value: "\(o.currentStreak)", systemImage: "flame", caption: streakCaption, sparkline: []),
+            Tile(key: "shows", title: String(localized: "Shows"), value: StatsFormat.abbreviatedCount(o.showsWatched), systemImage: "tv", caption: nil, sparkline: []),
+            Tile(key: "movies", title: String(localized: "Movies"), value: StatsFormat.abbreviatedCount(o.moviesWatched), systemImage: "film", caption: nil, sparkline: []),
+            Tile(key: "episodes", title: String(localized: "Episodes"), value: StatsFormat.abbreviatedCount(o.episodes), systemImage: "play", caption: nil, sparkline: []),
         ]
         if let binge {
-            tiles.append(Tile(key: "binge", title: "Longest Binge", value: binge.value, systemImage: "clock", caption: binge.date, sparkline: []))
+            tiles.append(Tile(key: "binge", title: String(localized: "Longest Binge"), value: binge.value, systemImage: "clock", caption: binge.date, sparkline: []))
         }
         return tiles
     }
@@ -174,7 +174,7 @@ package struct StatsPage: Equatable, Sendable {
         guard let session = snapshot.binges.max(by: { $0.endViewedAt - $0.startViewedAt < $1.endViewedAt - $1.startViewedAt }) else { return nil }
         let seconds = session.endViewedAt - session.startViewedAt
         guard seconds >= 60 else { return nil }
-        let value = seconds >= 3600 ? "\(Int((Double(seconds) / 3600).rounded())) h" : "\(seconds / 60) min"
+        let value = seconds >= 3600 ? String(localized: "\(Int((Double(seconds) / 3600).rounded())) h") : String(localized: "\(seconds / 60) min")
         let date = Date(timeIntervalSince1970: TimeInterval(session.startViewedAt)).formatted(.dateTime.month(.abbreviated).day())
         return LongestBinge(value: value, date: date)
     }
@@ -182,31 +182,31 @@ package struct StatsPage: Equatable, Sendable {
     /// Hero copy: the verdict as eyebrow, estimated hours (or plays while runtimes are unknown) as the big number.
     private static func hero(_ snapshot: StatsSnapshot, range: StatsRange, verdict: String, time: StatsTime, now: Date) -> Hero {
         let o = snapshot.overview
-        let eyebrow = verdict.isEmpty ? "Your viewing" : verdict
+        let eyebrow = verdict.isEmpty ? String(localized: "Your viewing") : verdict
         let phrase = rangePhrase(range, time: time, now: now)
         let since = subtitle(snapshot)
         guard let hours = o.estHours, hours >= 0.5 else {
-            return Hero(eyebrow: eyebrow, value: o.totalPlays, unit: o.totalPlays == 1 ? "play" : "plays", detail: "watched \(phrase)", since: since)
+            return Hero(eyebrow: eyebrow, value: o.totalPlays, unit: o.totalPlays == 1 ? String(localized: "play") : String(localized: "plays"), detail: String(localized: "watched \(phrase)"), since: since)
         }
         let value = Int(hours.rounded())
         let pct = Int((o.coverage * 100).rounded())
-        return Hero(eyebrow: eyebrow, value: value, unit: value == 1 ? "hour" : "hours", detail: "watched \(phrase) · estimate, \(pct)% counted", since: since)
+        return Hero(eyebrow: eyebrow, value: value, unit: value == 1 ? String(localized: "hour") : String(localized: "hours"), detail: String(localized: "watched \(phrase) · estimate, \(pct)% counted"), since: since)
     }
 
     private static func rangePhrase(_ range: StatsRange, time: StatsTime, now: Date) -> String {
         switch range {
-        case .week: return "in the last 7 days"
-        case .month: return "in the last 30 days"
-        case .year: return "in \(time.calendar.component(.year, from: now))"
-        case .allTime: return "in total"
+        case .week: return String(localized: "in the last 7 days")
+        case .month: return String(localized: "in the last 30 days")
+        case .year: return String(localized: "in \(String(time.calendar.component(.year, from: now)))")
+        case .allTime: return String(localized: "in total")
         }
     }
 
     private static func subtitle(_ snapshot: StatsSnapshot) -> String {
-        guard let since = snapshot.overview.memberSinceViewedAt else { return "Your viewing, visualized" }
+        guard let since = snapshot.overview.memberSinceViewedAt else { return String(localized: "Your viewing, visualized") }
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return "Watching since \(formatter.string(from: Date(timeIntervalSince1970: TimeInterval(since))))"
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return String(localized: "Watching since \(formatter.string(from: Date(timeIntervalSince1970: TimeInterval(since))))")
     }
 
     /// A one-line personality for the viewing pattern; empty when nothing was watched.
@@ -219,10 +219,10 @@ package struct StatsPage: Equatable, Sendable {
         let wd = snapshot.weekdayHistogram
         let weekend = wd[0] + wd[6]
         let weekdayTotal = max(1, wd.reduce(0, +))
-        if Double(lateNight) / Double(total) > 0.33 { return "You're a Night Owl" }
-        if Double(morning) / Double(total) > 0.33 { return "You're an Early Bird" }
-        if Double(weekend) / Double(weekdayTotal) > 0.45 { return "You're a Weekend Warrior" }
-        return "You're a Prime-Time Viewer"
+        if Double(lateNight) / Double(total) > 0.33 { return String(localized: "You're a Night Owl") }
+        if Double(morning) / Double(total) > 0.33 { return String(localized: "You're an Early Bird") }
+        if Double(weekend) / Double(weekdayTotal) > 0.45 { return String(localized: "You're a Weekend Warrior") }
+        return String(localized: "You're a Prime-Time Viewer")
     }
 
     private static func topShows(_ snapshot: StatsSnapshot) -> [ShowRow] {
@@ -234,7 +234,7 @@ package struct StatsPage: Equatable, Sendable {
                 ratingKey: show.ratingKey,
                 title: show.title,
                 thumb: show.thumb,
-                valueText: episodes == 1 ? "1 ep" : "\(episodes) eps",
+                valueText: episodes == 1 ? String(localized: "1 ep") : String(localized: "\(episodes) eps"),
                 fraction: Double(show.count) / Double(maxCount),
                 completion: show.completion
             )
@@ -245,9 +245,9 @@ package struct StatsPage: Equatable, Sendable {
         guard !snapshot.genres.isEmpty else {
             let progress = snapshot.enrichment.genreCoverage
             return .pending(GenresPending(
-                title: "Analyzing your taste…",
+                title: String(localized: "Analyzing your taste…"),
                 progress: progress,
-                accessibilityLabel: "Analyzing your taste, \(Int((progress * 100).rounded())) percent"
+                accessibilityLabel: String(localized: "Analyzing your taste, \(Int((progress * 100).rounded())) percent")
             ))
         }
         let maxCount = max(1, snapshot.genres.first?.count ?? 1)
@@ -257,20 +257,20 @@ package struct StatsPage: Equatable, Sendable {
                 valueText: "\(genre.count)",
                 fraction: Double(genre.count) / Double(maxCount),
                 colorIndex: index,
-                accessibilityLabel: "\(genre.genre), \(genre.count) plays"
+                accessibilityLabel: String(localized: "\(genre.genre), \(genre.count) plays")
             )
         })
     }
 
     private static func momentum(_ snapshot: StatsSnapshot) -> Momentum? {
         guard snapshot.monthly.count >= 2 else { return nil }
-        var summary = "Plays per month."
+        var summary = String(localized: "Plays per month.")
         var peakText: String?
         if let peak = snapshot.monthly.max(by: { $0.count < $1.count }) {
             let (year, month) = StatsTime.monthEpochToYearMonth(peak.monthEpoch)
-            let text = "\(StatsTime.monthSymbols[max(0, min(11, month - 1))]) \(year)"
+            let text = String(localized: "\(StatsTime.monthSymbols[max(0, min(11, month - 1))]) \(String(year))")
             peakText = text
-            summary += " Peak in \(text) with \(peak.count) plays."
+            summary += " " + String(localized: "Peak in \(text) with \(peak.count) plays.")
         }
         return Momentum(values: snapshot.monthly.map { Double($0.count) }, peakText: peakText, summary: summary)
     }
@@ -282,18 +282,18 @@ package struct StatsPage: Equatable, Sendable {
         return Libraries(
             segments: slices.enumerated().map { DonutSegment(label: $0.element.title, value: $0.element.count, colorIndex: $0.offset) },
             centerTitle: StatsFormat.abbreviatedCount(total),
-            centerSubtitle: "plays",
+            centerSubtitle: String(localized: "plays"),
             legend: legendSlices.enumerated().map { LegendRow(colorIndex: $0.offset, title: $0.element.title, value: StatsFormat.abbreviatedCount($0.element.count)) },
-            accessibilitySummary: "Plays by library. " + legendSlices.map { "\($0.title), \($0.count)" }.joined(separator: ". ")
+            accessibilitySummary: String(localized: "Plays by library.") + " " + legendSlices.map { "\($0.title), \($0.count)" }.joined(separator: ". ")
         )
     }
 
     /// VoiceOver summary for the 24-hour clock: the busiest hour and its share of plays.
     private static func clockSummary(_ hours: [Int]) -> String {
         let total = hours.reduce(0, +)
-        guard total > 0, let peak = hours.max(), let hour = hours.firstIndex(of: peak) else { return "Plays by hour of day." }
-        let label = "\(hour % 12 == 0 ? 12 : hour % 12) \(hour < 12 ? "AM" : "PM")"
+        guard total > 0, let peak = hours.max(), let hour = hours.firstIndex(of: peak) else { return String(localized: "Plays by hour of day.") }
+        let label = StatsFormat.hour(hour)
         let share = Int((Double(peak) / Double(total) * 100).rounded())
-        return "Plays by hour of day. Busiest at \(label), \(share) percent of plays."
+        return String(localized: "Plays by hour of day. Busiest at \(label), \(share) percent of plays.")
     }
 }

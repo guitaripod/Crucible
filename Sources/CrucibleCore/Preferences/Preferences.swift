@@ -23,10 +23,10 @@ package enum Preferences {
 
         package var title: String {
             switch self {
-            case .original: return "Original"
-            case .high: return "High · 20 Mbps"
-            case .medium: return "Medium · 8 Mbps"
-            case .low: return "Low · 3 Mbps"
+            case .original: return String(localized: "Original")
+            case .high: return String(localized: "High · 20 Mbps")
+            case .medium: return String(localized: "Medium · 8 Mbps")
+            case .low: return String(localized: "Low · 3 Mbps")
             }
         }
     }
@@ -38,9 +38,9 @@ package enum Preferences {
 
         package var title: String {
             switch self {
-            case .button: return "Show Button"
-            case .automatic: return "Skip Automatically"
-            case .off: return "Off"
+            case .button: return String(localized: "Show Button")
+            case .automatic: return String(localized: "Skip Automatically")
+            case .off: return String(localized: "Off")
             }
         }
     }
@@ -52,9 +52,9 @@ package enum Preferences {
 
         package var title: String {
             switch self {
-            case .button: return "Show Button"
-            case .automatic: return "Skip Automatically"
-            case .off: return "Off"
+            case .button: return String(localized: "Show Button")
+            case .automatic: return String(localized: "Skip Automatically")
+            case .off: return String(localized: "Off")
             }
         }
     }
@@ -66,9 +66,9 @@ package enum Preferences {
 
         package var title: String {
             switch self {
-            case .system: return "System"
-            case .dark: return "Dark"
-            case .light: return "Light"
+            case .system: return String(localized: "System")
+            case .dark: return String(localized: "Dark")
+            case .light: return String(localized: "Light")
             }
         }
     }

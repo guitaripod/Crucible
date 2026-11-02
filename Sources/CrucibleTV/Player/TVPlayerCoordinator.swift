@@ -230,7 +230,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             return
         }
         guard let player = session.begin() else {
-            presentFailure("Playback could not start.", retry: { [weak self] in self?.startSession() })
+            presentFailure(String(localized: "Playback could not start."), retry: { [weak self] in self?.startSession() })
             return
         }
         player.preventsDisplaySleepDuringVideoPlayback = true
@@ -297,7 +297,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     private func showUndo(returningTo position: Double) {
         shownMarker = nil
         playerVC.contextualActions = [
-            UIAction(title: "Undo Skip", image: UIImage(systemName: "arrow.uturn.backward")) { [weak self] _ in
+            UIAction(title: String(localized: "Undo Skip"), image: UIImage(systemName: "arrow.uturn.backward")) { [weak self] _ in
                 self?.viewerActed()
                 self?.clearContextualActions()
                 self?.session?.undoAutoSkip(returnTo: position)
@@ -319,12 +319,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             return
         }
         isShowingAlert = true
-        let alert = UIAlertController(title: "Playback Error", message: "This video couldn't be played.\n\(message)", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Retry", style: .default) { [weak self] _ in
+        let alert = UIAlertController(title: String(localized: "Playback Error"), message: String(localized: "This video couldn't be played.\n\(message)"), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Retry"), style: .default) { [weak self] _ in
             self?.isShowingAlert = false
             retry()
         })
-        alert.addAction(UIAlertAction(title: "Close", style: .cancel) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: String(localized: "Close", comment: "Alert button that dismisses the error"), style: .cancel) { [weak self] _ in
             self?.isShowingAlert = false
             Task { await self?.finish(animated: true) }
         })

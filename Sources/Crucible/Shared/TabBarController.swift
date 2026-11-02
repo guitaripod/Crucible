@@ -98,11 +98,11 @@ final class TabBarController: UITabBarController {
     @available(iOS 18.0, *)
     private func installTabs(downloads: UINavigationController, you: UINavigationController, search: UINavigationController) {
         let home = homeNavigation
-        let homeTab = UITab(title: "Home", image: UIImage(systemName: "house"), identifier: Tab.home.identifier) { _ in home }
+        let homeTab = UITab(title: String(localized: "Home"), image: UIImage(systemName: "house"), identifier: Tab.home.identifier) { _ in home }
         let libraryTab: UITab
         if libraries.isEmpty {
             let library = allLibrariesNavigation()
-            libraryTab = UITab(title: "Library", image: UIImage(systemName: "rectangle.stack"), identifier: Tab.library.identifier) { _ in library }
+            libraryTab = UITab(title: String(localized: "Library"), image: UIImage(systemName: "rectangle.stack"), identifier: Tab.library.identifier) { _ in library }
         } else {
             let children = libraries.map { section in
                 let tab = UITab(
@@ -115,7 +115,7 @@ final class TabBarController: UITabBarController {
             }
             let sections = payload.sections
             let group = UITabGroup(
-                title: "Library",
+                title: String(localized: "Library"),
                 image: UIImage(systemName: "rectangle.stack"),
                 identifier: Tab.library.identifier,
                 children: children
@@ -123,10 +123,10 @@ final class TabBarController: UITabBarController {
             group.managingNavigationController = ContentNavigationController()
             libraryTab = group
         }
-        let downloadsTab = UITab(title: "Downloads", image: UIImage(systemName: "arrow.down.circle"), identifier: Tab.downloads.identifier) { _ in downloads }
-        let youTab = UITab(title: "You", image: UIImage(systemName: "person.crop.circle"), identifier: Tab.you.identifier) { _ in you }
+        let downloadsTab = UITab(title: String(localized: "Downloads"), image: UIImage(systemName: "arrow.down.circle"), identifier: Tab.downloads.identifier) { _ in downloads }
+        let youTab = UITab(title: String(localized: "You"), image: UIImage(systemName: "person.crop.circle"), identifier: Tab.you.identifier) { _ in you }
         let searchTab = UISearchTab { _ in search }
-        searchTab.title = "Search"
+        searchTab.title = String(localized: "Search")
         self.downloadsTab = downloadsTab
         self.searchTab = searchTab
         tabs = [homeTab, libraryTab, downloadsTab, youTab, searchTab]
@@ -142,10 +142,10 @@ final class TabBarController: UITabBarController {
 
     private func installLegacyTabs(downloads: UINavigationController, you: UINavigationController, search: UINavigationController) {
         let library = allLibrariesNavigation()
-        homeNavigation.tabBarItem = UITabBarItem(title: "Home", image: UIImage(systemName: "house"), selectedImage: UIImage(systemName: "house.fill"))
-        library.tabBarItem = UITabBarItem(title: "Library", image: UIImage(systemName: "rectangle.stack"), selectedImage: UIImage(systemName: "rectangle.stack.fill"))
-        downloads.tabBarItem = UITabBarItem(title: "Downloads", image: UIImage(systemName: "arrow.down.circle"), selectedImage: UIImage(systemName: "arrow.down.circle.fill"))
-        you.tabBarItem = UITabBarItem(title: "You", image: UIImage(systemName: "person.crop.circle"), selectedImage: UIImage(systemName: "person.crop.circle.fill"))
+        homeNavigation.tabBarItem = UITabBarItem(title: String(localized: "Home"), image: UIImage(systemName: "house"), selectedImage: UIImage(systemName: "house.fill"))
+        library.tabBarItem = UITabBarItem(title: String(localized: "Library"), image: UIImage(systemName: "rectangle.stack"), selectedImage: UIImage(systemName: "rectangle.stack.fill"))
+        downloads.tabBarItem = UITabBarItem(title: String(localized: "Downloads"), image: UIImage(systemName: "arrow.down.circle"), selectedImage: UIImage(systemName: "arrow.down.circle.fill"))
+        you.tabBarItem = UITabBarItem(title: String(localized: "You"), image: UIImage(systemName: "person.crop.circle"), selectedImage: UIImage(systemName: "person.crop.circle.fill"))
         search.tabBarItem = UITabBarItem(tabBarSystemItem: .search, tag: 4)
         downloadsTab = downloads.tabBarItem
         viewControllers = [homeNavigation, library, downloads, you, search]

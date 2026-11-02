@@ -184,7 +184,7 @@ package struct StatsStore: Sendable {
                 OnThisDayItem(
                     ratingKey: row["ratingKey"],
                     type: row["type"],
-                    title: row["title"] ?? "Unknown",
+                    title: row["title"] ?? String(localized: "Unknown"),
                     grandparentTitle: row["grandparentTitle"],
                     grandparentRatingKey: row["grandparentRatingKey"],
                     thumb: row["thumb"],
@@ -330,7 +330,7 @@ package struct StatsStore: Sendable {
         return rows.map { row in
             ShowStat(
                 ratingKey: row["k"],
-                title: row["title"] ?? "Unknown",
+                title: row["title"] ?? String(localized: "Unknown"),
                 thumb: row["thumb"],
                 count: row["plays"],
                 watchedEpisodes: row["eps"],
@@ -350,7 +350,7 @@ package struct StatsStore: Sendable {
             LIMIT 20
             """, arguments: [lowerBound])
         return rows.map { row in
-            MovieStat(ratingKey: row["k"], title: row["title"] ?? "Unknown", thumb: row["thumb"], count: row["plays"], lastViewedAt: row["last"])
+            MovieStat(ratingKey: row["k"], title: row["title"] ?? String(localized: "Unknown"), thumb: row["thumb"], count: row["plays"], lastViewedAt: row["last"])
         }
     }
 
@@ -392,7 +392,7 @@ package struct StatsStore: Sendable {
         func flush() {
             if count >= bingeMinEpisodes, let key = currentKey {
                 sessions.append(BingeSession(
-                    showTitle: currentTitle ?? "Unknown",
+                    showTitle: currentTitle ?? String(localized: "Unknown"),
                     showRatingKey: key,
                     episodeCount: count,
                     startViewedAt: start,
@@ -440,7 +440,7 @@ package struct StatsStore: Sendable {
             items.append(OnThisDayItem(
                 ratingKey: key,
                 type: row["type"],
-                title: row["title"] ?? "Unknown",
+                title: row["title"] ?? String(localized: "Unknown"),
                 grandparentTitle: row["grandparentTitle"],
                 grandparentRatingKey: row["grandparentRatingKey"],
                 thumb: row["thumb"],
@@ -484,25 +484,25 @@ package struct StatsStore: Sendable {
             let dayEpoch: Int = row["dayEpoch"]
             let count: Int = row["c"]
             let date = time.date(forDayEpoch: dayEpoch)
-            cards.append(Superlative(symbol: "calendar", headline: "\(count)", title: "Busiest Day", caption: "\(count) plays on \(dateFormatter.string(from: date))"))
+            cards.append(Superlative(symbol: "calendar", headline: "\(count)", title: String(localized: "Busiest Day"), caption: String(localized: "\(count) plays on \(dateFormatter.string(from: date))")))
         }
 
         if longestStreak > 0 {
-            cards.append(Superlative(symbol: "flame.fill", headline: "\(longestStreak)", title: "Longest Streak", caption: longestStreak == 1 ? "day in a row" : "days in a row"))
+            cards.append(Superlative(symbol: "flame.fill", headline: "\(longestStreak)", title: String(localized: "Longest Streak"), caption: longestStreak == 1 ? String(localized: "day in a row") : String(localized: "days in a row")))
         }
 
         if let biggest = binges.first {
-            cards.append(Superlative(symbol: "tv.fill", headline: "\(biggest.episodeCount)", title: "Biggest Binge", caption: "\(biggest.episodeCount) episodes of \(biggest.showTitle)"))
+            cards.append(Superlative(symbol: "tv.fill", headline: "\(biggest.episodeCount)", title: String(localized: "Biggest Binge"), caption: String(localized: "\(biggest.episodeCount) episodes of \(biggest.showTitle)")))
         }
 
         let total = hourHistogram.reduce(0, +)
         if total > 0 {
             let nightPlays = hourHistogram[0...4].reduce(0, +)
             let pct = Int((Double(nightPlays) / Double(total) * 100).rounded())
-            cards.append(Superlative(symbol: "moon.stars.fill", headline: "\(pct)%", title: "Night Owl", caption: "of plays after midnight"))
+            cards.append(Superlative(symbol: "moon.stars.fill", headline: "\(pct)%", title: String(localized: "Night Owl"), caption: String(localized: "of plays after midnight")))
 
             if let peakHour = hourHistogram.indices.max(by: { hourHistogram[$0] < hourHistogram[$1] }) {
-                cards.append(Superlative(symbol: "clock.fill", headline: formatHour(peakHour), title: "Golden Hour", caption: "your most-pressed play time"))
+                cards.append(Superlative(symbol: "clock.fill", headline: formatHour(peakHour), title: String(localized: "Golden Hour"), caption: String(localized: "your most-pressed play time")))
             }
         }
 
@@ -510,26 +510,22 @@ package struct StatsStore: Sendable {
             let viewedAt: Int = row["viewedAt"]
             let date = Date(timeIntervalSince1970: TimeInterval(viewedAt))
             let title: String = row["grandparentTitle"] ?? row["title"] ?? ""
-            cards.append(Superlative(symbol: "sparkles", headline: shortRelative(date), title: "Member Since", caption: title.isEmpty ? dateFormatter.string(from: date) : "started with \(title)"))
+            cards.append(Superlative(symbol: "sparkles", headline: shortRelative(date), title: String(localized: "Member Since"), caption: title.isEmpty ? dateFormatter.string(from: date) : String(localized: "started with \(title)")))
         }
 
         return cards
     }
 
     private static func formatHour(_ hour: Int) -> String {
-        let h = hour % 24
-        if h == 0 { return "12 AM" }
-        if h == 12 { return "12 PM" }
-        if h < 12 { return "\(h) AM" }
-        return "\(h - 12) PM"
+        StatsFormat.hour(hour)
     }
 
     private static func shortRelative(_ date: Date) -> String {
         let years = Calendar.current.dateComponents([.year], from: date, to: Date()).year ?? 0
-        if years >= 1 { return "\(years)y" }
+        if years >= 1 { return String(localized: "\(years)y", comment: "Years since the date, abbreviated") }
         let months = Calendar.current.dateComponents([.month], from: date, to: Date()).month ?? 0
-        if months >= 1 { return "\(months)mo" }
+        if months >= 1 { return String(localized: "\(months)mo", comment: "Months since the date, abbreviated") }
         let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
-        return "\(max(0, days))d"
+        return String(localized: "\(max(0, days))d", comment: "Days since the date, abbreviated")
     }
 }

@@ -20,11 +20,11 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     private var picker: ServerPickerState
     private var isConnecting = false
 
-    private let backButton = ThemeButton.icon(symbol: "chevron.left", label: "Back")
+    private let backButton = ThemeButton.icon(symbol: "chevron.left", label: String(localized: "Back"))
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let errorLabel = UILabel()
-    private let connectButton = ThemeButton.primary(title: "Connect")
+    private let connectButton = ThemeButton.primary(title: String(localized: "Connect"))
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<Int, Item>!
     private var probeTask: Task<Void, Never>?
@@ -61,14 +61,14 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
     private func configureHeader() {
         backButton.addAction(UIAction { [weak self] _ in self?.onBack?() }, for: .touchUpInside)
 
-        titleLabel.text = "Choose Server"
+        titleLabel.text = String(localized: "Choose Server")
         titleLabel.font = Theme.Font.largeTitle
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = Theme.Color.label
         titleLabel.numberOfLines = 0
         titleLabel.accessibilityTraits = .header
 
-        subtitleLabel.text = "Crucible tested every connection and picked the fastest."
+        subtitleLabel.text = String(localized: "Crucible tested every connection and picked the fastest.")
         subtitleLabel.font = Theme.Font.subheadline
         subtitleLabel.adjustsFontForContentSizeCategory = true
         subtitleLabel.textColor = Theme.Color.labelSecondary
@@ -136,7 +136,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
 
         let addReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
             var content = UIListContentConfiguration.cell()
-            content.text = "Add by address…"
+            content.text = String(localized: "Add by address…")
             content.image = UIImage(systemName: "plus")
             content.textProperties.font = Theme.Font.scaled(.callout, 16, .semibold)
             content.textProperties.color = Theme.Color.accentText
@@ -150,7 +150,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
 
         let hintReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
             var content = UIListContentConfiguration.cell()
-            content.text = "A hostname or IP such as 100.x.x.x for Tailscale. Crucible tries HTTPS first."
+            content.text = String(localized: "A hostname or IP such as 100.x.x.x for Tailscale. Crucible tries HTTPS first.")
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary
             content.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)

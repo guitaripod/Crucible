@@ -14,7 +14,7 @@ struct HomeHeroConfiguration: UIContentConfiguration, Hashable {
     var eyebrow: String = ""
     var title: String = ""
     var subtitle: String?
-    var actionTitle: String = "Resume"
+    var actionTitle: String = String(localized: "Resume")
     var trailingText: String?
     var progress: Double?
     var showsInfoButton: Bool = true
@@ -140,7 +140,7 @@ final class HomeHeroContentView: UIView, UIContentView {
         info.cornerStyle = .capsule
         info.contentInsets = .zero
         infoButton.configuration = info
-        infoButton.accessibilityLabel = "Details"
+        infoButton.accessibilityLabel = String(localized: "Details", comment: "Accessibility label of the button that opens an item's details")
         infoButton.isPointerInteractionEnabled = true
         infoButton.addAction(UIAction { [weak self] _ in self?.onDetails?() }, for: .primaryActionTriggered)
         infoButton.translatesAutoresizingMaskIntoConstraints = false
@@ -240,7 +240,7 @@ final class HomeHeroContentView: UIView, UIContentView {
         accessibilityLabel = config.spokenLabel
         var custom = [UIAccessibilityCustomAction]()
         if config.showsInfoButton {
-            custom.append(UIAccessibilityCustomAction(name: "View Details") { [weak self] _ in
+            custom.append(UIAccessibilityCustomAction(name: String(localized: "View Details")) { [weak self] _ in
                 self?.onDetails?()
                 return true
             })

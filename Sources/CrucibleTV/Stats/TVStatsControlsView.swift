@@ -35,7 +35,7 @@ final class TVStatsControlsView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        title.configure(TVScreenTitleContent(title: "Statistics"))
+        title.configure(TVScreenTitleContent(title: String(localized: "Statistics")))
 
         chipRow.spacing = Theme.Space.s
         chipRow.setItems(chipItems())
@@ -75,7 +75,7 @@ final class TVStatsControlsView: UIView {
 
     func configure(range: StatsRange, since: String?, filter: StatsLibraryFilter) {
         self.range = range
-        title.configure(TVScreenTitleContent(title: "Statistics", summary: since))
+        title.configure(TVScreenTitleContent(title: String(localized: "Statistics"), summary: since))
         chipRow.setItems(chipItems())
         updateLibraries(filter)
     }
@@ -102,8 +102,8 @@ final class TVStatsControlsView: UIView {
                 title: candidate.title,
                 symbol: locked ? "lock.fill" : nil,
                 isSelected: candidate == range,
-                accessibilityLabel: locked ? "\(candidate.title), locked" : nil,
-                accessibilityHint: locked ? "Requires Crucible Pro" : nil
+                accessibilityLabel: locked ? String(localized: "\(candidate.title), locked") : nil,
+                accessibilityHint: locked ? String(localized: "Requires Crucible Pro") : nil
             )
         }
     }
@@ -164,15 +164,15 @@ final class TVStatsControlsView: UIView {
         button.menu = nil
         button.showsMenuAsPrimaryAction = false
         button.configuration = TVButton.configuration(.glass, title: title, symbol: "lock.fill")
-        button.accessibilityLabel = "\(title), locked"
-        button.accessibilityHint = "Requires Crucible Pro"
+        button.accessibilityLabel = String(localized: "\(title), locked")
+        button.accessibilityHint = String(localized: "Requires Crucible Pro")
         let lockAction = UIAction { [weak self] _ in self?.onLocked?(.libraries) }
         librariesLockAction = lockAction
         button.addAction(lockAction, for: .primaryActionTriggered)
     }
 
     private static func librariesTitle(_ filter: StatsLibraryFilter) -> String {
-        filter.isCustomized ? "Libraries · Filtered" : "Libraries"
+        filter.isCustomized ? String(localized: "Libraries · Filtered") : String(localized: "Libraries")
     }
 
     private static func menu(for filter: StatsLibraryFilter) -> UIMenu {
@@ -187,9 +187,9 @@ final class TVStatsControlsView: UIView {
                 filter.toggle(entry)
             }
         }
-        var children: [UIMenuElement] = [UIMenu(title: "Include in Statistics", options: .displayInline, children: toggles)]
+        var children: [UIMenuElement] = [UIMenu(title: String(localized: "Include in Statistics"), options: .displayInline, children: toggles)]
         if filter.hasOverrides {
-            children.append(UIAction(title: "Reset to Plex Defaults", image: UIImage(systemName: "arrow.counterclockwise")) { _ in
+            children.append(UIAction(title: String(localized: "Reset to Plex Defaults"), image: UIImage(systemName: "arrow.counterclockwise")) { _ in
                 filter.resetToPlexDefaults()
             })
         }

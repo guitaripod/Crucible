@@ -35,7 +35,7 @@ final class ServerDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Server"
+        title = String(localized: "Server")
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = Theme.Color.canvas
 
@@ -137,11 +137,11 @@ final class ServerDetailViewController: UIViewController {
         let actionCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, item in
             switch item {
             case .addServer:
-                cell.contentConfiguration = ActionRowConfiguration(symbol: "plus", title: "Add Server by Address…", isAccent: true)
+                cell.contentConfiguration = ActionRowConfiguration(symbol: "plus", title: String(localized: "Add Server by Address…"), isAccent: true)
             case .tailnetAccess:
-                cell.contentConfiguration = ActionRowConfiguration(symbol: "network", title: "Tailscale Search", value: Self.tailnetAccessValue, showsChevron: true)
+                cell.contentConfiguration = ActionRowConfiguration(symbol: "network", title: String(localized: "Tailscale Search"), value: Self.tailnetAccessValue, showsChevron: true)
             default:
-                cell.contentConfiguration = ActionRowConfiguration(symbol: "arrow.left.arrow.right", title: "Switch Server", showsChevron: true)
+                cell.contentConfiguration = ActionRowConfiguration(symbol: "arrow.left.arrow.right", title: String(localized: "Switch Server"), showsChevron: true)
             }
             cell.backgroundConfiguration = Theme.groupedCellBackground()
         }
@@ -163,7 +163,7 @@ final class ServerDetailViewController: UIViewController {
 
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { header, _, _ in
             var content = UIListContentConfiguration.groupedHeader()
-            content.text = "Connections"
+            content.text = String(localized: "Connections")
             content.textProperties.font = Theme.Font.footnoteSemibold
             content.textProperties.color = Theme.Color.labelSecondary
             content.textProperties.transform = .uppercase
@@ -232,9 +232,9 @@ final class ServerDetailViewController: UIViewController {
 
     private static var tailnetAccessValue: String {
         switch TailnetAccess.state {
-        case .none: return "Off"
-        case .saved: return "On"
-        case .rejected: return "Needs a new token"
+        case .none: return String(localized: "Off")
+        case .saved: return String(localized: "On")
+        case .rejected: return String(localized: "Needs a new token")
         }
     }
 

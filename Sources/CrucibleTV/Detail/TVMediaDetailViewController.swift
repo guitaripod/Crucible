@@ -33,7 +33,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
         } catch {
             guard !Task.isCancelled else { return }
             MidgarLog.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
-            if !hasContent { showFailure(title: "Couldn\u{2019}t Load", message: error.localizedDescription) }
+            if !hasContent { showFailure(title: String(localized: "Couldn\u{2019}t Load"), message: error.localizedDescription) }
         }
     }
 
@@ -66,7 +66,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
         let item = model.item
         var facts = model.facts
         if !item.genres.isEmpty {
-            facts.insert(DetailFact(key: "Genres", value: item.genres.joined(separator: ", ")), at: 0)
+            facts.insert(DetailFact(key: String(localized: "Genres"), value: item.genres.joined(separator: ", ")), at: 0)
         }
         return TVDetailContent(
             artwork: model.heroArtwork,
@@ -82,7 +82,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
 
     private func actions(for model: MovieDetailModel) -> [TVDetailAction] {
         let item = model.item
-        let primaryTitle = model.hasProgress ? "\(model.playTitle) · \(model.progress.text)" : model.playTitle
+        let primaryTitle = model.hasProgress ? String(localized: "\(model.playTitle) · \(model.progress.text)") : model.playTitle
         var actions = [
             TVDetailAction(
                 kind: .primary,
@@ -96,7 +96,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
         if model.hasResumePosition {
             actions.append(TVDetailAction(
                 kind: .startOver,
-                title: "Start Over",
+                title: String(localized: "Start Over"),
                 symbol: "arrow.counterclockwise",
                 handler: { [weak self] in self?.play(startingAt: 0) }
             ))
@@ -110,26 +110,26 @@ final class TVMediaDetailViewController: TVDetailViewController {
         if let value = model.audioButtonValue(selectedId: audioID) {
             actions.append(TVDetailAction(
                 kind: .audio,
-                title: "Audio: \(value)",
+                title: String(localized: "Audio: \(value)"),
                 menu: audioMenu(for: model),
-                accessibilityLabel: "Audio, \(value)"
+                accessibilityLabel: String(localized: "Audio, \(value)")
             ))
         }
         if let value = model.subtitleButtonValue(selectedId: subtitleID) {
             actions.append(TVDetailAction(
                 kind: .subtitles,
-                title: "Subtitles: \(value)",
+                title: String(localized: "Subtitles: \(value)"),
                 menu: subtitleMenu(for: model),
-                accessibilityLabel: "Subtitles, \(value)"
+                accessibilityLabel: String(localized: "Subtitles, \(value)")
             ))
         }
         if model.isEpisode, let route = model.showRoute {
-            actions.append(TVDetailAction(kind: .goToShow, title: "Go to Show", symbol: "tv", handler: { [weak self] in self?.push(route) }))
+            actions.append(TVDetailAction(kind: .goToShow, title: String(localized: "Go to Show"), symbol: "tv", handler: { [weak self] in self?.push(route) }))
         }
         if model.isEpisode, model.seasonKey != nil {
             actions.append(TVDetailAction(
                 kind: .nextEpisode,
-                title: "Next Episode",
+                title: String(localized: "Next Episode"),
                 symbol: "forward.end.fill",
                 handler: { [weak self] in self?.goToNextEpisode() }
             ))
@@ -146,11 +146,11 @@ final class TVMediaDetailViewController: TVDetailViewController {
             action.subtitle = option.detail
             return action
         }
-        return UIMenu(title: "Audio", options: .singleSelection, children: actions)
+        return UIMenu(title: String(localized: "Audio", comment: "Menu title for the audio track options"), options: .singleSelection, children: actions)
     }
 
     private func subtitleMenu(for model: MovieDetailModel) -> UIMenu {
-        let off = UIAction(title: "Off", state: subtitleID == nil ? .on : .off) { [weak self] _ in
+        let off = UIAction(title: String(localized: "Off", comment: "Subtitle option that turns subtitles off"), state: subtitleID == nil ? .on : .off) { [weak self] _ in
             self?.subtitleID = nil
             self?.rebuild()
         }
@@ -167,7 +167,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
             action.subtitle = option.detail
             return action
         }
-        return UIMenu(title: "Subtitles", options: .singleSelection, children: [off] + actions)
+        return UIMenu(title: String(localized: "Subtitles", comment: "Menu title for the subtitle options"), options: .singleSelection, children: [off] + actions)
     }
 
     private func play(startingAt position: Double?) {

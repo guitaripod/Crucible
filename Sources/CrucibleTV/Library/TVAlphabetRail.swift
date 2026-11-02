@@ -66,7 +66,8 @@ final class TVAlphabetRail: UIView {
     private func makeButton(for letter: String) -> UIButton {
         let button = UIButton(type: .system)
         button.accessibilityIdentifier = "tv.library.rail.\(letter)"
-        button.accessibilityLabel = "Jump to \(letter == "#" ? "numbers and symbols" : letter)"
+        let spokenLetter = letter == "#" ? String(localized: "numbers and symbols") : letter
+        button.accessibilityLabel = String(localized: "Jump to \(spokenLetter)")
         button.configurationUpdateHandler = { [weak self] button in
             guard let self else { return }
             var configuration = UIButton.Configuration.plain()

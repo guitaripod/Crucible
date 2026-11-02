@@ -76,22 +76,23 @@ final class ProStatusViewController: UICollectionViewController {
             cell.applyThemedBackground()
             switch item {
             case .plan:
+                let productName = "Crucible Pro"
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "sparkles", title: "Crucible Pro", subtitle: self?.entitlement?.summary(), value: "Active"
+                    symbol: "sparkles", title: productName, subtitle: self?.entitlement?.summary(), value: String(localized: "Active")
                 )
             case .manageSubscription:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "creditcard", title: "Manage Subscription")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "creditcard", title: String(localized: "Manage Subscription"))
             case .restore:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "arrow.clockwise", title: "Restore Purchases")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "arrow.clockwise", title: String(localized: "Restore Purchases"))
                 if self?.isRestoring == true {
                     let spinner = UIActivityIndicatorView(style: .medium)
                     spinner.startAnimating()
                     cell.accessories = [.customView(configuration: .init(customView: spinner, placement: .trailing()))]
                 }
             case .terms:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: "Terms of Use")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: String(localized: "Terms of Use"))
             case .privacy:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "hand.raised", title: "Privacy Policy")
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "hand.raised", title: String(localized: "Privacy Policy"))
             }
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
@@ -100,7 +101,7 @@ final class ProStatusViewController: UICollectionViewController {
 
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
             var content = UIListContentConfiguration.groupedFooter()
-            content.text = "Thank you for supporting Crucible. Unlimited downloads, full Statistics and the Year in Review poster are unlocked."
+            content.text = String(localized: "Thank you for supporting Crucible. Unlimited downloads, full Statistics and the Year in Review poster are unlocked.")
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content
@@ -154,16 +155,16 @@ final class ProStatusViewController: UICollectionViewController {
     private func showRestoreSucceeded() {
         restoreModel = nil
         Haptics.success()
-        presentAlert(title: "Purchases Restored", message: "Crucible Pro is active on this device.")
+        presentAlert(title: String(localized: "Purchases Restored"), message: String(localized: "Crucible Pro is active on this device."))
     }
 
     private func showRestoreResult(notice: PaywallModel.Notice) {
         restoreModel = nil
         let title: String
         switch notice {
-        case .nothingToRestore: title = "Nothing to Restore"
-        case .pending: title = "Waiting for Approval"
-        case .failure: title = "Restore Failed"
+        case .nothingToRestore: title = String(localized: "Nothing to Restore")
+        case .pending: title = String(localized: "Waiting for Approval")
+        case .failure: title = String(localized: "Restore Failed")
         }
         if case .failure = notice { Haptics.error() }
         presentAlert(title: title, message: PaywallModel.message(for: notice))
@@ -171,7 +172,7 @@ final class ProStatusViewController: UICollectionViewController {
 
     private func presentAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         present(alert, animated: true)
     }
 }

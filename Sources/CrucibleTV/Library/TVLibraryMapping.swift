@@ -14,7 +14,7 @@ extension TVCardItem {
             progress: poster.progress,
             isUnwatched: poster.isUnwatched,
             isWatched: kind == .movie && item.isWatched,
-            badgeText: poster.unwatchedCount.map { "\($0) unwatched" },
+            badgeText: poster.unwatchedCount.map { String(localized: "\($0) unwatched") },
             placeholderSymbol: poster.placeholderIcon
         )
     }

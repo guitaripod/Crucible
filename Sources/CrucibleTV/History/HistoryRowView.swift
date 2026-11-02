@@ -38,7 +38,7 @@ final class HistoryRowSurface: TVFocusableSurface {
         timeLabel.text = row.timeText
         timeLabel.isHidden = (row.timeText ?? "").isEmpty
         accessibilityLabel = [row.title, row.subtitle, row.timeText].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
-        accessibilityHint = "Opens details"
+        accessibilityHint = String(localized: "Opens details")
     }
 
     func resetArtwork() {
@@ -152,7 +152,7 @@ final class HistoryRowView: UIStackView {
         configuration?.showsActivityIndicator = isBusy
         configuration?.image = isBusy ? nil : UIImage(systemName: "play.fill")
         playButton.configuration = configuration
-        playButton.accessibilityLabel = "Play \(row.title) again"
+        playButton.accessibilityLabel = String(localized: "Play \(row.title) again")
         playButton.accessibilityIdentifier = "history.play.\(item.uniqueId)"
     }
 }

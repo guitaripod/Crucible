@@ -274,7 +274,7 @@ final class DetailNavigationChrome {
             playButton.widthAnchor.constraint(equalToConstant: 32),
             playButton.heightAnchor.constraint(equalToConstant: 32),
         ])
-        playButton.accessibilityLabel = "Play"
+        playButton.accessibilityLabel = String(localized: "Play")
         playButton.alpha = 0
         playButton.addAction(UIAction { _ in
             Haptics.light()

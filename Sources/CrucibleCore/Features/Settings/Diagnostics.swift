@@ -118,7 +118,7 @@ package enum ImageCacheMeter {
     }
 
     package static func formatted(_ bytes: Int64) -> String {
-        bytes > 0 ? ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) : "Empty"
+        bytes > 0 ? ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) : String(localized: "Empty")
     }
 }
 

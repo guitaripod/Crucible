@@ -6,7 +6,7 @@ struct DownloadedShowGroup {
     let key: String
     let items: [DownloadItem]
 
-    var title: String { items.first?.showTitle ?? "Show" }
+    var title: String { items.first?.showTitle ?? String(localized: "Show") }
     var posterKey: String { items.first?.ratingKey ?? key }
     var totalBytes: Int64 { items.reduce(0) { $0 + $1.totalBytes } }
     var unwatchedCount: Int { items.filter { !$0.isWatched }.count }
@@ -16,8 +16,8 @@ struct DownloadedShowGroup {
         let seasons = Set(items.compactMap(\.seasonNumber)).sorted()
         switch seasons.count {
         case 0: return ""
-        case 1: return "S\(seasons[0])"
-        default: return "\(seasons.count) seasons"
+        case 1: return String(localized: "S\(seasons[0])")
+        default: return String(localized: "\(seasons.count) seasons")
         }
     }
 
@@ -55,28 +55,28 @@ enum DownloadRowFactory {
             config.onRingTap = { DownloadManager.shared.pause(ratingKey) }
         case .queued:
             config.progress = item.progress > 0 ? item.progress : nil
-            config.status = "Queued · \(item.quality.shortLabel)"
+            config.status = String(localized: "Queued · \(item.quality.shortLabel)")
             config.statusTone = .secondary
             config.ring = .queued
-            config.ringHint = "Queued. Double tap to pause"
+            config.ringHint = String(localized: "Queued. Double tap to pause")
             config.onRingTap = { DownloadManager.shared.pause(ratingKey) }
             config.contentAlpha = 0.8
         case .waitingForWiFi:
-            config.status = "Waiting for Wi-Fi"
+            config.status = String(localized: "Waiting for Wi-Fi")
             config.statusTone = .secondary
             config.statusSymbol = "wifi"
             config.ring = .queued
-            config.ringHint = "Waiting for Wi-Fi. Double tap to pause"
+            config.ringHint = String(localized: "Waiting for Wi-Fi. Double tap to pause")
             config.onRingTap = { DownloadManager.shared.pause(ratingKey) }
             config.contentAlpha = 0.8
         case .paused:
             config.progress = item.progress
-            config.status = "Paused · \(item.percentText)"
+            config.status = String(localized: "Paused · \(item.percentText)")
             config.statusTone = .secondary
             config.ring = .paused(item.progress)
             config.onRingTap = { DownloadManager.shared.requestResume(ratingKey) }
         case .failed:
-            config.status = item.errorMessage ?? "Download failed"
+            config.status = item.errorMessage ?? String(localized: "Download failed")
             config.statusTone = .error
             config.ring = .failed
             config.onRingTap = { DownloadManager.shared.requestResume(ratingKey) }
@@ -100,7 +100,7 @@ enum DownloadRowFactory {
     static func movie(_ item: DownloadItem) -> DownloadRowConfiguration {
         var config = DownloadRowConfiguration(posterKey: item.ratingKey, title: item.title)
         config.placeholderIcon = "film"
-        var subtitle = ["Movie"]
+        var subtitle = [String(localized: "Movie")]
         let runtime = DownloadFormat.runtime(item.durationSecs)
         if !runtime.isEmpty { subtitle.append(runtime) }
         config.subtitle = subtitle.joined(separator: " · ")
@@ -125,12 +125,12 @@ enum DownloadRowFactory {
         config.placeholderIcon = "tv"
         config.isStacked = true
         let count = group.items.count
-        var subtitle = ["\(count) \(count == 1 ? "episode" : "episodes")"]
+        var subtitle = [String(localized: "\(count) episodes")]
         if !group.seasonLabel.isEmpty { subtitle.append(group.seasonLabel) }
         config.subtitle = subtitle.joined(separator: " · ")
         var meta = [String]()
         if group.totalBytes > 0 { meta.append(Formatters.fileSize(group.totalBytes)) }
-        meta.append(group.unwatchedCount == 0 ? "Watched" : "\(group.unwatchedCount) unwatched")
+        meta.append(group.unwatchedCount == 0 ? String(localized: "Watched") : String(localized: "\(group.unwatchedCount) unwatched"))
         config.status = meta.joined(separator: " · ")
         config.statusTone = .tertiary
         return config
@@ -141,10 +141,10 @@ enum DownloadRowFactory {
         if item.totalBytes > 0 { parts.append(Formatters.fileSize(item.totalBytes)) }
         if includeWatchState {
             if item.isWatched {
-                parts.append("Watched")
+                parts.append(String(localized: "Watched"))
             } else if item.viewOffsetMs > 0, item.durationMs > item.viewOffsetMs {
                 let left = DownloadFormat.runtime(Double(item.durationMs - item.viewOffsetMs) / 1000)
-                if !left.isEmpty { parts.append("\(left) left") }
+                if !left.isEmpty { parts.append(String(localized: "\(left) left")) }
             }
         }
         return parts.joined(separator: " · ")

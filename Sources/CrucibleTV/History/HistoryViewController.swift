@@ -44,7 +44,7 @@ final class HistoryViewController: TVScreenViewController {
         env = environment
         feed = HistoryFeed(api: environment.api)
         super.init(layout: UICollectionViewLayout())
-        title = "Watch History"
+        title = String(localized: "Watch History")
     }
 
     override func viewDidLoad() {
@@ -193,7 +193,7 @@ final class HistoryViewController: TVScreenViewController {
     }
 
     private var refreshChipItem: TVChipItem {
-        TVChipItem(id: Self.refreshChipID, title: isRefreshing ? "Refreshing" : "Refresh", symbol: "arrow.clockwise")
+        TVChipItem(id: Self.refreshChipID, title: isRefreshing ? String(localized: "Refreshing") : String(localized: "Refresh"), symbol: "arrow.clockwise")
     }
 
     private func dayHeader(forSection section: Int) -> TVSectionHeader? {
@@ -210,13 +210,13 @@ final class HistoryViewController: TVScreenViewController {
         let state = currentState
         switch state {
         case .loading:
-            show(state: .loading(title: "Loading History"))
+            show(state: .loading(title: String(localized: "Loading History")))
             return
         case .noActivity:
-            showMessage(for: state, actionTitle: "Refresh") { [weak self] in self?.refresh() }
+            showMessage(for: state, actionTitle: String(localized: "Refresh")) { [weak self] in self?.refresh() }
             return
         case .loadFailed:
-            showMessage(for: state, actionTitle: "Try Again") { [weak self] in self?.retry() }
+            showMessage(for: state, actionTitle: String(localized: "Try Again")) { [weak self] in self?.retry() }
             return
         case .populated, .noMatches:
             break
@@ -228,7 +228,7 @@ final class HistoryViewController: TVScreenViewController {
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, Entry>()
         snapshot.appendSections([.title, .filters])
-        snapshot.appendItems([.title(TVScreenTitleContent(title: "Watch History", summary: summary))], toSection: .title)
+        snapshot.appendItems([.title(TVScreenTitleContent(title: String(localized: "Watch History"), summary: summary))], toSection: .title)
         snapshot.appendItems(HistoryFilter.allCases.map { .filter($0) } + [.refresh], toSection: .filters)
         if state == .populated {
             for group in HistoryDay.groups(of: visible, calendar: .current) {
@@ -259,7 +259,7 @@ final class HistoryViewController: TVScreenViewController {
         isRefreshing = false
         render()
         if event == .failed, wasRefreshing, !feed.items.isEmpty {
-            presentAlert(title: "Couldn't Refresh History", message: "Check your connection and try again.")
+            presentAlert(title: String(localized: "Couldn't Refresh History"), message: String(localized: "Check your connection and try again."))
         }
     }
 
@@ -331,7 +331,7 @@ final class HistoryViewController: TVScreenViewController {
     }
 
     private func presentPlaybackError() {
-        presentAlert(title: "Couldn't Start Playback", message: "The server didn't return this title. Try again in a moment.")
+        presentAlert(title: String(localized: "Couldn't Start Playback"), message: String(localized: "The server didn't return this title. Try again in a moment."))
     }
 }
 

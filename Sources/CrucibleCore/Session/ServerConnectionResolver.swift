@@ -19,7 +19,7 @@ package enum ServerConnectionResolver {
             return .connection(connection)
         }
 
-        progress("Looking for \(connection.serverName)…")
+        progress(String(localized: "Looking for \(connection.serverName)…"))
         log.error("Pinned route \(connection.serverURI.absoluteString, privacy: .public) unreachable; re-discovering")
         MidgarLog.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", category: .networking)
 

@@ -233,7 +233,7 @@ final class PosterContentView: UIView, UIContentView {
         config.cornerStyle = .capsule
         config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         playChip.configuration = config
-        playChip.accessibilityLabel = "Play"
+        playChip.accessibilityLabel = String(localized: "Play")
         playChip.isPointerInteractionEnabled = true
         playChip.addAction(UIAction { [weak self] _ in self?.onQuickPlay?() }, for: .primaryActionTriggered)
     }
@@ -302,12 +302,12 @@ final class PosterContentView: UIView, UIContentView {
         var parts = [config.title]
         if let subtitle = config.subtitle, !subtitle.isEmpty { parts.append(subtitle) }
         if let count = config.unwatchedCount, count > 0 {
-            parts.append("\(count) unwatched")
+            parts.append(String(localized: "\(count) unwatched"))
         } else if config.isUnwatched {
-            parts.append("unwatched")
+            parts.append(String(localized: "unwatched"))
         }
-        if let progress = config.progress, progress > 0 { parts.append("\(Int(progress * 100)) percent watched") }
-        if config.isDownloaded { parts.append("downloaded") }
+        if let progress = config.progress, progress > 0 { parts.append(String(localized: "\(Int(progress * 100)) percent watched")) }
+        if config.isDownloaded { parts.append(String(localized: "downloaded")) }
         return parts.joined(separator: ", ")
     }
 }

@@ -15,7 +15,7 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     init(api: APIClient) {
         self.api = api
         super.init()
-        title = "Libraries"
+        title = String(localized: "Libraries")
     }
 
     @available(*, unavailable)
@@ -30,8 +30,8 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
     override func viewDidLoad() {
         super.viewDidLoad()
         installHeading(TVSettingsHeading(
-            title: "Libraries",
-            body: LibrariesSettings.footerText + " Every library keeps its tab."
+            title: String(localized: "Libraries"),
+            body: String(localized: "\(LibrariesSettings.footerText) Every library keeps its tab.")
         ))
         observer = LibraryVisibility.addObserver { [weak self] in self?.render() }
         render()
@@ -67,9 +67,9 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
         guard !LibrariesSettings.isLoading else {
             if afterLoad {
                 presentState(.error(
-                    title: "Couldn’t Load Libraries",
-                    message: "Check the connection to your server and try again.",
-                    retryTitle: "Try Again",
+                    title: String(localized: "Couldn’t Load Libraries"),
+                    message: String(localized: "Check the connection to your server and try again."),
+                    retryTitle: String(localized: "Try Again"),
                     retry: { [weak self] in self?.load() },
                     secondary: nil
                 ))
@@ -82,7 +82,7 @@ final class TVLibrariesSettingsViewController: TVSettingsScaffold {
                 id: "library.\(row.id)",
                 title: row.title,
                 subtitle: row.subtitle,
-                value: row.isIncluded ? "On" : "Off",
+                value: row.isIncluded ? String(localized: "On", comment: "Library is included in the tabs") : String(localized: "Off", comment: "Library is excluded from the tabs"),
                 symbol: row.symbol,
                 isEnabled: !row.isLocked
             )

@@ -85,7 +85,7 @@ final class TVAppCoordinator: TVSessionActions {
         }
         TVTopShelfRefresher.deactivate()
         let gate = (window.rootViewController as? TVLaunchViewController) ?? installLaunchGate()
-        gate.showLoading(status: "Starting the demo…")
+        gate.showLoading(status: String(localized: "Starting the demo…"))
         launchTask = Task { @MainActor [weak self] in
             let resumed = await DemoMode.shared.resume()
             guard !Task.isCancelled, let self else { return }
@@ -155,12 +155,12 @@ final class TVAppCoordinator: TVSessionActions {
     private func confirmSignOut() {
         guard let presenter = topViewController else { return }
         let alert = UIAlertController(
-            title: "Sign Out?",
-            message: "This removes your Plex account from this Apple TV.",
+            title: String(localized: "Sign Out?"),
+            message: String(localized: "This removes your Plex account from this Apple TV."),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Sign Out", style: .destructive) { [weak self] _ in self?.signOut() })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Sign Out"), style: .destructive) { [weak self] _ in self?.signOut() })
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         presenter.present(alert, animated: true)
     }
 
@@ -173,7 +173,7 @@ final class TVAppCoordinator: TVSessionActions {
         TVTopShelfRefresher.deactivate()
         AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, .tv)
         let gate = (window.rootViewController as? TVLaunchViewController) ?? installLaunchGate()
-        gate.showLoading(status: "Connecting to \(connection.serverName)…")
+        gate.showLoading(status: String(localized: "Connecting to \(connection.serverName)…"))
         launchTask = Task { @MainActor [weak self, weak gate] in
             let outcome = await AppLaunchSession.run(connection: connection) { message in
                 Task { @MainActor in gate?.showProgress(message) }
@@ -189,9 +189,9 @@ final class TVAppCoordinator: TVSessionActions {
                 gate.showSignInExpired()
             case .failure(let failure):
                 gate.showFailure(
-                    title: "Couldn’t Reach \(connection.serverName)",
+                    title: String(localized: "Couldn’t Reach \(connection.serverName)"),
                     message: failure.message,
-                    secondaryTitle: DemoMode.shared.isActive ? "Leave the Demo" : "Switch Server"
+                    secondaryTitle: DemoMode.shared.isActive ? String(localized: "Leave the Demo") : String(localized: "Switch Server")
                 )
             }
         }

@@ -28,16 +28,16 @@ package struct HomeWeekCardModel: Hashable, Sendable {
             return Bar(ratio: Double(seconds) / Double(peak), isToday: index == todayIndex, initial: Self.dayInitials[index])
         }
         accessibilityLabel = HomeFormat.joined([
-            "This week",
-            "\(HomeFormat.spoken(Double(thisWeekSeconds))) watched",
+            String(localized: "This week"),
+            String(localized: "\(HomeFormat.spoken(Double(thisWeekSeconds))) watched"),
             delta,
         ]) ?? ""
     }
 
     package static func deltaText(_ percent: Int?) -> String? {
         guard let percent else { return nil }
-        if percent > 0 { return "\(percent)% more than last week" }
-        if percent < 0 { return "\(-percent)% less than last week" }
-        return "Same as last week"
+        if percent > 0 { return String(localized: "\(percent)% more than last week") }
+        if percent < 0 { return String(localized: "\(-percent)% less than last week") }
+        return String(localized: "Same as last week")
     }
 }

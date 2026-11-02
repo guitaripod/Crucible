@@ -75,22 +75,22 @@ final class TVRootTabBarController: UITabBarController {
         let env = environment
         let layout = env.libraryLayout
         var result = [
-            Entry(identifier: Self.homeIdentifier, title: "Home", symbol: "house") { TVScreens.home(env) }
+            Entry(identifier: Self.homeIdentifier, title: String(localized: "Home", comment: "Tab bar title"), symbol: "house") { TVScreens.home(env) }
         ]
         for section in layout.tabs {
             result.append(
                 Entry(
                     identifier: "library.\(section.key ?? "")",
-                    title: section.title ?? "Library",
+                    title: section.title ?? String(localized: "Library"),
                     symbol: section.type == "show" ? "tv" : "film"
                 ) { TVScreens.library(env, section: section) }
             )
         }
         if layout.hasMore {
-            result.append(Entry(identifier: "more", title: "More", symbol: "ellipsis") { TVScreens.more(env) })
+            result.append(Entry(identifier: "more", title: String(localized: "More", comment: "Tab bar title"), symbol: "ellipsis") { TVScreens.more(env) })
         }
-        result.append(Entry(identifier: Self.searchIdentifier, title: "Search", symbol: "magnifyingglass") { TVScreens.search(env) })
-        result.append(Entry(identifier: Self.youIdentifier, title: "You", symbol: "person.crop.circle") { TVScreens.you(env) })
+        result.append(Entry(identifier: Self.searchIdentifier, title: String(localized: "Search", comment: "Tab bar title"), symbol: "magnifyingglass") { TVScreens.search(env) })
+        result.append(Entry(identifier: Self.youIdentifier, title: String(localized: "You", comment: "Tab bar title"), symbol: "person.crop.circle") { TVScreens.you(env) })
         return result
     }
 

@@ -123,7 +123,7 @@ final class ServerCardContentView: UIView, UIContentView {
         dot.backgroundColor = config.statusColor
         dot.superview?.isHidden = config.statusColor == nil
         accessibilityLabel = config.name
-        accessibilityValue = "\(config.subtitle). \(config.status)"
+        accessibilityValue = String(localized: "\(config.subtitle). \(config.status)")
     }
 }
 
@@ -159,7 +159,7 @@ final class RouteRowContentView: UIView, UIContentView {
         kindLabel.textColor = Theme.Color.label
         inUseLabel.font = Theme.Font.scaled(.caption2, 11, .bold, maximum: 15)
         inUseLabel.textColor = Theme.Color.accentText
-        inUseLabel.text = "IN USE"
+        inUseLabel.text = String(localized: "IN USE")
         inUseLabel.setContentHuggingPriority(.required, for: .horizontal)
         inUseLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         detailLabel.numberOfLines = 0
@@ -217,7 +217,7 @@ final class RouteRowContentView: UIView, UIContentView {
         alpha = config.isDimmed ? 0.8 : 1
 
         var parts = [config.kindTitle]
-        if config.isInUse { parts.append("in use") }
+        if config.isInUse { parts.append(String(localized: "in use")) }
         parts.append(config.detail)
         parts.append(config.latencyText)
         accessibilityLabel = parts.joined(separator: ", ")
@@ -303,7 +303,7 @@ struct TestButtonConfiguration: UIContentConfiguration {
 final class TestButtonContentView: UIView, UIContentView {
     var configuration: UIContentConfiguration { didSet { apply() } }
 
-    private let button = UIButton(configuration: ThemeButton.glassConfiguration(title: "Test Connection", symbol: "bolt.horizontal"))
+    private let button = UIButton(configuration: ThemeButton.glassConfiguration(title: String(localized: "Test Connection"), symbol: "bolt.horizontal"))
     private var action: () -> Void = {}
 
     init(configuration: TestButtonConfiguration) {
@@ -330,7 +330,7 @@ final class TestButtonContentView: UIView, UIContentView {
     private func apply() {
         guard let config = configuration as? TestButtonConfiguration else { return }
         action = config.action
-        var updated = ThemeButton.glassConfiguration(title: config.isTesting ? "Testing…" : "Test Connection", symbol: "bolt.horizontal")
+        var updated = ThemeButton.glassConfiguration(title: config.isTesting ? String(localized: "Testing…") : String(localized: "Test Connection"), symbol: "bolt.horizontal")
         updated.showsActivityIndicator = config.isTesting
         button.configuration = updated
         button.isEnabled = !config.isTesting

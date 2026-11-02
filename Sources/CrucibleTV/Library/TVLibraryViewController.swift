@@ -197,7 +197,7 @@ final class TVLibraryViewController: TVScreenViewController {
         }
         let headerViewRegistration = TVSectionHeaderView.registration { [weak self] indexPath in
             guard let self, dataSource.sectionIdentifier(for: indexPath.section) == .recents else { return nil }
-            return TVSectionHeader(title: "Recently Watched", seeAllAction: { [weak self] in self?.showAllRecent() })
+            return TVSectionHeader(title: String(localized: "Recently Watched"), seeAllAction: { [weak self] in self?.showAllRecent() })
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headerViewRegistration, for: indexPath)
@@ -211,10 +211,10 @@ final class TVLibraryViewController: TVScreenViewController {
             title: section.title,
             count: countText(),
             chips: LibraryWatchFilter.allCases.map { TVChipItem(id: $0.rawValue, title: $0.title, isSelected: options.isChipSelected($0)) },
-            genreTitle: options.genre == nil ? "Genre" : options.genreTitle(in: model.genres),
+            genreTitle: options.genre == nil ? String(localized: "Genre") : options.genreTitle(in: model.genres),
             isGenreSelected: options.genre != nil,
             genres: model.genres.map { .init(key: $0.key, title: $0.title, isSelected: options.genre == $0.key) },
-            sortTitle: "Sort",
+            sortTitle: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"),
             sorts: section.kind.sortOptions.map { .init(key: $0.key, title: $0.title, isSelected: options.sort == $0.key) }
         )
         content.handlers = .init(
@@ -230,9 +230,15 @@ final class TVLibraryViewController: TVScreenViewController {
     private func countText() -> String? {
         guard model.pager.hasLoaded else { return nil }
         let total = model.pager.totalSize
-        let noun = section.kind == .movie ? (total == 1 ? "movie" : "movies") : (total == 1 ? "show" : "shows")
         let count = total.formatted(.number)
-        return model.options.isFiltering ? "\(count) \(noun) · Filtered" : "\(count) \(noun)"
+        let summary: String
+        switch (section.kind == .movie, total == 1) {
+        case (true, true): summary = String(localized: "\(count) movie")
+        case (true, false): summary = String(localized: "\(count) movies")
+        case (false, true): summary = String(localized: "\(count) show")
+        case (false, false): summary = String(localized: "\(count) shows")
+        }
+        return model.options.isFiltering ? String(localized: "\(summary) · Filtered") : summary
     }
 
     private func modelDidUpdate(_ update: LibraryGridModel.Update) {
@@ -343,22 +349,22 @@ final class TVLibraryViewController: TVScreenViewController {
             case .loading:
                 show(state: .loading(title: nil))
             case .failed(let message):
-                show(state: .error(title: "Couldn’t Load Library", message: message, retryTitle: "Try Again", retry: { [weak self] in
+                show(state: .error(title: String(localized: "Couldn’t Load Library"), message: message, retryTitle: String(localized: "Try Again"), retry: { [weak self] in
                     self?.model.refreshAll()
                 }))
             case .noMatches:
                 show(state: .empty(
-                    title: "No Matches",
-                    message: "Nothing in this library matches the current filters.",
+                    title: String(localized: "No Matches"),
+                    message: String(localized: "Nothing in this library matches the current filters."),
                     symbol: "line.3.horizontal.decrease.circle",
-                    action: .init(title: "Clear Filters") { [weak self] in self?.model.clearFilters() }
+                    action: .init(title: String(localized: "Clear Filters")) { [weak self] in self?.model.clearFilters() }
                 ))
             case .empty:
                 show(state: .empty(
                     title: section.kind.emptyTitle,
-                    message: "Add media to this library on your Plex server to see it here.",
+                    message: String(localized: "Add media to this library on your Plex server to see it here."),
                     symbol: section.kind.placeholderIcon,
-                    action: .init(title: "Check Again") { [weak self] in self?.model.refreshAll() }
+                    action: .init(title: String(localized: "Check Again")) { [weak self] in self?.model.refreshAll() }
                 ))
             }
         }
@@ -395,7 +401,7 @@ final class TVLibraryViewController: TVScreenViewController {
     }
 
     private func browseFolders() {
-        TVNavigation.push(TVFolderBrowserViewController(env: env, source: .section(section.id), title: "Browse Folders", kind: section.kind), from: self)
+        TVNavigation.push(TVFolderBrowserViewController(env: env, source: .section(section.id), title: String(localized: "Browse Folders"), kind: section.kind), from: self)
     }
 
     private func showAllRecent() {

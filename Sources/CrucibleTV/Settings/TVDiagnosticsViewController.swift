@@ -13,14 +13,14 @@ final class TVDiagnosticsViewController: UIViewController {
     private let versionValue = UILabel()
     private let topShelfValue = UILabel()
     private let topShelfReadValue = UILabel()
-    private lazy var refreshButton = TVButton.make(.glass, title: "Refresh Log", symbol: "arrow.clockwise") { [weak self] in self?.reload() }
-    private lazy var clearButton = TVButton.make(.glass, title: "Clear Image Cache", symbol: "trash") { [weak self] in self?.confirmClearCache() }
+    private lazy var refreshButton = TVButton.make(.glass, title: String(localized: "Refresh Log"), symbol: "arrow.clockwise") { [weak self] in self?.reload() }
+    private lazy var clearButton = TVButton.make(.glass, title: String(localized: "Clear Image Cache"), symbol: "trash") { [weak self] in self?.confirmClearCache() }
     private let loadSlot = TVTaskSlot()
     private var hasShownLog = false
 
     init() {
         super.init(nibName: nil, bundle: nil)
-        title = "Diagnostics"
+        title = String(localized: "Diagnostics")
     }
 
     @available(*, unavailable)
@@ -58,16 +58,16 @@ final class TVDiagnosticsViewController: UIViewController {
     }
 
     private func buildHierarchy() {
-        let heading = TVSettingsHeading(title: "Diagnostics", body: "The newest lines of Crucible’s log. Focus the log and swipe to read older entries.")
+        let heading = TVSettingsHeading(title: String(localized: "Diagnostics"), body: String(localized: "The newest lines of Crucible’s log. Focus the log and swipe to read older entries."))
 
         let statRows = UIStackView(arrangedSubviews: [
-            statRow("Log lines", linesValue),
-            statRow("Errors", errorsValue),
-            statRow("Log size", sizeValue),
-            statRow("Image cache", cacheValue),
-            statRow("Version", versionValue),
-            statRow("Top Shelf", topShelfValue),
-            statRow("Top Shelf read", topShelfReadValue),
+            statRow(String(localized: "Log lines"), linesValue),
+            statRow(String(localized: "Errors"), errorsValue),
+            statRow(String(localized: "Log size"), sizeValue),
+            statRow(String(localized: "Image cache"), cacheValue),
+            statRow(String(localized: "Version"), versionValue),
+            statRow(String(localized: "Top Shelf"), topShelfValue),
+            statRow(String(localized: "Top Shelf read"), topShelfReadValue),
         ])
         statRows.axis = .vertical
         statRows.spacing = Theme.Space.xs
@@ -101,7 +101,7 @@ final class TVDiagnosticsViewController: UIViewController {
     }
 
     private var spokenCounts: String {
-        [("Log lines", linesValue), ("Errors", errorsValue), ("Log size", sizeValue), ("Image cache", cacheValue), ("Version", versionValue), ("Top Shelf", topShelfValue), ("Top Shelf read", topShelfReadValue)]
+        [(String(localized: "Log lines"), linesValue), (String(localized: "Errors"), errorsValue), (String(localized: "Log size"), sizeValue), (String(localized: "Image cache"), cacheValue), (String(localized: "Version"), versionValue), (String(localized: "Top Shelf"), topShelfValue), (String(localized: "Top Shelf read"), topShelfReadValue)]
             .map { "\($0.0) \($0.1.text ?? "")" }
             .joined(separator: ", ")
     }
@@ -132,9 +132,9 @@ final class TVDiagnosticsViewController: UIViewController {
 
     private func show(_ tail: LogTail, cacheBytes: Int64, topShelf: TopShelfStatus) {
         linesValue.text = tail.lines.count < tail.totalLineCount
-            ? "\(tail.lines.count) of \(tail.totalLineCount)"
+            ? String(localized: "\(tail.lines.count) of \(tail.totalLineCount)")
             : "\(tail.totalLineCount)"
-        errorsValue.text = "\(tail.errorCount)"
+        errorsValue.text = String(tail.errorCount)
         sizeValue.text = ByteCountFormatter.string(fromByteCount: Int64(tail.byteCount), countStyle: .file)
         cacheValue.text = ImageCacheMeter.formatted(cacheBytes)
         versionValue.text = AppInfo.versionSummary
@@ -155,9 +155,9 @@ final class TVDiagnosticsViewController: UIViewController {
 
     private func confirmClearCache() {
         presentConfirmation(
-            title: "Clear Image Cache?",
-            message: "Posters and backdrops will be downloaded again as you browse.",
-            confirmTitle: "Clear"
+            title: String(localized: "Clear Image Cache?"),
+            message: String(localized: "Posters and backdrops will be downloaded again as you browse."),
+            confirmTitle: String(localized: "Clear", comment: "Confirms clearing the image cache")
         ) { [weak self] in
             Task { [weak self] in
                 await ImageLoader.shared.clearCache()
@@ -219,7 +219,7 @@ final class TVLogView: UIView {
 /// A read-only, scrollable log. tvOS scrolls a focused scroll view with the remote's touch surface,
 /// so the log itself takes the focus.
 final class TVLogScrollView: UIScrollView {
-    private static let emptyText = "No log entries yet."
+    private static let emptyText = String(localized: "No log entries yet.")
 
     var onFocusChange: ((Bool, UIFocusAnimationCoordinator) -> Void)?
 
@@ -242,7 +242,7 @@ final class TVLogScrollView: UIScrollView {
         isAccessibilityElement = true
         accessibilityTraits = .staticText
         accessibilityIdentifier = "diagnostics.log"
-        accessibilityLabel = "Log"
+        accessibilityLabel = String(localized: "Log", comment: "Accessibility label for the log text")
     }
 
     @available(*, unavailable)

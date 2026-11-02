@@ -5,6 +5,14 @@ package enum YouRouteKind: String, Sendable {
     case tailscale = "Tailscale"
     case remote = "Remote"
 
+    package var displayName: String {
+        switch self {
+        case .local: return String(localized: "Local")
+        case .tailscale: return String(localized: "Tailscale")
+        case .remote: return String(localized: "Remote")
+        }
+    }
+
     package static func classify(_ url: URL) -> YouRouteKind {
         guard let host = url.host?.lowercased() else { return .remote }
         if host.hasSuffix(".ts.net") { return .tailscale }

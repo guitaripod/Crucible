@@ -22,7 +22,7 @@ final class TVPaywallInfoColumn: UIStackView {
 
     private static func headerPanel(reason: String?) -> UIView {
         let title = UILabel()
-        title.text = "Crucible Pro"
+        title.text = String(localized: "Crucible Pro")
         title.font = Theme.Font.largeTitle
         title.textColor = Theme.Color.label
         title.adjustsFontSizeToFitWidth = true
@@ -40,7 +40,7 @@ final class TVPaywallInfoColumn: UIStackView {
             stack.addArrangedSubview(label)
         }
         let panel = TVReadOnlyPanel(wrapping: stack) {
-            ["Crucible Pro", reason].compactMap { $0 }.joined(separator: ". ")
+            [String(localized: "Crucible Pro"), reason].compactMap { $0 }.joined(separator: ". ")
         }
         panel.accessibilityTraits = .header
         panel.accessibilityIdentifier = "paywall.header"
@@ -52,7 +52,7 @@ final class TVPaywallInfoColumn: UIStackView {
         stack.axis = .vertical
         stack.spacing = Theme.Space.m
         let panel = TVReadOnlyPanel(wrapping: stack) {
-            "Includes. " + features.map { "\($0.title). \($0.summary)" }.joined(separator: " ")
+            String(localized: "Includes.") + " " + features.map { String(localized: "\($0.title). \($0.summary)") }.joined(separator: " ")
         }
         panel.accessibilityIdentifier = "paywall.features"
         return panel

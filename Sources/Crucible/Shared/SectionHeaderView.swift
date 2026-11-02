@@ -91,6 +91,6 @@ final class SectionHeaderContentView: UIView, UIContentView {
             return outgoing
         }
         actionButton.configuration = button
-        actionButton.accessibilityLabel = "\(actionTitle) \(config.title)"
+        actionButton.accessibilityLabel = String(localized: "\(actionTitle) \(config.title)")
     }
 }

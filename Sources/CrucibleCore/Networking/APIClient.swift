@@ -16,23 +16,23 @@ package enum APIError: Error, LocalizedError, Sendable {
     package var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid URL"
+            return String(localized: "Invalid URL")
         case .httpError(let code, let message):
-            return "HTTP \(code): \(message)"
+            return String(localized: "HTTP \(code): \(message)")
         case .decodingError(let detail):
-            return "Decoding error: \(detail)"
+            return String(localized: "Decoding error: \(detail)")
         case .noServerConfigured:
-            return "No server configured"
+            return String(localized: "No server configured")
         case .unauthorized:
-            return "Authentication expired. Please sign in again."
+            return String(localized: "Authentication expired. Please sign in again.")
         case .rateLimited:
-            return "The server is rate limiting requests. Please try again shortly."
+            return String(localized: "The server is rate limiting requests. Please try again shortly.")
         case .serverUnavailable:
-            return "The server is temporarily unavailable. Please try again shortly."
+            return String(localized: "The server is temporarily unavailable. Please try again shortly.")
         case .timedOut:
-            return "The request timed out. Please check your connection and try again."
+            return String(localized: "The request timed out. Please check your connection and try again.")
         case .secureConnectionFailed:
-            return "Could not connect securely to the server. Crucible will re-check your server's address on the next launch."
+            return String(localized: "Could not connect securely to the server. Crucible will re-check your server's address on the next launch.")
         }
     }
 }

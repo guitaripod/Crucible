@@ -19,7 +19,7 @@ package struct ContinueBannerModel: Equatable, Sendable {
             itemId: item.id,
             detail: detail,
             artPath: item.art ?? item.grandparentArt ?? item.thumb,
-            spokenLabel: "Continue \(detail)"
+            spokenLabel: String(localized: "Continue \(detail)")
         )
     }
 }

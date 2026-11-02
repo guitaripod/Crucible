@@ -35,7 +35,7 @@ final class TVYouViewController: TVSettingsScaffold {
     init(env: TVAppEnvironment) {
         self.env = env
         super.init()
-        title = "You"
+        title = String(localized: "You")
     }
 
     @available(*, unavailable)
@@ -173,13 +173,13 @@ final class TVYouViewController: TVSettingsScaffold {
         let state = YouConnectionStatus.shared.state
         let inDemo = DemoMode.shared.isActive
         var rows = [
-            TVRowItem(id: RowID.history, title: "Watch History", subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
-            TVRowItem(id: RowID.statistics, title: "Statistics", symbol: "chart.bar", accessory: .chevron),
-            TVRowItem(id: RowID.playback, title: "Playback", symbol: "play.rectangle", accessory: .chevron),
-            TVRowItem(id: RowID.libraries, title: "Libraries", value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
-            TVRowItem(id: RowID.server, title: "Server & Connection", value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
-            TVRowItem(id: RowID.diagnostics, title: "Diagnostics", symbol: "doc.text.magnifyingglass", accessory: .chevron),
-            TVRowItem(id: RowID.about, title: "About Crucible", value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
+            TVRowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
+            TVRowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
+            TVRowItem(id: RowID.playback, title: String(localized: "Playback"), symbol: "play.rectangle", accessory: .chevron),
+            TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
+            TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
+            TVRowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
+            TVRowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
             signOutRow(inDemo: inDemo),
         ]
         if ProAccess.shared.isStoreBacked {
@@ -206,15 +206,15 @@ final class TVYouViewController: TVSettingsScaffold {
     /// Sign Out becomes Leave the Demo while the demo runs: there is no account to sign out of.
     private func signOutRow(inDemo: Bool) -> TVRowItem {
         guard inDemo else {
-            return TVRowItem(id: RowID.signOut, title: "Sign Out", symbol: "rectangle.portrait.and.arrow.right", isDestructive: true)
+            return TVRowItem(id: RowID.signOut, title: String(localized: "Sign Out"), symbol: "rectangle.portrait.and.arrow.right", isDestructive: true)
         }
-        return TVRowItem(id: RowID.leaveDemo, title: "Leave the Demo", symbol: "rectangle.portrait.and.arrow.right", isDestructive: true)
+        return TVRowItem(id: RowID.leaveDemo, title: String(localized: "Leave the Demo"), symbol: "rectangle.portrait.and.arrow.right", isDestructive: true)
     }
 
     private func proRow() -> TVRowItem {
         TVRowItem(
             id: RowID.pro,
-            title: "Crucible Pro",
+            title: String(localized: "Crucible Pro"),
             subtitle: ProTVPresentation.rowSubtitle(for: ProAccess.shared.status),
             symbol: "sparkles",
             accessory: .chevron
@@ -228,7 +228,7 @@ final class TVYouViewController: TVSettingsScaffold {
     }
 
     private func confirmSignOut() {
-        presentConfirmation(title: "Sign Out", message: "Are you sure you want to sign out?", confirmTitle: "Sign Out") { [session = env.session] in
+        presentConfirmation(title: String(localized: "Sign Out"), message: String(localized: "Are you sure you want to sign out?"), confirmTitle: String(localized: "Sign Out")) { [session = env.session] in
             session.signOut()
         }
     }

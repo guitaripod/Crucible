@@ -88,13 +88,13 @@ package struct ShowDetailModel: Sendable {
     }
 
     package static func seasonTitle(_ season: PlexMetadata) -> String {
-        season.title.isEmpty ? "Season \(season.index ?? 0)" : season.title
+        season.title.isEmpty ? String(localized: "Season \(season.index ?? 0)") : season.title
     }
 
     /// "3 of 10 watched", or nil when the season has no episodes.
     package static func watchedText(_ season: PlexMetadata) -> String? {
         guard let total = season.leafCount, total > 0 else { return nil }
-        return "\(season.viewedLeafCount ?? 0) of \(total) watched"
+        return String(localized: "\(season.viewedLeafCount ?? 0) of \(total) watched")
     }
 
     package var isWatched: Bool {
@@ -103,7 +103,7 @@ package struct ShowDetailModel: Sendable {
     }
 
     package var watchedAccessibilityLabel: String {
-        isWatched ? "Watched. Mark unwatched" : "Mark watched"
+        isWatched ? String(localized: "Watched. Mark unwatched") : String(localized: "Mark watched")
     }
 
     package var seasonChips: [SeasonChip] {
@@ -113,7 +113,7 @@ package struct ShowDetailModel: Sendable {
     }
 
     package var selectedSeasonTitle: String {
-        selectedSeason.map(Self.seasonTitle) ?? "Season"
+        selectedSeason.map(Self.seasonTitle) ?? String(localized: "Season", comment: "A season of a TV show")
     }
 
     package var selectedSeasonWatchedText: String? {
@@ -124,19 +124,19 @@ package struct ShowDetailModel: Sendable {
         var leading: [String] = []
         if let year = show.year { leading.append(String(year)) }
         let seasonCount = seasons.isEmpty ? (show.childCount ?? 0) : seasons.count
-        if seasonCount > 0 { leading.append(seasonCount == 1 ? "1 Season" : "\(seasonCount) Seasons") }
+        if seasonCount > 0 { leading.append(seasonCount == 1 ? String(localized: "1 Season") : String(localized: "\(seasonCount) Seasons")) }
         let rating = DetailFormat.ratingParts(audience: show.audienceRating, critic: show.rating)
         let meta = DetailMeta(leading: leading, star: rating.star, trailing: rating.trailing)
         let sample = upNext?.episode ?? episodes.first
         let badges = DetailFormat.technicalBadges(for: sample, contentRating: show.contentRating, audio: nil)
 
-        var spoken = [show.title, "TV show"]
+        var spoken = [show.title, String(localized: "TV show")]
         spoken.append(contentsOf: leading)
         if let ratingText = DetailFormat.spokenRating(audience: show.audienceRating, critic: show.rating) { spoken.append(ratingText) }
         spoken.append(contentsOf: badges)
 
         return DetailHeroInfo(
-            eyebrow: "TV SHOW",
+            eyebrow: String(localized: "TV SHOW"),
             title: show.title,
             meta: meta,
             badges: badges,
@@ -154,26 +154,26 @@ package struct ShowDetailModel: Sendable {
 
     /// "Play S1 · E1" when nothing has been watched, "Continue S1 · E3" otherwise.
     package var primaryTitle: String {
-        guard let upNext else { return "Play" }
+        guard let upNext else { return String(localized: "Play", comment: "Button or menu label that starts playback") }
         let code = DetailFormat.episodeCode(season: upNext.episode.parentIndex, episode: upNext.episode.index)
-        let verb = upNext.kind == .start ? "Play" : "Continue"
+        let verb = upNext.kind == .start ? String(localized: "Play", comment: "Button or menu label that starts playback") : String(localized: "Continue", comment: "Button label that continues watching the next episode")
         return [verb, code].compactMap { $0 }.joined(separator: " ")
     }
 
     package var primaryAccessibilityLabel: String {
-        guard let upNext else { return "Play" }
+        guard let upNext else { return String(localized: "Play", comment: "Button or menu label that starts playback") }
         let episode = upNext.episode
         let verb: String
         switch upNext.kind {
-        case .start: verb = "Play"
-        case .resume: verb = "Resume"
-        case .next: verb = "Continue"
+        case .start: verb = String(localized: "Play", comment: "Button or menu label that starts playback")
+        case .resume: verb = String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position")
+        case .next: verb = String(localized: "Continue", comment: "Button label that continues watching the next episode")
         }
-        var parts = ["\(verb) \(show.title)"]
-        if let season = episode.parentIndex, let number = episode.index { parts.append("season \(season) episode \(number)") }
+        var parts = [String(localized: "\(verb) \(show.title)")]
+        if let season = episode.parentIndex, let number = episode.index { parts.append(String(localized: "season \(season) episode \(number)")) }
         if upNext.kind == .resume, episode.durationSecs > episode.positionSecs,
            let left = DetailFormat.spokenDuration(episode.durationSecs - episode.positionSecs) {
-            parts.append("\(left) left")
+            parts.append(String(localized: "\(left) left"))
         }
         return parts.joined(separator: ", ")
     }
@@ -189,10 +189,10 @@ package struct ShowDetailModel: Sendable {
     package var watchedOptions: WatchedOptions {
         var showOptions: [WatchedOption] = []
         if !isWatched {
-            showOptions.append(WatchedOption(title: "Mark Show Watched", ratingKey: show.id, watched: true))
+            showOptions.append(WatchedOption(title: String(localized: "Mark Show Watched"), ratingKey: show.id, watched: true))
         }
         if (show.viewedLeafCount ?? 0) > 0 {
-            showOptions.append(WatchedOption(title: "Mark Show Unwatched", ratingKey: show.id, watched: false))
+            showOptions.append(WatchedOption(title: String(localized: "Mark Show Unwatched"), ratingKey: show.id, watched: false))
         }
         var seasonOptions: [WatchedOption] = []
         if let season = selectedSeason {
@@ -200,10 +200,10 @@ package struct ShowDetailModel: Sendable {
             let viewed = season.viewedLeafCount ?? 0
             let total = season.leafCount ?? 0
             if total == 0 || viewed < total {
-                seasonOptions.append(WatchedOption(title: "Mark \(name) Watched", ratingKey: season.id, watched: true))
+                seasonOptions.append(WatchedOption(title: String(localized: "Mark \(name) Watched"), ratingKey: season.id, watched: true))
             }
             if viewed > 0 {
-                seasonOptions.append(WatchedOption(title: "Mark \(name) Unwatched", ratingKey: season.id, watched: false))
+                seasonOptions.append(WatchedOption(title: String(localized: "Mark \(name) Unwatched"), ratingKey: season.id, watched: false))
             }
         }
         return WatchedOptions(show: showOptions, season: seasonOptions)

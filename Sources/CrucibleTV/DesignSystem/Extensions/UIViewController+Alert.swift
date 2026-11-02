@@ -9,7 +9,7 @@ extension UIViewController {
     func presentAlert(
         title: String,
         message: String? = nil,
-        buttonTitle: String = "OK",
+        buttonTitle: String = String(localized: "OK"),
         style: UIAlertAction.Style = .cancel,
         handler: (@MainActor () -> Void)? = nil
     ) -> UIAlertController? {
@@ -32,7 +32,7 @@ extension UIViewController {
     ) -> UIAlertController? {
         guard presentedViewController == nil else { return nil }
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         alert.addAction(UIAlertAction(title: confirmTitle, style: .destructive) { _ in handler() })
         present(alert, animated: TVMotion.animationsEnabled)
         return alert

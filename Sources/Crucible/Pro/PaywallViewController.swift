@@ -21,7 +21,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     private var cards: [String: PaywallOfferCardView] = [:]
 
     private let rootStack = UIStackView()
-    private let closeButton = ThemeButton.icon(symbol: "xmark", label: "Close", size: 36)
+    private let closeButton = ThemeButton.icon(symbol: "xmark", label: String(localized: "Close", comment: "Accessibility label of the close button on the paywall"), size: 36)
     private let noticeBanner = PaywallNoticeBannerView()
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
@@ -31,7 +31,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     private let footerContainer = UIView()
     private let footerStack = UIStackView()
     private let disclosureLabel = UILabel()
-    private let ctaButton = ThemeButton.primary(title: "Loading\u{2026}")
+    private let ctaButton = ThemeButton.primary(title: String(localized: "Loading\u{2026}"))
     private let linksStack = UIStackView()
     private let restoreButton = UIButton(configuration: .plain())
     private let termsButton = UIButton(configuration: .plain())
@@ -179,7 +179,8 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         glyphRow.distribution = .equalCentering
 
         let title = UILabel()
-        title.text = "Crucible Pro"
+        let productName = "Crucible Pro"
+        title.text = productName
         title.font = Theme.Font.title1
         title.textColor = Theme.Color.label
         title.textAlignment = .center
@@ -202,8 +203,8 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     }
 
     private static func subtitle(for request: PaywallRequest) -> String {
-        guard let feature = request.feature else { return "Unlock downloads, full Statistics and the poster" }
-        return "\(feature.title) is part of Crucible Pro"
+        guard let feature = request.feature else { return String(localized: "Unlock downloads, full Statistics and the poster") }
+        return String(localized: "\(feature.title) is part of Crucible Pro")
     }
 
     private func makeFeatures() -> UIView {
@@ -230,12 +231,12 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
             self?.model.purchaseSelected()
         }, for: .primaryActionTriggered)
 
-        configureLink(restoreButton, title: "Restore Purchases", color: Theme.Color.accentText) { [weak self] in
+        configureLink(restoreButton, title: String(localized: "Restore Purchases"), color: Theme.Color.accentText) { [weak self] in
             Haptics.selection()
             self?.model.restore()
         }
-        configureLink(termsButton, title: "Terms of Use", color: Theme.Color.labelSecondary) { UIApplication.shared.open(ProLinks.termsOfUse) }
-        configureLink(privacyButton, title: "Privacy Policy", color: Theme.Color.labelSecondary) { UIApplication.shared.open(ProLinks.privacyPolicy) }
+        configureLink(termsButton, title: String(localized: "Terms of Use"), color: Theme.Color.labelSecondary) { UIApplication.shared.open(ProLinks.termsOfUse) }
+        configureLink(privacyButton, title: String(localized: "Privacy Policy"), color: Theme.Color.labelSecondary) { UIApplication.shared.open(ProLinks.privacyPolicy) }
         termsButton.accessibilityTraits = .link
         privacyButton.accessibilityTraits = .link
         for button in [restoreButton, termsButton, privacyButton] {
@@ -365,19 +366,19 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         var config = ctaButton.configuration ?? ThemeButton.primaryConfiguration(title: "")
         switch state.phase {
         case .loading:
-            config.title = "Loading\u{2026}"
+            config.title = String(localized: "Loading\u{2026}")
             config.showsActivityIndicator = true
             ctaButton.isEnabled = false
             ctaButton.isUserInteractionEnabled = true
-            ctaButton.accessibilityValue = "Loading prices"
+            ctaButton.accessibilityValue = String(localized: "Loading prices")
         case .unavailable:
             config.showsActivityIndicator = false
         case .ready:
-            config.title = state.selectedOffer?.buttonTitle ?? "Continue"
+            config.title = state.selectedOffer?.buttonTitle ?? String(localized: "Continue")
             config.showsActivityIndicator = purchasing
             ctaButton.isEnabled = !restoring
             ctaButton.isUserInteractionEnabled = !state.isBusy
-            ctaButton.accessibilityValue = purchasing ? "Purchasing" : nil
+            ctaButton.accessibilityValue = purchasing ? String(localized: "Purchasing") : nil
         }
         ctaButton.configuration = config
         ctaButton.accessibilityTraits = purchasing ? [.button, .notEnabled] : .button
@@ -388,7 +389,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         disclosureLabel.isHidden = disclosure == nil
 
         var restoreConfig = restoreButton.configuration
-        restoreConfig?.title = restoring ? "Restoring\u{2026}" : "Restore Purchases"
+        restoreConfig?.title = restoring ? String(localized: "Restoring\u{2026}") : String(localized: "Restore Purchases")
         restoreConfig?.showsActivityIndicator = restoring
         restoreButton.configuration = restoreConfig
         restoreButton.isEnabled = !state.isBusy
@@ -425,7 +426,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
             stack.addArrangedSubview(placeholder)
         }
         stack.isAccessibilityElement = true
-        stack.accessibilityLabel = "Loading prices"
+        stack.accessibilityLabel = String(localized: "Loading prices")
         stack.accessibilityTraits = .updatesFrequently
         if !UIAccessibility.isReduceMotionEnabled {
             let pulse = CABasicAnimation(keyPath: "opacity")
@@ -453,7 +454,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
 
-        var config = ThemeButton.glassConfiguration(title: "Try Again", symbol: "arrow.clockwise")
+        var config = ThemeButton.glassConfiguration(title: String(localized: "Try Again"), symbol: "arrow.clockwise")
         config.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 22, bottom: 12, trailing: 22)
         let retry = UIButton(configuration: config)
         retry.isPointerInteractionEnabled = true

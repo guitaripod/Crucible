@@ -21,7 +21,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
     init(env: TVAppEnvironment) {
         self.env = env
         super.init()
-        title = "Server & Connection"
+        title = String(localized: "Server & Connection")
     }
 
     @available(*, unavailable)
@@ -74,14 +74,14 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
         var rows = model.routeRows.map(routeRow)
         rows.append(TVRowItem(
             id: RowID.test,
-            title: "Test Connection",
-            value: model.isTesting ? "Testing…" : nil,
+            title: String(localized: "Test Connection"),
+            value: model.isTesting ? String(localized: "Testing…") : nil,
             symbol: "bolt.horizontal"
         ))
         rows.append(toggleRow(RowID.preferLocal, .preferLocalConnection, symbol: "wifi"))
         rows.append(toggleRow(RowID.allowRelay, .allowRelayConnection, symbol: "arrow.triangle.swap"))
-        rows.append(TVRowItem(id: RowID.addServer, title: "Add Server by Address", symbol: "plus", accessory: .chevron))
-        rows.append(TVRowItem(id: RowID.switchServer, title: "Switch Server", symbol: "arrow.left.arrow.right", accessory: .chevron))
+        rows.append(TVRowItem(id: RowID.addServer, title: String(localized: "Add Server by Address"), symbol: "plus", accessory: .chevron))
+        rows.append(TVRowItem(id: RowID.switchServer, title: String(localized: "Switch Server"), symbol: "arrow.left.arrow.right", accessory: .chevron))
         setRows(rows)
     }
 
@@ -89,7 +89,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
         TVRowItem(
             id: RowID.routePrefix + route.url.absoluteString,
             title: route.kindTitle,
-            subtitle: route.isInUse ? "In use · \(route.detail)" : route.detail,
+            subtitle: route.isInUse ? String(localized: "In use · \(route.detail)") : route.detail,
             value: route.latencyText,
             symbol: route.kind.symbolName,
             accessory: route.isInUse ? .checkmark : .none,
@@ -124,7 +124,7 @@ final class TVServerCardView: TVReadOnlyPanel {
         subtitleLabel.text = card.subtitle
         statusLabel.text = card.status
         statusDot.setColor(card.tone.color)
-        accessibilityLabel = "\(card.name), \(card.subtitle), \(card.status)"
+        accessibilityLabel = String(localized: "\(card.name), \(card.subtitle), \(card.status)")
     }
 
     private func build() {

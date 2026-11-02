@@ -53,8 +53,8 @@ final class HomeSectionGridViewController: UICollectionViewController {
         if ids.isEmpty {
             var empty = UIContentUnavailableConfiguration.empty()
             empty.image = UIImage(systemName: "rectangle.stack")
-            empty.text = "Nothing Here"
-            empty.secondaryText = "This list is empty right now."
+            empty.text = String(localized: "Nothing Here")
+            empty.secondaryText = String(localized: "This list is empty right now.")
             contentUnavailableConfiguration = empty
         } else {
             contentUnavailableConfiguration = nil

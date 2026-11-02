@@ -17,7 +17,7 @@ final class TVHomeWeekSurface: TVFocusableSurface {
 
     init() {
         super.init(cornerRadius: Theme.Radius.l)
-        accessibilityHint = "Opens statistics"
+        accessibilityHint = String(localized: "Opens statistics")
         buildHierarchy()
     }
 
@@ -38,7 +38,7 @@ final class TVHomeWeekSurface: TVFocusableSurface {
 
     private func buildHierarchy() {
         let eyebrow = UILabel()
-        eyebrow.attributedText = NSAttributedString(string: "THIS WEEK", attributes: [.kern: 1.2])
+        eyebrow.attributedText = NSAttributedString(string: String(localized: "THIS WEEK"), attributes: [.kern: 1.2])
         eyebrow.font = Theme.Font.caption1
         eyebrow.textColor = Theme.Color.accentText
 
@@ -118,8 +118,8 @@ final class TVHomeWeekSurface: TVFocusableSurface {
 final class TVHomeSurpriseSurface: TVFocusableSurface {
     init() {
         super.init(cornerRadius: TVMetrics.Card.cornerRadius)
-        accessibilityLabel = "Surprise Me"
-        accessibilityHint = "Picks something to watch"
+        accessibilityLabel = String(localized: "Surprise Me")
+        accessibilityHint = String(localized: "Picks something to watch")
         buildHierarchy()
     }
 
@@ -133,14 +133,14 @@ final class TVHomeSurpriseSurface: TVFocusableSurface {
         symbol.contentMode = .scaleAspectFit
 
         let title = UILabel()
-        title.text = "Surprise Me"
+        title.text = String(localized: "Surprise Me")
         title.font = Theme.Font.headline
         title.textColor = Theme.Color.label
         title.textAlignment = .center
         title.numberOfLines = 2
 
         let subtitle = UILabel()
-        subtitle.text = "Random pick"
+        subtitle.text = String(localized: "Random pick")
         subtitle.font = Theme.Font.subheadline
         subtitle.textColor = Theme.Color.labelSecondary
         subtitle.textAlignment = .center

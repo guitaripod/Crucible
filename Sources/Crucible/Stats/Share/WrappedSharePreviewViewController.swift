@@ -14,7 +14,7 @@ final class WrappedSharePreviewViewController: UIViewController {
     private let stage = UIView()
     private let frameView = UIView()
     private let imageView = UIImageView()
-    private let shareButton = ThemeButton.primary(title: "Share", symbol: "square.and.arrow.up")
+    private let shareButton = ThemeButton.primary(title: String(localized: "Share", comment: "Button that shares the Wrapped image"), symbol: "square.and.arrow.up")
     private var aspectConstraint: NSLayoutConstraint?
 
     init(content: WrappedShareContent) {

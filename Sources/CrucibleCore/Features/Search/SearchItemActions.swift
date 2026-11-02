@@ -1,3 +1,5 @@
+import Foundation
+
 package enum SearchDestination: Equatable, Sendable {
     case movie(ratingKey: String)
     case show(ratingKey: String, initialSeasonKey: String?)
@@ -24,7 +26,7 @@ package enum SearchItemActions {
     }
 
     package static func playTitle(for item: PlexMetadata) -> String {
-        item.resumeSecs > 0 ? "Resume" : "Play"
+        item.resumeSecs > 0 ? String(localized: "Resume") : String(localized: "Play")
     }
 
     /// The show an episode or season belongs to, for the Go to Show action.

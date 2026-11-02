@@ -24,7 +24,7 @@ package struct StatsLibraryFilter: Equatable, Sendable {
             return Entry(
                 id: library.id,
                 title: library.title,
-                subtitle: library.hiddenOnPlex ? "Hidden from Home in Plex" : nil,
+                subtitle: library.hiddenOnPlex ? String(localized: "Hidden from Home in Plex") : nil,
                 symbol: library.symbol,
                 isIncluded: isOn,
                 isLocked: isOn && includedCount <= 1
@@ -52,7 +52,7 @@ package struct StatsLibraryFilter: Equatable, Sendable {
     }
 
     package var accessibilityValue: String {
-        isCustomized ? "Filtered" : "All libraries"
+        isCustomized ? String(localized: "Filtered") : String(localized: "All libraries")
     }
 
     @MainActor

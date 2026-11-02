@@ -30,7 +30,7 @@ package struct HomeArrangement: Sendable {
     package var isEmpty: Bool { hero == nil && continueRail.isEmpty && upNext.isEmpty && recent.isEmpty }
 
     package var heroEyebrow: String {
-        heroIsContinue ? "Continue Watching" : "Up Next"
+        heroIsContinue ? String(localized: "Continue Watching") : String(localized: "Up Next")
     }
 
     package func items(for bucket: HomeBucket) -> [PlexMetadata] {
@@ -57,9 +57,9 @@ package struct HomeArrangement: Sendable {
     package func title(for bucket: HomeBucket) -> String {
         switch bucket {
         case .hero: return heroEyebrow
-        case .continueWatching: return "Continue Watching"
-        case .upNext: return "Up Next"
-        case .recentlyAdded: return "Recently Added"
+        case .continueWatching: return String(localized: "Continue Watching")
+        case .upNext: return String(localized: "Up Next")
+        case .recentlyAdded: return String(localized: "Recently Added")
         }
     }
 

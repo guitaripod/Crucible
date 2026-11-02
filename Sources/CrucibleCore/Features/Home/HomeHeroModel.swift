@@ -23,7 +23,7 @@ package struct HomeHeroModel: Hashable, Sendable {
         title = HomeFormat.title(for: item)
         subtitle = HomeFormat.heroSubtitle(for: item)
         metaParts = Self.metaParts(for: item, position: position)
-        actionTitle = resuming ? "Resume" : "Play"
+        actionTitle = resuming ? String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position") : String(localized: "Play", comment: "Button or menu label that starts playback")
         trailingText = HomeFormat.remaining(item, position: position)
             ?? HomeFormat.elapsed(item, position: position)
             ?? HomeFormat.runtime(item.durationSecs)
@@ -35,7 +35,7 @@ package struct HomeHeroModel: Hashable, Sendable {
         let episode = item.mediaType == "episode" ? HomeFormat.spokenEpisode(season: item.parentIndex, episode: item.index) : nil
         let timePhrase = Self.timePhrase(for: item, position: position)
         spokenLabel = [
-            "\(actionTitle) \(title)",
+            String(localized: "\(actionTitle) \(title)"),
             episode,
             timePhrase,
         ].compactMap { $0 }.joined(separator: ", ")
@@ -74,7 +74,7 @@ package struct HomeHeroModel: Hashable, Sendable {
     }
 
     private static func timePhrase(for item: PlexMetadata, position: Double) -> String? {
-        if let left = HomeFormat.remainingSeconds(item, position: position) { return "\(HomeFormat.spoken(left)) left" }
+        if let left = HomeFormat.remainingSeconds(item, position: position) { return String(localized: "\(HomeFormat.spoken(left)) left") }
         return item.durationSecs > 0 ? HomeFormat.spoken(item.durationSecs) : nil
     }
 }

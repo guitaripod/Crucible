@@ -23,7 +23,7 @@ final class TVProfilePanelView: TVReadOnlyPanel {
         nameLabel.text = profile.name
         statusLabel.text = profile.statusText
         statusDot.setColor(profile.tone.color)
-        accessibilityLabel = "\(profile.name), \(profile.statusText)"
+        accessibilityLabel = String(localized: "\(profile.name), \(profile.statusText)")
     }
 
     private func build() {

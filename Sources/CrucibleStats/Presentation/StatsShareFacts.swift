@@ -44,34 +44,35 @@ package struct StatsShareFacts: Sendable {
         heroUnit = hero.unit
         heroDetail = detail
         figures = [
-            Figure(value: StatsFormat.abbreviatedCount(overview.totalPlays), label: "Plays"),
-            Figure(value: "\(overview.daysActive)", label: "Days Active"),
-            Figure(value: "\(overview.longestStreak)", label: "Day Streak"),
-            page.longestBinge.map { Figure(value: $0.value.replacingOccurrences(of: " ", with: ""), label: "Longest Binge") }
-                ?? Figure(value: StatsFormat.abbreviatedCount(overview.showsWatched + overview.moviesWatched), label: "Titles"),
+            Figure(value: StatsFormat.abbreviatedCount(overview.totalPlays), label: String(localized: "Plays")),
+            Figure(value: "\(overview.daysActive)", label: String(localized: "Days Active")),
+            Figure(value: "\(overview.longestStreak)", label: String(localized: "Day Streak")),
+            page.longestBinge.map { Figure(value: $0.value.replacingOccurrences(of: " ", with: ""), label: String(localized: "Longest Binge")) }
+                ?? Figure(value: StatsFormat.abbreviatedCount(overview.showsWatched + overview.moviesWatched), label: String(localized: "Titles")),
         ]
         self.titles = titles
         genres = page.snapshot.genres.prefix(4).map(\.genre)
         heatmap = page.heatmap.cells.isEmpty ? nil : page.heatmap
-        summary = "\(headline): \(value) \(hero.unit) \(detail), \(overview.totalPlays) plays, \(overview.daysActive) days active."
-            + (titles.isEmpty ? "" : " Most watched: \(titles.map(\.name).joined(separator: ", ")).")
+        let names = titles.map(\.name).joined(separator: ", ")
+        summary = String(localized: "\(headline): \(value) \(hero.unit) \(detail), \(overview.totalPlays) plays, \(overview.daysActive) days active.")
+            + (titles.isEmpty ? "" : " " + String(localized: "Most watched: \(names)."))
     }
 
     private static func period(_ range: StatsRange, year: Int) -> String {
         switch range {
-        case .week: return "LAST 7 DAYS"
-        case .month: return "LAST 30 DAYS"
+        case .week: return String(localized: "LAST 7 DAYS")
+        case .month: return String(localized: "LAST 30 DAYS")
         case .year: return "\(year)"
-        case .allTime: return "ALL TIME"
+        case .allTime: return String(localized: "ALL TIME")
         }
     }
 
     private static func headline(_ range: StatsRange, year: Int) -> String {
         switch range {
-        case .week: return "My Week in Crucible"
-        case .month: return "My Month in Crucible"
-        case .year: return "My \(year) in Crucible"
-        case .allTime: return "My Crucible, All Time"
+        case .week: return String(localized: "My Week in Crucible")
+        case .month: return String(localized: "My Month in Crucible")
+        case .year: return String(localized: "My \(String(year)) in Crucible")
+        case .allTime: return String(localized: "My Crucible, All Time")
         }
     }
 
@@ -94,8 +95,8 @@ package struct StatsShareFacts: Sendable {
                 rank: index + 1,
                 name: entry.name,
                 caption: entry.isShow
-                    ? "\(entry.count) \(entry.count == 1 ? "episode" : "episodes")"
-                    : (entry.count == 1 ? "Movie" : "Movie · \(entry.count) plays"),
+                    ? (entry.count == 1 ? String(localized: "1 episode") : String(localized: "\(entry.count) episodes"))
+                    : (entry.count == 1 ? String(localized: "Movie") : String(localized: "Movie · \(entry.count) plays")),
                 thumb: entry.thumb,
                 placeholderSymbol: entry.isShow ? "tv" : "film"
             )

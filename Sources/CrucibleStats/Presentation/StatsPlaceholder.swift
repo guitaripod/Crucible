@@ -22,17 +22,17 @@ package enum StatsPlaceholder: Equatable, Sendable {
 
     package var title: String {
         switch self {
-        case .unavailable: return "Statistics unavailable"
-        case .loading: return "Building your statistics"
-        case .empty(let filtered): return filtered ? "No plays in these libraries" : "No watch history yet"
+        case .unavailable: return String(localized: "Statistics unavailable")
+        case .loading: return String(localized: "Building your statistics")
+        case .empty(let filtered): return filtered ? String(localized: "No plays in these libraries") : String(localized: "No watch history yet")
         }
     }
 
     package var message: String {
         switch self {
-        case .unavailable: return "The local statistics store could not be opened."
-        case .loading: return "Mirroring your Plex watch history…"
-        case .empty(let filtered): return filtered ? "Switch on more libraries with the filter button." : "Play something and your stats will appear here."
+        case .unavailable: return String(localized: "The local statistics store could not be opened.")
+        case .loading: return String(localized: "Mirroring your Plex watch history…")
+        case .empty(let filtered): return filtered ? String(localized: "Switch on more libraries with the filter button.") : String(localized: "Play something and your stats will appear here.")
         }
     }
 }

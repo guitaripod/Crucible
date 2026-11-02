@@ -35,12 +35,12 @@ package enum TopShelfBuilder {
         let upNext = visible.onDeck.filter { !continueIDs.contains($0.id) }
 
         let continueSection = TopShelfSection(
-            title: "Continue Watching",
-            items: visible.continueWatching.prefix(maxItemsPerSection).map { item(from: $0, section: "Continue Watching", source: source) }
+            title: String(localized: "Continue Watching"),
+            items: visible.continueWatching.prefix(maxItemsPerSection).map { item(from: $0, section: String(localized: "Continue Watching"), source: source) }
         )
         let upNextSection = TopShelfSection(
-            title: "Up Next",
-            items: upNext.prefix(maxItemsPerSection).map { item(from: $0, section: "Up Next", source: source) }
+            title: String(localized: "Up Next"),
+            items: upNext.prefix(maxItemsPerSection).map { item(from: $0, section: String(localized: "Up Next"), source: source) }
         )
         return TopShelfSnapshot(
             machineIdentifier: source.machineIdentifier,
