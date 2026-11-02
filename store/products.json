@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "subscriptionGroups": [
+    {
+      "referenceName": "Crucible Pro",
+      "localizations": {
+        "de-DE": {
+          "name": "Crucible Pro"
+        },
+        "en-US": {
+          "name": "Crucible Pro"
+        },
+        "es-ES": {
+          "name": "Crucible Pro"
+        },
+        "fr-FR": {
+          "name": "Crucible Pro"
+        },
+        "it": {
+          "name": "Crucible Pro"
+        },
+        "ja": {
+          "name": "Crucible Pro"
+        },
+        "ko": {
+          "name": "Crucible Pro"
+        },
+        "pl": {
+          "name": "Crucible Pro"
+        },
+        "pt-BR": {
+          "name": "Crucible Pro"
+        },
+        "zh-Hans": {
+          "name": "Crucible Pro"
+        },
+        "zh-Hant": {
+          "name": "Crucible Pro"
+        }
+      },
+      "subscriptions": [
+        {
+          "productId": "com.guitaripod.crucible.pro.yearly",
+          "referenceName": "Crucible Pro Annual",
+          "duration": "ONE_YEAR",
+          "groupLevel": 1,
+          "familySharable": true,
+          "price": {
+            "territory": "USA",
+            "amount": "7.99"
+          },
+          "introductoryOffers": [],
+          "localizations": {
+            "de-DE": {
+              "name": "Crucible Pro Jährlich",
+              "description": "Downloads, volle Statistiken und Top Shelf."
+            },
+            "en-US": {
+              "name": "Crucible Pro Annual",
+              "description": "Downloads, full Statistics and Top Shelf."
+            },
+            "es-ES": {
+              "name": "Crucible Pro Anual",
+              "description": "Descargas, estadísticas completas y Top Shelf."
+            },
+            "fr-FR": {
+              "name": "Crucible Pro Annuel",
+              "description": "Téléchargements, statistiques complètes et Top Shelf."
+            },
+            "it": {
+              "name": "Crucible Pro Annuale",
+              "description": "Download, statistiche complete e Top Shelf."
+            },
+            "ja": {
+              "name": "Crucible Pro 年額",
+              "description": "ダウンロード、すべての統計、トップシェルフ。"
+            },
+            "ko": {
+              "name": "Crucible Pro 연간",
+              "description": "다운로드, 전체 통계, 탑 셸프."
+            },
+            "pl": {
+              "name": "Crucible Pro Rocznie",
+              "description": "Pobieranie, pełne statystyki i Top Shelf."
+            },
+            "pt-BR": {
+              "name": "Crucible Pro Anual",
+              "description": "Downloads, estatísticas completas e Top Shelf."
+            },
+            "zh-Hans": {
+              "name": "Crucible Pro 年度",
+              "description": "下载、完整统计与顶部栏。"
+            },
+            "zh-Hant": {
+              "name": "Crucible Pro 年度",
+              "description": "下載、完整統計與頂部欄。"
+            }
+          },
+          "reviewScreenshotMd5": "be232c740f4aeb94928883b36531f361",
+          "reviewNote": "Crucible Pro is offered on the paywall: iPhone, start a second download or open You > Statistics > Month; Apple TV, You > Statistics > Month. Settings > Crucible Pro opens it too. Sign in with the demo Plex account in the app review notes."
+        }
+      ]
+    }
+  ],
+  "inAppPurchases": [
+    {
+      "productId": "com.guitaripod.crucible.pro.lifetime",
+      "type": "NON_CONSUMABLE",
+      "referenceName": "Crucible Pro Lifetime",
+      "price": {
+        "territory": "USA",
+        "amount": "17.99"
+      },
+      "localizations": {
+        "de-DE": {
+          "name": "Crucible Pro Lebenslang",
+          "description": "Einmal zahlen. Jedes Update, auf jedem Gerät."
+        },
+        "en-US": {
+          "name": "Crucible Pro Lifetime",
+          "description": "Pay once. Every update, on every device."
+        },
+        "es-ES": {
+          "name": "Crucible Pro de por vida",
+          "description": "Paga una vez. Cada actualización, en cada dispositivo."
+        },
+        "fr-FR": {
+          "name": "Crucible Pro à vie",
+          "description": "Un seul paiement. Toutes les mises à jour, partout."
+        },
+        "it": {
+          "name": "Crucible Pro a vita",
+          "description": "Paghi una volta. Ogni aggiornamento, ogni dispositivo."
+        },
+        "ja": {
+          "name": "Crucible Pro 買い切り",
+          "description": "一度の購入で、すべてのアップデートをすべてのデバイスで。"
+        },
+        "ko": {
+          "name": "Crucible Pro 평생",
+          "description": "한 번 결제로 모든 기기에서 모든 업데이트."
+        },
+        "pl": {
+          "name": "Crucible Pro dożywotnio",
+          "description": "Płacisz raz. Każda aktualizacja, na każdym urządzeniu."
+        },
+        "pt-BR": {
+          "name": "Crucible Pro vitalício",
+          "description": "Pague uma vez. Todas as atualizações, todo aparelho."
+        },
+        "zh-Hans": {
+          "name": "Crucible Pro 终身版",
+          "description": "一次付费，所有设备，所有更新。"
+        },
+        "zh-Hant": {
+          "name": "Crucible Pro 終身版",
+          "description": "一次付費，所有裝置，所有更新。"
+        }
+      },
+      "reviewScreenshotMd5": "be232c740f4aeb94928883b36531f361"
+    }
+  ]
+}
