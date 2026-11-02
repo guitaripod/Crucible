@@ -84,17 +84,20 @@ xcrun simctl ui "$UDID" appearance "$MODE"
 xcrun simctl ui "$UDID" content_size large
 xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularMode active --cellularBars 4 --wifiBars 3 --operatorName ""
 
-perl -0pi -e 's/let iosStamp: \[LinkerSetting\] = \[.*?\n\]\n/let iosStamp: [LinkerSetting] = []\n/s' Package.swift
-sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
-sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
-
-cp Localization/Localizable.xcstrings marketing/shots/Sources/Localizable.xcstrings
-rm -rf .dd/Build/Intermediates.noindex/Crucible.build .dd/Build/Intermediates.noindex/CrucibleShots.build
-xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
-  CRUCIBLE_PACKAGE_NAME="$PACKAGE_NAME" -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
-  build > "$XCODE_LOG" 2>&1 || { tail -40 "$XCODE_LOG"; exit 1; }
-
 APP=$ROOT/.dd/Build/Products/Debug-iphonesimulator/CrucibleShots.app
+if [ "${SKIP_BUILD:-0}" = 1 ] && [ -d "$APP" ]; then
+  echo "reusing the built harness"
+else
+  perl -0pi -e 's/let iosStamp: \[LinkerSetting\] = \[.*?\n\]\n/let iosStamp: [LinkerSetting] = []\n/s' Package.swift
+  sed -i '' 's/^@main$//' Sources/Crucible/App/CrucibleApp.swift
+  sed -i '' '/requestAuthorization/d' Sources/Crucible/App/AppDelegate.swift
+
+  cp Localization/Localizable.xcstrings marketing/shots/Sources/Localizable.xcstrings
+  rm -rf .dd/Build/Intermediates.noindex/Crucible.build .dd/Build/Intermediates.noindex/CrucibleShots.build
+  xcodebuild -project marketing/shots/CrucibleShots.xcodeproj -scheme CrucibleShots \
+    CRUCIBLE_PACKAGE_NAME="$PACKAGE_NAME" -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
+    build > "$XCODE_LOG" 2>&1 || { tail -40 "$XCODE_LOG"; exit 1; }
+fi
 xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
 [ "${KEEP_INSTALL:-0}" = 1 ] || xcrun simctl uninstall "$UDID" "$APP_ID" 2>/dev/null || true
 xcrun simctl install "$UDID" "$APP"
