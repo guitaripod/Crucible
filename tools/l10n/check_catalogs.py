@@ -46,7 +46,20 @@ def values(localization):
 
 
 def placeholders(text):
-    return sorted(PLACEHOLDER.findall(text))
+    """The format placeholders of a string, with positions (%2$@) read as their plain form, since a translation may
+    reorder its arguments by position."""
+    return sorted(re.sub(r"^%\d+\$", "%", item) for item in PLACEHOLDER.findall(text))
+
+
+def out_of_order(text, source):
+    """Whether a translation takes its unnumbered placeholders in another order of types than the English, which makes
+    the formatter read an integer as an object and crash; positional placeholders (%2$@) are the way to reorder."""
+    plain = re.compile(r"%(lld|ld|d|u|@|f|\.\d+f|s|c)")
+    if re.search(r"%\d+\$", text):
+        return False
+    wanted = [match.group(1) for match in plain.finditer(re.sub(r"%\d+\$", "%", source).replace("%%", ""))]
+    used = [match.group(1) for match in plain.finditer(text.replace("%%", ""))]
+    return len(used) > len(wanted) or any(kind != wanted[index] for index, kind in enumerate(used))
 
 
 def check(path, locales, problems, stats):
@@ -77,6 +90,8 @@ def check(path, locales, problems, stats):
             for _, text in texts:
                 if "—" in text:
                     problems.append(f"{path.relative_to(ROOT)}: {key!r} has an em dash in {locale}")
+                if out_of_order(text, source_text):
+                    problems.append(f"{path.relative_to(ROOT)}: {key!r} placeholders out of order in {locale}: {text!r}; number them (%1$lld, %2$@)")
                 if placeholders(text) != source_placeholders and not is_plural:
                     problems.append(f"{path.relative_to(ROOT)}: {key!r} placeholders differ in {locale}: {placeholders(text)} vs {source_placeholders}")
             if is_plural:

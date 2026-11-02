@@ -119,7 +119,9 @@ def export(locale, arguments):
 
 
 def placeholders(text):
-    return sorted(PLACEHOLDER.findall(text))
+    """The format placeholders of a string, with positions (%2$@) read as their plain form, since a translation may
+    reorder its arguments by position."""
+    return sorted(re.sub(r"^%\d+\$", "%", item) for item in PLACEHOLDER.findall(text))
 
 
 def text_problems(text, source_text, where, plural):

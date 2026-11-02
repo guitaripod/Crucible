@@ -4477,7 +4477,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 에피소드 %lld개"
+            "value" : "%2$@ 에피소드 %1$lld개"
           }
         },
         "pl" : {
@@ -4501,7 +4501,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 的 %lld 集"
+            "value" : "%2$@ 的 %1$lld 集"
           }
         }
       }
@@ -5971,7 +5971,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@에서 재생 %lld회"
+            "value" : "%2$@에서 재생 %1$lld회"
           }
         },
         "pl" : {
@@ -5995,7 +5995,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 %@ 上播放 %lld 次"
+            "value" : "在 %2$@ 上播放 %1$lld 次"
           }
         }
       }
