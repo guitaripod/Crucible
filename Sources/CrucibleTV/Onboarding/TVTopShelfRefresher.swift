@@ -9,7 +9,8 @@ import TVServices
 ///
 /// Top Shelf is a Crucible Pro feature. A free install publishes nothing and empties what an earlier
 /// version or an ended plan left, so the extension returns no content; a status the store has not
-/// answered yet changes nothing. The demo never publishes: its titles are fictional and must not reach the real Home screen, so
+/// answered yet changes nothing. The Pro Week publishes with its end date in the snapshot, so the
+/// extension stops showing it on time even when the app is not opened again. The demo never publishes: its titles are fictional and must not reach the real Home screen, so
 /// while it runs the Top Shelf is kept empty. The refresher follows `ProAccess`, so turning Pro on fills the
 /// Top Shelf at once and losing it empties it.
 @MainActor
@@ -39,7 +40,7 @@ enum TVTopShelfRefresher {
     }
 
     private static var action: ProTVTopShelf.Action {
-        DemoMode.shared.isActive ? .clear : ProTVTopShelf.action(for: ProAccess.shared.status)
+        DemoMode.shared.isActive ? .clear : ProTVTopShelf.action(for: ProAccess.shared.status, isProWeekActive: ProAccess.shared.proWeekPhase.isActive)
     }
 
     /// Ends the session and cancels a refresh in flight, so it cannot write after the snapshot is
@@ -55,7 +56,7 @@ enum TVTopShelfRefresher {
     private static func publish(_ session: (api: APIClient, machineIdentifier: String)) {
         task?.cancel()
         task = Task {
-            await TopShelfUpdater.refresh(api: session.api, machineIdentifier: session.machineIdentifier) {
+            await TopShelfUpdater.refresh(api: session.api, machineIdentifier: session.machineIdentifier, availableUntil: ProAccess.shared.proWeekEndsAt) {
                 TVTopShelfContentProvider.topShelfContentDidChange()
             }
         }

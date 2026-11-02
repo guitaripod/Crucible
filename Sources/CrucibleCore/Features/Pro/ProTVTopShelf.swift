@@ -9,12 +9,13 @@ package enum ProTVTopShelf {
         case wait
     }
 
-    /// Pro publishes; a free install clears whatever an earlier version or an expired plan left. An unanswered store waits,
-    /// so a Pro user's Top Shelf is not wiped and rewritten while the first answer is on its way.
-    package static func action(for status: ProStatus) -> Action {
+    /// Pro publishes, and so does a free install while its Pro Week runs; otherwise a free install clears whatever an earlier
+    /// version, an expired plan or an ended week left. An unanswered store waits, so a Pro user's Top Shelf is not wiped and
+    /// rewritten while the first answer is on its way.
+    package static func action(for status: ProStatus, isProWeekActive: Bool = false) -> Action {
         switch status {
         case .pro: return .publish
-        case .free: return .clear
+        case .free: return isProWeekActive ? .publish : .clear
         case .unknown: return .wait
         }
     }

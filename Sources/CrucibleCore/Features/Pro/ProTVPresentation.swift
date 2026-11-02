@@ -17,9 +17,17 @@ package enum ProTVPresentation {
         isStoreBacked && !status.isPro
     }
 
-    /// Under "Crucible Pro" in the You list: the plan for a Pro user, the pitch for everyone else.
-    package static func rowSubtitle(for status: ProStatus, now: Date = Date(), calendar: Calendar = .current) -> String {
-        status.entitlement?.summary(now: now, calendar: calendar) ?? pitch
+    /// Under "Crucible Pro" in the You list: the plan for a Pro user, the days left while the Pro Week runs, the pitch for everyone
+    /// else.
+    package static func rowSubtitle(for status: ProStatus, proWeekEndsAt: Date? = nil, now: Date = Date(), calendar: Calendar = .current) -> String {
+        if let entitlement = status.entitlement { return entitlement.summary(now: now, calendar: calendar) }
+        guard let proWeekEndsAt else { return pitch }
+        return ProWeek.daysLeftText(until: proWeekEndsAt, now: now)
+    }
+
+    /// Why the paywall opened: the Pro Week around it, or the feature the user reached for.
+    package static func reasonLine(for request: PaywallRequest, proWeekEndsAt: Date?) -> String? {
+        ProWeek.paywallLine(followsProWeek: request.followsProWeek, endsAt: proWeekEndsAt, isTV: true) ?? reasonLine(for: request.feature)
     }
 
     /// Why the paywall opened, when the user reached for a feature.

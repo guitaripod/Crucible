@@ -34,6 +34,11 @@ enum ProShotScript {
         await ShotHarness.settle(1.5)
         let you = tabBar.selectedViewController as? UINavigationController
 
+        if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "proweek" {
+            await proWeek(you: you, api: api, tabBar: tabBar)
+            await ShotHarness.capture("done")
+            return
+        }
         await paywallStates(tabBar: tabBar)
         if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "paywall" {
             await ShotHarness.capture("done")
@@ -42,6 +47,7 @@ enum ProShotScript {
         await settingsAndStatus(you: you, api: api)
         await statisticsLocks(you: you, api: api, tabBar: tabBar)
         await downloadLocks(you: you, api: api, tabBar: tabBar)
+        await proWeek(you: you, api: api, tabBar: tabBar)
         await ShotHarness.capture("done")
     }
 
@@ -287,5 +293,50 @@ enum ProShotScript {
         sheet.dismiss(animated: false)
         await ShotHarness.settle(0.5)
         home?.popToRootViewController(animated: false)
+    }
+
+    /// The Pro Week from a free viewer's first finished item to the first one after it, through the real finish path: the start sheet,
+    /// the days left in Settings, the paywall while it runs, Statistics open, and the paywall that says it has ended.
+    private static func proWeek(you: UINavigationController?, api: APIClient, tabBar: TabBarController) async {
+        await install(scripted(trial: false))
+        access.stageProWeek(startedAt: nil)
+        PlaybackOffer.offerAfterFinishing(over: tabBar)
+        await ShotHarness.settle(2)
+        await ShotHarness.capture("w01-start-sheet")
+        if let sheet = topPresented(tabBar) as? ProWeekStartViewController {
+            sheet.view.window?.traitOverrides.preferredContentSizeCategory = .accessibilityExtraLarge
+            await ShotHarness.settle(1.2)
+            await ShotHarness.capture("w01b-start-sheet-accessibility-xl")
+            sheet.view.window?.traitOverrides.preferredContentSizeCategory = .large
+            sheet.dismiss(animated: false)
+        }
+        await ShotHarness.settle(1)
+
+        let settings = SettingsViewController(api: api)
+        you?.pushViewController(settings, animated: false)
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("w02-settings-week")
+        PaywallPresenter.showOffer(from: settings)
+        await ShotHarness.settle(2.5)
+        await ShotHarness.capture("w03-paywall-week")
+        await closePaywall(tabBar)
+        you?.popToRootViewController(animated: false)
+
+        you?.pushViewController(StatisticsViewController(api: api), animated: false)
+        await ShotHarness.settle(10)
+        await ShotHarness.capture("w04-stats-week")
+        you?.popToRootViewController(animated: false)
+        await ShotHarness.settle(0.5)
+
+        access.stageProWeek(startedAt: Date().addingTimeInterval(-8 * 86_400))
+        await ShotHarness.settle(0.5)
+        PlaybackOffer.offerAfterFinishing(over: tabBar)
+        await ShotHarness.settle(3)
+        await ShotHarness.capture("w05-paywall-week-ended")
+        await closePaywall(tabBar)
+        PlaybackOffer.offerAfterFinishing(over: tabBar)
+        await ShotHarness.settle(2)
+        await ShotHarness.capture("w06-no-second-end-note")
+        await closePaywall(tabBar)
     }
 }

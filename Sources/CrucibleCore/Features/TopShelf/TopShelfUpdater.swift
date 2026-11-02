@@ -17,6 +17,7 @@ package enum TopShelfUpdater {
         machineIdentifier: String,
         store: TopShelfStore = .shared,
         excludedLibraries: Set<Int>? = nil,
+        availableUntil: Date? = nil,
         now: Date = Date(),
         notify: @Sendable () -> Void
     ) async -> Bool {
@@ -35,7 +36,7 @@ package enum TopShelfUpdater {
             source: source,
             excludedLibraries: excludedLibraries ?? LibraryVisibility.excluded,
             now: now
-        )
+        ).available(until: availableUntil)
         return await MainActor.run {
             guard !Task.isCancelled else { return false }
             return write(snapshot, to: store, notify: notify)

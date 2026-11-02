@@ -51,12 +51,35 @@ package struct TopShelfSnapshot: Codable, Equatable, Sendable {
     package let machineIdentifier: String
     package let savedAt: Int
     package let sections: [TopShelfSection]
+    /// When the content stops being shown, in seconds since 1970: the end of the Pro Week that published it. Nil for Pro, whose
+    /// Top Shelf has no end. The extension checks it, so an ended week empties the Top Shelf even before the app opens again.
+    package let availableUntil: Int?
 
-    package init(schema: Int = TopShelfSnapshot.schemaVersion, machineIdentifier: String, savedAt: Int, sections: [TopShelfSection]) {
+    package init(
+        schema: Int = TopShelfSnapshot.schemaVersion,
+        machineIdentifier: String,
+        savedAt: Int,
+        sections: [TopShelfSection],
+        availableUntil: Int? = nil
+    ) {
         self.schema = schema
         self.machineIdentifier = machineIdentifier
         self.savedAt = savedAt
         self.sections = sections
+        self.availableUntil = availableUntil
+    }
+
+    /// The same content, shown until `end`, or without an end for nil.
+    package func available(until end: Date?) -> TopShelfSnapshot {
+        TopShelfSnapshot(
+            schema: schema, machineIdentifier: machineIdentifier, savedAt: savedAt, sections: sections,
+            availableUntil: end.map { Int($0.timeIntervalSince1970.rounded(.down)) }
+        )
+    }
+
+    package func isAvailable(at now: Date) -> Bool {
+        guard let availableUntil else { return true }
+        return now.timeIntervalSince1970 < Double(availableUntil)
     }
 
     package var isEmpty: Bool {
@@ -70,6 +93,7 @@ package struct TopShelfSnapshot: Codable, Equatable, Sendable {
     /// Equal apart from the save time, so an unchanged Top Shelf is not rewritten or re-announced.
     package func hasSameContent(as other: TopShelfSnapshot) -> Bool {
         schema == other.schema && machineIdentifier == other.machineIdentifier && sections == other.sections
+            && availableUntil == other.availableUntil
     }
 }
 

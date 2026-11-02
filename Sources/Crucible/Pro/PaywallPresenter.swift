@@ -15,7 +15,7 @@ enum PaywallPresenter {
     /// Shows the offer itself, for the places that exist to show it. `requestUnlock` returns at once when the demo has everything
     /// unlocked, so these ask the sheet directly and the offer stays one tap away during the demo. An install that already owns Pro
     /// has nothing to buy: the sheet would close the moment it opened, so it gets the Crucible Pro screen instead.
-    static func showOffer(from presenter: UIViewController, feature: ProFeature? = nil) {
+    static func showOffer(from presenter: UIViewController, feature: ProFeature? = nil, followsProWeek: Bool = false) {
         guard !ProAccess.shared.isPro else {
             showStatus(from: presenter)
             return
@@ -24,7 +24,7 @@ enum PaywallPresenter {
         while let presented = top.presentedViewController { top = presented }
         guard !(top is PaywallViewController) else { return }
         MidgarLog.notice("Paywall shown from \(type(of: presenter)) on request", category: .store)
-        PaywallViewController.present(PaywallRequest(feature: feature), from: top) { _ in }
+        PaywallViewController.present(PaywallRequest(feature: feature, followsProWeek: followsProWeek), from: top) { _ in }
     }
 
     /// The plan and its management: pushed when `presenter` is in a navigation stack, otherwise in a sheet with a Done button.

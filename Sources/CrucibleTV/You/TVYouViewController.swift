@@ -215,7 +215,7 @@ final class TVYouViewController: TVSettingsScaffold {
         TVRowItem(
             id: RowID.pro,
             title: String(localized: "Crucible Pro"),
-            subtitle: ProTVPresentation.rowSubtitle(for: ProAccess.shared.status),
+            subtitle: ProTVPresentation.rowSubtitle(for: ProAccess.shared.status, proWeekEndsAt: ProAccess.shared.proWeekEndsAt),
             symbol: "sparkles",
             accessory: .chevron
         )

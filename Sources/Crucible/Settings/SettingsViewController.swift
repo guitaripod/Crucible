@@ -278,9 +278,11 @@ final class SettingsViewController: UICollectionViewController {
         showsDemoOffer ? DemoPhoneCopy.unlockProTitle : "Crucible Pro"
     }
 
+    /// The plan for a Pro user, the days left while the Pro Week runs, and what Pro unlocks for everyone else.
     private static func proSubtitle() -> String {
-        guard let entitlement = ProAccess.shared.status.entitlement else { return DemoPhoneCopy.unlockProDetail }
-        return entitlement.summary()
+        if let entitlement = ProAccess.shared.status.entitlement { return entitlement.summary() }
+        guard let endsAt = ProAccess.shared.proWeekEndsAt, !showsDemoOffer else { return DemoPhoneCopy.unlockProDetail }
+        return ProWeek.daysLeftText(until: endsAt)
     }
 
     /// While the demo runs everything is unlocked, but the row still offers Pro, so it reads as the offer instead of a status.

@@ -4,9 +4,12 @@ import MidgarCore
 /// A request to show the paywall: which feature the user reached for, so the screen can say why.
 package struct PaywallRequest: Equatable, Sendable {
     package var feature: ProFeature?
+    /// The paywall opens because the Pro Week just ended, so it says so first.
+    package var followsProWeek: Bool
 
-    package init(feature: ProFeature? = nil) {
+    package init(feature: ProFeature? = nil, followsProWeek: Bool = false) {
         self.feature = feature
+        self.followsProWeek = followsProWeek
     }
 }
 
@@ -14,7 +17,7 @@ package struct PaywallRequest: Equatable, Sendable {
 /// behind it, refreshes it when the app comes to the front, and tells observers when it changes.
 @MainActor
 package final class ProAccess {
-    package static let shared = ProAccess(provider: UnlockedProAccess())
+    package static let shared = ProAccess(provider: UnlockedProAccess(), weekStore: .live())
 
     package typealias Observer = @MainActor (ProStatus) -> Void
     package typealias PaywallPresenter = @MainActor (PaywallRequest, @escaping @MainActor (Bool) -> Void) -> Void
@@ -26,10 +29,23 @@ package final class ProAccess {
     private var observers: [UUID: Observer] = [:]
     private var updatesTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
+    private var weekTimer: Task<Void, Never>?
+    private let weekStore: ProWeekStore
+    private let now: () -> Date
 
-    package init(provider: any ProAccessProviding) {
+    /// The Pro Week as of the last check (`ProWeek`). Observers hear when it begins and when it ends.
+    package private(set) var proWeekPhase: ProWeek.Phase
+
+    /// - Parameters:
+    ///   - weekStore: Where the Pro Week is remembered. Only the shared instance uses the live store; every other instance, as
+    ///     in tests and previews, gets a throwaway one.
+    ///   - now: The clock, injectable for tests.
+    package init(provider: any ProAccessProviding, weekStore: ProWeekStore = .ephemeral(), now: @escaping () -> Date = Date.init) {
         self.provider = provider
         self.status = provider.isStoreBacked ? .unknown : .pro(.included)
+        self.weekStore = weekStore
+        self.now = now
+        proWeekPhase = ProWeek.phase(start: weekStore.start, now: now())
     }
 
     package private(set) var demoUnlocked = false
@@ -37,9 +53,65 @@ package final class ProAccess {
     /// Whether the user has paid for Pro, or has it included. The Pro screens and the paywall read this.
     package var isPro: Bool { status.isPro }
 
-    /// Whether the Pro features work right now: Pro is on, or the demo is running, which unlocks everything on its fictional library.
-    /// Every feature check reads this; only the purchase screens read `isPro`.
-    package var hasFullAccess: Bool { status.isPro || demoUnlocked }
+    /// Whether the Pro features work right now: Pro is on, the Pro Week is running, or the demo is, which unlocks everything on its
+    /// fictional library. Every feature check reads this; only the purchase screens read `isPro`.
+    package var hasFullAccess: Bool { status.isPro || demoUnlocked || proWeekPhase.isActive }
+
+    /// When the Pro Week ends, while it runs for a viewer who has not bought Pro.
+    package var proWeekEndsAt: Date? {
+        guard !status.isPro, case .active(let endsAt) = proWeekPhase else { return nil }
+        return endsAt
+    }
+
+    /// The week runs and its announcement has not reached the viewer yet.
+    package var isProWeekAnnouncementDue: Bool {
+        proWeekEndsAt != nil && !weekStore.wasAnnounced
+    }
+
+    /// The week is over for a viewer who did not buy Pro, and nothing has said so yet.
+    package var isProWeekEndNoticeDue: Bool {
+        guard !status.isPro, case .ended = proWeekPhase else { return false }
+        return !weekStore.endNoticeShown
+    }
+
+    package func markProWeekAnnounced() {
+        weekStore.wasAnnounced = true
+    }
+
+    package func markProWeekEndNoticeShown() {
+        weekStore.endNoticeShown = true
+    }
+
+    /// Starts the Pro Week for a viewer the store says has no Pro and who never had a week on this device. Source builds and an
+    /// unanswered store never start it. Returns true when it started now.
+    @discardableResult
+    package func startProWeekIfEligible() -> Bool {
+        guard provider.isStoreBacked, status == .free, weekStore.start == nil else { return false }
+        let start = now()
+        weekStore.saveStart(start)
+        MidgarLog.info("Pro Week started, ends \(start.addingTimeInterval(ProWeek.length))", category: .store)
+        refreshProWeek()
+        return true
+    }
+
+    /// Brings the phase up to date, tells observers when it changed, and wakes again when the week ends, so an app left open
+    /// locks the Pro features on time.
+    package func refreshProWeek() {
+        let current = now()
+        let phase = ProWeek.phase(start: weekStore.start, now: current)
+        weekTimer?.cancel()
+        if case .active(let endsAt) = phase {
+            let delay = max(1, endsAt.timeIntervalSince(current))
+            weekTimer = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled else { return }
+                self?.refreshProWeek()
+            }
+        }
+        guard phase != proWeekPhase else { return }
+        proWeekPhase = phase
+        notify()
+    }
 
     package func setDemoUnlocked(_ unlocked: Bool) {
         guard demoUnlocked != unlocked else { return }
@@ -74,8 +146,19 @@ package final class ProAccess {
         refresh()
     }
 
+    #if DEBUG
+    /// Begins the Pro Week's story again from `start`, notes unseen, or forgets the week with nil. For previews, screenshot runs and
+    /// debug launches; not in release builds.
+    package func stageProWeek(startedAt start: Date?) {
+        weekStore.reset()
+        if let start { weekStore.saveStart(start) }
+        refreshProWeek()
+    }
+    #endif
+
     /// Asks the store again, for instance when the app returns to the front.
     package func refresh() {
+        refreshProWeek()
         guard provider.isStoreBacked else { return }
         refreshTask?.cancel()
         let provider = provider
@@ -147,6 +230,7 @@ extension ProAccess {
     /// (a source build) everything stays unlocked.
     package func configureForLaunch(store: (any ProAccessProviding)?, environment: [String: String] = ProcessInfo.processInfo.environment) {
         #if DEBUG
+        stageProWeekIfRequested(environment)
         if let scripted = ScriptedProAccess.fromEnvironment(environment) {
             install(scripted)
             start()
@@ -157,3 +241,19 @@ extension ProAccess {
         start()
     }
 }
+
+#if DEBUG
+extension ProAccess {
+    /// `CRUCIBLE_PRO_WEEK=<days>` starts the Pro Week that many days ago (a decimal works, and 7 or more is a week that has
+    /// ended), with neither note seen; `none` and `CRUCIBLE_FRESH=1` forget it, as on a new install.
+    private func stageProWeekIfRequested(_ environment: [String: String]) {
+        let value = environment["CRUCIBLE_PRO_WEEK"]
+        if let days = value.flatMap(Double.init) {
+            stageProWeek(startedAt: now().addingTimeInterval(-days * 86_400))
+            MidgarLog.notice("Debug session: Pro Week started \(days) days ago", category: .lifecycle)
+        } else if value == "none" || environment["CRUCIBLE_FRESH"] == "1" {
+            stageProWeek(startedAt: nil)
+        }
+    }
+}
+#endif

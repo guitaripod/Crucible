@@ -12,7 +12,7 @@ final class TVPaywallInfoColumn: UIStackView {
         axis = .vertical
         alignment = .fill
         spacing = Theme.Space.l
-        addArrangedSubview(Self.headerPanel(reason: ProTVPresentation.reasonLine(for: request.feature)))
+        addArrangedSubview(Self.headerPanel(reason: ProTVPresentation.reasonLine(for: request, proWeekEndsAt: ProAccess.shared.proWeekEndsAt)))
         addArrangedSubview(Self.featuresPanel(features))
         addArrangedSubview(Self.legalPanel())
     }

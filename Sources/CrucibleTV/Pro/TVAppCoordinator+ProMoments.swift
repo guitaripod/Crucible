@@ -4,7 +4,8 @@ import MidgarCore
 import UIKit
 
 extension TVAppCoordinator {
-    /// Watches for the moments Crucible Pro speaks up: the end of a finished playback and the last days of a free trial.
+    /// Watches for the moments Crucible Pro speaks up: the end of a finished playback, which also begins and ends the Pro Week, and
+    /// the last days of a free trial.
     func installProMoments() {
         TVPlayerCoordinator.onEnded = { [weak self] finishedAnItem in
             self?.playbackEnded(finishedAnItem: finishedAnItem)
@@ -38,21 +39,31 @@ extension TVAppCoordinator {
         return present(moment)
     }
 
-    /// A trial viewer hears once what the trial unlocked. Everyone else's finish counts toward the offer policy, and when it
-    /// says so a free viewer is told what Pro adds, then not again until the policy's next turn.
+    /// A trial viewer hears once what the trial unlocked. Everyone else's finish counts: a free viewer's first one begins the Pro
+    /// Week and says so, the first after the week says it has ended, and otherwise, when the offer policy says so, a free viewer
+    /// is told what Pro adds, then not again until the policy's next turn.
     private func presentFinishMomentIfDue() {
-        let status = ProAccess.shared.status
-        let moment = ProTVMoments.firstFinish(
-            status: status,
-            isStoreBacked: ProAccess.shared.isStoreBacked,
-            isDemo: DemoMode.shared.isActive
-        )
+        let access = ProAccess.shared
+        let status = access.status
+        let moment = ProTVMoments.firstFinish(status: status, isStoreBacked: access.isStoreBacked, isDemo: DemoMode.shared.isActive)
         if status.entitlement?.isTrial == true {
             if let moment { present(moment) }
             return
         }
-        guard PlaybackOffer.noteFinishedItem(), let moment, show(moment) else { return }
-        PlaybackOffer.noteOffered()
+        switch PlaybackOffer.noteFinishedItem() {
+        case .nothing:
+            break
+        case .proWeekStarted:
+            guard let endsAt = access.proWeekEndsAt, show(ProTVMoments.proWeekStarted(endsAt: endsAt)) else { return }
+            access.markProWeekAnnounced()
+        case .proWeekEnded:
+            guard show(ProTVMoments.proWeekEnded()) else { return }
+            access.markProWeekEndNoticeShown()
+            PlaybackOffer.noteOffered()
+        case .offer:
+            guard let moment, show(moment) else { return }
+            PlaybackOffer.noteOffered()
+        }
     }
 
     /// Only the main screens qualify: nothing is presented over them, so a note never lands on the player, the paywall or another

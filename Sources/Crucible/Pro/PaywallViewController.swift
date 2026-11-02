@@ -202,7 +202,11 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         return header
     }
 
+    /// The Pro Week comes first, while it runs or just after it ends; then the feature the user reached for, or what Pro unlocks.
     private static func subtitle(for request: PaywallRequest) -> String {
+        if let line = ProWeek.paywallLine(followsProWeek: request.followsProWeek, endsAt: ProAccess.shared.proWeekEndsAt, isTV: false) {
+            return line
+        }
         guard let feature = request.feature else { return String(localized: "Unlock downloads, full Statistics and the poster") }
         return String(localized: "\(feature.title) is part of Crucible Pro")
     }

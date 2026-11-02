@@ -18092,6 +18092,70 @@
         }
       }
     },
+    "Crucible Pro is yours for a week" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro gehört eine Woche lang dir"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro es tuyo durante una semana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro est à vous pendant une semaine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro è tuo per una settimana"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 週間、Crucible Pro をお使いいただけます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일주일 동안 Crucible Pro를 사용할 수 있습니다"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro jest Twój przez tydzień"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Pro é seu por uma semana"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 送你一周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 送你一週"
+          }
+        }
+      }
+    },
     "Crucible asked the online computers on your tailnet and none of them answered as %@. Check that Plex is running." : {
       "localizations" : {
         "de" : {
@@ -24244,6 +24308,70 @@
         }
       }
     },
+    "Everything in Pro is open until %@. Nothing is charged and nothing renews; titles you download stay on this iPhone." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles aus Pro ist bis %@ freigeschaltet. Es wird nichts berechnet und nichts verlängert; heruntergeladene Titel bleiben auf diesem iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo de Pro está abierto hasta el %@. No se cobra nada y nada se renueva; los títulos que descargues se quedan en este iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout Pro est ouvert jusqu’au %@. Rien n’est facturé et rien ne se renouvelle ; les titres téléchargés restent sur cet iPhone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto Pro è aperto fino a %@. Non viene addebitato nulla e nulla si rinnova; i titoli che scarichi restano su questo iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro のすべての機能を %@ までご利用いただけます。料金はかからず、自動更新もありません。ダウンロードしたタイトルはこの iPhone に残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@까지 Pro의 모든 기능을 사용할 수 있습니다. 요금이 청구되지 않고 자동 갱신도 없으며, 다운로드한 타이틀은 이 iPhone에 남습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko z Pro jest otwarte do %@. Nic nie jest pobierane i nic się nie odnawia; pobrane tytuły zostają na tym iPhonie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo do Pro está liberado até %@. Nada é cobrado e nada é renovado; os títulos que você baixar continuam neste iPhone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 的全部功能在 %@ 前开放。不收取任何费用，也不会自动续订；下载的影片会保留在这台 iPhone 上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 的全部功能在 %@ 前開放。不收取任何費用，也不會自動續訂；下載的影片會保留在這部 iPhone 上。"
+          }
+        }
+      }
+    },
     "Failed to build auth URL" : {
       "localizations" : {
         "de" : {
@@ -25992,6 +26120,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "涵蓋所有時間範圍與媒體庫的完整統計資料，以及在 Apple TV 主畫面顯示「繼續觀看」的 Top Shelf。Pro 會在您購買後立即解鎖，可選擇年訂閱或永久買斷。"
+          }
+        }
+      }
+    },
+    "Full Statistics, the Year in Review poster and Top Shelf with Continue Watching are open until %@. Nothing is charged and nothing renews." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vollständige Statistiken, das Jahresrückblick-Poster und Top Shelf mit „Weiterschauen“ sind bis %@ freigeschaltet. Es wird nichts berechnet und nichts verlängert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las estadísticas completas, el póster del resumen del año y Top Shelf con Seguir viendo están abiertos hasta el %@. No se cobra nada y nada se renueva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les statistiques complètes, l’affiche du bilan annuel et Top Shelf avec Reprendre la lecture sont ouverts jusqu’au %@. Rien n’est facturé et rien ne se renouvelle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistiche complete, il poster dell’anno in rassegna e Top Shelf con Continua a guardare sono aperti fino a %@. Non viene addebitato nulla e nulla si rinnova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての統計、年間振り返りポスター、「続きを見る」付きのトップシェルフを %@ までご利用いただけます。料金はかからず、自動更新もありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 통계, 올해의 기록 포스터, 이어보기가 있는 Apple TV 상단 선반을 %@까지 사용할 수 있습니다. 요금이 청구되지 않으며 자동 갱신도 없습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełne statystyki, plakat podsumowania roku i Top Shelf z sekcją Oglądaj dalej są otwarte do %@. Nic nie jest pobierane i nic się nie odnawia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estatísticas completas, o pôster da retrospectiva do ano e o Top Shelf com Continuar assistindo estão liberados até %@. Nada é cobrado e nada é renovado."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完整统计、年度回顾海报和带“继续观看”的顶部展示在 %@ 前全部开放。不收取任何费用，也不会自动续订。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完整統計資料、年度回顧海報和帶「繼續觀看」的 Top Shelf 在 %@ 前全部開放。不收取任何費用，也不會自動續訂。"
           }
         }
       }
@@ -42739,6 +42931,134 @@
         }
       }
     },
+    "Pro week · %lld days left" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-Woche · noch %lld Tage"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semana Pro · quedan %lld días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semaine Pro · encore %lld jours"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settimana Pro · ancora %lld giorni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィーク · 残り %lld 日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크 · %lld일 남음"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tydzień Pro · zostało %lld dni"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semana Pro · faltam %lld dias"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 周 · 还剩 %lld 天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 週 · 還剩 %lld 天"
+          }
+        }
+      }
+    },
+    "Pro week · last day" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-Woche · letzter Tag"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semana Pro · último día"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semaine Pro · dernier jour"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settimana Pro · ultimo giorno"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィーク · 最終日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크 · 마지막 날"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tydzień Pro · ostatni dzień"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semana Pro · último dia"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 周 · 最后一天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 週 · 最後一天"
+          }
+        }
+      }
+    },
     "Purchases Restored" : {
       "localizations" : {
         "de" : {
@@ -51648,6 +51968,70 @@
         }
       }
     },
+    "Start the Week" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Woche starten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezar la semana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commencer la semaine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizia la settimana"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウィークを始める"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위크 시작"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zacznij tydzień"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Começar a semana"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始这一周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始這一週"
+          }
+        }
+      }
+    },
     "Starting the demo" : {
       "localizations" : {
         "de" : {
@@ -51901,6 +52285,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "統計資料現已涵蓋所有時間範圍與媒體庫，Top Shelf 也會在 Apple TV 主畫面顯示「繼續觀看」。"
+          }
+        }
+      }
+    },
+    "Statistics shows this week again, and Top Shelf shows the Crucible image. Crucible Pro brings the rest back, yearly or once for good." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Statistiken zeigen wieder diese Woche, und Top Shelf zeigt das Crucible-Bild. Crucible Pro bringt den Rest zurück, jährlich oder einmal für immer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las estadísticas vuelven a mostrar esta semana y Top Shelf muestra la imagen de Crucible. Crucible Pro recupera el resto, al año o de una vez para siempre."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les statistiques affichent de nouveau cette semaine et Top Shelf montre l’image de Crucible. Crucible Pro rétablit le reste, à l’année ou une fois pour toutes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le statistiche mostrano di nuovo questa settimana e Top Shelf l’immagine di Crucible. Crucible Pro riporta tutto il resto, all’anno o una volta per sempre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "統計は今週のみの表示に戻り、トップシェルフは Crucible の画像になります。Crucible Pro なら年額または買い切りで元どおりに使えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통계는 다시 이번 주만 보여 주고, Apple TV 상단 선반은 Crucible 이미지로 돌아갑니다. Crucible Pro를 연간 구독하거나 한 번 구매하면 나머지가 돌아옵니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statystyki znów pokazują ten tydzień, a Top Shelf obraz Crucible. Crucible Pro przywraca resztę, w rocznym planie albo raz na zawsze."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As estatísticas voltam a mostrar esta semana e o Top Shelf mostra a imagem do Crucible. O Crucible Pro traz o resto de volta, por ano ou de uma vez para sempre."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "统计重新只显示本周，顶部展示显示 Crucible 图片。按年订阅或一次买断 Crucible Pro 即可恢复其余功能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "統計重新只顯示本週，Top Shelf 顯示 Crucible 圖片。按年訂閱或一次買斷 Crucible Pro 即可恢復其餘功能。"
           }
         }
       }
@@ -62177,6 +62625,262 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的 Plex 登入已過期"
+          }
+        }
+      }
+    },
+    "Your Pro week has ended" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Pro-Woche ist vorbei"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu semana Pro ha terminado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre semaine Pro est terminée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua settimana Pro è finita"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィークが終了しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크가 끝났습니다"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój tydzień Pro dobiegł końca"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua semana Pro terminou"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 周已结束"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 週已結束"
+          }
+        }
+      }
+    },
+    "Your Pro week has ended." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Pro-Woche ist vorbei."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu semana Pro ha terminado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre semaine Pro est terminée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua settimana Pro è finita."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィークが終了しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크가 끝났습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój tydzień Pro dobiegł końca."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua semana Pro terminou."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 周已结束。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 週已結束。"
+          }
+        }
+      }
+    },
+    "Your Pro week has ended. Titles you downloaded stay on this iPhone." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Pro-Woche ist vorbei. Heruntergeladene Titel bleiben auf diesem iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu semana Pro ha terminado. Los títulos que descargaste se quedan en este iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre semaine Pro est terminée. Les titres téléchargés restent sur cet iPhone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua settimana Pro è finita. I titoli che hai scaricato restano su questo iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィークが終了しました。ダウンロードしたタイトルはこの iPhone に残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크가 끝났습니다. 다운로드한 타이틀은 이 iPhone에 그대로 남아 있습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój tydzień Pro dobiegł końca. Pobrane tytuły zostają na tym iPhonie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua semana Pro terminou. Os títulos que você baixou continuam neste iPhone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 周已结束。已下载的影片会保留在这台 iPhone 上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 週已結束。已下載的影片會保留在這部 iPhone 上。"
+          }
+        }
+      }
+    },
+    "Your Pro week runs until %@. Crucible Pro keeps everything open after that." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Pro-Woche läuft bis %@. Mit Crucible Pro bleibt danach alles offen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu semana Pro dura hasta el %@. Con Crucible Pro todo sigue abierto después."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre semaine Pro dure jusqu’au %@. Crucible Pro garde tout ouvert ensuite."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua settimana Pro dura fino a %@. Con Crucible Pro tutto resta aperto anche dopo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィークは %@ までです。その後も Crucible Pro ならすべて使えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크는 %@까지입니다. 그 후에도 Crucible Pro로 모든 기능을 계속 쓸 수 있습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój tydzień Pro trwa do %@. Z Crucible Pro wszystko zostaje otwarte także później."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua semana Pro vai até %@. Com o Crucible Pro tudo continua liberado depois."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 周持续到 %@。之后有 Crucible Pro 就能继续使用全部功能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 週持續到 %@。之後有 Crucible Pro 就能繼續使用全部功能。"
           }
         }
       }

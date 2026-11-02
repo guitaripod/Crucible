@@ -366,6 +366,30 @@ final class ProTests: TVTestCase {
         XCTAssertFalse(element(app, "paywall.buy").exists, "Pro never meets the paywall")
     }
 
+    func testTheProWeekOpensEveryRangeAndTheRowCountsTheDays() {
+        let app = launchStatistics(["CRUCIBLE_PRO_WEEK": "2"])
+        expectNoLocks(app)
+        XCTAssertTrue(chip(app, "year").isSelected, "the Pro Week opens on Year, like Pro")
+        focusChip(app, "year")
+        TVTest.capture("01-pro-week-statistics", in: self)
+
+        let you = launchYou(["CRUCIBLE_PRO_WEEK": "2"])
+        XCTAssertEqual(YouNavigation.row(you, "you.pro").label, "Crucible Pro, Pro week \u{00B7} 5 days left")
+        YouNavigation.openRow(you, "you.pro")
+        waitForPaywall(you)
+        XCTAssertTrue(element(you, "paywall.header").label.contains("Your Pro week runs until"), element(you, "paywall.header").label)
+        TVTest.capture("02-pro-week-paywall", in: self)
+    }
+
+    func testAnEndedProWeekLocksAgainAndTheRowPitchesPro() {
+        let app = launchStatistics(["CRUCIBLE_PRO_WEEK": "8"])
+        XCTAssertEqual(chip(app, "month").label, "Month, locked")
+        XCTAssertTrue(chip(app, "week").isSelected, "after the week a free install opens on the Week range again")
+
+        let you = launchYou(["CRUCIBLE_PRO_WEEK": "8"])
+        XCTAssertEqual(YouNavigation.row(you, "you.pro").label, "Crucible Pro, Unlock full Statistics and Top Shelf")
+    }
+
     func testTrialEndingSoonShowsTheNoticeOnce() {
         let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_PRO": "trialending"])
         let notice = app.alerts["Your free trial ends soon"]

@@ -1,11 +1,13 @@
 import Foundation
 
 /// A note to the viewer about Crucible Pro, shown on Apple TV at the moments it is worth something: after a finished video, when
-/// the offer policy says so, and shortly before a free trial bought before decision D22 ends.
+/// the Pro Week begins or has ended or the offer policy says so, and shortly before a free trial bought before decision D22 ends.
 package struct ProMoment: Equatable, Sendable {
     package enum Kind: Equatable, Sendable {
         case firstFinish
         case trialEnding(Date)
+        case proWeekStarted
+        case proWeekEnded
     }
 
     package enum Action: Equatable, Sendable {
@@ -52,6 +54,29 @@ package enum ProTVMoments {
         }
     }
 
+    /// The first finished video began the Pro Week: what it opens and until when, with nothing to buy.
+    package static func proWeekStarted(endsAt: Date) -> ProMoment {
+        let date = ProWeek.endDateText(endsAt)
+        return ProMoment(
+            kind: .proWeekStarted,
+            title: String(localized: "Crucible Pro is yours for a week"),
+            message: String(localized: "Full Statistics, the Year in Review poster and Top Shelf with Continue Watching are open until \(date). Nothing is charged and nothing renews."),
+            action: .openStatistics,
+            actionTitle: String(localized: "Open Statistics")
+        )
+    }
+
+    /// The first finished video after the Pro Week: what went back to free, and the way to keep it.
+    package static func proWeekEnded() -> ProMoment {
+        ProMoment(
+            kind: .proWeekEnded,
+            title: String(localized: "Your Pro week has ended"),
+            message: String(localized: "Statistics shows this week again, and Top Shelf shows the Crucible image. Crucible Pro brings the rest back, yearly or once for good."),
+            action: .seePro,
+            actionTitle: String(localized: "See Crucible Pro")
+        )
+    }
+
     /// Within two days of the end of a free trial: the date, what happens then and, when there is watch time, what Statistics holds.
     package static func trialEnding(status: ProStatus, weekWatchSeconds: Int?, now: Date = Date()) -> ProMoment? {
         guard
@@ -84,7 +109,7 @@ package enum ProTVMoments {
 }
 
 /// Remembers which Pro moments were shown, so each appears once: the first-finish note once per install, the trial note once per
-/// trial end date.
+/// trial end date. The Pro Week's two notes are remembered with the week itself (`ProWeekStore`), so this never holds them.
 package struct ProMomentLedger {
     private static let firstFinishKey = "proMoment.firstFinishShown"
     private static let trialEndingKey = "proMoment.trialEndingShown"
@@ -101,6 +126,8 @@ package struct ProMomentLedger {
             return defaults.bool(forKey: Self.firstFinishKey)
         case .trialEnding(let endsAt):
             return defaults.object(forKey: Self.trialEndingKey) as? TimeInterval == endsAt.timeIntervalSince1970.rounded()
+        case .proWeekStarted, .proWeekEnded:
+            return false
         }
     }
 
@@ -110,6 +137,8 @@ package struct ProMomentLedger {
             defaults.set(true, forKey: Self.firstFinishKey)
         case .trialEnding(let endsAt):
             defaults.set(endsAt.timeIntervalSince1970.rounded(), forKey: Self.trialEndingKey)
+        case .proWeekStarted, .proWeekEnded:
+            break
         }
     }
 

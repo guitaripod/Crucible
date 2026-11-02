@@ -21,8 +21,9 @@ package struct TopShelfPlan: Equatable, Sendable {
 
     package let items: [Item]
 
-    package init?(snapshot: TopShelfSnapshot?) {
-        guard let snapshot, snapshot.schema == TopShelfSnapshot.schemaVersion else { return nil }
+    /// Nil when there is nothing to show: no snapshot, another schema, no items, or a Pro Week's snapshot past its end.
+    package init?(snapshot: TopShelfSnapshot?, now: Date = Date()) {
+        guard let snapshot, snapshot.schema == TopShelfSnapshot.schemaVersion, snapshot.isAvailable(at: now) else { return nil }
         let items = snapshot.sections
             .flatMap(\.items)
             .prefix(Self.maxItems)
