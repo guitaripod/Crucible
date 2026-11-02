@@ -84,16 +84,19 @@ def font(weight, size):
     return face
 
 
+SPACELESS = {"ja", "zh-Hans", "zh-Hant"}
+
+
 def units(text):
     """The pieces a line may break between: words, or single characters in scripts written without spaces."""
-    return list(text) if LOCALE in CJK_FACES else text.split()
+    return list(text) if LOCALE in SPACELESS else text.split()
 
 
 def wrap(text, face, width):
-    joiner = "" if LOCALE in CJK_FACES else " "
+    joiner = "" if LOCALE in SPACELESS else " "
     lines, current = [], ""
     for word in units(text):
-        trial = f"{current}{joiner}{word}".strip()
+        trial = f"{current}{joiner}{word}".lstrip()
         if face.getlength(trial) <= width or not current:
             current = trial
         else:
@@ -101,14 +104,14 @@ def wrap(text, face, width):
             current = word
     if current:
         lines.append(current)
-    return balance(lines, face, width)
+    return balance([line.strip() for line in lines], face, width)
 
 
 def balance(lines, face, width):
     """Two ragged lines read better when their lengths are close; a one-word last line reads as a typo."""
     if len(lines) != 2:
         return lines
-    joiner = "" if LOCALE in CJK_FACES else " "
+    joiner = "" if LOCALE in SPACELESS else " "
     words = units(joiner.join(lines))
     best = lines
     for split in range(1, len(words)):
