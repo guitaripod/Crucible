@@ -33,7 +33,7 @@ final class FixMatchViewController: UICollectionViewController, UISearchBarDeleg
         collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { _, environment in
             NSCollectionLayoutSection.list(using: .wellRows(), layoutEnvironment: environment)
         }
-        searchBar.text = [item.title, item.year.map(String.init)].compactMap { $0 }.joined(separator: " ")
+        searchBar.text = MatchQuery.text(for: item)
         searchBar.placeholder = String(localized: "Title and year", comment: "Placeholder of the Fix Match search field")
         searchBar.delegate = self
         searchBar.sizeToFit()
@@ -64,15 +64,13 @@ final class FixMatchViewController: UICollectionViewController, UISearchBarDeleg
 
     /// "Dune 2021" searches for Dune from 2021; a name without a year searches every year.
     private func search() {
-        let words = (searchBar.text ?? "").split(separator: " ").map(String.init)
-        let year = words.last.flatMap { Int($0) }.flatMap { (1880...2100).contains($0) ? $0 : nil }
-        let name = (year == nil ? words : words.dropLast()).joined(separator: " ")
+        let query = MatchQuery(parsing: searchBar.text ?? "")
         searchTask?.cancel()
         contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
         searchTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let results = try await LibraryManagement.matches(ratingKey: item.id, title: name, year: year, api: api)
+                let results = try await LibraryManagement.matches(ratingKey: item.id, title: query.name, year: query.year, api: api)
                 guard !Task.isCancelled else { return }
                 var snapshot = NSDiffableDataSourceSnapshot<Int, PlexMatchResult>()
                 snapshot.appendSections([0])

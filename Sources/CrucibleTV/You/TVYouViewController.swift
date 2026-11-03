@@ -11,6 +11,7 @@ final class TVYouViewController: TVSettingsScaffold {
         static let playlists = "you.playlists"
         static let watchlist = "you.watchlist"
         static let activity = "you.activity"
+        static let dashboard = "you.dashboard"
         static let history = "you.history"
         static let statistics = "you.statistics"
         static let pro = "you.pro"
@@ -88,6 +89,7 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.playlists: push(TVScreens.playlists(env))
         case RowID.watchlist: push(TVScreens.watchlist(env))
         case RowID.activity: push(TVScreens.serverActivity(env))
+        case RowID.dashboard: push(TVScreens.serverDashboard(env))
         case RowID.history: push(TVScreens.history(env))
         case RowID.statistics: push(TVScreens.statistics(env))
         case RowID.pro: openPro()
@@ -202,6 +204,9 @@ final class TVYouViewController: TVSettingsScaffold {
         ]
         if ProAccess.shared.isStoreBacked {
             rows.insert(proRow(), at: 2)
+        }
+        if ServerOwnership.isOwner(), let activity = rows.firstIndex(where: { $0.id == RowID.activity }) {
+            rows.insert(TVRowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron), at: activity + 1)
         }
         if inDemo {
             rows.removeAll { $0.id == RowID.server }

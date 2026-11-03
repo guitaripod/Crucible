@@ -24,6 +24,7 @@ final class TVMediaGridViewController: TVScreenViewController {
 
     private let screenTitle: String
     private let empty: Empty
+    private let style: TVCardStyle
     private let card: (PlexMetadata) -> TVCardItem
     private let load: () async throws -> [PlexMetadata]
     private var items: [PlexMetadata] = []
@@ -33,9 +34,11 @@ final class TVMediaGridViewController: TVScreenViewController {
     private lazy var loadSlot = makeTaskSlot()
     private lazy var refreshSlot = makeTaskSlot()
 
-    init(title: String, empty: Empty = Empty(), card: @escaping (PlexMetadata) -> TVCardItem, load: @escaping () async throws -> [PlexMetadata]) {
+    /// `style` is the shape of the cards: posters in six columns, or 16:9 pictures in three.
+    init(title: String, empty: Empty = Empty(), style: TVCardStyle = .poster, card: @escaping (PlexMetadata) -> TVCardItem, load: @escaping () async throws -> [PlexMetadata]) {
         screenTitle = title
         self.empty = empty
+        self.style = style
         self.card = card
         self.load = load
         super.init(layout: UICollectionViewLayout())
@@ -116,8 +119,9 @@ final class TVMediaGridViewController: TVScreenViewController {
     }
 
     private func makeLayout() -> UICollectionViewLayout {
-        UICollectionViewCompositionalLayout { _, _ in
-            let section = TVShelf.grid(columns: 6, itemHeight: TVCardStyle.poster.itemSize.height, header: false)
+        let style = style
+        return UICollectionViewCompositionalLayout { _, _ in
+            let section = TVShelf.grid(columns: style == .poster ? 6 : 3, itemHeight: style.itemSize.height, header: false)
             section.boundarySupplementaryItems = [TVScreenTitleView.headerItem()]
             return section
         }
@@ -125,13 +129,16 @@ final class TVMediaGridViewController: TVScreenViewController {
 
     private func configureDataSource() {
         let poster = TVPosterCell.registration()
+        let landscape = TVLandscapeCell.registration()
         let header = TVScreenTitleView.headerRegistration { [weak self] _ in
             guard let self else { return nil }
             return TVScreenTitleContent(title: screenTitle, summary: items.isEmpty ? nil : summary(items))
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, id in
-            let data = self?.mediaByID[id].map { self?.card($0) } ?? nil
-            let cell = collectionView.dequeueConfiguredReusableCell(using: poster, for: indexPath, item: data ?? TVCardItem(id: id, title: ""))
+            let data = (self?.mediaByID[id].map { self?.card($0) } ?? nil) ?? TVCardItem(id: id, title: "")
+            let cell: UICollectionViewCell = self?.style == .landscape
+                ? collectionView.dequeueConfiguredReusableCell(using: landscape, for: indexPath, item: data)
+                : collectionView.dequeueConfiguredReusableCell(using: poster, for: indexPath, item: data)
             cell.accessibilityIdentifier = "grid.\(id)"
             return cell
         }

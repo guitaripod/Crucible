@@ -129,6 +129,13 @@ final class OwnerToolsTests: XCTestCase {
         notes.buttons["Later"].tap()
     }
 
+    func testTheDashboardIsOneRowAwayUnderYou() {
+        let app = enterDemo()
+        openYouRow(app, "you.dashboard")
+        XCTAssertTrue(app.staticTexts["Update Available"].waitForExistence(timeout: 20), "the dashboard under You offers no server update")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'CPU '")).firstMatch.exists, "the dashboard shows no load")
+    }
+
     func testRemovingAPlayTakesItOffWatchHistory() {
         let app = enterDemo()
         openYouRow(app, "you.history")

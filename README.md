@@ -103,7 +103,7 @@ A proper download engine — not the afterthought the official app ships.
 
 ### For server owners
 
-Shown only when the signed-in account owns the server, since the server refuses them to everyone else:
+Shown only when the signed-in account owns the server, since the server refuses them to everyone else, and the same on iPhone, iPad and Apple TV (a title's Manage menu is a long press on Apple TV, and the dashboard is a row under You):
 
 - **Manage** in every title's menu: refresh the metadata, analyze the files, **Fix Match** (search the agents by title and year), Unmatch, **Edit Details** (title, sort title, original title, year, summary; saved fields are locked so a refresh keeps them), **choose the poster or background** from everything the agents offer, and delete from the server
 - **Manage** in a library's menu: scan the library files, refresh all metadata, analyze, empty the trash
@@ -133,7 +133,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Cinematic Home** — a full-screen backdrop that follows focus, a hero with title, metadata and synopsis, then Continue Watching, Up Next, Recently Added and more; Select opens, Play/Pause plays, long press opens the context menu
 - **Library** poster grid with filter chips, a Recently Watched shelf, an A–Z rail, folder browsing for unindexed content and See All grids
 - **Detail** for movies, shows and episodes: season chips, episode rows that track watched and in-progress state, Cast & Crew and related titles
-- **Rate What You Watched** and **Remove from Continue Watching** on Home, **Home Rows**, searchable **Settings** categories, **Stream Info** and **chapters** in the player, a **sleep timer**, languages remembered per show, and the owner's Manage, Stop Stream and Remove from History in long-press menus
+- **Rate What You Watched** and **Remove from Continue Watching** on Home, **Home Rows**, searchable **Settings** categories, **Stream Info** and **chapters** in the player, a **sleep timer**, languages remembered per show, and every owner tool (Manage, Fix Match, Edit Details, artwork, Stop Stream, the Server Dashboard, Remove from History)
 - **Rate, collect, queue** — rate any title in half stars with the remote's swipe, open a library's Collections or a title's own collection, add titles to playlists from a long press or the detail screen, play or shuffle a playlist, watch trailers and extras, filter a library by decade, rating or resolution, search for subtitles, keep a watchlist, and open a cast member's titles
 - **Search**, **Watch History**, **Statistics** (heatmap, patterns, binges, taste) and a **Year in Review** card on the You tab, plus Settings and Server & Connection
 - **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card that offers Play Now or Watch Credits with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API

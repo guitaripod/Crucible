@@ -230,8 +230,13 @@ final class TVLibraryViewController: TVScreenViewController {
             onGenre: { [weak self] in self?.model.setGenre($0) },
             onSort: { [weak self] in self?.model.setSort($0) },
             onBrowseFolders: { [weak self] in self?.browseFolders() },
-            onCollections: { [weak self] in self?.openCollections() }
+            onCollections: { [weak self] in self?.openCollections() },
+            manageMenu: { [weak self] in
+                guard let self else { return nil }
+                return TVManageMenus.libraryMenu(sectionId: section.id, env: env, host: self)
+            }
         )
+        content.showsManage = ServerOwnership.isOwner()
         return content
     }
 

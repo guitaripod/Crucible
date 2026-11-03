@@ -2,6 +2,10 @@ import CrucibleCore
 import UIKit
 
 extension TVScreens {
+    static func serverDashboard(_ env: TVAppEnvironment) -> UIViewController {
+        TVServerDashboardViewController(api: env.api)
+    }
+
     static func serverActivity(_ env: TVAppEnvironment) -> UIViewController {
         let grid = TVMediaGridViewController(
             title: ServerActivity.title,

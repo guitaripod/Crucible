@@ -39,7 +39,7 @@ final class ServerDashboardViewController: UICollectionViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = String(localized: "Server Dashboard", comment: "Title of the owner's server dashboard")
+        title = ServerDashboardCopy.title
         navigationItem.largeTitleDisplayMode = .never
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.accessibilityIdentifier = "dashboard"
@@ -104,7 +104,7 @@ final class ServerDashboardViewController: UICollectionViewController {
             switch item {
             case .load:
                 content.text = String(localized: "Load", comment: "Server dashboard row for CPU and memory use")
-                content.secondaryText = Self.loadText(sample)
+                content.secondaryText = ServerDashboardCopy.loadText(sample)
                 content.image = UIImage(systemName: "gauge.with.dots.needle.33percent")
             case .activity(let id):
                 let activity = activities.first { $0.uuid == id }
@@ -155,13 +155,6 @@ final class ServerDashboardViewController: UICollectionViewController {
         }
     }
 
-    private static func loadText(_ sample: PlexResourceSample?) -> String {
-        guard let sample else { return "—" }
-        let cpu = Int((sample.processCpuUtilization ?? sample.hostCpuUtilization ?? 0).rounded())
-        let memory = Int((sample.processMemoryUtilization ?? sample.hostMemoryUtilization ?? 0).rounded())
-        return String(localized: "CPU \(cpu)% · Memory \(memory)%", comment: "Server load, e.g. CPU 12% · Memory 34%")
-    }
-
     private func swipeActions(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         guard case .activity(let id)? = dataSource.itemIdentifier(for: indexPath),
               let activity = activities.first(where: { $0.uuid == id }), activity.cancellable == true else { return nil }
@@ -196,13 +189,9 @@ final class ServerDashboardViewController: UICollectionViewController {
 
     private func showRelease() {
         guard let release else { return }
-        let notes = [
-            release.added.map { String(localized: "New:\n\($0)", comment: "Server release notes section of new features") },
-            release.fixed.map { String(localized: "Fixed:\n\($0)", comment: "Server release notes section of fixes") },
-        ].compactMap { $0 }.joined(separator: "\n\n")
         let alert = UIAlertController(
-            title: String(localized: "Plex Media Server \(release.version ?? "")", comment: "Title of the server update sheet, e.g. Plex Media Server 1.43.5"),
-            message: notes.isEmpty ? nil : notes,
+            title: ServerDashboardCopy.releaseTitle(release),
+            message: ServerDashboardCopy.releaseNotes(release),
             preferredStyle: .alert
         )
         let api = api

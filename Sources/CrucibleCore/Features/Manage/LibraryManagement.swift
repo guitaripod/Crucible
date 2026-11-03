@@ -49,6 +49,25 @@ package struct PlexMatchResult: Decodable, Sendable, Hashable, Identifiable {
     }
 }
 
+/// What a Fix Match search asks the agents for: a name and, when the text ends in one, a year. "Dune 2021" searches for Dune from
+/// 2021; a name alone searches every year.
+package struct MatchQuery: Equatable, Sendable {
+    package let name: String
+    package let year: Int?
+
+    package init(parsing text: String) {
+        let words = text.split(separator: " ").map(String.init)
+        let year = words.last.flatMap { Int($0) }.flatMap { (1880...2100).contains($0) ? $0 : nil }
+        self.year = year
+        name = (year == nil ? words : Array(words.dropLast())).joined(separator: " ")
+    }
+
+    /// The text a search starts with for `item`: its title and year as the server has them.
+    package static func text(for item: PlexMetadata) -> String {
+        [item.title, item.year.map(String.init)].compactMap { $0 }.joined(separator: " ")
+    }
+}
+
 /// A picture the server offers for a title's poster or background.
 package struct PlexArtworkChoice: Decodable, Sendable, Hashable, Identifiable {
     package let key: String?
@@ -305,6 +324,31 @@ package enum ServerOwnership {
 
     private static func stored() -> [String: Bool] {
         UserDefaults.standard.dictionary(forKey: storageKey) as? [String: Bool] ?? [:]
+    }
+}
+
+/// The words of the server dashboard, which the iPhone and Apple TV screens share.
+package enum ServerDashboardCopy {
+    package static let title = String(localized: "Server Dashboard", comment: "Title of the owner's server dashboard")
+
+    package static func loadText(_ sample: PlexResourceSample?) -> String {
+        guard let sample else { return "—" }
+        let cpu = Int((sample.processCpuUtilization ?? sample.hostCpuUtilization ?? 0).rounded())
+        let memory = Int((sample.processMemoryUtilization ?? sample.hostMemoryUtilization ?? 0).rounded())
+        return String(localized: "CPU \(cpu)% · Memory \(memory)%", comment: "Server load, e.g. CPU 12% · Memory 34%")
+    }
+
+    package static func releaseTitle(_ release: PlexServerRelease) -> String {
+        String(localized: "Plex Media Server \(release.version ?? "")", comment: "Title of the server update sheet, e.g. Plex Media Server 1.43.5")
+    }
+
+    /// What the release adds and fixes, or nil when the server says nothing.
+    package static func releaseNotes(_ release: PlexServerRelease) -> String? {
+        let notes = [
+            release.added.map { String(localized: "New:\n\($0)", comment: "Server release notes section of new features") },
+            release.fixed.map { String(localized: "Fixed:\n\($0)", comment: "Server release notes section of fixes") },
+        ].compactMap { $0 }.joined(separator: "\n\n")
+        return notes.isEmpty ? nil : notes
     }
 }
 

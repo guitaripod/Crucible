@@ -16,6 +16,7 @@ struct TVDetailAction {
         case subtitles
         case goToShow
         case nextEpisode
+        case manage
     }
 
     enum Appearance: Sendable {

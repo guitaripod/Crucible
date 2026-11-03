@@ -201,6 +201,36 @@ struct LibraryManagementTests {
     }
 }
 
+struct MatchQueryTests {
+    @Test func aTrailingYearNarrowsTheSearch() {
+        #expect(MatchQuery(parsing: "Dune 2021") == MatchQuery(parsing: "Dune 2021"))
+        let query = MatchQuery(parsing: "Dune 2021")
+        #expect(query.name == "Dune")
+        #expect(query.year == 2021)
+    }
+
+    @Test func aNameAloneSearchesEveryYear() {
+        let query = MatchQuery(parsing: "The Salt Road")
+        #expect(query.name == "The Salt Road")
+        #expect(query.year == nil)
+    }
+
+    @Test func aNumberThatIsNotAYearStaysInTheName() {
+        let query = MatchQuery(parsing: "Apollo 13")
+        #expect(query.name == "Apollo 13")
+        #expect(query.year == nil)
+        #expect(MatchQuery(parsing: "2012").name == "")
+        #expect(MatchQuery(parsing: "2012").year == 2012)
+    }
+
+    @Test func extraSpacesAreIgnoredAndTheStartingTextIsTheTitleAndYear() {
+        #expect(MatchQuery(parsing: "  Heat   1995 ").name == "Heat")
+        let item = DetailFixtures.item(["ratingKey": "9", "title": "Dune", "year": 2021])
+        #expect(MatchQuery.text(for: item) == "Dune 2021")
+        #expect(MatchQuery.text(for: DetailFixtures.item(["ratingKey": "9", "title": "Dune"])) == "Dune")
+    }
+}
+
 struct MetadataEditTests {
     @Test func startsFromTheTitleAsItIs() {
         let edit = MetadataEdit(item: DetailFixtures.item(["ratingKey": "9", "title": "Dune", "titleSort": "Dune 1", "originalTitle": "Dune: Part One", "summary": "Sand.", "year": 2021]), sectionId: "1")

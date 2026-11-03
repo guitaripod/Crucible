@@ -24,6 +24,7 @@ struct TVLibraryHeaderContent: Hashable {
         var onSort: @MainActor (String) -> Void = { _ in }
         var onBrowseFolders: @MainActor () -> Void = {}
         var onCollections: @MainActor () -> Void = {}
+        var manageMenu: @MainActor () -> UIMenu? = { nil }
 
         static func == (lhs: Handlers, rhs: Handlers) -> Bool { true }
         func hash(into hasher: inout Hasher) {}
@@ -38,6 +39,7 @@ struct TVLibraryHeaderContent: Hashable {
     var sortTitle: String
     var sorts: [Choice]
     var facets: [FacetMenu] = []
+    var showsManage = false
     var handlers = Handlers()
 }
 
@@ -51,6 +53,7 @@ final class TVLibraryHeaderView: UIView {
     private let foldersButton = TVButton.make(.chip(selected: false), title: String(localized: "Folders", comment: "Short name of the button that browses a library by its folders"), symbol: "folder")
     private let filtersButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"), menu: UIMenu())
     private let collectionsButton = TVButton.make(.chip(selected: false), title: String(localized: "Collections"), symbol: "rectangle.stack")
+    private let manageButton = TVButton.menuButton(style: .chip(selected: false), title: ManageCopy.menuTitle, menu: UIMenu())
     private let upGuide = UIFocusGuide()
     private var handlers = TVLibraryHeaderContent.Handlers()
 
@@ -63,6 +66,7 @@ final class TVLibraryHeaderView: UIView {
         foldersButton.accessibilityLabel = String(localized: "Browse Folders")
         collectionsButton.accessibilityIdentifier = "tv.library.collections"
         filtersButton.accessibilityIdentifier = "tv.library.filters"
+        manageButton.accessibilityIdentifier = "tv.library.manage"
         collectionsButton.addAction(UIAction { [weak self] _ in self?.handlers.onCollections() }, for: .primaryActionTriggered)
         foldersButton.addAction(UIAction { [weak self] _ in self?.handlers.onBrowseFolders() }, for: .primaryActionTriggered)
         chips.onSelect = { [weak self] item in
@@ -70,7 +74,7 @@ final class TVLibraryHeaderView: UIView {
             self?.handlers.onFilter(filter)
         }
 
-        let controls = UIStackView(arrangedSubviews: [chips, genreButton, sortButton, filtersButton, UIView(), collectionsButton, foldersButton])
+        let controls = UIStackView(arrangedSubviews: [chips, genreButton, sortButton, filtersButton, UIView(), manageButton, collectionsButton, foldersButton])
         controls.axis = .horizontal
         controls.alignment = .center
         controls.spacing = Theme.Space.s
@@ -125,6 +129,9 @@ final class TVLibraryHeaderView: UIView {
         filtersButton.isHidden = content.facets.isEmpty
         let filtering = content.facets.contains { $0.selectedKey != nil }
         TVButton.configure(menu: filtersMenu(content), title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"), style: .chip(selected: filtering), on: filtersButton)
+        let manage = content.showsManage ? content.handlers.manageMenu() : nil
+        manageButton.isHidden = manage == nil
+        TVButton.configure(menu: manage ?? UIMenu(), title: ManageCopy.menuTitle, style: .chip(selected: false), on: manageButton)
     }
 
     private func filtersMenu(_ content: TVLibraryHeaderContent) -> UIMenu {

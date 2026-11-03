@@ -43,7 +43,7 @@ enum ActivityScreen {
             return
         }
         guard grid.navigationItem.rightBarButtonItem == nil else { return }
-        let title = String(localized: "Server Dashboard", comment: "Title of the owner's server dashboard")
+        let title = ServerDashboardCopy.title
         let button = UIBarButtonItem(
             image: UIImage(systemName: "gauge.with.dots.needle.33percent"),
             primaryAction: UIAction(title: title) { [weak grid] _ in

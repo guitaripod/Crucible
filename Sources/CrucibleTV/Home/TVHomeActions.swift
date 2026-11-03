@@ -100,30 +100,9 @@ final class TVHomeActions {
         return UIMenu(children: actions)
     }
 
-    /// The owner's Refresh Metadata and Analyze for a title; nothing for anyone else.
+    /// The owner's Manage menu for a title; nothing for anyone else.
     private func manageMenu(for media: PlexMetadata, from screen: UIViewController) -> UIMenu? {
-        guard ServerOwnership.isOwner(), ["movie", "show", "season", "episode"].contains(media.mediaType) else { return nil }
-        let api = env.api
-        let key = media.id
-        let send: (@escaping @Sendable () async throws -> Void) -> Void = { [weak self, weak screen] work in
-            Task { @MainActor in
-                do {
-                    try await work()
-                    screen?.presentAlert(title: ManageCopy.done)
-                } catch {
-                    screen?.presentAlert(title: ManageCopy.failed, message: ConnectionError.message(for: error))
-                }
-                self?.onChange()
-            }
-        }
-        return UIMenu(title: ManageCopy.menuTitle, image: UIImage(systemName: "wrench.and.screwdriver"), children: [
-            UIAction(title: ManageCopy.refreshMetadata, image: UIImage(systemName: "arrow.clockwise")) { _ in
-                send { try await LibraryManagement.refresh(ratingKey: key, api: api) }
-            },
-            UIAction(title: ManageCopy.analyze, image: UIImage(systemName: "waveform.badge.magnifyingglass")) { _ in
-                send { try await LibraryManagement.analyze(ratingKey: key, api: api) }
-            },
-        ])
+        TVManageMenus.itemMenu(for: media, env: env, host: screen) { [weak self] in self?.onChange() }
     }
 
     private func removalAction(for media: PlexMetadata, from screen: UIViewController) -> UIAction {
