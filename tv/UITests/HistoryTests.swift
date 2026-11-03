@@ -18,7 +18,7 @@ final class HistoryTests: TVTestCase {
         let app = AppNavigation.launchHome(mock: mock, extraEnvironment: extraEnvironment)
         AppNavigation.selectTab("You", in: app)
         XCTAssertTrue(YouNavigation.row(app, "you.history").waitForExistence(timeout: 15))
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        YouNavigation.moveFocus(app, to: "you.history")
         TVTest.remote.press(.select)
         return app
     }

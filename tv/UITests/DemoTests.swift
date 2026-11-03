@@ -480,9 +480,12 @@ final class DemoTests: TVTestCase {
 
         XCTAssertTrue(finale.waitForExistence(timeout: 20), "the finale never appeared once the typing stopped")
         TVTest.capture("16-finale-after-typing", in: self)
-        TVTest.remote.press(.down)
-        TVTest.remote.press(.down)
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "demo.finale.keep"))
+        TVTest.settle(1)
+        for _ in 0..<4 where AppNavigation.focusedIdentifier(app) != "demo.finale.keep" {
+            TVTest.remote.press(.down)
+            TVTest.settle(0.6)
+        }
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "demo.finale.keep"), "focus never reached Keep exploring, it is on \(AppNavigation.focusedIdentifier(app))")
         TVTest.remote.press(.select)
         XCTAssertFalse(finale.waitForExistence(timeout: 3), "Keep exploring should close the finale")
         XCTAssertTrue(app.buttons["search.top.play"].exists, "the results are still there after the finale")
