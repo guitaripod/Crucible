@@ -24,8 +24,7 @@ final class SettingsAndRatingTests: XCTestCase {
     }
 
     private func tab(_ app: XCUIApplication, _ name: String) -> XCUIElement {
-        let bar = app.tabBars.buttons[name]
-        return bar.waitForExistence(timeout: 5) ? bar : app.buttons.matching(identifier: name).firstMatch
+        IOSTest.tab(app, name)
     }
 
     private func openSettings(_ app: XCUIApplication) {
