@@ -14,12 +14,15 @@ package struct UpNextOffer: Sendable {
     package let seasonRatingKey: String
     package let reason: Reason
     package let autoplays: Bool
+    /// The queue standing on this entry when the offer comes from a playlist, which then carries on from it.
+    package let queue: PlaybackQueue?
 
-    package init(episode: PlexMetadata, seasonRatingKey: String, reason: Reason, autoplays: Bool) {
+    package init(episode: PlexMetadata, seasonRatingKey: String, reason: Reason, autoplays: Bool, queue: PlaybackQueue? = nil) {
         self.episode = episode
         self.seasonRatingKey = seasonRatingKey
         self.reason = reason
         self.autoplays = autoplays
+        self.queue = queue
     }
 
     package var playbackEnded: Bool { reason == .playbackEnded }
@@ -34,9 +37,9 @@ package struct UpNextOffer: Sendable {
     ) -> PlaybackRequest {
         PlaybackRequest(
             ratingKey: episode.id,
-            mediaType: "episode",
-            showRatingKey: showRatingKey,
-            seasonRatingKey: seasonRatingKey,
+            mediaType: queue == nil ? "episode" : episode.mediaType,
+            showRatingKey: queue == nil ? showRatingKey : episode.grandparentRatingKey,
+            seasonRatingKey: seasonRatingKey.isEmpty ? nil : seasonRatingKey,
             resumePosition: offline?.resumeSecs ?? 0,
             metadata: PlaybackMetadata(
                 title: episode.title,
@@ -48,7 +51,8 @@ package struct UpNextOffer: Sendable {
             ),
             selectedSubtitleId: selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId,
-            offline: offline
+            offline: offline,
+            queue: queue
         )
     }
 }
@@ -62,6 +66,7 @@ package struct UpNextResolver: Sendable {
     private let isEpisode: Bool
     private let seasonRatingKey: String?
     private let showRatingKey: String?
+    private let queue: PlaybackQueue?
     package let creditsStartSecs: Double?
     private var creditsTriggered = false
 
@@ -70,21 +75,26 @@ package struct UpNextResolver: Sendable {
         isEpisode: Bool,
         seasonRatingKey: String?,
         showRatingKey: String? = nil,
+        queue: PlaybackQueue? = nil,
         markers: [PlexMarker]
     ) {
         self.ratingKey = ratingKey
         self.isEpisode = isEpisode
         self.seasonRatingKey = seasonRatingKey
         self.showRatingKey = showRatingKey
+        self.queue = queue
         self.creditsStartSecs = markers.first(where: \.isCredits)?.startSecs
     }
 
-    /// Whether an episode in a known season can have a successor at all.
-    package var canOfferNext: Bool { isEpisode && seasonRatingKey != nil }
+    /// Whether there can be a successor at all: another entry of the queue, or for an episode in a known season the next one of the show.
+    package var canOfferNext: Bool {
+        if let queue { return queue.hasNext }
+        return isEpisode && seasonRatingKey != nil
+    }
 
     /// True exactly once, the first time the playhead reaches the credits of an episode.
     package mutating func creditsReached(at absolute: Double) -> Bool {
-        guard !creditsTriggered, isEpisode, let creditsStartSecs, absolute >= creditsStartSecs else { return false }
+        guard !creditsTriggered, isEpisode || queue != nil, let creditsStartSecs, absolute >= creditsStartSecs else { return false }
         creditsTriggered = true
         return true
     }
@@ -99,6 +109,9 @@ package struct UpNextResolver: Sendable {
     /// Outro is set to start the next episode automatically; the end of the item follows Autoplay Next
     /// Episode.
     package func loadOffer(api: APIClient, reason: UpNextOffer.Reason) async throws -> UpNextOffer? {
+        if let queue {
+            return try await queuedOffer(after: queue, reason: reason)
+        }
         guard let seasonRatingKey else { return nil }
         if reason == .credits, Preferences.skipOutroMode == .off { return nil }
         let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
@@ -109,6 +122,20 @@ package struct UpNextResolver: Sendable {
             return nil
         }
         return Self.offer(episode, season: season, reason: reason)
+    }
+
+    /// The next entry of a playlist. Nothing is fetched: the queue already holds what plays next. A credits offer waits for the viewer
+    /// unless Skip Outro is set to start the next one automatically; the end of an item plays on, as a playlist is made to.
+    private func queuedOffer(after queue: PlaybackQueue, reason: UpNextOffer.Reason) async throws -> UpNextOffer? {
+        if reason == .credits, Preferences.skipOutroMode == .off { return nil }
+        guard let advanced = queue.advanced() else { return nil }
+        return UpNextOffer(
+            episode: advanced.current,
+            seasonRatingKey: advanced.current.parentRatingKey ?? "",
+            reason: reason,
+            autoplays: reason == .credits ? Preferences.skipOutroMode == .automatic : true,
+            queue: advanced
+        )
     }
 
     private static func offer(_ episode: PlexMetadata, season: String, reason: UpNextOffer.Reason) -> UpNextOffer {

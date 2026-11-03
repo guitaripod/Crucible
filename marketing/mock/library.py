@@ -340,6 +340,8 @@ class Library:
         self._build_history()
         self._build_collections()
         self._build_playlists()
+        self._build_extras()
+        self._build_watchlist()
 
     def _rk(self, kind):
         v = self._next[kind]
@@ -578,6 +580,52 @@ class Library:
     def _movie(self, title):
         return next(m for m in self.movies if m["title"] == title)
 
+    def _build_watchlist(self):
+        self.watchlist = [f"plex://movie/{self._movie('Halcyon')['ratingKey']}", "plex://movie/mock-night-train",
+                          f"plex://movie/{self._movie('Cold Meridian')['ratingKey']}", "plex://show/mock-glass-orchard"]
+        self.remote_watchlist = {
+            "plex://movie/mock-night-train": ("Night Train to Nowhere", 2024, "movie", self._movie("Afterglow")["thumb"]),
+            "plex://show/mock-glass-orchard": ("Glass Orchard", 2023, "show", self._movie("Tidewater")["thumb"]),
+        }
+
+    def watchlist_json(self):
+        out = []
+        by_guid = {i.get("guid"): i for i in self.items.values() if i.get("guid")}
+        for guid in self.watchlist:
+            if guid in by_guid:
+                out.append(self.render(by_guid[guid]))
+            elif guid in self.remote_watchlist:
+                title, year, kind, thumb = self.remote_watchlist[guid]
+                key = guid.rsplit("/", 1)[-1]
+                out.append({"ratingKey": key, "key": f"/library/metadata/{key}", "guid": guid, "type": kind, "title": title,
+                            "year": year, "thumb": thumb, "summary": "A title Plex knows that this server does not have."})
+        return out
+
+    def change_watchlist(self, discover_key, adding):
+        known = {i.get("guid") for i in self.items.values() if i.get("guid")} | set(self.remote_watchlist)
+        guid = next((g for g in known if g and g.endswith("/" + discover_key)), f"plex://movie/{discover_key}")
+        self.watchlist = [g for g in self.watchlist if g != guid]
+        if adding:
+            self.watchlist.insert(0, guid)
+
+    def _build_extras(self):
+        self.extras = {}
+        specs = (
+            ("Halcyon", "Halcyon: Official Trailer", "trailer"),
+            ("Halcyon", "Halcyon: The Making of", "behindTheScenes"),
+            ("Deep Field", "Deep Field: Official Trailer", "trailer"),
+            ("Cold Meridian", "Cold Meridian: Teaser", "trailer"),
+        )
+        for n, (parent_title, title, subtype) in enumerate(specs):
+            parent = self._movie(parent_title)
+            rk = str(8100 + n)
+            self.items[rk] = {
+                "ratingKey": rk, "key": f"/library/metadata/{rk}", "type": "clip", "subtype": subtype, "title": title,
+                "duration": CLIP_DURATION_MS, "thumb": parent.get("art", parent["thumb"]),
+                "librarySectionID": parent["librarySectionID"], "_kind": "extra", "_media": parent["_media"], "_markers": [],
+            }
+            self.extras.setdefault(parent["ratingKey"], []).append(rk)
+
     def _build_collections(self):
         self.collections = [
             {"ratingKey": "9101", "title": "Salvage Stories", "section": "1",
@@ -645,6 +693,9 @@ class Library:
 
     def render(self, it, full=False):
         out = {k: v for k, v in it.items() if not k.startswith("_")}
+        if full and self.extras.get(it["ratingKey"]):
+            clips = [self.render(self.items[k], full=True) for k in self.extras[it["ratingKey"]]]
+            out["Extras"] = {"size": len(clips), "Metadata": clips}
         if full and it["_kind"] == "movie" and self.collection_tags(it["ratingKey"]):
             out["Collection"] = self.collection_tags(it["ratingKey"])
         if it["_kind"] in ("movie", "show") or full:

@@ -122,7 +122,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
         let seconds = isCounting ? UpNextOffer.countdownSeconds : nil
         let text = stillWatching
             ? UpNextText.stillWatchingAnnouncement(code: code, title: episode.title)
-            : UpNextText.announcement(code: code, title: episode.title, seconds: seconds)
+            : UpNextText.announcement(code: code, title: episode.title, seconds: seconds, isEpisode: code != nil)
         UIAccessibility.post(notification: .announcement, argument: text)
     }
 
@@ -206,8 +206,8 @@ final class TVUpNextViewController: AVContentProposalViewController {
     }
 
     private func updateSecondaryText() {
-        countdownLabel.text = UpNextText.secondary(code: code, remaining: remaining, counting: isCounting)
-        countdownLabel.accessibilityLabel = UpNextText.spokenSecondary(code: code, remaining: remaining, counting: isCounting)
+        countdownLabel.text = UpNextText.secondary(code: code, remaining: remaining, counting: isCounting, isEpisode: code != nil)
+        countdownLabel.accessibilityLabel = UpNextText.spokenSecondary(code: code, remaining: remaining, counting: isCounting, isEpisode: code != nil)
     }
 
     private func startCountdown() {

@@ -331,7 +331,7 @@ extension PlaybackSession {
     }
 
     func configureRemoteCommands() {
-        remoteCommands = PlaybackRemoteCommands(supportsNextTrack: request.isEpisode) { [weak self] action in
+        remoteCommands = PlaybackRemoteCommands(supportsNextTrack: request.isEpisode || request.queue?.hasNext == true) { [weak self] action in
             self?.perform(action)
         }
     }

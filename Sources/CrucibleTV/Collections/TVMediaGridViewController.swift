@@ -19,6 +19,7 @@ final class TVMediaGridViewController: TVScreenViewController {
         items.count == 1 ? String(localized: "1 title") : String(localized: "\(items.count) titles")
     }
     var onLoaded: (([PlexMetadata]) -> Void)?
+    var onPlayPause: ((PlexMetadata) -> Bool)?
     var refreshInterval: Duration?
 
     private let screenTitle: String
@@ -138,6 +139,11 @@ final class TVMediaGridViewController: TVScreenViewController {
             collectionView.dequeueConfiguredReusableSupplementary(using: header, for: indexPath)
         }
         adopt(dataSource)
+    }
+
+    override func playFocused(at indexPath: IndexPath) -> Bool {
+        guard let media = media(at: indexPath) else { return false }
+        return onPlayPause?(media) ?? false
     }
 
     private func media(at indexPath: IndexPath) -> PlexMetadata? {

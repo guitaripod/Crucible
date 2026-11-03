@@ -353,7 +353,7 @@ class LibraryGridViewController: UIViewController {
             applySnapshot()
         case .recents:
             applySnapshot()
-        case .genres:
+        case .genres, .facets:
             optionsDidChange()
         case .alphabet:
             updateScrubberVisibility()
@@ -436,6 +436,15 @@ class LibraryGridViewController: UIViewController {
         if !model.genres.isEmpty {
             chips.append(FilterChipsView.Chip(id: "genre", title: options.genreTitle(in: model.genres), isSelected: options.genre != nil, menu: genreMenu(title: String(localized: "Genre"))))
         }
+        for facet in model.availableFacets {
+            let choices = model.facetChoices[facet] ?? []
+            chips.append(FilterChipsView.Chip(
+                id: "facet.\(facet.rawValue)",
+                title: options.facetTitle(facet, in: choices),
+                isSelected: options.facets[facet] != nil,
+                menu: facetMenu(facet, title: facet.title)
+            ))
+        }
         chips.append(FilterChipsView.Chip(id: Self.collectionsChip, title: String(localized: "Collections")))
         chips.append(FilterChipsView.Chip(id: "sort", title: String(localized: "Sort: \(options.sortTitle(for: kind))"), menu: sortMenu(title: String(localized: "Sort By"), inline: false)))
         return chips
@@ -453,6 +462,9 @@ class LibraryGridViewController: UIViewController {
         ]
         if !model.genres.isEmpty {
             children.append(genreMenu(title: model.options.genreTitle(in: model.genres), image: UIImage(systemName: "tag")))
+        }
+        for facet in model.availableFacets {
+            children.append(facetMenu(facet, title: model.options.facetTitle(facet, in: model.facetChoices[facet] ?? []), image: UIImage(systemName: facet.symbol)))
         }
         if host == nil {
             children.append(UIMenu(options: .displayInline, children: [
@@ -485,6 +497,20 @@ class LibraryGridViewController: UIViewController {
             UIAction(title: genre.title, state: model.options.genre == genre.key ? .on : .off) { [weak self] _ in
                 Haptics.selection()
                 self?.model.setGenre(genre.key)
+            }
+        }
+        return UIMenu(title: title, image: image, children: actions)
+    }
+
+    private func facetMenu(_ facet: LibraryFacet, title: String, image: UIImage? = nil) -> UIMenu {
+        var actions = [UIAction(title: facet.allTitle, state: model.options.facets[facet] == nil ? .on : .off) { [weak self] _ in
+            Haptics.selection()
+            self?.model.setFacet(facet, nil)
+        }]
+        actions += (model.facetChoices[facet] ?? []).map { choice in
+            UIAction(title: facet.display(choice.title), state: model.options.facets[facet] == choice.key ? .on : .off) { [weak self] _ in
+                Haptics.selection()
+                self?.model.setFacet(facet, choice.key)
             }
         }
         return UIMenu(title: title, image: image, children: actions)

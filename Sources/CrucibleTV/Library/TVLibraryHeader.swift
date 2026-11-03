@@ -11,7 +11,14 @@ struct TVLibraryHeaderContent: Hashable {
         var isSelected: Bool
     }
 
+    struct FacetMenu: Hashable {
+        var facet: LibraryFacet
+        var choices: [Choice]
+        var selectedKey: String?
+    }
+
     struct Handlers: Hashable {
+        var onFacet: @MainActor (LibraryFacet, String?) -> Void = { _, _ in }
         var onFilter: @MainActor (LibraryWatchFilter) -> Void = { _ in }
         var onGenre: @MainActor (String?) -> Void = { _ in }
         var onSort: @MainActor (String) -> Void = { _ in }
@@ -30,6 +37,7 @@ struct TVLibraryHeaderContent: Hashable {
     var genres: [Choice]
     var sortTitle: String
     var sorts: [Choice]
+    var facets: [FacetMenu] = []
     var handlers = Handlers()
 }
 
@@ -40,7 +48,8 @@ final class TVLibraryHeaderView: UIView {
     private let chips = TVChipRow()
     private let genreButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Genre"), menu: UIMenu())
     private let sortButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"), menu: UIMenu())
-    private let foldersButton = TVButton.make(.chip(selected: false), title: String(localized: "Browse Folders"), symbol: "folder")
+    private let foldersButton = TVButton.make(.chip(selected: false), title: String(localized: "Folders", comment: "Short name of the button that browses a library by its folders"), symbol: "folder")
+    private let filtersButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"), menu: UIMenu())
     private let collectionsButton = TVButton.make(.chip(selected: false), title: String(localized: "Collections"), symbol: "rectangle.stack")
     private let upGuide = UIFocusGuide()
     private var handlers = TVLibraryHeaderContent.Handlers()
@@ -51,7 +60,9 @@ final class TVLibraryHeaderView: UIView {
         genreButton.accessibilityIdentifier = "tv.library.genre"
         sortButton.accessibilityIdentifier = "tv.library.sort"
         foldersButton.accessibilityIdentifier = "tv.library.folders"
+        foldersButton.accessibilityLabel = String(localized: "Browse Folders")
         collectionsButton.accessibilityIdentifier = "tv.library.collections"
+        filtersButton.accessibilityIdentifier = "tv.library.filters"
         collectionsButton.addAction(UIAction { [weak self] _ in self?.handlers.onCollections() }, for: .primaryActionTriggered)
         foldersButton.addAction(UIAction { [weak self] _ in self?.handlers.onBrowseFolders() }, for: .primaryActionTriggered)
         chips.onSelect = { [weak self] item in
@@ -59,11 +70,11 @@ final class TVLibraryHeaderView: UIView {
             self?.handlers.onFilter(filter)
         }
 
-        let controls = UIStackView(arrangedSubviews: [chips, genreButton, sortButton, UIView(), collectionsButton, foldersButton])
+        let controls = UIStackView(arrangedSubviews: [chips, genreButton, sortButton, filtersButton, UIView(), collectionsButton, foldersButton])
         controls.axis = .horizontal
         controls.alignment = .center
-        controls.spacing = Theme.Space.m
-        controls.setCustomSpacing(Theme.Space.l, after: chips)
+        controls.spacing = Theme.Space.s
+        controls.setCustomSpacing(Theme.Space.m, after: chips)
 
         let stack = UIStackView(arrangedSubviews: [titleView, controls])
         stack.axis = .vertical
@@ -111,6 +122,23 @@ final class TVLibraryHeaderView: UIView {
         genreButton.isHidden = content.genres.isEmpty
         TVButton.configure(menu: genreMenu(content), title: content.genreTitle, style: .chip(selected: content.isGenreSelected), on: genreButton)
         TVButton.configure(menu: sortMenu(content), title: content.sortTitle, style: .chip(selected: false), on: sortButton)
+        filtersButton.isHidden = content.facets.isEmpty
+        let filtering = content.facets.contains { $0.selectedKey != nil }
+        TVButton.configure(menu: filtersMenu(content), title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"), style: .chip(selected: filtering), on: filtersButton)
+    }
+
+    private func filtersMenu(_ content: TVLibraryHeaderContent) -> UIMenu {
+        UIMenu(title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"), children: content.facets.map { menu in
+            let all = UIAction(title: menu.facet.allTitle, state: menu.selectedKey == nil ? .on : .off) { [weak self] _ in
+                self?.handlers.onFacet(menu.facet, nil)
+            }
+            let choices = menu.choices.map { choice in
+                UIAction(title: choice.title, state: choice.isSelected ? .on : .off) { [weak self] _ in
+                    self?.handlers.onFacet(menu.facet, choice.key)
+                }
+            }
+            return UIMenu(title: menu.facet.title, image: UIImage(systemName: menu.facet.symbol), children: [all] + choices)
+        })
     }
 
     private func genreMenu(_ content: TVLibraryHeaderContent) -> UIMenu {

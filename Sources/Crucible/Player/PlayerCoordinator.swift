@@ -54,7 +54,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         metadata: Metadata? = nil,
         selectedSubtitleId: Int? = nil,
         selectedAudioStreamId: Int? = nil,
-        offlineAsset: OfflineAsset? = nil
+        offlineAsset: OfflineAsset? = nil,
+        queue: PlaybackQueue? = nil
     ) {
         self.init(
             api: api,
@@ -67,7 +68,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 metadata: metadata,
                 selectedSubtitleId: selectedSubtitleId,
                 selectedAudioStreamId: selectedAudioStreamId,
-                offline: offlineAsset.map { Self.offlineSource(from: $0) }
+                offline: offlineAsset.map { Self.offlineSource(from: $0) },
+                queue: queue
             )
         )
     }

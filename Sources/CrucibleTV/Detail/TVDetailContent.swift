@@ -10,6 +10,7 @@ struct TVDetailAction {
         case watched
         case rate
         case playlist
+        case watchlist
         case collection
         case audio
         case subtitles
@@ -61,6 +62,7 @@ struct TVDetailContent {
     var episodes: [TVCardItem] = []
     var showsEpisodes = false
     var episodesState = EpisodesState.loaded
+    var extras: [TVCardItem] = []
     var cast: [TVDetailPerson] = []
     var related: [TVCardItem] = []
     var facts: [DetailFact] = []

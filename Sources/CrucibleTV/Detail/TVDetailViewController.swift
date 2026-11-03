@@ -21,6 +21,7 @@ class TVDetailViewController: TVScreenViewController {
         case actions
         case seasons
         case episodes
+        case extras
         case cast
         case related
         case information
@@ -32,6 +33,7 @@ class TVDetailViewController: TVScreenViewController {
         case action(TVDetailAction.Kind)
         case season(String)
         case episode(String)
+        case extra(String)
         case person(String)
         case related(String)
         case information
@@ -205,6 +207,10 @@ class TVDetailViewController: TVScreenViewController {
             snapshot.appendSections([.episodes])
             snapshot.appendItems(Self.episodeItems(for: content), toSection: .episodes)
         }
+        if !content.extras.isEmpty {
+            snapshot.appendSections([.extras])
+            snapshot.appendItems(Self.unique(content.extras.map { .extra($0.id) }), toSection: .extras)
+        }
         if !content.cast.isEmpty {
             snapshot.appendSections([.cast])
             snapshot.appendItems(Self.unique(content.cast.map { .person($0.id) }), toSection: .cast)
@@ -252,7 +258,7 @@ class TVDetailViewController: TVScreenViewController {
             case .synopsis: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
             case .actions: return Self.actionRow()
             case .seasons: return TVShelf.chips()
-            case .episodes: return TVShelf.episode()
+            case .episodes, .extras: return TVShelf.episode()
             case .cast: return TVShelf.person()
             case .related: return TVShelf.poster()
             case .information: return Self.informationSection()
@@ -341,6 +347,9 @@ class TVDetailViewController: TVScreenViewController {
             case .episode(let id):
                 let card = content?.episodes.first { $0.id == id } ?? TVCardItem(id: id, title: "")
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: episode, for: indexPath, item: card), id)
+            case .extra(let id):
+                let card = content?.extras.first { $0.id == id } ?? TVCardItem(id: id, title: "")
+                return Self.identified(collectionView.dequeueConfiguredReusableCell(using: episode, for: indexPath, item: card), id)
             case .person(let id):
                 let model = content?.cast.first { $0.id == id } ?? TVDetailPerson(id: id, name: "")
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: person, for: indexPath, item: model), id)
@@ -375,6 +384,7 @@ class TVDetailViewController: TVScreenViewController {
         guard let section = dataSource.sectionIdentifier(for: indexPath.section) else { return nil }
         switch section {
         case .episodes: return content?.episodesHeader
+        case .extras: return TVSectionHeader(title: DetailExtras.title)
         case .cast: return TVSectionHeader(title: String(localized: "Cast & Crew"))
         case .related: return TVSectionHeader(title: String(localized: "More Like This"))
         case .information: return TVSectionHeader(title: String(localized: "Information"))
@@ -384,7 +394,7 @@ class TVDetailViewController: TVScreenViewController {
 
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
-        case .episode, .related: true
+        case .episode, .extra, .related: true
         case .person(let id): content?.cast.first { $0.id == id }?.isOpenable ?? false
         default: false
         }

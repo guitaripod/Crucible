@@ -104,7 +104,8 @@ extension Theme {
         api: APIClient,
         item: PlexMetadata,
         from vc: UIViewController,
-        resumePosition override: Double? = nil
+        resumePosition override: Double? = nil,
+        queue: PlaybackQueue? = nil
     ) -> PlayerCoordinator {
         MidgarLog.notice("Quick play tapped ratingKey=\(item.id) type=\(item.mediaType)", category: .playback)
         let meta = PlayerCoordinator.Metadata(
@@ -126,7 +127,8 @@ extension Theme {
             seasonRatingKey: item.parentRatingKey,
             resumePosition: resumePosition,
             metadata: meta,
-            offlineAsset: offlineAsset
+            offlineAsset: offlineAsset,
+            queue: queue
         )
         coordinator.present(from: vc)
         return coordinator

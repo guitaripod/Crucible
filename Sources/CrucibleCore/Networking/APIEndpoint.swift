@@ -7,8 +7,9 @@ package enum PlexEndpoint: Sendable {
 
     case identity
     case sections
-    case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50, unwatched: Bool = false, inProgress: Bool = false, actor: String? = nil)
+    case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50, unwatched: Bool = false, inProgress: Bool = false, actor: String? = nil, filters: [String: String] = [:])
     case sectionGenres(sectionId: String)
+    case sectionFacet(sectionId: String, facet: String)
     case sectionFirstCharacter(sectionId: String)
     case sectionFolder(sectionId: String)
     case sectionCollections(sectionId: String, start: Int = 0, size: Int = 200)
@@ -22,6 +23,11 @@ package enum PlexEndpoint: Sendable {
     case recentlyAdded(start: Int = 0, size: Int = 50)
     case search(query: String)
     case serverSessions
+    case watchlist(start: Int = 0, size: Int = 100)
+    case addToWatchlist(guid: String)
+    case removeFromWatchlist(guid: String)
+    case searchSubtitles(ratingKey: String, language: String, hearingImpaired: Bool, forced: Bool)
+    case downloadSubtitle(ratingKey: String, query: [URLQueryItem])
 
     case playlists
     case playlistItems(ratingKey: String, start: Int = 0, size: Int = 200)
@@ -44,17 +50,28 @@ package enum PlexEndpoint: Sendable {
 
     var isPlexTV: Bool {
         switch self {
-        case .requestPin, .checkPin, .resources: return true
+        case .requestPin, .checkPin, .resources, .watchlist, .addToWatchlist, .removeFromWatchlist: return true
         default: return false
         }
     }
 
     static var plexTVBaseURL: URL { PlexTVHost.clients }
 
+    /// The plex.tv host an account-level endpoint lives on.
+    var plexTVHost: URL {
+        switch self {
+        case .watchlist: return PlexTVHost.discover
+        case .addToWatchlist, .removeFromWatchlist: return PlexTVHost.metadata
+        default: return Self.plexTVBaseURL
+        }
+    }
+
     package var timeout: TimeInterval {
         switch self {
         case .scrobble, .unscrobble, .rate, .timeline, .progress, .stopTranscode, .pingTranscode, .addToPlaylist, .removeFromPlaylist, .movePlaylistItem, .deletePlaylist:
             return 10
+        case .searchSubtitles, .downloadSubtitle:
+            return 60
         default:
             return 15
         }
@@ -66,7 +83,7 @@ package enum PlexEndpoint: Sendable {
             return "POST"
         case .stopTranscode, .removeFromPlaylist, .deletePlaylist:
             return "DELETE"
-        case .rate, .addToPlaylist, .movePlaylistItem:
+        case .rate, .addToPlaylist, .movePlaylistItem, .downloadSubtitle, .addToWatchlist, .removeFromWatchlist:
             return "PUT"
         case .createPlaylist:
             return "POST"
@@ -91,12 +108,14 @@ package enum PlexEndpoint: Sendable {
             return "/library/sections/\(sectionId)/folder"
         case .folderPath(let path):
             return path
-        case .sectionItems(let sectionId, _, _, _, _, _, _, _):
+        case .sectionItems(let sectionId, _, _, _, _, _, _, _, _):
             return "/library/sections/\(sectionId)/all"
         case .sectionFirstCharacter(let sectionId):
             return "/library/sections/\(sectionId)/firstCharacter"
         case .sectionGenres(let sectionId):
             return "/library/sections/\(sectionId)/genre"
+        case .sectionFacet(let sectionId, let facet):
+            return "/library/sections/\(sectionId)/\(facet)"
         case .metadata(let ratingKey):
             return "/library/metadata/\(ratingKey)"
         case .children(let ratingKey):
@@ -113,6 +132,14 @@ package enum PlexEndpoint: Sendable {
             return "/hubs/search"
         case .serverSessions:
             return "/status/sessions"
+        case .watchlist:
+            return "/library/sections/watchlist/all"
+        case .addToWatchlist:
+            return "/actions/addToWatchlist"
+        case .removeFromWatchlist:
+            return "/actions/removeFromWatchlist"
+        case .searchSubtitles(let ratingKey, _, _, _), .downloadSubtitle(let ratingKey, _):
+            return "/library/metadata/\(ratingKey)/subtitles"
         case .sectionCollections(let sectionId, _, _):
             return "/library/sections/\(sectionId)/collections"
         case .collectionItems(let ratingKey, _, _):
@@ -153,13 +180,14 @@ package enum PlexEndpoint: Sendable {
                 URLQueryItem(name: "includeMarkers", value: "1"),
                 URLQueryItem(name: "includeRelated", value: "1"),
                 URLQueryItem(name: "includeRelatedCount", value: "10"),
+                URLQueryItem(name: "includeExtras", value: "1"),
             ]
         case .resources:
             return [
                 URLQueryItem(name: "includeHttps", value: "1"),
                 URLQueryItem(name: "includeRelay", value: "1"),
             ]
-        case .sectionItems(_, let sort, let genre, let start, let size, let unwatched, let inProgress, let actor):
+        case .sectionItems(_, let sort, let genre, let start, let size, let unwatched, let inProgress, let actor, let filters):
             var items = [
                 URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
                 URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
@@ -169,12 +197,28 @@ package enum PlexEndpoint: Sendable {
             if unwatched { items.append(URLQueryItem(name: "unwatched", value: "1")) }
             if inProgress { items.append(URLQueryItem(name: "inProgress", value: "1")) }
             if let actor { items.append(URLQueryItem(name: "actor", value: actor)) }
+            for (name, value) in filters.sorted(by: { $0.key < $1.key }) { items.append(URLQueryItem(name: name, value: value)) }
             return items
         case .sectionCollections(_, let start, let size), .collectionItems(_, let start, let size), .playlistItems(_, let start, let size):
             return [
                 URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
                 URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
             ]
+        case .searchSubtitles(_, let language, let hearingImpaired, let forced):
+            return [
+                URLQueryItem(name: "language", value: language),
+                URLQueryItem(name: "hearingImpaired", value: hearingImpaired ? "1" : "0"),
+                URLQueryItem(name: "forced", value: forced ? "1" : "0"),
+            ]
+        case .downloadSubtitle(_, let query):
+            return query
+        case .watchlist(let start, let size):
+            return [
+                URLQueryItem(name: "X-Plex-Container-Start", value: "\(start)"),
+                URLQueryItem(name: "X-Plex-Container-Size", value: "\(size)"),
+            ]
+        case .addToWatchlist(let guid), .removeFromWatchlist(let guid):
+            return [URLQueryItem(name: "ratingKey", value: WatchlistService.discoverKey(fromGuid: guid) ?? guid)]
         case .playlists:
             return [URLQueryItem(name: "playlistType", value: "video")]
         case .createPlaylist(let title, let uri):
@@ -255,7 +299,7 @@ package enum PlexEndpoint: Sendable {
     }
 
     package func urlRequest(baseURL: URL, token: String?) throws -> URLRequest {
-        let base = isPlexTV ? Self.plexTVBaseURL : baseURL
+        let base = isPlexTV ? plexTVHost : baseURL
         let baseString = base.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard var components = URLComponents(string: baseString + path) else {
             throw APIError.invalidURL

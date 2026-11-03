@@ -26,6 +26,7 @@ package final class LibraryGridModel {
         case continueItem
         case recents
         case genres
+        case facets
         case alphabet
     }
 
@@ -36,6 +37,7 @@ package final class LibraryGridModel {
 
     package private(set) var options = LibraryGridOptions()
     package private(set) var genres: [LibraryGenre] = []
+    package private(set) var facetChoices: [LibraryFacet: [LibraryFacetChoice]] = [:]
     package private(set) var pager = LibraryGridPager()
     package private(set) var contentState = ContentState.content
     package private(set) var continueItem: PlexMetadata?
@@ -49,6 +51,7 @@ package final class LibraryGridModel {
     private var recentTask: Task<Void, Never>?
     private var alphabetTask: Task<Void, Never>?
     private var genresTask: Task<Void, Never>?
+    private var facetsTask: Task<Void, Never>?
     private var isLoadingGenres = false
 
     /// `offersContinueBanner` is false for a screen that draws no Continue banner, so Recently Watched
@@ -66,6 +69,7 @@ package final class LibraryGridModel {
         recentTask?.cancel()
         alphabetTask?.cancel()
         genresTask?.cancel()
+        facetsTask?.cancel()
     }
 
     package var gridIds: [String] { pager.ids }
@@ -101,6 +105,7 @@ package final class LibraryGridModel {
     /// `visibleGridIndex` is where the user is in the grid; a deeply scrolled grid refreshes around it.
     package func appear(visibleGridIndex: Int = 0) {
         if genres.isEmpty { loadGenres() }
+        if facetChoices.isEmpty { loadFacets() }
         loadHubs()
         loadRecentlyWatched()
         if alphabet == nil { loadAlphabet() }
@@ -210,6 +215,39 @@ package final class LibraryGridModel {
                 MidgarLog.error("\(kind.logName) genres fetch failed section=\(sectionId): \(error.localizedDescription)", category: .networking)
             }
         }
+    }
+
+    /// The facets worth filtering by: those the library holds more than one value for.
+    package var availableFacets: [LibraryFacet] {
+        LibraryFacet.allCases.filter { (facetChoices[$0]?.count ?? 0) > 1 }
+    }
+
+    /// Reads the values the section holds for each facet. A facet the server cannot list is left out; `appear()` tries again while none has loaded.
+    package func loadFacets() {
+        facetsTask?.cancel()
+        facetsTask = Task { [weak self] in
+            guard let self else { return }
+            var loaded: [LibraryFacet: [LibraryFacetChoice]] = [:]
+            for facet in LibraryFacet.allCases {
+                do {
+                    let container = try await api.requestContainer(.sectionFacet(sectionId: sectionId, facet: facet.queryName))
+                    guard !Task.isCancelled else { return }
+                    loaded[facet] = (container.Directory ?? []).compactMap { directory in
+                        guard let key = directory.key, let title = directory.title else { return nil }
+                        return LibraryFacetChoice(key: key, title: title)
+                    }
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    MidgarLog.error("\(kind.logName) \(facet.queryName) values fetch failed section=\(sectionId): \(error.localizedDescription)", category: .networking)
+                }
+            }
+            facetChoices = loaded
+            onUpdate?(.facets)
+        }
+    }
+
+    package func setFacet(_ facet: LibraryFacet, _ key: String?) {
+        update { $0.facets[facet] = key }
     }
 
     package func selectChip(_ filter: LibraryWatchFilter) {

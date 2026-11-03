@@ -26,10 +26,47 @@ extension TVScreens {
             guard let grid else { return }
             TVNavigation.push(playlistEntries(env, playlist: playlist), from: grid)
         }
+        grid.onPlayPause = { [weak grid] playlist in
+            guard let grid else { return false }
+            playWhole(playlist, shuffled: false, env: env, from: grid)
+            return true
+        }
         grid.contextMenu = { [weak grid] playlist in
-            UIMenu(children: [deleteAction(playlist, env: env, from: grid) { grid?.reload() }])
+            guard let grid else { return nil }
+            return UIMenu(children: [
+                UIMenu(options: .displayInline, children: [
+                    UIAction(title: PlaylistFormat.play, image: UIImage(systemName: "play.fill")) { _ in
+                        playWhole(playlist, shuffled: false, env: env, from: grid)
+                    },
+                    UIAction(title: PlaylistFormat.shuffle, image: UIImage(systemName: "shuffle")) { _ in
+                        playWhole(playlist, shuffled: true, env: env, from: grid)
+                    },
+                ]),
+                deleteAction(playlist, env: env, from: grid) { grid.reload() },
+            ])
         }
         return grid
+    }
+
+    /// Plays a playlist from its first entry, or in a random order, fetching the entries when it is chosen.
+    private static func playWhole(_ playlist: PlexMetadata, shuffled: Bool, env: TVAppEnvironment, from screen: UIViewController) {
+        Task { @MainActor [weak screen] in
+            do {
+                let entries = try await PlaylistsFeed.items(inPlaylist: playlist.id, api: env.api)
+                guard let queue = shuffled ? PlaybackQueue.shuffled(entries) : PlaybackQueue.starting(in: entries) else {
+                    screen?.presentAlert(title: playlist.title, message: String(localized: "This playlist has nothing to play."))
+                    return
+                }
+                guard let screen else { return }
+                play(queue, env: env, from: screen)
+            } catch {
+                screen?.presentAlert(title: String(localized: "Couldn\u{2019}t Load"), message: error.localizedDescription)
+            }
+        }
+    }
+
+    private static func play(_ queue: PlaybackQueue, env: TVAppEnvironment, from screen: UIViewController) {
+        TVScreens.play(env, request: TVPlaybackRequest(item: queue.current, queue: queue), from: screen)
     }
 
     static func playlistEntries(_ env: TVAppEnvironment, playlist: PlexMetadata) -> UIViewController {
@@ -45,10 +82,24 @@ extension TVScreens {
         )
         var latest: [PlexMetadata] = []
         grid.onLoaded = { latest = $0 }
+        grid.onPlayPause = { [weak grid] entry in
+            guard let grid, let queue = PlaybackQueue.starting(at: entry, in: latest), PlaybackQueue.isPlayable(entry) else { return false }
+            play(queue, env: env, from: grid)
+            return true
+        }
         installTitleActions(on: grid, env: env, extra: { [weak grid] entry in
-            guard !playlist.isSmart, let itemID = entry.playlistItemID,
-                  let index = latest.firstIndex(where: { $0.playlistItemID == itemID }) else { return [] }
             var actions: [UIMenuElement] = []
+            if let grid, PlaybackQueue.isPlayable(entry), let queue = PlaybackQueue.starting(at: entry, in: latest) {
+                actions.append(UIAction(title: PlaylistFormat.playFromHere, image: UIImage(systemName: "play.fill")) { _ in
+                    play(queue, env: env, from: grid)
+                })
+                actions.append(UIAction(title: PlaylistFormat.shuffle, image: UIImage(systemName: "shuffle")) { _ in
+                    guard let shuffled = PlaybackQueue.shuffled(latest) else { return }
+                    play(shuffled, env: env, from: grid)
+                })
+            }
+            guard !playlist.isSmart, let itemID = entry.playlistItemID,
+                  let index = latest.firstIndex(where: { $0.playlistItemID == itemID }) else { return actions }
             if index > 0 {
                 actions.append(moveAction(String(localized: "Move to Top"), symbol: "arrow.up.to.line", from: index, to: 0, entries: latest, playlist: playlist, env: env, grid: grid))
             }

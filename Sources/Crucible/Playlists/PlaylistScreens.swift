@@ -29,9 +29,38 @@ enum PlaylistScreens {
             grid?.navigationController?.pushViewController(entries(api: api, playlist: playlist), animated: true)
         }
         grid.contextMenu = { [weak grid] playlist in
-            UIMenu(children: [deleteAction(playlist, api: api, host: grid, onDeleted: { grid?.reload() })])
+            UIMenu(children: [
+                UIMenu(options: .displayInline, children: playActions(for: playlist, api: api, grid: grid)),
+                deleteAction(playlist, api: api, host: grid, onDeleted: { grid?.reload() }),
+            ])
         }
         return grid
+    }
+
+    /// Play and Shuffle for a whole playlist, whose entries are fetched when one is chosen.
+    private static func playActions(for playlist: PlexMetadata, api: APIClient, grid: MediaGridViewController?) -> [UIAction] {
+        [(PlaylistFormat.play, "play.fill", false), (PlaylistFormat.shuffle, "shuffle", true)].map { title, symbol, shuffled in
+            UIAction(title: title, image: UIImage(systemName: symbol)) { _ in
+                Task { @MainActor in
+                    do {
+                        let entries = try await PlaylistsFeed.items(inPlaylist: playlist.id, api: api)
+                        guard let queue = shuffled ? PlaybackQueue.shuffled(entries) : PlaybackQueue.starting(in: entries) else {
+                            grid?.presentSimpleAlert(title: playlist.title, message: String(localized: "This playlist has nothing to play."))
+                            return
+                        }
+                        play(queue, api: api, grid: grid)
+                    } catch {
+                        grid?.presentSimpleAlert(title: String(localized: "Couldn\u{2019}t Load"), message: error.localizedDescription)
+                    }
+                }
+            }
+        }
+    }
+
+    private static func play(_ queue: PlaybackQueue, api: APIClient, grid: MediaGridViewController?) {
+        guard let grid else { return }
+        Haptics.light()
+        grid.retainedPlayer = Theme.quickPlay(api: api, item: queue.current, from: grid, queue: queue)
     }
 
     static func entries(api: APIClient, playlist: PlexMetadata) -> MediaGridViewController {
@@ -41,10 +70,26 @@ enum PlaylistScreens {
             empty: .init(symbol: "list.bullet.rectangle", title: String(localized: "Empty Playlist"), text: String(localized: "Add titles to this playlist from their menus."))
         ) { try await load() }
         var latest: [PlexMetadata] = []
-        grid.onLoaded = { latest = $0 }
+        let playItem = UIBarButtonItem(image: UIImage(systemName: "play.fill"), primaryAction: UIAction { [weak grid] _ in
+            guard let queue = PlaybackQueue.starting(in: latest) else { return }
+            play(queue, api: api, grid: grid)
+        })
+        playItem.accessibilityLabel = PlaylistFormat.play
+        playItem.isEnabled = false
+        grid.onLoaded = { entries in
+            latest = entries
+            playItem.isEnabled = PlaybackQueue.starting(in: entries) != nil
+        }
         MediaGridActions.install(on: grid, api: api, extra: { [weak grid] entry in
-            guard !playlist.isSmart, let itemID = entry.playlistItemID, let index = latest.firstIndex(where: { $0.playlistItemID == itemID }) else { return [] }
             var actions: [UIMenuElement] = []
+            if PlaybackQueue.isPlayable(entry), let queue = PlaybackQueue.starting(at: entry, in: latest) {
+                actions.append(UIAction(title: PlaylistFormat.playFromHere, image: UIImage(systemName: "play.fill")) { _ in
+                    play(queue, api: api, grid: grid)
+                })
+            }
+            guard !playlist.isSmart, let itemID = entry.playlistItemID, let index = latest.firstIndex(where: { $0.playlistItemID == itemID }) else {
+                return actions.isEmpty ? [] : [UIMenu(options: .displayInline, children: actions)]
+            }
             if index > 0 {
                 actions.append(moveAction(String(localized: "Move to Top"), symbol: "arrow.up.to.line", from: index, to: 0, entries: latest, playlist: playlist, api: api, grid: grid))
             }
@@ -56,13 +101,21 @@ enum PlaylistScreens {
             })
             return [UIMenu(options: .displayInline, children: actions)]
         })
-        grid.navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let shuffle = UIAction(title: PlaylistFormat.shuffle, image: UIImage(systemName: "shuffle")) { [weak grid] _ in
+            guard let queue = PlaybackQueue.shuffled(latest) else { return }
+            play(queue, api: api, grid: grid)
+        }
+        let options = UIBarButtonItem(
             image: UIImage(systemName: "ellipsis.circle"),
-            menu: UIMenu(children: [deleteAction(playlist, api: api, host: grid, onDeleted: { [weak grid] in
-                grid?.navigationController?.popViewController(animated: true)
-            })])
+            menu: UIMenu(children: [
+                shuffle,
+                deleteAction(playlist, api: api, host: grid, onDeleted: { [weak grid] in
+                    grid?.navigationController?.popViewController(animated: true)
+                }),
+            ])
         )
-        grid.navigationItem.rightBarButtonItem?.accessibilityLabel = String(localized: "Playlist Options")
+        options.accessibilityLabel = String(localized: "Playlist Options")
+        grid.navigationItem.rightBarButtonItems = [options, playItem]
         return grid
     }
 

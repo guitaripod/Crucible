@@ -15,6 +15,7 @@ final class MediaGridViewController: UICollectionViewController {
     var onSelect: ((PlexMetadata) -> Void)?
     var onLoaded: (([PlexMetadata]) -> Void)?
     var refreshInterval: Duration?
+    var retainedPlayer: PlayerCoordinator?
     var contextMenu: ((PlexMetadata) -> UIMenu?)?
     var configuration: (PlexMetadata) -> PosterContentConfiguration = { DetailLayout.posterConfiguration(for: $0) }
 

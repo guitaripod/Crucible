@@ -242,3 +242,212 @@ struct ServerActivityTests {
         #expect(sessions.first?.sessionUser?.title == "Maren")
     }
 }
+
+struct DetailExtrasTests {
+    private func extra(_ key: String, _ title: String, subtype: String, playable: Bool = true) -> [String: Any] {
+        var fields: [String: Any] = ["ratingKey": key, "type": "clip", "subtype": subtype, "title": title, "duration": 135_000]
+        if playable { fields["Media"] = [["id": 1, "Part": [["id": 2, "key": "/library/parts/2/1/file.mp4"]]]] }
+        return fields
+    }
+
+    private func movie(extras: [[String: Any]]) -> PlexMetadata {
+        DetailFixtures.item(["Extras": ["size": extras.count, "Metadata": extras]])
+    }
+
+    @Test func extrasDecodeWithTheirKind() {
+        let item = movie(extras: [extra("10", "Official Trailer", subtype: "trailer")])
+        #expect(item.extras.map(\.title) == ["Official Trailer"])
+        #expect(item.extras.first?.subtype == "trailer")
+        #expect(DetailFixtures.item().extras.isEmpty)
+    }
+
+    @Test func trailersComeFirstAndClipsWithNothingToPlayAreLeftOut() {
+        let item = movie(extras: [
+            extra("11", "Making Of", subtype: "behindTheScenes"),
+            extra("12", "Cut Scene", subtype: "deletedScene", playable: false),
+            extra("13", "Teaser", subtype: "trailer"),
+            extra("14", "Cast Talk", subtype: "interview"),
+        ])
+        #expect(DetailExtras.items(in: item).map(\.title) == ["Teaser", "Making Of", "Cast Talk"])
+    }
+
+    @Test func aClipIsDescribedByItsKindAndLength() throws {
+        let item = movie(extras: [extra("10", "Official Trailer", subtype: "trailer"), extra("11", "Unknown", subtype: "mystery")])
+        #expect(DetailExtras.subtitle(item.extras[0]) == "Trailer · 2 min")
+        #expect(DetailExtras.kindName(item.extras[1]) == "Extra")
+    }
+
+    @Test func playingAnExtraNamesTheTitleAndLeavesNoTrace() {
+        let item = DetailFixtures.item(["ratingKey": "1", "title": "Halcyon", "thumb": "/poster"])
+        let clip = DetailFixtures.item(["ratingKey": "10", "type": "clip", "title": "Official Trailer", "duration": 135_000])
+        let request = PlaybackRequest.extra(clip, of: item)
+        #expect(request.isExtra)
+        #expect(request.ratingKey == "10")
+        #expect(request.mediaType == "clip")
+        #expect(request.resumePosition == 0)
+        #expect(request.metadata?.showName == "Halcyon")
+        #expect(request.metadata?.posterPath == "/poster")
+        #expect(!PlaybackRequest(item: item).isExtra)
+    }
+
+    @Test func aMovieNeverAsksForANextEpisodeAfterAClip() {
+        let resolver = UpNextResolver(ratingKey: "10", isEpisode: false, seasonRatingKey: nil, markers: [])
+        #expect(!resolver.canOfferNext)
+    }
+}
+
+struct LibraryFacetTests {
+    @Test func theFilterRidesTheListingUnderTheServersName() throws {
+        let endpoint = PlexEndpoint.sectionItems(sectionId: "1", size: 50, filters: ["resolution": "4k", "decade": "2020"])
+        let request = try endpoint.urlRequest(baseURL: URL(string: "http://h:32400")!, token: "t")
+        #expect(request.url?.query == "X-Plex-Container-Start=0&X-Plex-Container-Size=50&decade=2020&resolution=4k")
+        let list = try PlexEndpoint.sectionFacet(sectionId: "1", facet: LibraryFacet.contentRating.queryName).urlRequest(baseURL: URL(string: "http://h:32400")!, token: "t")
+        #expect(list.url?.path == "/library/sections/1/contentRating")
+    }
+
+    @Test func optionsKeepFacetsAndClearThemWithEveryFilter() {
+        var options = LibraryGridOptions()
+        #expect(!options.isFiltering)
+        options.facets[.decade] = "2010"
+        options.facets[.resolution] = "1080"
+        #expect(options.isFiltering)
+        #expect(options.endpoint(sectionId: "1", start: 0, size: 50).queryItems?.map(\.name).suffix(2) == ["decade", "resolution"])
+        #expect(options.selectingChip(.all).facets.isEmpty)
+        #expect(options.clearingFilters().facets.isEmpty)
+        #expect(!options.clearingFilters().isFiltering)
+    }
+
+    @Test func aFacetButtonShowsTheChosenValue() {
+        var options = LibraryGridOptions()
+        let choices = [LibraryFacetChoice(key: "4k", title: "4k"), LibraryFacetChoice(key: "1080", title: "1080")]
+        #expect(options.facetTitle(.resolution, in: choices) == "Resolution")
+        options.facets[.resolution] = "1080"
+        #expect(options.facetTitle(.resolution, in: choices) == "1080p")
+        options.facets[.resolution] = "4k"
+        #expect(options.facetTitle(.resolution, in: choices) == "4K")
+        options.facets[.resolution] = "gone"
+        #expect(options.facetTitle(.resolution, in: choices) == "Resolution")
+    }
+
+    @Test func resolutionsReadLikeTheBadges() {
+        #expect(LibraryFacet.resolution.display("sd") == "SD")
+        #expect(LibraryFacet.resolution.display("720") == "720p")
+        #expect(LibraryFacet.decade.display("2020s") == "2020s")
+    }
+}
+
+struct SubtitleSearchTests {
+    private let server = DetailStubServer()
+
+    @Test func theSearchAndTheDownloadUseTheSubtitlesPath() throws {
+        let base = URL(string: "http://h:32400")!
+        let search = try PlexEndpoint.searchSubtitles(ratingKey: "42", language: "fi", hearingImpaired: true, forced: false).urlRequest(baseURL: base, token: "t")
+        #expect(search.httpMethod == "GET")
+        #expect(search.url?.path == "/library/metadata/42/subtitles")
+        #expect(search.url?.query == "language=fi&hearingImpaired=1&forced=0")
+        let candidate = PlexSubtitleCandidate(key: "/k/1", codec: "srt", format: "srt", languageCode: "fi", providerTitle: "OpenSubtitles", hearingImpaired: true)
+        let query = SubtitleSearch.downloadQuery(for: candidate, language: "fi")
+        let download = try PlexEndpoint.downloadSubtitle(ratingKey: "42", query: query).urlRequest(baseURL: base, token: "t")
+        #expect(download.httpMethod == "PUT")
+        #expect(download.url?.path == "/library/metadata/42/subtitles")
+        #expect(download.url?.query == "key=/k/1&codec=srt&format=srt&forced=0&hearingImpaired=1&language=fi&providerTitle=OpenSubtitles")
+    }
+
+    @Test func candidatesDecodeLeniently() throws {
+        let json = #"{"MediaContainer":{"Stream":[{"key":"/k/1","codec":"srt","languageCode":"eng","providerTitle":"OpenSubtitles","score":"87.5","hearingImpaired":"1","perfectMatch":true},{"key":"/k/2","format":"ass","score":12}]}}"#
+        let response = try JSONDecoder().decode(PlexSubtitleSearchResponse.self, from: Data(json.utf8))
+        let found = try #require(response.MediaContainer.Stream)
+        #expect(found.map(\.key) == ["/k/1", "/k/2"])
+        #expect(found[0].score == 87.5)
+        #expect(found[0].hearingImpaired)
+        #expect(found[0].perfectMatch)
+        #expect(!found[1].hearingImpaired)
+        #expect(found[1].format == "ass")
+    }
+
+    @Test func theBestMatchesComeFirst() async throws {
+        server.reply(path: "/library/metadata/42/subtitles", body: ["MediaContainer": ["Stream": [
+            ["key": "/k/a", "score": 40],
+            ["key": "/k/b", "score": 90],
+            ["key": "/k/c", "score": 10, "perfectMatch": true],
+        ]]])
+        let found = try await SubtitleSearch.search(ratingKey: "42", language: "en", api: server.client)
+        #expect(found.map(\.key) == ["/k/c", "/k/b", "/k/a"])
+        #expect(server.requestedURLs.last?.contains("language=en") == true)
+    }
+
+    @Test func downloadingSendsTheChoiceAndDropsTheCachedTitle() async throws {
+        let api = server.client
+        server.reply(path: "/library/metadata/42", items: [DetailFixtures.item(["ratingKey": "42"])])
+        server.reply(path: "/library/metadata/42/subtitles")
+        _ = try await api.requestContainer(.metadata(ratingKey: "42"))
+        try await SubtitleSearch.download(PlexSubtitleCandidate(key: "/k/a", languageCode: "en"), ratingKey: "42", language: "en", api: api)
+        #expect(server.requestedURLs.last?.contains("key=/k/a") == true)
+        _ = try await api.requestContainer(.metadata(ratingKey: "42"))
+        #expect(server.requests.filter { $0 == "/library/metadata/42" }.count == 2)
+    }
+
+    @Test func aRefusedDownloadIsAFailure() async {
+        server.reply(path: "/library/metadata/42/subtitles", status: 500)
+        await #expect(throws: APIError.self) {
+            try await SubtitleSearch.download(PlexSubtitleCandidate(key: "/k/a"), ratingKey: "42", language: "en", api: server.client)
+        }
+    }
+
+    @Test func aCandidateIsDescribedByWhatMatters() {
+        let plain = PlexSubtitleCandidate(key: "/k/1", providerTitle: "OpenSubtitles")
+        #expect(SubtitleSearch.detail(plain) == "OpenSubtitles")
+        let rich = PlexSubtitleCandidate(key: "/k/2", providerTitle: "OpenSubtitles", hearingImpaired: true, perfectMatch: true)
+        #expect(SubtitleSearch.detail(rich) == "OpenSubtitles · Perfect match · SDH")
+    }
+
+    @Test func theDefaultLanguageFollowsThePreferencesWhenListed() {
+        #expect(SubtitleLanguages.defaultCode(preferred: ["fi-FI", "en-US"]) == "fi")
+        #expect(SubtitleLanguages.defaultCode(preferred: ["xx-XX", "de-DE"]) == "de")
+        #expect(SubtitleLanguages.defaultCode(preferred: ["xx"]) == "en")
+        #expect(SubtitleLanguages.defaultCode(preferred: []) == "en")
+    }
+}
+
+struct WatchlistTests {
+    private let server = DetailStubServer()
+
+    @Test func theKeyPlexTVKnowsATitleByIsTheEndOfItsGuid() {
+        #expect(WatchlistService.discoverKey(fromGuid: "plex://movie/5d776b59ad5437001f79c6f8") == "5d776b59ad5437001f79c6f8")
+        #expect(WatchlistService.discoverKey(fromGuid: "tt0111161") == nil)
+        #expect(WatchlistService.discoverKey(fromGuid: "plex://") == nil)
+    }
+
+    @Test func watchlistRequestsUseThePlexTVPathsAndVerbs() throws {
+        let list = try PlexEndpoint.watchlist(start: 100, size: 50).urlRequest(baseURL: URL(string: "http://pms:32400")!, token: "t")
+        #expect(list.url?.path == "/library/sections/watchlist/all")
+        #expect(list.url?.query == "X-Plex-Container-Start=100&X-Plex-Container-Size=50")
+        #expect(list.url?.host != "pms")
+        let add = try PlexEndpoint.addToWatchlist(guid: "plex://movie/abc123").urlRequest(baseURL: URL(string: "http://pms:32400")!, token: "t")
+        #expect(add.httpMethod == "PUT")
+        #expect(add.url?.path == "/actions/addToWatchlist")
+        #expect(add.url?.query == "ratingKey=abc123")
+        let remove = try PlexEndpoint.removeFromWatchlist(guid: "plex://show/def").urlRequest(baseURL: URL(string: "http://pms:32400")!, token: "t")
+        #expect(remove.url?.path == "/actions/removeFromWatchlist")
+        #expect(remove.url?.query == "ratingKey=def")
+    }
+
+    @Test func aTitleIsOnTheWatchlistWhenItsGuidIs() throws {
+        let listed = DetailFixtures.item(["guid": "plex://movie/1", "title": "A"])
+        #expect(listed.guid == "plex://movie/1")
+        #expect(WatchlistService.contains(guid: "plex://movie/1", in: [listed]))
+        #expect(!WatchlistService.contains(guid: "plex://movie/2", in: [listed]))
+        #expect(!WatchlistService.contains(guid: nil, in: [listed]))
+    }
+
+    @Test func aWatchlistEntryFindsItsTitleOnTheServerByGuid() async throws {
+        server.reply(path: "/hubs/search", body: ["MediaContainer": ["Hub": [["type": "movie", "Metadata": [
+            ["ratingKey": "5", "type": "movie", "title": "Halcyon Bay", "guid": "plex://movie/other", "year": 2015],
+            ["ratingKey": "6", "type": "movie", "title": "Halcyon", "guid": "plex://movie/abc", "year": 2021],
+        ]]]]])
+        let entry = DetailFixtures.item(["ratingKey": "abc", "type": "movie", "title": "Halcyon", "guid": "plex://movie/abc", "year": 2021])
+        #expect(try await WatchlistService.localMatch(for: entry, api: server.client)?.id == "6")
+        let missing = DetailFixtures.item(["ratingKey": "zzz", "type": "movie", "title": "Halcyon", "guid": "plex://movie/zzz", "year": 1999])
+        #expect(try await WatchlistService.localMatch(for: missing, api: server.client) == nil)
+    }
+}

@@ -35,6 +35,10 @@ package struct MovieDetailModel: Sendable {
         seasonRatingKey ?? item.parentRatingKey
     }
 
+    package var extras: [PlexMetadata] {
+        DetailExtras.items(in: item)
+    }
+
     package var collectionNames: [String] {
         item.collectionNames
     }

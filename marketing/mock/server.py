@@ -302,6 +302,26 @@ def filter_genre(items, genre):
     return [i for i in items if wanted & set(i["_genres"])]
 
 
+def facet_value(facet, it):
+    if facet == "decade":
+        return str(it["year"] // 10 * 10) if it.get("year") else None
+    if facet == "contentRating":
+        return it.get("contentRating")
+    if facet == "resolution":
+        media = it.get("_media")
+        height = media[0]["height"] if media else None
+        return None if height is None else ("4k" if height >= 2160 else "1080")
+    return None
+
+
+def filter_facets(items, q):
+    for facet in ("decade", "contentRating", "resolution"):
+        wanted = (q.get(facet) or [None])[0]
+        if wanted:
+            items = [i for i in items if facet_value(facet, i) == wanted]
+    return items
+
+
 def filter_actor(items, actor):
     if not actor:
         return items
@@ -550,6 +570,16 @@ class Handler(BaseHTTPRequestHandler):
                 page_meta["Metadata"] = [LIB.render(LIB.items[k]) for k in page]
             return self.send_json({"MediaContainer": page_meta})
 
+        if p == "/library/sections/watchlist/all":
+            with LOCK:
+                rows = LIB.watchlist_json()
+            return self.send_json(container(size=len(rows), totalSize=len(rows), offset=0, Metadata=rows))
+
+        if p in ("/actions/addToWatchlist", "/actions/removeFromWatchlist"):
+            with LOCK:
+                LIB.change_watchlist(one("ratingKey", ""), p.endswith("addToWatchlist"))
+            return self.send_empty()
+
         if p == "/status/sessions":
             with LOCK:
                 rows = []
@@ -569,9 +599,37 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/playlists" or p.startswith("/playlists/"):
             return self.playlists(p, q)
 
-        m = re.match(r"^/library/sections/(\d+)(?:/(all|genre|folder|firstCharacter)(?:/([A-Za-z0-9-]+))?)?$", p)
+        m = re.match(r"^/library/sections/(\d+)(?:/(all|genre|decade|contentRating|resolution|folder|firstCharacter)(?:/([A-Za-z0-9-]+))?)?$", p)
         if m and m.group(1) in library.SECTIONS:
             return self.section(m.group(1), m.group(2), m.group(3), q)
+
+        m = re.match(r"^/library/metadata/(\d+)/subtitles$", p)
+        if m:
+            with LOCK:
+                it = LIB.items.get(m.group(1))
+                if not it or "_media" not in it:
+                    return self.not_found()
+                language = one("language", "en")
+                names = {"en": "English", "fi": "Finnish", "es": "Spanish", "fr": "French", "de": "German", "sv": "Swedish"}
+                name = names.get(language, language.upper())
+                if self.command == "GET":
+                    rk = it["ratingKey"]
+                    found = [
+                        {"key": f"/library/metadata/{rk}/subtitles/{language}/{n}", "codec": "srt", "format": "srt", "language": name,
+                         "languageCode": language, "providerTitle": provider, "title": f"{name}{' SDH' if sdh else ''} (SRT)",
+                         "score": score, "perfectMatch": perfect, "hearingImpaired": sdh, "forced": False}
+                        for n, (provider, score, perfect, sdh) in enumerate(
+                            (("OpenSubtitles", 96, True, False), ("OpenSubtitles", 81, False, True), ("Podnapisi", 44, False, False)), 1)
+                    ]
+                    return self.send_json(container(size=len(found), Stream=found))
+                if self.command == "PUT":
+                    streams = it["_media"][0]["Part"][0]["Stream"]
+                    new_id = int(it["ratingKey"]) * 10 + 20 + sum(1 for s in streams if s["id"] >= int(it["ratingKey"]) * 10 + 20)
+                    streams.append({"id": new_id, "streamType": 3, "codec": "srt", "format": "srt", "language": name,
+                                    "languageCode": language, "languageTag": language, "default": False, "forced": False,
+                                    "selected": False, "displayTitle": f"{name} (SRT)", "key": f"/library/streams/{new_id}"})
+                    return self.send_empty()
+            return self.not_found()
 
         m = re.match(r"^/library/metadata/(\d+)(?:/(children|allLeaves))?$", p)
         if m:
@@ -956,7 +1014,7 @@ class Handler(BaseHTTPRequestHandler):
             if what == "all":
                 if env("MOCK_FAIL_GENRE") == "1" and q.get("genre"):
                     return self.not_found()
-                items = filter_actor(filter_genre(items, (q.get("genre") or [None])[0]), (q.get("actor") or [None])[0])
+                items = filter_facets(filter_actor(filter_genre(items, (q.get("genre") or [None])[0]), (q.get("actor") or [None])[0]), q)
                 if sid in env_sections("MOCK_FAIL_SECTIONS"):
                     return self.not_found()
                 items = filter_watch(filter_genre(items, (q.get("genre") or [None])[0]), q)
@@ -972,6 +1030,10 @@ class Handler(BaseHTTPRequestHandler):
                     letter = letter if letter.isalpha() else "#"
                     counts[letter] = counts.get(letter, 0) + 1
                 dirs = [{"key": k, "title": k, "size": counts[k]} for k in sorted(counts, key=lambda k: ("\uffff" if k == "#" else k))]
+                return self.send_json(container(size=len(dirs), title1=title, Directory=dirs))
+            if what in ("decade", "contentRating", "resolution"):
+                values = sorted({v for v in (facet_value(what, i) for i in items) if v}, reverse=(what == "decade"))
+                dirs = [{"key": v, "title": f"{v}s" if what == "decade" else v} for v in values]
                 return self.send_json(container(size=len(dirs), title1=title, Directory=dirs))
             if what == "genre":
                 present = sorted({g for i in items for g in i["_genres"]})

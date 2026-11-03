@@ -142,6 +142,9 @@ package struct PlexMetadata: Decodable, Sendable {
     package let sessionUser: PlexSessionUser?
     package let sessionPlayer: PlexSessionPlayer?
     package let transcodeSession: PlexTranscodeSession?
+    package let subtype: String?
+    package let extrasContainer: PlexExtras?
+    package let guid: String?
     package let duration: Int?
     package let viewOffset: Int?
     package let viewCount: Int?
@@ -217,7 +220,10 @@ package struct PlexMetadata: Decodable, Sendable {
         collectionTags: [PlexTag]? = nil,
         sessionUser: PlexSessionUser? = nil,
         sessionPlayer: PlexSessionPlayer? = nil,
-        transcodeSession: PlexTranscodeSession? = nil
+        transcodeSession: PlexTranscodeSession? = nil,
+        subtype: String? = nil,
+        extrasContainer: PlexExtras? = nil,
+        guid: String? = nil
     ) {
         self.ratingKey = ratingKey
         self.key = key
@@ -247,6 +253,9 @@ package struct PlexMetadata: Decodable, Sendable {
         self.sessionUser = sessionUser
         self.sessionPlayer = sessionPlayer
         self.transcodeSession = transcodeSession
+        self.subtype = subtype
+        self.extrasContainer = extrasContainer
+        self.guid = guid
         self.duration = duration
         self.viewOffset = viewOffset
         self.viewCount = viewCount
@@ -286,6 +295,8 @@ package struct PlexMetadata: Decodable, Sendable {
         case sessionUser = "User"
         case sessionPlayer = "Player"
         case transcodeSession = "TranscodeSession"
+        case subtype, guid
+        case extrasContainer = "Extras"
     }
 
     /// The server spells ids and counts as numbers on a library listing and as strings on a history row, and one field it
@@ -356,7 +367,10 @@ package struct PlexMetadata: Decodable, Sendable {
             collectionTags: list([PlexTag].self, .collectionTags),
             sessionUser: list(PlexSessionUser.self, .sessionUser),
             sessionPlayer: list(PlexSessionPlayer.self, .sessionPlayer),
-            transcodeSession: list(PlexTranscodeSession.self, .transcodeSession)
+            transcodeSession: list(PlexTranscodeSession.self, .transcodeSession),
+            subtype: string(.subtype),
+            extrasContainer: list(PlexExtras.self, .extrasContainer),
+            guid: string(.guid)
         )
     }
 }
@@ -562,6 +576,10 @@ package struct PlexRole: Decodable, Sendable, Hashable {
     }
 }
 
+package struct PlexExtras: Decodable, Sendable {
+    package let Metadata: [PlexMetadata]?
+}
+
 package struct PlexRelatedHubs: Decodable, Sendable {
     package let Hub: [PlexHub]?
 }
@@ -671,6 +689,8 @@ extension PlexMetadata {
 
     package var cast: [PlexRole] { Role ?? [] }
     package var directors: [String] { Director?.map(\.tag) ?? [] }
+    /// The trailers and other clips the server holds for the title, when the metadata was asked for with them.
+    package var extras: [PlexMetadata] { extrasContainer?.Metadata ?? [] }
     package var collectionNames: [String] { collectionTags?.map(\.tag) ?? [] }
     package var writers: [String] { Writer?.map(\.tag) ?? [] }
     package var relatedHubs: [PlexHub] { (Related?.Hub ?? []).filter { !($0.Metadata?.isEmpty ?? true) } }

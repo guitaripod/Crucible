@@ -65,6 +65,7 @@ package struct PlaybackRequest: Sendable {
     package let selectedSubtitleId: Int?
     package let selectedAudioStreamId: Int?
     package let offline: OfflinePlaybackSource?
+    package let queue: PlaybackQueue?
 
     package init(
         ratingKey: String,
@@ -75,7 +76,8 @@ package struct PlaybackRequest: Sendable {
         metadata: PlaybackMetadata? = nil,
         selectedSubtitleId: Int? = nil,
         selectedAudioStreamId: Int? = nil,
-        offline: OfflinePlaybackSource? = nil
+        offline: OfflinePlaybackSource? = nil,
+        queue: PlaybackQueue? = nil
     ) {
         self.ratingKey = ratingKey
         self.mediaType = mediaType
@@ -86,6 +88,7 @@ package struct PlaybackRequest: Sendable {
         self.selectedSubtitleId = selectedSubtitleId
         self.selectedAudioStreamId = selectedAudioStreamId
         self.offline = offline
+        self.queue = queue
     }
 
     /// Plays `item` from the position the server last stored for it unless `resumePosition` says otherwise.
@@ -96,7 +99,8 @@ package struct PlaybackRequest: Sendable {
         resumePosition: Double? = nil,
         selectedSubtitleId: Int? = nil,
         selectedAudioStreamId: Int? = nil,
-        offline: OfflinePlaybackSource? = nil
+        offline: OfflinePlaybackSource? = nil,
+        queue: PlaybackQueue? = nil
     ) {
         self.init(
             ratingKey: item.id,
@@ -107,7 +111,8 @@ package struct PlaybackRequest: Sendable {
             metadata: PlaybackMetadata(item: item),
             selectedSubtitleId: selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId,
-            offline: offline
+            offline: offline,
+            queue: queue
         )
     }
 
@@ -128,11 +133,36 @@ package struct PlaybackRequest: Sendable {
             metadata: metadata,
             selectedSubtitleId: selectedSubtitleId ?? self.selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId ?? self.selectedAudioStreamId,
-            offline: offline
+            offline: offline,
+            queue: queue
         )
     }
 
     package var isEpisode: Bool { mediaType == "episode" }
+
+    /// A trailer or other clip: it plays, but leaves no trace on the server (no timeline, no place to resume from).
+    package var isExtra: Bool { mediaType == Self.extraMediaType }
+
+    package static let extraMediaType = "clip"
+
+    /// Plays `extra` (a trailer, a featurette) of `title`.
+    package static func extra(_ extra: PlexMetadata, of title: PlexMetadata) -> PlaybackRequest {
+        PlaybackRequest(
+            ratingKey: extra.id,
+            mediaType: extraMediaType,
+            showRatingKey: nil,
+            seasonRatingKey: nil,
+            resumePosition: 0,
+            metadata: PlaybackMetadata(
+                title: extra.title,
+                showName: title.title,
+                seasonNumber: nil,
+                episodeNumber: nil,
+                posterPath: title.posterPath ?? extra.posterPath,
+                duration: extra.durationSecs
+            )
+        )
+    }
 
     /// The URL offset the transcoder is asked to start at, or nil when playback starts at the beginning.
     package var transcodeStartSecs: Double? { resumePosition > 0 ? resumePosition : nil }

@@ -21,6 +21,7 @@ struct TVPlaybackRequest: Sendable, Equatable {
     let selectedAudioStreamID: Int?
     let selectedSubtitleStreamID: Int?
     let display: Display?
+    let queue: PlaybackQueue?
 
     init(
         ratingKey: String,
@@ -30,7 +31,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
         resumeSeconds: Double = 0,
         selectedAudioStreamID: Int? = nil,
         selectedSubtitleStreamID: Int? = nil,
-        display: Display? = nil
+        display: Display? = nil,
+        queue: PlaybackQueue? = nil
     ) {
         self.ratingKey = ratingKey
         self.mediaType = mediaType
@@ -40,6 +42,7 @@ struct TVPlaybackRequest: Sendable, Equatable {
         self.selectedAudioStreamID = selectedAudioStreamID
         self.selectedSubtitleStreamID = selectedSubtitleStreamID
         self.display = display
+        self.queue = queue
     }
 
     /// Builds the request for `item`, resuming where the server says it was left unless
@@ -49,7 +52,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
         item: PlexMetadata,
         resumeSeconds: Double? = nil,
         selectedAudioStreamID: Int? = nil,
-        selectedSubtitleStreamID: Int? = nil
+        selectedSubtitleStreamID: Int? = nil,
+        queue: PlaybackQueue? = nil
     ) {
         self.init(
             ratingKey: item.id,
@@ -66,7 +70,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
                 episodeNumber: item.index,
                 posterPath: item.thumb ?? item.grandparentThumb,
                 durationSeconds: item.durationSecs
-            )
+            ),
+            queue: queue
         )
     }
 }

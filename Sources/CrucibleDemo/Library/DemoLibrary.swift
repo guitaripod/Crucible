@@ -18,6 +18,9 @@ actor DemoLibrary {
     var onDeck: [String] = []
     var history: [DemoHistoryRow] = []
     var playlists: [DemoPlaylistState] = []
+    var extraKeys: [String: [String]] = [:]
+    var downloadedSubtitles: [String: [DemoJSON]] = [:]
+    var watchlistGuids = DemoLibrary.defaultWatchlist
     var nextEntryID = 1000
     var nextPlaylistKey = 9200
     var persisted: DemoPersistedState
@@ -44,6 +47,7 @@ actor DemoLibrary {
         onDeck = (root["onDeck"] as? [String]) ?? []
         try loadItems(rawItems)
         linkChildren()
+        installExtras()
         history = DemoHistory.build(items: items, showKeys: showKeys, movieKeys: movieKeys, now: now)
         applyPersistedState()
         seedPlaylistsIfNeeded()

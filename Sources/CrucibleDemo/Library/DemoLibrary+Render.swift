@@ -41,6 +41,9 @@ extension DemoLibrary {
             out["Media"] = mediaJSON(item)
             out["Marker"] = markersJSON(item)
         }
+        if let extras = extrasJSON(of: key) {
+            out["Extras"] = extras
+        }
         if !item.related.isEmpty {
             let related = item.related.compactMap { render($0) }
             let label = item.kind == .movie ? "Related Movies" : "Related Shows"
@@ -91,6 +94,7 @@ extension DemoLibrary {
             }
             streams.append(stream)
         }
+        streams += downloadedSubtitles[key] ?? []
         let container = canDirectPlay(item) ? "mp4" : "mkv"
         return [[
             "id": id, "duration": item.durationMs, "bitrate": uhd ? 14800 : 8800, "width": facts.width, "height": facts.height,

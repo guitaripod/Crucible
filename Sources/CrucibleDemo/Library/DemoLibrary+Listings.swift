@@ -28,6 +28,7 @@ extension DemoLibrary {
         case "all":
             var selected = filter(keys, genre: request.first("genre"))
             selected = filter(selected, actor: request.first("actor"))
+            selected = filter(selected, facets: request)
             selected = filter(selected, unwatched: request.flag("unwatched"), inProgress: request.flag("inProgress"))
             selected = ordered(selected, sort: request.first("sort"))
             var (fields, page) = paged(selected, request)
@@ -48,6 +49,8 @@ extension DemoLibrary {
             return .container(["size": directories.count, "allowSync": false, "title1": section.title, "Directory": directories])
         case "collections":
             return collectionsResponse(sectionID: sectionID, request: request)
+        case "decade", "contentRating", "resolution":
+            return facetResponse(what ?? "", keys: keys, title: section.title)
         case "folder":
             return folderResponse(sectionID, keys: keys, bucket: bucket, title: section.title)
         default:
@@ -224,6 +227,33 @@ extension DemoLibrary {
         let words = title.split { !$0.isLetter && !$0.isNumber }
         if words.contains(where: { $0.hasPrefix(needle) }) { return (1, title.count, title) }
         return (2, title.count, title)
+    }
+
+    /// The value of a facet a title holds: its decade, its age rating, or the size of its picture.
+    private func facetValue(_ facet: String, of key: String) -> String? {
+        guard let item = items[key] else { return nil }
+        switch facet {
+        case "decade": return item.fields.int("year").map { String($0 / 10 * 10) }
+        case "contentRating": return item.fields.string("contentRating")
+        case "resolution": return item.media.map { $0.height >= 2160 ? "4k" : "1080" }
+        default: return nil
+        }
+    }
+
+    private func filter(_ keys: [String], facets request: DemoRequest) -> [String] {
+        ["decade", "contentRating", "resolution"].reduce(keys) { remaining, facet in
+            guard let wanted = request.first(facet) else { return remaining }
+            return remaining.filter { facetValue(facet, of: $0) == wanted }
+        }
+    }
+
+    private func facetResponse(_ facet: String, keys: [String], title: String) -> DemoResponse {
+        let values = Set(keys.compactMap { facetValue(facet, of: $0) })
+        let ordered = facet == "decade" ? values.sorted(by: >) : values.sorted()
+        let directories = ordered.map { value -> DemoJSON in
+            ["key": value, "title": facet == "decade" ? "\(value)s" : value]
+        }
+        return .container(["size": directories.count, "title1": title, "Directory": directories])
     }
 
     private func filter(_ keys: [String], actor: String?) -> [String] {

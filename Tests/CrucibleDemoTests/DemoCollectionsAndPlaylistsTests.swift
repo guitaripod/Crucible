@@ -108,3 +108,82 @@ struct DemoActivityTests {
         }
     }
 }
+
+struct DemoExtrasTests {
+    @Test func aMovieListsItsTrailersAndTheyPlay() async throws {
+        try await withDemo { demo in
+            let halcyon = try await demo.metadata("1001")
+            let extras = DetailExtras.items(in: halcyon)
+            #expect(extras.map(\.subtype) == ["trailer", "behindTheScenes"])
+            let trailer = try #require(extras.first)
+            let loaded = try await demo.metadata(trailer.id)
+            #expect(loaded.mediaType == "clip")
+            #expect(loaded.Media?.first?.Part?.first?.key.hasPrefix("/library/parts/") == true)
+            let listed = try await demo.api.requestContainer(.sectionItems(sectionId: "1", size: 100)).Metadata ?? []
+            #expect(!listed.contains { $0.mediaType == "clip" })
+            #expect(try await demo.metadata("1003").extras.isEmpty)
+        }
+    }
+}
+
+struct DemoFacetTests {
+    @Test func aLibraryListsAndFiltersByDecadeRatingAndResolution() async throws {
+        try await withDemo { demo in
+            for facet in LibraryFacet.allCases {
+                let container = try await demo.api.requestContainer(.sectionFacet(sectionId: "1", facet: facet.queryName))
+                let values = (container.Directory ?? []).compactMap(\.key)
+                #expect(values.count > 1, "\(facet) lists \(values)")
+                let first = try #require(values.first)
+                let page = try await demo.api.requestContainer(.sectionItems(sectionId: "1", size: 100, filters: [facet.queryName: first]))
+                let total = try await demo.api.requestContainer(.sectionItems(sectionId: "1", size: 100)).totalSize ?? 0
+                #expect((page.totalSize ?? 0) > 0)
+                #expect((page.totalSize ?? 0) < total)
+            }
+            let decades = try await demo.api.requestContainer(.sectionFacet(sectionId: "1", facet: "decade")).Directory ?? []
+            #expect(decades.allSatisfy { $0.title?.hasSuffix("s") == true })
+        }
+    }
+}
+
+struct DemoSubtitleSearchTests {
+    @Test func aSearchFindsMatchesAndADownloadAddsATrack() async throws {
+        try await withDemo { demo in
+            let found = try await SubtitleSearch.search(ratingKey: "1003", language: "fi", api: demo.api)
+            #expect(found.count == 3)
+            #expect(found.first?.perfectMatch == true)
+            let before = try await demo.metadata("1003").subtitleStreams.count
+            try await SubtitleSearch.download(try #require(found.first), ratingKey: "1003", language: "fi", api: demo.api)
+            let after = try await demo.metadata("1003").subtitleStreams
+            #expect(after.count == before + 1)
+            #expect(after.last?.language == "Finnish")
+        }
+    }
+}
+
+struct DemoWatchlistTests {
+    private func titles(_ demo: DemoHarness) async throws -> [String] {
+        let json = try await demo.json("/library/sections/watchlist/all")
+        let rows = try #require((json["MediaContainer"] as? [String: Any])?["Metadata"] as? [[String: Any]])
+        return rows.compactMap { $0["title"] as? String }
+    }
+
+    @Test func theWatchlistHoldsTitlesOnTheServerAndTitlesNot() async throws {
+        try await withDemo { demo in
+            let listed = try await titles(demo)
+            #expect(listed.count == 4)
+            #expect(listed.contains("Halcyon"))
+            #expect(listed.contains("Night Train to Nowhere"))
+        }
+    }
+
+    @Test func addingAndRemovingChangeTheList() async throws {
+        try await withDemo { demo in
+            let (_, removed) = try await demo.get("/actions/removeFromWatchlist?ratingKey=1001", method: "PUT")
+            #expect(removed.statusCode == 200)
+            #expect(!(try await titles(demo)).contains("Halcyon"))
+            let (_, added) = try await demo.get("/actions/addToWatchlist?ratingKey=1001", method: "PUT")
+            #expect(added.statusCode == 200)
+            #expect(try await titles(demo).first == "Halcyon")
+        }
+    }
+}

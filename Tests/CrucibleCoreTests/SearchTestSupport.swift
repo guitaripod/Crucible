@@ -70,7 +70,7 @@ actor SearchRequestLog {
 
     var sectionItemStarts: [Int] {
         endpoints.compactMap {
-            if case .sectionItems(_, _, _, let start, _, _, _, _) = $0 { return start }
+            if case .sectionItems(_, _, _, let start, _, _, _, _, _) = $0 { return start }
             return nil
         }
     }

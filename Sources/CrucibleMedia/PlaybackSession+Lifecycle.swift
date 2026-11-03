@@ -179,7 +179,7 @@ extension PlaybackSession {
     /// that reached the credits or the end is stored as finished, so a report the server never received is
     /// sent at the next launch instead of being lost with the process.
     func keepPosition(_ position: Double?, force: Bool = true, finished: Bool = false) {
-        guard let position, position.isFinite, position >= 0 else { return }
+        guard !request.isExtra, let position, position.isFinite, position >= 0 else { return }
         if !force, !finished, let lastSavedPosition, abs(position - lastSavedPosition) < PlaybackTiming.saveInterval { return }
         lastSavedPosition = position
         resumeStore.save(

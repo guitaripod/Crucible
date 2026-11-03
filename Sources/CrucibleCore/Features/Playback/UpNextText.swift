@@ -4,13 +4,18 @@ import Foundation
 /// announcement stay in step.
 package enum UpNextText {
     /// "S02E06 · Playing in 7 s" while counting down, "S02E06 · Next episode" otherwise.
-    package static func secondary(code: String?, remaining: Int, counting: Bool) -> String {
-        [code, counting ? String(localized: "Playing in \(remaining) s") : String(localized: "Next episode")].compactMap { $0 }.joined(separator: " · ")
+    /// `isEpisode` is false for the next entry of a playlist that is not an episode, which then reads "Next title".
+    package static func secondary(code: String?, remaining: Int, counting: Bool, isEpisode: Bool = true) -> String {
+        [code, counting ? String(localized: "Playing in \(remaining) s") : nextWord(isEpisode: isEpisode)].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    package static func nextWord(isEpisode: Bool) -> String {
+        isEpisode ? String(localized: "Next episode") : String(localized: "Next title", comment: "Up Next card: what plays next when it is a film of a playlist, not an episode")
     }
 
     /// The same line for VoiceOver, with the unit spelled out.
-    package static func spokenSecondary(code: String?, remaining: Int, counting: Bool) -> String {
-        [code, counting ? (remaining == 1 ? String(localized: "Playing in 1 second") : String(localized: "Playing in \(remaining) seconds")) : String(localized: "Next episode")]
+    package static func spokenSecondary(code: String?, remaining: Int, counting: Bool, isEpisode: Bool = true) -> String {
+        [code, counting ? (remaining == 1 ? String(localized: "Playing in 1 second") : String(localized: "Playing in \(remaining) seconds")) : nextWord(isEpisode: isEpisode)]
             .compactMap { $0 }.joined(separator: ", ")
     }
 
@@ -43,9 +48,12 @@ package enum UpNextText {
     }
 
     /// What VoiceOver is told once when the card appears.
-    package static func announcement(code: String?, title: String, seconds: Int?) -> String {
+    package static func announcement(code: String?, title: String, seconds: Int?, isEpisode: Bool = true) -> String {
         let name = [code, title].compactMap { $0 }.joined(separator: " ")
         guard let seconds else { return String(localized: "Up next: \(name)") }
+        guard isEpisode else {
+            return seconds == 1 ? String(localized: "Next title in 1 second: \(name)") : String(localized: "Next title in \(seconds) seconds: \(name)")
+        }
         return seconds == 1 ? String(localized: "Next episode in 1 second: \(name)") : String(localized: "Next episode in \(seconds) seconds: \(name)")
     }
 }

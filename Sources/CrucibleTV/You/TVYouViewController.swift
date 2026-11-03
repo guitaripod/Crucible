@@ -9,6 +9,7 @@ final class TVYouViewController: TVSettingsScaffold {
     private enum RowID {
         static let demo = "you.demo"
         static let playlists = "you.playlists"
+        static let watchlist = "you.watchlist"
         static let activity = "you.activity"
         static let history = "you.history"
         static let statistics = "you.statistics"
@@ -82,6 +83,7 @@ final class TVYouViewController: TVSettingsScaffold {
         switch id {
         case RowID.demo: push(TVScreens.demoTour(env))
         case RowID.playlists: push(TVScreens.playlists(env))
+        case RowID.watchlist: push(TVScreens.watchlist(env))
         case RowID.activity: push(TVScreens.serverActivity(env))
         case RowID.history: push(TVScreens.history(env))
         case RowID.statistics: push(TVScreens.statistics(env))
@@ -180,6 +182,7 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
             TVRowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
             TVRowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
+            TVRowItem(id: RowID.watchlist, title: WatchlistService.title, symbol: "bookmark", accessory: .chevron),
             TVRowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
             TVRowItem(id: RowID.playback, title: String(localized: "Playback"), symbol: "play.rectangle", accessory: .chevron),
             TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),

@@ -215,9 +215,17 @@ final class TVLibraryViewController: TVScreenViewController {
             isGenreSelected: options.genre != nil,
             genres: model.genres.map { .init(key: $0.key, title: $0.title, isSelected: options.genre == $0.key) },
             sortTitle: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"),
-            sorts: section.kind.sortOptions.map { .init(key: $0.key, title: $0.title, isSelected: options.sort == $0.key) }
+            sorts: section.kind.sortOptions.map { .init(key: $0.key, title: $0.title, isSelected: options.sort == $0.key) },
+            facets: model.availableFacets.map { facet in
+                .init(
+                    facet: facet,
+                    choices: (model.facetChoices[facet] ?? []).map { .init(key: $0.key, title: facet.display($0.title), isSelected: options.facets[facet] == $0.key) },
+                    selectedKey: options.facets[facet]
+                )
+            }
         )
         content.handlers = .init(
+            onFacet: { [weak self] in self?.model.setFacet($0, $1) },
             onFilter: { [weak self] in self?.model.selectChip($0) },
             onGenre: { [weak self] in self?.model.setGenre($0) },
             onSort: { [weak self] in self?.model.setSort($0) },
@@ -244,7 +252,7 @@ final class TVLibraryViewController: TVScreenViewController {
 
     private func modelDidUpdate(_ update: LibraryGridModel.Update) {
         switch update {
-        case .optionsChanged, .genres:
+        case .optionsChanged, .genres, .facets:
             reconfigureHeader()
             updateRail()
         case .contentState:

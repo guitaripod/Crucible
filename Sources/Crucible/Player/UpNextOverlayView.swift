@@ -382,7 +382,7 @@ final class UpNextOverlayView: UIView {
     private func updateSecondaryText() {
         var parts = [String]()
         if let code = episodeCode() { parts.append(code) }
-        parts.append(isCounting ? String(localized: "Playing in \(remaining) s", comment: "Up Next countdown, remaining seconds until the next episode plays") : String(localized: "Next episode"))
+        parts.append(isCounting ? String(localized: "Playing in \(remaining) s", comment: "Up Next countdown, remaining seconds until the next episode plays") : UpNextText.nextWord(isEpisode: episodeCode() != nil))
         countdownLabel.text = parts.joined(separator: " · ")
     }
 

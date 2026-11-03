@@ -22,6 +22,8 @@ struct DemoRouter: Sendable {
             return await libraryResponse(parts, request)
         case "playlists":
             return await playlistsResponse(parts, request)
+        case "actions":
+            return await watchlistAction(parts, request)
         case "hubs":
             return await hubsResponse(parts, request)
         case "status":
@@ -89,6 +91,9 @@ struct DemoRouter: Sendable {
     }
 
     private func libraryResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        if parts == ["library", "sections", "watchlist", "all"] {
+            return await library.watchlistResponse()
+        }
         switch (parts.count > 1 ? parts[1] : "", parts.count) {
         case ("sections", 2):
             return await library.sectionsResponse()
@@ -116,6 +121,15 @@ struct DemoRouter: Sendable {
         }
     }
 
+    private func watchlistAction(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        guard parts.count == 2, let key = request.first("ratingKey") else { return .notFound() }
+        switch parts[1] {
+        case "addToWatchlist": return await library.changeWatchlist(discoverKey: key, adding: true)
+        case "removeFromWatchlist": return await library.changeWatchlist(discoverKey: key, adding: false)
+        default: return .notFound()
+        }
+    }
+
     private func playlistsResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
         switch (request.method, parts.count) {
         case ("GET", 1):
@@ -140,6 +154,19 @@ struct DemoRouter: Sendable {
     private func metadataResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
         if parts.count >= 4, parts[3] == "thumb" || parts[3] == "art" {
             return await imageResponse(path: request.path)
+        }
+        if parts.count == 4, parts[3] == "subtitles" {
+            switch request.method {
+            case "GET":
+                return await library.subtitleSearchResponse(parts[2], language: request.first("language") ?? "en")
+            case "PUT":
+                return await library.downloadSubtitle(
+                    parts[2], language: request.first("language") ?? "en", name: request.first("language") ?? "en",
+                    hearingImpaired: request.flag("hearingImpaired")
+                )
+            default:
+                return .notFound()
+            }
         }
         switch parts.count {
         case 3: return await library.metadataResponse(parts[2], sub: nil)

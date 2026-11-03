@@ -126,4 +126,7 @@ package enum PlaylistFormat {
     package static let namePrompt = String(localized: "Name your playlist", comment: "Prompt of the dialog that makes a new playlist")
     package static let namePlaceholder = String(localized: "Playlist name", comment: "Placeholder of the new playlist's name field")
     package static let create = String(localized: "Create", comment: "Button that makes the new playlist")
+    package static let play = String(localized: "Play", comment: "Button or menu label that starts playback")
+    package static let shuffle = String(localized: "Shuffle", comment: "Menu item that plays a playlist in a random order")
+    package static let playFromHere = String(localized: "Play from Here", comment: "Menu item that plays a playlist from the chosen entry on")
 }

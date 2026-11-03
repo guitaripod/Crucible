@@ -95,6 +95,21 @@ enum DetailLayout {
         return section
     }
 
+    /// A rail of 16:9 cards, wide enough to read a title under: the trailers and extras of a title.
+    static func landscapeRail(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let room = Theme.Room(environment)
+        let width: CGFloat = room == .compact ? 250 : 300
+        let size = NSCollectionLayoutSize(widthDimension: .absolute(width), heightDimension: .estimated(width * 9 / 16 + Theme.Size.captionBlockHeight))
+        let item = NSCollectionLayoutItem(layoutSize: size)
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
+        let section = NSCollectionLayoutSection(group: group)
+        section.orthogonalScrollingBehavior = .continuous
+        section.interGroupSpacing = Theme.Space.s
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: room.gutter, bottom: Theme.Space.m, trailing: room.gutter)
+        section.boundarySupplementaryItems = [header()]
+        return section
+    }
+
     static func header() -> NSCollectionLayoutBoundarySupplementaryItem {
         let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(52))
         return NSCollectionLayoutBoundarySupplementaryItem(layoutSize: size, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)

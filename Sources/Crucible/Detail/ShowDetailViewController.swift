@@ -552,7 +552,11 @@ final class ShowDetailViewController: UICollectionViewController {
                 completion([])
                 return
             }
-            completion([PlaylistMenu.addMenu(for: [show], api: api, host: self)])
+            Task { @MainActor in
+                var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [show], api: api, host: self)]
+                if let watchlist = await WatchlistScreen.toggleAction(for: show, api: api, host: self) { elements.append(watchlist) }
+                completion(elements)
+            }
         }])
     }
 

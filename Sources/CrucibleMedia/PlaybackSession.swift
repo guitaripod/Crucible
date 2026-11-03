@@ -119,6 +119,7 @@ package final class PlaybackSession {
             ratingKey: request.ratingKey,
             isEpisode: request.isEpisode,
             seasonRatingKey: request.seasonRatingKey,
+            queue: request.queue,
             markers: []
         )
         if let offline = request.offline {
@@ -213,16 +214,17 @@ package final class PlaybackSession {
         player.allowsExternalPlayback = true
         self.player = player
         if let item = player.currentItem { configureItem?(item) }
-        let reporter = PlaybackReporter(
-            api: api,
-            ratingKey: request.ratingKey,
-            durationMs: Int(request.durationSecs * 1000),
-            player: player,
-            tracker: tracker,
-            resumeStore: resumeStore,
-            server: serverID
-        )
-        self.reporter = reporter
+        if !request.isExtra {
+            reporter = PlaybackReporter(
+                api: api,
+                ratingKey: request.ratingKey,
+                durationMs: Int(request.durationSecs * 1000),
+                player: player,
+                tracker: tracker,
+                resumeStore: resumeStore,
+                server: serverID
+            )
+        }
 
         markerTracker = MarkerTracker(markers: stream.markers)
         upNext = UpNextResolver(
@@ -230,6 +232,7 @@ package final class PlaybackSession {
             isEpisode: request.isEpisode,
             seasonRatingKey: request.seasonRatingKey,
             showRatingKey: request.showRatingKey,
+            queue: request.queue,
             markers: stream.markers
         )
         if installsRemoteCommands { configureRemoteCommands() }
