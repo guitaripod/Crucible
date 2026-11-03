@@ -209,7 +209,7 @@ extension DemoLibrary {
     func continueWatching() -> [String] {
         orderedKeys
             .compactMap { items[$0] }
-            .filter { $0.isPlayable && $0.isInProgress }
+            .filter { $0.isPlayable && $0.isInProgress && !hiddenFromContinue.contains($0.ratingKey) }
             .sorted { $0.lastViewedAt == $1.lastViewedAt ? $0.ratingKey < $1.ratingKey : $0.lastViewedAt > $1.lastViewedAt }
             .map(\.ratingKey)
     }

@@ -46,6 +46,12 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Still watching?**: after a few episodes in a row without touching the remote (2, 3 or 5; 3 by default), Up Next asks before playing on, so a season does not run on while you sleep
 - **Your skip distances**: 5 s to 1 min for each direction, on the Siri Remote and the iPhone's Lock Screen and headphone buttons; on Apple TV, holding either side can scan, jump 1 to 10 minutes, start over or play the next episode
 - A short skip inside a transcode seeks within the stream, and a rebuilt stream keeps your subtitles and audio
+- **Languages per show**: pick Japanese audio and English subtitles once and every episode of that show starts in them, matched against each episode's own tracks, so a commentary stays a commentary and forced subtitles stay forced
+- **Sleep timer**: 15 to 90 minutes, or the end of the episode or movie
+- **Chapters**: jump between a film's chapters from the player menu on iPhone and iPad, and from the system chapter list on Apple TV
+- **Stream Info**: how the server is playing it (direct play, or a conversion and why), over which connection, at what quality, with the video, audio and subtitle in use
+- **Quality at home, away and on cellular**, each its own setting, plus **subtitle size** and how long the **Up Next countdown** runs
+- **Says why a stream will not play**: a server that refuses a stream away from home without Plex Pass or a Remote Watch Pass, or one that cannot convert a file, gets a plain message instead of an endless spinner
 
 ### Offline downloads
 
@@ -61,6 +67,12 @@ A proper download engine — not the afterthought the official app ships.
 - **Season download sheet** — pick All, Unwatched or the Next 3 episodes, choose the quality, and optionally **keep the next episodes downloaded** as you watch
 - **First-class offline playback** — Skip Intro / Skip Credits (markers saved with the download), resume, Picture-in-Picture, background audio, and lock-screen controls, all with no network
 - **Storage management** — see space used, delete individual downloads or all at once, optional auto-delete of watched downloads; media is stored on-device and excluded from iCloud backup
+
+### Remember what you watched
+
+- **Rate What You Watched** on Home: what you finished lately (a movie, a show you caught up with), each a tap from half-star ratings, with Not Now to let one go
+- **Notifications you choose**, each its own switch: a **rating reminder** after you finish something (press and hold it to rate right in the notification), **new episodes** of shows you are watching, **watchlist arrivals** when something you want lands on your server, a quiet **weekly recap** on Sunday evening and your **Year in Review** on December 1. They are worked out on the device from your own server in the background; nothing is sent anywhere
+- **Remove from Continue Watching** from any card's menu, on Home and in every library; the server keeps your progress, and playing it again brings it back
 
 ### Browse & discover
 
@@ -82,6 +94,22 @@ A proper download engine — not the afterthought the official app ships.
 - **Choose your libraries** — Settings › Libraries, or the filter in Statistics, picks which libraries appear on Home and count toward your statistics; libraries Plex hides from Home start switched off
 - **Handoff & Spotlight** — hand a title between devices, find recently-viewed media in iOS search
 - **Surprise Me** random picker
+
+### Settings that find themselves
+
+- **Search** every setting by what it does ("captions", "cellular", "skip"), then land on it, highlighted, in its category
+- **Categories** (Playback, Skip Buttons or Remote, Home & Libraries, Downloads, Notifications, Appearance, Connection, Privacy, Help) each list their current values at a glance (Back 10 s · Ahead 30 s), and a category you changed offers **Restore Defaults** for just its own settings
+- **Home Rows**: turn each Home row on or off and put them in your order, on iPhone, iPad and Apple TV
+
+### For server owners
+
+Shown only when the signed-in account owns the server, since the server refuses them to everyone else:
+
+- **Manage** in every title's menu: refresh the metadata, analyze the files, **Fix Match** (search the agents by title and year), Unmatch, **Edit Details** (title, sort title, original title, year, summary; saved fields are locked so a refresh keeps them), **choose the poster or background** from everything the agents offer, and delete from the server
+- **Manage** in a library's menu: scan the library files, refresh all metadata, analyze, empty the trash
+- **Stop a stream** from Server Activity with a reason the viewer sees
+- **Server Dashboard**: the server's CPU and memory, its background tasks with a swipe to cancel, and server updates with their release notes and Install
+- **Remove a play from Watch History**, which takes it out of the server's history and statistics too
 
 ### iPad
 
@@ -105,6 +133,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Cinematic Home** — a full-screen backdrop that follows focus, a hero with title, metadata and synopsis, then Continue Watching, Up Next, Recently Added and more; Select opens, Play/Pause plays, long press opens the context menu
 - **Library** poster grid with filter chips, a Recently Watched shelf, an A–Z rail, folder browsing for unindexed content and See All grids
 - **Detail** for movies, shows and episodes: season chips, episode rows that track watched and in-progress state, Cast & Crew and related titles
+- **Rate What You Watched** and **Remove from Continue Watching** on Home, **Home Rows**, searchable **Settings** categories, **Stream Info** and **chapters** in the player, a **sleep timer**, languages remembered per show, and the owner's Manage, Stop Stream and Remove from History in long-press menus
 - **Rate, collect, queue** — rate any title in half stars with the remote's swipe, open a library's Collections or a title's own collection, add titles to playlists from a long press or the detail screen, play or shuffle a playlist, watch trailers and extras, filter a library by decade, rating or resolution, search for subtitles, keep a watchlist, and open a cast member's titles
 - **Search**, **Watch History**, **Statistics** (heatmap, patterns, binges, taste) and a **Year in Review** card on the You tab, plus Settings and Server & Connection
 - **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card that offers Play Now or Watch Credits with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API

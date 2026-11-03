@@ -60,6 +60,13 @@ package struct HistoryPager: Equatable, Sendable {
         hasFailed = false
     }
 
+    /// One loaded play was deleted on the server, so the plays after it moved up one place and the next page starts one
+    /// earlier.
+    package mutating func noteRemoved() {
+        offset = max(0, offset - 1)
+        total = max(offset, total - 1)
+    }
+
     package mutating func clearFailure() {
         hasFailed = false
     }

@@ -90,6 +90,7 @@ final class HomeSectionGridViewController: UICollectionViewController {
             guard let self else { return nil }
             return HomeMediaActions.contextMenu(
                 for: item,
+                in: bucket,
                 api: api,
                 navigation: { [weak self] in self?.navigationController },
                 play: { [weak self] item in self?.play(item) },

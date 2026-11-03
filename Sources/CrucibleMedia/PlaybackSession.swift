@@ -83,6 +83,12 @@ package final class PlaybackSession {
     var debugClockShift: Duration = .zero
     #endif
     var upNextGate = UpNextLookupGate()
+    /// The last thing a lookup for the next episode found, which tells a finished episode that closed a season or the
+    /// whole show apart from one in the middle of a run.
+    var upNextOutcome: UpNextLookup?
+    /// The sleep timer the viewer set, if any.
+    package internal(set) var sleepTimer: SleepTimer?
+    var volumeBeforeFade: Float?
     let installsRemoteCommands: Bool
     var isChangingStreams = false
     var isStopped = false
@@ -110,6 +116,7 @@ package final class PlaybackSession {
         serverID = ServerBootstrap.savedMachineIdentifier ?? "unknown"
         self.request = request
         self.installsRemoteCommands = installsRemoteCommands
+        CellularWatch.start()
         selectedSubtitleId = request.selectedSubtitleId
         selectedAudioStreamId = request.selectedAudioStreamId
         let pair = AsyncStream.makeStream(of: PlaybackEvent.self)
@@ -182,14 +189,29 @@ package final class PlaybackSession {
             ratingKey: request.ratingKey,
             startSecs: request.transcodeStartSecs,
             selectedSubtitleId: selectedSubtitleId,
-            selectedAudioStreamId: selectedAudioStreamId
+            selectedAudioStreamId: selectedAudioStreamId,
+            languages: startingLanguages
         )
         guard !Task.isCancelled else {
             discardTranscode(of: resolved)
             throw CancellationError()
         }
         stream = resolved
+        selectedSubtitleId = resolved.chosenSubtitleId
+        selectedAudioStreamId = resolved.chosenAudioStreamId
         return resolved
+    }
+
+    /// The languages a fresh start begins in when no stream was chosen by id: the episode before's, else the ones last
+    /// chosen on the show.
+    private var startingLanguages: TrackLanguages? {
+        request.trackLanguages ?? (request.isEpisode ? ShowTrackMemory.languages(forShow: request.showRatingKey, server: serverID) : nil)
+    }
+
+    /// The audio and subtitle playing now, as languages the next episode can find among its own streams.
+    package var trackLanguages: TrackLanguages? {
+        guard let stream else { return request.trackLanguages }
+        return TrackLanguages(subtitleId: selectedSubtitleId, audioStreamId: selectedAudioStreamId, subtitles: stream.subtitles, audioTracks: stream.audioTracks)
     }
 
     /// Gives up on a prepared stream that will not be played and ends the session.
@@ -276,6 +298,7 @@ package final class PlaybackSession {
         await reporter?.stop(positionSecs: Self.reportPosition(for: finalPosition, finished: finished, duration: request.durationSecs))
         reporter = nil
         if player != nil { keepPosition(finalPosition, finished: finished) }
+        if finished { recordFinish() }
         removePlayheadObservers()
         await stopTranscodeIfNeeded()
 
@@ -284,6 +307,44 @@ package final class PlaybackSession {
         stream = nil
         continuation.finish()
         return finalPosition
+    }
+
+    /// Notes a finished movie or episode in the ledger that asks the viewer to rate what they watched. An episode closed
+    /// its season when the next one belongs to another season, and closed the show when there was nothing next.
+    private func recordFinish() {
+        guard !request.isExtra, let metadata = request.metadata else { return }
+        let kind: FinishedTitle.Kind
+        switch request.mediaType {
+        case "movie": kind = .movie
+        case "episode": kind = .episode
+        default: return
+        }
+        var endedShow = false
+        var endedSeason = false
+        if kind == .episode {
+            switch upNextOutcome {
+            case .offer(let offer):
+                endedSeason = request.queue == nil && offer.episode.parentIndex != nil && offer.episode.parentIndex != metadata.seasonNumber
+            case .nothingNext:
+                endedShow = request.queue == nil
+            case .failed, nil:
+                break
+            }
+        }
+        FinishedTitlesLedger.shared.record(FinishedTitle(
+            ratingKey: request.ratingKey,
+            kind: kind,
+            title: metadata.title,
+            showTitle: metadata.showName,
+            showRatingKey: request.showRatingKey,
+            seasonNumber: metadata.seasonNumber,
+            episodeNumber: metadata.episodeNumber,
+            posterPath: metadata.posterPath,
+            showPosterPath: metadata.showPosterPath,
+            finishedAt: Date(),
+            endedShow: endedShow,
+            endedSeason: endedSeason
+        ), server: serverID == "unknown" ? nil : serverID)
     }
 
     /// Whether the viewer finished the item at `position`: the playhead reached the credits, or the

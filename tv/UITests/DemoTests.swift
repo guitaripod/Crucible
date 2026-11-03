@@ -218,9 +218,10 @@ final class DemoTests: TVTestCase {
         openYou(app)
         TVTest.capture("05-you", in: self)
         XCTAssertTrue(element(app, "you.demo").label.hasPrefix("Demo library, "))
+        YouNavigation.moveFocus(app, to: "you.leaveDemo")
         XCTAssertFalse(element(app, "you.signOut").exists, "Sign Out is replaced by Leave the Demo")
-        XCTAssertTrue(element(app, "you.leaveDemo").exists)
         XCTAssertFalse(element(app, "you.server").exists, "Server & Connection is hidden while the demo runs")
+        YouNavigation.moveFocusUp(app, to: "you.demo")
 
         TVTest.remote.press(.select)
         XCTAssertTrue(element(app, "demo.step.play").waitForExistence(timeout: 15))

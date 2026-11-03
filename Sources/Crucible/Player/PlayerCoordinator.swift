@@ -32,6 +32,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var isFinishing = false
     private var lastOfflineWrite: Double = 0
     private var skipPill: SkipPillView?
+    private var moreButton: PlayerMoreButton?
     private var shownSkip: (title: String, target: Double)?
     private var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
@@ -176,6 +177,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.delegate = self
         self.playerVC = playerVC
+        installMoreButton(on: playerVC)
 
         updateNowPlaying()
         windowScene = viewController.view.window?.windowScene
@@ -245,7 +247,59 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         case .finished(let finish):
             guard finish == .noNextEpisode, !isInPiP else { return }
             Task { await dismissPlayer() }
+        case .sleepTimerFired:
+            Haptics.soft()
+            moreButton?.refreshMenu()
         }
+    }
+
+    // MARK: - Player menu
+
+    private func installMoreButton(on playerVC: AVPlayerViewController) {
+        playerVC.loadViewIfNeeded()
+        guard let host = playerVC.contentOverlayView else { return }
+        let button = PlayerMoreButton { [weak self] in self?.playerMenu() ?? UIMenu() }
+        button.install(in: host, listeningOn: playerVC.view)
+        moreButton = button
+    }
+
+    private func playerMenu() -> UIMenu {
+        var children: [UIMenuElement] = [
+            PlayerSleepMenu.menu(timer: session.sleepTimer, isEpisode: request.isEpisode) { [weak self] choice in
+                self?.session.setSleepTimer(choice)
+                self?.moreButton?.refreshMenu()
+            },
+        ]
+        if let chapters = session.stream?.chapters, !chapters.isEmpty {
+            let current = session.absolutePosition.flatMap { ChapterList.current(chapters, at: $0) }
+            children.append(UIMenu(title: ChapterList.title, image: UIImage(systemName: "list.bullet.rectangle"), children: chapters.map { chapter in
+                UIAction(title: ChapterList.menuTitle(chapter), state: chapter == current ? .on : .off) { [weak self] _ in
+                    self?.viewerActed()
+                    self?.session.seek(toAbsolute: chapter.startSecs)
+                }
+            }))
+        }
+        if session.stream != nil {
+            children.append(UIAction(title: StreamInfo.title, image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.showStreamInfo()
+            })
+        }
+        return UIMenu(children: children)
+    }
+
+    private func showStreamInfo() {
+        guard let stream = session.stream, let playerVC else { return }
+        let lines = StreamInfo.lines(
+            stream: stream,
+            route: HomeServerRoute.classify(stream.url),
+            quality: QualityPolicy.current(for: stream.url),
+            audioId: session.selectedAudioStreamId,
+            subtitleId: session.selectedSubtitleId
+        )
+        let message = lines.map { "\($0.label): \($0.value)" }.joined(separator: "\n")
+        let alert = UIAlertController(title: StreamInfo.title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+        playerVC.present(alert, animated: true)
     }
 
     private func recordOfflineProgress(at absolute: Double) {
@@ -484,8 +538,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let next = offer.nextRequest(
             showRatingKey: request.showRatingKey,
             offline: offline,
-            selectedSubtitleId: session.selectedSubtitleId,
-            selectedAudioStreamId: session.selectedAudioStreamId
+            trackLanguages: session.trackLanguages
         )
         advance(to: next, offer: offer)
     }
@@ -541,6 +594,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// Puts the new session on screen: its player replaces the old one in the same `AVPlayerViewController`,
     /// and everything that describes the item follows it.
     private func attach(_ next: PlaybackSession, player: AVPlayer, request: PlaybackRequest) {
+        next.continueSleepTimer(from: session)
         self.request = request
         self.session = next
         playerVC?.player = player
@@ -653,6 +707,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         removeUpNextOverlay()
         skipPill?.dismiss(animated: false)
         skipPill = nil
+        moreButton?.remove()
+        moreButton = nil
         shownSkip = nil
         removeSkipToast(animated: false)
         advanceIndicator?.hide()

@@ -169,3 +169,48 @@ struct DemoWatchTests {
         }
     }
 }
+
+struct DemoContinueWatchingTests {
+    private func hubKeys(_ demo: DemoHarness, _ identifier: String) async throws -> [String] {
+        let hubs = try await demo.api.requestContainer(.hubs())
+        return hubs.Hub?.first { $0.hubIdentifier == identifier }?.Metadata?.map(\.id) ?? []
+    }
+
+    @Test func aRemovedTitleLeavesContinueWatchingUntilItIsPlayedAgain() async throws {
+        try await withDemo { demo in
+            let continuing = try await hubKeys(demo, "home.continue")
+            let first = try #require(continuing.first)
+            try await ContinueWatchingRemoval.remove(ratingKey: first, api: demo.api)
+            let afterRemoval = try await hubKeys(demo, "home.continue")
+            #expect(!afterRemoval.contains(first))
+            try await demo.api.requestVoid(.timeline(ratingKey: first, state: "playing", timeMs: 120_000, durationMs: 2_400_000))
+            let afterPlaying = try await hubKeys(demo, "home.continue")
+            #expect(afterPlaying.contains(first))
+        }
+    }
+
+    @Test func aRemovedNextEpisodeLeavesOnDeckAndTheRemovalSurvivesARestart() async throws {
+        let stateFile = DemoHarness.temporaryStateFile()
+        var removed = ""
+        try await withDemo(stateFile: stateFile) { demo in
+            let deck = try await hubKeys(demo, "home.ondeck")
+            removed = try #require(deck.first)
+            try await ContinueWatchingRemoval.remove(ratingKey: removed, api: demo.api)
+            let afterRemoval = try await hubKeys(demo, "home.ondeck")
+            #expect(!afterRemoval.contains(removed))
+        }
+        try await Task.sleep(for: .seconds(1))
+        try await withDemo(stateFile: stateFile) { demo in
+            let afterRestart = try await hubKeys(demo, "home.ondeck")
+            #expect(!afterRestart.contains(removed))
+        }
+    }
+
+    @Test func removingAnUnknownTitleIsRefused() async throws {
+        try await withDemo { demo in
+            await #expect(throws: (any Error).self) {
+                try await ContinueWatchingRemoval.remove(ratingKey: "999999", api: demo.api)
+            }
+        }
+    }
+}

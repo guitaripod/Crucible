@@ -13,6 +13,12 @@ extension PlaybackSession {
         return try? await upNext.loadOffer(api: api, reason: .credits)
     }
 
+    /// Keeps the viewer's pick on an episode for its show, so the show's other episodes start in the same languages.
+    private func rememberLanguagesForShow() {
+        guard request.isEpisode, let languages = trackLanguages else { return }
+        ShowTrackMemory.remember(languages, forShow: request.showRatingKey, server: serverID)
+    }
+
     /// Switches the audio track or subtitle by re-resolving the stream at the playhead: a non-default
     /// audio track or a burned-in subtitle makes the server transcode it, choosing none of them
     /// returns to the original stream when it can direct play. The item is replaced in the same
@@ -38,6 +44,7 @@ extension PlaybackSession {
         selectedSubtitleId = subtitleId
         selectedAudioStreamId = audioStreamId
         stream = resolved
+        rememberLanguagesForShow()
         streamOffset = ResumeStrategy.streamOffset(resumePosition: position, isDirectPlay: resolved.isDirectPlay)
         lastPlayhead = resolved.isDirectPlay ? position : 0
         tracker.moved(to: resolved.isDirectPlay ? position : streamOffset)
@@ -54,6 +61,7 @@ extension PlaybackSession {
             startPing(session: resolved.sessionId)
         }
         let item = AVPlayerItem(url: resolved.url)
+        SubtitleStyle.apply(to: item)
         configureItem?(item)
         player.replaceCurrentItem(with: item)
         watchCurrentItem()

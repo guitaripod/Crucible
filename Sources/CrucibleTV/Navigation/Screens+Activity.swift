@@ -21,7 +21,21 @@ extension TVScreens {
         )
         grid.refreshInterval = .seconds(10)
         grid.summary = { items in items.count == 1 ? String(localized: "1 stream") : String(localized: "\(items.count) streams") }
-        installTitleActions(on: grid, env: env)
+        installTitleActions(on: grid, env: env) { [weak grid] session in
+            guard let grid, let id = ServerActivity.stoppableSessionID(session) else { return [] }
+            return [UIMenu(title: ManageCopy.stopStream, image: UIImage(systemName: "stop.circle"), children: ManageCopy.stopReasons.map { reason in
+                UIAction(title: reason, attributes: .destructive) { [weak grid] _ in
+                    Task { @MainActor in
+                        do {
+                            try await LibraryManagement.stopStream(sessionId: id, reason: reason, api: env.api)
+                        } catch {
+                            grid?.presentAlert(title: ManageCopy.failed, message: ConnectionError.message(for: error))
+                        }
+                        grid?.reload()
+                    }
+                }
+            })]
+        }
         return grid
     }
 }

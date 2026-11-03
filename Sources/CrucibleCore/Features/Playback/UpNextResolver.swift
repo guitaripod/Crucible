@@ -8,7 +8,8 @@ package struct UpNextOffer: Sendable {
         case requested
     }
 
-    package static let countdownSeconds = 10
+    /// How long the card counts down, as chosen in Settings (10 seconds unless changed).
+    package static var countdownSeconds: Int { Preferences.upNextCountdown }
 
     package let episode: PlexMetadata
     package let seasonRatingKey: String
@@ -27,13 +28,17 @@ package struct UpNextOffer: Sendable {
 
     package var playbackEnded: Bool { reason == .playbackEnded }
 
-    /// The request that plays this episode from its start, keeping the show it belongs to, the streams the
+    /// The same offer without its countdown, for a sleep timer that stops at the end of the episode.
+    package func withoutAutoplay() -> UpNextOffer {
+        UpNextOffer(episode: episode, seasonRatingKey: seasonRatingKey, reason: reason, autoplays: false, queue: queue)
+    }
+
+    /// The request that plays this episode from its start, keeping the show it belongs to, the languages the
     /// viewer chose on the episode before, and the resume point of a downloaded copy.
     package func nextRequest(
         showRatingKey: String?,
         offline: OfflinePlaybackSource? = nil,
-        selectedSubtitleId: Int? = nil,
-        selectedAudioStreamId: Int? = nil
+        trackLanguages: TrackLanguages? = nil
     ) -> PlaybackRequest {
         PlaybackRequest(
             ratingKey: episode.id,
@@ -47,10 +52,10 @@ package struct UpNextOffer: Sendable {
                 seasonNumber: episode.parentIndex,
                 episodeNumber: episode.index,
                 posterPath: episode.grandparentThumb ?? episode.thumb,
-                duration: episode.durationSecs
+                duration: episode.durationSecs,
+                showPosterPath: episode.grandparentThumb
             ),
-            selectedSubtitleId: selectedSubtitleId,
-            selectedAudioStreamId: selectedAudioStreamId,
+            trackLanguages: trackLanguages,
             offline: offline,
             queue: queue
         )

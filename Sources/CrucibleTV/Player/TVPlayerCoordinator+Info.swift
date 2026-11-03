@@ -25,5 +25,6 @@ extension TVPlayerCoordinator {
     func configure(item: AVPlayerItem) {
         item.externalMetadata = infoItems
         item.nextContentProposal = makeProposal()
+        applyChapters(to: item)
     }
 }

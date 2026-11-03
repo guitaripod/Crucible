@@ -20,6 +20,7 @@ package enum PlexEndpoint: Sendable {
     case hubs(count: Int = 20)
     case sectionHubs(sectionId: String)
     case onDeck
+    case removeFromContinueWatching(ratingKey: String)
     case recentlyAdded(start: Int = 0, size: Int = 50)
     case search(query: String)
     case serverSessions
@@ -48,6 +49,29 @@ package enum PlexEndpoint: Sendable {
     case stopTranscode(session: String)
     case pingTranscode(session: String)
 
+    case scanSection(sectionId: String, force: Bool)
+    case analyzeSection(sectionId: String)
+    case emptyTrash(sectionId: String)
+    case refreshItem(ratingKey: String)
+    case analyzeItem(ratingKey: String)
+    case matches(ratingKey: String, title: String?, year: Int?)
+    case match(ratingKey: String, guid: String, name: String, year: Int?)
+    case unmatch(ratingKey: String)
+    case editFields(sectionId: String, ratingKey: String, type: Int, values: [String: String])
+    case artwork(ratingKey: String, kind: ArtworkKind)
+    case selectArtwork(ratingKey: String, kind: ArtworkKind, url: String)
+    case deleteItem(ratingKey: String)
+    case terminateSession(sessionId: String, reason: String)
+    case activities
+    case cancelActivity(uuid: String)
+    case updaterStatus
+    case updaterCheck
+    case updaterApply
+    case resourceStatistics
+    case deleteHistoryEntry(historyId: String)
+    case itemPreferences(ratingKey: String)
+    case setItemPreferences(ratingKey: String, values: [String: String])
+
     var isPlexTV: Bool {
         switch self {
         case .requestPin, .checkPin, .resources, .watchlist, .addToWatchlist, .removeFromWatchlist: return true
@@ -68,9 +92,10 @@ package enum PlexEndpoint: Sendable {
 
     package var timeout: TimeInterval {
         switch self {
-        case .scrobble, .unscrobble, .rate, .timeline, .progress, .stopTranscode, .pingTranscode, .addToPlaylist, .removeFromPlaylist, .movePlaylistItem, .deletePlaylist:
+        case .scrobble, .unscrobble, .rate, .timeline, .progress, .stopTranscode, .pingTranscode, .addToPlaylist, .removeFromPlaylist, .movePlaylistItem, .deletePlaylist,
+             .removeFromContinueWatching:
             return 10
-        case .searchSubtitles, .downloadSubtitle:
+        case .searchSubtitles, .downloadSubtitle, .matches:
             return 60
         default:
             return 15
@@ -79,11 +104,16 @@ package enum PlexEndpoint: Sendable {
 
     var method: String {
         switch self {
+        case .analyzeSection, .emptyTrash, .refreshItem, .analyzeItem, .match, .unmatch, .editFields, .selectArtwork,
+             .updaterCheck, .updaterApply, .setItemPreferences:
+            return "PUT"
+        case .deleteItem, .cancelActivity, .deleteHistoryEntry:
+            return "DELETE"
         case .requestPin:
             return "POST"
         case .stopTranscode, .removeFromPlaylist, .deletePlaylist:
             return "DELETE"
-        case .rate, .addToPlaylist, .movePlaylistItem, .downloadSubtitle, .addToWatchlist, .removeFromWatchlist:
+        case .rate, .addToPlaylist, .movePlaylistItem, .downloadSubtitle, .addToWatchlist, .removeFromWatchlist, .removeFromContinueWatching:
             return "PUT"
         case .createPlaylist:
             return "POST"
@@ -126,6 +156,8 @@ package enum PlexEndpoint: Sendable {
             return "/hubs/sections/\(sectionId)"
         case .onDeck:
             return "/library/onDeck"
+        case .removeFromContinueWatching:
+            return "/actions/removeFromContinueWatching"
         case .recentlyAdded:
             return "/library/recentlyAdded"
         case .search:
@@ -170,6 +202,50 @@ package enum PlexEndpoint: Sendable {
             return "/video/:/transcode/universal/stop"
         case .pingTranscode:
             return "/video/:/transcode/universal/ping"
+        case .scanSection(let sectionId, _):
+            return "/library/sections/\(sectionId)/refresh"
+        case .analyzeSection(let sectionId):
+            return "/library/sections/\(sectionId)/analyze"
+        case .emptyTrash(let sectionId):
+            return "/library/sections/\(sectionId)/emptyTrash"
+        case .refreshItem(let ratingKey):
+            return "/library/metadata/\(ratingKey)/refresh"
+        case .analyzeItem(let ratingKey):
+            return "/library/metadata/\(ratingKey)/analyze"
+        case .matches(let ratingKey, _, _):
+            return "/library/metadata/\(ratingKey)/matches"
+        case .match(let ratingKey, _, _, _):
+            return "/library/metadata/\(ratingKey)/match"
+        case .unmatch(let ratingKey):
+            return "/library/metadata/\(ratingKey)/unmatch"
+        case .editFields(let sectionId, _, _, _):
+            return "/library/sections/\(sectionId)/all"
+        case .artwork(let ratingKey, let kind):
+            return "/library/metadata/\(ratingKey)/\(kind.listPath)"
+        case .selectArtwork(let ratingKey, let kind, _):
+            return "/library/metadata/\(ratingKey)/\(kind.selectPath)"
+        case .deleteItem(let ratingKey):
+            return "/library/metadata/\(ratingKey)"
+        case .terminateSession:
+            return "/status/sessions/terminate"
+        case .activities:
+            return "/activities"
+        case .cancelActivity(let uuid):
+            return "/activities/\(uuid)"
+        case .updaterStatus:
+            return "/updater/status"
+        case .updaterCheck:
+            return "/updater/check"
+        case .updaterApply:
+            return "/updater/apply"
+        case .resourceStatistics:
+            return "/statistics/resources"
+        case .deleteHistoryEntry(let historyId):
+            return "/status/sessions/history/\(historyId)"
+        case .itemPreferences(let ratingKey):
+            return "/library/metadata/\(ratingKey)"
+        case .setItemPreferences(let ratingKey, _):
+            return "/library/metadata/\(ratingKey)/prefs"
         }
     }
 
@@ -178,6 +254,7 @@ package enum PlexEndpoint: Sendable {
         case .metadata:
             return [
                 URLQueryItem(name: "includeMarkers", value: "1"),
+                URLQueryItem(name: "includeChapters", value: "1"),
                 URLQueryItem(name: "includeRelated", value: "1"),
                 URLQueryItem(name: "includeRelatedCount", value: "10"),
                 URLQueryItem(name: "includeExtras", value: "1"),
@@ -219,6 +296,8 @@ package enum PlexEndpoint: Sendable {
             ]
         case .addToWatchlist(let guid), .removeFromWatchlist(let guid):
             return [URLQueryItem(name: "ratingKey", value: WatchlistService.discoverKey(fromGuid: guid) ?? guid)]
+        case .removeFromContinueWatching(let ratingKey):
+            return [URLQueryItem(name: "ratingKey", value: ratingKey)]
         case .playlists:
             return [URLQueryItem(name: "playlistType", value: "video")]
         case .createPlaylist(let title, let uri):
@@ -291,6 +370,36 @@ package enum PlexEndpoint: Sendable {
             ]
         case .stopTranscode(let session):
             return [URLQueryItem(name: "session", value: session)]
+        case .scanSection(_, let force):
+            return force ? [URLQueryItem(name: "force", value: "1")] : nil
+        case .matches(_, let title, let year):
+            var items = [URLQueryItem(name: "manual", value: "1")]
+            if let title, !title.isEmpty { items.append(URLQueryItem(name: "title", value: title)) }
+            if let year { items.append(URLQueryItem(name: "year", value: "\(year)")) }
+            return items
+        case .match(_, let guid, let name, let year):
+            var items = [URLQueryItem(name: "guid", value: guid), URLQueryItem(name: "name", value: name)]
+            if let year { items.append(URLQueryItem(name: "year", value: "\(year)")) }
+            return items
+        case .editFields(_, let ratingKey, let type, let values):
+            return [URLQueryItem(name: "type", value: "\(type)"), URLQueryItem(name: "id", value: ratingKey)]
+                + values.sorted { $0.key < $1.key }.flatMap { field, value in
+                    [URLQueryItem(name: "\(field).value", value: value), URLQueryItem(name: "\(field).locked", value: "1")]
+                }
+        case .selectArtwork(_, _, let url):
+            return [URLQueryItem(name: "url", value: url)]
+        case .terminateSession(let sessionId, let reason):
+            return [URLQueryItem(name: "sessionId", value: sessionId), URLQueryItem(name: "reason", value: reason)]
+        case .updaterCheck:
+            return [URLQueryItem(name: "download", value: "0")]
+        case .updaterApply:
+            return [URLQueryItem(name: "tonight", value: "0"), URLQueryItem(name: "skip", value: "0")]
+        case .resourceStatistics:
+            return [URLQueryItem(name: "timespan", value: "6")]
+        case .itemPreferences:
+            return [URLQueryItem(name: "includePreferences", value: "1")]
+        case .setItemPreferences(_, let values):
+            return values.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
         case .pingTranscode(let session):
             return [URLQueryItem(name: "session", value: session)]
         default:

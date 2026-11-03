@@ -83,14 +83,15 @@ enum AppNavigation {
             let system = XCUIApplication(bundleIdentifier: bundle)
             for query in [system.buttons, system.descendants(matching: .button)] {
                 let button = query["Open"]
-                if button.exists { return button }
+                if button.exists, button.hasFocus { return button }
             }
         }
         return nil
     }
 
     /// Hands a `crucible://` URL to the system the way Top Shelf does. The system asks "Open in
-    /// Crucible?", which can take several seconds to appear and is confirmed with Select.
+    /// Crucible?", which can take several seconds to appear and is confirmed with Select once its Open button has focus:
+    /// a Select sent while the prompt is still animating in lands on the app instead.
     static func openFromOutside(_ link: String, in test: XCTestCase? = nil) {
         let url = URL(string: link)!
         Task { _ = await UIApplication.shared.open(url) }

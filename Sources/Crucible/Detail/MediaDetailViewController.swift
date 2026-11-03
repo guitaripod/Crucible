@@ -684,6 +684,9 @@ final class MediaDetailViewController: UICollectionViewController {
             Task { @MainActor in
                 var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [item], api: api, host: self)]
                 if let watchlist = await WatchlistScreen.toggleAction(for: item, api: api, host: self) { elements.append(watchlist) }
+                if let manage = ManageMenus.itemMenu(for: item, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
+                    elements.append(manage)
+                }
                 completion(elements)
             }
         }])

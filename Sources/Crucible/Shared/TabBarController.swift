@@ -255,6 +255,19 @@ final class TabBarController: UITabBarController {
         homeNavigation.pushViewController(Self.detail(api: api, ratingKey: ratingKey, mediaType: mediaType), animated: true)
     }
 
+    /// Opens Statistics on the You tab, for the weekly recap and Year in Review notifications.
+    func openStatistics() {
+        if presentedViewController != nil { dismiss(animated: false) }
+        show(StatisticsViewController(api: api), onTopOf: .you)
+    }
+
+    /// Opens the half-star sheet for a title a reminder asked about, over whatever is on screen.
+    func presentRating(for ask: RatingAsk) {
+        if presentedViewController != nil { dismiss(animated: false) }
+        let host = open(.home)?.topViewController ?? self
+        RateAskActions.rate(ask, api: api, from: host, source: host.view) { _ in }
+    }
+
     private static func detail(api: APIClient, ratingKey: String, mediaType: String) -> UIViewController {
         mediaType == "show"
             ? ShowDetailViewController(api: api, showRatingKey: ratingKey)

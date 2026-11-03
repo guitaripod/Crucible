@@ -85,6 +85,13 @@ package final class HistoryFeed {
         pager.cancelLoading()
     }
 
+    /// Forgets a play the server has deleted, keeping the next page where the server's list now continues.
+    package func drop(_ item: HistoryItem) {
+        guard let index = items.firstIndex(of: item) else { return }
+        items.remove(at: index)
+        pager.noteRemoved()
+    }
+
     /// The full metadata for a play, or nil when the server no longer has it. The caller starts playback.
     package func metadata(for item: HistoryItem) async throws -> PlexMetadata? {
         try await request(.metadata(ratingKey: item.ratingKey)).Metadata?.first

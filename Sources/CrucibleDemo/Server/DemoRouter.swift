@@ -27,11 +27,22 @@ struct DemoRouter: Sendable {
         case "hubs":
             return await hubsResponse(parts, request)
         case "status":
+            if request.method == "DELETE", parts.count == 4, parts[1] == "sessions", parts[2] == "history" {
+                return await library.deleteHistoryRow(parts[3])
+            }
             switch parts {
             case ["status", "sessions", "history", "all"]: return await library.historyResponse(request)
             case ["status", "sessions"]: return await library.sessionsResponse()
+            case ["status", "sessions", "terminate"]: return await library.terminateSession(request.first("sessionId"))
             default: return .notFound()
             }
+        case "activities":
+            if request.method == "DELETE", parts.count == 2 { return await library.cancelActivity(parts[1]) }
+            return await library.activitiesResponse()
+        case "updater":
+            return parts.count == 2 && parts[1] == "status" ? DemoLibrary.updaterResponse() : .empty()
+        case "statistics":
+            return parts == ["statistics", "resources"] ? DemoLibrary.resourcesResponse() : .notFound()
         case "photo":
             return await photoResponse(request)
         case "actors":
@@ -95,6 +106,10 @@ struct DemoRouter: Sendable {
             return await library.watchlistResponse()
         }
         switch (parts.count > 1 ? parts[1] : "", parts.count) {
+        case ("sections", 4) where ["refresh", "analyze", "emptyTrash"].contains(parts[3]):
+            return parts[3] == "refresh" ? await library.noteScan(sectionID: parts[2]) : .empty()
+        case ("sections", 4) where parts[3] == "all" && request.method == "PUT":
+            return await library.editFields(request)
         case ("sections", 2):
             return await library.sectionsResponse()
         case ("sections", 3...5):
@@ -126,6 +141,7 @@ struct DemoRouter: Sendable {
         switch parts[1] {
         case "addToWatchlist": return await library.changeWatchlist(discoverKey: key, adding: true)
         case "removeFromWatchlist": return await library.changeWatchlist(discoverKey: key, adding: false)
+        case "removeFromContinueWatching": return await library.removeFromContinueWatching(key)
         default: return .notFound()
         }
     }
@@ -166,6 +182,23 @@ struct DemoRouter: Sendable {
                 )
             default:
                 return .notFound()
+            }
+        }
+        if parts.count == 3, request.method == "DELETE" {
+            return .json(["errors": [["code": 1, "message": "Media deletion is not allowed on this server"]]], status: 403)
+        }
+        if parts.count == 4 {
+            switch parts[3] {
+            case "refresh", "analyze", "unmatch", "match":
+                return .empty()
+            case "matches":
+                return await library.matchesResponse(parts[2], title: request.first("title"), year: request.int("year"))
+            case "posters", "arts":
+                return await library.artworkResponse(parts[2], kind: parts[3])
+            case "poster", "art":
+                return await library.selectArtwork(parts[2], kind: parts[3], url: request.first("url"))
+            default:
+                break
             }
         }
         switch parts.count {

@@ -53,6 +53,9 @@ MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
 LIB = library.Library()
 LOCK = threading.Lock()
+SCANS = {}
+STOPPED = set()
+SCAN_SECONDS = 10
 PINS = {}
 
 DETAIL_ERROR_KEY = "9404"
@@ -70,7 +73,7 @@ DETAIL_PROGRESS_KEY = "4095"
 DETAIL_PROGRESS_OFFSET = LIB.items[DETAIL_PROGRESS_KEY].get("viewOffset")
 
 def reset_state():
-    """Returns the mock to how it was started: a fresh library and history, no runtime overrides, and every flag and plex.tv setting at its default."""
+    """Returns the mock to how it was started: a fresh library and history, no stopped streams or running scans, no runtime overrides, and every flag and plex.tv setting at its default."""
     global LIB, HUBS_MODE, PIN_POLLS, PIN_LIFETIME, PLEXTV_SERVERS, REJECT_TOKEN
     with LOCK:
         LIB = library.Library()
@@ -81,6 +84,8 @@ def reset_state():
         REQUEST_LOG.clear()
         REAPED_SESSIONS.clear()
         PATH_LOG.clear()
+        SCANS.clear()
+        STOPPED.clear()
         HUBS_MODE = os.environ.get("MOCK_HUBS_MODE", "ok")
         PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
         PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
@@ -500,6 +505,107 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+    def owner_tools(self, p, one):
+        """The server owner's tools: scans and refreshes (a scan shows under /activities for a few seconds), Fix Match,
+        Edit Details, artwork, stopping a stream and the dashboard's load and update. Deleting is refused unless
+        MOCK_ALLOW_DELETE=1, the way a server with media deletion off refuses it. Returns whether it answered."""
+        m = re.match(r"^/library/sections/(\d+)/(refresh|analyze|emptyTrash)$", p)
+        if m:
+            if m.group(2) == "refresh":
+                with LOCK:
+                    SCANS[m.group(1)] = time.time()
+            self.send_empty()
+            return True
+        if re.match(r"^/library/sections/\d+/all$", p) and self.command == "PUT":
+            with LOCK:
+                it = LIB.items.get(one("id", ""))
+                if it:
+                    for field in ("title", "titleSort", "originalTitle", "summary"):
+                        if one(f"{field}.value") is not None:
+                            it[field] = one(f"{field}.value")
+                    if (one("year.value") or "").isdigit():
+                        it["year"] = int(one("year.value"))
+            self.send_empty() if it else self.not_found()
+            return True
+        m = re.match(r"^/library/metadata/(\d+)/(refresh|analyze|unmatch|match|matches|posters|arts|poster|art)$", p)
+        if m and not (m.group(2) == "art" and self.command in ("GET", "HEAD")):
+            rk, action = m.groups()
+            with LOCK:
+                it = LIB.items.get(rk)
+                if not it:
+                    self.not_found()
+                    return True
+                if action == "matches":
+                    kind = "show" if it["type"] == "show" else "movie"
+                    name = one("title") or it["title"]
+                    year = int(one("year") or it.get("year") or 2020)
+                    results = [
+                        {"guid": it.get("guid") or f"plex://{kind}/mock-{rk}", "name": it["title"], "year": it.get("year", year), "score": 100, "matched": True},
+                        {"guid": f"plex://{kind}/mock-{rk}-1", "name": name, "year": year - 11, "score": 84, "matched": False},
+                        {"guid": f"plex://{kind}/mock-{rk}-2", "name": f"{name}: Behind the Scenes", "year": year, "score": 57, "matched": False},
+                    ]
+                    self.send_json(container(size=len(results), SearchResult=results))
+                elif action in ("posters", "arts"):
+                    field = "thumb" if action == "posters" else "art"
+                    others = [i[field] for k, i in LIB.items.items() if k != rk and i["type"] == it["type"] and i.get(field)][:6]
+                    paths = [it[field]] + others if it.get(field) else others
+                    choices = [{"key": path, "ratingKey": f"mock-{field}-{n}|{path}", "thumb": path, "selected": n == 0,
+                                "provider": "local" if n == 0 else "mock"} for n, path in enumerate(paths)]
+                    self.send_json(container(size=len(choices), Metadata=choices))
+                elif action in ("poster", "art"):
+                    it["thumb" if action == "poster" else "art"] = (one("url") or "").split("|")[-1] or it.get("thumb")
+                    self.send_empty()
+                else:
+                    self.send_empty()
+            return True
+        if re.match(r"^/library/metadata/\d+$", p) and self.command == "DELETE":
+            if env("MOCK_ALLOW_DELETE") == "1":
+                self.send_empty()
+            else:
+                self.send_json({"errors": [{"code": 1, "message": "Media deletion is not allowed on this server"}]}, 403)
+            return True
+        m = re.match(r"^/status/sessions/history/(\d+)$", p)
+        if m and self.command == "DELETE":
+            with LOCK:
+                before = len(LIB.history)
+                LIB.history = [r for r in LIB.history if r.get("historyKey") != p]
+                found = len(LIB.history) < before
+            self.send_empty() if found else self.not_found()
+            return True
+        if p == "/status/sessions/terminate":
+            with LOCK:
+                STOPPED.add(one("sessionId", ""))
+            self.send_empty()
+            return True
+        if p == "/activities" or p.startswith("/activities/"):
+            with LOCK:
+                if self.command == "DELETE":
+                    SCANS.pop(p.rsplit("/", 1)[-1].removeprefix("mock-scan-"), None)
+                    self.send_empty()
+                    return True
+                now = time.time()
+                rows = [{"uuid": f"mock-scan-{sid}", "type": "library.update.section", "cancellable": True,
+                         "title": f"Scanning {library.SECTIONS.get(sid, (sid, ''))[0]}",
+                         "progress": int((now - at) / SCAN_SECONDS * 100)}
+                        for sid, at in SCANS.items() if now - at < SCAN_SECONDS]
+            self.send_json(container(size=len(rows), Activity=rows))
+            return True
+        if p == "/updater/status":
+            self.send_json(container(size=1, canInstall=False, Release=[{
+                "version": "1.43.6.10123", "state": "notify",
+                "added": "Faster scanning of large libraries.\nBetter matching of anime episodes.",
+                "fixed": "Subtitles could start a second late after a seek."}]))
+            return True
+        if p in ("/updater/check", "/updater/apply"):
+            self.send_empty()
+            return True
+        if p == "/statistics/resources":
+            self.send_json(container(size=1, StatisticsResources=[{
+                "at": int(time.time()), "timespan": 6, "hostCpuUtilization": 18.4, "processCpuUtilization": 9.2,
+                "hostMemoryUtilization": 41.0, "processMemoryUtilization": 6.5}]))
+            return True
+        return False
+
     def dispatch(self):
         u = urlparse(self.path)
         p = u.path.rstrip("/") or "/"
@@ -539,6 +645,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.handle_state(p, q)
             return self.send_empty()
 
+        if self.owner_tools(p, one):
+            return
+
         if p == "/library/sections":
             delay_ms = int(env("MOCK_SECTIONS_DELAY_MS", "0") or 0)
             if delay_ms:
@@ -575,6 +684,11 @@ class Handler(BaseHTTPRequestHandler):
                 rows = LIB.watchlist_json()
             return self.send_json(container(size=len(rows), totalSize=len(rows), offset=0, Metadata=rows))
 
+        if p == "/actions/removeFromContinueWatching":
+            with LOCK:
+                found = LIB.remove_from_continue(one("ratingKey", ""))
+            return self.send_empty() if found else self.not_found()
+
         if p in ("/actions/addToWatchlist", "/actions/removeFromWatchlist"):
             with LOCK:
                 LIB.change_watchlist(one("ratingKey", ""), p.endswith("addToWatchlist"))
@@ -587,7 +701,10 @@ class Handler(BaseHTTPRequestHandler):
                     ("1001", "Maren", "Living Room Apple TV", "Plex for Apple TV", "playing", False),
                     ("4012", "Idris", "Office", "Plex Web", "paused", True),
                 ):
+                    if f"mock-{key}" in STOPPED:
+                        continue
                     row = LIB.render(LIB.items[key])
+                    row["Session"] = {"id": f"mock-{key}", "location": "lan"}
                     row["viewOffset"] = row.get("duration", 0) // 3
                     row["User"] = {"id": "2", "title": user}
                     row["Player"] = {"title": device, "product": product, "state": state, "local": True}
@@ -699,8 +816,7 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 continuing = [] if env("MOCK_HOME_NO_CONTINUE") == "1" else LIB.continue_watching()[:count]
                 hubs = [hub("home.continue", "Continue Watching", continuing),
-                        hub("home.ondeck", "On Deck", [LIB.items[r] for r in LIB.on_deck
-                                                       if not LIB.items[r].get("viewCount")][:count]),
+                        hub("home.ondeck", "On Deck", [LIB.items[r] for r in LIB.deck_keys()][:count]),
                         hub("home.recentlyadded", "Recently Added", LIB.recently_added()[:max(count, 16)])]
                 if env("MOCK_HOME_LONG_HERO") == "1":
                     lengthen_first_continue_item(hubs[0])
@@ -715,7 +831,7 @@ class Handler(BaseHTTPRequestHandler):
             with LOCK:
                 cont = [i for i in LIB.continue_watching()
                         if i["ratingKey"] in pool or i.get("grandparentRatingKey") in pool]
-                deck = [LIB.items[r] for r in LIB.on_deck
+                deck = [LIB.items[r] for r in LIB.deck_keys()
                         if LIB.items[r].get("grandparentRatingKey") in pool or r in pool]
                 recent = [i for i in LIB.recently_added() if i["ratingKey"] in pool][:16]
                 pre = "movie" if kind == "movie" else "tv"
@@ -729,7 +845,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if p == "/library/onDeck":
             with LOCK:
-                items = [LIB.render(LIB.items[r]) for r in LIB.on_deck if not LIB.items[r].get("viewCount")]
+                items = [LIB.render(LIB.items[r]) for r in LIB.deck_keys()]
             return self.send_json(container(size=len(items), totalSize=len(items), Metadata=items))
 
         if p == "/library/recentlyAdded":
@@ -788,7 +904,23 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_session_playlist(session)
         if name == "stop":
             return self.send_empty()
+        if name == "decision":
+            return self.send_decision(q)
         return self.send_hls_file(name)
+
+    def send_decision(self, q):
+        """The transcoder's decision for a stream about to start. MOCK_REFUSE_STREAM=1 refuses it the way a server refuses a
+        remote stream that no pass covers."""
+        if env("MOCK_REFUSE_STREAM") == "1":
+            return self.send_json(container(size=0, generalDecisionCode=2000,
+                                            generalDecisionText="Remote streaming requires a Plex Pass or a Remote Watch Pass."))
+        burn = (q.get("subtitles") or ["auto"])[0] == "burn"
+        streams = [{"streamType": 1, "decision": "transcode" if burn else "copy"}, {"streamType": 2, "decision": "copy"}]
+        if burn:
+            streams.append({"streamType": 3, "decision": "burn"})
+        return self.send_json(container(size=1, generalDecisionCode=1001, generalDecisionText="Direct play not available; Conversion OK.",
+                                        transcodeDecisionCode=1001, transcodeDecisionText="Direct play not available; Conversion OK.",
+                                        Metadata=[{"Media": [{"Part": [{"decision": "transcode", "Stream": streams}]}]}]))
 
     def send_hls_file(self, name):
         hls = os.path.join(ASSETS, "hls", name)
@@ -986,7 +1118,8 @@ class Handler(BaseHTTPRequestHandler):
             it = LIB.items.get(rk)
             if it and it["type"] in ("movie", "episode"):
                 entry = LIB._entry(it, int(time.time()))
-                entry["historyKey"] = f"/status/sessions/history/{len(LIB.history) + 1}"
+                last = max((int(r["historyKey"].rsplit("/", 1)[-1]) for r in LIB.history if r.get("historyKey")), default=0)
+                entry["historyKey"] = f"/status/sessions/history/{last + 1}"
                 LIB.history.insert(0, entry)
         elif p == "/:/unscrobble":
             LIB.mark_watched(one("key", ""), False)

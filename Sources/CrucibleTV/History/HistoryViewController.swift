@@ -149,7 +149,8 @@ final class HistoryViewController: TVScreenViewController {
                 with: item,
                 isBusy: self?.busyIDs.contains(item.uniqueId) ?? false,
                 onSelect: { [weak self] in self?.open(item) },
-                onPlay: { [weak self] in self?.playAgain(item) }
+                onPlay: { [weak self] in self?.playAgain(item) },
+                menu: { [weak self] in self?.menu(for: item) }
             )
             return view
         }
@@ -319,6 +320,37 @@ final class HistoryViewController: TVScreenViewController {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("History play again failed for \(item.ratingKey): \(error.localizedDescription)", category: .playback)
                 presentPlaybackError()
+            }
+        }
+    }
+
+    /// The long-press menu of a row: play it again, open it, and for the server's owner, remove it from the history.
+    private func menu(for item: HistoryItem) -> UIMenu {
+        var children: [UIMenuElement] = [
+            UIAction(title: String(localized: "Play Again", comment: "Watch history action that plays a title again"), image: UIImage(systemName: "play.fill")) { [weak self] _ in
+                self?.playAgain(item)
+            },
+            UIAction(title: String(localized: "Go to Details", comment: "Watch history action that opens a title's page"), image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.open(item)
+            },
+        ]
+        if let remove = removeAction(for: item) { children.append(remove) }
+        return UIMenu(children: children)
+    }
+
+    /// The owner's Remove from History, which deletes the play from the server's watch history.
+    private func removeAction(for item: HistoryItem) -> UIAction? {
+        guard ServerOwnership.isOwner(), let historyKey = item.historyKey else { return nil }
+        let api = env.api
+        return UIAction(title: String(localized: "Remove from History", comment: "Owner action that deletes a play from the server's watch history"), image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                do {
+                    try await LibraryManagement.deleteHistoryEntry(historyKey: historyKey, api: api)
+                    self?.feed.drop(item)
+                    self?.render()
+                } catch {
+                    self?.presentAlert(title: ManageCopy.failed, message: ConnectionError.message(for: error))
+                }
             }
         }
     }

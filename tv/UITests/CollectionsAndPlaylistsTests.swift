@@ -28,11 +28,11 @@ final class CollectionsAndPlaylistsTests: TVTestCase {
         let prompt = XCUIApplication(bundleIdentifier: "com.apple.PineBoard").buttons["Open"]
         let deadline = Date().addingTimeInterval(40)
         while Date() < deadline {
-            if prompt.exists {
+            if app.buttons["detail.action.primary"].exists { break }
+            if prompt.exists, prompt.hasFocus {
                 TVTest.remote.press(.select)
                 break
             }
-            if app.buttons["detail.action.primary"].exists { break }
             TVTest.settle(0.5)
         }
         TVTest.settle(0.5)

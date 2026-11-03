@@ -35,6 +35,7 @@ extension DownloadManager {
     }
 
     private func postDownloadNotification(title: String, subtitle: String, body: String, ratingKey: String, mediaType: String) {
+        guard Preferences.notifies(.downloads) else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.subtitle = subtitle

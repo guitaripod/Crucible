@@ -5,8 +5,14 @@ package struct HomeStateCopy: Equatable, Sendable {
     package let title: String
     package let message: String
 
-    /// Nothing to show: either the server has no media, or the chosen libraries have none.
-    package static func empty(librariesAreFiltered: Bool) -> HomeStateCopy {
+    /// Nothing to show: the viewer turned the rows off, the chosen libraries have nothing, or the server has no media.
+    package static func empty(librariesAreFiltered: Bool, rowsAreHidden: Bool = false) -> HomeStateCopy {
+        if rowsAreHidden {
+            return HomeStateCopy(
+                title: String(localized: "Home Rows Are Off", comment: "Title of the empty Home screen when the viewer turned its rows off"),
+                message: String(localized: "Turn rows back on in Settings › Home.", comment: "Message on the empty Home screen when the viewer turned its rows off")
+            )
+        }
         if librariesAreFiltered {
             return HomeStateCopy(
                 title: String(localized: "Nothing From These Libraries"),

@@ -107,7 +107,7 @@ package final class HomeFeed {
         ))
     }
 
-    /// Re-derives the arrangement from the last fetched content after the library choice changed.
+    /// Re-derives the arrangement from the last fetched content after the library choice or the Home rows changed.
     package func reapplyLibraryVisibility() {
         setContent(fetched)
     }
@@ -142,7 +142,7 @@ package final class HomeFeed {
             (visible.continueWatching + visible.onDeck + visible.recent).map { ($0.id, $0) },
             uniquingKeysWith: { _, latest in latest }
         )
-        arrangement = HomeArrangement(buckets: visible)
+        arrangement = HomeArrangement(buckets: visible, rows: Set(HomeLayout.visibleRows()))
         return visible
     }
 }

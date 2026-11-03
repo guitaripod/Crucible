@@ -68,7 +68,7 @@ final class SettingsTests: TVTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "playback.skipOutro"))
         XCTAssertEqual(value(of: skipOutro), "Show Button")
 
-        YouNavigation.moveFocus(app, to: "playback.autoplayNextEpisode")
+        YouNavigation.moveFocusUp(app, to: "playback.autoplayNextEpisode")
         let before = value(of: YouNavigation.row(app, "playback.autoplayNextEpisode"))
         TVTest.remote.press(.select)
         TVTest.settle(0.5)
@@ -273,7 +273,7 @@ final class SettingsTests: TVTestCase {
         let log = YouNavigation.row(app, "diagnostics.log")
         XCTAssertTrue(log.waitForExistence(timeout: 15))
         TVTest.settle(2)
-        XCTAssertTrue((log.value as? String ?? "").contains("[NOTE]"), "the log must expose its text as its accessibility value")
+        XCTAssertTrue((log.value as? String ?? "").contains("[notice]"), "the log must expose its text as its accessibility value")
         TVTest.remote.press(.left)
         TVTest.settle(1)
         TVTest.capture("00-after-left-from-log", in: self)

@@ -140,12 +140,14 @@ final class HistoryRowView: UIStackView {
         with item: HistoryItem,
         isBusy: Bool,
         onSelect: @escaping @MainActor () -> Void,
-        onPlay: @escaping @MainActor () -> Void
+        onPlay: @escaping @MainActor () -> Void,
+        menu: @escaping @MainActor () -> UIMenu?
     ) {
         let row = item.row
         self.onSelect = onSelect
         self.onPlay = onPlay
         surface.configure(with: row)
+        surface.contextMenuProvider = menu
         surface.accessibilityIdentifier = "history.row.\(item.uniqueId)"
 
         var configuration = playButton.configuration

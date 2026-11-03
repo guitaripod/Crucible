@@ -31,6 +31,12 @@ final class TVHomeViewController: TVScreenViewController {
     private var currentHero: TVHeroInfo?
     private var weekSummary: HomeWeekSummary?
     private var visibilityObserver: UUID?
+    private var layoutObserver: UUID?
+    private var ledgerObserver: UUID?
+    private lazy var rateFeed = RatingAsksFeed(api: env.api)
+    private lazy var asksSlot = makeTaskSlot()
+    private var asks: [RatingAsk] = []
+    private var pendingRated = Set<String>()
     private var skipNextAppearanceLoad = true
     private var hasAwaitedFirstSync = false
     private weak var seeAll: TVHomeSeeAllViewController?
@@ -54,6 +60,12 @@ final class TVHomeViewController: TVScreenViewController {
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
         }
+        if let layoutObserver {
+            Task { @MainActor in HomeLayout.removeObserver(layoutObserver) }
+        }
+        if let ledgerObserver {
+            Task { @MainActor in FinishedTitlesLedger.shared.removeObserver(ledgerObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -63,6 +75,14 @@ final class TVHomeViewController: TVScreenViewController {
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
             self?.libraryVisibilityChanged()
         }
+        layoutObserver = HomeLayout.addObserver { [weak self] in
+            self?.libraryVisibilityChanged()
+        }
+        ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in
+            guard let self else { return }
+            adoptAsks(rateFeed.current())
+        }
+        asks = rateFeed.current()
         render(animated: false)
     }
 
@@ -92,6 +112,7 @@ final class TVHomeViewController: TVScreenViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         loadWeek()
+        loadAsks()
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
@@ -101,7 +122,7 @@ final class TVHomeViewController: TVScreenViewController {
 
     override func initialFocusIndexPath() -> IndexPath? {
         let snapshot = dataSource.snapshot()
-        for section in [TVHomeSection.continueWatching, .upNext, .recentlyAdded] {
+        for section in [TVHomeSection.continueWatching, .upNext, .recentlyAdded, .rateWatched] {
             guard let sectionIndex = snapshot.indexOfSection(section),
                   !snapshot.itemIdentifiers(inSection: section).isEmpty else { continue }
             return IndexPath(item: 0, section: sectionIndex)
@@ -134,7 +155,7 @@ final class TVHomeViewController: TVScreenViewController {
                 return TVShelf.landscape()
             case .week:
                 return Self.weekSection()
-            case .recentlyAdded:
+            case .recentlyAdded, .rateWatched:
                 return TVShelf.poster()
             }
         }
@@ -186,6 +207,10 @@ final class TVHomeViewController: TVScreenViewController {
                     cell = collectionView.dequeueConfiguredReusableCell(using: landscape, for: indexPath, item: data)
                 }
                 cell.accessibilityIdentifier = "home.card.\(bucket.rawValue).\(id)"
+            case .rate(let id):
+                let data = self?.asks.first { $0.id == id }.map { TVHomeContent.card(for: $0) } ?? TVCardItem(id: id, title: "")
+                cell = collectionView.dequeueConfiguredReusableCell(using: poster, for: indexPath, item: data)
+                cell.accessibilityIdentifier = "home.rate.\(id)"
             case .week:
                 cell = collectionView.dequeueConfiguredReusableCell(using: weekTile, for: indexPath, item: item)
             case .surprise:
@@ -229,8 +254,9 @@ final class TVHomeViewController: TVScreenViewController {
     }
 
     private func sectionHeader(at indexPath: IndexPath) -> TVSectionHeader? {
-        guard let section = dataSource.snapshot().sectionIdentifiers[safe: indexPath.section],
-              let bucket = section.bucket else { return nil }
+        guard let section = dataSource.snapshot().sectionIdentifiers[safe: indexPath.section] else { return nil }
+        if section == .rateWatched { return TVSectionHeader(title: RatingAskCopy.rowTitle) }
+        guard let bucket = section.bucket else { return nil }
         let title = feed.arrangement.title(for: bucket)
         guard bucket != .continueWatching else { return TVSectionHeader(title: title) }
         return TVSectionHeader(title: title, seeAllAction: { [weak self] in self?.showAll(bucket) })
@@ -243,20 +269,27 @@ final class TVHomeViewController: TVScreenViewController {
             snapshot.appendSections([.hero])
             snapshot.appendItems([.hero], toSection: .hero)
         }
-        for section in [TVHomeSection.continueWatching, .upNext] {
-            guard let bucket = section.bucket else { continue }
-            let items = arrangement.shelf(for: bucket)
-            guard !items.isEmpty else { continue }
-            snapshot.appendSections([section])
-            snapshot.appendItems(items.map { .card($0.id, bucket) }, toSection: section)
-        }
-        if arrangement.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false) {
-            snapshot.appendSections([.week])
-            snapshot.appendItems([.week], toSection: .week)
-        }
-        if !arrangement.recent.isEmpty {
-            snapshot.appendSections([.recentlyAdded])
-            snapshot.appendItems(arrangement.recent.map { .card($0.id, .recentlyAdded) } + [.surprise], toSection: .recentlyAdded)
+        for row in HomeLayout.visibleRows() {
+            switch row {
+            case .continueWatching, .upNext:
+                let section: TVHomeSection = row == .continueWatching ? .continueWatching : .upNext
+                guard let bucket = section.bucket else { continue }
+                let items = arrangement.shelf(for: bucket)
+                guard !items.isEmpty else { continue }
+                snapshot.appendSections([section])
+                snapshot.appendItems(items.map { .card($0.id, bucket) }, toSection: section)
+            case .thisWeek where arrangement.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false):
+                snapshot.appendSections([.week])
+                snapshot.appendItems([.week], toSection: .week)
+            case .recentlyAdded where !arrangement.recent.isEmpty:
+                snapshot.appendSections([.recentlyAdded])
+                snapshot.appendItems(arrangement.recent.map { .card($0.id, .recentlyAdded) } + [.surprise], toSection: .recentlyAdded)
+            case .rateWatched where !arrangement.isEmpty && !visibleAsks.isEmpty:
+                snapshot.appendSections([.rateWatched])
+                snapshot.appendItems(visibleAsks.map { .rate($0.id) }, toSection: .rateWatched)
+            default:
+                break
+            }
         }
         dataSource.applyReconfiguringExisting(snapshot, animated: animated)
     }
@@ -286,7 +319,7 @@ final class TVHomeViewController: TVScreenViewController {
     }
 
     private func showEmpty() {
-        let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized)
+        let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized, rowsAreHidden: HomeLayout.contentRowsAreOff)
         skeleton.isHidden = true
         applySnapshot(animated: false)
         backdrop.show(path: nil)
@@ -440,8 +473,44 @@ final class TVHomeViewController: TVScreenViewController {
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if let ask = ask(at: indexPath) {
+            actions.rate(ask, from: self) { [weak self] picked in self?.markPicked(ask, picked) }
+            return
+        }
         guard let target = cardTarget(at: indexPath) else { return }
         actions.select(target.media, in: target.bucket, from: self)
+    }
+
+    // MARK: - Rate What You Watched
+
+    private var visibleAsks: [RatingAsk] {
+        asks.filter { !pendingRated.contains($0.id) }
+    }
+
+    private func ask(at indexPath: IndexPath) -> RatingAsk? {
+        guard case .rate(let id)? = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return asks.first { $0.id == id }
+    }
+
+    private func loadAsks() {
+        asksSlot.run { [weak self] in
+            guard let self else { return }
+            let loaded = await rateFeed.load()
+            guard !Task.isCancelled else { return }
+            adoptAsks(loaded)
+        }
+    }
+
+    private func adoptAsks(_ loaded: [RatingAsk]) {
+        pendingRated = pendingRated.filter { key in loaded.contains { $0.id == key } }
+        guard loaded != asks else { return }
+        asks = loaded
+        if !collectionView.isHidden { applySnapshot(animated: true) }
+    }
+
+    private func markPicked(_ ask: RatingAsk, _ picked: Bool) {
+        if picked { pendingRated.insert(ask.id) } else { pendingRated.remove(ask.id) }
+        if !collectionView.isHidden { applySnapshot(animated: true) }
     }
 
     override func collectionView(
@@ -470,8 +539,12 @@ final class TVHomeViewController: TVScreenViewController {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        guard let indexPath = indexPaths.first, let target = cardTarget(at: indexPath) else { return nil }
-        return TVContextMenu.configuration(menu: actions.menu(for: target.media, from: self))
+        guard let indexPath = indexPaths.first else { return nil }
+        if let ask = ask(at: indexPath) {
+            return TVContextMenu.configuration(menu: actions.menu(for: ask, from: self) { [weak self] picked in self?.markPicked(ask, picked) })
+        }
+        guard let target = cardTarget(at: indexPath) else { return nil }
+        return TVContextMenu.configuration(menu: actions.menu(for: target.media, in: target.bucket, from: self))
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

@@ -25,12 +25,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         PaywallPresenter.install()
         DemoCoordinator.shared.install()
         DownloadManager.shared.bootstrap()
+        NotificationCoordinator.shared.install()
+        PreferenceSetting.didChange = { setting in Self.preferenceChanged(setting) }
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         if #available(iOS 26.0, *) {
             installMainMenu()
         }
         return true
+    }
+
+    /// Carries a change made in Settings to the part of the app that owns it.
+    private static func preferenceChanged(_ setting: PreferenceSetting) {
+        switch setting {
+        case .appearance:
+            for window in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).flatMap(\.windows) {
+                let duration = UIAccessibility.isReduceMotionEnabled ? 0 : 0.25
+                UIView.transition(with: window, duration: duration, options: .transitionCrossDissolve) {
+                    AppearanceController.apply(to: window)
+                }
+            }
+        case .downloadOverCellular:
+            DownloadManager.shared.cellularPreferenceChanged()
+        case .ratingReminderTiming, .quietHours:
+            NotificationCoordinator.shared.preferencesChanged()
+        default:
+            if setting.notificationKind != nil { NotificationCoordinator.shared.preferencesChanged() }
+        }
     }
 
     /// The iPad menu bar: a New Window item, no document, print, find or text formatting groups, and Crucible's own menus.
@@ -87,14 +108,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let userInfo = response.notification.request.content.userInfo
-        guard let ratingKey = userInfo["ratingKey"] as? String,
-              let mediaType = userInfo["mediaType"] as? String else { return }
-        await MainActor.run {
-            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            let tabBars = scenes.sorted { $0.activationState.rawValue < $1.activationState.rawValue }
-                .compactMap { ($0.keyWindow ?? $0.windows.first)?.rootViewController as? TabBarController }
-            tabBars.first?.openMedia(ratingKey: ratingKey, mediaType: mediaType)
-        }
+        let tap = NotificationTap(response)
+        await NotificationCoordinator.shared.handle(tap)
     }
 }

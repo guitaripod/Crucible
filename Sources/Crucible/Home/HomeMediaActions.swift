@@ -52,6 +52,7 @@ enum HomeMediaActions {
     /// The long-press menu every Home card shares. Items that do not apply are omitted.
     static func contextMenu(
         for item: PlexMetadata,
+        in bucket: HomeBucket? = nil,
         api: APIClient,
         navigation: @escaping @MainActor () -> UINavigationController?,
         play: @escaping @MainActor (PlexMetadata) -> Void,
@@ -78,6 +79,9 @@ enum HomeMediaActions {
                 didChange()
             }
         })
+        if let bucket, ContinueWatchingRemoval.applies(to: item, in: bucket) {
+            actions.append(removalAction(for: item, api: api, navigation: navigation, didChange: didChange))
+        }
         if HomeMediaRules.isDownloadable(item) {
             actions.append(DownloadMenu.action(for: item))
         }
@@ -87,5 +91,27 @@ enum HomeMediaActions {
             })
         }
         return UIMenu(children: actions)
+    }
+
+    private static func removalAction(
+        for item: PlexMetadata,
+        api: APIClient,
+        navigation: @escaping @MainActor () -> UINavigationController?,
+        didChange: @escaping @MainActor () -> Void
+    ) -> UIAction {
+        UIAction(title: ContinueWatchingRemoval.title, image: UIImage(systemName: ContinueWatchingRemoval.symbol)) { _ in
+            Haptics.light()
+            Task { @MainActor in
+                do {
+                    try await ContinueWatchingRemoval.remove(ratingKey: item.id, api: api)
+                } catch {
+                    Haptics.error()
+                    let alert = UIAlertController(title: ContinueWatchingRemoval.failureTitle, message: ContinueWatchingRemoval.failureMessage, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+                    navigation()?.topViewController?.present(alert, animated: true)
+                }
+                didChange()
+            }
+        }
     }
 }

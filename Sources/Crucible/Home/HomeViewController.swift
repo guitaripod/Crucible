@@ -7,11 +7,12 @@ import os
 
 final class HomeViewController: UICollectionViewController {
     enum Section: Hashable {
-        case skeleton, hero, continueWatching, upNext, week, recentlyAdded
+        case skeleton, hero, continueWatching, upNext, week, recentlyAdded, rateWatched
     }
 
     enum Item: Hashable {
         case media(String, HomeBucket)
+        case rate(String)
         case week
         case skeleton
     }
@@ -33,6 +34,12 @@ final class HomeViewController: UICollectionViewController {
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
     private weak var sectionGrid: HomeSectionGridViewController?
     private var heroHeight: CGFloat = 0
+    private lazy var rateFeed = RatingAsksFeed(api: api)
+    private var asks: [RatingAsk] = []
+    private var pendingRated = Set<String>()
+    private var asksTask: Task<Void, Never>?
+    private var ledgerObserver: UUID?
+    private var layoutObserver: UUID?
 
     init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
@@ -48,6 +55,13 @@ final class HomeViewController: UICollectionViewController {
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
         }
+        if let ledgerObserver {
+            Task { @MainActor in FinishedTitlesLedger.shared.removeObserver(ledgerObserver) }
+        }
+        if let layoutObserver {
+            Task { @MainActor in HomeLayout.removeObserver(layoutObserver) }
+        }
+        asksTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -73,6 +87,13 @@ final class HomeViewController: UICollectionViewController {
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
             self?.libraryVisibilityChanged()
         }
+        layoutObserver = HomeLayout.addObserver { [weak self] in
+            self?.libraryVisibilityChanged()
+        }
+        ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in
+            self?.asksChanged()
+        }
+        asks = rateFeed.current()
 
         if let preloaded {
             self.preloaded = nil
@@ -87,6 +108,7 @@ final class HomeViewController: UICollectionViewController {
         super.viewIsAppearing(animated)
         updateServerMenu()
         loadWeek()
+        loadAsks()
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
@@ -135,7 +157,7 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private static func emptyHomeConfiguration() -> UIContentUnavailableConfiguration {
-        let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized)
+        let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized, rowsAreHidden: HomeLayout.contentRowsAreOff)
         var config = UIContentUnavailableConfiguration.empty()
         config.image = UIImage(systemName: "play.rectangle")
         config.text = copy.title
@@ -160,21 +182,26 @@ final class HomeViewController: UICollectionViewController {
             snapshot.appendSections([.hero])
             snapshot.appendItems([.media(hero.id, .hero)], toSection: .hero)
         }
-        if !layout.continueRail.isEmpty {
-            snapshot.appendSections([.continueWatching])
-            snapshot.appendItems(layout.continueRail.map { .media($0.id, .continueWatching) }, toSection: .continueWatching)
-        }
-        if !layout.upNext.isEmpty {
-            snapshot.appendSections([.upNext])
-            snapshot.appendItems(layout.upNext.map { .media($0.id, .upNext) }, toSection: .upNext)
-        }
-        if layout.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false) {
-            snapshot.appendSections([.week])
-            snapshot.appendItems([.week], toSection: .week)
-        }
-        if !layout.recent.isEmpty {
-            snapshot.appendSections([.recentlyAdded])
-            snapshot.appendItems(layout.recent.map { .media($0.id, .recentlyAdded) }, toSection: .recentlyAdded)
+        for row in HomeLayout.visibleRows() {
+            switch row {
+            case .continueWatching where !layout.continueRail.isEmpty:
+                snapshot.appendSections([.continueWatching])
+                snapshot.appendItems(layout.continueRail.map { .media($0.id, .continueWatching) }, toSection: .continueWatching)
+            case .upNext where !layout.upNext.isEmpty:
+                snapshot.appendSections([.upNext])
+                snapshot.appendItems(layout.upNext.map { .media($0.id, .upNext) }, toSection: .upNext)
+            case .thisWeek where layout.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false):
+                snapshot.appendSections([.week])
+                snapshot.appendItems([.week], toSection: .week)
+            case .recentlyAdded where !layout.recent.isEmpty:
+                snapshot.appendSections([.recentlyAdded])
+                snapshot.appendItems(layout.recent.map { .media($0.id, .recentlyAdded) }, toSection: .recentlyAdded)
+            case .rateWatched where !layout.isEmpty && !visibleAsks.isEmpty:
+                snapshot.appendSections([.rateWatched])
+                snapshot.appendItems(visibleAsks.map { .rate($0.id) }, toSection: .rateWatched)
+            default:
+                break
+            }
         }
 
         let current = dataSource.snapshot()
@@ -229,7 +256,7 @@ final class HomeViewController: UICollectionViewController {
                     columns: hugeType ? 1 : nil,
                     gutter: room.gutter
                 )
-            case .upNext, .recentlyAdded:
+            case .upNext, .recentlyAdded, .rateWatched:
                 let width = room.posterRailWidth
                 return Theme.railSection(
                     width: width,
@@ -266,6 +293,12 @@ final class HomeViewController: UICollectionViewController {
             cell.contentConfiguration = HomeMediaActions.posterConfiguration(for: item, bucket: bucket)
         }
 
+        let rateReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
+            guard let ask = self?.asks.first(where: { $0.id == id }) else { return }
+            cell.contentConfiguration = RateAskActions.posterConfiguration(for: ask)
+            cell.accessibilityIdentifier = "home.rate.\(id)"
+        }
+
         let weekReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
             cell.contentConfiguration = HomeWeekConfiguration(model: self?.weekSummary?.cardModel)
         }
@@ -282,6 +315,8 @@ final class HomeViewController: UICollectionViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: landscapeReg, for: indexPath, item: id)
             case .media:
                 return collectionView.dequeueConfiguredReusableCell(using: posterReg, for: indexPath, item: item)
+            case .rate(let id):
+                return collectionView.dequeueConfiguredReusableCell(using: rateReg, for: indexPath, item: id)
             case .week:
                 return collectionView.dequeueConfiguredReusableCell(using: weekReg, for: indexPath, item: item)
             case .skeleton:
@@ -303,6 +338,8 @@ final class HomeViewController: UICollectionViewController {
                 config.title = feed.arrangement.title(for: .recentlyAdded)
                 config.actionTitle = String(localized: "See All")
                 config.onAction = { [weak self] in self?.showAll(.recentlyAdded) }
+            case .rateWatched:
+                config.title = RatingAskCopy.rowTitle
             case .skeleton, .hero, .week:
                 break
             }
@@ -517,6 +554,9 @@ final class HomeViewController: UICollectionViewController {
             case .play: play(id: id)
             case .openDetail: openDetail(id: id)
             }
+        case .rate(let id):
+            guard let ask = asks.first(where: { $0.id == id }) else { return }
+            rate(ask, source: collectionView.cellForItem(at: indexPath) ?? collectionView)
         case .week:
             navigationController?.pushViewController(StatisticsViewController(api: api), animated: true)
         case .skeleton:
@@ -529,14 +569,27 @@ final class HomeViewController: UICollectionViewController {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        guard let indexPath = indexPaths.first,
-              let item = dataSource.itemIdentifier(for: indexPath),
-              case .media(let id, _) = item,
-              let media = feed.item(id: id) else { return nil }
+        guard let indexPath = indexPaths.first, let item = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        if case .rate(let id) = item, let ask = asks.first(where: { $0.id == id }) {
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                guard let self else { return nil }
+                return RateAskActions.menu(
+                    for: ask,
+                    api: api,
+                    navigation: { [weak self] in self?.navigationController },
+                    rate: { [weak self] in
+                        guard let self else { return }
+                        rate(ask, source: collectionView.cellForItem(at: indexPath) ?? collectionView)
+                    }
+                )
+            })
+        }
+        guard case .media(let id, let bucket) = item, let media = feed.item(id: id) else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
             return HomeMediaActions.contextMenu(
                 for: media,
+                in: bucket,
                 api: api,
                 navigation: { [weak self] in self?.navigationController },
                 play: { [weak self] item in self?.play(id: item.id) },
@@ -548,6 +601,41 @@ final class HomeViewController: UICollectionViewController {
     private func media(at indexPath: IndexPath) -> PlexMetadata? {
         guard case .media(let id, _) = dataSource.itemIdentifier(for: indexPath) else { return nil }
         return feed.item(id: id)
+    }
+
+    // MARK: - Rate What You Watched
+
+    private var visibleAsks: [RatingAsk] {
+        asks.filter { !pendingRated.contains($0.id) }
+    }
+
+    private func loadAsks() {
+        asksTask?.cancel()
+        asksTask = Task { [weak self] in
+            guard let self else { return }
+            let loaded = await rateFeed.load()
+            guard !Task.isCancelled else { return }
+            adoptAsks(loaded)
+        }
+    }
+
+    private func asksChanged() {
+        adoptAsks(rateFeed.current())
+    }
+
+    private func adoptAsks(_ loaded: [RatingAsk]) {
+        pendingRated = pendingRated.filter { key in loaded.contains { $0.id == key } }
+        guard loaded != asks else { return }
+        asks = loaded
+        if !isShowingSkeleton { rebuildSnapshot(animated: true) }
+    }
+
+    private func rate(_ ask: RatingAsk, source: UIView) {
+        RateAskActions.rate(ask, api: api, from: self, source: source) { [weak self] picked in
+            guard let self else { return }
+            if picked { pendingRated.insert(ask.id) } else { pendingRated.remove(ask.id) }
+            if !isShowingSkeleton { rebuildSnapshot(animated: true) }
+        }
     }
 
     private func showAll(_ bucket: HomeBucket) {

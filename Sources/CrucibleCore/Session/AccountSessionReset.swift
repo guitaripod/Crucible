@@ -69,6 +69,9 @@ package enum AccountSessionReset {
         LibraryVisibility.forgetServerLibraries()
         Preferences.recentSearches = []
         YouConnectionStatus.shared.reset()
+        FinishedTitlesLedger.shared.reset()
+        NotificationLedger.shared.reset()
+        ShowTrackMemory.forgetAll()
         TopShelfUpdater.clear(notify: collaborators.topShelfDidChange)
     }
 }

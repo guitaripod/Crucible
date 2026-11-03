@@ -16,6 +16,9 @@ actor DemoLibrary {
     var genreIDs: [String: Int] = [:]
     var genreTitles: [String] = []
     var onDeck: [String] = []
+    var hiddenFromContinue = Set<String>()
+    var stoppedSessions = Set<String>()
+    var scans: [String: (title: String, at: Date)] = [:]
     var history: [DemoHistoryRow] = []
     var playlists: [DemoPlaylistState] = []
     var extraKeys: [String: [String]] = [:]
@@ -137,6 +140,7 @@ actor DemoLibrary {
             items[key]?.set("userRating", halfStars)
         }
         if let saved = persisted.onDeck { onDeck = saved.filter { items[$0] != nil } }
+        hiddenFromContinue = Set((persisted.hiddenFromContinue ?? []).filter { items[$0] != nil })
         var nextID = (history.map(\.id).max() ?? 0) + 1
         for play in persisted.plays where items[play.ratingKey] != nil {
             history.append(DemoHistoryRow(id: nextID, ratingKey: play.ratingKey, viewedAt: play.viewedAt))

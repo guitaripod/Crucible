@@ -86,6 +86,7 @@ package enum RatingService {
         do {
             try await api.requestConfirmed(.rate(ratingKey: ratingKey, rating: rating?.plexValue ?? UserRating.clearValue))
             await api.invalidate(ratingKey: ratingKey)
+            await MainActor.run { FinishedTitlesLedger.shared.noteRated(ratingKey, isRated: rating != nil) }
         } catch {
             MidgarLog.error("Rate ratingKey=\(ratingKey) failed: \(error.localizedDescription)", category: .networking)
             throw error

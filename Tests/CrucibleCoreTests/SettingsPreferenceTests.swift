@@ -3,6 +3,7 @@ import Testing
 @testable import CrucibleCore
 
 @Suite(.serialized)
+@MainActor
 struct SettingsPreferenceTests {
     private static let keys = [
         "skipIntroMode", "skipOutroMode", "autoplayNextEpisode", "rewindAfterBreak", "stillWatchingAfterEpisodes",
@@ -21,11 +22,13 @@ struct SettingsPreferenceTests {
         try body()
     }
 
-    @Test func titlesMatchTheRowsOnTheIPhone() {
-        #expect(PreferenceSetting.allCases.map(\.title) == [
-            "Streaming Quality", "Skip Intro", "Skip Outro", "Autoplay Next Episode", "Rewind After a Break", "Ask If Still Watching",
-            "Skip Back", "Skip Ahead", "Hold Left", "Hold Right", "Prefer Local Connection", "Allow Relay",
-        ])
+    @Test func everySettingHasATitleASymbolAndCopy() {
+        for setting in PreferenceSetting.allCases {
+            #expect(!setting.title.isEmpty)
+            #expect(!setting.symbol.isEmpty)
+        }
+        #expect(PreferenceSetting.streamingQuality.title == "Quality at Home")
+        #expect(PreferenceSetting.skipOutro.title == "Skip Credits")
     }
 
     @Test func streamingQualityOffersEveryQualityInOrderWithOneSelected() {
@@ -156,7 +159,108 @@ struct SettingsPreferenceTests {
         }
     }
 
-    @Test func onlyTheSettingsWithCopyExplainThemselves() {
-        #expect(PreferenceSetting.allCases.filter { $0.explanation != nil } == [.skipIntro, .skipOutro, .rewindAfterBreak, .stillWatching, .skipBack, .skipForward, .holdLeft, .holdRight])
+    @Test func everySettingExplainsItself() {
+        #expect(PreferenceSetting.allCases.allSatisfy { $0.explanation?.isEmpty == false })
+    }
+}
+
+@Suite(.serialized)
+@MainActor
+struct SettingsCatalogTests {
+    private static let keys = [
+        "streamingQuality", "streamingQuality.remote", "streamingQuality.cellular", "subtitles.size", "upNext.countdown",
+        "notify.ratingReminders", "autoplayNextEpisode",
+    ]
+
+    private func isolated(_ body: () throws -> Void) rethrows {
+        let defaults = UserDefaults.standard
+        let previous = Self.keys.map { ($0, defaults.object(forKey: $0)) }
+        defer {
+            for (key, value) in previous {
+                if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }
+            }
+        }
+        for key in Self.keys { defaults.removeObject(forKey: key) }
+        try body()
+    }
+
+    @Test func eachPlatformGetsItsOwnCategoriesAndEveryEntryOnce() {
+        let phone = SettingsCatalog.entries(on: .phone)
+        let tv = SettingsCatalog.entries(on: .tv)
+        #expect(Set(phone.map(\.id)).count == phone.count)
+        #expect(Set(tv.map(\.id)).count == tv.count)
+        #expect(SettingsCatalog.categories(on: .phone).contains(.notifications))
+        #expect(!SettingsCatalog.categories(on: .tv).contains(.notifications))
+        #expect(!SettingsCatalog.categories(on: .tv).contains(.downloads))
+        #expect(tv.contains { $0.item == .preference(.holdLeft) })
+        #expect(!phone.contains { $0.item == .preference(.holdLeft) })
+        #expect(!tv.contains { $0.item == .preference(.cellularQuality) })
+    }
+
+    @Test func sectionsKeepTheirOrderAndGroupTheirRows() {
+        let sections = SettingsCatalog.sections(of: .playback, on: .phone)
+        #expect(sections.map(\.title) == ["Streaming Quality", "Up Next", "Skipping", "Subtitles"])
+        #expect(sections.first?.entries.map(\.item) == [.preference(.streamingQuality), .preference(.remoteQuality), .preference(.cellularQuality)])
+    }
+
+    @Test func searchFindsSettingsByTitleKeywordAndExplanationBestFirst() {
+        #expect(SettingsCatalog.search("subtitle", on: .phone).first?.item == .preference(.subtitleSize))
+        #expect(SettingsCatalog.search("captions", on: .phone).first?.item == .preference(.subtitleSize))
+        #expect(SettingsCatalog.search("dark", on: .phone).first?.item == .preference(.appearance))
+        #expect(SettingsCatalog.search("4k", on: .tv).contains { $0.item == .preference(.streamingQuality) })
+        #expect(SettingsCatalog.search("cellular quality", on: .phone).first?.item == .preference(.cellularQuality))
+        #expect(SettingsCatalog.search("dark", on: .tv).isEmpty)
+        #expect(SettingsCatalog.search("   ", on: .phone).isEmpty)
+        #expect(SettingsCatalog.search("zzzz", on: .phone).isEmpty)
+        #expect(SettingsCatalog.search("intrö", on: .phone).first?.item == .preference(.skipIntro))
+    }
+
+    @Test func awayAndCellularQualityFollowTheOnesAboveUntilSet() throws {
+        try isolated {
+            Preferences.streamingQuality = .medium
+            #expect(QualityPolicy.quality(route: .local, isCellular: false) == .medium)
+            #expect(QualityPolicy.quality(route: .remote, isCellular: false) == .medium)
+            #expect(QualityPolicy.quality(route: .local, isCellular: true) == .medium)
+            let away = try #require(PreferenceSetting.remoteQuality.choices.first { $0.id == Preferences.Quality.low.rawValue })
+            PreferenceSetting.remoteQuality.select(away)
+            #expect(QualityPolicy.quality(route: .relay, isCellular: false) == .low)
+            #expect(QualityPolicy.quality(route: .local, isCellular: true) == .low)
+            #expect(QualityPolicy.quality(route: .local, isCellular: false) == .medium)
+            #expect(PreferenceSetting.remoteQuality.isChanged)
+            PreferenceSetting.remoteQuality.restoreDefault()
+            #expect(Preferences.remoteQuality == nil)
+            #expect(PreferenceSetting.remoteQuality.valueLabel == "Same as at Home")
+        }
+    }
+
+    @Test func choicesWriteThroughAndAnnounceTheChange() throws {
+        try isolated {
+            var changed = [PreferenceSetting]()
+            PreferenceSetting.didChange = { changed.append($0) }
+            defer { PreferenceSetting.didChange = nil }
+            let fifteen = try #require(PreferenceSetting.upNextCountdown.choices.first { $0.id == 15 })
+            PreferenceSetting.upNextCountdown.select(fifteen)
+            #expect(UpNextOffer.countdownSeconds == 15)
+            PreferenceSetting.subtitleSize.select(SettingChoice(id: SubtitleSize.large.rawValue, title: "", isSelected: false))
+            #expect(Preferences.subtitleSize == .large)
+            PreferenceSetting.notifyRatingReminders.setOn(false)
+            #expect(!Preferences.notifies(.ratingReminders))
+            PreferenceSetting.upNextCountdown.select(SettingChoice(id: 7, title: "", isSelected: false))
+            #expect(Preferences.upNextCountdown == 15)
+            #expect(changed == [.upNextCountdown, .subtitleSize, .notifyRatingReminders])
+        }
+    }
+
+    @Test func restoringDefaultsResetsEveryChangedSettingOfACategory() throws {
+        try isolated {
+            PreferenceSetting.autoplayNextEpisode.setOn(false)
+            PreferenceSetting.subtitleSize.select(SettingChoice(id: SubtitleSize.small.rawValue, title: "", isSelected: false))
+            for setting in SettingsCatalog.preferences(in: .playback, on: .phone) where setting.isChanged {
+                setting.restoreDefault()
+            }
+            #expect(Preferences.autoplayNextEpisode)
+            #expect(Preferences.subtitleSize == .standard)
+            #expect(!SettingsCatalog.preferences(in: .playback, on: .phone).contains { $0.isChanged })
+        }
     }
 }

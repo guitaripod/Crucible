@@ -139,12 +139,14 @@ final class YouViewController: UICollectionViewController {
             case .history:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "clock", title: String(localized: "Watch History"), subtitle: historySubtitle)
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.history"
             case .statistics:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "chart.bar", title: String(localized: "Statistics"))
                 cell.accessories = [.disclosureIndicator()]
             case .settings:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "gearshape", title: String(localized: "Settings"))
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.settings"
             case .server:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "server.rack", title: String(localized: "Server & Connection"), value: YouConnectionStatus.shared.state.routeSummary)
                 cell.accessories = [.disclosureIndicator()]

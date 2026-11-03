@@ -143,9 +143,11 @@ enum Probes {
             reason: .credits,
             autoplays: true
         )
-        let request = offer.nextRequest(showRatingKey: Fixtures.showKey, selectedSubtitleId: 13, selectedAudioStreamId: 11)
-        if request.selectedSubtitleId != 13 { return "lost the subtitle pick" }
-        if request.selectedAudioStreamId != 11 { return "lost the audio pick" }
+        let languages = TrackLanguages(audio: .init(language: "jpn"), subtitle: .init(language: "eng", forced: true))
+        let request = offer.nextRequest(showRatingKey: Fixtures.showKey, trackLanguages: languages)
+        if request.trackLanguages?.subtitle != languages.subtitle { return "lost the subtitle pick" }
+        if request.trackLanguages?.audio != languages.audio { return "lost the audio pick" }
+        if request.selectedSubtitleId != nil || request.selectedAudioStreamId != nil { return "carried another file's stream ids" }
         return nil
     }
 

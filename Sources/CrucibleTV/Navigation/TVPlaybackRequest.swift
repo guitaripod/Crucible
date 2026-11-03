@@ -11,6 +11,7 @@ struct TVPlaybackRequest: Sendable, Equatable {
         let episodeNumber: Int?
         let posterPath: String?
         let durationSeconds: Double?
+        var showPosterPath: String? = nil
     }
 
     let ratingKey: String
@@ -69,7 +70,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
                 seasonNumber: item.parentIndex,
                 episodeNumber: item.index,
                 posterPath: item.thumb ?? item.grandparentThumb,
-                durationSeconds: item.durationSecs
+                durationSeconds: item.durationSecs,
+                showPosterPath: item.grandparentThumb
             ),
             queue: queue
         )

@@ -94,7 +94,8 @@ extension TVPlaybackRequest {
                     seasonNumber: $0.seasonNumber,
                     episodeNumber: $0.episodeNumber,
                     posterPath: $0.posterPath,
-                    duration: $0.durationSeconds
+                    duration: $0.durationSeconds,
+                    showPosterPath: $0.showPosterPath
                 )
             },
             selectedSubtitleId: selectedSubtitleStreamID,

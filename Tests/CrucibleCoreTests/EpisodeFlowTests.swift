@@ -105,11 +105,14 @@ struct EpisodeFlowTests {
 
     // MARK: - What the next episode carries
 
-    @Test func theNextEpisodeKeepsTheStreamsTheViewerChose() {
+    @Test func theNextEpisodeKeepsTheLanguagesTheViewerChoseButNotTheOtherFilesIds() {
         let offer = UpNextOffer(episode: episode(2), seasonRatingKey: "s1", reason: .credits, autoplays: true)
-        let request = offer.nextRequest(showRatingKey: "100", selectedSubtitleId: 13, selectedAudioStreamId: 11)
-        #expect(request.selectedSubtitleId == 13)
-        #expect(request.selectedAudioStreamId == 11)
+        let languages = TrackLanguages(audio: .init(language: "jpn"), subtitle: .init(language: "eng"))
+        let request = offer.nextRequest(showRatingKey: "100", trackLanguages: languages)
+        #expect(request.trackLanguages == languages)
+        #expect(request.selectedSubtitleId == nil)
+        #expect(request.selectedAudioStreamId == nil)
+        #expect(request.resuming(at: 30).trackLanguages == languages)
     }
 
     @Test func aDownloadedNextEpisodeResumesWhereTheDownloadWasLeft() {

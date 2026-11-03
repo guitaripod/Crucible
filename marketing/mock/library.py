@@ -15,7 +15,7 @@ SECTIONS = {
 GENRES = ["Action", "Adventure", "Animation", "Comedy", "Documentary", "Drama", "Mystery", "Sci-Fi", "Thriller"]
 GENRE_ID = {g: str(i + 1) for i, g in enumerate(GENRES)}
 
-MACHINE_ID = "7c1e5d2a9b304f68a1d7e3c05b92f4a8"
+MACHINE_ID = "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b"
 SERVER_NAME = "Marcus-PC"
 CLIP_DURATION_MS = 150000
 CLIP_CREDITS_START_MS = 110000
@@ -328,6 +328,7 @@ class Library:
         self.movies = []
         self.shows = []
         self.on_deck = []
+        self.hidden_continue = set()
         self.history = []
         self.actors = {}
         self._next = {"movie": 1001, "show": 2001, "season": 3001, "episode": 4001}
@@ -677,6 +678,22 @@ class Library:
             out["composite"] = members[0]["thumb"]
         return out
 
+    def deck_keys(self):
+        return [r for r in self.on_deck if not self.items[r].get("viewCount") and r not in self.hidden_continue]
+
+    def remove_from_continue(self, rk):
+        it = self.items.get(rk)
+        if not it:
+            return False
+        if it["type"] == "show":
+            keys = [e["ratingKey"] for s in it["_seasons"] for e in s["_episodes"]]
+        elif it["type"] == "season":
+            keys = [e["ratingKey"] for e in it["_episodes"]]
+        else:
+            keys = [rk]
+        self.hidden_continue.update(keys)
+        return True
+
     def _build_on_deck(self):
         self.on_deck = [self._find("Northbound", 1, 6)["ratingKey"], self._find("Meridian", 4, 2)["ratingKey"],
                         self._find("Ironwood", 3, 2)["ratingKey"], self._find("Paper Lanterns", 1, 4)["ratingKey"]]
@@ -698,6 +715,12 @@ class Library:
             out["Extras"] = {"size": len(clips), "Metadata": clips}
         if full and it["_kind"] == "movie" and self.collection_tags(it["ratingKey"]):
             out["Collection"] = self.collection_tags(it["ratingKey"])
+        if full and it["_kind"] == "movie" and it["ratingKey"] == "1001":
+            duration = it.get("duration", 0)
+            names = ["Arrival", "The Long Night", "Signal", "Homecoming"]
+            out["Chapter"] = [{"id": 900 + n, "index": n + 1, "tag": name, "thumb": it.get("thumb"),
+                               "startTimeOffset": duration * n // len(names), "endTimeOffset": duration * (n + 1) // len(names)}
+                              for n, name in enumerate(names)]
         if it["_kind"] in ("movie", "show") or full:
             if it.get("_genres"):
                 out["Genre"] = [{"id": int(GENRE_ID[g]), "tag": g} for g in it["_genres"]]
@@ -725,7 +748,8 @@ class Library:
 
     def continue_watching(self):
         items = [i for i in self.items.values()
-                 if i["type"] in ("movie", "episode") and i.get("viewOffset", 0) > 0 and not i.get("viewCount")]
+                 if i["type"] in ("movie", "episode") and i.get("viewOffset", 0) > 0 and not i.get("viewCount")
+                 and i["ratingKey"] not in self.hidden_continue]
         items.sort(key=lambda i: -i.get("lastViewedAt", 0))
         return items
 
@@ -758,6 +782,7 @@ class Library:
         if not it or it["type"] not in ("movie", "episode"):
             return
         it["lastViewedAt"] = int(time.time())
+        self.hidden_continue.discard(rk)
         if state == "stopped" and duration_ms and time_ms >= duration_ms * 0.92:
             self.mark_watched(rk, True)
         elif time_ms > 0:

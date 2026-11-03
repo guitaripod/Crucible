@@ -489,11 +489,11 @@ final class DetailTests: TVTestCase {
         let prompt = XCUIApplication(bundleIdentifier: "com.apple.PineBoard").buttons["Open"]
         let deadline = Date().addingTimeInterval(40)
         while Date() < deadline {
-            if prompt.exists {
+            if detailHasArrived(app) { break }
+            if prompt.exists, prompt.hasFocus {
                 TVTest.remote.press(.select)
                 break
             }
-            if detailHasArrived(app) { break }
             TVTest.settle(0.5)
         }
         TVTest.settle(0.5)

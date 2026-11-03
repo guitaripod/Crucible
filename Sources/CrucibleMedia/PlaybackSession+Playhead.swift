@@ -293,7 +293,10 @@ extension PlaybackSession {
     func loadUpNext(reason: UpNextOffer.Reason) {
         guard !isStopped else { return }
         guard upNext.canOfferNext else {
-            if reason == .playbackEnded { emit(.finished(.standalone)) }
+            if reason == .playbackEnded {
+                emit(.finished(.standalone))
+                if sleepTimer?.stopsAtEndOfItem == true { sleepTimer = nil }
+            }
             return
         }
         guard upNextGate.begin(reason) else { return }
@@ -302,32 +305,38 @@ extension PlaybackSession {
         upNextTask = Task { [weak self] in
             guard let self else { return }
             defer { if !Task.isCancelled { upNextGate.end(reason) } }
-            let offer = await Self.lookUpOffer(resolver: resolver, api: api, reason: reason)
+            let lookup = await Self.lookUpOffer(resolver: resolver, api: api, reason: reason)
             guard !Task.isCancelled else { return }
-            if let offer {
-                emit(.upNext(offer))
-            } else if reason == .playbackEnded {
-                emit(.finished(.noNextEpisode))
+            switch lookup {
+            case .offer(let offer):
+                upNextOutcome = .offer(offer)
+                emit(.upNext(sleepTimer?.stopsAtEndOfItem == true ? offer.withoutAutoplay() : offer))
+            case .nothingNext:
+                upNextOutcome = .nothingNext
+                if reason == .playbackEnded { emit(.finished(.noNextEpisode)) }
+            case .failed:
+                if reason == .playbackEnded { emit(.finished(.noNextEpisode)) }
             }
+            if reason == .playbackEnded, sleepTimer?.stopsAtEndOfItem == true { fallAsleep() }
         }
     }
 
     /// Asks for the next episode, trying once more when the request fails: the credits are a short window
     /// and one dropped request there means no card at all, not a card a moment later.
-    private static func lookUpOffer(resolver: UpNextResolver, api: APIClient, reason: UpNextOffer.Reason) async -> UpNextOffer? {
+    private static func lookUpOffer(resolver: UpNextResolver, api: APIClient, reason: UpNextOffer.Reason) async -> UpNextLookup {
         for attempt in 0..<2 {
             if attempt > 0 {
                 MidgarLog.notice("Up Next lookup failed; trying once more", category: .playback)
                 try? await Task.sleep(for: .seconds(2))
-                guard !Task.isCancelled else { return nil }
+                guard !Task.isCancelled else { return .failed }
             }
             do {
-                return try await resolver.loadOffer(api: api, reason: reason)
+                return try await resolver.loadOffer(api: api, reason: reason).map(UpNextLookup.offer) ?? .nothingNext
             } catch {
                 MidgarLog.error("Up Next lookup failed: \(error.localizedDescription)", category: .playback)
             }
         }
-        return nil
+        return .failed
     }
 
     func configureRemoteCommands() {
@@ -384,4 +393,11 @@ extension PlaybackSession {
             }
         }
     }
+}
+
+/// What looking for the next episode found: one to offer, none at all, or no answer from the server.
+enum UpNextLookup {
+    case offer(UpNextOffer)
+    case nothingNext
+    case failed
 }

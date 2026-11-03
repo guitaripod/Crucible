@@ -124,6 +124,6 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
         guard let indexPath = indexPaths.first, let media = media(at: indexPath) else { return nil }
-        return TVContextMenu.configuration(menu: actions.menu(for: media, from: self))
+        return TVContextMenu.configuration(menu: actions.menu(for: media, in: bucket, from: self))
     }
 }

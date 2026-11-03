@@ -142,7 +142,7 @@ extension DemoLibrary {
             (episode, "Idris", "Office", "Plex Web", "paused", true),
         ]
         let sessions = specs.compactMap { spec -> DemoJSON? in
-            guard let key = spec.key, var json = render(key) else { return nil }
+            guard let key = spec.key, !stoppedSessions.contains("demo-\(key)"), var json = render(key) else { return nil }
             json["viewOffset"] = (items[key]?.durationMs ?? 0) / 3
             json["User"] = ["id": "2", "title": spec.user]
             json["Player"] = ["title": spec.device, "product": spec.product, "state": spec.state, "local": true]

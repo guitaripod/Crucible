@@ -33,6 +33,13 @@ package enum ServerActivity {
         }
     }
 
+    /// The id the server stops a stream by, when the viewer owns the server and the row carries one.
+    @MainActor
+    package static func stoppableSessionID(_ session: PlexMetadata) -> String? {
+        guard ServerOwnership.isOwner(), let id = session.playbackSession?.id, !id.isEmpty else { return nil }
+        return id
+    }
+
     package static let title = String(localized: "Server Activity", comment: "Name of the screen that lists what is playing on the server")
     package static let emptyTitle = String(localized: "Nothing Playing", comment: "Title of the Server Activity screen when nobody is watching")
     package static let emptyText = String(localized: "When anyone watches something on your server, it appears here.", comment: "Message of the Server Activity screen when nobody is watching")

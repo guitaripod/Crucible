@@ -15,6 +15,9 @@ final class TVYouViewController: TVSettingsScaffold {
         static let statistics = "you.statistics"
         static let pro = "you.pro"
         static let playback = "you.playback"
+        static let remote = "you.remote"
+        static let homeRows = "you.homeRows"
+        static let privacy = "you.privacy"
         static let libraries = "you.libraries"
         static let server = "you.server"
         static let diagnostics = "you.diagnostics"
@@ -89,6 +92,9 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.statistics: push(TVScreens.statistics(env))
         case RowID.pro: openPro()
         case RowID.playback: push(TVScreens.settings(env, page: .playback))
+        case RowID.remote: push(TVScreens.settings(env, page: .remote))
+        case RowID.homeRows: push(TVScreens.settings(env, page: .homeRows))
+        case RowID.privacy: push(TVScreens.settings(env, page: .privacy))
         case RowID.libraries: push(TVScreens.settings(env, page: .libraries))
         case RowID.server: push(TVScreens.settings(env, page: .server))
         case RowID.diagnostics: push(TVScreens.settings(env, page: .diagnostics))
@@ -184,9 +190,12 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
             TVRowItem(id: RowID.watchlist, title: WatchlistService.title, symbol: "bookmark", accessory: .chevron),
             TVRowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
-            TVRowItem(id: RowID.playback, title: String(localized: "Playback"), symbol: "play.rectangle", accessory: .chevron),
+            TVRowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .tv), value: SettingsCatalog.summary(of: .playback, on: .tv), symbol: SettingsCategory.playback.symbol, accessory: .chevron),
+            TVRowItem(id: RowID.remote, title: SettingsCategory.controls.title(on: .tv), symbol: "appletvremote.gen4", accessory: .chevron),
+            TVRowItem(id: RowID.homeRows, title: SettingsCatalog.title(.homeRows), value: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows"), symbol: SettingsCatalog.symbol(.homeRows), accessory: .chevron),
             TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
+            TVRowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .tv), value: SettingsCatalog.summary(of: .privacy, on: .tv), symbol: SettingsCategory.privacy.symbol, accessory: .chevron),
             TVRowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
             TVRowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
             signOutRow(inDemo: inDemo),

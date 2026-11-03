@@ -69,6 +69,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isRevealing = false
     var isUpNextCardVisible = false
     var unattendedEpisodes = 0
+    /// A timed sleep timer that outlives one session, so it keeps counting into the next episode.
+    var carriedSleepTimer: SleepTimer?
     var viewerActedThisEpisode = true
     #if DEBUG
     var didSimulateSleep = false
@@ -109,6 +111,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         isAdvancing = false
         let session = PlaybackSession(api: api, request: request, installsRemoteCommands: false)
         session.configureItem = { [weak self] item in self?.configure(item: item) }
+        session.adoptSleepTimer(carriedSleepTimer)
         self.session = session
         if preroll?.presentingViewController == nil { showPreroll() }
         loadInfo()
@@ -275,6 +278,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         case .finished:
             finishedAnItem = true
             Task { await finish(animated: true) }
+        case .sleepTimerFired:
+            carriedSleepTimer = nil
+            refreshTrackMenus()
         }
     }
 
@@ -348,6 +354,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// Ends the current session without leaving the player and starts `request` in its place.
     func restartSession() {
         let old = session
+        carriedSleepTimer = old?.sleepTimer
         resetPresentationState()
         let stop = Task { _ = await old?.stop() }
         stopTask = stop
@@ -370,8 +377,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         isUpNextCardVisible = false
         request = offer.nextRequest(
             showRatingKey: request.showRatingKey,
-            selectedSubtitleId: session?.selectedSubtitleId,
-            selectedAudioStreamId: session?.selectedAudioStreamId
+            trackLanguages: session?.trackLanguages
         )
         restartSession()
     }

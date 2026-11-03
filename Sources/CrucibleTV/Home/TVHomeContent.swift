@@ -7,13 +7,14 @@ enum TVHomeSection: Hashable {
     case upNext
     case week
     case recentlyAdded
+    case rateWatched
 
     var bucket: HomeBucket? {
         switch self {
         case .continueWatching: .continueWatching
         case .upNext: .upNext
         case .recentlyAdded: .recentlyAdded
-        case .hero, .week: nil
+        case .hero, .week, .rateWatched: nil
         }
     }
 }
@@ -21,6 +22,7 @@ enum TVHomeSection: Hashable {
 enum TVHomeItem: Hashable {
     case hero
     case card(String, HomeBucket)
+    case rate(String)
     case week
     case surprise
 }
@@ -46,6 +48,17 @@ enum TVHomeContent {
             progress: model.progress,
             isUnwatched: model.isUnwatched,
             placeholderSymbol: model.usesSeriesPlaceholder ? "tv" : "film"
+        )
+    }
+
+    static func card(for ask: RatingAsk, now: Date = Date()) -> TVCardItem {
+        TVCardItem(
+            id: ask.id,
+            artworkPath: ask.posterPath,
+            title: ask.title,
+            subtitle: ask.caption(now: now),
+            placeholderSymbol: ask.isShow ? "tv" : "film",
+            accessibilityHint: UserRatingCopy.rate
         )
     }
 

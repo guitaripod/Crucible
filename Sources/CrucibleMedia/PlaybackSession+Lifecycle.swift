@@ -155,6 +155,55 @@ extension PlaybackSession {
     private func beat() {
         guard !isStopped, !noticeAbsence(trigger: "heartbeat") else { return }
         positionAtLastBeat = bestKnownPosition
+        checkSleepTimer()
+    }
+
+    /// Sets the sleep timer, or cancels it with nil. A timer that stops at the end keeps the next episode from starting on
+    /// its own; a timed one fades the sound out over its last seconds.
+    package func setSleepTimer(_ choice: SleepTimerChoice?) {
+        restoreVolumeAfterFade()
+        sleepTimer = choice.map { SleepTimer(choice: $0, now: wallClock()) }
+        MidgarLog.notice("Sleep timer \(choice.map { "\($0)" } ?? "off") ratingKey=\(request.ratingKey)", category: .playback)
+    }
+
+    /// Carries a timed sleep timer over to the next episode's session; one that stops at the end of an episode ends with it.
+    package func continueSleepTimer(from previous: PlaybackSession) {
+        adoptSleepTimer(previous.sleepTimer)
+    }
+
+    package func adoptSleepTimer(_ timer: SleepTimer?) {
+        guard let timer, !timer.stopsAtEndOfItem else { return }
+        sleepTimer = timer
+    }
+
+    private func checkSleepTimer() {
+        guard let timer = sleepTimer, let player, player.rate > 0 else { return }
+        let now = wallClock()
+        if timer.isDue(now: now) {
+            fallAsleep()
+        } else if timer.startsFading(now: now), let remaining = timer.remaining(now: now) {
+            if volumeBeforeFade == nil { volumeBeforeFade = player.volume }
+            player.volume = (volumeBeforeFade ?? 1) * Float(remaining / SleepTimer.fadeSeconds)
+        }
+    }
+
+    /// Pauses for the sleep timer and puts the volume back for whenever the viewer plays again.
+    func fallAsleep() {
+        sleepTimer = nil
+        player?.pause()
+        restoreVolumeAfterFade()
+        MidgarLog.notice("Sleep timer paused playback ratingKey=\(request.ratingKey) position=\(Int(bestKnownPosition))", category: .playback)
+        emit(.sleepTimerFired)
+    }
+
+    private func restoreVolumeAfterFade() {
+        guard let volume = volumeBeforeFade else { return }
+        player?.volume = volume
+        volumeBeforeFade = nil
+    }
+
+    private func wallClock() -> Date {
+        Date()
     }
 
     /// Checks for an absence before anything acts on the player: a callback that runs right after the device

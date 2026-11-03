@@ -119,7 +119,7 @@ struct PlaybackRulesTests {
         #expect(request.selectedSubtitleId == 7)
         #expect(request.selectedAudioStreamId == nil)
         #expect(request.durationSecs == 2_700)
-        #expect(request.metadata == PlaybackMetadata(title: "Low Tide", showName: "The Show", seasonNumber: 2, episodeNumber: 4, posterPath: "/show/thumb", duration: 2_700))
+        #expect(request.metadata == PlaybackMetadata(title: "Low Tide", showName: "The Show", seasonNumber: 2, episodeNumber: 4, posterPath: "/show/thumb", duration: 2_700, showPosterPath: "/show/thumb"))
         #expect(PlaybackRequest(item: item, resumePosition: 0).transcodeStartSecs == nil)
     }
 

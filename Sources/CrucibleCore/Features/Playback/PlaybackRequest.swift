@@ -8,6 +8,8 @@ package struct PlaybackMetadata: Sendable, Equatable {
     package let episodeNumber: Int?
     package let posterPath: String?
     package let duration: Double?
+    /// The show's own poster for an episode, which is what asking to rate the show shows.
+    package let showPosterPath: String?
 
     package init(
         title: String,
@@ -15,7 +17,8 @@ package struct PlaybackMetadata: Sendable, Equatable {
         seasonNumber: Int?,
         episodeNumber: Int?,
         posterPath: String?,
-        duration: Double?
+        duration: Double?,
+        showPosterPath: String? = nil
     ) {
         self.title = title
         self.showName = showName
@@ -23,6 +26,7 @@ package struct PlaybackMetadata: Sendable, Equatable {
         self.episodeNumber = episodeNumber
         self.posterPath = posterPath
         self.duration = duration
+        self.showPosterPath = showPosterPath
     }
 
     package init(item: PlexMetadata) {
@@ -32,7 +36,8 @@ package struct PlaybackMetadata: Sendable, Equatable {
             seasonNumber: item.parentIndex,
             episodeNumber: item.index,
             posterPath: item.thumb ?? item.grandparentThumb,
-            duration: item.durationSecs
+            duration: item.durationSecs,
+            showPosterPath: item.grandparentThumb
         )
     }
 }
@@ -64,6 +69,8 @@ package struct PlaybackRequest: Sendable {
     package let metadata: PlaybackMetadata?
     package let selectedSubtitleId: Int?
     package let selectedAudioStreamId: Int?
+    /// The languages to start in when no stream is chosen by id: the ones the viewer had on the episode before.
+    package let trackLanguages: TrackLanguages?
     package let offline: OfflinePlaybackSource?
     package let queue: PlaybackQueue?
 
@@ -76,9 +83,11 @@ package struct PlaybackRequest: Sendable {
         metadata: PlaybackMetadata? = nil,
         selectedSubtitleId: Int? = nil,
         selectedAudioStreamId: Int? = nil,
+        trackLanguages: TrackLanguages? = nil,
         offline: OfflinePlaybackSource? = nil,
         queue: PlaybackQueue? = nil
     ) {
+        self.trackLanguages = trackLanguages
         self.ratingKey = ratingKey
         self.mediaType = mediaType
         self.showRatingKey = showRatingKey
@@ -133,6 +142,7 @@ package struct PlaybackRequest: Sendable {
             metadata: metadata,
             selectedSubtitleId: selectedSubtitleId ?? self.selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId ?? self.selectedAudioStreamId,
+            trackLanguages: trackLanguages,
             offline: offline,
             queue: queue
         )
