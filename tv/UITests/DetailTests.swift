@@ -34,6 +34,56 @@ final class DetailTests: TVTestCase {
         capture("07-back-at-top")
     }
 
+    func testRatingAMovieWithTheRemote() {
+        let app = openDetail(Self.halcyon, type: "movie", style: "dark")
+        let rate = app.buttons["detail.action.rate"]
+        TVTest.remote.press(.right)
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.rate"), "focus never reached the Rate button")
+        XCTAssertEqual(rate.label, "Rate")
+        capture("01-rate-focused")
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "rating.segment.8"), "the panel must start on four stars for an unrated title")
+        XCTAssertFalse(app.buttons["rating.clear"].isHittable, "an unrated title has nothing to clear")
+        TVTest.settle(0.8)
+        capture("02-panel-opened")
+
+        TVTest.remote.press(.left)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "rating.segment.7"), "Left must step back one half star")
+        XCTAssertEqual(app.staticTexts["rating.value"].label, "3.5 / 5")
+        TVTest.settle(0.5)
+        capture("03-half-star-previewed")
+
+        TVTest.remote.press(.select)
+        waitForLabel(rate, "Your rating, 3.5 out of 5 stars")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.rate"), "closing the panel must return focus to Rate")
+        TVTest.settle(0.8)
+        capture("04-rated")
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "rating.segment.7"), "the panel must reopen on the title's rating")
+        TVTest.remote.press(.down)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "rating.clear"), "a rated title offers Clear Rating below the stars")
+        capture("05-clear-focused")
+        TVTest.remote.press(.select)
+        waitForLabel(rate, "Rate")
+        TVTest.settle(0.8)
+        capture("06-cleared")
+    }
+
+    func testMenuClosesTheRatingPanelWithoutRating() {
+        let app = openDetail(Self.halcyon, type: "movie", style: "dark")
+        TVTest.remote.press(.right)
+        TVTest.remote.press(.right)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "rating.segment.8"))
+        TVTest.remote.press(.right)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.rate"), "Menu must close the panel")
+        XCTAssertEqual(app.buttons["detail.action.rate"].label, "Rate")
+    }
+
     func testMoreOpensTheFullSynopsis() {
         let app = openDetail("9407", type: "movie", style: "dark")
         capture("01-long-synopsis-truncated")
@@ -98,6 +148,8 @@ final class DetailTests: TVTestCase {
 
         TVTest.remote.press(.right)
         TVTest.remote.press(.right)
+        TVTest.remote.press(.right)
+        TVTest.remote.press(.right)
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.audio"))
         capture("03-audio-focused")
         TVTest.remote.press(.select)
@@ -132,7 +184,7 @@ final class DetailTests: TVTestCase {
     func testEpisodeDetailAndNavigation() {
         let app = openDetail(Self.saltRoadEpisode, type: "episode", style: "dark", spy: true)
         capture("01-episode-primary-focused")
-        for identifier in ["startOver", "watched", "audio", "subtitles", "goToShow", "nextEpisode"] {
+        for identifier in ["startOver", "watched", "rate", "playlist", "audio", "subtitles", "goToShow", "nextEpisode"] {
             TVTest.remote.press(.right)
             XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "detail.action.\(identifier)"), identifier)
         }

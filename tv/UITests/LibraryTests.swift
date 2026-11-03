@@ -87,7 +87,7 @@ final class LibraryTests: TVTestCase {
             XCTAssertTrue(landed.hasPrefix(Self.recentPrefix) || landed.hasPrefix(Self.mediaPrefix), "Down from \(identifier) should leave the header, got \(landed)")
             TVTest.remote.press(.up)
             TVTest.settle(0.8)
-            XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.chip.") || focusedIdentifier(app).hasPrefix("tv.library.genre") || focusedIdentifier(app).hasPrefix("tv.library.sort") || focusedIdentifier(app).hasPrefix("tv.library.folders"), "Up should return to the header, got \(focusedIdentifier(app))")
+            XCTAssertTrue(focusedIdentifier(app).hasPrefix("tv.chip.") || focusedIdentifier(app).hasPrefix("tv.library.genre") || focusedIdentifier(app).hasPrefix("tv.library.sort") || focusedIdentifier(app).hasPrefix("tv.library.collections") || focusedIdentifier(app).hasPrefix("tv.library.folders"), "Up should return to the header, got \(focusedIdentifier(app))")
         }
 
         step(app, .right, until: "tv.chip.unwatched", limit: 8)

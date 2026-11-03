@@ -35,9 +35,13 @@ package struct MovieDetailModel: Sendable {
         seasonRatingKey ?? item.parentRatingKey
     }
 
-    /// Episodes link to their show and, within a season, to the next episode.
+    package var collectionNames: [String] {
+        item.collectionNames
+    }
+
+    /// Episodes link to their show and, within a season, to the next episode; a title in collections links to each of them.
     package var hasLinks: Bool {
-        isEpisode && (showKey != nil || seasonKey != nil)
+        (isEpisode && (showKey != nil || seasonKey != nil)) || !collectionNames.isEmpty
     }
 
     package var showRoute: DetailRoute? {
@@ -62,6 +66,10 @@ package struct MovieDetailModel: Sendable {
 
     package var watchedToggleTitle: String {
         WatchedService.title(isWatched: item.isWatched)
+    }
+
+    package var userRating: UserRating? {
+        UserRating(plexValue: item.userRating)
     }
 
     /// The position playback starts from: the beginning for an episode already watched, otherwise the
@@ -234,6 +242,7 @@ package struct MovieDetailModel: Sendable {
             guard let value, !value.isEmpty else { return }
             facts.append(DetailFact(key: key, value: value))
         }
+        add(UserRatingCopy.title, userRating.map(UserRatingCopy.detail))
         let directors = item.directors.prefix(Self.crewLimit)
         add(directors.count > 1 ? String(localized: "Directors") : String(localized: "Director", comment: "Crew role label for a film or episode director"), directors.isEmpty ? nil : directors.joined(separator: ", "))
         let writers = item.writers.prefix(Self.crewLimit)

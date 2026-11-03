@@ -14,11 +14,15 @@ package struct DetailRelatedCard: Equatable, Sendable {
 
     package init(item: PlexMetadata) {
         id = item.id
-        posterPath = item.posterPath ?? item.grandparentThumb
+        let isEpisode = item.mediaType == "episode"
+        posterPath = isEpisode ? (item.grandparentThumb ?? item.posterPath) : (item.posterPath ?? item.grandparentThumb)
         title = item.title
         isShow = item.mediaType == "show"
         if isShow, let count = item.childCount, count > 0 {
             subtitle = count == 1 ? String(localized: "1 season") : String(localized: "\(count) seasons")
+        } else if isEpisode {
+            let parts = [item.grandparentTitle, DetailFormat.episodeCode(season: item.parentIndex, episode: item.index)].compactMap { $0 }
+            subtitle = parts.isEmpty ? nil : parts.joined(separator: " · ")
         } else {
             subtitle = item.year.map(String.init)
         }

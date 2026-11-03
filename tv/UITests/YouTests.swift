@@ -21,9 +21,10 @@ enum YouNavigation {
     }
 
     /// Presses Down until the row with `identifier` has focus (at most `limit` presses).
-    static func moveFocus(_ app: XCUIApplication, to identifier: String, limit: Int = 12) {
+    static func moveFocus(_ app: XCUIApplication, to identifier: String, limit: Int = 16) {
         for _ in 0..<limit {
-            if row(app, identifier).hasFocus { return }
+            let target = row(app, identifier)
+            if target.exists, target.hasFocus { return }
             TVTest.remote.press(.down)
             TVTest.settle(0.3)
         }
@@ -31,9 +32,10 @@ enum YouNavigation {
     }
 
     /// Presses Up until the row with `identifier` has focus (at most `limit` presses).
-    static func moveFocusUp(_ app: XCUIApplication, to identifier: String, limit: Int = 12) {
+    static func moveFocusUp(_ app: XCUIApplication, to identifier: String, limit: Int = 16) {
         for _ in 0..<limit {
-            if row(app, identifier).hasFocus { return }
+            let target = row(app, identifier)
+            if target.exists, target.hasFocus { return }
             TVTest.remote.press(.up)
             TVTest.settle(0.3)
         }

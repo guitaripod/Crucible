@@ -221,7 +221,8 @@ final class TVLibraryViewController: TVScreenViewController {
             onFilter: { [weak self] in self?.model.selectChip($0) },
             onGenre: { [weak self] in self?.model.setGenre($0) },
             onSort: { [weak self] in self?.model.setSort($0) },
-            onBrowseFolders: { [weak self] in self?.browseFolders() }
+            onBrowseFolders: { [weak self] in self?.browseFolders() },
+            onCollections: { [weak self] in self?.openCollections() }
         )
         return content
     }
@@ -398,6 +399,10 @@ final class TVLibraryViewController: TVScreenViewController {
         setNeedsFocusUpdate()
         updateFocusIfNeeded()
         pendingFocus = nil
+    }
+
+    private func openCollections() {
+        TVNavigation.push(TVScreens.collections(env, sectionId: section.id), from: self)
     }
 
     private func browseFolders() {

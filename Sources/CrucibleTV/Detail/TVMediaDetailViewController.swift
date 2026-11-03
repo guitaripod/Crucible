@@ -14,6 +14,13 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private var subtitleID: Int?
     private var relatedByID: [String: PlexMetadata] = [:]
     private lazy var nextEpisodeSlot = makeTaskSlot()
+    private lazy var rating = RatingSaver(
+        api: env.api,
+        ratingKey: ratingKey,
+        changed: { [weak self] in self?.rebuild() },
+        reload: { [weak self] in self?.reload() },
+        failed: { [weak self] in self?.presentAlert(title: String(localized: "Couldn\u{2019}t Update"), message: String(localized: "Your rating was not saved.")) }
+    )
 
     init(env: TVAppEnvironment, ratingKey: String) {
         self.ratingKey = ratingKey
@@ -43,12 +50,24 @@ final class TVMediaDetailViewController: TVDetailViewController {
     }
 
     override func didSelect(_ item: Item) {
-        guard case .related(let id) = item, let related = relatedByID[id] else { return }
-        push(.related(related))
+        switch item {
+        case .related(let id):
+            if let related = relatedByID[id] { push(.related(related)) }
+        case .person(let id):
+            if let person = person(withID: id) { TVNavigation.push(TVScreens.filmography(env, person: person), from: self) }
+        default:
+            break
+        }
+    }
+
+    private func person(withID id: String) -> PlexRole? {
+        guard let index = Int(id.dropFirst("cast.".count)), let roles = model?.castAndCrew, roles.indices.contains(index) else { return nil }
+        return PersonFilmography.canOpen(roles[index]) ? roles[index] : nil
     }
 
     private func adopt(_ loaded: MovieDetailModel) {
         model = loaded
+        rating.loaded()
         let tracks = loaded.reconciledTracks(audioId: audioID, subtitleId: subtitleID)
         audioID = tracks.audioId
         subtitleID = tracks.subtitleId
@@ -107,6 +126,28 @@ final class TVMediaDetailViewController: TVDetailViewController {
             symbol: item.isWatched ? "eye.slash" : "checkmark.circle",
             handler: { [weak self] in self?.markWatched(!item.isWatched, ratingKey: item.id) }
         ))
+        let current = rating.shown(served: model.userRating)
+        actions.append(TVDetailAction(
+            kind: .rate,
+            title: UserRatingCopy.actionTitle(for: current),
+            symbol: current == nil ? "star" : "star.fill",
+            accessibilityLabel: UserRatingCopy.accessibilityLabel(for: current),
+            handler: { [weak self] in
+                guard let self else { return }
+                presentRating(title: item.title, rating: current) { self.rating.save($0) }
+            }
+        ))
+        if item.isPlaylistable {
+            actions.append(TVDetailAction(
+                kind: .playlist,
+                title: PlaylistFormat.addToPlaylist,
+                symbol: "text.badge.plus",
+                handler: { [weak self] in
+                    guard let self else { return }
+                    TVPlaylistPicker.present(adding: [item], env: env, from: self)
+                }
+            ))
+        }
         if let value = model.audioButtonValue(selectedId: audioID) {
             actions.append(TVDetailAction(
                 kind: .audio,
@@ -121,6 +162,19 @@ final class TVMediaDetailViewController: TVDetailViewController {
                 title: String(localized: "Subtitles: \(value)"),
                 menu: subtitleMenu(for: model),
                 accessibilityLabel: String(localized: "Subtitles, \(value)")
+            ))
+        }
+        if let name = model.collectionNames.first {
+            let sectionId = item.librarySectionID.map(String.init)
+            actions.append(TVDetailAction(
+                kind: .collection,
+                title: String(localized: "Part of \(name)"),
+                symbol: "rectangle.stack",
+                accessibilityLabel: String(localized: "Part of the \(name) collection"),
+                handler: { [weak self] in
+                    guard let self else { return }
+                    TVScreens.openCollection(named: name, sectionId: sectionId, env: env, from: self)
+                }
             ))
         }
         if model.isEpisode, let route = model.showRoute {

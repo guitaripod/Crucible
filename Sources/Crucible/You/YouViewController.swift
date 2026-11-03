@@ -8,7 +8,7 @@ final class YouViewController: UICollectionViewController {
     }
 
     enum Item: Hashable {
-        case demo, profile, year, history, statistics, settings, server, about
+        case demo, profile, year, playlists, activity, history, statistics, settings, server, about
     }
 
     private let api: APIClient
@@ -124,6 +124,14 @@ final class YouViewController: UICollectionViewController {
             case .profile:
                 cell.contentConfiguration = profileConfiguration()
                 cell.accessories = isInDemo ? [] : [.disclosureIndicator()]
+            case .playlists:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "list.bullet.rectangle", title: String(localized: "Playlists"))
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.playlists"
+            case .activity:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "dot.radiowaves.left.and.right", title: ServerActivity.title)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.activity"
             case .history:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "clock", title: String(localized: "Watch History"), subtitle: historySubtitle)
                 cell.accessories = [.disclosureIndicator()]
@@ -192,7 +200,7 @@ final class YouViewController: UICollectionViewController {
             snapshot.appendItems([.year], toSection: .year)
         }
         snapshot.appendSections([.activity, .app, .about])
-        snapshot.appendItems([.history, .statistics], toSection: .activity)
+        snapshot.appendItems([.history, .statistics, .playlists, .activity], toSection: .activity)
         snapshot.appendItems(isInDemo ? [.settings] : [.settings, .server], toSection: .app)
         snapshot.appendItems([.about], toSection: .about)
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
@@ -214,6 +222,8 @@ final class YouViewController: UICollectionViewController {
         case .profile where isInDemo: return
         case .profile, .server: destination = ServerDetailViewController(api: api)
         case .year, .statistics: destination = StatisticsViewController(api: api)
+        case .playlists: destination = PlaylistScreens.playlists(api: api)
+        case .activity: destination = ActivityScreen.serverActivity(api: api)
         case .history: destination = ActivityHistoryViewController(api: api)
         case .settings: destination = SettingsViewController(api: api)
         case .about: destination = AboutViewController()

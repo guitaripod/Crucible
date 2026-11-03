@@ -338,6 +338,8 @@ class Library:
             self._roles(it["_cast"])
         self._build_on_deck()
         self._build_history()
+        self._build_collections()
+        self._build_playlists()
 
     def _rk(self, kind):
         v = self._next[kind]
@@ -573,6 +575,60 @@ class Library:
                 return it
         raise KeyError((show_title, season, index))
 
+    def _movie(self, title):
+        return next(m for m in self.movies if m["title"] == title)
+
+    def _build_collections(self):
+        self.collections = [
+            {"ratingKey": "9101", "title": "Salvage Stories", "section": "1",
+             "summary": "Crews, wrecks and the people who go back for what was left behind.",
+             "members": [self._movie(t)["ratingKey"] for t in ("Halcyon", "Deep Field", "Tidewater")]},
+            {"ratingKey": "9102", "title": "After Dark", "section": "1",
+             "summary": "Thrillers best watched with the lights off.",
+             "members": [self._movie(t)["ratingKey"] for t in ("Cold Meridian", "Undertow", "Night Ferry")]},
+        ]
+
+    def collection_json(self, c):
+        first = self.items[c["members"][0]]
+        return {"ratingKey": c["ratingKey"], "key": f"/library/collections/{c['ratingKey']}/children",
+                "guid": f"collection://{c['ratingKey']}", "type": "collection", "subtype": "movie", "title": c["title"],
+                "titleSort": c["title"].lower(), "summary": c["summary"], "smart": False, "childCount": len(c["members"]),
+                "librarySectionID": int(c["section"]), "librarySectionTitle": SECTIONS[c["section"]][0],
+                "thumb": first["thumb"], "art": first.get("art", first["thumb"]), "addedAt": self.now - 30 * 86400}
+
+    def collection_tags(self, rk):
+        return [{"tag": c["title"]} for c in self.collections if rk in c["members"]]
+
+    def _build_playlists(self):
+        self.playlists = []
+        self.next_entry = 1000
+        self.next_playlist = 9200
+        self.add_playlist("Friday Night", [self._movie(t)["ratingKey"] for t in ("Cold Meridian", "Undertow", "Night Ferry")])
+        self.add_playlist("Sci-Fi Marathon", [self._movie(t)["ratingKey"] for t in ("Deep Field", "Afterglow", "Quiet Engines")])
+
+    def add_playlist(self, title, keys):
+        playlist = {"ratingKey": str(self.next_playlist), "title": title, "entries": []}
+        self.next_playlist += 1
+        self.playlists.append(playlist)
+        self.add_to_playlist(playlist, keys)
+        return playlist
+
+    def add_to_playlist(self, playlist, keys):
+        for key in keys:
+            if key in self.items and self.items[key]["type"] in ("movie", "episode"):
+                playlist["entries"].append({"itemID": self.next_entry, "ratingKey": key})
+                self.next_entry += 1
+
+    def playlist_json(self, playlist):
+        members = [self.items[e["ratingKey"]] for e in playlist["entries"] if e["ratingKey"] in self.items]
+        out = {"ratingKey": playlist["ratingKey"], "key": f"/playlists/{playlist['ratingKey']}/items",
+               "guid": f"com.plexapp.plugins.playlist://{playlist['ratingKey']}", "type": "playlist", "title": playlist["title"],
+               "summary": "", "smart": False, "playlistType": "video", "leafCount": len(members),
+               "duration": sum(m.get("duration", 0) for m in members), "addedAt": self.now}
+        if members:
+            out["composite"] = members[0]["thumb"]
+        return out
+
     def _build_on_deck(self):
         self.on_deck = [self._find("Northbound", 1, 6)["ratingKey"], self._find("Meridian", 4, 2)["ratingKey"],
                         self._find("Ironwood", 3, 2)["ratingKey"], self._find("Paper Lanterns", 1, 4)["ratingKey"]]
@@ -589,6 +645,8 @@ class Library:
 
     def render(self, it, full=False):
         out = {k: v for k, v in it.items() if not k.startswith("_")}
+        if full and it["_kind"] == "movie" and self.collection_tags(it["ratingKey"]):
+            out["Collection"] = self.collection_tags(it["ratingKey"])
         if it["_kind"] in ("movie", "show") or full:
             if it.get("_genres"):
                 out["Genre"] = [{"id": int(GENRE_ID[g]), "tag": g} for g in it["_genres"]]

@@ -20,10 +20,16 @@ struct DemoRouter: Sendable {
             return await stateResponse(parts, request)
         case "library":
             return await libraryResponse(parts, request)
+        case "playlists":
+            return await playlistsResponse(parts, request)
         case "hubs":
             return await hubsResponse(parts, request)
         case "status":
-            return parts == ["status", "sessions", "history", "all"] ? await library.historyResponse(request) : .notFound()
+            switch parts {
+            case ["status", "sessions", "history", "all"]: return await library.historyResponse(request)
+            case ["status", "sessions"]: return await library.sessionsResponse()
+            default: return .notFound()
+            }
         case "photo":
             return await photoResponse(request)
         case "actors":
@@ -64,6 +70,8 @@ struct DemoRouter: Sendable {
             await library.scrobble(request.first("key") ?? "")
         case "unscrobble":
             await library.unscrobble(request.first("key") ?? "")
+        case "rate":
+            await library.rate(request.first("key") ?? "", rating: request.int("rating") ?? 0)
         case "timeline":
             await library.timeline(
                 request.first("ratingKey") ?? "",
@@ -90,6 +98,8 @@ struct DemoRouter: Sendable {
             return await library.sectionResponse(parts[2], what: what, bucket: bucket, request: request)
         case ("metadata", 3...5):
             return await metadataResponse(parts, request)
+        case ("collections", 4) where parts[3] == "children":
+            return await library.collectionChildrenResponse(parts[2], request: request)
         case ("onDeck", 2):
             return await library.onDeckResponse()
         case ("recentlyAdded", 2):
@@ -101,6 +111,27 @@ struct DemoRouter: Sendable {
         case ("streams", 3):
             let id = Int(parts[2]) ?? 0
             return .text(DemoSubtitles.srt(forStream: id))
+        default:
+            return .notFound()
+        }
+    }
+
+    private func playlistsResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        switch (request.method, parts.count) {
+        case ("GET", 1):
+            return await library.playlistsResponse()
+        case ("POST", 1):
+            return await library.createPlaylist(title: request.first("title") ?? "", uri: request.first("uri") ?? "")
+        case ("DELETE", 2):
+            return await library.deletePlaylist(parts[1])
+        case ("GET", 3) where parts[2] == "items":
+            return await library.playlistItemsResponse(parts[1], request: request)
+        case ("PUT", 3) where parts[2] == "items":
+            return await library.addToPlaylist(parts[1], uri: request.first("uri") ?? "")
+        case ("DELETE", 4) where parts[2] == "items":
+            return await library.removeFromPlaylist(parts[1], itemID: Int(parts[3]) ?? 0)
+        case ("PUT", 5) where parts[2] == "items" && parts[4] == "move":
+            return await library.movePlaylistItem(parts[1], itemID: Int(parts[3]) ?? 0, after: request.int("after"))
         default:
             return .notFound()
         }

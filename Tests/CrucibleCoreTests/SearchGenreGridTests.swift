@@ -121,7 +121,7 @@ struct GenreGridModelTests {
     ) -> (GenreGridModel, Recorder) {
         let loader = SearchLoader { endpoint in
             await log.record(endpoint)
-            guard case .sectionItems(_, _, _, let start, _, _, _) = endpoint else { throw URLError(.badURL) }
+            guard case .sectionItems(_, _, _, let start, _, _, _, _) = endpoint else { throw URLError(.badURL) }
             return try await handler(start)
         }
         let model = GenreGridModel(genre: genre, loader: loader)

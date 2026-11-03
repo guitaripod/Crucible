@@ -17,6 +17,9 @@ actor DemoLibrary {
     var genreTitles: [String] = []
     var onDeck: [String] = []
     var history: [DemoHistoryRow] = []
+    var playlists: [DemoPlaylistState] = []
+    var nextEntryID = 1000
+    var nextPlaylistKey = 9200
     var persisted: DemoPersistedState
     let store: DemoStateStore
     let now: Int
@@ -43,6 +46,7 @@ actor DemoLibrary {
         linkChildren()
         history = DemoHistory.build(items: items, showKeys: showKeys, movieKeys: movieKeys, now: now)
         applyPersistedState()
+        seedPlaylistsIfNeeded()
         recountAll()
     }
 
@@ -124,6 +128,9 @@ actor DemoLibrary {
     private func applyPersistedState() {
         for (key, saved) in persisted.items where items[key] != nil {
             setWatchFields(key, viewCount: saved.viewCount, viewOffset: saved.viewOffset, lastViewedAt: saved.lastViewedAt)
+        }
+        for (key, halfStars) in persisted.ratings ?? [:] where items[key] != nil {
+            items[key]?.set("userRating", halfStars)
         }
         if let saved = persisted.onDeck { onDeck = saved.filter { items[$0] != nil } }
         var nextID = (history.map(\.id).max() ?? 0) + 1

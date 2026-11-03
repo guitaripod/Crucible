@@ -26,12 +26,19 @@ package enum LibraryGridKind: Sendable {
                 LibrarySortOption(key: "year:desc", title: String(localized: "Year", comment: "Sort option: by release year")),
                 LibrarySortOption(key: "addedAt:desc", title: String(localized: "Recently Added")),
                 LibrarySortOption(key: "rating:desc", title: String(localized: "Rating", comment: "Sort option: by rating")),
+                LibrarySortOption(key: "userRating:desc", title: UserRatingCopy.title),
+                LibrarySortOption(key: "originallyAvailableAt:desc", title: String(localized: "Release Date", comment: "Sort option: by the date the title came out")),
+                LibrarySortOption(key: "lastViewedAt:desc", title: String(localized: "Last Watched", comment: "Sort option: by when the viewer last watched it")),
+                LibrarySortOption(key: "viewCount:desc", title: String(localized: "Most Watched", comment: "Sort option: by how often the viewer watched it")),
             ]
         case .show:
             return [
                 LibrarySortOption(key: LibraryGridOptions.titleAscending, title: String(localized: "Name", comment: "Sort option: by name")),
                 LibrarySortOption(key: "addedAt:desc", title: String(localized: "Recently Added")),
                 LibrarySortOption(key: "rating:desc", title: String(localized: "Rating", comment: "Sort option: by rating")),
+                LibrarySortOption(key: "userRating:desc", title: UserRatingCopy.title),
+                LibrarySortOption(key: "originallyAvailableAt:desc", title: String(localized: "Release Date", comment: "Sort option: by the date the title came out")),
+                LibrarySortOption(key: "lastViewedAt:desc", title: String(localized: "Last Watched", comment: "Sort option: by when the viewer last watched it")),
             ]
         }
     }

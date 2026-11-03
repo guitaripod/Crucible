@@ -420,6 +420,10 @@ class LibraryGridViewController: UIViewController {
     }
 
     private func selectChip(_ id: String) {
+        if id == Self.collectionsChip {
+            openCollections()
+            return
+        }
         guard let filter = LibraryWatchFilter(rawValue: id) else { return }
         model.selectChip(filter)
     }
@@ -432,6 +436,7 @@ class LibraryGridViewController: UIViewController {
         if !model.genres.isEmpty {
             chips.append(FilterChipsView.Chip(id: "genre", title: options.genreTitle(in: model.genres), isSelected: options.genre != nil, menu: genreMenu(title: String(localized: "Genre"))))
         }
+        chips.append(FilterChipsView.Chip(id: Self.collectionsChip, title: String(localized: "Collections")))
         chips.append(FilterChipsView.Chip(id: "sort", title: String(localized: "Sort: \(options.sortTitle(for: kind))"), menu: sortMenu(title: String(localized: "Sort By"), inline: false)))
         return chips
     }
@@ -451,6 +456,9 @@ class LibraryGridViewController: UIViewController {
         }
         if host == nil {
             children.append(UIMenu(options: .displayInline, children: [
+                UIAction(title: String(localized: "Collections"), image: UIImage(systemName: "rectangle.stack")) { [weak self] _ in
+                    self?.openCollections()
+                },
                 UIAction(title: String(localized: "Browse Folders"), image: UIImage(systemName: "folder")) { [weak self] _ in
                     self?.openFolderBrowser()
                 },
@@ -565,6 +573,13 @@ class LibraryGridViewController: UIViewController {
         }
     }
 
+
+    private static let collectionsChip = "collections"
+
+    func openCollections() {
+        MidgarLog.info("Collections tapped section=\(sectionId)", category: .ui)
+        navigationController?.pushViewController(CollectionScreens.collections(api: api, sectionId: sectionId, title: title ?? ""), animated: true)
+    }
 
     func openFolderBrowser() {
         MidgarLog.info("Folder browse tapped section=\(sectionId)", category: .ui)

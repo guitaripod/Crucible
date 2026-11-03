@@ -86,6 +86,12 @@ final class TVHomeActions {
             })
         }
         actions.append(watchedAction(for: media))
+        if media.isPlaylistable {
+            actions.append(UIAction(title: PlaylistFormat.addToPlaylist, image: UIImage(systemName: "text.badge.plus")) { [weak self, weak screen] _ in
+                guard let self, let screen else { return }
+                TVPlaylistPicker.present(adding: [media], env: env, from: screen)
+            })
+        }
         return UIMenu(children: actions)
     }
 

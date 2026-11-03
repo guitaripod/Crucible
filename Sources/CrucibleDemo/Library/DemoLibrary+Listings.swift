@@ -27,6 +27,7 @@ extension DemoLibrary {
             return .container(["size": 1, "Directory": [["key": sectionID, "type": section.type, "title": section.title]]])
         case "all":
             var selected = filter(keys, genre: request.first("genre"))
+            selected = filter(selected, actor: request.first("actor"))
             selected = filter(selected, unwatched: request.flag("unwatched"), inProgress: request.flag("inProgress"))
             selected = ordered(selected, sort: request.first("sort"))
             var (fields, page) = paged(selected, request)
@@ -45,6 +46,8 @@ extension DemoLibrary {
                 return ["key": "\(id)", "title": genre, "type": "genre", "fastKey": "/library/sections/\(sectionID)/all?genre=\(id)"]
             }
             return .container(["size": directories.count, "allowSync": false, "title1": section.title, "Directory": directories])
+        case "collections":
+            return collectionsResponse(sectionID: sectionID, request: request)
         case "folder":
             return folderResponse(sectionID, keys: keys, bucket: bucket, title: section.title)
         default:
@@ -223,6 +226,11 @@ extension DemoLibrary {
         return (2, title.count, title)
     }
 
+    private func filter(_ keys: [String], actor: String?) -> [String] {
+        guard let actor, let id = Int(actor) else { return keys }
+        return keys.filter { key in items[key]?.cast.contains { $0.int("id") == id } == true }
+    }
+
     private func filter(_ keys: [String], genre: String?) -> [String] {
         guard let genre, !genre.isEmpty else { return keys }
         let wanted = Set(genre.split(separator: ",").map { token -> String in
@@ -261,13 +269,15 @@ extension DemoLibrary {
             case "rating": return item.fields.double("rating") ?? 0
             case "audienceRating": return item.fields.double("audienceRating") ?? 0
             case "lastViewedAt": return Double(item.lastViewedAt)
+            case "userRating": return Double(item.fields.int("userRating") ?? 0)
+            case "viewCount": return Double(item.viewCount)
             default: return 0
             }
         }
         func text(_ key: String) -> String {
             field == "originallyAvailableAt" ? items[key]?.fields.string("originallyAvailableAt") ?? "" : items[key]?.titleSort ?? ""
         }
-        let isNumeric = ["addedAt", "year", "rating", "audienceRating", "lastViewedAt"].contains(field)
+        let isNumeric = ["addedAt", "year", "rating", "audienceRating", "lastViewedAt", "userRating", "viewCount"].contains(field)
         return keys.sorted { a, b in
             let order: ComparisonResult
             if isNumeric {
@@ -280,7 +290,7 @@ extension DemoLibrary {
         }
     }
 
-    private func paged(_ keys: [String], _ request: DemoRequest) -> (DemoJSON, [String]) {
+    func paged(_ keys: [String], _ request: DemoRequest) -> (DemoJSON, [String]) {
         let start = max(0, request.int("X-Plex-Container-Start") ?? 0)
         let size = max(0, request.int("X-Plex-Container-Size") ?? Self.defaultPageSize)
         let page = Array(keys.dropFirst(start).prefix(size))

@@ -13,6 +13,17 @@ extension DemoLibrary {
         save()
     }
 
+    /// Keeps the viewer's star rating on the scale the server uses (one point per half star); anything outside it removes the rating.
+    func rate(_ key: String, rating: Int) {
+        guard items[key] != nil else { return }
+        let kept = (1...10).contains(rating) ? rating : nil
+        items[key]?.set("userRating", kept)
+        var ratings = persisted.ratings ?? [:]
+        ratings[key] = kept
+        persisted.ratings = ratings
+        save()
+    }
+
     func unscrobble(_ key: String) {
         guard items[key] != nil else { return }
         _ = mark(key, watched: false)
@@ -86,7 +97,7 @@ extension DemoLibrary {
         )
     }
 
-    private func save() {
+    func save() {
         persisted.onDeck = onDeck
         store.scheduleSave(persisted)
     }

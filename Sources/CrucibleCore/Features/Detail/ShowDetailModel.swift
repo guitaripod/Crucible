@@ -43,6 +43,10 @@ package struct ShowDetailModel: Sendable {
     package let episodesFailed: Bool
     package let upNext: UpNext?
 
+    package var userRating: UserRating? {
+        UserRating(plexValue: show.userRating)
+    }
+
     package init(
         show: PlexMetadata,
         seasons: [PlexMetadata] = [],

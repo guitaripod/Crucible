@@ -155,6 +155,11 @@ class TVDetailViewController: TVScreenViewController {
         }
     }
 
+    /// Opens the star rating panel for `title`; `onSet` gets the viewer's choice, nil to clear it.
+    func presentRating(title: String, rating: UserRating?, onSet: @escaping (UserRating?) -> Void) {
+        present(TVRatingViewController(title: title, rating: rating, onSet: onSet), animated: TVMotion.animationsEnabled)
+    }
+
     func presentSynopsis() {
         guard let content, let text = content.synopsis else { return }
         present(TVSynopsisViewController(title: content.synopsisTitle, text: text), animated: TVMotion.animationsEnabled)
@@ -380,6 +385,7 @@ class TVDetailViewController: TVScreenViewController {
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .episode, .related: true
+        case .person(let id): content?.cast.first { $0.id == id }?.isOpenable ?? false
         default: false
         }
     }

@@ -103,6 +103,8 @@ SORT_KEYS = {
     "addedAt": lambda i: i["addedAt"],
     "year": lambda i: i.get("year", 0),
     "rating": lambda i: i.get("rating", 0),
+    "userRating": lambda i: i.get("userRating", 0),
+    "viewCount": lambda i: i.get("viewCount", 0),
     "audienceRating": lambda i: i.get("audienceRating", 0),
     "lastViewedAt": lambda i: i.get("lastViewedAt", 0),
     "originallyAvailableAt": lambda i: i.get("originallyAvailableAt", ""),
@@ -298,6 +300,12 @@ def filter_genre(items, genre):
     for g in genre.split(","):
         wanted.add(next((n for n, i in library.GENRE_ID.items() if i == g), g))
     return [i for i in items if wanted & set(i["_genres"])]
+
+
+def filter_actor(items, actor):
+    if not actor:
+        return items
+    return [i for i in items if any(str(r["id"]) == actor for r in LIB._roles(i["_cast"]))]
 
 
 def hub(identifier, title, items, kind="mixed"):
@@ -523,6 +531,43 @@ class Handler(BaseHTTPRequestHandler):
             if env("MOCK_SECTIONS_EMPTY", "0") == "1":
                 dirs = []
             return self.send_json(container(size=len(dirs), allowLibraryOrder=True, title1="Plex Library", Directory=dirs))
+
+        m = re.match(r"^/library/sections/(\d+)/collections$", p)
+        if m and m.group(1) in library.SECTIONS:
+            with LOCK:
+                found = [c for c in LIB.collections if c["section"] == m.group(1)]
+                page_meta, page = paged(found, q, librarySectionID=int(m.group(1)))
+                page_meta["Metadata"] = [LIB.collection_json(c) for c in page]
+            return self.send_json({"MediaContainer": page_meta})
+
+        m = re.match(r"^/library/collections/(\d+)/children$", p)
+        if m:
+            with LOCK:
+                collection = next((c for c in LIB.collections if c["ratingKey"] == m.group(1)), None)
+                if not collection:
+                    return self.not_found()
+                page_meta, page = paged(collection["members"], q, key=m.group(1), title1=collection["title"])
+                page_meta["Metadata"] = [LIB.render(LIB.items[k]) for k in page]
+            return self.send_json({"MediaContainer": page_meta})
+
+        if p == "/status/sessions":
+            with LOCK:
+                rows = []
+                for key, user, device, product, state, transcodes in (
+                    ("1001", "Maren", "Living Room Apple TV", "Plex for Apple TV", "playing", False),
+                    ("4012", "Idris", "Office", "Plex Web", "paused", True),
+                ):
+                    row = LIB.render(LIB.items[key])
+                    row["viewOffset"] = row.get("duration", 0) // 3
+                    row["User"] = {"id": "2", "title": user}
+                    row["Player"] = {"title": device, "product": product, "state": state, "local": True}
+                    if transcodes:
+                        row["TranscodeSession"] = {"videoDecision": "transcode", "audioDecision": "copy"}
+                    rows.append(row)
+            return self.send_json(container(size=len(rows), Metadata=rows))
+
+        if p == "/playlists" or p.startswith("/playlists/"):
+            return self.playlists(p, q)
 
         m = re.match(r"^/library/sections/(\d+)(?:/(all|genre|folder|firstCharacter)(?:/([A-Za-z0-9-]+))?)?$", p)
         if m and m.group(1) in library.SECTIONS:
@@ -825,6 +870,56 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"approved": True, "id": pin["id"]})
         self.not_found()
 
+    def playlists(self, p, q):
+        method = self.command
+        parts = p.strip("/").split("/")
+        one = lambda k, d=None: q.get(k, [d])[0]
+        keys_of = lambda uri: [k for k in (uri.split("/library/metadata/")[-1].split(",") if "/library/metadata/" in uri else []) if k]
+        with LOCK:
+            if method == "GET" and len(parts) == 1:
+                return self.send_json(container(size=len(LIB.playlists), Metadata=[LIB.playlist_json(x) for x in LIB.playlists]))
+            if method == "POST" and len(parts) == 1:
+                keys = keys_of(one("uri", ""))
+                if not one("title") or not keys:
+                    return self.send_empty(400)
+                made = LIB.add_playlist(one("title"), keys)
+                return self.send_json(container(size=1, Metadata=[LIB.playlist_json(made)]))
+            playlist = next((x for x in LIB.playlists if x["ratingKey"] == parts[1]), None)
+            if not playlist:
+                return self.not_found()
+            if method == "DELETE" and len(parts) == 2:
+                LIB.playlists.remove(playlist)
+                return self.send_empty()
+            if len(parts) >= 3 and parts[2] == "items":
+                entries = playlist["entries"]
+                if method == "GET" and len(parts) == 3:
+                    rows = []
+                    for e in entries:
+                        row = LIB.render(LIB.items[e["ratingKey"]])
+                        row["playlistItemID"] = e["itemID"]
+                        rows.append(row)
+                    start = int(one("X-Plex-Container-Start", "0"))
+                    size = int(one("X-Plex-Container-Size", str(len(rows) or 1)))
+                    page = rows[start:start + size]
+                    return self.send_json(container(size=len(page), totalSize=len(rows), offset=start, key=playlist["ratingKey"],
+                                                    title=playlist["title"], Metadata=page))
+                if method == "PUT" and len(parts) == 3:
+                    LIB.add_to_playlist(playlist, keys_of(one("uri", "")))
+                    return self.send_json(container(size=1, Metadata=[LIB.playlist_json(playlist)]))
+                if method == "DELETE" and len(parts) == 4:
+                    playlist["entries"] = [e for e in entries if str(e["itemID"]) != parts[3]]
+                    return self.send_empty()
+                if method == "PUT" and len(parts) == 5 and parts[4] == "move":
+                    moved = next((e for e in entries if str(e["itemID"]) == parts[3]), None)
+                    if not moved:
+                        return self.not_found()
+                    entries.remove(moved)
+                    after = one("after")
+                    index = next((i + 1 for i, e in enumerate(entries) if str(e["itemID"]) == after), 0) if after else 0
+                    entries.insert(index, moved)
+                    return self.send_empty()
+        self.not_found()
+
     def handle_state(self, p, q):
         one = lambda k, d=None: q.get(k, [d])[0]
         if p == "/:/scrobble":
@@ -837,6 +932,13 @@ class Handler(BaseHTTPRequestHandler):
                 LIB.history.insert(0, entry)
         elif p == "/:/unscrobble":
             LIB.mark_watched(one("key", ""), False)
+        elif p == "/:/rate":
+            it = LIB.items.get(one("key", ""))
+            half_stars = int(one("rating", "-1"))
+            if it and 1 <= half_stars <= 10:
+                it["userRating"] = float(half_stars)
+            elif it:
+                it.pop("userRating", None)
         elif p == "/:/timeline":
             LIB.set_progress(one("ratingKey", ""), int(one("time", "0")), int(one("duration", "0")), one("state", ""))
         elif p == "/:/progress":
@@ -854,7 +956,7 @@ class Handler(BaseHTTPRequestHandler):
             if what == "all":
                 if env("MOCK_FAIL_GENRE") == "1" and q.get("genre"):
                     return self.not_found()
-                items = filter_genre(items, (q.get("genre") or [None])[0])
+                items = filter_actor(filter_genre(items, (q.get("genre") or [None])[0]), (q.get("actor") or [None])[0])
                 if sid in env_sections("MOCK_FAIL_SECTIONS"):
                     return self.not_found()
                 items = filter_watch(filter_genre(items, (q.get("genre") or [None])[0]), q)

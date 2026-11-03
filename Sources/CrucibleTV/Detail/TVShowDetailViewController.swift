@@ -14,6 +14,13 @@ final class TVShowDetailViewController: TVDetailViewController {
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
     private var relatedByID: [String: PlexMetadata] = [:]
+    private lazy var rating = RatingSaver(
+        api: env.api,
+        ratingKey: showKey,
+        changed: { [weak self] in self?.rebuild() },
+        reload: { [weak self] in self?.reload() },
+        failed: { [weak self] in self?.presentAlert(title: String(localized: "Couldn\u{2019}t Update"), message: String(localized: "Your rating was not saved.")) }
+    )
 
     init(env: TVAppEnvironment, ratingKey: String, initialSeasonKey: String?) {
         showKey = ratingKey
@@ -40,6 +47,7 @@ final class TVShowDetailViewController: TVDetailViewController {
             seasonSlot.cancel()
             loadingSeasonKey = nil
             model = loaded
+            rating.loaded()
             rebuild()
         } catch {
             guard !Task.isCancelled else { return }
@@ -56,9 +64,18 @@ final class TVShowDetailViewController: TVDetailViewController {
             if let episode = episodesByID[id] { play(TVPlaybackRequest(item: episode)) }
         case .related(let id):
             if let related = relatedByID[id] { push(.related(related)) }
+        case .person(let id):
+            if let person = person(withID: id) { TVNavigation.push(TVScreens.filmography(env, person: person), from: self) }
         default:
             break
         }
+    }
+
+    private func person(withID id: String) -> PlexRole? {
+        guard let index = Int(id.dropFirst("cast.".count)), let model else { return nil }
+        let roles = MovieDetailModel(item: model.show).castAndCrew
+        guard roles.indices.contains(index) else { return nil }
+        return PersonFilmography.canOpen(roles[index]) ? roles[index] : nil
     }
 
     override func retryEpisodes() {
@@ -159,6 +176,27 @@ final class TVShowDetailViewController: TVDetailViewController {
                 accessibilityLabel: model.watchedAccessibilityLabel
             ))
         }
+        let current = rating.shown(served: model.userRating)
+        actions.append(TVDetailAction(
+            kind: .rate,
+            title: UserRatingCopy.actionTitle(for: current),
+            symbol: current == nil ? "star" : "star.fill",
+            accessibilityLabel: UserRatingCopy.accessibilityLabel(for: current),
+            handler: { [weak self] in
+                guard let self else { return }
+                presentRating(title: model.show.title, rating: current) { self.rating.save($0) }
+            }
+        ))
+        let show = model.show
+        actions.append(TVDetailAction(
+            kind: .playlist,
+            title: PlaylistFormat.addToPlaylist,
+            symbol: "text.badge.plus",
+            handler: { [weak self] in
+                guard let self else { return }
+                TVPlaylistPicker.present(adding: [show], env: env, from: self)
+            }
+        ))
         return actions
     }
 

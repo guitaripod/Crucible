@@ -343,7 +343,7 @@ final class TabBarController: UITabBarController {
             return (currentNavigation?.viewControllers.count ?? 0) > 1
         case .switchServer:
             return !DemoMode.shared.isActive
-        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download:
+        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             return contentHandler?.canPerform(command) ?? false
         case .newWindow, .skip, .playNext, .closePlayer:
             return false
@@ -369,7 +369,7 @@ final class TabBarController: UITabBarController {
         case .skip: presentedPlayer?.performShownSkip()
         case .playNext: presentedPlayer?.playOfferedNextEpisode()
         case .closePlayer: presentedPlayer?.close()
-        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download:
+        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             contentHandler?.perform(command)
         }
     }

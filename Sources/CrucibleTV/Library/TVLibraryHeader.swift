@@ -16,6 +16,7 @@ struct TVLibraryHeaderContent: Hashable {
         var onGenre: @MainActor (String?) -> Void = { _ in }
         var onSort: @MainActor (String) -> Void = { _ in }
         var onBrowseFolders: @MainActor () -> Void = {}
+        var onCollections: @MainActor () -> Void = {}
 
         static func == (lhs: Handlers, rhs: Handlers) -> Bool { true }
         func hash(into hasher: inout Hasher) {}
@@ -40,6 +41,7 @@ final class TVLibraryHeaderView: UIView {
     private let genreButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Genre"), menu: UIMenu())
     private let sortButton = TVButton.menuButton(style: .chip(selected: false), title: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"), menu: UIMenu())
     private let foldersButton = TVButton.make(.chip(selected: false), title: String(localized: "Browse Folders"), symbol: "folder")
+    private let collectionsButton = TVButton.make(.chip(selected: false), title: String(localized: "Collections"), symbol: "rectangle.stack")
     private let upGuide = UIFocusGuide()
     private var handlers = TVLibraryHeaderContent.Handlers()
 
@@ -49,13 +51,15 @@ final class TVLibraryHeaderView: UIView {
         genreButton.accessibilityIdentifier = "tv.library.genre"
         sortButton.accessibilityIdentifier = "tv.library.sort"
         foldersButton.accessibilityIdentifier = "tv.library.folders"
+        collectionsButton.accessibilityIdentifier = "tv.library.collections"
+        collectionsButton.addAction(UIAction { [weak self] _ in self?.handlers.onCollections() }, for: .primaryActionTriggered)
         foldersButton.addAction(UIAction { [weak self] _ in self?.handlers.onBrowseFolders() }, for: .primaryActionTriggered)
         chips.onSelect = { [weak self] item in
             guard let filter = LibraryWatchFilter(rawValue: item.id) else { return }
             self?.handlers.onFilter(filter)
         }
 
-        let controls = UIStackView(arrangedSubviews: [chips, genreButton, sortButton, UIView(), foldersButton])
+        let controls = UIStackView(arrangedSubviews: [chips, genreButton, sortButton, UIView(), collectionsButton, foldersButton])
         controls.axis = .horizontal
         controls.alignment = .center
         controls.spacing = Theme.Space.m

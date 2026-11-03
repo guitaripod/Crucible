@@ -4,10 +4,10 @@ import Testing
 
 struct LibraryGridOptionsTests {
     @Test func sortOptionsDifferPerKind() {
-        #expect(LibraryGridKind.movie.sortOptions.map(\.title) == ["Title", "Year", "Recently Added", "Rating"])
-        #expect(LibraryGridKind.show.sortOptions.map(\.title) == ["Name", "Recently Added", "Rating"])
-        #expect(LibraryGridKind.movie.sortOptions.map(\.key) == ["titleSort:asc", "year:desc", "addedAt:desc", "rating:desc"])
-        #expect(LibraryGridKind.show.sortOptions.map(\.key) == ["titleSort:asc", "addedAt:desc", "rating:desc"])
+        #expect(LibraryGridKind.movie.sortOptions.map(\.title) == ["Title", "Year", "Recently Added", "Rating", "Your Rating", "Release Date", "Last Watched", "Most Watched"])
+        #expect(LibraryGridKind.show.sortOptions.map(\.title) == ["Name", "Recently Added", "Rating", "Your Rating", "Release Date", "Last Watched"])
+        #expect(LibraryGridKind.movie.sortOptions.map(\.key) == ["titleSort:asc", "year:desc", "addedAt:desc", "rating:desc", "userRating:desc", "originallyAvailableAt:desc", "lastViewedAt:desc", "viewCount:desc"])
+        #expect(LibraryGridKind.show.sortOptions.map(\.key) == ["titleSort:asc", "addedAt:desc", "rating:desc", "userRating:desc", "originallyAvailableAt:desc", "lastViewedAt:desc"])
     }
 
     @Test func kindsReadSectionTypesAndNameThemselves() {

@@ -27,6 +27,8 @@ extension DemoLibrary {
         if !item.writers.isEmpty {
             out["Writer"] = item.writers.enumerated().map { ["id": 7100 + $0.offset, "tag": $0.element] as DemoJSON }
         }
+        let collections = collectionTags(of: key)
+        if !collections.isEmpty { out["Collection"] = collections }
         switch item.kind {
         case .movie, .show:
             out["Role"] = item.cast

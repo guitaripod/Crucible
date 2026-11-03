@@ -134,6 +134,14 @@ package struct PlexMetadata: Decodable, Sendable {
     package let studio: String?
     package let rating: Double?
     package let audienceRating: Double?
+    package let userRating: Double?
+    package let playlistItemID: Int?
+    package let composite: String?
+    package let isSmart: Bool
+    package let collectionTags: [PlexTag]?
+    package let sessionUser: PlexSessionUser?
+    package let sessionPlayer: PlexSessionPlayer?
+    package let transcodeSession: PlexTranscodeSession?
     package let duration: Int?
     package let viewOffset: Int?
     package let viewCount: Int?
@@ -201,7 +209,15 @@ package struct PlexMetadata: Decodable, Sendable {
         Writer: [PlexTag]?,
         Media: [PlexMedia]?,
         Marker: [PlexMarker]?,
-        Related: PlexRelatedHubs?
+        Related: PlexRelatedHubs?,
+        userRating: Double? = nil,
+        playlistItemID: Int? = nil,
+        composite: String? = nil,
+        isSmart: Bool = false,
+        collectionTags: [PlexTag]? = nil,
+        sessionUser: PlexSessionUser? = nil,
+        sessionPlayer: PlexSessionPlayer? = nil,
+        transcodeSession: PlexTranscodeSession? = nil
     ) {
         self.ratingKey = ratingKey
         self.key = key
@@ -223,6 +239,14 @@ package struct PlexMetadata: Decodable, Sendable {
         self.studio = studio
         self.rating = rating
         self.audienceRating = audienceRating
+        self.userRating = userRating
+        self.playlistItemID = playlistItemID
+        self.composite = composite
+        self.isSmart = isSmart
+        self.collectionTags = collectionTags
+        self.sessionUser = sessionUser
+        self.sessionPlayer = sessionPlayer
+        self.transcodeSession = transcodeSession
         self.duration = duration
         self.viewOffset = viewOffset
         self.viewCount = viewCount
@@ -252,11 +276,16 @@ package struct PlexMetadata: Decodable, Sendable {
         case ratingKey, key, type, title
         case grandparentTitle, grandparentRatingKey, grandparentThumb, grandparentArt
         case parentTitle, parentRatingKey, parentThumb
-        case parentIndex, index, year, summary, tagline, contentRating, studio, rating, audienceRating
+        case parentIndex, index, year, summary, tagline, contentRating, studio, rating, audienceRating, userRating
+        case playlistItemID, composite, smart
         case duration, viewOffset, viewCount, lastViewedAt, viewedAt, accountID, deviceID, addedAt
         case originallyAvailableAt, thumb, art
         case leafCount, viewedLeafCount, childCount, librarySectionID, librarySectionTitle
         case Genre, Role, Director, Writer, Media, Marker, Related
+        case collectionTags = "Collection"
+        case sessionUser = "User"
+        case sessionPlayer = "Player"
+        case transcodeSession = "TranscodeSession"
     }
 
     /// The server spells ids and counts as numbers on a library listing and as strings on a history row, and one field it
@@ -271,6 +300,10 @@ package struct PlexMetadata: Decodable, Sendable {
         }
         func list<T: Decodable>(_ type: T.Type, _ key: CodingKeys) -> T? {
             (try? container.decodeIfPresent(type, forKey: key)) ?? nil
+        }
+        func flag(_ key: CodingKeys) -> Bool {
+            if let value = (try? container.decodeIfPresent(Bool.self, forKey: key)) ?? nil { return value }
+            return (number(key, Int.self) ?? 0) != 0
         }
         self.init(
             ratingKey: string(.ratingKey),
@@ -315,7 +348,15 @@ package struct PlexMetadata: Decodable, Sendable {
             Writer: list([PlexTag].self, .Writer),
             Media: list([PlexMedia].self, .Media),
             Marker: list([PlexMarker].self, .Marker),
-            Related: list(PlexRelatedHubs.self, .Related)
+            Related: list(PlexRelatedHubs.self, .Related),
+            userRating: number(.userRating, Double.self),
+            playlistItemID: number(.playlistItemID, Int.self),
+            composite: string(.composite),
+            isSmart: flag(.smart),
+            collectionTags: list([PlexTag].self, .collectionTags),
+            sessionUser: list(PlexSessionUser.self, .sessionUser),
+            sessionPlayer: list(PlexSessionPlayer.self, .sessionPlayer),
+            transcodeSession: list(PlexTranscodeSession.self, .transcodeSession)
         )
     }
 }
@@ -455,6 +496,39 @@ extension PlexMetadata {
     }
 }
 
+/// Who is watching, on a row of `/status/sessions`.
+package struct PlexSessionUser: Decodable, Sendable {
+    package let title: String?
+
+    package init(title: String?) {
+        self.title = title
+    }
+}
+
+/// What a viewer is watching on, on a row of `/status/sessions`.
+package struct PlexSessionPlayer: Decodable, Sendable {
+    package let title: String?
+    package let product: String?
+    package let state: String?
+
+    package init(title: String?, product: String?, state: String?) {
+        self.title = title
+        self.product = product
+        self.state = state
+    }
+}
+
+/// How the server is serving a session: a decision of `transcode` on either stream means it converts it.
+package struct PlexTranscodeSession: Decodable, Sendable {
+    package let videoDecision: String?
+    package let audioDecision: String?
+
+    package init(videoDecision: String?, audioDecision: String?) {
+        self.videoDecision = videoDecision
+        self.audioDecision = audioDecision
+    }
+}
+
 package struct PlexMarker: Decodable, Sendable {
     package let type: String?
     package let startTimeOffset: Int?
@@ -545,7 +619,15 @@ extension PlexMetadata {
     package var id: String { ratingKey ?? key ?? "" }
     package var mediaType: String { type ?? "unknown" }
 
-    package var posterPath: String? { thumb }
+    /// What tells one card from another in a grid: a playlist may hold a title twice, and each entry has its own id.
+    package var entryID: String {
+        playlistItemID.map { "\(id)#\($0)" } ?? id
+    }
+
+    /// Whether a playlist can hold it: a film, an episode, or a season or show standing for its episodes.
+    package var isPlaylistable: Bool { ["movie", "episode", "season", "show"].contains(mediaType) }
+
+    package var posterPath: String? { thumb ?? composite }
     var backdropPath: String? { art }
     package var showName: String? { grandparentTitle }
     package var showRatingKey: String? { grandparentRatingKey }
@@ -589,6 +671,7 @@ extension PlexMetadata {
 
     package var cast: [PlexRole] { Role ?? [] }
     package var directors: [String] { Director?.map(\.tag) ?? [] }
+    package var collectionNames: [String] { collectionTags?.map(\.tag) ?? [] }
     package var writers: [String] { Writer?.map(\.tag) ?? [] }
     package var relatedHubs: [PlexHub] { (Related?.Hub ?? []).filter { !($0.Metadata?.isEmpty ?? true) } }
     var introMarker: PlexMarker? { Marker?.first { $0.isIntro } }

@@ -8,6 +8,8 @@ import UIKit
 final class TVYouViewController: TVSettingsScaffold {
     private enum RowID {
         static let demo = "you.demo"
+        static let playlists = "you.playlists"
+        static let activity = "you.activity"
         static let history = "you.history"
         static let statistics = "you.statistics"
         static let pro = "you.pro"
@@ -79,6 +81,8 @@ final class TVYouViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         switch id {
         case RowID.demo: push(TVScreens.demoTour(env))
+        case RowID.playlists: push(TVScreens.playlists(env))
+        case RowID.activity: push(TVScreens.serverActivity(env))
         case RowID.history: push(TVScreens.history(env))
         case RowID.statistics: push(TVScreens.statistics(env))
         case RowID.pro: openPro()
@@ -175,6 +179,8 @@ final class TVYouViewController: TVSettingsScaffold {
         var rows = [
             TVRowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
             TVRowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
+            TVRowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
+            TVRowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
             TVRowItem(id: RowID.playback, title: String(localized: "Playback"), symbol: "play.rectangle", accessory: .chevron),
             TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),

@@ -127,7 +127,7 @@ struct SearchLoaderTests {
         let all = try Self.items(1...250)
         let log = SearchRequestLog()
         let result = try await Self.loader(log: log) { endpoint in
-            guard case .sectionItems(_, let sort, let genre, let start, let size, _, _) = endpoint else { throw Boom() }
+            guard case .sectionItems(_, let sort, let genre, let start, let size, _, _, _) = endpoint else { throw Boom() }
             #expect(sort == "titleSort:asc" && genre == "5" && size == 100)
             return try SearchFixtures.page(Array(all[start..<min(start + size, all.count)]), total: all.count)
         }.items(genre: Self.genre([("1", "5")]))
@@ -140,7 +140,7 @@ struct SearchLoaderTests {
         let all = try Self.items(1...200)
         let log = SearchRequestLog()
         let result = try await Self.loader(log: log) { endpoint in
-            guard case .sectionItems(_, _, _, let start, let size, _, _) = endpoint else { throw Boom() }
+            guard case .sectionItems(_, _, _, let start, let size, _, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(Array(all[start..<min(start + size, all.count)]), total: 200)
         }.items(genre: Self.genre([("1", "5")]))
 
@@ -152,7 +152,7 @@ struct SearchLoaderTests {
         let all = try Self.items(1...200)
         let log = SearchRequestLog()
         _ = try await Self.loader(log: log) { endpoint in
-            guard case .sectionItems(_, _, _, let start, let size, _, _) = endpoint else { throw Boom() }
+            guard case .sectionItems(_, _, _, let start, let size, _, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(Array(all[start..<min(start + size, all.count)]))
         }.items(genre: Self.genre([("1", "5")]))
         #expect(await log.sectionItemStarts == [0, 100, 200])
@@ -161,7 +161,7 @@ struct SearchLoaderTests {
     @Test func itemsAreCappedAtTwoThousandPerSource() async throws {
         let log = SearchRequestLog()
         let result = try await Self.loader(log: log) { endpoint in
-            guard case .sectionItems(_, _, _, let start, let size, _, _) = endpoint else { throw Boom() }
+            guard case .sectionItems(_, _, _, let start, let size, _, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(try Self.items((start + 1)...(start + size)), total: 9000)
         }.items(genre: Self.genre([("1", "5")]))
 
@@ -177,7 +177,7 @@ struct SearchLoaderTests {
         ]
         let shows = [try SearchFixtures.item("2", "movie", "Item 10"), try SearchFixtures.item("4", "show", "Alpha")]
         let result = try await Self.loader { endpoint in
-            guard case .sectionItems(let sectionId, _, _, _, _, _, _) = endpoint else { throw Boom() }
+            guard case .sectionItems(let sectionId, _, _, _, _, _, _, _) = endpoint else { throw Boom() }
             return try SearchFixtures.page(sectionId == "1" ? movies : shows)
         }.items(genre: Self.genre([("1", "5"), ("2", "6")]))
 
@@ -187,7 +187,7 @@ struct SearchLoaderTests {
     @Test func itemsFailWhenAnySourceFails() async throws {
         await #expect(throws: Boom.self) {
             _ = try await Self.loader { endpoint in
-                guard case .sectionItems(let sectionId, _, _, _, _, _, _) = endpoint else { throw Boom() }
+                guard case .sectionItems(let sectionId, _, _, _, _, _, _, _) = endpoint else { throw Boom() }
                 if sectionId == "2" { throw Boom() }
                 return try SearchFixtures.page([])
             }.items(genre: Self.genre([("1", "5"), ("2", "6")]))

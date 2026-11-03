@@ -52,6 +52,7 @@ enum DetailFixtures {
         if let duration = item.duration { fields["duration"] = duration }
         if let viewOffset = item.viewOffset { fields["viewOffset"] = viewOffset }
         if let viewCount = item.viewCount { fields["viewCount"] = viewCount }
+        if let userRating = item.userRating { fields["userRating"] = userRating }
         if let leafCount = item.leafCount { fields["leafCount"] = leafCount }
         if let viewed = item.viewedLeafCount { fields["viewedLeafCount"] = viewed }
         return fields

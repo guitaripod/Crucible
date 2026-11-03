@@ -156,12 +156,15 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
                 self?.selectLibrary(section, at: index)
             }
         }
+        let collections = UIAction(title: String(localized: "Collections"), image: UIImage(systemName: "rectangle.stack")) { [weak self] _ in
+            self?.currentChild?.openCollections()
+        }
         let folders = UIAction(title: String(localized: "Browse Folders"), image: UIImage(systemName: "folder")) { [weak self] _ in
             self?.currentChild?.openFolderBrowser()
         }
         return UIMenu(children: [
             UIMenu(options: .displayInline, children: switcher),
-            UIMenu(options: .displayInline, children: [folders]),
+            UIMenu(options: .displayInline, children: [collections, folders]),
         ])
     }
 
