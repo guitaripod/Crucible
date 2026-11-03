@@ -4,17 +4,29 @@ package struct PlexConnection: Sendable {
     package let serverURI: URL
     package let serverName: String
     package let machineIdentifier: String
+    /// The token the server takes: the account's, or the Plex Home profile's while one is watching.
     package let authToken: String
+    /// The token plex.tv takes for the same viewer (server list, ownership, watchlist), which for a Home profile is not the server's.
+    package let plexTVToken: String
     package let clientIdentifier: String
     /// Every advertised/manual route to this server, best-first. Used to self-heal when the
     /// pinned `serverURI` stops working (stale plex.direct cert, moved network, dead relay).
     package let candidateURIs: [URL]
 
-    package init(serverURI: URL, serverName: String, machineIdentifier: String, authToken: String, clientIdentifier: String, candidateURIs: [URL]? = nil) {
+    package init(
+        serverURI: URL,
+        serverName: String,
+        machineIdentifier: String,
+        authToken: String,
+        plexTVToken: String? = nil,
+        clientIdentifier: String,
+        candidateURIs: [URL]? = nil
+    ) {
         self.serverURI = serverURI
         self.serverName = serverName
         self.machineIdentifier = machineIdentifier
         self.authToken = authToken
+        self.plexTVToken = plexTVToken ?? authToken
         self.clientIdentifier = clientIdentifier
         self.candidateURIs = candidateURIs ?? [serverURI]
     }
@@ -46,10 +58,21 @@ package enum ServerBootstrap {
             serverURI: uri,
             serverName: name,
             machineIdentifier: machineId,
-            authToken: token,
+            authToken: HomeProfiles.activeServerToken ?? token,
+            plexTVToken: HomeProfiles.activePlexTVToken ?? token,
             clientIdentifier: PlexHeaders.clientIdentifier,
             candidateURIs: ordered
         )
+    }
+
+    /// The signed-in account's own token, whichever Home profile is watching: the one that lists and switches profiles.
+    package static var accountToken: String? {
+        KeychainHelper.load(key: authTokenKey)
+    }
+
+    /// The plex.tv token of whoever is watching: the Home profile's while one is, otherwise the account's.
+    package static var plexTVToken: String? {
+        HomeProfiles.activePlexTVToken ?? accountToken
     }
 
     static var isAuthenticated: Bool {
@@ -73,6 +96,7 @@ package enum ServerBootstrap {
 
     package static func clear() {
         KeychainHelper.delete(key: authTokenKey)
+        HomeProfiles.forgetAll()
         UserDefaults.standard.removeObject(forKey: serverURIKey)
         UserDefaults.standard.removeObject(forKey: serverNameKey)
         UserDefaults.standard.removeObject(forKey: machineIdKey)

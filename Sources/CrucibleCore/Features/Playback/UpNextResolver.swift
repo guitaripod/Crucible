@@ -62,6 +62,25 @@ package struct UpNextOffer: Sendable {
     }
 }
 
+/// Whether the Up Next card counts down and starts what comes next on its own. Autoplay Next Episode means just that, at the
+/// credits as much as at the end: a card that waited for the remote at the credits used to stay up until someone pressed a
+/// button, and on Apple TV it also held back the end-of-episode autoplay. Skip Credits set to Skip Automatically moves on
+/// from the credits even with autoplay off; a playlist plays on at the end of every entry, as it is made to.
+package enum AutoplayRule {
+    package static func autoplays(
+        reason: UpNextOffer.Reason,
+        isQueue: Bool,
+        autoplayNext: Bool = Preferences.autoplayNextEpisode,
+        skipCredits: Preferences.SkipOutroMode = Preferences.skipOutroMode
+    ) -> Bool {
+        switch reason {
+        case .credits: return autoplayNext || skipCredits == .automatic
+        case .playbackEnded: return isQueue || autoplayNext
+        case .requested: return true
+        }
+    }
+}
+
 /// Finds the episode after the one playing and says when the credits ask for it. The next episode is the
 /// following entry of the season, and a season's last episode is followed by the first episode of the next
 /// season that has one, so a show plays on through its finale instead of dead-ending there. The credits
@@ -138,7 +157,7 @@ package struct UpNextResolver: Sendable {
             episode: advanced.current,
             seasonRatingKey: advanced.current.parentRatingKey ?? "",
             reason: reason,
-            autoplays: reason == .credits ? Preferences.skipOutroMode == .automatic : true,
+            autoplays: AutoplayRule.autoplays(reason: reason, isQueue: true),
             queue: advanced
         )
     }
@@ -148,7 +167,7 @@ package struct UpNextResolver: Sendable {
             episode: episode,
             seasonRatingKey: season,
             reason: reason,
-            autoplays: reason == .credits ? Preferences.skipOutroMode == .automatic : Preferences.autoplayNextEpisode
+            autoplays: AutoplayRule.autoplays(reason: reason, isQueue: false)
         )
     }
 

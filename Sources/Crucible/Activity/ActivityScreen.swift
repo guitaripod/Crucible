@@ -13,6 +13,7 @@ enum ActivityScreen {
             try await ServerActivity.sessions(api: api)
         }
         grid.refreshInterval = .seconds(10)
+        grid.liveRefresh = (api, \.isPlayback)
         grid.configuration = { session in
             let card = DetailRelatedCard(item: session)
             return PosterContentConfiguration(

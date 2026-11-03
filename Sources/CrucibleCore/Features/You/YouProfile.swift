@@ -10,8 +10,10 @@ package enum ConnectionTone: Equatable, Sendable {
 extension PlexAccountName {
     package static let fallbackName = String(localized: "Plex User")
 
-    /// The display name `refresh(token:)` stored, or "Plex User" before it has run or when it came back blank.
+    /// The Home profile watching now, else the display name `refresh(token:)` stored, or "Plex User" before it has run or when it
+    /// came back blank.
     package static var stored: String {
+        if let profile = HomeProfiles.active { return profile.title }
         let value = UserDefaults.standard.string(forKey: defaultsKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let value, !value.isEmpty else { return fallbackName }
         return value

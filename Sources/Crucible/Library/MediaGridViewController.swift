@@ -15,6 +15,8 @@ final class MediaGridViewController: UICollectionViewController {
     var onSelect: ((PlexMetadata) -> Void)?
     var onLoaded: (([PlexMetadata]) -> Void)?
     var refreshInterval: Duration?
+    /// Reloads as soon as the server announces an event that matters to this list, besides the regular refresh.
+    var liveRefresh: (api: APIClient, matches: @Sendable (ServerEvent) -> Bool)?
     var retainedPlayer: PlayerCoordinator?
     var contextMenu: ((PlexMetadata) -> UIMenu?)?
     var configuration: (PlexMetadata) -> PosterContentConfiguration = { DetailLayout.posterConfiguration(for: $0) }
@@ -26,6 +28,7 @@ final class MediaGridViewController: UICollectionViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private var loadTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
+    private var listening: ServerEventListening?
     private var hasLoaded = false
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.item(at: indexPath) }
 
@@ -61,12 +64,20 @@ final class MediaGridViewController: UICollectionViewController {
         super.viewIsAppearing(animated)
         reload()
         startRefreshing()
+        if let liveRefresh {
+            listening?.cancel()
+            listening = ServerEventHub.shared.listen(api: liveRefresh.api, every: .seconds(1), matching: liveRefresh.matches) { [weak self] in
+                self?.reload()
+            }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
         refreshTask?.cancel()
+        listening?.cancel()
+        listening = nil
     }
 
     private func startRefreshing() {

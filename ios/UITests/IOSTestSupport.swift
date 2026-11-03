@@ -4,8 +4,9 @@ import XCTest
 @MainActor
 enum IOSTest {
     /// Launches the app as a new install with the scripted free store: `CRUCIBLE_UITEST=1`, `CRUCIBLE_FRESH=1` and `CRUCIBLE_PRO=free`, plus every `CRUCIBLE_*` variable `ios.sh test` handed over as a `TEST_RUNNER_*` variable. `extraEnvironment` wins over all of them.
-    static func launch(fresh: Bool = true, extraEnvironment: [String: String] = [:]) -> XCUIApplication {
+    static func launch(fresh: Bool = true, extraEnvironment: [String: String] = [:], arguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments += arguments
         app.launchEnvironment["CRUCIBLE_UITEST"] = "1"
         app.launchEnvironment["CRUCIBLE_PRO"] = "free"
         if fresh { app.launchEnvironment["CRUCIBLE_FRESH"] = "1" }

@@ -18,7 +18,9 @@ actor DemoLibrary {
     var onDeck: [String] = []
     var hiddenFromContinue = Set<String>()
     var stoppedSessions = Set<String>()
+    var showPreferences: [String: [String: String]] = [:]
     var scans: [String: (title: String, at: Date)] = [:]
+    let events = DemoEvents()
     var history: [DemoHistoryRow] = []
     var playlists: [DemoPlaylistState] = []
     var extraKeys: [String: [String]] = [:]

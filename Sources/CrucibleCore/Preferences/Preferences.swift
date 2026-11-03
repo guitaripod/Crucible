@@ -10,6 +10,7 @@ package enum Preferences {
     private static let skipIntroKey = "skipIntroMode"
     private static let skipOutroKey = "skipOutroMode"
     private static let autoplayNextKey = "autoplayNextEpisode"
+    private static let postPlayKey = "postPlaySuggestions"
     private static let appearanceKey = "appearanceMode"
     private static let preferLocalKey = "preferLocalConnection"
     private static let allowRelayKey = "allowRelayConnection"
@@ -126,6 +127,11 @@ package enum Preferences {
     package static var autoplayNextEpisode: Bool {
         get { UserDefaults.standard.object(forKey: autoplayNextKey) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: autoplayNextKey) }
+    }
+
+    package static var postPlaySuggestions: Bool {
+        get { UserDefaults.standard.object(forKey: postPlayKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: postPlayKey) }
     }
 
     package static var appearance: Appearance {

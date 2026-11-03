@@ -37,7 +37,8 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Skip Intro / Skip Credits** from Plex chapter markers
 - **Picture-in-Picture** and **background audio**
 - **Lock screen & Control Center controls** — play/pause, skip ±10s, scrub, next episode
-- **Credits-triggered Up Next** autoplay between episodes, straight into the next season at a finale, keeping the subtitles and audio you chose
+- **Credits-triggered Up Next** autoplay between episodes, straight into the next season at a finale, keeping the subtitles and audio you chose; with Autoplay Next Episode on, the countdown runs at the credits and the next episode starts with nobody touching the remote
+- **What's next after a movie**: when a movie, or the last episode of a show, ends, titles like it wait over the last frame, the ones you have not seen first; pick a movie and it plays in the same player, pick a show and its page opens
 - **Skip Intro** your way: a glass button with a live progress sweep, automatic skipping with Undo, or off
 - Adjustable **playback speed**, subtitle and audio track selection
 - Resume from where you left off, progress synced to the server via the timeline API; an episode you finished counts as watched even when you leave at the credits, so it never comes back as something to continue, and one already watched starts from the beginning
@@ -52,6 +53,8 @@ No storyboards. Pure programmatic UIKit. The iPhone app is cross-compiled from L
 - **Stream Info**: how the server is playing it (direct play, or a conversion and why), over which connection, at what quality, with the video, audio and subtitle in use
 - **Quality at home, away and on cellular**, each its own setting, plus **subtitle size** and how long the **Up Next countdown** runs
 - **Says why a stream will not play**: a server that refuses a stream away from home without Plex Pass or a Remote Watch Pass, or one that cannot convert a file, gets a plain message instead of an endless spinner
+- **Live from the server**: Home, Server Activity and the Server Dashboard listen to the server's own event stream, so a title stopped on another device lands in Continue Watching, new titles show up and a scan's progress moves without pulling to refresh
+- **Plex Home profiles**: switch to anyone in your Plex Home from the You tab, with their PIN when they have one (the owner's too), and get their Continue Watching, watched state, ratings and watchlist; your own sign-in is never replaced, and a profile the server stops accepting falls back to you
 
 ### Offline downloads
 
@@ -109,6 +112,7 @@ Shown only when the signed-in account owns the server, since the server refuses 
 - **Manage** in a library's menu: scan the library files, refresh all metadata, analyze, empty the trash
 - **Stop a stream** from Server Activity with a reason the viewer sees
 - **Server Dashboard**: the server's CPU and memory, its background tasks with a swipe to cancel, and server updates with their release notes and Install
+- **Show Settings** in a show's Manage menu: the server's own settings for that show (episode order, seasons shown or hidden, audio and subtitle languages for everyone, what happens to watched episodes), in the server's words
 - **Remove a play from Watch History**, which takes it out of the server's history and statistics too
 
 ### iPad
@@ -133,7 +137,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Cinematic Home** — a full-screen backdrop that follows focus, a hero with title, metadata and synopsis, then Continue Watching, Up Next, Recently Added and more; Select opens, Play/Pause plays, long press opens the context menu
 - **Library** poster grid with filter chips, a Recently Watched shelf, an A–Z rail, folder browsing for unindexed content and See All grids
 - **Detail** for movies, shows and episodes: season chips, episode rows that track watched and in-progress state, Cast & Crew and related titles
-- **Rate What You Watched** and **Remove from Continue Watching** on Home, **Home Rows**, searchable **Settings** categories, **Stream Info** and **chapters** in the player, a **sleep timer**, languages remembered per show, and every owner tool (Manage, Fix Match, Edit Details, artwork, Stop Stream, the Server Dashboard, Remove from History)
+- **Rate What You Watched** and **Remove from Continue Watching** on Home, **Home Rows**, searchable **Settings** categories, **Stream Info** and **chapters** in the player, a **sleep timer**, languages remembered per show, titles like a movie when it ends, live updates from the server, **Plex Home profiles**, and every owner tool (Manage, Show Settings, Fix Match, Edit Details, artwork, Stop Stream, the Server Dashboard, Remove from History)
 - **Rate, collect, queue** — rate any title in half stars with the remote's swipe, open a library's Collections or a title's own collection, add titles to playlists from a long press or the detail screen, play or shuffle a playlist, watch trailers and extras, filter a library by decade, rating or resolution, search for subtitles, keep a watchlist, and open a cast member's titles
 - **Search**, **Watch History**, **Statistics** (heatmap, patterns, binges, taste) and a **Year in Review** card on the You tab, plus Settings and Server & Connection
 - **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card that offers Play Now or Watch Credits with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API

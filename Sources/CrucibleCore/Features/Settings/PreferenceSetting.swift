@@ -25,6 +25,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case autoplayNextEpisode
     case upNextCountdown
     case stillWatching
+    case postPlaySuggestions
     case rewindAfterBreak
     case skipIntro
     case skipOutro
@@ -65,6 +66,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .autoplayNextEpisode: return String(localized: "Autoplay Next Episode")
         case .upNextCountdown: return String(localized: "Up Next Countdown", comment: "Setting: how long the Up Next card counts down")
         case .stillWatching: return String(localized: "Ask If Still Watching")
+        case .postPlaySuggestions: return String(localized: "Suggest What to Watch Next", comment: "Setting: show titles like the one that just ended")
         case .rewindAfterBreak: return String(localized: "Rewind After a Break")
         case .skipIntro: return String(localized: "Skip Intro")
         case .skipOutro: return String(localized: "Skip Credits", comment: "Setting: what happens when the end credits start")
@@ -102,6 +104,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipOutro: return String(localized: "Skip Credits decides what the credits do: show the Up Next card, start the next episode automatically, or stay out of the way.")
         case .rewindAfterBreak: return String(localized: "After a break, playback backs up a few seconds, more the longer you were away.")
         case .stillWatching: return String(localized: "Asks before the next episode once this many have played in a row without the remote.")
+        case .postPlaySuggestions: return String(localized: "When a movie or the last episode of a show ends, titles like it wait on the screen instead of the player closing.")
         case .subtitleSize: return String(localized: "Applies to subtitles the server draws into the picture and to the ones the player draws.")
         case .skipBack, .skipForward: return String(localized: "How far one skip goes: a click on the left or right of the Siri Remote's clickpad, or the skip buttons on the Lock Screen, in Control Center and on headphones.")
         case .holdLeft, .holdRight: return String(localized: "What holding the left or right of the clickpad does: the system's rewind and fast forward, a jump, or Start Over and Next Episode.")
@@ -131,6 +134,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .autoplayNextEpisode: return "play"
         case .upNextCountdown: return "timer"
         case .stillWatching: return "moon.zzz"
+        case .postPlaySuggestions: return "sparkles.tv"
         case .rewindAfterBreak: return "gobackward"
         case .skipIntro: return "forward.end"
         case .skipOutro: return "forward.end.circle"
@@ -180,6 +184,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .choice(Self.qualityChoices(current: Preferences.cellularQuality, same: String(localized: "Same as Away from Home", comment: "Quality option that follows the quality away from home")))
         case .autoplayNextEpisode:
             return .toggle(isOn: Preferences.autoplayNextEpisode)
+        case .postPlaySuggestions:
+            return .toggle(isOn: Preferences.postPlaySuggestions)
         case .upNextCountdown:
             return .choice(Preferences.upNextCountdownChoices.map {
                 SettingChoice(id: $0, title: String(localized: "\($0) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds"), isSelected: $0 == Preferences.upNextCountdown)
@@ -314,6 +320,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     package func setOn(_ isOn: Bool) {
         switch self {
         case .autoplayNextEpisode: Preferences.autoplayNextEpisode = isOn
+        case .postPlaySuggestions: Preferences.postPlaySuggestions = isOn
         case .rewindAfterBreak: Preferences.rewindAfterBreak = isOn
         case .downloadOverCellular: Preferences.downloadOverCellular = isOn
         case .deleteWatchedDownloads: Preferences.deleteWatchedDownloads = isOn
@@ -351,6 +358,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             SettingChoice(id: $0, title: String(localized: "\($0) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds"), isSelected: $0 == 10)
         }),
         .stillWatching: .choice(StillWatchingRule.choices.map { SettingChoice(id: $0, title: StillWatchingRule.label(for: $0), isSelected: $0 == StillWatchingRule.defaultLimit) }),
+        .postPlaySuggestions: .toggle(isOn: true),
         .rewindAfterBreak: .toggle(isOn: true),
         .skipIntro: .choice(choices(Preferences.SkipIntroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),
         .skipOutro: .choice(choices(Preferences.SkipOutroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),

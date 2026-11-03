@@ -4,7 +4,7 @@ import UIKit
 
 /// The owner's server dashboard on Apple TV: how hard the server is working, what it is busy with (scans, refreshes,
 /// conversions, each cancellable with Select) and whether a newer version of Plex Media Server is waiting, with its release
-/// notes and Install. Refreshes every few seconds while it is open.
+/// notes and Install. Refreshes every few seconds while it is open, and at once when the server says a job moved on.
 final class TVServerDashboardViewController: TVSettingsScaffold {
     private static let loadID = "dashboard.load"
     private static let idleID = "dashboard.idle"
@@ -23,6 +23,7 @@ final class TVServerDashboardViewController: TVSettingsScaffold {
     private var release: PlexServerRelease?
     private var version: String?
     private lazy var refreshSlot = makeTaskSlot()
+    private lazy var liveSlot = makeTaskSlot()
 
     init(api: APIClient) {
         self.api = api
@@ -46,6 +47,12 @@ final class TVServerDashboardViewController: TVSettingsScaffold {
                 await self?.refresh()
                 try? await Task.sleep(for: .seconds(5))
             }
+        }
+        let api = api
+        liveSlot.run { [weak self] in
+            await ServerEventHub.shared.listen(api: api, every: .seconds(1), matching: \.isActivity) {
+                Task { await self?.refresh() }
+            }.hold()
         }
     }
 

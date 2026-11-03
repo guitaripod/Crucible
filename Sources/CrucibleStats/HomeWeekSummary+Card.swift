@@ -16,10 +16,13 @@ extension HomeWeekSummary {
 }
 
 extension StatsStore {
-    /// `homeWeekSummary` with a failure logged and reported as no summary, which hides the card.
+    /// `homeWeekSummary` with a failure logged and reported as no summary, which hides the card. A screen that went away
+    /// cancels the read, which is not a failure.
     package func homeWeekSummaryOrNil(now: Date = Date()) async -> HomeWeekSummary? {
         do {
             return try await homeWeekSummary(now: now)
+        } catch is CancellationError {
+            return nil
         } catch {
             MidgarLog.error("Home week summary failed: \(error.localizedDescription)", category: .stats)
             return nil

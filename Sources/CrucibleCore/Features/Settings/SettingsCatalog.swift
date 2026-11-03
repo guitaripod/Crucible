@@ -196,6 +196,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.autoplayNextEpisode), category: .playback, section: upNext, platforms: both),
             Spec(item: .preference(.upNextCountdown), category: .playback, section: upNext, platforms: both),
             Spec(item: .preference(.stillWatching), category: .playback, section: upNext, platforms: both),
+            Spec(item: .preference(.postPlaySuggestions), category: .playback, section: upNext, platforms: both),
             Spec(item: .preference(.rewindAfterBreak), category: .playback, section: upNext, platforms: both),
             Spec(item: .preference(.skipIntro), category: .playback, section: skipping, platforms: both),
             Spec(item: .preference(.skipOutro), category: .playback, section: skipping, platforms: both),
@@ -406,7 +407,7 @@ package enum SettingsCatalog {
             switch setting {
             case .streamingQuality, .remoteQuality, .cellularQuality:
                 return String(localized: "bitrate, resolution, 4K, 1080p, original, transcode, data, mbps", comment: "Search keywords for the streaming quality settings, comma separated")
-            case .autoplayNextEpisode, .upNextCountdown, .stillWatching:
+            case .autoplayNextEpisode, .upNextCountdown, .stillWatching, .postPlaySuggestions:
                 return String(localized: "binge, next episode, autoplay, countdown, sleep", comment: "Search keywords for the Up Next settings, comma separated")
             case .rewindAfterBreak:
                 return String(localized: "resume, pause, back", comment: "Search keywords for Rewind After a Break, comma separated")

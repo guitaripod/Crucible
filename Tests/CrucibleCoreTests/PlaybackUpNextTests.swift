@@ -19,6 +19,25 @@ struct PlaybackUpNextTests {
         try [episode("301", index: 1), episode("302", index: 2), episode("303", index: 3)]
     }
 
+    @Test func autoplayCountsDownAtTheCreditsWhateverSkipCreditsSays() {
+        #expect(AutoplayRule.autoplays(reason: .credits, isQueue: false, autoplayNext: true, skipCredits: .button))
+        #expect(AutoplayRule.autoplays(reason: .credits, isQueue: false, autoplayNext: true, skipCredits: .automatic))
+        #expect(AutoplayRule.autoplays(reason: .playbackEnded, isQueue: false, autoplayNext: true, skipCredits: .button))
+        #expect(AutoplayRule.autoplays(reason: .playbackEnded, isQueue: false, autoplayNext: true, skipCredits: .off))
+    }
+
+    @Test func withAutoplayOffOnlySkipAutomaticallyMovesOnFromTheCredits() {
+        #expect(!AutoplayRule.autoplays(reason: .credits, isQueue: false, autoplayNext: false, skipCredits: .button))
+        #expect(AutoplayRule.autoplays(reason: .credits, isQueue: false, autoplayNext: false, skipCredits: .automatic))
+        #expect(!AutoplayRule.autoplays(reason: .playbackEnded, isQueue: false, autoplayNext: false, skipCredits: .automatic))
+    }
+
+    @Test func aPlaylistPlaysOnAtTheEndOfEveryEntry() {
+        #expect(AutoplayRule.autoplays(reason: .playbackEnded, isQueue: true, autoplayNext: false, skipCredits: .button))
+        #expect(!AutoplayRule.autoplays(reason: .credits, isQueue: true, autoplayNext: false, skipCredits: .button))
+        #expect(AutoplayRule.autoplays(reason: .requested, isQueue: false, autoplayNext: false, skipCredits: .off))
+    }
+
     @Test func nextEpisodeIsTheFollowingEntryOfTheSeason() throws {
         let episodes = try season()
         #expect(UpNextResolver.nextEpisode(after: "301", in: episodes)?.id == "302")

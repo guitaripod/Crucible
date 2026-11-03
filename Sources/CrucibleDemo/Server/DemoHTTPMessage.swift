@@ -37,12 +37,19 @@ struct DemoResponse: Sendable {
     var contentType: String?
     var headers: [String: String]
     var body: Data
+    /// A body sent as it arrives, for as long as the client stays: the notification stream. The connection closes after it.
+    var stream: AsyncStream<Data>?
 
-    init(status: Int = 200, contentType: String? = nil, headers: [String: String] = [:], body: Data = Data()) {
+    init(status: Int = 200, contentType: String? = nil, headers: [String: String] = [:], body: Data = Data(), stream: AsyncStream<Data>? = nil) {
         self.status = status
         self.contentType = contentType
         self.headers = headers
         self.body = body
+        self.stream = stream
+    }
+
+    static func eventStream(_ stream: AsyncStream<Data>) -> DemoResponse {
+        DemoResponse(contentType: "text/event-stream", headers: ["Cache-Control": "no-cache"], stream: stream)
     }
 
     static func empty(_ status: Int = 200) -> DemoResponse {
@@ -82,12 +89,13 @@ struct DemoResponse: Sendable {
         }
     }
 
-    /// The status line and headers for a body of `length` bytes.
-    func head(length: Int, keepAlive: Bool) -> Data {
+    /// The status line and headers for a body of `length` bytes, or for a streamed body without a length, which ends when the
+    /// connection closes.
+    func head(length: Int?, keepAlive: Bool) -> Data {
         var lines = ["HTTP/1.1 \(status) \(Self.reasonPhrase(status))", "Server: Plex Media Server"]
         if let contentType { lines.append("Content-Type: \(contentType)") }
         for (name, value) in headers.sorted(by: { $0.key < $1.key }) { lines.append("\(name): \(value)") }
-        lines.append("Content-Length: \(length)")
+        if let length { lines.append("Content-Length: \(length)") }
         lines.append("Connection: \(keepAlive ? "keep-alive" : "close")")
         return Data((lines.joined(separator: "\r\n") + "\r\n\r\n").utf8)
     }

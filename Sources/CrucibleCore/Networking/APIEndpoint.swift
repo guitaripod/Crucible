@@ -71,10 +71,14 @@ package enum PlexEndpoint: Sendable {
     case deleteHistoryEntry(historyId: String)
     case itemPreferences(ratingKey: String)
     case setItemPreferences(ratingKey: String, values: [String: String])
+    case eventSource
+    case homeUsers
+    case switchHomeUser(uuid: String, pin: String?)
+    case account
 
     var isPlexTV: Bool {
         switch self {
-        case .requestPin, .checkPin, .resources, .watchlist, .addToWatchlist, .removeFromWatchlist: return true
+        case .requestPin, .checkPin, .resources, .watchlist, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account: return true
         default: return false
         }
     }
@@ -86,6 +90,7 @@ package enum PlexEndpoint: Sendable {
         switch self {
         case .watchlist: return PlexTVHost.discover
         case .addToWatchlist, .removeFromWatchlist: return PlexTVHost.metadata
+        case .account: return PlexTVHost.account
         default: return Self.plexTVBaseURL
         }
     }
@@ -97,6 +102,8 @@ package enum PlexEndpoint: Sendable {
             return 10
         case .searchSubtitles, .downloadSubtitle, .matches:
             return 60
+        case .eventSource:
+            return ServerEventStream.idleTimeout
         default:
             return 15
         }
@@ -109,7 +116,7 @@ package enum PlexEndpoint: Sendable {
             return "PUT"
         case .deleteItem, .cancelActivity, .deleteHistoryEntry:
             return "DELETE"
-        case .requestPin:
+        case .requestPin, .switchHomeUser:
             return "POST"
         case .stopTranscode, .removeFromPlaylist, .deletePlaylist:
             return "DELETE"
@@ -246,6 +253,14 @@ package enum PlexEndpoint: Sendable {
             return "/library/metadata/\(ratingKey)"
         case .setItemPreferences(let ratingKey, _):
             return "/library/metadata/\(ratingKey)/prefs"
+        case .eventSource:
+            return "/:/eventsource/notifications"
+        case .homeUsers:
+            return "/api/v2/home/users"
+        case .switchHomeUser(let uuid, _):
+            return "/api/v2/home/users/\(uuid)/switch"
+        case .account:
+            return "/api/v2/user"
         }
     }
 
@@ -398,6 +413,8 @@ package enum PlexEndpoint: Sendable {
             return [URLQueryItem(name: "timespan", value: "6")]
         case .itemPreferences:
             return [URLQueryItem(name: "includePreferences", value: "1")]
+        case .eventSource:
+            return [URLQueryItem(name: "filters", value: ServerEventStream.filters)]
         case .setItemPreferences(_, let values):
             return values.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
         case .pingTranscode(let session):
@@ -432,12 +449,23 @@ package enum PlexEndpoint: Sendable {
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
             request.httpBody = Self.pinFormBody(strong: strong).data(using: .utf8)
         }
+        if case .switchHomeUser(_, let pin) = self {
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.httpBody = Self.switchFormBody(pin: pin).data(using: .utf8)
+        }
 
         return request
     }
 
     /// A strong PIN is the long code behind the `app.plex.tv/auth` page; omitting `strong` asks for
     /// the four character code a person types at plex.tv/link.
+    /// The profile's PIN, percent-encoded, beside the client that asks; no PIN for a profile without one.
+    static func switchFormBody(pin: String?) -> String {
+        var components = URLComponents()
+        components.queryItems = (pin.map { [URLQueryItem(name: "pin", value: $0)] } ?? []) + [URLQueryItem(name: "X-Plex-Client-Identifier", value: PlexHeaders.clientIdentifier)]
+        return components.percentEncodedQuery ?? ""
+    }
+
     static func pinFormBody(strong: Bool) -> String {
         let fields = (strong ? ["strong=true"] : []) + ["X-Plex-Product=Crucible", "X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"]
         return fields.joined(separator: "&")

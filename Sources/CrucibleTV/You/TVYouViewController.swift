@@ -8,6 +8,7 @@ import UIKit
 final class TVYouViewController: TVSettingsScaffold {
     private enum RowID {
         static let demo = "you.demo"
+        static let switchProfile = "you.switchProfile"
         static let playlists = "you.playlists"
         static let watchlist = "you.watchlist"
         static let activity = "you.activity"
@@ -86,6 +87,7 @@ final class TVYouViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         switch id {
         case RowID.demo: push(TVScreens.demoTour(env))
+        case RowID.switchProfile: push(TVScreens.profiles(env))
         case RowID.playlists: push(TVScreens.playlists(env))
         case RowID.watchlist: push(TVScreens.watchlist(env))
         case RowID.activity: push(TVScreens.serverActivity(env))
@@ -164,12 +166,19 @@ final class TVYouViewController: TVSettingsScaffold {
         let api = env.api
         async let headline = YouHistoryHeadline.latest(api: api)
         async let summary = YearInReviewSummary.load()
-        let (newHeadline, newSummary) = await (headline, summary)
+        async let profiles: Void = refreshHomeProfiles()
+        let (newHeadline, newSummary, _) = await (headline, summary, profiles)
         guard !Task.isCancelled else { return }
         historySubtitle = newHeadline
         refreshRows()
         applyYear(newSummary)
         remoteContentThrottle.markLoaded()
+    }
+
+    /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
+    private func refreshHomeProfiles() async {
+        guard !DemoMode.shared.isActive, let token = ServerBootstrap.accountToken else { return }
+        _ = try? await HomeProfiles.load(accountToken: token)
     }
 
     private func applyYear(_ summary: YearInReviewSummary?) {
@@ -204,6 +213,9 @@ final class TVYouViewController: TVSettingsScaffold {
         ]
         if ProAccess.shared.isStoreBacked {
             rows.insert(proRow(), at: 2)
+        }
+        if !DemoMode.shared.isActive, HomeProfiles.knownCount > 1 {
+            rows.insert(TVRowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron), at: 0)
         }
         if ServerOwnership.isOwner(), let activity = rows.firstIndex(where: { $0.id == RowID.activity }) {
             rows.insert(TVRowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron), at: activity + 1)

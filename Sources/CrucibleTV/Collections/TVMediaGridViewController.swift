@@ -21,6 +21,8 @@ final class TVMediaGridViewController: TVScreenViewController {
     var onLoaded: (([PlexMetadata]) -> Void)?
     var onPlayPause: ((PlexMetadata) -> Bool)?
     var refreshInterval: Duration?
+    /// Reloads as soon as the server announces an event that matters to this list, besides the regular refresh.
+    var liveRefresh: (api: APIClient, matches: @Sendable (ServerEvent) -> Bool)?
 
     private let screenTitle: String
     private let empty: Empty
@@ -33,6 +35,7 @@ final class TVMediaGridViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private lazy var loadSlot = makeTaskSlot()
     private lazy var refreshSlot = makeTaskSlot()
+    private lazy var liveSlot = makeTaskSlot()
 
     /// `style` is the shape of the cards: posters in six columns, or 16:9 pictures in three.
     init(title: String, empty: Empty = Empty(), style: TVCardStyle = .poster, card: @escaping (PlexMetadata) -> TVCardItem, load: @escaping () async throws -> [PlexMetadata]) {
@@ -59,6 +62,16 @@ final class TVMediaGridViewController: TVScreenViewController {
         super.viewWillAppear(animated)
         reload()
         startRefreshing()
+        listenForLiveEvents()
+    }
+
+    private func listenForLiveEvents() {
+        guard let liveRefresh else { return }
+        liveSlot.run { [weak self] in
+            await ServerEventHub.shared.listen(api: liveRefresh.api, every: .seconds(1), matching: liveRefresh.matches) {
+                self?.reload()
+            }.hold()
+        }
     }
 
     private func startRefreshing() {

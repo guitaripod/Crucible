@@ -35,6 +35,11 @@ enum TVManageMenus {
                 run(host: host, reloadAfter: .seconds(2), reload: reload) { try await LibraryManagement.unmatch(ratingKey: key, api: api) }
             })
         }
+        if item.mediaType == "show" {
+            actions.append(UIAction(title: ManageCopy.showSettings, image: UIImage(systemName: "slider.horizontal.3")) { _ in
+                TVNavigation.push(TVShowSettingsViewController(ratingKey: key, api: api), from: host)
+            })
+        }
         if let section = item.librarySectionID.map(String.init) {
             actions.append(UIAction(title: ManageCopy.editDetails, image: UIImage(systemName: "pencil")) { _ in
                 TVNavigation.push(TVEditDetailsViewController(edit: MetadataEdit(item: item, sectionId: section), api: api, onSaved: reload), from: host)

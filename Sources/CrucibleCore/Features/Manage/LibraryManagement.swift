@@ -296,8 +296,9 @@ package struct MetadataEdit: Sendable, Equatable {
 package enum ServerOwnership {
     private static let storageKey = "serverOwnership.v1"
 
+    /// A Home profile other than the owner's never gets the owner's tools, whatever the server says about the account.
     package static func isOwner(machineIdentifier: String? = ServerBootstrap.savedMachineIdentifier) -> Bool {
-        guard let machineIdentifier else { return false }
+        guard let machineIdentifier, HomeProfiles.active?.isAdmin ?? true else { return false }
         return stored()[machineIdentifier] ?? false
     }
 
@@ -360,6 +361,10 @@ package enum ManageCopy {
     package static let fixMatch = String(localized: "Fix Match…", comment: "Owner tool: match a title to the right movie or show")
     package static let unmatch = String(localized: "Unmatch", comment: "Owner tool: remove a title's match")
     package static let editDetails = String(localized: "Edit Details…", comment: "Owner tool: edit a title's name and summary")
+    package static let showSettings = String(localized: "Show Settings…", comment: "Owner tool: the server's settings for one show, such as episode order")
+    package static let showSettingsTitle = String(localized: "Show Settings", comment: "Title of the screen with the server's settings for one show")
+    package static let showSettingsNote = String(localized: "These settings live on your server, so they apply to everyone who watches this show.", comment: "Note on the Show Settings screen")
+    package static let noShowSettings = String(localized: "Your server offers no settings for this show.", comment: "Show Settings empty state")
     package static let delete = String(localized: "Delete from Server…", comment: "Owner tool: delete a title's files from the server")
     package static let scanLibrary = String(localized: "Scan Library Files", comment: "Owner tool: look for new files in a library")
     package static let refreshLibrary = String(localized: "Refresh All Metadata", comment: "Owner tool: refresh every title in a library")

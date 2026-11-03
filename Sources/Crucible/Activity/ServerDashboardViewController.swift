@@ -4,7 +4,7 @@ import CrucibleDesign
 
 /// The owner's server dashboard: how hard the server is working, what it is busy with (scans, refreshes, conversions, with
 /// a way to cancel), and whether a newer version of Plex Media Server is waiting, with its release notes and Install.
-/// Refreshes every few seconds while it is open.
+/// Refreshes every few seconds while it is open, and at once when the server says a job moved on.
 final class ServerDashboardViewController: UICollectionViewController {
     private enum Section: Int, CaseIterable {
         case load, tasks, software
@@ -26,6 +26,7 @@ final class ServerDashboardViewController: UICollectionViewController {
     private var release: PlexServerRelease?
     private var version: String?
     private var refreshTask: Task<Void, Never>?
+    private var listening: ServerEventListening?
 
     init(api: APIClient) {
         self.api = api
@@ -64,11 +65,17 @@ final class ServerDashboardViewController: UICollectionViewController {
                 try? await Task.sleep(for: .seconds(5))
             }
         }
+        listening?.cancel()
+        listening = ServerEventHub.shared.listen(api: api, every: .seconds(1), matching: \.isActivity) { [weak self] in
+            Task { await self?.refresh() }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         refreshTask?.cancel()
+        listening?.cancel()
+        listening = nil
     }
 
     private func refresh() async {

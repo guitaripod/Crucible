@@ -7,7 +7,7 @@ import Testing
 struct SettingsPreferenceTests {
     private static let keys = [
         "skipIntroMode", "skipOutroMode", "autoplayNextEpisode", "rewindAfterBreak", "stillWatchingAfterEpisodes",
-        "preferLocalConnection", "allowRelayConnection",
+        "postPlaySuggestions", "preferLocalConnection", "allowRelayConnection",
     ]
 
     private func isolated(_ body: () throws -> Void) rethrows {

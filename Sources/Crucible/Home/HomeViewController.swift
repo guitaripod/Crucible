@@ -20,6 +20,7 @@ final class HomeViewController: UICollectionViewController {
     private let api: APIClient
     private let feed: HomeFeed
     private var loadTask: Task<Void, Never>?
+    private var listening: ServerEventListening?
     private var weekTask: Task<Void, Never>?
     private var surpriseTask: Task<Void, Never>?
     private let surpriseMenuItem = UIBarButtonItem()
@@ -114,11 +115,17 @@ final class HomeViewController: UICollectionViewController {
         } else {
             loadData()
         }
+        listening?.cancel()
+        listening = ServerEventHub.shared.listen(api: api, every: .seconds(3), matching: \.changesHome) { [weak self] in
+            self?.loadData()
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
+        listening?.cancel()
+        listening = nil
     }
 
     /// The hero grows with the window, so a resize or a rotation re-measures it. The pass can run inside a snapshot apply, so the

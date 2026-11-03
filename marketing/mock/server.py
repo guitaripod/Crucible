@@ -1,6 +1,7 @@
 import collections
 import json
 import os
+import queue
 import random
 import re
 import socketserver
@@ -55,7 +56,40 @@ LIB = library.Library()
 LOCK = threading.Lock()
 SCANS = {}
 STOPPED = set()
+SHOW_PREFS = {}
+SHOW_SETTINGS = [
+    ("episodeSort", "Episode sorting", "int", "-1", "-1:Library default|0:Oldest first|1:Newest first"),
+    ("flattenSeasons", "Seasons", "int", "-1", "-1:Library default|0:Show|1:Hide"),
+    ("audioLanguage", "Preferred audio language", "text", "", ":Account default|en:English|es:Spanish|ja:Japanese"),
+    ("subtitleMode", "Auto-select subtitle mode", "int", "-1", "-1:Account default|0:Manually selected|1:Shown with foreign audio|2:Always enabled"),
+    ("autoDeletionItemPolicyWatchedLibrary", "Delete episodes after playing", "int", "0", "0:Never|1:After a day|7:After a week|100:On next refresh"),
+    ("useOriginalTitle", "Use original titles", "bool", "false", None),
+]
 SCAN_SECONDS = 10
+EVENT_LISTENERS = []
+EVENT_LOCK = threading.Lock()
+
+
+def publish(kind, payload):
+    """Sends one notification to every open /:/eventsource/notifications stream, wrapped the way a Plex Media Server wraps it."""
+    body = json.dumps({"NotificationContainer": dict(type=kind, size=1, **payload)}, separators=(",", ":"))
+    with EVENT_LOCK:
+        for listener in EVENT_LISTENERS:
+            listener.put((kind, body))
+
+
+def publish_scan(sid, event, progress):
+    title = library.SECTIONS.get(sid, (sid, ""))[0]
+    publish("activity", {"ActivityNotification": [{"event": event, "uuid": f"mock-scan-{sid}", "Activity": {
+        "uuid": f"mock-scan-{sid}", "type": "library.update.section", "cancellable": True, "title": f"Scanning {title}",
+        "progress": progress, "Context": {"librarySectionID": sid}}}]})
+
+
+def end_scan(sid, started):
+    with LOCK:
+        if SCANS.get(sid) != started:
+            return
+    publish_scan(sid, "ended", 100)
 PINS = {}
 
 DETAIL_ERROR_KEY = "9404"
@@ -85,7 +119,9 @@ def reset_state():
         REAPED_SESSIONS.clear()
         PATH_LOG.clear()
         SCANS.clear()
+        SERVER_TOKENS.clear()
         STOPPED.clear()
+        SHOW_PREFS.clear()
         HUBS_MODE = os.environ.get("MOCK_HUBS_MODE", "ok")
         PIN_POLLS = int(os.environ.get("MOCK_PIN_POLLS", "3"))
         PIN_LIFETIME = int(os.environ.get("MOCK_PIN_EXPIRES_S", "900"))
@@ -167,7 +203,36 @@ def poll_pin(pin):
     return pin_payload(pin, MOCK_TOKEN if approved else None)
 
 
-def plextv_resources():
+HOME_USERS = [
+    {"id": 1, "uuid": "9d1c5b7a3e2f4a60", "title": "Marcus", "username": "marcus", "thumb": "", "admin": True,
+     "guest": False, "restricted": False, "protected": False, "home": True},
+    {"id": 31, "uuid": "kids-31a7", "title": "Kids", "username": "", "thumb": "", "admin": False,
+     "guest": False, "restricted": True, "protected": False, "home": True},
+    {"id": 32, "uuid": "sam-32c9", "title": "Sam", "username": "sam", "thumb": "", "admin": False,
+     "guest": False, "restricted": False, "protected": True, "home": True},
+]
+HOME_PINS = {"sam-32c9": "1234"}
+PROFILE_TOKEN_PREFIX = "mock-profile-"
+SERVER_TOKENS = collections.deque(maxlen=200)
+
+
+def home_users():
+    """The account's Plex Home: the owner, a managed Kids profile and Sam, whose PIN is 1234. MOCK_HOME=none leaves the
+    account outside any Home."""
+    users = HOME_USERS[:1] if env("MOCK_HOME") == "none" else HOME_USERS
+    return {"id": 7, "name": "Marcus's Home", "guestUserID": None, "subscription": True, "users": users}
+
+
+def switch_home_user(uuid, pin):
+    """The switched profile and its plex.tv token, or None for a wrong PIN or an unknown profile."""
+    user = next((u for u in HOME_USERS if u["uuid"] == uuid), None)
+    if not user or (user["protected"] and HOME_PINS.get(uuid) != pin):
+        return None
+    token = MOCK_TOKEN if user["admin"] else PROFILE_TOKEN_PREFIX + uuid
+    return dict(user, authToken=token, authenticationToken=token)
+
+
+def plextv_resources(token=None):
     machine = library.MACHINE_ID
     seen = iso(datetime.now(timezone.utc))
     server = {"name": library.SERVER_NAME, "product": "Plex Media Server", "productVersion": "1.41.4.9463-630c9f557",
@@ -185,6 +250,8 @@ def plextv_resources():
                   {"protocol": "http", "address": PUBLIC_ADDRESS, "port": PORT,
                    "uri": f"http://{PUBLIC_ADDRESS}:{PORT}", "local": False, "relay": False, "IPv6": False},
               ]}
+    if token and token.startswith(PROFILE_TOKEN_PREFIX):
+        server = dict(server, accessToken="mock-server-" + token.removeprefix(PROFILE_TOKEN_PREFIX), owned=False)
     if PLEXTV_SERVERS == "none":
         return []
     if PLEXTV_SERVERS == "unreachable":
@@ -505,6 +572,35 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+    def event_stream(self):
+        """The server's live notifications as server-sent events: everything published while the client stays, and a
+        comment every 15 seconds so an idle connection is not taken for a dead one."""
+        events = queue.Queue()
+        with EVENT_LOCK:
+            EVENT_LISTENERS.append(events)
+        self.close_connection = True
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(b": connected\n\n")
+            self.wfile.flush()
+            while True:
+                try:
+                    kind, body = events.get(timeout=15)
+                    chunk = f"event: {kind}\ndata: {body}\n\n"
+                except queue.Empty:
+                    chunk = ": ping\n\n"
+                self.wfile.write(chunk.encode())
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+        finally:
+            with EVENT_LOCK:
+                EVENT_LISTENERS.remove(events)
+
     def owner_tools(self, p, one):
         """The server owner's tools: scans and refreshes (a scan shows under /activities for a few seconds), Fix Match,
         Edit Details, artwork, stopping a stream and the dashboard's load and update. Deleting is refused unless
@@ -512,8 +608,11 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/library/sections/(\d+)/(refresh|analyze|emptyTrash)$", p)
         if m:
             if m.group(2) == "refresh":
+                started = time.time()
                 with LOCK:
-                    SCANS[m.group(1)] = time.time()
+                    SCANS[m.group(1)] = started
+                publish_scan(m.group(1), "started", 0)
+                threading.Timer(SCAN_SECONDS, end_scan, args=(m.group(1), started)).start()
             self.send_empty()
             return True
         if re.match(r"^/library/sections/\d+/all$", p) and self.command == "PUT":
@@ -558,6 +657,38 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self.send_empty()
             return True
+        m = re.match(r"^/library/metadata/(\d+)/prefs$", p)
+        if m and self.command == "PUT":
+            with LOCK:
+                it = LIB.items.get(m.group(1))
+                if not it or it["type"] != "show":
+                    self.not_found()
+                    return True
+                for spec in SHOW_SETTINGS:
+                    if one(spec[0]) is not None:
+                        SHOW_PREFS.setdefault(m.group(1), {})[spec[0]] = one(spec[0])
+            self.send_empty()
+            return True
+        m = re.match(r"^/library/metadata/(\d+)$", p)
+        if m and self.command == "GET" and one("includePreferences") == "1":
+            with LOCK:
+                it = LIB.items.get(m.group(1))
+                if not it:
+                    self.not_found()
+                    return True
+                full = LIB.render(it, full=True)
+                if it["type"] == "show":
+                    saved = SHOW_PREFS.get(m.group(1), {})
+                    settings = []
+                    for sid, label, kind, default, choices in SHOW_SETTINGS:
+                        setting = {"id": sid, "label": label, "summary": "", "type": kind, "default": default,
+                                   "value": saved.get(sid, default), "hidden": False, "advanced": False}
+                        if choices:
+                            setting["enumValues"] = choices
+                        settings.append(setting)
+                    full["Preferences"] = {"Setting": settings}
+            self.send_json(container(size=1, Metadata=[full]))
+            return True
         if re.match(r"^/library/metadata/\d+$", p) and self.command == "DELETE":
             if env("MOCK_ALLOW_DELETE") == "1":
                 self.send_empty()
@@ -580,7 +711,9 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/activities" or p.startswith("/activities/"):
             with LOCK:
                 if self.command == "DELETE":
-                    SCANS.pop(p.rsplit("/", 1)[-1].removeprefix("mock-scan-"), None)
+                    sid = p.rsplit("/", 1)[-1].removeprefix("mock-scan-")
+                    if SCANS.pop(sid, None) is not None:
+                        publish_scan(sid, "ended", 100)
                     self.send_empty()
                     return True
                 now = time.time()
@@ -619,6 +752,8 @@ class Handler(BaseHTTPRequestHandler):
         if not p.startswith("/mock/"):
             with LOCK:
                 PATH_LOG.append(self.path)
+                if not p.startswith("/api/v2/") and self.headers.get("X-Plex-Token"):
+                    SERVER_TOKENS.append(self.headers.get("X-Plex-Token"))
 
         if p == "/mock/requests":
             needle = one("contains", "")
@@ -632,6 +767,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if p.startswith("/api/v2/") or p.startswith("/mock/"):
             return self.plextv(p, q)
+
+        if p == "/:/eventsource/notifications":
+            return self.event_stream()
 
         if p in ("/identity", "/"):
             return self.send_json(container(size=0, claimed=True, machineIdentifier=library.MACHINE_ID,
@@ -993,12 +1131,46 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send_json({"errors": [{"code": 1020, "message": "Code not found or expired"}]}, 404)
                 return self.send_json(poll_pin(pin))
         if p == "/api/v2/resources":
-            return self.send_json(plextv_resources())
+            return self.send_json(plextv_resources(self.headers.get("X-Plex-Token")))
+        if p == "/api/v2/home/users":
+            return self.send_json(home_users())
+        m = re.match(r"^/api/v2/home/users/([^/]+)/switch$", p)
+        if m and self.command == "POST":
+            fields = self.form()
+            switched = switch_home_user(m.group(1), (fields.get("pin") or [None])[0])
+            if switched is None:
+                return self.send_json({"errors": [{"code": 1041, "message": "Invalid PIN"}]}, 401)
+            return self.send_json(switched, 201)
+        if p == "/mock/tokens":
+            with LOCK:
+                if (q.get("clear") or [""])[0] == "1":
+                    SERVER_TOKENS.clear()
+                return self.send_json({"tokens": list(dict.fromkeys(SERVER_TOKENS))})
         if p == "/api/v2/user":
             return self.send_json(plextv_user())
         if p == "/mock/reset":
             reset_state()
             return self.send_json({"reset": True})
+        if p == "/mock/eventsource":
+            with EVENT_LOCK:
+                return self.send_json({"listeners": len(EVENT_LISTENERS)})
+        if p == "/mock/event":
+            kind = (q.get("kind") or [""])[0]
+            item = (q.get("item") or [""])[0]
+            if kind == "library":
+                it = LIB.items.get(item, {})
+                types = {"movie": 1, "show": 2, "season": 3, "episode": 4}
+                publish("timeline", {"TimelineEntry": [{"identifier": "com.plexapp.plugins.library",
+                                                        "sectionID": str(it.get("librarySectionID", "")), "itemID": item,
+                                                        "type": types.get(it.get("type"), 1), "title": it.get("title", ""),
+                                                        "state": 5}]})
+            elif kind == "stopped":
+                publish("playing", {"PlaySessionStateNotification": [{"sessionKey": "9", "clientIdentifier": (q.get("client") or ["elsewhere"])[0],
+                                                                       "ratingKey": item, "key": f"/library/metadata/{item}",
+                                                                       "viewOffset": 0, "state": "stopped"}]})
+            else:
+                return self.send_json({"error": "kind is library or stopped"}, 400)
+            return self.send_json({"published": kind})
         if p == "/mock/reap":
             session = (q.get("session") or [""])[0]
             if session:
@@ -1132,6 +1304,10 @@ class Handler(BaseHTTPRequestHandler):
                 it.pop("userRating", None)
         elif p == "/:/timeline":
             LIB.set_progress(one("ratingKey", ""), int(one("time", "0")), int(one("duration", "0")), one("state", ""))
+            rk = one("ratingKey", "")
+            publish("playing", {"PlaySessionStateNotification": [{
+                "sessionKey": "1", "clientIdentifier": self.headers.get("X-Plex-Client-Identifier", ""), "ratingKey": rk,
+                "key": f"/library/metadata/{rk}", "viewOffset": int(one("time", "0")), "state": one("state", "")}]})
         elif p == "/:/progress":
             rk = (one("key", "") or "").rsplit("/", 1)[-1]
             it = LIB.items.get(rk)

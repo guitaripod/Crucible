@@ -287,3 +287,42 @@ struct ServerOwnershipTests {
         #expect(DetailFixtures.item(["ratingKey": "9"]).playbackSession == nil)
     }
 }
+
+struct ItemSettingsTests {
+    @Test func choicesAreValueAndTitlePairs() {
+        let choices = ItemSettings.choices(from: "-1:Library default|0:Oldest first|1:Newest first")
+        #expect(choices.map(\.value) == ["-1", "0", "1"])
+        #expect(choices.map(\.title) == ["Library default", "Oldest first", "Newest first"])
+        #expect(ItemSettings.choices(from: ":Account default|en:English").first == ItemSetting.Choice(value: "", title: "Account default"))
+        #expect(ItemSettings.choices(from: "broken|1:One").map(\.value) == ["1"])
+        #expect(ItemSettings.choices(from: nil).isEmpty)
+    }
+
+    @Test func settingsComeFromTheTitleAndKeepOnlyChoicesAndSwitches() async throws {
+        let stub = DetailStubServer()
+        let sort: [String: Any] = ["id": "episodeSort", "label": "Episode sorting", "type": "int", "default": -1, "value": 1, "enumValues": "-1:Library default|0:Oldest first|1:Newest first"]
+        let original: [String: Any] = ["id": "useOriginalTitle", "label": "Use original titles", "type": "bool", "default": false, "value": true]
+        let language: [String: Any] = ["id": "languageOverride", "label": "Metadata language", "type": "text", "default": "", "value": ""]
+        let hidden: [String: Any] = ["id": "secret", "label": "Hidden", "type": "bool", "default": false, "value": false, "hidden": true]
+        let show: [String: Any] = ["ratingKey": "5", "type": "show", "title": "Severance", "Preferences": ["Setting": [sort, original, language, hidden]]]
+        let container: [String: Any] = ["size": 1, "Metadata": [show]]
+        stub.reply(path: "/library/metadata/5", body: ["MediaContainer": container])
+        let settings = try await ItemSettings.load(ratingKey: "5", api: stub.client)
+        #expect(settings.map(\.id) == ["episodeSort", "useOriginalTitle"])
+        #expect(settings[0].valueTitle == "Newest first")
+        #expect(settings[0].isChanged)
+        #expect(settings[1].isToggle && settings[1].isOn)
+        #expect(settings[1].toggleValue(false) == "false")
+        #expect(stub.requestedURLs.last?.contains("includePreferences=1") == true)
+    }
+
+    @Test func changingASettingSendsJustThatSetting() async throws {
+        let stub = DetailStubServer()
+        stub.reply(path: "/library/metadata/5/prefs", body: [:])
+        let setting = ItemSetting(id: "episodeSort", label: "Episode sorting", summary: nil, type: "int", value: "-1", defaultValue: "-1", choices: [])
+        try await ItemSettings.set(setting, to: "1", ratingKey: "5", api: stub.client)
+        #expect(stub.requestedURLs.last?.hasSuffix("/library/metadata/5/prefs?episodeSort=1") == true)
+        let numeric = ItemSetting(id: "x", label: "X", summary: nil, type: "bool", value: "0", defaultValue: "0", choices: [])
+        #expect(numeric.toggleValue(true) == "1")
+    }
+}

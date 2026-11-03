@@ -103,6 +103,19 @@ struct DemoManageTests {
         }
     }
 
+    @Test func aShowsServerSettingsCanBeChanged() async throws {
+        try await withDemo { demo in
+            let settings = try await ItemSettings.load(ratingKey: "2001", api: demo.api)
+            let sort = try #require(settings.first { $0.id == "episodeSort" })
+            #expect(sort.valueTitle == "Library default")
+            try await ItemSettings.set(sort, to: "1", ratingKey: "2001", api: demo.api)
+            let reloaded = try await ItemSettings.load(ratingKey: "2001", api: demo.api)
+            #expect(reloaded.first { $0.id == "episodeSort" }?.valueTitle == "Newest first")
+            let movie = try await ItemSettings.load(ratingKey: "1008", api: demo.api)
+            #expect(movie.isEmpty)
+        }
+    }
+
     @Test func theDashboardHasLoadAndAnUpdateToOffer() async throws {
         try await withDemo { demo in
             let sample = try #require(try await LibraryManagement.load(api: demo.api))

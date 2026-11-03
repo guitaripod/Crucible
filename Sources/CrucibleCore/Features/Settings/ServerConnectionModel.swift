@@ -156,13 +156,14 @@ package final class ServerConnectionModel {
         probeTask?.cancel()
         let urls = routes
         let token = authToken ?? ""
+        let plexTVToken = environment.connection()?.plexTVToken ?? token
         let environment = environment
         for url in urls { probes[url] = .probing }
         isTesting = true
         onChange?()
 
         probeTask = Task { [weak self] in
-            async let resource = environment.serverResource(token)
+            async let resource = environment.serverResource(plexTVToken)
             await withTaskGroup(of: (URL, ConnectionProbe?).self) { group in
                 for url in urls {
                     group.addTask { (url, await environment.probe(url, token)) }

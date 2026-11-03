@@ -6,10 +6,58 @@ import Foundation
 extension DemoLibrary {
     static let scanSeconds: TimeInterval = 10
 
+    /// A show's server settings, the way Plex lists a show's advanced settings: id, label, type, default and the choices.
+    static let showSettings: [(id: String, label: String, type: String, defaultValue: String, choices: String?)] = [
+        ("episodeSort", "Episode sorting", "int", "-1", "-1:Library default|0:Oldest first|1:Newest first"),
+        ("flattenSeasons", "Seasons", "int", "-1", "-1:Library default|0:Show|1:Hide"),
+        ("audioLanguage", "Preferred audio language", "text", "", ":Account default|en:English|es:Spanish|ja:Japanese"),
+        ("subtitleMode", "Auto-select subtitle mode", "int", "-1", "-1:Account default|0:Manually selected|1:Shown with foreign audio|2:Always enabled"),
+        ("autoDeletionItemPolicyWatchedLibrary", "Delete episodes after playing", "int", "0", "0:Never|1:After a day|7:After a week|100:On next refresh"),
+        ("useOriginalTitle", "Use original titles", "bool", "false", nil),
+    ]
+
+    func showPreferencesJSON(_ key: String) -> DemoJSON {
+        let saved = showPreferences[key] ?? [:]
+        let settings = Self.showSettings.map { spec -> DemoJSON in
+            var setting: DemoJSON = ["id": spec.id, "label": spec.label, "summary": "", "type": spec.type, "default": spec.defaultValue,
+                                     "value": saved[spec.id] ?? spec.defaultValue, "hidden": false, "advanced": false]
+            if let choices = spec.choices { setting["enumValues"] = choices }
+            return setting
+        }
+        return ["Setting": settings]
+    }
+
+    /// The show with its server settings, as `includePreferences=1` returns it.
+    func metadataWithPreferences(_ key: String) -> DemoResponse {
+        guard let item = items[key], var full = render(key, full: true) else { return .notFound() }
+        if item.kind == .show { full["Preferences"] = showPreferencesJSON(key) }
+        return .container(["size": 1, "Metadata": [full]])
+    }
+
+    func setShowPreferences(_ key: String, _ request: DemoRequest) -> DemoResponse {
+        guard items[key]?.kind == .show else { return .notFound() }
+        for spec in Self.showSettings {
+            if let value = request.first(spec.id) { showPreferences[key, default: [:]][spec.id] = value }
+        }
+        return .empty()
+    }
+
     func noteScan(sectionID: String) -> DemoResponse {
         let title = sections.first { $0.id == sectionID }?.title ?? sectionID
-        scans[sectionID] = (title, Date())
+        let started = Date()
+        scans[sectionID] = (title, started)
+        events.scan(sectionID: sectionID, title: title, event: "started", progress: 0)
+        Task {
+            try? await Task.sleep(for: .seconds(Self.scanSeconds))
+            await endScan(sectionID: sectionID, startedAt: started)
+        }
         return .empty()
+    }
+
+    /// Announces the end of a scan that ran its course, unless it was cancelled or started again meanwhile.
+    private func endScan(sectionID: String, startedAt: Date) {
+        guard let scan = scans[sectionID], scan.at == startedAt else { return }
+        events.scan(sectionID: sectionID, title: scan.title, event: "ended", progress: 100)
     }
 
     func matchesResponse(_ key: String, title: String?, year: Int?) -> DemoResponse {
@@ -74,7 +122,10 @@ extension DemoLibrary {
     }
 
     func cancelActivity(_ uuid: String) -> DemoResponse {
-        scans.removeValue(forKey: String(uuid.dropFirst("demo-scan-".count)))
+        let sectionID = String(uuid.dropFirst("demo-scan-".count))
+        if let scan = scans.removeValue(forKey: sectionID) {
+            events.scan(sectionID: sectionID, title: scan.title, event: "ended", progress: 100)
+        }
         return .empty()
     }
 

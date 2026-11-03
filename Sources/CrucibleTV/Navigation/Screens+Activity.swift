@@ -6,6 +6,13 @@ extension TVScreens {
         TVServerDashboardViewController(api: env.api)
     }
 
+    /// The account's Plex Home profiles; switching starts the app over as the new profile.
+    static func profiles(_ env: TVAppEnvironment) -> UIViewController {
+        TVProfilesViewController(machineIdentifier: env.connection.machineIdentifier) { [session = env.session] in
+            session.reconnect()
+        }
+    }
+
     static func serverActivity(_ env: TVAppEnvironment) -> UIViewController {
         let grid = TVMediaGridViewController(
             title: ServerActivity.title,
@@ -24,6 +31,7 @@ extension TVScreens {
             load: { try await ServerActivity.sessions(api: env.api) }
         )
         grid.refreshInterval = .seconds(10)
+        grid.liveRefresh = (env.api, \.isPlayback)
         grid.summary = { items in items.count == 1 ? String(localized: "1 stream") : String(localized: "\(items.count) streams") }
         installTitleActions(on: grid, env: env) { [weak grid] session in
             guard let grid, let id = ServerActivity.stoppableSessionID(session) else { return [] }

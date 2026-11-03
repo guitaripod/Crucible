@@ -41,7 +41,7 @@ enum Probes {
         if offer.episode.id != Fixtures.episodeKey(season: 1, index: 2) { return "offered \(offer.episode.id)" }
         if offer.seasonRatingKey != Fixtures.seasonKeys[1]! { return "offered a different season" }
         if case .credits = offer.reason {} else { return "wrong reason" }
-        if offer.autoplays != (Preferences.skipOutroMode == .automatic) { return "a credits offer does not follow Skip Outro" }
+        if offer.autoplays != AutoplayRule.autoplays(reason: .credits, isQueue: false) { return "a credits offer does not follow Autoplay and Skip Credits" }
         return nil
     }
 

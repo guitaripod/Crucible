@@ -1,15 +1,15 @@
 import XCTest
 
 /// The rest of what the app does with the Plex API on the iPhone and the iPad: a title's trailers, library filters beyond genre, searching for
-/// subtitles online, the watchlist and playing a playlist from its start. Each runs against the built-in demo.
+/// subtitles online, the watchlist, titles like a movie once it ends and playing a playlist from its start. Each runs against the built-in demo.
 @MainActor
 final class ApiFeaturesTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
     }
 
-    private func enterDemo() -> XCUIApplication {
-        let app = IOSTest.launch()
+    private func enterDemo(arguments: [String] = []) -> XCUIApplication {
+        let app = IOSTest.launch(arguments: arguments)
         let demo = IOSTest.element(app, "onboarding.demo")
         XCTAssertTrue(demo.waitForExistence(timeout: 120), "Welcome never showed Try the demo")
         demo.tap()
@@ -127,6 +127,43 @@ final class ApiFeaturesTests: XCTestCase {
         more.tap()
         XCTAssertTrue(app.buttons["Remove from Watchlist"].waitForExistence(timeout: 20), "a watchlisted title offers no way off the watchlist")
         IOSTest.capture("02-detail-menu", in: self)
+    }
+
+    func testWithTheDefaultSettingsTheNextEpisodePlaysOnItsOwnAfterTheCredits() {
+        let app = enterDemo(arguments: ["-autoplayNextEpisode", "YES", "-skipOutroMode", "0", "-upNext.countdown", "5"])
+        openTitle(app, "Paper Lanterns")
+        let play = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Play' OR label BEGINSWITH 'Resume'")).firstMatch
+        XCTAssertTrue(play.waitForExistence(timeout: 20), "the show has no Play button")
+        play.tap()
+        let countdown = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Playing in'")).firstMatch
+        XCTAssertTrue(countdown.waitForExistence(timeout: 90), "the credits brought no Up Next card counting down")
+        IOSTest.capture("01-up-next-counting-down", in: self)
+        XCTAssertTrue(IOSTest.wait(for: countdown, "exists == false", timeout: 30), "the countdown never ran out")
+        XCTAssertTrue(countdown.waitForExistence(timeout: 90), "the next episode did not play on to its own credits with nobody touching the screen")
+        IOSTest.capture("02-next-episode-counting-down", in: self)
+    }
+
+    func testAMovieEndsOnTitlesLikeItAndOnePlaysInTheSamePlayer() {
+        let app = enterDemo()
+        openTitle(app, "Afterglow")
+        let play = app.buttons.matching(NSPredicate(format: "label == 'Play' OR label == 'Play Afterglow'")).firstMatch
+        XCTAssertTrue(play.waitForExistence(timeout: 20), "Afterglow has no Play button")
+        play.tap()
+        let postPlay = IOSTest.element(app, "postPlay")
+        XCTAssertTrue(postPlay.waitForExistence(timeout: 120), "the end of the movie offered nothing")
+        XCTAssertTrue(app.staticTexts["Because You Watched Afterglow"].exists)
+        IOSTest.settle(1)
+        IOSTest.capture("01-titles-like-it", in: self)
+        let next = postPlay.cells.containing(NSPredicate(format: "label CONTAINS 'Quiet Engines'")).firstMatch
+        XCTAssertTrue(next.waitForExistence(timeout: 5), "a title still to watch comes first")
+        XCTAssertEqual(postPlay.cells.firstMatch.label, next.label)
+        next.tap()
+        XCTAssertTrue(IOSTest.wait(for: postPlay, "exists == false", timeout: 30), "picking a movie left the titles up")
+        XCTAssertTrue(app.staticTexts["Because You Watched Quiet Engines"].waitForExistence(timeout: 120), "the picked movie played to its end in the same player")
+        IOSTest.capture("02-after-the-picked-movie", in: self)
+        IOSTest.element(app, "postPlay.close").tap()
+        XCTAssertTrue(IOSTest.wait(for: IOSTest.element(app, "postPlay"), "exists == false", timeout: 30), "Close left the player up")
+        XCTAssertTrue(play.waitForExistence(timeout: 30), "Close did not return to the movie")
     }
 
     func testAPlaylistPlaysFromItsStart() {

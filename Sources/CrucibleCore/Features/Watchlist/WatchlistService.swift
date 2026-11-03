@@ -7,6 +7,7 @@ package enum WatchlistService {
 
     /// Everything on the watchlist, newest first as the account lists it.
     package static func items(token: String) async throws -> [PlexMetadata] {
+        let token = plexTV(token)
         var all: [PlexMetadata] = []
         var start = 0
         while true {
@@ -28,9 +29,15 @@ package enum WatchlistService {
         try await change(.removeFromWatchlist(guid: guid), token: token)
     }
 
+    /// The watchlist belongs to whoever is watching: a Home profile's lives behind its own plex.tv token, not the server token
+    /// screens hold.
+    private static func plexTV(_ token: String) -> String {
+        HomeProfiles.activePlexTVToken ?? token
+    }
+
     private static func change(_ endpoint: PlexEndpoint, token: String) async throws {
         do {
-            try await APIClient.plexTVRequestVoid(endpoint, token: token)
+            try await APIClient.plexTVRequestVoid(endpoint, token: plexTV(token))
         } catch {
             MidgarLog.error("Watchlist change failed: \(error.localizedDescription)", category: .networking)
             throw error

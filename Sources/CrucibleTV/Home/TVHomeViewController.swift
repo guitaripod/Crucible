@@ -26,6 +26,7 @@ final class TVHomeViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<TVHomeSection, TVHomeItem>!
 
     private lazy var loadSlot = makeTaskSlot()
+    private lazy var liveSlot = makeTaskSlot()
     private lazy var weekSlot = makeTaskSlot()
     private lazy var surpriseSlot = makeTaskSlot()
     private var currentHero: TVHeroInfo?
@@ -117,6 +118,12 @@ final class TVHomeViewController: TVScreenViewController {
             skipNextAppearanceLoad = false
         } else {
             reload()
+        }
+        let api = env.api
+        liveSlot.run { [weak self] in
+            await ServerEventHub.shared.listen(api: api, every: .seconds(3), matching: \.changesHome) {
+                self?.reload()
+            }.hold()
         }
     }
 

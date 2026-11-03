@@ -900,6 +900,8 @@ package struct PlexResource: Decodable, Sendable {
     package let provides: String
     package let clientIdentifier: String
     package let owned: Bool?
+    /// The token this account uses on the server, which for a Plex Home profile is not the profile's plex.tv token.
+    package let accessToken: String?
     let presence: Bool?
     let lastSeenAt: String?
     package let connections: [PlexResourceConnection]

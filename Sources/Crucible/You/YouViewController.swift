@@ -8,7 +8,7 @@ final class YouViewController: UICollectionViewController {
     }
 
     enum Item: Hashable {
-        case demo, profile, year, playlists, watchlist, activity, dashboard, history, statistics, settings, server, about
+        case demo, profile, switchProfile, year, playlists, watchlist, activity, dashboard, history, statistics, settings, server, about
     }
 
     private let api: APIClient
@@ -72,12 +72,21 @@ final class YouViewController: UICollectionViewController {
     private func loadRemoteContent() async {
         async let history = YouHistoryHeadline.latest(api: api)
         async let year = YouYearSummary.load()
-        let (newHistory, newYear) = await (history, year)
+        async let profiles: Void = refreshHomeProfiles()
+        let (newHistory, newYear, _) = await (history, year, profiles)
         guard !Task.isCancelled else { return }
         historySubtitle = newHistory
         yearSummary = newYear
         applySnapshot()
     }
+
+    /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
+    private func refreshHomeProfiles() async {
+        guard !isInDemo, let token = ServerBootstrap.accountToken else { return }
+        _ = try? await HomeProfiles.load(accountToken: token)
+    }
+
+    private var offersProfiles: Bool { !isInDemo && HomeProfiles.knownCount > 1 }
 
     private func makeLayout() -> UICollectionViewLayout {
         UICollectionViewCompositionalLayout { [weak self] index, environment in
@@ -124,6 +133,10 @@ final class YouViewController: UICollectionViewController {
             case .profile:
                 cell.contentConfiguration = profileConfiguration()
                 cell.accessories = isInDemo ? [] : [.disclosureIndicator()]
+            case .switchProfile:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "person.2", title: HomeProfiles.title, value: PlexAccountName.stored)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.switchProfile"
             case .playlists:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "list.bullet.rectangle", title: String(localized: "Playlists"))
                 cell.accessories = [.disclosureIndicator()]
@@ -204,7 +217,7 @@ final class YouViewController: UICollectionViewController {
             snapshot.appendItems([.demo], toSection: .demo)
         }
         snapshot.appendSections([.profile])
-        snapshot.appendItems([.profile], toSection: .profile)
+        snapshot.appendItems(offersProfiles ? [.profile, .switchProfile] : [.profile], toSection: .profile)
         if yearSummary != nil {
             snapshot.appendSections([.year])
             snapshot.appendItems([.year], toSection: .year)
@@ -229,6 +242,12 @@ final class YouViewController: UICollectionViewController {
         let destination: UIViewController
         switch item {
         case .demo: destination = DemoTourViewController()
+        case .switchProfile:
+            let profiles = ProfilesViewController(machineIdentifier: ServerBootstrap.savedMachineIdentifier ?? "")
+            profiles.onSwitched = { [weak profiles] in
+                (profiles?.view.window?.windowScene?.delegate as? SceneDelegate)?.reconfigureRoot()
+            }
+            destination = profiles
         case .profile where isInDemo: return
         case .profile, .server: destination = ServerDetailViewController(api: api)
         case .year, .statistics: destination = StatisticsViewController(api: api)

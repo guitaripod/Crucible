@@ -43,6 +43,9 @@ package actor DemoLibraryProvider: DemoProviding {
         return try await task.value
     }
 
+    /// The library being served, for tests that look inside it.
+    var library: DemoLibrary? { running?.library }
+
     package func stop() async {
         if let starting { _ = try? await starting.value }
         guard let current = running else { return }

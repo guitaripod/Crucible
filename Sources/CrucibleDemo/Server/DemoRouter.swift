@@ -77,6 +77,9 @@ struct DemoRouter: Sendable {
     }
 
     private func stateResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        if parts == [":", "eventsource", "notifications"] {
+            return .eventStream(library.events.subscribe())
+        }
         guard parts.count == 2 else { return .notFound() }
         switch parts[1] {
         case "scrobble":
@@ -86,12 +89,11 @@ struct DemoRouter: Sendable {
         case "rate":
             await library.rate(request.first("key") ?? "", rating: request.int("rating") ?? 0)
         case "timeline":
-            await library.timeline(
-                request.first("ratingKey") ?? "",
-                timeMs: request.int("time") ?? 0,
-                durationMs: request.int("duration") ?? 0,
-                state: request.first("state") ?? ""
-            )
+            let key = request.first("ratingKey") ?? ""
+            let state = request.first("state") ?? ""
+            let timeMs = request.int("time") ?? 0
+            await library.timeline(key, timeMs: timeMs, durationMs: request.int("duration") ?? 0, state: state)
+            library.events.playback(ratingKey: key, state: state, timeMs: timeMs, clientIdentifier: request.headers["x-plex-client-identifier"])
         case "progress":
             let key = (request.first("key") ?? "").split(separator: "/").last.map(String.init) ?? ""
             await library.progress(key, timeMs: request.int("time") ?? 0)
@@ -197,9 +199,14 @@ struct DemoRouter: Sendable {
                 return await library.artworkResponse(parts[2], kind: parts[3])
             case "poster", "art":
                 return await library.selectArtwork(parts[2], kind: parts[3], url: request.first("url"))
+            case "prefs" where request.method == "PUT":
+                return await library.setShowPreferences(parts[2], request)
             default:
                 break
             }
+        }
+        if parts.count == 3, request.flag("includePreferences") {
+            return await library.metadataWithPreferences(parts[2])
         }
         switch parts.count {
         case 3: return await library.metadataResponse(parts[2], sub: nil)
