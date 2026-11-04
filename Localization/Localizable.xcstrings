@@ -3656,6 +3656,71 @@
         }
       }
     },
+    "%@. Tap to rate them all in one place." : {
+      "comment" : "Body of the one reminder that gathers several titles to rate, e.g. Dune, Severance and 2 more. Tap to rate them all in one place.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Tippe, um alles an einem Ort zu bewerten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Toca para valorarlos todos en un mismo lugar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Touchez pour tout noter au même endroit."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Tocca per valutarli tutti in un unico posto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@。タップしてまとめて評価できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. 탭하여 한곳에서 모두 평가하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Stuknij, aby ocenić wszystko w jednym miejscu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Toque para avaliar tudo em um só lugar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@。轻点即可在一处为它们全部评分。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@。點一下即可在同一處為它們全部評分。"
+          }
+        }
+      }
+    },
     "%@: %@" : {
       "localizations" : {
         "de" : {
@@ -6432,6 +6497,221 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "剩 %lld 分鐘"
+          }
+        }
+      }
+    },
+    "%lld more" : {
+      "comment" : "Last item of a list of titles in a notification, e.g. the end of Dune, Severance and 2 more",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld more"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld more"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld weiterer"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld weitere"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld más"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld más"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld más"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autre"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autres"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld autres"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld altro"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "altri %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "altri %lld"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ほか%lld件"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld개 더"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld inny"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld inne"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld innych"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld innych"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "mais %lld"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "mais %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "mais %lld"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "另外 %lld 部"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "另外 %lld 部"
+                }
+              }
+            }
           }
         }
       }
@@ -12789,66 +13069,66 @@
         }
       }
     },
-    "After you finish a movie, a season or a run of episodes, a reminder asks how it was. Press and hold it to rate with stars right there." : {
+    "After you finish a movie, a season or a run of episodes, one reminder asks how it all was. Tap it to rate everything in one place." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nachdem du einen Film, eine Staffel oder mehrere Folgen beendet hast, fragt dich eine Erinnerung, wie sie dir gefallen haben. Drücke lange darauf, um direkt mit Sternen zu bewerten."
+            "value" : "Nachdem du einen Film, eine Staffel oder mehrere Folgen beendet hast, fragt dich eine einzige Erinnerung, wie alles war. Tippe darauf, um alles an einem Ort zu bewerten."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Al terminar una película, una temporada o varios episodios, un recordatorio te pregunta qué tal estuvo. Mantén pulsado para valorar con estrellas ahí mismo."
+            "value" : "Al terminar una película, una temporada o varios episodios, un único recordatorio te pregunta qué tal estuvo todo. Tócalo para valorarlo todo en un mismo lugar."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une fois un film, une saison ou une série d’épisodes terminé, un rappel vous demande ce que vous en avez pensé. Appuyez longuement dessus pour noter avec des étoiles directement."
+            "value" : "Une fois un film, une saison ou une série d’épisodes terminé, un seul rappel vous demande ce que vous en avez pensé. Touchez-le pour tout noter au même endroit."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dopo un film, una stagione o una serie di episodi, un promemoria ti chiede com'è stato. Tieni premuto per valutare con le stelle direttamente lì."
+            "value" : "Dopo un film, una stagione o una serie di episodi, un solo promemoria ti chiede com'è andata. Toccalo per valutare tutto in un unico posto."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "映画、シーズン、連続するエピソードを見終えると、感想を尋ねるリマインダーが届きます。長押しすると、その場で星を付けて評価できます。"
+            "value" : "映画、シーズン、連続するエピソードを見終えると、まとめて感想を尋ねるリマインダーが1件届きます。タップすると、まとめて評価できます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "영화, 시즌, 에피소드 묶음을 다 보면 알림이 어땠는지 물어봐요. 길게 누르면 그 자리에서 별점을 매길 수 있어요."
+            "value" : "영화, 시즌, 에피소드 묶음을 다 보면 알림 하나가 모두 어땠는지 물어봐요. 탭하면 한곳에서 모두 평가할 수 있어요."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po skończeniu filmu, sezonu lub serii odcinków przypomnienie zapyta, jak było. Przytrzymaj je, aby od razu ocenić gwiazdkami."
+            "value" : "Po skończeniu filmu, sezonu lub serii odcinków jedno przypomnienie zapyta, jak było. Stuknij je, aby ocenić wszystko w jednym miejscu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Depois que você terminar um filme, uma temporada ou uma sequência de episódios, um lembrete pergunta o que achou. Pressione e segure para avaliar com estrelas ali mesmo."
+            "value" : "Depois que você terminar um filme, uma temporada ou uma sequência de episódios, um único lembrete pergunta o que achou de tudo. Toque nele para avaliar tudo em um só lugar."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "看完一部电影、一季或连续几集后，提醒会询问你的观感。长按即可直接用星级评分。"
+            "value" : "看完一部电影、一季或连续几集后，一条提醒会询问你的整体观感。轻点即可在一处为所有内容评分。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "看完電影、一季或連續幾集後，提醒會詢問您的感想。按住即可直接用星星評分。"
+            "value" : "看完電影、一季或連續幾集後，一則提醒會詢問您的整體感想。點一下即可在同一處為所有內容評分。"
           }
         }
       }
@@ -44037,6 +44317,71 @@
         }
       }
     },
+    "Movies and shows you finish wait here until you rate them." : {
+      "comment" : "Message shown when Rate What You Watched has no titles left",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filme und Serien, die du beendest, warten hier, bis du sie bewertest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las películas y series que termines esperan aquí hasta que las valores."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les films et séries que vous terminez vous attendent ici jusqu’à ce que vous les notiez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I film e le serie che finisci restano qui finché non li valuti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見終えた映画や番組は、評価するまでここで待っています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다 본 영화와 프로그램은 평가할 때까지 여기에 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filmy i seriale, które skończysz, czekają tutaj, aż je ocenisz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filmes e séries que você terminar ficam aqui até você avaliá-los."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你看完的电影和剧集会留在这里，直到你为它们评分。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您看完的電影和節目會留在這裡，直到您為它們評分。"
+          }
+        }
+      }
+    },
     "Movies and shows you just finished and have not rated yet." : {
       "localizations" : {
         "de" : {
@@ -49497,6 +49842,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有可挑選的內容"
+          }
+        }
+      }
+    },
+    "Nothing to Rate" : {
+      "comment" : "Title shown when Rate What You Watched has no titles left",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts zu bewerten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada que valorar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien à noter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente da valutare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "評価する作品はありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "평가할 작품이 없어요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic do oceny"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada para avaliar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有需要评分的内容"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有需要評分的內容"
           }
         }
       }
@@ -72158,6 +72568,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tailscale 不接受此權杖。請確認已完整複製，且權杖尚未過期。"
+          }
+        }
+      }
+    },
+    "Tap a star to rate, or slide across the stars for half stars." : {
+      "comment" : "Hint above the Rate What You Watched list, whose rows each carry five stars",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe auf einen Stern, um zu bewerten, oder wische über die Sterne für halbe Sterne."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca una estrella para valorar o desliza por las estrellas para dar medias estrellas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez une étoile pour noter, ou faites glisser le doigt sur les étoiles pour des demi-étoiles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca una stella per valutare, oppure scorri sulle stelle per le mezze stelle."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "星をタップして評価。星の上をなぞると半分の星も付けられます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "별을 탭해 평가하거나, 별 위를 밀어서 반 별을 매기세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuknij gwiazdkę, aby ocenić, lub przesuń palcem po gwiazdkach, by dać pół gwiazdki."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque em uma estrela para avaliar ou deslize sobre as estrelas para dar meia estrela."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轻点星星即可评分，在星星上滑动可评半星。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點一下星星即可評分，在星星上滑動可評半顆星。"
           }
         }
       }

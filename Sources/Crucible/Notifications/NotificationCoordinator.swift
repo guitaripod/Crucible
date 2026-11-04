@@ -6,8 +6,8 @@ import MidgarCore
 import UIKit
 import UserNotifications
 
-/// Every notification the iPhone sends besides downloads: reminders to rate what you finished (with star buttons that rate
-/// without opening the app), new episodes of the shows you watch, watchlist titles that arrived, the Sunday recap and Year
+/// Every notification the iPhone sends besides downloads: one reminder to rate what you finished (with star buttons that rate
+/// without opening the app when it names a single title), new episodes of the shows you watch, watchlist titles that arrived, the Sunday recap and Year
 /// in Review. Each kind follows its switch in Settings › Notifications. Arrivals are found by a background refresh; nothing
 /// ever leaves the device but the requests to your own server and to plex.tv for your watchlist.
 @MainActor
@@ -18,6 +18,7 @@ final class NotificationCoordinator {
     static let rateCategory = "crucible.rate"
     private static let rateActionPrefix = "rate."
     private static let rateIdentifierPrefix = "crucible.rate."
+    private static let rateIdentifier = "crucible.rate.all"
     private static let recapIdentifier = "crucible.recap"
     private static let refreshInterval: TimeInterval = 2 * 3_600
     private static let quickRatings = [10, 8, 6, 4, 2]
@@ -26,6 +27,8 @@ final class NotificationCoordinator {
     private var ledgerObserver: UUID?
     private var backgroundObserver: (any NSObjectProtocol)?
     private var foregroundObserver: (any NSObjectProtocol)?
+    private var reminderSync: Task<Void, Never>?
+    private var pendingTap: NotificationTap?
 
     /// Called once from `application(_:didFinishLaunchingWithOptions:)`: the background task must be registered before
     /// launch ends. Its launch handler runs on the main queue: it is made on the main actor, and the runtime stops the app
@@ -78,37 +81,57 @@ final class NotificationCoordinator {
 
     // MARK: - Rating reminders
 
+    /// Keeps one reminder for everything waiting to be rated. A newly finished title adds itself to it and moves it to its
+    /// own reminder time, so a binge or an evening of films is one reminder; a title rated or waved away leaves a reminder
+    /// that has not arrived yet, and when nothing is left to ask about the reminder goes. The single reminders sent before
+    /// they were gathered stay while their title waits.
     private func syncRatingReminders() {
         let server = ServerBootstrap.savedMachineIdentifier
-        let asks = FinishedTitlesLedger.shared.asks(now: Date(), server: server)
-        let wanted = Set(asks.map { Self.rateIdentifierPrefix + $0.ratingKey })
-        Task { [center] in
-            let pending = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(Self.rateIdentifierPrefix) }
-            let delivered = await center.deliveredNotifications().map(\.request.identifier).filter { $0.hasPrefix(Self.rateIdentifierPrefix) }
-            let stale = (pending + delivered).filter { !wanted.contains($0) || !Preferences.notifies(.ratingReminders) }
-            center.removePendingNotificationRequests(withIdentifiers: stale)
-            center.removeDeliveredNotifications(withIdentifiers: stale)
-        }
-        guard Preferences.notifies(.ratingReminders) else { return }
-        for ask in NotificationLedger.shared.asksNeedingReminders(asks, server: server) {
-            NotificationLedger.shared.noteReminded(ask)
-            Task { await scheduleReminder(for: ask) }
+        let asks = Preferences.notifies(.ratingReminders) ? FinishedTitlesLedger.shared.asks(now: Date(), server: server) : []
+        let fresh = NotificationLedger.shared.asksNeedingReminders(asks, server: server)
+        fresh.forEach { NotificationLedger.shared.noteReminded($0) }
+        let due = ReminderSchedule.ratingReminder(for: fresh, timing: Preferences.ratingReminderTiming, quietHours: Preferences.quietHours)
+        let previous = reminderSync
+        reminderSync = Task { [weak self] in
+            await previous?.value
+            await self?.applyRatingReminder(asks: asks, due: due)
         }
     }
 
-    private func scheduleReminder(for ask: RatingAsk) async {
-        guard await requestPermissionIfNeeded() else { return }
+    private func applyRatingReminder(asks: [RatingAsk], due: Date?) async {
+        let pending = await center.pendingNotificationRequests().filter { $0.identifier.hasPrefix(Self.rateIdentifierPrefix) }
+        let delivered = await center.deliveredNotifications().map(\.request).filter { $0.identifier.hasPrefix(Self.rateIdentifierPrefix) }
+        let waiting = Set(asks.map { Self.rateIdentifierPrefix + $0.ratingKey })
+        let stale = (pending + delivered).map(\.identifier).filter { asks.isEmpty || ($0 != Self.rateIdentifier && !waiting.contains($0)) }
+        center.removePendingNotificationRequests(withIdentifiers: stale)
+        center.removeDeliveredNotifications(withIdentifiers: stale)
+        guard !asks.isEmpty else { return }
+        let scheduled = pending.first { $0.identifier == Self.rateIdentifier }
+        let scheduledAt = (scheduled?.content.userInfo["due"] as? TimeInterval).map(Date.init(timeIntervalSince1970:))
+        guard let date = [due, scheduledAt].compactMap({ $0 }).max() else { return }
+        if due == nil, scheduled?.content.userInfo["ratingKeys"] as? [String] == asks.map(\.ratingKey) { return }
+        await scheduleRatingReminder(for: asks, at: date)
+    }
+
+    /// One title gets its own question and the star buttons; several are named in one reminder that opens them all.
+    private func scheduleRatingReminder(for asks: [RatingAsk], at date: Date) async {
+        guard let newest = asks.first, await requestPermissionIfNeeded() else { return }
         let content = UNMutableNotificationContent()
-        content.title = NotificationCopy.ratingTitle(for: ask)
-        content.body = NotificationCopy.ratingBody(for: ask)
-        content.categoryIdentifier = Self.rateCategory
+        content.title = NotificationCopy.ratingTitle(for: asks)
+        content.body = NotificationCopy.ratingBody(for: asks)
         content.threadIdentifier = Self.rateCategory
-        content.userInfo = ["kind": "rate", "ratingKey": ask.ratingKey, "mediaType": ask.mediaType, "title": ask.title]
-        if let attachment = await Self.posterAttachment(path: ask.posterPath) { content.attachments = [attachment] }
-        let date = ReminderSchedule.ratingReminder(finishedAt: ask.finishedAt, timing: Preferences.ratingReminderTiming, quietHours: Preferences.quietHours)
+        if asks.count == 1 { content.categoryIdentifier = Self.rateCategory }
+        content.userInfo = [
+            "kind": "rate",
+            "ratingKey": newest.ratingKey,
+            "mediaType": newest.mediaType,
+            "ratingKeys": asks.map(\.ratingKey),
+            "due": date.timeIntervalSince1970,
+        ]
+        if let attachment = await Self.posterAttachment(path: newest.posterPath) { content.attachments = [attachment] }
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(60, date.timeIntervalSinceNow), repeats: false)
-        try? await center.add(UNNotificationRequest(identifier: Self.rateIdentifierPrefix + ask.ratingKey, content: content, trigger: trigger))
-        MidgarLog.info("Rating reminder scheduled ratingKey=\(ask.ratingKey) reason=\(ask.reason.key) at=\(date)", category: .lifecycle)
+        try? await center.add(UNNotificationRequest(identifier: Self.rateIdentifier, content: content, trigger: trigger))
+        MidgarLog.info("Rating reminder scheduled for \(asks.count) titles newest=\(newest.ratingKey) at=\(date)", category: .lifecycle)
     }
 
     private func registerCategories() {
@@ -134,18 +157,29 @@ final class NotificationCoordinator {
             return
         }
         guard tap.action == UNNotificationDefaultActionIdentifier else { return }
-        let tabBar = Self.frontTabBar()
+        guard let tabBar = Self.frontTabBar() else {
+            pendingTap = tap
+            return
+        }
+        open(tap, in: tabBar)
+    }
+
+    /// The library is on screen: a notification tapped while the app was still connecting opens now.
+    func mainAppDidAppear(_ tabBar: TabBarController) {
+        guard let tap = pendingTap else { return }
+        pendingTap = nil
+        open(tap, in: tabBar)
+    }
+
+    private func open(_ tap: NotificationTap, in tabBar: TabBarController) {
         switch tap.kind {
         case "rate":
-            guard let ratingKey = tap.ratingKey, let mediaType = tap.mediaType else { return }
-            let ask = FinishedTitlesLedger.shared.asks(now: Date(), server: ServerBootstrap.savedMachineIdentifier).first { $0.ratingKey == ratingKey }
-                ?? RatingAsk(ratingKey: ratingKey, mediaType: mediaType, title: tap.title ?? "", posterPath: nil, reason: .finishedMovie, finishedAt: Date())
-            tabBar?.presentRating(for: ask)
+            tabBar.openRateWatched(leadingKey: tap.ratingKey)
         case "statistics":
-            tabBar?.openStatistics()
+            tabBar.openStatistics()
         default:
             guard let ratingKey = tap.ratingKey, let mediaType = tap.mediaType else { return }
-            tabBar?.openMedia(ratingKey: ratingKey, mediaType: mediaType)
+            tabBar.openMedia(ratingKey: ratingKey, mediaType: mediaType)
         }
     }
 
@@ -335,7 +369,6 @@ struct NotificationTap: Sendable {
     let kind: String?
     let ratingKey: String?
     let mediaType: String?
-    let title: String?
 
     init(_ response: UNNotificationResponse) {
         let content = response.notification.request.content
@@ -344,6 +377,5 @@ struct NotificationTap: Sendable {
         kind = content.userInfo["kind"] as? String
         ratingKey = content.userInfo["ratingKey"] as? String
         mediaType = content.userInfo["mediaType"] as? String
-        title = content.userInfo["title"] as? String
     }
 }

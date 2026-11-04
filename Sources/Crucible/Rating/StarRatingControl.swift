@@ -5,24 +5,26 @@ import CrucibleDesign
 /// Five stars the viewer taps or drags across: the left half of a star is its half step, the right half its whole one.
 /// `.valueChanged` fires on every step under the finger, `.primaryActionTriggered` once when the finger lifts.
 final class StarRatingControl: UIControl {
-    private static let starSize: CGFloat = 40
-    private static let starSpacing: CGFloat = 8
     private static let adjustableCommitDelay: Duration = .milliseconds(700)
 
+    private let starSize: CGFloat
+    private let starSpacing: CGFloat
     private(set) var rating: UserRating?
     private let stars = (0..<UserRating.maxStars).map { _ in UIImageView() }
     private let row = UIStackView()
     private var commitTask: Task<Void, Never>?
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init(starSize: CGFloat = 40, starSpacing: CGFloat = 8) {
+        self.starSize = starSize
+        self.starSpacing = starSpacing
+        super.init(frame: .zero)
         row.axis = .horizontal
-        row.spacing = Self.starSpacing
+        row.spacing = starSpacing
         row.isUserInteractionEnabled = false
         row.translatesAutoresizingMaskIntoConstraints = false
         for star in stars {
             star.contentMode = .center
-            star.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: Self.starSize, weight: .regular)
+            star.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: starSize, weight: .regular)
             row.addArrangedSubview(star)
         }
         addSubview(row)
@@ -31,7 +33,7 @@ final class StarRatingControl: UIControl {
             row.leadingAnchor.constraint(equalTo: leadingAnchor),
             row.trailingAnchor.constraint(equalTo: trailingAnchor),
             row.bottomAnchor.constraint(equalTo: bottomAnchor),
-            heightAnchor.constraint(equalToConstant: Self.starSize + 12),
+            heightAnchor.constraint(equalToConstant: starSize + 12),
         ])
         isAccessibilityElement = true
         accessibilityTraits = .adjustable
@@ -46,7 +48,15 @@ final class StarRatingControl: UIControl {
 
     override var intrinsicContentSize: CGSize {
         let count = CGFloat(UserRating.maxStars)
-        return CGSize(width: count * Self.starSize + (count - 1) * Self.starSpacing, height: Self.starSize + 12)
+        return CGSize(width: count * starSize + (count - 1) * starSpacing, height: starSize + 12)
+    }
+
+    /// A sideways drag that starts on the stars picks a rating, so it never opens a list row's swipe actions; an upward or
+    /// downward one still scrolls whatever the stars sit in.
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer, pan.view !== self else { return true }
+        let velocity = pan.velocity(in: self)
+        return abs(velocity.y) >= abs(velocity.x)
     }
 
     func setRating(_ newValue: UserRating?, animated: Bool = false) {

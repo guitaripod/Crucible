@@ -37,6 +37,17 @@ struct ReminderScheduleTests {
         #expect(ReminderSchedule.ratingReminder(finishedAt: date(3, 21), timing: .nextMorning, quietHours: true, calendar: calendar) == date(4, 9))
     }
 
+    @Test func titlesFinishedOneAfterAnotherShareTheLastOnesReminder() {
+        let asks = [date(3, 20), date(3, 22, 30), date(3, 21)].enumerated().map { index, finishedAt in
+            RatingAsk(ratingKey: "\(index)", mediaType: "movie", title: "Film \(index)", posterPath: nil, reason: .finishedMovie, finishedAt: finishedAt)
+        }
+        let hourLater = ReminderSchedule.ratingReminder(for: asks, timing: .anHourLater, quietHours: false, calendar: calendar)
+        #expect(hourLater == date(3, 23, 30))
+        let quiet = ReminderSchedule.ratingReminder(for: asks, timing: .anHourLater, quietHours: true, calendar: calendar)
+        #expect(quiet == date(4, 9))
+        #expect(ReminderSchedule.ratingReminder(for: [], timing: .anHourLater, quietHours: true, calendar: calendar) == nil)
+    }
+
     @Test func theRecapIsTheNextSundayEvening() {
         let wednesday = date(4, 12)
         #expect(ReminderSchedule.nextRecap(after: wednesday, calendar: calendar) == date(8, 18))
@@ -155,6 +166,21 @@ struct LibraryNewsTests {
         let news = try await check.run(followed: ["60"], since: 100, announced: [])
         #expect(news.shows.count == 1)
         #expect(news.arrivals.isEmpty)
+    }
+
+    @Test func oneRatingReminderAsksAboutOneTitleOrNamesSeveral() {
+        let titles = ["Dune", "Severance", "Andor", "Arcane", "Shogun"]
+        let asks = titles.enumerated().map { index, title in
+            RatingAsk(ratingKey: "\(index)", mediaType: "movie", title: title, posterPath: nil, reason: .finishedMovie, finishedAt: Date())
+        }
+        #expect(NotificationCopy.ratingTitle(for: Array(asks.prefix(1))) == "How was Dune?")
+        #expect(NotificationCopy.ratingBody(for: Array(asks.prefix(1))) == NotificationCopy.ratingBody(for: asks[0]))
+        #expect(NotificationCopy.ratingTitle(for: asks) == RatingAskCopy.rowTitle)
+        let three = NotificationCopy.ratingBody(for: Array(asks.prefix(3)))
+        #expect(["Dune", "Severance", "Andor"].allSatisfy(three.contains))
+        let five = NotificationCopy.ratingBody(for: asks)
+        #expect(five.contains("Dune") && five.contains("Severance") && five.contains("3 more"))
+        #expect(!five.contains("Andor"))
     }
 
     @Test func notificationWordsNameTheShowAndTheEpisodes() {

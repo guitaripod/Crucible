@@ -34,7 +34,7 @@ package enum NotificationKind: String, CaseIterable, Sendable {
     package var explanation: String {
         switch self {
         case .ratingReminders:
-            return String(localized: "After you finish a movie, a season or a run of episodes, a reminder asks how it was. Press and hold it to rate with stars right there.")
+            return String(localized: "After you finish a movie, a season or a run of episodes, one reminder asks how it all was. Tap it to rate everything in one place.")
         case .newEpisodes:
             return String(localized: "When a new episode of a show you are watching arrives on your server.")
         case .watchlistArrivals:
@@ -123,6 +123,17 @@ package enum ReminderSchedule {
         }
         guard quietHours, isQuiet(proposed, calendar: calendar) else { return proposed }
         return endOfQuiet(after: proposed, calendar: calendar)
+    }
+
+    /// When the one reminder for `asks` should arrive: when the last of them would have been reminded on its own, so titles
+    /// finished one after another gather into a single reminder. Nil when there is nothing to remind about.
+    package static func ratingReminder(
+        for asks: [RatingAsk],
+        timing: RatingReminderTiming,
+        quietHours: Bool,
+        calendar: Calendar = .current
+    ) -> Date? {
+        asks.map { ratingReminder(finishedAt: $0.finishedAt, timing: timing, quietHours: quietHours, calendar: calendar) }.max()
     }
 
     package static func isQuiet(_ date: Date, calendar: Calendar = .current) -> Bool {

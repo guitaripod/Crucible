@@ -128,6 +128,29 @@ final class SettingsAndRatingTests: XCTestCase {
         clearRating(of: "Low Tide", in: app)
     }
 
+    func testSeeAllRatesEachTitleInPlaceAndHomeLetsThemGo() {
+        let app = enterDemo(["CRUCIBLE_FINISHED": Self.finished])
+        tab(app, "Home").tap()
+        let card = IOSTest.element(app, "home.rate.1003")
+        scrollTo(card, in: app, limit: 10)
+        XCTAssertTrue(card.waitForExistence(timeout: 30), "Rate What You Watched never showed Low Tide")
+        let seeAll = app.buttons["See All Rate What You Watched"]
+        XCTAssertTrue(seeAll.waitForExistence(timeout: 10), "the Rate What You Watched row has no See All")
+        seeAll.tap()
+        let movieStars = IOSTest.element(app, "rateWatched.stars.1003")
+        XCTAssertTrue(movieStars.waitForExistence(timeout: 10), "the list never showed Low Tide's stars")
+        XCTAssertTrue(IOSTest.element(app, "rateWatched.stars.2001").exists, "the list leaves out the show the viewer caught up with")
+        IOSTest.capture("01-rate-list", in: self)
+        movieStars.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).tap()
+        IOSTest.settle(2)
+        XCTAssertTrue(movieStars.exists, "the rated movie left the list under the finger")
+        XCTAssertEqual(movieStars.value as? String, "4 out of 5 stars")
+        IOSTest.capture("02-rated-in-place", in: self)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(IOSTest.wait(for: card, "exists == false", timeout: 20), "Home still asks about the rated movie")
+        clearRating(of: "Low Tide", in: app)
+    }
+
     /// The demo keeps ratings between launches, so the movie this test rated is unrated again for the next run.
     private func clearRating(of title: String, in app: XCUIApplication) {
         tab(app, "Search").tap()

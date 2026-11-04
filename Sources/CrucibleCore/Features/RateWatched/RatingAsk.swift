@@ -61,6 +61,15 @@ package struct RatingAsk: Hashable, Sendable, Identifiable {
 package enum RatingAskCopy {
     package static let rowTitle = String(localized: "Rate What You Watched", comment: "Title of the row of recently finished titles the viewer has not rated yet")
     package static let notNow = String(localized: "Not Now", comment: "Menu item that hides a title from the Rate What You Watched row")
+    package static let listHint = String(
+        localized: "Tap a star to rate, or slide across the stars for half stars.",
+        comment: "Hint above the Rate What You Watched list, whose rows each carry five stars"
+    )
+    package static let emptyTitle = String(localized: "Nothing to Rate", comment: "Title shown when Rate What You Watched has no titles left")
+    package static let emptyMessage = String(
+        localized: "Movies and shows you finish wait here until you rate them.",
+        comment: "Message shown when Rate What You Watched has no titles left"
+    )
 
     package static func question(for ask: RatingAsk) -> String {
         String(localized: "How was \(ask.title)?", comment: "Question asking the viewer to rate a title they just finished, e.g. How was Dune?")

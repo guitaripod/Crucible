@@ -347,6 +347,8 @@ final class HomeViewController: UICollectionViewController {
                 config.onAction = { [weak self] in self?.showAll(.recentlyAdded) }
             case .rateWatched:
                 config.title = RatingAskCopy.rowTitle
+                config.actionTitle = String(localized: "See All")
+                config.onAction = { [weak self] in self?.showAllAsks() }
             case .skeleton, .hero, .week:
                 break
             }
@@ -643,6 +645,10 @@ final class HomeViewController: UICollectionViewController {
             if picked { pendingRated.insert(ask.id) } else { pendingRated.remove(ask.id) }
             if !isShowingSkeleton { rebuildSnapshot(animated: true) }
         }
+    }
+
+    private func showAllAsks() {
+        navigationController?.pushViewController(RateWatchedViewController(api: api), animated: true)
     }
 
     private func showAll(_ bucket: HomeBucket) {

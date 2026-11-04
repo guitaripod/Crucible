@@ -181,6 +181,30 @@ package enum NotificationCopy {
         }
     }
 
+    /// The one reminder for every title waiting to be rated: the question itself for one title, the titles by name for several.
+    package static func ratingTitle(for asks: [RatingAsk]) -> String {
+        asks.count == 1 ? ratingTitle(for: asks[0]) : RatingAskCopy.rowTitle
+    }
+
+    package static func ratingBody(for asks: [RatingAsk]) -> String {
+        guard asks.count > 1 else { return asks.first.map(ratingBody(for:)) ?? "" }
+        return String(
+            localized: "\(ratingTitleList(asks)). Tap to rate them all in one place.",
+            comment: "Body of the one reminder that gathers several titles to rate, e.g. Dune, Severance and 2 more. Tap to rate them all in one place."
+        )
+    }
+
+    /// The titles by name, joined the way the interface language lists things; past three, the first two and how many more.
+    static func ratingTitleList(_ asks: [RatingAsk]) -> String {
+        let names = asks.map(\.title)
+        let shown = names.count > 3
+            ? Array(names.prefix(2)) + [String(localized: "\(names.count - 2) more", comment: "Last item of a list of titles in a notification, e.g. the end of Dune, Severance and 2 more")]
+            : names
+        let formatter = ListFormatter()
+        formatter.locale = Formatters.interfaceLocale
+        return formatter.string(from: shown) ?? shown.joined(separator: ", ")
+    }
+
     package static func newEpisodesTitle(_ news: ShowNews) -> String {
         news.episodes.count == 1
             ? String(localized: "New Episode of \(news.showTitle)", comment: "Notification title when one new episode of a show arrived, e.g. New Episode of Severance")

@@ -253,7 +253,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.rootViewController = root
         } completion: { [weak self] _ in
             guard let self else { return }
-            if let tabBar = root as? TabBarController { DemoCoordinator.shared.mainAppDidAppear(tabBar) }
+            if let tabBar = root as? TabBarController {
+                DemoCoordinator.shared.mainAppDidAppear(tabBar)
+                NotificationCoordinator.shared.mainAppDidAppear(tabBar)
+            }
             guard let pending = self.pendingActivity else { return }
             self.pendingActivity = nil
             self.route(pending)

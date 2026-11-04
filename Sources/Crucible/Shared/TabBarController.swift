@@ -261,11 +261,10 @@ final class TabBarController: UITabBarController {
         show(StatisticsViewController(api: api), onTopOf: .you)
     }
 
-    /// Opens the half-star sheet for a title a reminder asked about, over whatever is on screen.
-    func presentRating(for ask: RatingAsk) {
+    /// Opens Rate What You Watched on the Home tab for a rating reminder, with the title the reminder named first.
+    func openRateWatched(leadingKey: String?) {
         if presentedViewController != nil { dismiss(animated: false) }
-        let host = open(.home)?.topViewController ?? self
-        RateAskActions.rate(ask, api: api, from: host, source: host.view) { _ in }
+        show(RateWatchedViewController(api: api, leadingKey: leadingKey), onTopOf: .home)
     }
 
     private static func detail(api: APIClient, ratingKey: String, mediaType: String) -> UIViewController {
