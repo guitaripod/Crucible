@@ -22,6 +22,8 @@ package struct FinishedTitle: Codable, Hashable, Sendable, Identifiable {
     package let endedShow: Bool
     /// The next episode belongs to another season, so this one closed a season.
     package let endedSeason: Bool
+    /// The library it was played from; nil for titles finished before it was kept.
+    package let librarySectionID: Int?
 
     package init(
         ratingKey: String,
@@ -35,7 +37,8 @@ package struct FinishedTitle: Codable, Hashable, Sendable, Identifiable {
         showPosterPath: String? = nil,
         finishedAt: Date,
         endedShow: Bool = false,
-        endedSeason: Bool = false
+        endedSeason: Bool = false,
+        librarySectionID: Int? = nil
     ) {
         self.ratingKey = ratingKey
         self.kind = kind
@@ -49,6 +52,7 @@ package struct FinishedTitle: Codable, Hashable, Sendable, Identifiable {
         self.finishedAt = finishedAt
         self.endedShow = endedShow
         self.endedSeason = endedSeason
+        self.librarySectionID = librarySectionID
     }
 
     package var id: String { ratingKey }

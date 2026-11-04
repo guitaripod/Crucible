@@ -79,8 +79,7 @@ package struct HomeBuckets: Sendable {
 
     /// Drops items from libraries left out of Home; items with no known library stay.
     package static func visible(_ items: [PlexMetadata], excluding excluded: Set<Int>) -> [PlexMetadata] {
-        guard !excluded.isEmpty else { return items }
-        return items.filter { item in item.librarySectionID.map { !excluded.contains($0) } ?? true }
+        LibraryVisibility.shown(items, excluding: excluded)
     }
 
     package static func deduped(_ items: [PlexMetadata]) -> [PlexMetadata] {

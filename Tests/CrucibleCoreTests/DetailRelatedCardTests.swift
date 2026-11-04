@@ -3,6 +3,19 @@ import Testing
 @testable import CrucibleCore
 
 struct DetailRelatedCardTests {
+    @Test func relatedTitlesLeaveOutLibrariesLeftOut() {
+        let item = DetailFixtures.item([
+            "ratingKey": "1",
+            "Related": ["Hub": [["Metadata": [
+                ["ratingKey": "2", "type": "movie", "title": "Kept", "librarySectionID": 1],
+                ["ratingKey": "3", "type": "movie", "title": "Left out", "librarySectionID": 2],
+                ["ratingKey": "4", "type": "movie", "title": "Unknown library"],
+            ]]]],
+        ])
+        #expect(DetailRelated.items(in: item, excluding: [2]).map(\.id) == ["2", "4"])
+        #expect(DetailRelated.items(in: item, excluding: []).map(\.id) == ["2", "3", "4"])
+    }
+
     @Test func movieShowsItsYearPosterAndUnwatchedDot() {
         let card = DetailRelatedCard(item: DetailFixtures.item(["ratingKey": "9", "title": "Heat", "year": 1995, "thumb": "/poster"]))
         #expect(card.id == "9")

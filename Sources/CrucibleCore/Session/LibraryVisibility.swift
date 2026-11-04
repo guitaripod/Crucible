@@ -44,7 +44,8 @@ package enum LibraryVisibility {
         return !(libraries.first { $0.id == id }?.hiddenOnPlex ?? false)
     }
 
-    /// Library ids to leave out of Home and Statistics.
+    /// Library ids whose titles Crucible never brings up on its own: Home, search, suggestions, rating reminders,
+    /// notifications, Top Shelf and Statistics. The Library tab still lists every library.
     package static var excluded: Set<Int> {
         let choices = overrides
         var result = Set(choices.filter { !$0.value }.keys)
@@ -55,6 +56,17 @@ package enum LibraryVisibility {
     }
 
     package static var isCustomized: Bool { !excluded.isEmpty }
+
+    /// Whether a title from library `section` may be brought up; one whose library is unknown is.
+    package static func shows(section: Int?, excluding excluded: Set<Int> = LibraryVisibility.excluded) -> Bool {
+        section.map { !excluded.contains($0) } ?? true
+    }
+
+    /// `items` without the titles of the libraries left out.
+    package static func shown(_ items: [PlexMetadata], excluding excluded: Set<Int> = LibraryVisibility.excluded) -> [PlexMetadata] {
+        guard !excluded.isEmpty else { return items }
+        return items.filter { shows(section: $0.librarySectionID, excluding: excluded) }
+    }
 
     /// Remembers the server's library list and its hide-from-Home flags.
     @MainActor

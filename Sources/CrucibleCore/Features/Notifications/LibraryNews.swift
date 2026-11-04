@@ -76,11 +76,14 @@ package struct LibraryNewsCheck: Sendable {
     package static func episodeKey(_ ratingKey: String) -> String { "episode.\(ratingKey)" }
     package static func arrivalKey(_ ratingKey: String) -> String { "watchlist.\(ratingKey)" }
 
-    /// Everything added after `since` (seconds since 1970) that `followed` shows and the watchlist make worth announcing.
-    package func run(followed: Set<String>, since: Int, announced: Set<String>) async throws -> LibraryNews {
+    /// Everything added after `since` (seconds since 1970) that `followed` shows and the watchlist make worth announcing,
+    /// outside the `excluded` libraries. The check still moves past what those libraries received, so it is never announced
+    /// later either.
+    package func run(followed: Set<String>, since: Int, announced: Set<String>, excluding excluded: Set<Int> = []) async throws -> LibraryNews {
         let wasAnnounced: (String) -> Bool = { announced.contains($0) }
-        let fresh = try await fetchRecent().filter { ($0.addedAt ?? 0) > since }
-        var news = LibraryNews(newestAddedAt: fresh.compactMap(\.addedAt).max())
+        let added = try await fetchRecent().filter { ($0.addedAt ?? 0) > since }
+        var news = LibraryNews(newestAddedAt: added.compactMap(\.addedAt).max())
+        let fresh = LibraryVisibility.shown(added, excluding: excluded)
         guard !fresh.isEmpty else { return news }
         news.shows = await showNews(in: fresh, followed: followed, since: since, wasAnnounced: wasAnnounced)
         let announcedShows = Set(news.shows.map(\.showRatingKey))

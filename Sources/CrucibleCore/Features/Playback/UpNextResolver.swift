@@ -53,7 +53,8 @@ package struct UpNextOffer: Sendable {
                 episodeNumber: episode.index,
                 posterPath: episode.grandparentThumb ?? episode.thumb,
                 duration: episode.durationSecs,
-                showPosterPath: episode.grandparentThumb
+                showPosterPath: episode.grandparentThumb,
+                librarySectionID: episode.librarySectionID
             ),
             trackLanguages: trackLanguages,
             offline: offline,

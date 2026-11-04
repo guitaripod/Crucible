@@ -277,12 +277,12 @@ package struct MovieDetailModel: Sendable {
 package enum DetailRelated {
     package static let limit = 18
 
-    /// Titles from every related hub, the screen's own item excluded, without repeats, capped at eighteen.
-    package static func items(in item: PlexMetadata) -> [PlexMetadata] {
+    /// Titles from every related hub, the screen's own item and the libraries left out excluded, without repeats, capped
+    /// at eighteen.
+    package static func items(in item: PlexMetadata, excluding excluded: Set<Int> = LibraryVisibility.excluded) -> [PlexMetadata] {
         var seen = Set<String>()
         return Array(
-            item.relatedHubs
-                .flatMap { $0.Metadata ?? [] }
+            LibraryVisibility.shown(item.relatedHubs.flatMap { $0.Metadata ?? [] }, excluding: excluded)
                 .filter { $0.id != item.id && seen.insert($0.id).inserted }
                 .prefix(limit)
         )

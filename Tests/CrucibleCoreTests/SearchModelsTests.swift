@@ -38,6 +38,16 @@ struct SearchModelsTests {
         #expect(results.ordered.first?.title == "Beta")
     }
 
+    @Test func resultsLeaveOutLibrariesLeftOut() throws {
+        let container = try SearchFixtures.searchContainer([[
+            try SearchFixtures.item("1", "movie", "Kept", ["librarySectionID": 1]),
+            try SearchFixtures.item("2", "movie", "Left out", ["librarySectionID": 2]),
+            try SearchFixtures.item("3", "show", "Unknown library"),
+        ]])
+        #expect(SearchResults(hubs: container.Hub ?? [], excluding: [2]).ordered.map(\.id) == ["1", "3"])
+        #expect(SearchResults(hubs: container.Hub ?? []).ordered.map(\.id) == ["1", "2", "3"])
+    }
+
     @Test func partsGroupByTypeAndPickTheFirstVisibleAsTopResult() throws {
         let container = try SearchFixtures.searchContainer([[
             try SearchFixtures.item("3", "episode", "E1"),

@@ -155,6 +155,7 @@ final class HomeViewController: UICollectionViewController {
     }
 
     private func libraryVisibilityChanged() {
+        asks = rateFeed.current()
         guard !isShowingSkeleton else { return }
         feed.reapplyLibraryVisibility()
         rebuildSnapshot(animated: true)

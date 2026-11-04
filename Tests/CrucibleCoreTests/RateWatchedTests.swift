@@ -121,7 +121,7 @@ struct RateWatchedTests {
         ledger.record(movie("8"), server: "a")
         ledger.noteRated("7", isRated: true, at: now)
         ledger.dismiss("8", at: now)
-        ledger.noteChecked("8", at: now)
+        ledger.noteChecked("8", at: now, section: 1)
         let reopened = FinishedTitlesLedger(defaults: store)
         #expect(reopened.asks(now: now, server: "a").isEmpty)
         #expect(!reopened.needsCheck("8", now: now.addingTimeInterval(3_600)))
@@ -163,11 +163,46 @@ struct RateWatchedTests {
         let ledger = FinishedTitlesLedger(defaults: defaults())
         ledger.record(movie("7"), server: "a")
         ledger.record(movie("8"), server: "a")
-        let feed = RatingAsksFeed(ledger: ledger, server: { "a" }, fetchRating: { key in (key == "7" ? 8 : nil, "/library/metadata/\(key)/thumb/1") })
+        let feed = RatingAsksFeed(ledger: ledger, server: { "a" }, fetchRating: { key in (key == "7" ? 8 : nil, "/library/metadata/\(key)/thumb/1", 1) })
         let asks = await feed.load(now: now)
         #expect(asks.map(\.ratingKey) == ["8"])
         #expect(asks.first?.posterPath == "/library/metadata/8/thumb/1")
         #expect(!ledger.needsCheck("8", now: now))
+    }
+
+    @Test func titlesFromALibraryLeftOutAreNeverAskedAbout() {
+        let ledger = FinishedTitlesLedger(defaults: defaults())
+        let finished = now.addingTimeInterval(-3_600)
+        ledger.record(FinishedTitle(ratingKey: "7", kind: .movie, title: "Kept", finishedAt: finished, librarySectionID: 1), server: "a")
+        ledger.record(FinishedTitle(ratingKey: "8", kind: .movie, title: "Left out", finishedAt: finished, librarySectionID: 2), server: "a")
+        ledger.record(movie("9"), server: "a")
+        #expect(Set(ledger.asks(now: now, server: "a", excluding: [2]).map(\.ratingKey)) == ["7", "9"])
+        ledger.noteChecked("9", at: now, section: 2)
+        #expect(ledger.asks(now: now, server: "a", excluding: [2]).map(\.ratingKey) == ["7"])
+        #expect(Set(ledger.asks(now: now, server: "a", excluding: []).map(\.ratingKey)) == ["7", "8", "9"])
+    }
+
+    @Test func followedShowsLeaveOutShowsFromALibraryLeftOut() {
+        let ledger = FinishedTitlesLedger(defaults: defaults())
+        let finished = now.addingTimeInterval(-3_600)
+        ledger.record(FinishedTitle(ratingKey: "1", kind: .episode, title: "E1", showRatingKey: "100", finishedAt: finished, librarySectionID: 1), server: "a")
+        ledger.record(FinishedTitle(ratingKey: "2", kind: .episode, title: "E2", showRatingKey: "200", finishedAt: finished, librarySectionID: 2), server: "a")
+        #expect(ledger.followedShows(since: now.addingTimeInterval(-86_400), excluding: [2]).compactMap(\.showRatingKey) == ["100"])
+    }
+
+    @Test func aTitleWhoseLibraryIsUnknownIsCheckedUntilTheServerNamesIt() async {
+        let ledger = FinishedTitlesLedger(defaults: defaults())
+        ledger.record(movie("7"), server: "a")
+        ledger.noteChecked("7", at: now)
+        #expect(ledger.needsCheck("7", now: now))
+        var calls = 0
+        let token = ledger.addObserver { calls += 1 }
+        let feed = RatingAsksFeed(ledger: ledger, server: { "a" }, fetchRating: { _ in (nil, nil, 3) })
+        _ = await feed.load(now: now)
+        #expect(calls == 1)
+        #expect(!ledger.needsCheck("7", now: now))
+        #expect(ledger.asks(now: now, server: "a", excluding: [3]).isEmpty)
+        ledger.removeObserver(token)
     }
 
     @Test func aFailedCheckKeepsTheAskAndTriesAgainNextTime() async {

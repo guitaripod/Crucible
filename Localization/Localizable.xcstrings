@@ -18027,66 +18027,66 @@
         }
       }
     },
-    "Choose which libraries appear on Home and count toward your statistics." : {
+    "Choose which libraries Crucible brings up: on Home, in search, suggestions, rating reminders and notifications, and in your statistics. Every library keeps its tab." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle, welche Mediatheken auf Start erscheinen und in deine Statistiken einfließen."
+            "value" : "Wähle, welche Mediatheken Crucible dir zeigt: auf Start, in der Suche, in Vorschlägen, Bewertungserinnerungen und Mitteilungen und in deinen Statistiken. Jede Mediathek behält ihren Reiter."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige qué bibliotecas aparecen en Inicio y cuentan para tus estadísticas."
+            "value" : "Elige qué bibliotecas te muestra Crucible: en Inicio, en la búsqueda, en sugerencias, recordatorios de valoración y notificaciones, y en tus estadísticas. Cada biblioteca conserva su pestaña."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez les bibliothèques affichées sur l’accueil et prises en compte dans vos statistiques."
+            "value" : "Choisissez les bibliothèques que Crucible vous présente : sur l’accueil, dans la recherche, les suggestions, les rappels de notation et les notifications, et dans vos statistiques. Chaque bibliothèque conserve son onglet."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli quali librerie compaiono nella Home e vengono conteggiate nelle statistiche."
+            "value" : "Scegli quali librerie ti propone Crucible: nella Home, nella ricerca, nei suggerimenti, nei promemoria di valutazione e nelle notifiche, e nelle tue statistiche. Ogni libreria mantiene la propria scheda."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ホームに表示し、統計に含めるライブラリを選択します。"
+            "value" : "Crucible が表示するライブラリを選択します。ホーム、検索、おすすめ、評価のリマインダー、通知、統計に反映されます。すべてのライブラリはそれぞれのタブを保持します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "홈에 표시하고 통계에 포함할 보관함을 선택하세요."
+            "value" : "Crucible이 보여 줄 보관함을 선택하세요. 홈, 검색, 추천, 평점 알림과 알림, 통계에 적용돼요. 모든 보관함이 각자의 탭을 유지해요."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wybierz, które biblioteki pojawiają się na ekranie głównym i są liczone w Twoich statystykach."
+            "value" : "Wybierz, które biblioteki Crucible Ci pokazuje: na ekranie głównym, w wyszukiwaniu, sugestiach, przypomnieniach o ocenach i powiadomieniach oraz w Twoich statystykach. Każda biblioteka zachowuje swoją kartę."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha quais bibliotecas aparecem no Início e entram nas suas estatísticas."
+            "value" : "Escolha quais bibliotecas o Crucible mostra: no Início, na busca, em sugestões, lembretes de avaliação e notificações, e nas suas estatísticas. Cada biblioteca mantém sua aba."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择哪些资料库显示在“首页”中并计入你的统计。"
+            "value" : "选择 Crucible 向你展示哪些资料库：首页、搜索、推荐、评分提醒和通知，以及你的统计。每个资料库都保留其标签页。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇要在首頁顯示並計入統計資料的媒體庫。"
+            "value" : "選擇 Crucible 要向您顯示哪些媒體庫：首頁、搜尋、建議、評分提醒與通知，以及您的統計資料。每個媒體庫都會保留自己的分頁。"
           }
         }
       }

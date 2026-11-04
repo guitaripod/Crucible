@@ -183,6 +183,14 @@ struct LibraryNewsTests {
         #expect(!five.contains("Andor"))
     }
 
+    @Test func nothingFromALibraryLeftOutIsAnnouncedAndTheCheckStillMovesPastIt() async throws {
+        let kept = meta(["ratingKey": "1", "type": "episode", "title": "Kept", "grandparentRatingKey": "100", "grandparentTitle": "Kept Show", "parentIndex": 1, "index": 2, "addedAt": 105, "librarySectionID": 1])
+        let leftOut = meta(["ratingKey": "2", "type": "episode", "title": "Left out", "grandparentRatingKey": "200", "grandparentTitle": "Hidden Show", "parentIndex": 1, "index": 3, "addedAt": 140, "librarySectionID": 2])
+        let news = try await check(recent: [kept, leftOut]).run(followed: ["100", "200"], since: 100, announced: [], excluding: [2])
+        #expect(news.shows.map(\.showRatingKey) == ["100"])
+        #expect(news.newestAddedAt == 140)
+    }
+
     @Test func notificationWordsNameTheShowAndTheEpisodes() {
         let one = ShowNews(showRatingKey: "1", showTitle: "Severance", posterPath: nil, episodes: [episode("1", season: 2, index: 5, addedAt: 1)])
         #expect(NotificationCopy.newEpisodesTitle(one) == "New Episode of Severance")

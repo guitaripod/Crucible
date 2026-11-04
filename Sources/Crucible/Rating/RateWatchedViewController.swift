@@ -18,6 +18,7 @@ final class RateWatchedViewController: UICollectionViewController {
     private var ratings: [String: UserRating] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Section, String>!
     private var ledgerObserver: UUID?
+    private var visibilityObserver: UUID?
     private var loadTask: Task<Void, Never>?
 
     /// `leadingKey` is the title a reminder named, shown first while it is still waiting.
@@ -36,6 +37,9 @@ final class RateWatchedViewController: UICollectionViewController {
         if let ledgerObserver {
             Task { @MainActor in FinishedTitlesLedger.shared.removeObserver(ledgerObserver) }
         }
+        if let visibilityObserver {
+            Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -48,6 +52,10 @@ final class RateWatchedViewController: UICollectionViewController {
         collectionView.collectionViewLayout = makeLayout()
         configureDataSource()
         ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in
+            guard let self else { return }
+            adopt(feed.current())
+        }
+        visibilityObserver = LibraryVisibility.addObserver { [weak self] in
             guard let self else { return }
             adopt(feed.current())
         }

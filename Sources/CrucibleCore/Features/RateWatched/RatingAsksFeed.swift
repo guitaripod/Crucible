@@ -1,24 +1,25 @@
 import Foundation
 import MidgarCore
 
-/// The Rate What You Watched row: the ledger's asks, minus any title the server already has a rating for. The server is
-/// asked about a title at most every twelve hours, a few titles at a time, so a rating given in another Plex app clears the
-/// row without a request for every card on every visit.
+/// The Rate What You Watched row: the ledger's asks, minus any title the server already has a rating for or keeps in a
+/// library the viewer leaves out. The server is asked about a title at most every twelve hours, a few titles at a time, so a
+/// rating given in another Plex app clears the row without a request for every card on every visit.
 @MainActor
 package final class RatingAsksFeed {
     private struct Answer: Sendable {
         let rating: Double?
         let poster: String?
+        let section: Int?
     }
 
     private let ledger: FinishedTitlesLedger
     private let server: () -> String?
-    private let fetchRating: @Sendable (String) async throws -> (rating: Double?, poster: String?)
+    private let fetchRating: @Sendable (String) async throws -> (rating: Double?, poster: String?, section: Int?)
 
     package init(
         ledger: FinishedTitlesLedger,
         server: @escaping () -> String?,
-        fetchRating: @escaping @Sendable (String) async throws -> (rating: Double?, poster: String?)
+        fetchRating: @escaping @Sendable (String) async throws -> (rating: Double?, poster: String?, section: Int?)
     ) {
         self.ledger = ledger
         self.server = server
@@ -31,7 +32,7 @@ package final class RatingAsksFeed {
             server: { ServerBootstrap.savedMachineIdentifier },
             fetchRating: { ratingKey in
                 let item = try await api.requestContainer(.metadata(ratingKey: ratingKey)).Metadata?.first
-                return (item?.userRating, item?.thumb)
+                return (item?.userRating, item?.thumb, item?.librarySectionID)
             }
         )
     }
@@ -51,7 +52,7 @@ package final class RatingAsksFeed {
                 group.addTask {
                     do {
                         let found = try await fetch(ask.ratingKey)
-                        return (ask.ratingKey, Answer(rating: found.rating, poster: found.poster))
+                        return (ask.ratingKey, Answer(rating: found.rating, poster: found.poster, section: found.section))
                     } catch {
                         return (ask.ratingKey, nil)
                     }
@@ -66,7 +67,7 @@ package final class RatingAsksFeed {
             if UserRating(plexValue: answer.rating) != nil {
                 ledger.noteRated(ratingKey, isRated: true, at: now)
             } else {
-                ledger.noteChecked(ratingKey, at: now, poster: answer.poster)
+                ledger.noteChecked(ratingKey, at: now, poster: answer.poster, section: answer.section)
             }
         }
         return current(now: now)

@@ -8,24 +8,29 @@ package struct SearchLoader: Sendable {
     private static let maxItemsPerSource = 2000
 
     private let fetch: Fetch
+    private let excludedLibraries: @Sendable () -> Set<Int>
 
     package init(api: APIClient) {
         fetch = { try await api.requestContainer($0) }
+        excludedLibraries = { LibraryVisibility.excluded }
     }
 
-    package init(fetch: @escaping Fetch) {
+    /// `excludedLibraries` are the libraries whose titles search leaves out, as `LibraryVisibility` keeps them in the app.
+    package init(fetch: @escaping Fetch, excludedLibraries: @escaping @Sendable () -> Set<Int> = { [] }) {
         self.fetch = fetch
+        self.excludedLibraries = excludedLibraries
     }
 
     package func search(query: String) async throws -> SearchResults {
         let container = try await fetch(.search(query: query))
-        return SearchResults(hubs: container.Hub ?? [])
+        return SearchResults(hubs: container.Hub ?? [], excluding: excludedLibraries())
     }
 
     package func genres() async -> [SearchGenre] {
         guard let sections = try? await fetch(.sections) else { return [] }
+        let excluded = excludedLibraries()
         let sectionIds = (sections.Directory ?? [])
-            .filter { $0.type == "movie" || $0.type == "show" }
+            .filter { ($0.type == "movie" || $0.type == "show") && LibraryVisibility.shows(section: $0.key.flatMap { Int($0) }, excluding: excluded) }
             .compactMap(\.key)
 
         var order = [String]()
@@ -52,7 +57,7 @@ package struct SearchLoader: Sendable {
     package func recentlyAdded() async -> [PlexMetadata] {
         guard let container = try? await fetch(.recentlyAdded(start: 0, size: 30)) else { return [] }
         var seen = Set<String>()
-        return (container.Metadata ?? []).filter {
+        return LibraryVisibility.shown(container.Metadata ?? [], excluding: excludedLibraries()).filter {
             ["movie", "show", "season", "episode"].contains($0.mediaType) && seen.insert($0.id).inserted
         }
     }

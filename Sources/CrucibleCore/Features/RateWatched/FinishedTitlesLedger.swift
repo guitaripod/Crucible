@@ -15,6 +15,7 @@ package final class FinishedTitlesLedger {
         var dismissed: [String: Date] = [:]
         var checked: [String: Date] = [:]
         var posters: [String: String]? = nil
+        var sections: [String: Int]? = nil
     }
 
     package static let storageKey = "finishedTitles.v1"
@@ -65,31 +66,48 @@ package final class FinishedTitlesLedger {
         changed()
     }
 
-    /// Whether the server should be asked again whether `ratingKey` is rated.
+    /// Whether the server should be asked again whether `ratingKey` is rated: twelve hours after the last time, or at once
+    /// while its library is unknown, so a title from a library the viewer leaves out drops out of the asks soon.
     package func needsCheck(_ ratingKey: String, now: Date) -> Bool {
-        guard let checked = state.checked[ratingKey] else { return true }
+        guard let checked = state.checked[ratingKey], section(of: ratingKey) != nil else { return true }
         return now.timeIntervalSince(checked) >= Self.checkEvery
     }
 
-    /// The server was asked about `ratingKey`: it is not rated yet, and `poster` is its own artwork.
-    package func noteChecked(_ ratingKey: String, at date: Date, poster: String? = nil) {
+    /// The server was asked about `ratingKey`: it is not rated yet, `poster` is its own artwork and `section` its library.
+    /// Learning a title's library tells observers, since it can take the title out of the asks.
+    package func noteChecked(_ ratingKey: String, at date: Date, poster: String? = nil, section: Int? = nil) {
         state.checked[ratingKey] = date
         if let poster { state.posters = (state.posters ?? [:]).merging([ratingKey: poster]) { _, new in new } }
-        save()
+        let learned = section != nil && state.sections?[ratingKey] != section
+        if let section { state.sections = (state.sections ?? [:]).merging([ratingKey: section]) { _, new in new } }
+        if learned { changed() } else { save() }
     }
 
-    /// The titles to ask about on the server the app is connected to.
-    package func asks(now: Date, server: String?) -> [RatingAsk] {
+    /// The titles to ask about on the server the app is connected to, none of them from the `excluded` libraries.
+    package func asks(now: Date, server: String?, excluding excluded: Set<Int> = LibraryVisibility.excluded) -> [RatingAsk] {
         guard server == nil || state.server == nil || state.server == server else { return [] }
-        return RatingAskRule.asks(from: state.titles, rated: Set(state.rated.keys), dismissed: state.dismissed, posters: state.posters ?? [:], now: now)
+        return RatingAskRule.asks(from: shown(state.titles, excluding: excluded), rated: Set(state.rated.keys), dismissed: state.dismissed, posters: state.posters ?? [:], now: now)
     }
 
-    /// Shows the viewer finished an episode of since `since`, newest first, for news about them.
-    package func followedShows(since: Date) -> [FinishedTitle] {
+    /// Shows the viewer finished an episode of since `since`, newest first, for news about them, none of them from the
+    /// `excluded` libraries.
+    package func followedShows(since: Date, excluding excluded: Set<Int> = LibraryVisibility.excluded) -> [FinishedTitle] {
         var seen = Set<String>()
-        return state.titles.filter { title in
+        return shown(state.titles, excluding: excluded).filter { title in
             guard title.kind == .episode, title.finishedAt >= since, let show = title.showRatingKey else { return false }
             return seen.insert(show).inserted
+        }
+    }
+
+    /// The library `ratingKey` belongs to, from a title finished in it or from the server's answer about it.
+    private func section(of ratingKey: String) -> Int? {
+        state.sections?[ratingKey] ?? state.titles.first { $0.ratedKey == ratingKey && $0.librarySectionID != nil }?.librarySectionID
+    }
+
+    private func shown(_ titles: [FinishedTitle], excluding excluded: Set<Int>) -> [FinishedTitle] {
+        guard !excluded.isEmpty else { return titles }
+        return titles.filter { title in
+            LibraryVisibility.shows(section: title.librarySectionID ?? title.ratedKey.flatMap { state.sections?[$0] }, excluding: excluded)
         }
     }
 
@@ -124,6 +142,7 @@ package final class FinishedTitlesLedger {
         state.dismissed = state.dismissed.filter { kept.contains($0.key) }
         state.rated = state.rated.filter { kept.contains($0.key) }
         state.posters = state.posters?.filter { kept.contains($0.key) }
+        state.sections = state.sections?.filter { kept.contains($0.key) }
     }
 
     private func changed() {

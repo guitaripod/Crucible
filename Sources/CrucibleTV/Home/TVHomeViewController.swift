@@ -435,6 +435,7 @@ final class TVHomeViewController: TVScreenViewController {
 
     private func libraryVisibilityChanged() {
         feed.reapplyLibraryVisibility()
+        asks = rateFeed.current()
         render(animated: true)
         loadWeek()
     }

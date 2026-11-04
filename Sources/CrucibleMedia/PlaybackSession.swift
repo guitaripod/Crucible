@@ -343,7 +343,8 @@ package final class PlaybackSession {
             showPosterPath: metadata.showPosterPath,
             finishedAt: Date(),
             endedShow: endedShow,
-            endedSeason: endedSeason
+            endedSeason: endedSeason,
+            librarySectionID: metadata.librarySectionID
         ), server: serverID == "unknown" ? nil : serverID)
     }
 

@@ -29,6 +29,7 @@ enum SearchFixtures {
             ["Metadata": group.map { item -> [String: Any] in
                 var json: [String: Any] = ["type": item.type ?? "", "title": item.title]
                 if let key = item.ratingKey { json["ratingKey"] = key }
+                if let section = item.librarySectionID { json["librarySectionID"] = section }
                 return json
             }]
         }

@@ -47,11 +47,11 @@ package enum SearchItem: Hashable, Sendable {
 package struct SearchResults: Sendable {
     package let ordered: [PlexMetadata]
 
-    package init(hubs: [PlexHub]) {
+    package init(hubs: [PlexHub], excluding excluded: Set<Int> = []) {
         var seen = Set<String>()
         var flat = [PlexMetadata]()
         for hub in hubs {
-            for item in hub.Metadata ?? [] where Self.supportedTypes.contains(item.mediaType) {
+            for item in LibraryVisibility.shown(hub.Metadata ?? [], excluding: excluded) where Self.supportedTypes.contains(item.mediaType) {
                 if seen.insert(item.id).inserted { flat.append(item) }
             }
         }

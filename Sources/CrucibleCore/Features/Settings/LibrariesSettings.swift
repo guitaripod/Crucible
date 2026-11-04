@@ -15,7 +15,7 @@ package enum LibrariesSettings {
     }
 
     package static let footerText = String(localized: "Libraries Plex hides from Home start switched off. At least one library stays on.")
-    package static let homeFooterText = String(localized: "Choose which libraries appear on Home and count toward your statistics.")
+    package static let homeFooterText = String(localized: "Choose which libraries Crucible brings up: on Home, in search, suggestions, rating reminders and notifications, and in your statistics. Every library keeps its tab.")
     package static let resetTitle = String(localized: "Reset to Plex Defaults")
     package static let loadingTitle = String(localized: "Loading Libraries")
 

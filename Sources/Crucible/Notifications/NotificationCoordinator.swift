@@ -25,6 +25,7 @@ final class NotificationCoordinator {
 
     private let center = UNUserNotificationCenter.current()
     private var ledgerObserver: UUID?
+    private var visibilityObserver: UUID?
     private var backgroundObserver: (any NSObjectProtocol)?
     private var foregroundObserver: (any NSObjectProtocol)?
     private var reminderSync: Task<Void, Never>?
@@ -43,6 +44,7 @@ final class NotificationCoordinator {
             Task { @MainActor in NotificationCoordinator.shared.runBackgroundRefresh(refresh) }
         }
         ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in self?.syncRatingReminders() }
+        visibilityObserver = LibraryVisibility.addObserver { [weak self] in self?.syncRatingReminders() }
         backgroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { _ in
             Task { @MainActor in NotificationCoordinator.shared.didEnterBackground() }
         }
@@ -82,20 +84,33 @@ final class NotificationCoordinator {
     // MARK: - Rating reminders
 
     /// Keeps one reminder for everything waiting to be rated. A newly finished title adds itself to it and moves it to its
-    /// own reminder time, so a binge or an evening of films is one reminder; a title rated or waved away leaves a reminder
-    /// that has not arrived yet, and when nothing is left to ask about the reminder goes. The single reminders sent before
-    /// they were gathered stay while their title waits.
+    /// own reminder time, so a binge or an evening of films is one reminder; a title rated, waved away or in a library the
+    /// viewer leaves out leaves a reminder that has not arrived yet, and when nothing is left to ask about the reminder goes.
+    /// The single reminders sent before they were gathered stay while their title waits.
     private func syncRatingReminders() {
-        let server = ServerBootstrap.savedMachineIdentifier
-        let asks = Preferences.notifies(.ratingReminders) ? FinishedTitlesLedger.shared.asks(now: Date(), server: server) : []
-        let fresh = NotificationLedger.shared.asksNeedingReminders(asks, server: server)
-        fresh.forEach { NotificationLedger.shared.noteReminded($0) }
-        let due = ReminderSchedule.ratingReminder(for: fresh, timing: Preferences.ratingReminderTiming, quietHours: Preferences.quietHours)
         let previous = reminderSync
         reminderSync = Task { [weak self] in
             await previous?.value
-            await self?.applyRatingReminder(asks: asks, due: due)
+            await self?.updateRatingReminder()
         }
+    }
+
+    private func updateRatingReminder() async {
+        let server = ServerBootstrap.savedMachineIdentifier
+        let asks = Preferences.notifies(.ratingReminders) ? await resolvedAsks() : []
+        let fresh = NotificationLedger.shared.asksNeedingReminders(asks, server: server)
+        fresh.forEach { NotificationLedger.shared.noteReminded($0) }
+        let due = ReminderSchedule.ratingReminder(for: fresh, timing: Preferences.ratingReminderTiming, quietHours: Preferences.quietHours)
+        await applyRatingReminder(asks: asks, due: due)
+    }
+
+    /// The asks once the server has said which titles are rated already and which library each belongs to, so nothing from a
+    /// library the viewer leaves out is ever announced. Without a connection the ledger's asks stand as they are.
+    private func resolvedAsks() async -> [RatingAsk] {
+        guard let connection = ServerBootstrap.connection() else {
+            return FinishedTitlesLedger.shared.asks(now: Date(), server: ServerBootstrap.savedMachineIdentifier)
+        }
+        return await RatingAsksFeed(api: APIClient(baseURL: connection.serverURI, token: connection.authToken)).load()
     }
 
     private func applyRatingReminder(asks: [RatingAsk], due: Date?) async {
@@ -306,7 +321,7 @@ final class NotificationCoordinator {
         let check = LibraryNewsCheck.live(api: api, includeWatchlist: Preferences.notifies(.watchlistArrivals))
         let followed = Preferences.notifies(.newEpisodes) ? FollowedShows.current() : []
         do {
-            let news = try await check.run(followed: followed, since: since, announced: ledger.announcedKeys)
+            let news = try await check.run(followed: followed, since: since, announced: ledger.announcedKeys, excluding: LibraryVisibility.excluded)
             if post, !news.isEmpty, await requestPermissionIfNeeded() {
                 for show in news.shows where Preferences.notifies(.newEpisodes) { await postNewEpisodes(show) }
                 for arrival in news.arrivals where Preferences.notifies(.watchlistArrivals) { await postArrival(arrival) }

@@ -10,6 +10,8 @@ package struct PlaybackMetadata: Sendable, Equatable {
     package let duration: Double?
     /// The show's own poster for an episode, which is what asking to rate the show shows.
     package let showPosterPath: String?
+    /// The library the item belongs to, so what follows from watching it keeps to the libraries the viewer shows.
+    package let librarySectionID: Int?
 
     package init(
         title: String,
@@ -18,7 +20,8 @@ package struct PlaybackMetadata: Sendable, Equatable {
         episodeNumber: Int?,
         posterPath: String?,
         duration: Double?,
-        showPosterPath: String? = nil
+        showPosterPath: String? = nil,
+        librarySectionID: Int? = nil
     ) {
         self.title = title
         self.showName = showName
@@ -27,6 +30,7 @@ package struct PlaybackMetadata: Sendable, Equatable {
         self.posterPath = posterPath
         self.duration = duration
         self.showPosterPath = showPosterPath
+        self.librarySectionID = librarySectionID
     }
 
     package init(item: PlexMetadata) {
@@ -37,7 +41,8 @@ package struct PlaybackMetadata: Sendable, Equatable {
             episodeNumber: item.index,
             posterPath: item.thumb ?? item.grandparentThumb,
             duration: item.durationSecs,
-            showPosterPath: item.grandparentThumb
+            showPosterPath: item.grandparentThumb,
+            librarySectionID: item.librarySectionID
         )
     }
 }
