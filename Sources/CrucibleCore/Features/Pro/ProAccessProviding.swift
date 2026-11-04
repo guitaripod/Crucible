@@ -32,7 +32,7 @@ package enum ProRestoreOutcome: Equatable, Sendable {
     case failed(ProStoreFailure)
 }
 
-/// The store behind Crucible Pro. The RevenueCat implementation lives in CrucibleStore, which only the
+/// The store behind Crucible Pro. The MidgarStore implementation (`MidgarProAccess`) lives in CrucibleStore, which only the
 /// App Store builds link; source builds use `UnlockedProAccess`, and UI tests use `ScriptedProAccess`.
 package protocol ProAccessProviding: Sendable {
     /// False for builds that are not sold through the App Store: there is nothing to buy or restore.
