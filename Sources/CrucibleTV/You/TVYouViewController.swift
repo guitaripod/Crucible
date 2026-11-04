@@ -8,10 +8,18 @@ import UIKit
 final class TVYouViewController: TVSettingsScaffold {
     private enum RowID {
         static let demo = "you.demo"
+        static let switchProfile = "you.switchProfile"
+        static let playlists = "you.playlists"
+        static let watchlist = "you.watchlist"
+        static let activity = "you.activity"
+        static let dashboard = "you.dashboard"
         static let history = "you.history"
         static let statistics = "you.statistics"
         static let pro = "you.pro"
         static let playback = "you.playback"
+        static let remote = "you.remote"
+        static let homeRows = "you.homeRows"
+        static let privacy = "you.privacy"
         static let libraries = "you.libraries"
         static let server = "you.server"
         static let diagnostics = "you.diagnostics"
@@ -79,10 +87,18 @@ final class TVYouViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         switch id {
         case RowID.demo: push(TVScreens.demoTour(env))
+        case RowID.switchProfile: push(TVScreens.profiles(env))
+        case RowID.playlists: push(TVScreens.playlists(env))
+        case RowID.watchlist: push(TVScreens.watchlist(env))
+        case RowID.activity: push(TVScreens.serverActivity(env))
+        case RowID.dashboard: push(TVScreens.serverDashboard(env))
         case RowID.history: push(TVScreens.history(env))
         case RowID.statistics: push(TVScreens.statistics(env))
         case RowID.pro: openPro()
         case RowID.playback: push(TVScreens.settings(env, page: .playback))
+        case RowID.remote: push(TVScreens.settings(env, page: .remote))
+        case RowID.homeRows: push(TVScreens.settings(env, page: .homeRows))
+        case RowID.privacy: push(TVScreens.settings(env, page: .privacy))
         case RowID.libraries: push(TVScreens.settings(env, page: .libraries))
         case RowID.server: push(TVScreens.settings(env, page: .server))
         case RowID.diagnostics: push(TVScreens.settings(env, page: .diagnostics))
@@ -150,12 +166,19 @@ final class TVYouViewController: TVSettingsScaffold {
         let api = env.api
         async let headline = YouHistoryHeadline.latest(api: api)
         async let summary = YearInReviewSummary.load()
-        let (newHeadline, newSummary) = await (headline, summary)
+        async let profiles: Void = refreshHomeProfiles()
+        let (newHeadline, newSummary, _) = await (headline, summary, profiles)
         guard !Task.isCancelled else { return }
         historySubtitle = newHeadline
         refreshRows()
         applyYear(newSummary)
         remoteContentThrottle.markLoaded()
+    }
+
+    /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
+    private func refreshHomeProfiles() async {
+        guard !DemoMode.shared.isActive, let token = ServerBootstrap.accountToken else { return }
+        _ = try? await HomeProfiles.load(accountToken: token)
     }
 
     private func applyYear(_ summary: YearInReviewSummary?) {
@@ -175,15 +198,27 @@ final class TVYouViewController: TVSettingsScaffold {
         var rows = [
             TVRowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
             TVRowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
-            TVRowItem(id: RowID.playback, title: String(localized: "Playback"), symbol: "play.rectangle", accessory: .chevron),
+            TVRowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
+            TVRowItem(id: RowID.watchlist, title: WatchlistService.title, symbol: "bookmark", accessory: .chevron),
+            TVRowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
+            TVRowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .tv), value: SettingsCatalog.summary(of: .playback, on: .tv), symbol: SettingsCategory.playback.symbol, accessory: .chevron),
+            TVRowItem(id: RowID.remote, title: SettingsCategory.controls.title(on: .tv), symbol: "appletvremote.gen4", accessory: .chevron),
+            TVRowItem(id: RowID.homeRows, title: SettingsCatalog.title(.homeRows), value: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows"), symbol: SettingsCatalog.symbol(.homeRows), accessory: .chevron),
             TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
+            TVRowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .tv), value: SettingsCatalog.summary(of: .privacy, on: .tv), symbol: SettingsCategory.privacy.symbol, accessory: .chevron),
             TVRowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
             TVRowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
             signOutRow(inDemo: inDemo),
         ]
         if ProAccess.shared.isStoreBacked {
             rows.insert(proRow(), at: 2)
+        }
+        if !DemoMode.shared.isActive, HomeProfiles.knownCount > 1 {
+            rows.insert(TVRowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron), at: 0)
+        }
+        if ServerOwnership.isOwner(), let activity = rows.firstIndex(where: { $0.id == RowID.activity }) {
+            rows.insert(TVRowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron), at: activity + 1)
         }
         if inDemo {
             rows.removeAll { $0.id == RowID.server }

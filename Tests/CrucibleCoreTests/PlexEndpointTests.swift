@@ -9,9 +9,9 @@ struct PlexEndpointTests {
         try endpoint.urlRequest(baseURL: base ?? server, token: token)
     }
 
-    @Test func metadataRequestAsksForMarkersAndRelatedItems() throws {
+    @Test func metadataRequestAsksForMarkersRelatedItemsAndExtras() throws {
         let request = try request(.metadata(ratingKey: "42"))
-        #expect(request.url?.absoluteString == "http://192.168.1.5:32400/library/metadata/42?includeMarkers=1&includeRelated=1&includeRelatedCount=10")
+        #expect(request.url?.absoluteString == "http://192.168.1.5:32400/library/metadata/42?includeMarkers=1&includeChapters=1&includeRelated=1&includeRelatedCount=10&includeExtras=1")
         #expect(request.httpMethod == "GET")
         #expect(request.timeoutInterval == 15)
         #expect(request.httpBody == nil)

@@ -156,13 +156,26 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
                 self?.selectLibrary(section, at: index)
             }
         }
+        let collections = UIAction(title: String(localized: "Collections"), image: UIImage(systemName: "rectangle.stack")) { [weak self] _ in
+            self?.currentChild?.openCollections()
+        }
         let folders = UIAction(title: String(localized: "Browse Folders"), image: UIImage(systemName: "folder")) { [weak self] _ in
             self?.currentChild?.openFolderBrowser()
         }
-        return UIMenu(children: [
+        var children: [UIMenuElement] = [
             UIMenu(options: .displayInline, children: switcher),
-            UIMenu(options: .displayInline, children: [folders]),
-        ])
+            UIMenu(options: .displayInline, children: [collections, folders]),
+        ]
+        if let section = currentSection, let manage = ManageMenus.libraryMenu(sectionId: section.id, api: api, host: self) {
+            children.append(UIMenu(options: .displayInline, children: [manage]))
+        }
+        return UIMenu(children: children)
+    }
+
+    /// The library on screen: the pinned one, or the one the title menu last switched to.
+    private var currentSection: LibrarySection? {
+        let shown = pinnedSectionID.map { id in sections.filter { $0.id == id } } ?? sections
+        return shown.indices.contains(currentIndex) ? shown[currentIndex] : nil
     }
 
     private func isShowing(_ section: LibrarySection, at index: Int) -> Bool {

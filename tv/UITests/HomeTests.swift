@@ -409,6 +409,30 @@ final class HomeTests: TVTestCase {
         XCTAssertTrue(hero.label.contains("Extraordinarily"), "VoiceOver reads the title together with the synopsis")
     }
 
+    func testPlaybackStoppedOnAnotherDeviceReachesContinueWatchingWithoutLeavingHome() {
+        MockControl.call("/:/unscrobble?key=1013&identifier=com.plexapp.plugins.library")
+        launchHome()
+        let card = element("\(Self.cardPrefix)continueWatching.1013")
+        XCTAssertFalse(card.exists, "Quiet Engines starts outside Continue Watching")
+        XCTAssertTrue(waitForEventStream(), "Home listens to the server's live events")
+        MockControl.call("/:/timeline?ratingKey=1013&key=/library/metadata/1013&state=stopped&time=1200000&duration=6120000")
+        XCTAssertTrue(card.waitForExistence(timeout: 15), "a title stopped on another device joins Continue Watching while Home is open")
+        TVTest.capture("01-continue-watching-updated-live", in: self)
+    }
+
+    private func waitForEventStream(timeout: TimeInterval = 20) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + "/mock/eventsource"),
+               let data = TVTest.fetch(url),
+               let listeners = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["listeners"] as? Int, listeners > 0 {
+                return true
+            }
+            TVTest.settle(1)
+        }
+        return false
+    }
+
     private func launchHomeEmpty() {
         app = TVTest.launch(mock: ["MOCK_HUBS_MODE": "empty"])
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60))

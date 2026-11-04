@@ -66,8 +66,9 @@ final class ActivityHistoryViewController: UICollectionViewController {
     }
 
     private func makeLayout() -> UICollectionViewLayout {
-        UICollectionViewCompositionalLayout { sectionIndex, environment in
+        UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
             var config = UICollectionLayoutListConfiguration(appearance: .plain)
+            config.trailingSwipeActionsConfigurationProvider = { indexPath in self?.removeAction(at: indexPath) }
             config.backgroundColor = Theme.Color.canvas
             let isControls = sectionIndex == 0
             config.headerMode = isControls ? .none : .supplementary
@@ -95,6 +96,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
         let itemCell = UICollectionView.CellRegistration<UICollectionViewListCell, HistoryItem> { [weak self] cell, _, entry in
             guard let self else { return }
             cell.contentConfiguration = rowConfiguration(for: entry)
+            cell.accessibilityIdentifier = "history.row.\(entry.uniqueId)"
             cell.configurationUpdateHandler = { cell, state in
                 var background = UIBackgroundConfiguration.clear()
                 if state.isHighlighted || state.isSelected {
@@ -252,6 +254,25 @@ final class ActivityHistoryViewController: UICollectionViewController {
                 presentPlaybackError()
             }
         }
+    }
+
+    /// The owner's swipe that deletes a play from the server's watch history, which also takes it out of every app's
+    /// history and the server's own statistics.
+    private func removeAction(at indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard ServerOwnership.isOwner(), case .item(let entry) = dataSource.itemIdentifier(for: indexPath),
+              let historyKey = entry.historyKey else { return nil }
+        let remove = UIContextualAction(style: .destructive, title: String(localized: "Remove", comment: "Swipe action that deletes a play from the server's watch history")) { [weak self] _, _, done in
+            done(true)
+            guard let self else { return }
+            let api = api
+            ManageMenus.run(host: self) { [weak self] in
+                try await LibraryManagement.deleteHistoryEntry(historyKey: historyKey, api: api)
+                self?.feed.drop(entry)
+                self?.applySnapshot()
+            }
+        }
+        remove.image = UIImage(systemName: "trash")
+        return UISwipeActionsConfiguration(actions: [remove])
     }
 
     private func presentPlaybackError() {

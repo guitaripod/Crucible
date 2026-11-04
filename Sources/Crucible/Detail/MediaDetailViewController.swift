@@ -5,7 +5,7 @@ import MidgarCore
 
 final class MediaDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, progress, links, tracks, overview, genres, cast, details, related
+        case hero, actions, progress, links, tracks, overview, genres, extras, cast, details, related
     }
 
     typealias Fact = DetailFact
@@ -18,6 +18,7 @@ final class MediaDetailViewController: UICollectionViewController {
         case tracks
         case overview
         case genres
+        case extra(PlexMetadata)
         case castMember(PlexRole)
         case fact(Fact)
         case related(PlexMetadata)
@@ -38,6 +39,19 @@ final class MediaDetailViewController: UICollectionViewController {
     private var downloadObserver: UUID?
     private var isOverviewExpanded = false
     private var lastLayoutWidth: CGFloat = 0
+    private var loadedFromServer = false
+    private var subtitlesBeforeSearch: Set<Int>?
+    private lazy var moreItem: UIBarButtonItem = {
+        let item = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: moreMenu())
+        item.accessibilityLabel = String(localized: "More")
+        return item
+    }()
+    private lazy var rating = RatingCoordinator(
+        api: api,
+        ratingKey: ratingKey,
+        refresh: { [weak self] in self?.reconfigure([.actions]) },
+        reload: { [weak self] in self?.loadData() }
+    )
     private lazy var hero = DetailHeroCoordinator(
         navigationItem: navigationItem,
         heightRatio: mediaType == "episode" ? 0.95 : 1.28
@@ -62,7 +76,7 @@ final class MediaDetailViewController: UICollectionViewController {
         collectionView.allowsKeyboardFocus()
         collectionView.dragDelegate = mediaDrag
         hero.install(on: collectionView)
-        navigationItem.rightBarButtonItems = [hero.chrome.playItem]
+        navigationItem.rightBarButtonItems = [hero.chrome.playItem, moreItem]
         configureDataSource()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: MediaDetailViewController, _: UITraitCollection) in
             controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
@@ -163,6 +177,7 @@ final class MediaDetailViewController: UICollectionViewController {
             case .tracks: return DetailLayout.fullWidth(top: 16, environment: environment)
             case .overview: return DetailLayout.fullWidth(top: 20, environment: environment)
             case .genres: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .extras: return DetailLayout.landscapeRail(environment)
             case .cast: return DetailLayout.castRail(environment)
             case .details: return DetailLayout.factsGrid(environment)
             case .related: return DetailLayout.posterRail(environment)
@@ -206,6 +221,16 @@ final class MediaDetailViewController: UICollectionViewController {
         let genresReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
             cell.contentConfiguration = DetailChipsConfiguration(chips: self?.model?.item.genres ?? [])
         }
+        let extraReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, extra in
+            cell.contentConfiguration = LandscapeContentConfiguration(
+                imagePath: extra.thumb,
+                title: extra.title,
+                subtitle: DetailExtras.kindName(extra),
+                trailingText: DetailFormat.runtime(extra.durationSecs),
+                showsPlayChip: true,
+                placeholderIcon: "film"
+            )
+        }
         let castReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
             cell.contentConfiguration = CastContentConfiguration(thumbPath: role.thumb, name: role.tag ?? "", role: role.role)
         }
@@ -225,6 +250,7 @@ final class MediaDetailViewController: UICollectionViewController {
             case .tracks: return cv.dequeueConfiguredReusableCell(using: tracksReg, for: indexPath, item: item)
             case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
             case .genres: return cv.dequeueConfiguredReusableCell(using: genresReg, for: indexPath, item: item)
+            case .extra(let extra): return cv.dequeueConfiguredReusableCell(using: extraReg, for: indexPath, item: extra)
             case .castMember(let role): return cv.dequeueConfiguredReusableCell(using: castReg, for: indexPath, item: role)
             case .fact(let fact): return cv.dequeueConfiguredReusableCell(using: factReg, for: indexPath, item: fact)
             case .related(let related): return cv.dequeueConfiguredReusableCell(using: relatedReg, for: indexPath, item: related)
@@ -235,6 +261,7 @@ final class MediaDetailViewController: UICollectionViewController {
             guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else { return }
             var config = SectionHeaderConfiguration()
             switch section {
+            case .extras: config.title = DetailExtras.title
             case .cast: config.title = String(localized: "Cast & Crew")
             case .details: config.title = String(localized: "Details")
             case .related: config.title = String(localized: "More Like This")
@@ -274,6 +301,9 @@ final class MediaDetailViewController: UICollectionViewController {
         }
         config.isWatched = item.isWatched
         config.onToggleWatched = { [weak self] in self?.toggleWatched() }
+        config.userRating = rating.shown(served: model.userRating)
+        config.isRatable = loadedFromServer
+        config.onRate = { [weak self] source in self?.rate(from: source) }
         return config
     }
 
@@ -295,6 +325,14 @@ final class MediaDetailViewController: UICollectionViewController {
                 symbol: "tv",
                 accessibilityLabel: showTitle.map { String(localized: "Go to show, \($0)") } ?? String(localized: "Go to Show"),
                 action: { [weak self] in self?.navigateToShow() }
+            ))
+        }
+        for name in model.collectionNames {
+            pills.append(.init(
+                title: name,
+                symbol: "rectangle.stack",
+                accessibilityLabel: String(localized: "Part of the \(name) collection"),
+                action: { [weak self] in self?.openCollection(named: name) }
             ))
         }
         if model.seasonKey != nil {
@@ -351,7 +389,12 @@ final class MediaDetailViewController: UICollectionViewController {
             action.subtitle = option.detail
             return action
         }
-        return UIMenu(title: String(localized: "Subtitles"), options: .singleSelection, children: [off] + actions)
+        let search = UIAction(title: SubtitleSearch.title, image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+            self?.searchSubtitles()
+        }
+        let choices = UIMenu(title: "", options: [.singleSelection, .displayInline], children: [off] + actions)
+        guard loadedFromServer else { return UIMenu(title: String(localized: "Subtitles"), children: [choices]) }
+        return UIMenu(title: String(localized: "Subtitles"), children: [choices, UIMenu(options: .displayInline, children: [search])])
     }
 
     private func loadData() {
@@ -373,11 +416,14 @@ final class MediaDetailViewController: UICollectionViewController {
                     return
                 }
                 donateActivity(loaded.item)
+                loadedFromServer = true
+                rating.loaded()
                 await display(loaded)
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
                 if model == nil, let download = DownloadManager.shared.item(for: ratingKey) {
+                    loadedFromServer = false
                     await display(MovieDetailModel(item: download.asPlexMetadata, showRatingKey: showRatingKey, seasonRatingKey: seasonRatingKey))
                 } else if model == nil {
                     showLoadError(message: error.localizedDescription)
@@ -395,6 +441,7 @@ final class MediaDetailViewController: UICollectionViewController {
         let tracks = model.reconciledTracks(audioId: selectedAudioTrackId, subtitleId: selectedSubtitleId)
         selectedAudioTrackId = tracks.audioId
         selectedSubtitleId = tracks.subtitleId
+        selectDownloadedSubtitle(in: model)
         let artwork = model.heroArtwork
         hero.backdrop.loadImage(
             path: artwork.path,
@@ -452,6 +499,12 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems([.genres], toSection: .genres)
         }
 
+        let extraItems = model.extras.map { Item.extra($0) }
+        if !extraItems.isEmpty {
+            snapshot.appendSections([.extras])
+            snapshot.appendItems(extraItems, toSection: .extras)
+        }
+
         let crewAndCast = model.castAndCrew.map { Item.castMember($0) }
         if !crewAndCast.isEmpty {
             snapshot.appendSections([.cast])
@@ -483,8 +536,11 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        if case .related = dataSource.itemIdentifier(for: indexPath) { return true }
-        return false
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .related, .extra: return true
+        case .castMember(let role): return PersonFilmography.canOpen(role)
+        default: return false
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, canFocusItemAt indexPath: IndexPath) -> Bool {
@@ -493,8 +549,16 @@ final class MediaDetailViewController: UICollectionViewController {
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard case .related(let related) = dataSource.itemIdentifier(for: indexPath) else { return }
-        openRelated(related)
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .related(let related):
+            openRelated(related)
+        case .castMember(let role):
+            navigationController?.pushViewController(PersonScreens.filmography(api: api, person: role), animated: true)
+        case .extra(let extra):
+            playExtra(extra)
+        default:
+            break
+        }
     }
 
     private func related(at indexPath: IndexPath) -> PlexMetadata? {
@@ -522,6 +586,49 @@ final class MediaDetailViewController: UICollectionViewController {
     private func toggleOverview() {
         isOverviewExpanded.toggle()
         reconfigure([.overview], animated: !UIAccessibility.isReduceMotionEnabled)
+    }
+
+    private func searchSubtitles() {
+        guard let model, loadedFromServer else { return }
+        subtitlesBeforeSearch = Set(model.item.subtitleStreams.compactMap(\.id))
+        let search = SubtitleSearchViewController(api: api, ratingKey: ratingKey) { [weak self] in self?.loadData() }
+        let navigation = UINavigationController(rootViewController: search)
+        navigation.modalPresentationStyle = .pageSheet
+        navigation.sheetPresentationController?.detents = [.medium(), .large()]
+        navigation.sheetPresentationController?.prefersGrabberVisible = true
+        present(navigation, animated: true)
+    }
+
+    /// Once a downloaded subtitle shows up in the title's tracks it is the one selected, so the viewer's choice takes effect at once.
+    private func selectDownloadedSubtitle(in model: MovieDetailModel) {
+        guard let before = subtitlesBeforeSearch else { return }
+        guard let added = model.item.subtitleStreams.compactMap(\.id).first(where: { !before.contains($0) }) else { return }
+        subtitlesBeforeSearch = nil
+        selectedSubtitleId = added
+    }
+
+    private func playExtra(_ extra: PlexMetadata) {
+        guard let title = model?.item else { return }
+        Haptics.light()
+        let meta = PlayerCoordinator.Metadata(
+            title: extra.title,
+            showName: title.title,
+            seasonNumber: nil,
+            episodeNumber: nil,
+            posterPath: title.thumb ?? extra.thumb,
+            duration: extra.durationSecs
+        )
+        let coordinator = PlayerCoordinator(
+            api: api,
+            ratingKey: extra.id,
+            mediaType: PlaybackRequest.extraMediaType,
+            showRatingKey: nil,
+            seasonRatingKey: nil,
+            resumePosition: 0,
+            metadata: meta
+        )
+        playerCoordinator = coordinator
+        coordinator.present(from: self)
     }
 
     private func play() {
@@ -568,6 +675,37 @@ final class MediaDetailViewController: UICollectionViewController {
         }
     }
 
+    private func moreMenu() -> UIMenu {
+        UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
+            guard let self, loadedFromServer, let item = model?.item, item.isPlaylistable else {
+                completion([])
+                return
+            }
+            Task { @MainActor in
+                var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [item], api: api, host: self)]
+                if let watchlist = await WatchlistScreen.toggleAction(for: item, api: api, host: self) { elements.append(watchlist) }
+                if let manage = ManageMenus.itemMenu(for: item, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
+                    elements.append(manage)
+                }
+                completion(elements)
+            }
+        }])
+    }
+
+    private func openCollection(named name: String) {
+        CollectionScreens.open(named: name, sectionId: model?.item.librarySectionID.map(String.init), api: api, from: self)
+    }
+
+    private func rate(from source: UIView? = nil) {
+        guard let model, loadedFromServer else { return }
+        rating.present(
+            from: self,
+            source: source ?? view,
+            title: model.item.title,
+            served: model.userRating
+        )
+    }
+
     private func goToNextEpisode() {
         guard let parentKey = model?.seasonKey else { return }
         Task { [weak self] in
@@ -594,6 +732,7 @@ extension MediaDetailViewController: CommandHandling, MediaScreen {
     func canPerform(_ command: AppCommand) -> Bool {
         switch command {
         case .play, .toggleWatched: return model != nil
+        case .rate: return model != nil && loadedFromServer
         case .download: return model.map { HomeMediaRules.isDownloadable($0.item) } ?? false
         case .refresh: return true
         default: return false
@@ -604,6 +743,7 @@ extension MediaDetailViewController: CommandHandling, MediaScreen {
         switch command {
         case .play: play()
         case .toggleWatched: toggleWatched()
+        case .rate: rate()
         case .download:
             guard let model else { return }
             DetailDownload.performTap(for: model.item, from: self, sourceView: nil)

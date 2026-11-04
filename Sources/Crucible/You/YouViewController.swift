@@ -8,7 +8,7 @@ final class YouViewController: UICollectionViewController {
     }
 
     enum Item: Hashable {
-        case demo, profile, year, history, statistics, settings, server, about
+        case demo, profile, switchProfile, year, playlists, watchlist, activity, dashboard, history, statistics, settings, server, about
     }
 
     private let api: APIClient
@@ -72,12 +72,21 @@ final class YouViewController: UICollectionViewController {
     private func loadRemoteContent() async {
         async let history = YouHistoryHeadline.latest(api: api)
         async let year = YouYearSummary.load()
-        let (newHistory, newYear) = await (history, year)
+        async let profiles: Void = refreshHomeProfiles()
+        let (newHistory, newYear, _) = await (history, year, profiles)
         guard !Task.isCancelled else { return }
         historySubtitle = newHistory
         yearSummary = newYear
         applySnapshot()
     }
+
+    /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
+    private func refreshHomeProfiles() async {
+        guard !isInDemo, let token = ServerBootstrap.accountToken else { return }
+        _ = try? await HomeProfiles.load(accountToken: token)
+    }
+
+    private var offersProfiles: Bool { !isInDemo && HomeProfiles.knownCount > 1 }
 
     private func makeLayout() -> UICollectionViewLayout {
         UICollectionViewCompositionalLayout { [weak self] index, environment in
@@ -124,15 +133,37 @@ final class YouViewController: UICollectionViewController {
             case .profile:
                 cell.contentConfiguration = profileConfiguration()
                 cell.accessories = isInDemo ? [] : [.disclosureIndicator()]
+            case .switchProfile:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "person.2", title: HomeProfiles.title, value: PlexAccountName.stored)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.switchProfile"
+            case .playlists:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "list.bullet.rectangle", title: String(localized: "Playlists"))
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.playlists"
+            case .watchlist:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "bookmark", title: WatchlistService.title)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.watchlist"
+            case .activity:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "dot.radiowaves.left.and.right", title: ServerActivity.title)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.activity"
+            case .dashboard:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "gauge.with.dots.needle.33percent", title: ServerDashboardCopy.title)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.dashboard"
             case .history:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "clock", title: String(localized: "Watch History"), subtitle: historySubtitle)
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.history"
             case .statistics:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "chart.bar", title: String(localized: "Statistics"))
                 cell.accessories = [.disclosureIndicator()]
             case .settings:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "gearshape", title: String(localized: "Settings"))
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.settings"
             case .server:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "server.rack", title: String(localized: "Server & Connection"), value: YouConnectionStatus.shared.state.routeSummary)
                 cell.accessories = [.disclosureIndicator()]
@@ -186,13 +217,13 @@ final class YouViewController: UICollectionViewController {
             snapshot.appendItems([.demo], toSection: .demo)
         }
         snapshot.appendSections([.profile])
-        snapshot.appendItems([.profile], toSection: .profile)
+        snapshot.appendItems(offersProfiles ? [.profile, .switchProfile] : [.profile], toSection: .profile)
         if yearSummary != nil {
             snapshot.appendSections([.year])
             snapshot.appendItems([.year], toSection: .year)
         }
         snapshot.appendSections([.activity, .app, .about])
-        snapshot.appendItems([.history, .statistics], toSection: .activity)
+        snapshot.appendItems([.history, .statistics, .playlists, .watchlist, .activity] + (ServerOwnership.isOwner() ? [.dashboard] : []), toSection: .activity)
         snapshot.appendItems(isInDemo ? [.settings] : [.settings, .server], toSection: .app)
         snapshot.appendItems([.about], toSection: .about)
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
@@ -211,9 +242,19 @@ final class YouViewController: UICollectionViewController {
         let destination: UIViewController
         switch item {
         case .demo: destination = DemoTourViewController()
+        case .switchProfile:
+            let profiles = ProfilesViewController(machineIdentifier: ServerBootstrap.savedMachineIdentifier ?? "")
+            profiles.onSwitched = { [weak profiles] in
+                (profiles?.view.window?.windowScene?.delegate as? SceneDelegate)?.reconfigureRoot()
+            }
+            destination = profiles
         case .profile where isInDemo: return
         case .profile, .server: destination = ServerDetailViewController(api: api)
         case .year, .statistics: destination = StatisticsViewController(api: api)
+        case .playlists: destination = PlaylistScreens.playlists(api: api)
+        case .watchlist: destination = WatchlistScreen.watchlist(api: api)
+        case .activity: destination = ActivityScreen.serverActivity(api: api)
+        case .dashboard: destination = ServerDashboardViewController(api: api)
         case .history: destination = ActivityHistoryViewController(api: api)
         case .settings: destination = SettingsViewController(api: api)
         case .about: destination = AboutViewController()

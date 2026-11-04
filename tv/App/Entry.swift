@@ -21,6 +21,9 @@ enum Entry {
     /// against the mock server or the UI tests never reach the App Store: they stay unlocked, or take the scripted store that
     /// `CRUCIBLE_PRO` asks for.
     private static func installStore() {
+        #if DEBUG
+        installScriptedOfferPolicy()
+        #endif
         guard sellsThroughAppStore, MidgarProAccess.reachesMidgarServices else { return }
         CrucibleLog.configure()
         MainActor.assumeIsolated {
@@ -43,6 +46,19 @@ enum Entry {
             DemoMode.shared.install(DemoLibraryProvider())
         }
     }
+
+    #if DEBUG
+    /// A run on the scripted store (`CRUCIBLE_PRO`) counts finished videos with the policy the App Store build uses, from nothing
+    /// when `CRUCIBLE_FRESH=1` makes it a new install, so the note after a finished video shows up in UI tests as it does for real.
+    private static func installScriptedOfferPolicy() {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["CRUCIBLE_PRO"] != nil else { return }
+        MainActor.assumeIsolated {
+            if environment["CRUCIBLE_FRESH"] == "1" { MidgarProAccess.forgetPlaybackOfferForTesting() }
+            MidgarProAccess.installPlaybackOffer(firstOfferAfter: 1, laterOfferEvery: 5)
+        }
+    }
+    #endif
 
     private static var sellsThroughAppStore: Bool {
         #if DEBUG

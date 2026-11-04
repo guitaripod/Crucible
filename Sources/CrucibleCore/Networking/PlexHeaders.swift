@@ -3,14 +3,15 @@ import Foundation
 package enum PlexHeaders: Sendable {
     private static let clientIdentifierKey = "plex_client_id"
 
-    package static var clientIdentifier: String {
+    /// Read from the keychain once per launch: every request sends it, and the event stream compares every playback with it.
+    package static let clientIdentifier: String = {
         if let existing = KeychainHelper.load(key: clientIdentifierKey) {
             return existing
         }
         let id = UUID().uuidString
         KeychainHelper.save(key: clientIdentifierKey, value: id)
         return id
-    }
+    }()
 
     package static func allHeaders(token: String?) -> [String: String] {
         var headers: [String: String] = [

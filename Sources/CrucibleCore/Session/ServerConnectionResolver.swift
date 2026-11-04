@@ -23,7 +23,7 @@ package enum ServerConnectionResolver {
         log.error("Pinned route \(connection.serverURI.absoluteString, privacy: .public) unreachable; re-discovering")
         MidgarLog.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", category: .networking)
 
-        var candidates = await APIClient.discoverCandidates(token: connection.authToken, pinned: connection.serverURI)
+        var candidates = await APIClient.discoverCandidates(token: connection.plexTVToken, pinned: connection.serverURI)
         var reachable = await firstReachable(candidates, token: connection.authToken)
         if reachable == nil {
             let tailnet = await tailnetRoutes(for: connection).filter { $0 != connection.serverURI && !candidates.contains($0) }
@@ -44,6 +44,7 @@ package enum ServerConnectionResolver {
             serverName: connection.serverName,
             machineIdentifier: connection.machineIdentifier,
             authToken: connection.authToken,
+            plexTVToken: connection.plexTVToken,
             clientIdentifier: connection.clientIdentifier,
             candidateURIs: [healthy] + candidates.filter { $0 != healthy }
         ))

@@ -1,0 +1,50 @@
+import CrucibleCore
+import UIKit
+
+extension TVScreens {
+    /// The viewer's Plex watchlist: a title the server has opens, one it does not says so.
+    static func watchlist(_ env: TVAppEnvironment) -> UIViewController {
+        let token = env.api.token
+        let grid = TVMediaGridViewController(
+            title: WatchlistService.title,
+            empty: .init(symbol: "bookmark", title: WatchlistService.emptyTitle, message: WatchlistService.emptyText),
+            card: titleCard,
+            load: { try await WatchlistService.items(token: token) }
+        )
+        grid.onSelect = { [weak grid] entry in
+            guard let grid else { return }
+            open(entry, env: env, from: grid)
+        }
+        grid.contextMenu = { [weak grid] entry in
+            guard let guid = entry.guid, let grid else { return nil }
+            return UIMenu(children: [
+                UIAction(title: WatchlistService.remove, image: UIImage(systemName: "bookmark.slash"), attributes: .destructive) { _ in
+                    Task { @MainActor in
+                        do {
+                            try await WatchlistService.remove(guid: guid, token: token)
+                            grid.reload()
+                        } catch {
+                            grid.presentAlert(title: String(localized: "Couldn\u{2019}t Update"), message: error.localizedDescription)
+                        }
+                    }
+                },
+            ])
+        }
+        return grid
+    }
+
+    private static func open(_ entry: PlexMetadata, env: TVAppEnvironment, from screen: UIViewController) {
+        Task { @MainActor [weak screen] in
+            do {
+                guard let local = try await WatchlistService.localMatch(for: entry, api: env.api) else {
+                    screen?.presentAlert(title: WatchlistService.notInLibraryTitle, message: WatchlistService.notInLibraryText)
+                    return
+                }
+                guard let screen else { return }
+                TVHomeActions(env: env, onChange: {}).openDetail(local, from: screen)
+            } catch {
+                screen?.presentAlert(title: String(localized: "Couldn\u{2019}t Load"), message: error.localizedDescription)
+            }
+        }
+    }
+}

@@ -414,6 +414,38 @@ final class PlayerTests: TVTestCase {
         XCTAssertTrue(app.otherElements["player.view"].exists)
     }
 
+    /// Autoplay on with Skip Credits left at its default (Show Button): the card at the credits counts down and the next episode
+    /// starts without the remote. This is what a viewer who only switched Autoplay on expects, and it used to wait for a press.
+    func testAutoplayWithTheDefaultSkipCreditsPlaysTheNextEpisodeOnItsOwn() {
+        setFlags("clip_markers=1")
+        setProgress(Self.episode, seconds: 104)
+        setProgress(Self.nextEpisode, seconds: 1)
+        let mark = timelineMark()
+        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipOutroMode", "0", "-skipIntroMode", "2", "-upNext.countdown", "5"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(waitForFocusedUpNextCard(in: app), "the credits bring the Up Next card")
+        TVTest.capture("01-counting-down-at-the-credits", in: self)
+        XCTAssertTrue(waitForReport(Self.nextEpisode, state: "playing", since: mark, timeout: 40), "the next episode starts when the countdown ends, with nobody at the remote")
+        TVTest.settle(3)
+        TVTest.capture("02-next-episode-playing", in: self)
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+    }
+
+    /// An episode without a credits marker: with Autoplay on, the card that appears at the end counts down and the next episode
+    /// starts on its own; the card no longer blocks the end-of-episode autoplay.
+    func testWithoutCreditsAutoplayPlaysTheNextEpisodeAtTheEnd() {
+        setFlags("no_credits=1")
+        setProgress(Self.episode, seconds: 144)
+        setProgress(Self.nextEpisode, seconds: 1)
+        let mark = timelineMark()
+        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<true/>", "-skipOutroMode", "0", "-skipIntroMode", "2", "-upNext.countdown", "5"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(waitForReport(Self.nextEpisode, state: "playing", since: mark, timeout: Self.endOfItemWait), "the next episode starts at the end with nobody at the remote")
+        TVTest.settle(3)
+        TVTest.capture("01-next-episode-after-an-end-without-credits", in: self)
+        XCTAssertTrue(app.otherElements["player.view"].exists)
+    }
+
     func testWithoutCreditsTheCardOffersCloseAndEndsThePlayer() {
         setFlags("no_credits=1")
         setProgress(Self.episode, seconds: 144)
@@ -426,6 +458,37 @@ final class PlayerTests: TVTestCase {
         TVTest.capture("01-close-focused", in: self)
         TVTest.remote.press(.select)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: Self.dismissalWait))
+    }
+
+    func testAMovieEndsOnTitlesLikeItAndOnePlaysInTheSamePlayer() {
+        setProgress(Self.movie, seconds: 144)
+        let mark = timelineMark()
+        let app = launch(playing: Self.movie)
+        XCTAssertTrue(waitForPlayback(in: app))
+        let postPlay = app.otherElements["postPlay"]
+        XCTAssertTrue(postPlay.waitForExistence(timeout: Self.endOfItemWait), "the end of the movie offered nothing")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Because You Watched'")).firstMatch.exists)
+        let first = app.cells["postPlay.item.0"]
+        XCTAssertTrue(TVTest.waitForFocus(first), "the first title has focus")
+        TVTest.settle(1)
+        TVTest.capture("01-titles-like-it", in: self)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(postPlay.waitForNonExistence(timeout: 20), "picking a movie left the titles up")
+        XCTAssertTrue(waitForPlaying(otherThan: Self.movie, since: mark, timeout: 60), "the picked movie plays")
+        XCTAssertTrue(app.otherElements["player.view"].exists, "the picked movie plays in the same player")
+        TVTest.settle(3)
+        TVTest.capture("02-picked-movie-playing", in: self)
+    }
+
+    func testMenuOnTheTitlesAfterAMovieClosesThePlayer() {
+        setProgress(Self.movie, seconds: 144)
+        let app = launch(playing: Self.movie)
+        XCTAssertTrue(waitForPlayback(in: app))
+        let postPlay = app.otherElements["postPlay"]
+        XCTAssertTrue(postPlay.waitForExistence(timeout: Self.endOfItemWait), "the end of the movie offered nothing")
+        XCTAssertTrue(TVTest.waitForFocus(app.cells["postPlay.item.0"]))
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: Self.dismissalWait), "Menu closes the player")
     }
 
     func testFinishingTheFirstVideoOffersProToAFreeViewerOnce() {
@@ -736,8 +799,11 @@ final class PlayerTests: TVTestCase {
         Mock.get("/mock/flags?\(query)")
     }
 
+    /// Leaves `ratingKey` unwatched and stopped `seconds` in, as if the viewer had walked away there. An earlier test of the class may
+    /// have finished it, and a watched title starts from the beginning whatever its offset says.
     private nonisolated func setProgress(_ ratingKey: String, seconds: Int) {
         let ms = seconds * 1000
+        Mock.get("/:/unscrobble?key=\(ratingKey)&identifier=com.plexapp.plugins.library")
         Mock.get("/:/timeline?ratingKey=\(ratingKey)&key=/library/metadata/\(ratingKey)&state=stopped&time=\(ms)&duration=2700000")
     }
 
@@ -745,6 +811,15 @@ final class PlayerTests: TVTestCase {
         let ratingKey: String
         let state: String
         let timeMs: Int
+    }
+
+    private func waitForPlaying(otherThan ratingKey: String, since mark: Int, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if timeline(since: mark).contains(where: { $0.ratingKey != ratingKey && $0.state == "playing" }) { return true }
+            TVTest.settle(1)
+        }
+        return false
     }
 
     private func timeline(since mark: Int) -> [Report] {

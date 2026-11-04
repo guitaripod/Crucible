@@ -16,7 +16,18 @@ actor DemoLibrary {
     var genreIDs: [String: Int] = [:]
     var genreTitles: [String] = []
     var onDeck: [String] = []
+    var hiddenFromContinue = Set<String>()
+    var stoppedSessions = Set<String>()
+    var showPreferences: [String: [String: String]] = [:]
+    var scans: [String: (title: String, at: Date)] = [:]
+    let events = DemoEvents()
     var history: [DemoHistoryRow] = []
+    var playlists: [DemoPlaylistState] = []
+    var extraKeys: [String: [String]] = [:]
+    var downloadedSubtitles: [String: [DemoJSON]] = [:]
+    var watchlistGuids = DemoLibrary.defaultWatchlist
+    var nextEntryID = 1000
+    var nextPlaylistKey = 9200
     var persisted: DemoPersistedState
     let store: DemoStateStore
     let now: Int
@@ -41,8 +52,10 @@ actor DemoLibrary {
         onDeck = (root["onDeck"] as? [String]) ?? []
         try loadItems(rawItems)
         linkChildren()
+        installExtras()
         history = DemoHistory.build(items: items, showKeys: showKeys, movieKeys: movieKeys, now: now)
         applyPersistedState()
+        seedPlaylistsIfNeeded()
         recountAll()
     }
 
@@ -125,7 +138,11 @@ actor DemoLibrary {
         for (key, saved) in persisted.items where items[key] != nil {
             setWatchFields(key, viewCount: saved.viewCount, viewOffset: saved.viewOffset, lastViewedAt: saved.lastViewedAt)
         }
+        for (key, halfStars) in persisted.ratings ?? [:] where items[key] != nil {
+            items[key]?.set("userRating", halfStars)
+        }
         if let saved = persisted.onDeck { onDeck = saved.filter { items[$0] != nil } }
+        hiddenFromContinue = Set((persisted.hiddenFromContinue ?? []).filter { items[$0] != nil })
         var nextID = (history.map(\.id).max() ?? 0) + 1
         for play in persisted.plays where items[play.ratingKey] != nil {
             history.append(DemoHistoryRow(id: nextID, ratingKey: play.ratingKey, viewedAt: play.viewedAt))

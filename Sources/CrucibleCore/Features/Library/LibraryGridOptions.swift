@@ -26,12 +26,19 @@ package enum LibraryGridKind: Sendable {
                 LibrarySortOption(key: "year:desc", title: String(localized: "Year", comment: "Sort option: by release year")),
                 LibrarySortOption(key: "addedAt:desc", title: String(localized: "Recently Added")),
                 LibrarySortOption(key: "rating:desc", title: String(localized: "Rating", comment: "Sort option: by rating")),
+                LibrarySortOption(key: "userRating:desc", title: UserRatingCopy.title),
+                LibrarySortOption(key: "originallyAvailableAt:desc", title: String(localized: "Release Date", comment: "Sort option: by the date the title came out")),
+                LibrarySortOption(key: "lastViewedAt:desc", title: String(localized: "Last Watched", comment: "Sort option: by when the viewer last watched it")),
+                LibrarySortOption(key: "viewCount:desc", title: String(localized: "Most Watched", comment: "Sort option: by how often the viewer watched it")),
             ]
         case .show:
             return [
                 LibrarySortOption(key: LibraryGridOptions.titleAscending, title: String(localized: "Name", comment: "Sort option: by name")),
                 LibrarySortOption(key: "addedAt:desc", title: String(localized: "Recently Added")),
                 LibrarySortOption(key: "rating:desc", title: String(localized: "Rating", comment: "Sort option: by rating")),
+                LibrarySortOption(key: "userRating:desc", title: UserRatingCopy.title),
+                LibrarySortOption(key: "originallyAvailableAt:desc", title: String(localized: "Release Date", comment: "Sort option: by the date the title came out")),
+                LibrarySortOption(key: "lastViewedAt:desc", title: String(localized: "Last Watched", comment: "Sort option: by when the viewer last watched it")),
             ]
         }
     }
@@ -108,11 +115,12 @@ package struct LibraryGridOptions: Equatable, Sendable {
 
     package var sort = titleAscending
     package var genre: String?
+    package var facets: [LibraryFacet: String] = [:]
     package var watch: LibraryWatchFilter = .all
 
     package init() {}
 
-    package var isFiltering: Bool { genre != nil || watch != .all }
+    package var isFiltering: Bool { genre != nil || !facets.isEmpty || watch != .all }
 
     /// The A–Z index counts every item in the section, so it only lines up with the grid when the
     /// grid is the whole section sorted by title.
@@ -126,7 +134,8 @@ package struct LibraryGridOptions: Equatable, Sendable {
             start: start,
             size: size,
             unwatched: watch == .unwatched,
-            inProgress: watch == .inProgress
+            inProgress: watch == .inProgress,
+            filters: Dictionary(uniqueKeysWithValues: facets.map { ($0.key.queryName, $0.value) })
         )
     }
 
@@ -139,19 +148,29 @@ package struct LibraryGridOptions: Equatable, Sendable {
     package func selectingChip(_ filter: LibraryWatchFilter) -> LibraryGridOptions {
         var next = self
         next.watch = filter
-        if filter == .all { next.genre = nil }
+        if filter == .all {
+            next.genre = nil
+            next.facets = [:]
+        }
         return next
     }
 
     package func clearingFilters() -> LibraryGridOptions {
         var next = self
         next.genre = nil
+        next.facets = [:]
         next.watch = .all
         return next
     }
 
     package func genreTitle(in genres: [LibraryGenre]) -> String {
         genres.first { $0.key == genre }?.title ?? String(localized: "Genre", comment: "Filter label for the genre menu")
+    }
+
+    /// The button label of a facet's menu: the chosen value, or the facet's own name while nothing is chosen.
+    package func facetTitle(_ facet: LibraryFacet, in choices: [LibraryFacetChoice]) -> String {
+        guard let key = facets[facet] else { return facet.title }
+        return choices.first { $0.key == key }.map { facet.display($0.title) } ?? facet.title
     }
 
     package func sortTitle(for kind: LibraryGridKind) -> String {

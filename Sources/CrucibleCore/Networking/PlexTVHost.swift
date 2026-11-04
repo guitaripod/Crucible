@@ -7,6 +7,10 @@ package enum PlexTVHost {
 
     static var clients: URL { override ?? mockURL ?? URL(string: "https://clients.plex.tv")! }
     static var account: URL { override ?? mockURL ?? URL(string: "https://plex.tv")! }
+    /// The catalogue of every title Plex knows, which also holds the viewer's watchlist.
+    static var discover: URL { override ?? mockURL ?? URL(string: "https://discover.provider.plex.tv")! }
+    /// The host that changes the watchlist.
+    static var metadata: URL { override ?? mockURL ?? URL(string: "https://metadata.provider.plex.tv")! }
 
     private static let mockURL = parseOverride(in: ProcessInfo.processInfo.environment, allowed: isDebugBuild)
 

@@ -8,10 +8,15 @@ struct TVDetailAction {
         case primary
         case startOver
         case watched
+        case rate
+        case playlist
+        case watchlist
+        case collection
         case audio
         case subtitles
         case goToShow
         case nextEpisode
+        case manage
     }
 
     enum Appearance: Sendable {
@@ -35,6 +40,7 @@ struct TVDetailPerson: Hashable, Sendable {
     var name: String
     var role: String?
     var photoPath: String?
+    var isOpenable = false
 }
 
 /// Everything a detail screen shows, as plain values. The screens map their models onto it; the
@@ -57,6 +63,7 @@ struct TVDetailContent {
     var episodes: [TVCardItem] = []
     var showsEpisodes = false
     var episodesState = EpisodesState.loaded
+    var extras: [TVCardItem] = []
     var cast: [TVDetailPerson] = []
     var related: [TVCardItem] = []
     var facts: [DetailFact] = []
@@ -83,7 +90,7 @@ enum TVDetailMapping {
 
     static func people(_ roles: [PlexRole]) -> [TVDetailPerson] {
         roles.enumerated().map { index, role in
-            TVDetailPerson(id: "cast.\(index)", name: role.tag ?? "", role: role.role, photoPath: role.thumb)
+            TVDetailPerson(id: "cast.\(index)", name: role.tag ?? "", role: role.role, photoPath: role.thumb, isOpenable: PersonFilmography.canOpen(role))
         }
     }
 

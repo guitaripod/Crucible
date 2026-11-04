@@ -92,4 +92,9 @@ struct DemoPersistedState: Codable {
     var items: [String: ItemState] = [:]
     var plays: [Play] = []
     var onDeck: [String]?
+    var ratings: [String: Int]?
+    var hiddenFromContinue: [String]?
+    var playlists: [DemoPlaylistState]?
+    var nextEntryID: Int?
+    var nextPlaylistKey: Int?
 }

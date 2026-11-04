@@ -62,6 +62,14 @@ package final class MidgarProAccess: ProAccessProviding {
         PlaybackOffer.noteOffered = { policy.noteOffered() }
     }
 
+    #if DEBUG
+    /// UI tests start a launch as a new install: the offer policy forgets how many finishes it counted, or only the very first run
+    /// on a simulator would ever see the note after a finished video. Runs before the policy is installed, which reads the file once.
+    package static func forgetPlaybackOfferForTesting() {
+        MidgarOfferFileStorage(appID: appID).save(MidgarOfferState())
+    }
+    #endif
+
     /// The registry's `[commerce]` table for Crucible: both products grant `pro`.
     package static func storeConfiguration(directory: URL? = nil) -> MidgarStoreConfiguration {
         MidgarStoreConfiguration(

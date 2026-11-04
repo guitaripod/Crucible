@@ -157,6 +157,7 @@ extension PlaybackSession {
             liveness = TranscodeLiveness(confirmedAt: now())
             startPing(session: resolved.sessionId)
             let item = AVPlayerItem(url: resolved.url)
+            SubtitleStyle.apply(to: item)
             configureItem?(item)
             player.replaceCurrentItem(with: item)
             watchCurrentItem()
@@ -263,6 +264,8 @@ extension PlaybackSession {
         if !restartResumesPlayback || pendingRestart != nil { player.pause() }
 
         let item = AVPlayerItem(url: url)
+
+        SubtitleStyle.apply(to: item)
         configureItem?(item)
         restartItemObserver?.invalidate()
         restartItemObserver = item.observe(\.status, options: [.new]) { @Sendable [weak self] observedItem, _ in

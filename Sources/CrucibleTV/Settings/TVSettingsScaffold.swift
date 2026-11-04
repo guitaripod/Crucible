@@ -100,6 +100,11 @@ class TVSettingsScaffold: TVScreenViewController {
         installContext(heading)
     }
 
+    /// The id of the row at `indexPath`, for subclasses that add a long-press menu.
+    func rowID(at indexPath: IndexPath) -> String? {
+        dataSource.itemIdentifier(for: indexPath)
+    }
+
     func rowDidSelect(_ id: String) {}
 
     func rowDidFocus(_ id: String?) {}

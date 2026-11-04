@@ -83,6 +83,33 @@ struct HistoryFeedTests {
         #expect(await server.historySizes == [50])
     }
 
+    @Test func aDeletedPlayLeavesTheListAndTheNextPageStartsWhereTheServersListNowContinues() async {
+        let keyed = (0..<50).map {
+            HistoryFixtures.json(key: "\($0)", title: "Item \($0)", viewedAt: HistoryFixtures.ago(days: 30 + $0), extra: #""historyKey": "/status/sessions/history/\#(900 - $0)""#)
+        }
+        let server = FakeHistoryServer(replies: [
+            .page(HistoryFixtures.container(total: 120, rows: keyed)),
+            .page(HistoryFixtures.container(total: 119, rows: rows(50..<100))),
+        ])
+        let (feed, _) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        let deleted = feed.items[3]
+        #expect(deleted.historyKey == "/status/sessions/history/897")
+        feed.drop(deleted)
+        #expect(feed.items.count == 49)
+        #expect(!feed.items.contains(deleted))
+        #expect(feed.pager.offset == 49)
+        #expect(feed.pager.total == 119)
+        feed.prefetchMore()
+        await settle(feed)
+        #expect(await server.historyStarts == [0, 49])
+        #expect(feed.items.count == 99)
+        feed.drop(HistoryFixtures.item(key: "nowhere"))
+        #expect(feed.items.count == 99)
+        #expect(feed.pager.offset == 99)
+    }
+
     @Test func loadFirstPageIsIdempotentWhileLoadingAndOnceLoaded() async {
         let server = FakeHistoryServer(replies: [.page(HistoryFixtures.container(total: 3, rows: rows(0..<3)))])
         let (feed, _) = makeFeed(server)

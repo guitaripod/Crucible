@@ -2,7 +2,7 @@ import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// Ember primary pill, then a 52pt glass download ring and a 52pt glass watched toggle.
+/// Ember primary pill, then a 52pt glass download ring, a 52pt glass watched toggle and a 52pt glass star for the viewer's rating.
 struct DetailActionsConfiguration: UIContentConfiguration {
     var primaryTitle: String = String(localized: "Play")
     var primarySymbol: String = "play.fill"
@@ -15,9 +15,12 @@ struct DetailActionsConfiguration: UIContentConfiguration {
     var isWatched = false
     var watchedMenu: UIMenu?
     var watchedAccessibilityLabel: String?
+    var userRating: UserRating?
+    var isRatable = true
     var onPrimary: (() -> Void)?
     var onDownload: ((UIView) -> Void)?
     var onToggleWatched: (() -> Void)?
+    var onRate: ((UIView) -> Void)?
 
     func makeContentView() -> UIView & UIContentView {
         DetailActionsContentView(configuration: self)
@@ -38,6 +41,7 @@ final class DetailActionsContentView: UIView, UIContentView {
     private let downloadBackground = UIButton(configuration: ThemeButton.glassConfiguration())
     private let downloadRing = DownloadRingButton()
     private let watchedButton = ThemeButton.icon(symbol: "checkmark.circle", label: String(localized: "Mark Watched"), size: Theme.Size.primaryButtonHeight)
+    private let rateButton = ThemeButton.icon(symbol: "star", label: UserRatingCopy.rate, size: Theme.Size.primaryButtonHeight)
     private var appliedPrimary: (String, String)?
 
     init(configuration: DetailActionsConfiguration) {
@@ -72,7 +76,13 @@ final class DetailActionsContentView: UIView, UIContentView {
             config.onToggleWatched?()
         }, for: .primaryActionTriggered)
 
-        let stack = UIStackView(arrangedSubviews: [primaryButton, downloadWrap, watchedButton])
+        rateButton.addAction(UIAction { [weak self] _ in
+            guard let self, let config = self.configuration as? DetailActionsConfiguration else { return }
+            Haptics.light()
+            config.onRate?(self.rateButton)
+        }, for: .primaryActionTriggered)
+
+        let stack = UIStackView(arrangedSubviews: [primaryButton, downloadWrap, watchedButton, rateButton])
         stack.axis = .horizontal
         stack.alignment = .center
         stack.spacing = 10
@@ -132,6 +142,16 @@ final class DetailActionsContentView: UIView, UIContentView {
         watchedButton.menu = config.watchedMenu
         watchedButton.showsMenuAsPrimaryAction = config.watchedMenu != nil
         watchedButton.accessibilityLabel = config.watchedAccessibilityLabel ?? WatchedService.title(isWatched: config.isWatched)
+
+        rateButton.isHidden = !config.isRatable
+        var rate = rateButton.configuration ?? ThemeButton.glassConfiguration()
+        let star = UIImage(
+            systemName: config.userRating == nil ? "star" : "star.fill",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 19, weight: .medium)
+        )
+        rate.image = config.userRating == nil ? star : star?.withTintColor(Theme.Color.accent, renderingMode: .alwaysOriginal)
+        rateButton.configuration = rate
+        rateButton.accessibilityLabel = UserRatingCopy.accessibilityLabel(for: config.userRating)
     }
 }
 

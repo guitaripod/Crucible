@@ -3,7 +3,8 @@ import XCTest
 /// Navigation helpers shared by the You and Settings UI tests.
 @MainActor
 enum YouNavigation {
-    /// Opens the You tab (always last); selecting a tab hands focus to its first row.
+    /// Opens the You tab (always last); selecting a tab hands focus to its first row, which is Switch Profile for an account in a
+    /// Plex Home (the mock's plex.tv has one) and Watch History otherwise.
     @discardableResult
     static func openYouTab(_ app: XCUIApplication) -> XCUIElement {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
@@ -11,7 +12,11 @@ enum YouNavigation {
         AppNavigation.selectTab("You", in: app)
         let first = row(app, "you.history")
         XCTAssertTrue(first.waitForExistence(timeout: 15))
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline, !["you.history", "you.switchProfile"].contains(AppNavigation.focusedIdentifier(app)) {
+            TVTest.settle(0.5)
+        }
+        XCTAssertTrue(["you.history", "you.switchProfile"].contains(AppNavigation.focusedIdentifier(app)), "the You tab's first row never took focus")
         TVTest.settle()
         return first
     }
@@ -21,9 +26,10 @@ enum YouNavigation {
     }
 
     /// Presses Down until the row with `identifier` has focus (at most `limit` presses).
-    static func moveFocus(_ app: XCUIApplication, to identifier: String, limit: Int = 12) {
+    static func moveFocus(_ app: XCUIApplication, to identifier: String, limit: Int = 16) {
         for _ in 0..<limit {
-            if row(app, identifier).hasFocus { return }
+            let target = row(app, identifier)
+            if target.exists, target.hasFocus { return }
             TVTest.remote.press(.down)
             TVTest.settle(0.3)
         }
@@ -31,9 +37,10 @@ enum YouNavigation {
     }
 
     /// Presses Up until the row with `identifier` has focus (at most `limit` presses).
-    static func moveFocusUp(_ app: XCUIApplication, to identifier: String, limit: Int = 12) {
+    static func moveFocusUp(_ app: XCUIApplication, to identifier: String, limit: Int = 16) {
         for _ in 0..<limit {
-            if row(app, identifier).hasFocus { return }
+            let target = row(app, identifier)
+            if target.exists, target.hasFocus { return }
             TVTest.remote.press(.up)
             TVTest.settle(0.3)
         }
@@ -138,6 +145,72 @@ final class YouTests: TVTestCase {
         TVTest.capture("01-profile-panel-focused", in: self)
         TVTest.remote.press(.down)
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.yearCard"))
+    }
+
+    func testAProfileWithAPINAsksForItAndTheAppComesBackAsThatProfile() {
+        let mock = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""
+        _ = URL(string: mock + "/mock/tokens?clear=1").flatMap(TVTest.fetch)
+        let app = TVTest.launch(extraEnvironment: ["CRUCIBLE_PLEXTV": mock])
+        YouNavigation.openYouTab(app)
+        XCTAssertTrue(YouNavigation.row(app, "you.switchProfile").waitForExistence(timeout: 20), "an account in a Plex Home offers Switch Profile")
+        YouNavigation.moveFocusUp(app, to: "you.switchProfile")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(YouNavigation.row(app, "profiles.sam-32c9").waitForExistence(timeout: 20), "the Home's profiles are listed")
+        TVTest.settle(1)
+        TVTest.capture("01-profiles", in: self)
+        YouNavigation.moveFocus(app, to: "profiles.sam-32c9")
+        TVTest.remote.press(.select)
+        enterPIN("0000", in: app)
+        XCTAssertTrue(app.alerts.firstMatch.staticTexts["That PIN isn\u{2019}t right."].waitForExistence(timeout: 15), "a wrong PIN is refused and asked again")
+        TVTest.capture("02-wrong-pin", in: self)
+        enterPIN("1234", in: app)
+        XCTAssertTrue(waitForServerToken("mock-server-sam-32c9", timeout: 60), "the app talks to the server as Sam")
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60), "the app comes back after switching")
+        YouNavigation.openYouTab(app)
+        let switchRow = YouNavigation.row(app, "you.switchProfile")
+        XCTAssertTrue(switchRow.waitForExistence(timeout: 20))
+        XCTAssertTrue(switchRow.label.contains("Sam") || (switchRow.value as? String ?? "").contains("Sam"), "You names the profile watching now, not \(switchRow.label)")
+        TVTest.capture("03-switched-to-sam", in: self)
+    }
+
+    /// Opens the keyboard from the PIN prompt's field, types `pin`, leaves the keyboard and presses Switch.
+    private func enterPIN(_ pin: String, in app: XCUIApplication) {
+        let alert = app.alerts.firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 15), "a protected profile asks for its PIN")
+        XCTAssertTrue(alert.secureTextFields.firstMatch.exists || alert.textFields.firstMatch.exists, "the PIN prompt has a field")
+        TVTest.settle(1)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10), "Select on the PIN field opened no keyboard")
+        TVTest.settle(1.5)
+        app.typeText(pin)
+        TVTest.settle(1)
+        for _ in 0..<8 where AppNavigation.focusedElement(app).label.lowercased() != "done" {
+            TVTest.remote.press(.down)
+            TVTest.settle(0.4)
+        }
+        XCTAssertEqual(AppNavigation.focusedElement(app).label.lowercased(), "done", "focus never reached the keyboard's done button")
+        TVTest.remote.press(.select)
+        TVTest.settle(1)
+        for direction in [XCUIRemote.Button.down, .right, .left, .up] where AppNavigation.focusedElement(app).label != "Switch" {
+            TVTest.remote.press(direction)
+            TVTest.settle(0.5)
+        }
+        XCTAssertEqual(AppNavigation.focusedElement(app).label, "Switch", "focus never reached Switch")
+        TVTest.remote.press(.select)
+        TVTest.settle(1)
+    }
+
+    private func waitForServerToken(_ token: String, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let base = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"], let url = URL(string: base + "/mock/tokens"),
+               let data = TVTest.fetch(url),
+               let tokens = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["tokens"] as? [String], tokens.contains(token) {
+                return true
+            }
+            TVTest.settle(1)
+        }
+        return false
     }
 
     func testReturningFromSubScreensDoesNotReloadTheHistoryHeadline() throws {

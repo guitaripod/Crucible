@@ -45,6 +45,12 @@ package enum AccountSessionReset {
         defaults.removeObject(forKey: sessionMachineKey)
     }
 
+    /// Another Plex Home profile is watching: what the last one watched, rated, searched and was told about is theirs, so it goes,
+    /// the way it goes when the server changes. Downloads stay on the device.
+    package static func switchedProfile(_ collaborators: AccountSessionCollaborators) {
+        resetServerBoundState(collaborators)
+    }
+
     /// Records the server the saved state now belongs to. When it is a different server than the
     /// one the state was built for, forgets everything bound to the old one and returns true. A
     /// first launch with no record only adopts the server.
@@ -69,6 +75,9 @@ package enum AccountSessionReset {
         LibraryVisibility.forgetServerLibraries()
         Preferences.recentSearches = []
         YouConnectionStatus.shared.reset()
+        FinishedTitlesLedger.shared.reset()
+        NotificationLedger.shared.reset()
+        ShowTrackMemory.forgetAll()
         TopShelfUpdater.clear(notify: collaborators.topShelfDidChange)
     }
 }

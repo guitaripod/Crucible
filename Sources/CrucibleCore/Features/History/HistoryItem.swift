@@ -14,6 +14,8 @@ package struct HistoryItem: Hashable, Sendable {
     package let index: Int?
     package let duration: Int?
     package let uniqueId: String
+    /// The path the server deletes this play by; only the server's owner may.
+    package let historyKey: String?
 
     package init(
         ratingKey: String,
@@ -28,8 +30,10 @@ package struct HistoryItem: Hashable, Sendable {
         parentIndex: Int?,
         index: Int?,
         duration: Int?,
-        uniqueId: String
+        uniqueId: String,
+        historyKey: String? = nil
     ) {
+        self.historyKey = historyKey
         self.ratingKey = ratingKey
         self.title = title
         self.type = type
@@ -63,7 +67,8 @@ extension HistoryItem {
             parentIndex: m.parentIndex,
             index: m.index,
             duration: m.duration,
-            uniqueId: "\(m.id)-\(position)"
+            uniqueId: "\(m.id)-\(position)",
+            historyKey: m.historyKey
         )
     }
 

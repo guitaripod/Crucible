@@ -12,19 +12,22 @@ package struct HomeArrangement: Sendable {
 
     package init() {}
 
-    package init(buckets: HomeBuckets) {
-        recent = buckets.recent
-        let resumable = buckets.continueWatching.filter { $0.continueSecs > 0 }
-        let nextOnly = buckets.continueWatching.filter { $0.continueSecs == 0 }
+    /// `rows` are the rows the viewer keeps on Home: a row turned off contributes nothing, not even the hero.
+    package init(buckets: HomeBuckets, rows: Set<HomeRow> = Set(HomeRow.allCases)) {
+        recent = rows.contains(.recentlyAdded) ? buckets.recent : []
+        let showsUpNext = rows.contains(.upNext)
+        let resumable = rows.contains(.continueWatching) ? buckets.continueWatching.filter { $0.continueSecs > 0 } : []
+        let nextOnly = showsUpNext ? buckets.continueWatching.filter { $0.continueSecs == 0 } : []
+        let onDeck = showsUpNext ? buckets.onDeck : []
         if let first = resumable.first {
             hero = first
             heroIsContinue = true
             continueRail = Array(resumable.dropFirst())
-        } else if let first = buckets.onDeck.first {
+        } else if let first = onDeck.first {
             hero = first
         }
         var seen = Set(resumable.map(\.id)).union(hero.map { [$0.id] } ?? [])
-        upNext = (buckets.onDeck + nextOnly).filter { seen.insert($0.id).inserted }
+        upNext = (onDeck + nextOnly).filter { seen.insert($0.id).inserted }
     }
 
     package var isEmpty: Bool { hero == nil && continueRail.isEmpty && upNext.isEmpty && recent.isEmpty }

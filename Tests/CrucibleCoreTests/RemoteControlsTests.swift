@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import CrucibleCore
 
+@MainActor
 struct RemoteControlsTests {
     @Test func onlyTheSystemsTenSecondSkipCountsAsAClick() {
         #expect(SkipRule.click(from: 106, to: 96) == .back)

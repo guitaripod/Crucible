@@ -3,7 +3,7 @@ import UIKit
 
 /// A cast or crew card: a 200pt circle with the name and role under it. The circle is the person's
 /// photo, or a monogram (initials on the person's stable gradient, like the iPhone) when Plex has none.
-/// Neither version is selectable, so the card is not announced as a button.
+/// A person the server knows by id opens their titles in the viewer's libraries, and is announced as a button then; a card without an id is read-only.
 ///
 /// TODO(ds): the design system's person card only offers a symbol placeholder; once it can take a
 /// monogram this cell can become a `TVPersonCell` again.
@@ -97,6 +97,8 @@ final class TVDetailPersonCell: UICollectionViewCell {
         roleLabel.text = person.role
         roleLabel.isHidden = (person.role ?? "").isEmpty
         accessibilityLabel = [person.name, person.role].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+        accessibilityTraits = person.isOpenable ? .button : .staticText
+        accessibilityHint = person.isOpenable ? String(localized: "Shows their titles in your libraries") : nil
 
         let hasPhoto = !(person.photoPath ?? "").isEmpty
         photo.isHidden = !hasPhoto

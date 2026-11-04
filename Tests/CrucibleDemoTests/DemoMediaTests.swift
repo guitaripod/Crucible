@@ -122,6 +122,25 @@ struct DemoMediaTests {
         }
     }
 
+    @Test func rememberedLanguagesPickEachEpisodesOwnStreams() async throws {
+        try await withDemo { demo in
+            let languages = TrackLanguages(audio: .init(language: "spa"), subtitle: .init(language: "eng", title: nil))
+            for key in ["4001", "4002"] {
+                let resolved = try await StreamResolver.resolve(api: demo.api, ratingKey: key, startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: nil, languages: languages)
+                let audio = try #require(resolved.audioTracks.first { $0.id == resolved.chosenAudioStreamId })
+                let subtitle = try #require(resolved.subtitles.first { $0.id == resolved.chosenSubtitleId })
+                #expect(audio.languageKey == "spa")
+                #expect(subtitle.languageKey == "eng")
+                #expect(!resolved.isDirectPlay)
+            }
+            let chosen = try await StreamResolver.resolve(api: demo.api, ratingKey: "4001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: 40014, languages: languages)
+            #expect(chosen.chosenAudioStreamId == 40014)
+            #expect(chosen.chosenSubtitleId == nil)
+            let plain = try await StreamResolver.resolve(api: demo.api, ratingKey: "4001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: nil)
+            #expect(plain.chosenSubtitleId == nil && plain.chosenAudioStreamId == nil)
+        }
+    }
+
     @Test func theHLSPlaylistParsesAndEverySegmentExists() async throws {
         try await withDemo { demo in
             let stream = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: nil, forceTranscode: true)

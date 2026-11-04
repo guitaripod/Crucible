@@ -232,8 +232,7 @@ final class SearchTests: TVTestCase {
         TVTest.remote.longPress(.select, duration: 1.6)
         TVTest.settle(1.2)
         TVTest.capture("03-context-menu", in: self)
-        TVTest.remote.press(.down)
-        TVTest.settle(0.5)
+        choose("Mark Watched", in: app)
         TVTest.capture("04-context-menu-mark-watched", in: self)
         TVTest.remote.press(.select)
         TVTest.settle(1.2)
@@ -242,7 +241,7 @@ final class SearchTests: TVTestCase {
 
         TVTest.remote.longPress(.select, duration: 1.6)
         TVTest.settle(1.2)
-        TVTest.remote.press(.down)
+        choose("Mark Unwatched", in: app)
         TVTest.remote.press(.select)
         TVTest.settle(1.2)
         XCTAssertEqual(focusedElement(in: app).value as? String, "Unwatched")
@@ -258,7 +257,7 @@ final class SearchTests: TVTestCase {
 
         TVTest.remote.longPress(.select, duration: 1.6)
         TVTest.settle(1)
-        TVTest.remote.press(.down)
+        choose("Mark Watched", in: app)
         TVTest.remote.press(.select)
         let alert = app.alerts["Couldn\u{2019}t Mark Watched"]
         XCTAssertTrue(alert.waitForExistence(timeout: 10), "a refused mark must be reported")
@@ -394,6 +393,30 @@ final class SearchTests: TVTestCase {
             TVTest.settle(2)
         }
         XCTAssertTrue(screen.waitForExistence(timeout: 15), "Menu leaves the player and returns to Search")
+    }
+
+    /// Opens the long-press menu's Watched submenu and moves focus to `action` in it, without pressing it.
+    private func choose(_ action: String, in app: XCUIApplication) {
+        XCTAssertTrue(focusMenuItem("Watched", in: app), "the title's menu has no Watched submenu")
+        TVTest.remote.press(.select)
+        TVTest.settle(1)
+        XCTAssertTrue(focusMenuItem(action, in: app), "the Watched submenu has no \(action)")
+    }
+
+    /// Presses Down until the open menu's item labelled `label` has focus. A menu item takes focus as an unlabelled cell whose
+    /// child carries the title.
+    private func focusMenuItem(_ label: String, in app: XCUIApplication, limit: Int = 8) -> Bool {
+        for _ in 0..<limit {
+            if menuFocus(is: label, in: app) { return true }
+            TVTest.remote.press(.down)
+            TVTest.settle(0.5)
+        }
+        return menuFocus(is: label, in: app)
+    }
+
+    private func menuFocus(is label: String, in app: XCUIApplication) -> Bool {
+        let focused = AppNavigation.focusedElement(app)
+        return focused.label == label || focused.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).count > 0
     }
 
     private func focusedElement(in app: XCUIApplication) -> XCUIElement {

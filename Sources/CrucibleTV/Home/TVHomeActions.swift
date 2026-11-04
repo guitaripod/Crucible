@@ -60,8 +60,9 @@ final class TVHomeActions {
         TVNavigation.push(TVScreens.statistics(env), from: screen)
     }
 
-    /// Play/Resume, Play from Beginning, View Details, Go to Show and Mark (Un)Watched; entries that do not apply are omitted.
-    func menu(for media: PlexMetadata, from screen: UIViewController) -> UIMenu {
+    /// Play/Resume, Play from Beginning, View Details, Go to Show, Mark (Un)Watched and Remove from Continue Watching;
+    /// entries that do not apply are omitted.
+    func menu(for media: PlexMetadata, in bucket: HomeBucket? = nil, from screen: UIViewController) -> UIMenu {
         var actions = [UIMenuElement]()
         if HomeMediaRules.isPlayable(media) {
             actions.append(UIAction(title: HomeMediaRules.playTitle(for: media), image: UIImage(systemName: "play.fill")) { [weak self, weak screen] _ in
@@ -86,7 +87,80 @@ final class TVHomeActions {
             })
         }
         actions.append(watchedAction(for: media))
+        if let bucket, ContinueWatchingRemoval.applies(to: media, in: bucket) {
+            actions.append(removalAction(for: media, from: screen))
+        }
+        if media.isPlaylistable {
+            actions.append(UIAction(title: PlaylistFormat.addToPlaylist, image: UIImage(systemName: "text.badge.plus")) { [weak self, weak screen] _ in
+                guard let self, let screen else { return }
+                TVPlaylistPicker.present(adding: [media], env: env, from: screen)
+            })
+        }
+        if let manage = manageMenu(for: media, from: screen) { actions.append(manage) }
         return UIMenu(children: actions)
+    }
+
+    /// The owner's Manage menu for a title; nothing for anyone else.
+    private func manageMenu(for media: PlexMetadata, from screen: UIViewController) -> UIMenu? {
+        TVManageMenus.itemMenu(for: media, env: env, host: screen) { [weak self] in self?.onChange() }
+    }
+
+    private func removalAction(for media: PlexMetadata, from screen: UIViewController) -> UIAction {
+        let api = env.api
+        return UIAction(title: ContinueWatchingRemoval.title, image: UIImage(systemName: ContinueWatchingRemoval.symbol)) { [weak self, weak screen] _ in
+            Task { @MainActor in
+                do {
+                    try await ContinueWatchingRemoval.remove(ratingKey: media.id, api: api)
+                } catch {
+                    screen?.presentAlert(title: ContinueWatchingRemoval.failureTitle, message: ContinueWatchingRemoval.failureMessage)
+                }
+                self?.onChange()
+            }
+        }
+    }
+
+    // MARK: - Rate What You Watched
+
+    /// The half-star panel for a title the viewer finished. `picked` drops the card at once, and brings it back with false
+    /// when the server refused the rating.
+    func rate(_ ask: RatingAsk, from screen: UIViewController, picked: @escaping @MainActor (Bool) -> Void) {
+        let api = env.api
+        let panel = TVRatingViewController(title: RatingAskCopy.question(for: ask), rating: nil) { [weak screen] rating in
+            guard let rating else { return }
+            picked(true)
+            Task { @MainActor in
+                do {
+                    try await RatingService.setRating(rating, ratingKey: ask.ratingKey, api: api)
+                } catch {
+                    picked(false)
+                    screen?.presentAlert(title: String(localized: "Couldn’t Save Rating", comment: "Alert title when the server refused a star rating"))
+                }
+            }
+        }
+        screen.present(panel, animated: TVMotion.animationsEnabled)
+    }
+
+    func menu(for ask: RatingAsk, from screen: UIViewController, picked: @escaping @MainActor (Bool) -> Void) -> UIMenu {
+        UIMenu(children: [
+            UIAction(title: UserRatingCopy.rate, image: UIImage(systemName: "star")) { [weak self, weak screen] _ in
+                guard let self, let screen else { return }
+                rate(ask, from: screen, picked: picked)
+            },
+            UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { [weak self, weak screen] _ in
+                guard let self, let screen else { return }
+                openDetail(ask, from: screen)
+            },
+            UIAction(title: RatingAskCopy.notNow, image: UIImage(systemName: "xmark.circle")) { _ in
+                FinishedTitlesLedger.shared.dismiss(ask.ratingKey)
+            },
+        ])
+    }
+
+    func openDetail(_ ask: RatingAsk, from screen: UIViewController) {
+        let destination = ask.isShow
+            ? TVScreens.showDetail(env, ratingKey: ask.ratingKey, initialSeasonKey: nil)
+            : TVScreens.movieDetail(env, ratingKey: ask.ratingKey, mediaType: ask.mediaType)
+        TVNavigation.push(destination, from: screen)
     }
 
     private func watchedAction(for media: PlexMetadata) -> UIAction {

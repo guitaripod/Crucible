@@ -27,6 +27,8 @@ extension DemoLibrary {
         if !item.writers.isEmpty {
             out["Writer"] = item.writers.enumerated().map { ["id": 7100 + $0.offset, "tag": $0.element] as DemoJSON }
         }
+        let collections = collectionTags(of: key)
+        if !collections.isEmpty { out["Collection"] = collections }
         switch item.kind {
         case .movie, .show:
             out["Role"] = item.cast
@@ -38,6 +40,9 @@ extension DemoLibrary {
         if item.isPlayable {
             out["Media"] = mediaJSON(item)
             out["Marker"] = markersJSON(item)
+        }
+        if let extras = extrasJSON(of: key) {
+            out["Extras"] = extras
         }
         if !item.related.isEmpty {
             let related = item.related.compactMap { render($0) }
@@ -89,6 +94,7 @@ extension DemoLibrary {
             }
             streams.append(stream)
         }
+        streams += downloadedSubtitles[key] ?? []
         let container = canDirectPlay(item) ? "mp4" : "mkv"
         return [[
             "id": id, "duration": item.durationMs, "bitrate": uhd ? 14800 : 8800, "width": facts.width, "height": facts.height,
@@ -103,16 +109,18 @@ extension DemoLibrary {
         ]]
     }
 
-    /// Skip Intro and Skip Credits markers placed inside the demo clip, which is what every title actually plays.
+    /// Skip Intro and Skip Credits markers placed inside the demo clip, which is what every title actually plays. A title resumed
+    /// past the clip plays the clip from its saved position on, so its credits come at the end of the clip from there, not at once.
     private func markersJSON(_ item: DemoItem) -> [DemoJSON] {
         let id = (Int(item.ratingKey) ?? 0) * 10
         var markers = [DemoJSON]()
         if item.kind == .episode {
             markers.append(["id": id + 1, "type": "intro", "startTimeOffset": Self.introWindow.start, "endTimeOffset": Self.introWindow.end])
         }
+        let start = canDirectPlay(item) ? 0 : item.viewOffset
         markers.append([
-            "id": id + 2, "type": "credits", "startTimeOffset": clipMilliseconds - Self.creditsLead,
-            "endTimeOffset": clipMilliseconds, "final": true,
+            "id": id + 2, "type": "credits", "startTimeOffset": start + clipMilliseconds - Self.creditsLead,
+            "endTimeOffset": start + clipMilliseconds, "final": true,
         ])
         return markers
     }

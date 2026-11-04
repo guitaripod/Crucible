@@ -59,6 +59,12 @@ final class DetailStubServer: @unchecked Sendable {
         state.unlock()
     }
 
+    func reply(path: String, status: Int = 200, body: [String: Any]) {
+        state.lock()
+        replies[path] = Reply(status: status, body: body)
+        state.unlock()
+    }
+
     func failTransport(path: String) {
         state.lock()
         replies[path] = Reply(failsAtTransport: true)

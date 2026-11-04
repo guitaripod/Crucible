@@ -85,6 +85,13 @@ enum TVTest {
         return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
     }
 
+    /// Waits until `element` is gone from the screen; returns whether it was within `timeout`.
+    @discardableResult
+    static func waitForNoElement(_ element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     /// Waits until the element with the accessibility `identifier` has focus; returns whether it did within `timeout`.
     @discardableResult
     static func waitForFocus(

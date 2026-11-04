@@ -18,4 +18,6 @@ package enum PlaybackEvent: Sendable {
     case upNext(UpNextOffer)
     case failed(String)
     case finished(PlaybackFinish)
+    /// The sleep timer ran out and paused playback.
+    case sleepTimerFired
 }

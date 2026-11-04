@@ -24,11 +24,17 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// How long the pre-roll waits for the stream to load before the player shows its own buffering.
     private static let revealTimeout: Duration = .seconds(10)
 
-    static func start(api: APIClient, request: PlaybackRequest, from presenter: UIViewController) {
+    /// `openTitle` opens a show picked at the end of playback on the screen the player was started from.
+    static func start(
+        api: APIClient,
+        request: PlaybackRequest,
+        from presenter: UIViewController,
+        openTitle: (@MainActor (DetailRoute, UIViewController) -> Void)? = nil
+    ) {
         if let previous = active {
             Task { await previous.finish(animated: false) }
         }
-        let coordinator = TVPlayerCoordinator(api: api, request: request)
+        let coordinator = TVPlayerCoordinator(api: api, request: request, openTitle: openTitle)
         active = coordinator
         coordinator.present(from: presenter)
     }
@@ -69,15 +75,23 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isRevealing = false
     var isUpNextCardVisible = false
     var unattendedEpisodes = 0
+    /// A timed sleep timer that outlives one session, so it keeps counting into the next episode.
+    var carriedSleepTimer: SleepTimer?
     var viewerActedThisEpisode = true
     #if DEBUG
     var didSimulateSleep = false
     #endif
     var pendingFailure: (message: String, retry: @MainActor () -> Void)?
+    var postPlayTask: Task<Void, Never>?
+    var postPlay: TVPostPlayViewController?
+    /// Runs once the player is off screen, before anything else speaks up: opening a show picked at the end.
+    var afterDismiss: (@MainActor () -> Void)?
+    let openTitle: (@MainActor (DetailRoute, UIViewController) -> Void)?
 
-    private init(api: APIClient, request: PlaybackRequest) {
+    private init(api: APIClient, request: PlaybackRequest, openTitle: (@MainActor (DetailRoute, UIViewController) -> Void)?) {
         self.api = api
         self.request = request
+        self.openTitle = openTitle
         super.init()
     }
 
@@ -109,6 +123,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         isAdvancing = false
         let session = PlaybackSession(api: api, request: request, installsRemoteCommands: false)
         session.configureItem = { [weak self] item in self?.configure(item: item) }
+        session.adoptSleepTimer(carriedSleepTimer)
         self.session = session
         if preroll?.presentingViewController == nil { showPreroll() }
         loadInfo()
@@ -274,7 +289,10 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
         case .finished:
             finishedAnItem = true
-            Task { await finish(animated: true) }
+            offerWhatsNext()
+        case .sleepTimerFired:
+            carriedSleepTimer = nil
+            refreshTrackMenus()
         }
     }
 
@@ -348,6 +366,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// Ends the current session without leaving the player and starts `request` in its place.
     func restartSession() {
         let old = session
+        carriedSleepTimer = old?.sleepTimer
         resetPresentationState()
         let stop = Task { _ = await old?.stop() }
         stopTask = stop
@@ -370,8 +389,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         isUpNextCardVisible = false
         request = offer.nextRequest(
             showRatingKey: request.showRatingKey,
-            selectedSubtitleId: session?.selectedSubtitleId,
-            selectedAudioStreamId: session?.selectedAudioStreamId
+            trackLanguages: session?.trackLanguages
         )
         restartSession()
     }
@@ -382,6 +400,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         metadataTask?.cancel()
         revealTask?.cancel()
         upNextTask?.cancel()
+        postPlayTask?.cancel()
+        postPlayTask = nil
+        postPlay = nil
         clearContextualActions()
         playerVC.transportBarCustomMenuItems = []
         playerVC.player = nil
@@ -415,7 +436,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         if Self.active === self {
             Self.active = nil
             let finishedAnItem = finishedAnItem
-            dismissEverything(animated: animated) { Self.onEnded?(finishedAnItem) }
+            let after = afterDismiss
+            afterDismiss = nil
+            dismissEverything(animated: animated) {
+                after?()
+                Self.onEnded?(finishedAnItem)
+            }
         }
         TVTopShelfRefresher.refresh()
     }

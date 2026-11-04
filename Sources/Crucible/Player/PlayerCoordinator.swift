@@ -26,12 +26,15 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var isPresenting = false
     private var isAdvancing = false
     private var upNextOverlay: UpNextOverlayView?
+    private var postPlay: PostPlayViewController?
+    private var postPlayTask: Task<Void, Never>?
     private var pendingUpNext: UpNextOffer?
     private var foregroundObserver: (any NSObjectProtocol)?
     private var suspensionObservers: [any NSObjectProtocol] = []
     private var isFinishing = false
     private var lastOfflineWrite: Double = 0
     private var skipPill: SkipPillView?
+    private var moreButton: PlayerMoreButton?
     private var shownSkip: (title: String, target: Double)?
     private var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
@@ -54,7 +57,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         metadata: Metadata? = nil,
         selectedSubtitleId: Int? = nil,
         selectedAudioStreamId: Int? = nil,
-        offlineAsset: OfflineAsset? = nil
+        offlineAsset: OfflineAsset? = nil,
+        queue: PlaybackQueue? = nil
     ) {
         self.init(
             api: api,
@@ -67,7 +71,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 metadata: metadata,
                 selectedSubtitleId: selectedSubtitleId,
                 selectedAudioStreamId: selectedAudioStreamId,
-                offline: offlineAsset.map { Self.offlineSource(from: $0) }
+                offline: offlineAsset.map { Self.offlineSource(from: $0) },
+                queue: queue
             )
         )
     }
@@ -174,6 +179,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.delegate = self
         self.playerVC = playerVC
+        installMoreButton(on: playerVC)
 
         updateNowPlaying()
         windowScene = viewController.view.window?.windowScene
@@ -225,6 +231,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             recordOfflineProgress(at: absolute)
         case .viewerActed:
             viewerActed()
+            removePostPlay()
         case .skipAvailable(let marker, let progress):
             showSkipButton(for: marker, progress: progress)
         case .skipHidden:
@@ -241,9 +248,61 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         case .failed(let message):
             showPlaybackError(message)
         case .finished(let finish):
-            guard finish == .noNextEpisode, !isInPiP else { return }
-            Task { await dismissPlayer() }
+            guard !isInPiP else { return }
+            offerWhatsNext(after: finish)
+        case .sleepTimerFired:
+            Haptics.soft()
+            moreButton?.refreshMenu()
         }
+    }
+
+    // MARK: - Player menu
+
+    private func installMoreButton(on playerVC: AVPlayerViewController) {
+        playerVC.loadViewIfNeeded()
+        guard let host = playerVC.contentOverlayView else { return }
+        let button = PlayerMoreButton { [weak self] in self?.playerMenu() ?? UIMenu() }
+        button.install(in: host, listeningOn: playerVC.view)
+        moreButton = button
+    }
+
+    private func playerMenu() -> UIMenu {
+        var children: [UIMenuElement] = [
+            PlayerSleepMenu.menu(timer: session.sleepTimer, isEpisode: request.isEpisode) { [weak self] choice in
+                self?.session.setSleepTimer(choice)
+                self?.moreButton?.refreshMenu()
+            },
+        ]
+        if let chapters = session.stream?.chapters, !chapters.isEmpty {
+            let current = session.absolutePosition.flatMap { ChapterList.current(chapters, at: $0) }
+            children.append(UIMenu(title: ChapterList.title, image: UIImage(systemName: "list.bullet.rectangle"), children: chapters.map { chapter in
+                UIAction(title: ChapterList.menuTitle(chapter), state: chapter == current ? .on : .off) { [weak self] _ in
+                    self?.viewerActed()
+                    self?.session.seek(toAbsolute: chapter.startSecs)
+                }
+            }))
+        }
+        if session.stream != nil {
+            children.append(UIAction(title: StreamInfo.title, image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.showStreamInfo()
+            })
+        }
+        return UIMenu(children: children)
+    }
+
+    private func showStreamInfo() {
+        guard let stream = session.stream, let playerVC else { return }
+        let lines = StreamInfo.lines(
+            stream: stream,
+            route: HomeServerRoute.classify(stream.url),
+            quality: QualityPolicy.current(for: stream.url),
+            audioId: session.selectedAudioStreamId,
+            subtitleId: session.selectedSubtitleId
+        )
+        let message = lines.map { "\($0.label): \($0.value)" }.joined(separator: "\n")
+        let alert = UIAlertController(title: StreamInfo.title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+        playerVC.present(alert, animated: true)
     }
 
     private func recordOfflineProgress(at absolute: Double) {
@@ -482,20 +541,91 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let next = offer.nextRequest(
             showRatingKey: request.showRatingKey,
             offline: offline,
-            selectedSubtitleId: session.selectedSubtitleId,
-            selectedAudioStreamId: session.selectedAudioStreamId
+            trackLanguages: session.trackLanguages
         )
-        advance(to: next, offer: offer)
+        advance(to: next, announcing: Self.indicatorTitle(for: offer))
     }
 
-    private func advance(to next: PlaybackRequest, offer: UpNextOffer) {
+    /// Once nothing plays next, titles like the one that ended wait over its last frame. Without any, the last episode of a
+    /// show closes the player as it always has, and a movie stays on its last frame.
+    private func offerWhatsNext(after finish: PlaybackFinish) {
+        guard postPlay == nil, postPlayTask == nil, !isFinishing, !isAdvancing else { return }
+        let ended = request
+        postPlayTask = Task { [weak self] in
+            guard let self else { return }
+            let suggestions = await PostPlay.suggestions(for: ended, api: api)
+            guard !Task.isCancelled else { return }
+            postPlayTask = nil
+            guard !isFinishing, !isAdvancing, ended.ratingKey == request.ratingKey, !isInPiP else { return }
+            if !suggestions.isEmpty, presentPostPlay(suggestions, after: ended) { return }
+            if finish == .noNextEpisode { await dismissPlayer() }
+        }
+    }
+
+    private func presentPostPlay(_ suggestions: [PlexMetadata], after ended: PlaybackRequest) -> Bool {
+        guard let playerVC, playerVC.presentedViewController == nil, playerVC.viewIfLoaded?.window != nil else { return false }
+        removeUpNextOverlay()
+        removeSkipButton()
+        removeSkipToast(animated: false)
+        let screen = PostPlayViewController(
+            heading: PostPlay.heading(for: ended),
+            items: suggestions,
+            onPick: { [weak self] item in self?.playSuggestion(item) },
+            onClose: { [weak self] in self?.close() }
+        )
+        playerVC.present(screen, animated: !UIAccessibility.isReduceMotionEnabled)
+        postPlay = screen
+        MidgarLog.notice("Post-play offered \(suggestions.count) titles after ratingKey=\(ended.ratingKey)", category: .playback)
+        return true
+    }
+
+    /// A movie plays in this player, as the next episode would; a show opens its screen once the player has closed.
+    private func playSuggestion(_ item: PlexMetadata) {
+        viewerActed()
+        guard item.mediaType == "movie" else {
+            let navigation = Self.navigation(under: presentingVC)
+            let screen = DetailRouter.viewController(for: .related(item), api: api)
+            Task {
+                await dismissPlayer()
+                navigation?.pushViewController(screen, animated: true)
+            }
+            return
+        }
+        removePostPlay()
+        unattendedEpisodes = 0
+        viewerActedThisEpisode = true
+        let offline = DownloadManager.shared.offlineAsset(for: item.id).map {
+            Self.offlineSource(from: $0, resumeSecs: DownloadManager.shared.item(for: item.id)?.resumeSecs ?? 0)
+        }
+        advance(to: PlaybackRequest(item: item, offline: offline), announcing: item.title)
+    }
+
+    /// The stack the player was opened from, where a title picked at the end of playback is pushed.
+    private static func navigation(under presenter: UIViewController?) -> UINavigationController? {
+        if let navigation = presenter as? UINavigationController { return navigation }
+        if let navigation = presenter?.navigationController { return navigation }
+        let tabBar = presenter as? TabBarController ?? presenter?.tabBarController as? TabBarController
+        return tabBar?.currentNavigation
+    }
+
+    /// Takes the titles off the player, unless the player itself is going away and takes them along.
+    private func removePostPlay(dismissing: Bool = true) {
+        postPlayTask?.cancel()
+        postPlayTask = nil
+        if dismissing, let postPlay, postPlay.presentingViewController != nil {
+            postPlay.dismiss(animated: false)
+        }
+        postPlay = nil
+    }
+
+    private func advance(to next: PlaybackRequest, announcing title: String) {
         guard !isFinishing, !isAdvancing else { return }
         isAdvancing = true
         removeSkipToast(animated: false)
         removeSkipButton()
         let previous = session
         previous.player?.pause()
-        let indicator = showAdvanceIndicator(for: offer)
+        let indicator = showAdvanceIndicator(title: title)
         MidgarLog.notice("Advancing ratingKey=\(previous.request.ratingKey) -> \(next.ratingKey) byViewer=\(viewerActedThisEpisode)", category: .playback)
 
         advanceTask?.cancel()
@@ -539,6 +669,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// Puts the new session on screen: its player replaces the old one in the same `AVPlayerViewController`,
     /// and everything that describes the item follows it.
     private func attach(_ next: PlaybackSession, player: AVPlayer, request: PlaybackRequest) {
+        next.continueSleepTimer(from: session)
         self.request = request
         self.session = next
         playerVC?.player = player
@@ -563,15 +694,19 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
     }
 
-    private func showAdvanceIndicator(for offer: UpNextOffer) -> AdvanceIndicator? {
+    private func showAdvanceIndicator(title: String) -> AdvanceIndicator? {
         guard let host = playerVC?.contentOverlayView else { return nil }
         advanceIndicator?.hide()
         let indicator = AdvanceIndicator()
         advanceIndicator = indicator
-        let code = Formatters.episodeCode(offer.episode.parentIndex, offer.episode.index)
-        let title = [code, offer.episode.title].compactMap { $0 }.joined(separator: " · ")
         indicator.show(in: host, title: title)
         return indicator
+    }
+
+    /// The episode about to play as the advance card names it: its code and title.
+    private static func indicatorTitle(for offer: UpNextOffer) -> String {
+        let code = Formatters.episodeCode(offer.episode.parentIndex, offer.episode.index)
+        return [code, offer.episode.title].compactMap { $0 }.joined(separator: " · ")
     }
 
     /// Gives up on an advance that never reached the screen, so the player the viewer is still looking at
@@ -590,7 +725,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         advanceTask = nil
         let pvc = playerVC
         await cleanup()
-        pvc?.dismiss(animated: true)
+        (pvc?.presentingViewController ?? pvc)?.dismiss(animated: true)
     }
 
     private func removeUpNextOverlay() {
@@ -649,8 +784,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private func cleanup() async {
         removeUpNextOverlay()
+        removePostPlay(dismissing: false)
         skipPill?.dismiss(animated: false)
         skipPill = nil
+        moreButton?.remove()
+        moreButton = nil
         shownSkip = nil
         removeSkipToast(animated: false)
         advanceIndicator?.hide()

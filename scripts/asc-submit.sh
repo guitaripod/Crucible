@@ -5,15 +5,15 @@ APP=6822066419
 METADATA=$(cd "$(dirname "$0")/.." && pwd)/docs/asc-metadata.json
 IOS_VERSION=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["versions"]["IOS"])' "$METADATA")
 TV_VERSION=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["versions"]["TV_OS"])' "$METADATA")
-LIFETIME_VERSION=53a3843a-78db-48ce-83f3-3f281ffc38ed
-YEARLY_VERSION=8f66e9b6-5825-4cf0-a5d8-46dca14dd015
-GROUP_VERSION=df3a75d3-fb2a-4ef2-b21e-8b356b06e6ec
+LIFETIME_VERSION=3db7f938-c299-401e-b4fc-17040201ed56
+YEARLY_VERSION=1fd3cc99-5e1d-4345-b7c9-e4275765f6de
+GROUP_VERSION=d1c6a4b7-1629-4046-af2a-36edb3c4b513
 
 usage() {
   cat << 'USAGE'
 Put Crucible's App Store versions in review.
 
-  scripts/asc-submit.sh ios        the iPhone version plus both Crucible Pro products (Apple's first-product rule: new products must ride a version submission)
+  scripts/asc-submit.sh ios        the iPhone version plus both Crucible Pro products and their group, at the pending version 2 of each (new products and edited localizations ride a version submission; App Review rejects 2.1(b) when they do not)
   scripts/asc-submit.sh ios-update the iPhone version alone, once the products are approved
   scripts/asc-submit.sh tv         the Apple TV version
 

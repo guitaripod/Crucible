@@ -18,7 +18,7 @@ final class HistoryTests: TVTestCase {
         let app = AppNavigation.launchHome(mock: mock, extraEnvironment: extraEnvironment)
         AppNavigation.selectTab("You", in: app)
         XCTAssertTrue(YouNavigation.row(app, "you.history").waitForExistence(timeout: 15))
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history"))
+        YouNavigation.moveFocus(app, to: "you.history")
         TVTest.remote.press(.select)
         return app
     }
@@ -199,6 +199,27 @@ final class HistoryTests: TVTestCase {
         TVTest.remote.press(.menu)
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.history", timeout: 10), "Menu while History loads must pop to the You list, focus is on \(focusedIdentifier(app))")
         TVTest.capture("16-popped-while-loading", in: self)
+    }
+
+    /// The mock's account owns its server (its plex.tv says so), so a row's long-press menu ends in Remove from History,
+    /// which deletes the play on the server and takes the row away.
+    func testTheOwnerRemovesAPlayFromTheHistory() {
+        let app = openHistory(extraEnvironment: ["CRUCIBLE_PLEXTV": ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""])
+        let first = waitForFocusedRow(app)
+        XCTAssertTrue(first.hasPrefix(Self.rowPrefix), "focus never reached a row, was \(first)")
+        let row = app.descendants(matching: .any)[first]
+        TVTest.remote.longPress(.select, duration: 1.6)
+        TVTest.settle(1.0)
+        XCTAssertTrue(app.descendants(matching: .any)["Remove from History"].waitForExistence(timeout: 5), "the owner's row menu has no Remove from History")
+        TVTest.capture("20-remove-menu", in: self)
+        for _ in 0..<2 {
+            TVTest.remote.press(.down)
+            TVTest.settle(0.5)
+        }
+        TVTest.remote.press(.select)
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: row)
+        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 20), .completed, "the removed play stayed in the list")
+        TVTest.capture("21-removed", in: self)
     }
 
     func testEmptyHistoryShowsTheEmptyState() {

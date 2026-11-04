@@ -37,4 +37,34 @@ extension UIViewController {
         present(alert, animated: TVMotion.animationsEnabled)
         return alert
     }
+
+    /// Presents an alert with one text field that opens the on-screen keyboard, a cancel button, which Menu also
+    /// triggers, and a button that hands the typed text to `handler`. Does nothing when another controller is already presented.
+    @discardableResult
+    @MainActor
+    func presentTextEntry(
+        title: String,
+        message: String? = nil,
+        text: String,
+        placeholder: String? = nil,
+        keyboard: UIKeyboardType = .default,
+        confirmTitle: String,
+        handler: @escaping @MainActor (String) -> Void
+    ) -> UIAlertController? {
+        guard presentedViewController == nil else { return nil }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addTextField { field in
+            field.text = text
+            field.placeholder = placeholder
+            field.keyboardType = keyboard
+            field.autocorrectionType = .no
+            field.accessibilityIdentifier = "textEntry.field"
+        }
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: confirmTitle, style: .default) { [weak alert] _ in
+            handler(alert?.textFields?.first?.text ?? "")
+        })
+        present(alert, animated: TVMotion.animationsEnabled)
+        return alert
+    }
 }

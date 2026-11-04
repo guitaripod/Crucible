@@ -43,7 +43,9 @@ enum TVDebugSession {
     /// With `CRUCIBLE_FRESH=1` first forgets the account, server, remembered address and Top Shelf
     /// snapshot, so every launch starts as a new install. With `CRUCIBLE_MOCK=<url>` replaces the
     /// stored connection with the mock Plex server, signed in as Marcus, exactly like the
-    /// marketing capture harness. The real launch pipeline then runs against it.
+    /// marketing capture harness, and forgets the languages remembered per show and whether the
+    /// account owns the server, so no test inherits another's; the launch learns ownership again
+    /// from plex.tv when `CRUCIBLE_PLEXTV` points at the mock. The real launch pipeline then runs against it.
     @MainActor
     static func bootstrapIfRequested() {
         let environment = ProcessInfo.processInfo.environment
@@ -59,6 +61,9 @@ enum TVDebugSession {
         ServerBootstrap.saveToken("mock-token")
         ServerBootstrap.saveServer(uri: base, name: "Marcus-PC", machineIdentifier: mockMachineIdentifier)
         UserDefaults.standard.set("Marcus", forKey: "plex_account_name")
+        FinishedTitlesLedger.shared.seedFromEnvironment()
+        ShowTrackMemory.forgetAll()
+        ServerOwnership.setForTesting(false, machineIdentifier: mockMachineIdentifier)
         MidgarLog.notice("Debug session: mock connection \(base.absoluteString)", category: .lifecycle)
     }
     #endif

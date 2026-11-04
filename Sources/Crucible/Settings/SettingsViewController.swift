@@ -3,47 +3,26 @@ import CrucibleDesign
 import CrucibleStats
 @preconcurrency import UIKit
 
+/// The first Settings screen: a search field that finds any setting by name or by what it does, Crucible Pro, one row per
+/// category with the value that matters most in it, and signing out.
 final class SettingsViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case pro, playback, downloads, home, appearance, support, account
-
-        var title: String? {
-            switch self {
-            case .pro: return nil
-            case .playback: return String(localized: "Playback")
-            case .downloads: return String(localized: "Downloads")
-            case .home: return String(localized: "Home & Statistics")
-            case .appearance: return String(localized: "Appearance")
-            case .support: return String(localized: "Support")
-            case .account: return nil
-            }
-        }
+        case pro, categories, account
     }
 
     enum Item: Hashable {
         case pro
-        case streamingQuality, skipIntro, skipOutro, autoplay, rewindAfterBreak, stillWatching, skipBack, skipForward
-        case downloadQuality, downloadCellular, deleteWatched, manageStorage
-        case libraries
-        case appearance, libraryGrid
-        case shareLogs, clearCache, sourceCode
+        case category(SettingsCategory)
         case signOut, leaveDemo
-
-        var isSelectable: Bool {
-            switch self {
-            case .pro, .manageStorage, .libraries, .shareLogs, .clearCache, .sourceCode, .signOut, .leaveDemo: return true
-            default: return false
-            }
-        }
     }
 
     private let api: APIClient
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
-    private var loadTask: Task<Void, Never>?
-    private var storageText = String(localized: "None")
-    private var cacheText = "…"
     private var proObservation: ProObservation?
     private var demoObservation: DemoObservation?
+    private lazy var navigator = SettingsNavigator(api: api, host: self)
+    private lazy var results = SettingsSearchResultsViewController(api: api)
+    private lazy var searchController = UISearchController(searchResultsController: results)
 
     init(api: APIClient) {
         self.api = api
@@ -53,10 +32,6 @@ final class SettingsViewController: UICollectionViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit {
-        loadTask?.cancel()
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         title = String(localized: "Settings")
@@ -65,11 +40,39 @@ final class SettingsViewController: UICollectionViewController {
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.accessibilityIdentifier = "settings.root"
         collectionView.collectionViewLayout = makeLayout()
+        configureSearch()
         configureDataSource()
         applySnapshot()
         proObservation = ProObservation { [weak self] in self?.reconfigure([.pro]) }
         demoObservation = DemoObservation { [weak self] in self?.demoChanged() }
+    }
+
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        reconfigure(SettingsCatalog.categories(on: .phone).map(Item.category))
+    }
+
+    private func configureSearch() {
+        searchController.searchResultsUpdater = results
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = String(localized: "Search Settings", comment: "Placeholder of the Settings search field")
+        searchController.searchBar.searchTextField.accessibilityIdentifier = "settings.search"
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+        results.openEntry = { [weak self] entry, source in self?.open(entry, source: source) }
+    }
+
+    /// A search result: a row that leads somewhere opens that screen, any other opens its category with the row highlighted.
+    private func open(_ entry: SettingsEntry, source: UIView?) {
+        searchController.isActive = false
+        if case .destination(let destination) = entry.item {
+            navigator.open(destination, source: source)
+        } else {
+            navigationController?.pushViewController(SettingsCategoryViewController(api: api, category: entry.category, highlighting: entry.id), animated: true)
+        }
     }
 
     private func demoChanged() {
@@ -77,26 +80,13 @@ final class SettingsViewController: UICollectionViewController {
         reconfigure([.pro])
     }
 
-    override func viewIsAppearing(_ animated: Bool) {
-        super.viewIsAppearing(animated)
-        loadSizes()
-        reconfigure([.libraries])
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        loadTask?.cancel()
-    }
-
     private func makeLayout() -> UICollectionViewLayout {
         UICollectionViewCompositionalLayout { [weak self] index, environment in
             var config = UICollectionLayoutListConfiguration.wellRows()
             let section = self?.dataSource?.sectionIdentifier(for: index)
-            config.headerMode = section?.title == nil ? .none : .supplementary
-            config.footerMode = (section == .playback || section == .home || section == .account) ? .supplementary : .none
-            if section == .account {
-                config.itemSeparatorHandler = nil
-            }
+            config.headerMode = .none
+            config.footerMode = section == .account ? .supplementary : .none
+            if section == .account { config.itemSeparatorHandler = nil }
             let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
             Theme.centerReadable(listSection, environment)
             return listSection
@@ -107,25 +97,9 @@ final class SettingsViewController: UICollectionViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections(Section.allCases.filter { $0 != .pro || ProAccess.shared.isStoreBacked })
         if ProAccess.shared.isStoreBacked { snapshot.appendItems([.pro], toSection: .pro) }
-        snapshot.appendItems([.streamingQuality, .skipIntro, .skipOutro, .autoplay, .rewindAfterBreak, .stillWatching, .skipBack, .skipForward], toSection: .playback)
-        snapshot.appendItems([.downloadQuality, .downloadCellular, .deleteWatched, .manageStorage], toSection: .downloads)
-        snapshot.appendItems([.libraries], toSection: .home)
-        snapshot.appendItems([.appearance, .libraryGrid], toSection: .appearance)
-        snapshot.appendItems([.shareLogs, .clearCache, .sourceCode], toSection: .support)
+        snapshot.appendItems(SettingsCatalog.categories(on: .phone).map(Item.category), toSection: .categories)
         snapshot.appendItems([DemoMode.shared.isActive ? .leaveDemo : .signOut], toSection: .account)
         dataSource.apply(snapshot, animatingDifferences: false)
-    }
-
-    private func loadSizes() {
-        loadTask?.cancel()
-        loadTask = Task { [weak self] in
-            let usedBytes = await DownloadManager.shared.totalBytesOnDisk()
-            let cacheBytes = await ImageCacheMeter.totalBytes()
-            guard let self, !Task.isCancelled else { return }
-            storageText = usedBytes > 0 ? Formatters.fileSize(usedBytes) : String(localized: "None")
-            cacheText = ImageCacheMeter.formatted(cacheBytes)
-            reconfigure([.manageStorage, .clearCache])
-        }
     }
 
     private func reconfigure(_ items: [Item]) {
@@ -135,95 +109,21 @@ final class SettingsViewController: UICollectionViewController {
     }
 
     private func configureDataSource() {
-        let cellRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, item in
-            guard let self else { return }
+        let cellRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, item in
             cell.accessories = []
             cell.applyThemedBackground()
             switch item {
             case .pro:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "sparkles", title: Self.proTitle(), subtitle: Self.proSubtitle())
+                cell.accessories = [.disclosureIndicator()]
+            case .category(let category):
                 cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "sparkles", title: Self.proTitle(), subtitle: Self.proSubtitle()
+                    symbol: category.symbol,
+                    title: category.title(on: .phone),
+                    subtitle: SettingsCatalog.summary(of: category, on: .phone)
                 )
                 cell.accessories = [.disclosureIndicator()]
-            case .streamingQuality:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "dial.high", title: PreferenceSetting.streamingQuality.title,
-                    value: PreferenceSetting.streamingQuality.valueLabel, menu: menu(for: .streamingQuality, item: .streamingQuality)
-                )
-            case .skipIntro:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "forward.end", title: PreferenceSetting.skipIntro.title, badge: String(localized: "NEW", comment: "Badge on a setting that is new in this version"),
-                    value: PreferenceSetting.skipIntro.valueLabel, menu: menu(for: .skipIntro, item: .skipIntro)
-                )
-            case .skipOutro:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "forward.end.circle", title: PreferenceSetting.skipOutro.title,
-                    value: PreferenceSetting.skipOutro.valueLabel, menu: menu(for: .skipOutro, item: .skipOutro)
-                )
-            case .autoplay:
-                toggleRow(cell, symbol: "play", title: PreferenceSetting.autoplayNextEpisode.title, isOn: PreferenceSetting.autoplayNextEpisode.isOn) { newValue in
-                    PreferenceSetting.autoplayNextEpisode.setOn(newValue)
-                }
-            case .rewindAfterBreak:
-                toggleRow(cell, symbol: "gobackward", title: PreferenceSetting.rewindAfterBreak.title, isOn: PreferenceSetting.rewindAfterBreak.isOn) { newValue in
-                    PreferenceSetting.rewindAfterBreak.setOn(newValue)
-                }
-            case .stillWatching:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "moon.zzz", title: PreferenceSetting.stillWatching.title,
-                    value: PreferenceSetting.stillWatching.valueLabel, menu: menu(for: .stillWatching, item: .stillWatching)
-                )
-            case .skipBack:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "gobackward.10", title: PreferenceSetting.skipBack.title,
-                    value: PreferenceSetting.skipBack.valueLabel, menu: menu(for: .skipBack, item: .skipBack)
-                )
-            case .skipForward:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "goforward.10", title: PreferenceSetting.skipForward.title,
-                    value: PreferenceSetting.skipForward.valueLabel, menu: menu(for: .skipForward, item: .skipForward)
-                )
-            case .downloadQuality:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "arrow.down.circle", title: String(localized: "Download Quality"),
-                    value: Preferences.downloadQuality.title, menu: downloadQualityMenu()
-                )
-            case .downloadCellular:
-                toggleRow(cell, symbol: "cellularbars", title: String(localized: "Download over Cellular"), isOn: Preferences.downloadOverCellular) { newValue in
-                    Preferences.downloadOverCellular = newValue
-                    DownloadManager.shared.cellularPreferenceChanged()
-                }
-            case .deleteWatched:
-                toggleRow(cell, symbol: "trash", title: String(localized: "Delete Watched Downloads"), isOn: Preferences.deleteWatchedDownloads) { newValue in
-                    Preferences.deleteWatchedDownloads = newValue
-                }
-            case .manageStorage:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "internaldrive", title: String(localized: "Manage Storage"), value: storageText)
-                cell.accessories = [.disclosureIndicator()]
-            case .libraries:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "rectangle.stack", title: String(localized: "Libraries"), value: LibrariesSettings.summary
-                )
-                cell.accessories = [.disclosureIndicator()]
-            case .appearance:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "sun.max", title: String(localized: "Appearance"),
-                    value: Preferences.appearance.title, menu: appearanceMenu()
-                )
-            case .libraryGrid:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "square.grid.3x3", title: String(localized: "Library Grid"),
-                    value: gridTitle(Preferences.libraryColumns), menu: libraryGridMenu()
-                )
-            case .shareLogs:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "doc.text", title: String(localized: "Share Diagnostic Logs"))
-                cell.accessories = [.disclosureIndicator()]
-            case .clearCache:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "trash", title: String(localized: "Clear Image Cache"), value: cacheText)
-            case .sourceCode:
-                cell.contentConfiguration = IconRowContentConfiguration(
-                    symbol: "chevron.left.forwardslash.chevron.right", title: String(localized: "Source Code"), value: "GitHub"
-                )
+                cell.accessibilityIdentifier = "settings.category.\(category.rawValue)"
             case .signOut, .leaveDemo:
                 var content = UIListContentConfiguration.cell()
                 content.text = item == .leaveDemo ? DemoPhoneCopy.leaveTitle : String(localized: "Sign Out")
@@ -237,40 +137,16 @@ final class SettingsViewController: UICollectionViewController {
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
             collectionView.dequeueConfiguredReusableCell(using: cellRegistration, for: indexPath, item: item)
         }
-
-        let headerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
-            content.text = self?.dataSource.sectionIdentifier(for: indexPath.section)?.title
-            content.textProperties.transform = .uppercase
-            content.textProperties.font = Theme.Font.footnoteSemibold
-            content.textProperties.color = Theme.Color.labelSecondary
-            cell.contentConfiguration = content
-            cell.accessibilityTraits = .header
-        }
-        let footerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { [weak self] cell, _, indexPath in
+        let footerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
             var content = UIListContentConfiguration.groupedFooter()
+            content.text = String(localized: "Crucible \(AppInfo.versionSummary)")
             content.textProperties.font = Theme.Font.caption1Regular
-            content.textProperties.color = Theme.Color.labelSecondary
-            switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
-            case .playback:
-                content.text = ([PreferenceSetting.skipIntro, .skipOutro, .rewindAfterBreak, .stillWatching].compactMap(\.explanation)
-                    + [String(localized: "Skip Back and Skip Ahead set the skip buttons on the Lock Screen, in Control Center and on headphones.")]).joined(separator: " ")
-            case .home:
-                content.text = LibrariesSettings.homeFooterText
-            case .account:
-                content.text = String(localized: "Crucible \(AppInfo.versionSummary)")
-                content.textProperties.alignment = .center
-                content.textProperties.color = Theme.Color.labelTertiary
-            default:
-                content.text = nil
-            }
+            content.textProperties.alignment = .center
+            content.textProperties.color = Theme.Color.labelTertiary
             cell.contentConfiguration = content
         }
-        dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
-            if kind == UICollectionView.elementKindSectionHeader {
-                return collectionView.dequeueConfiguredReusableSupplementary(using: headerRegistration, for: indexPath)
-            }
-            return collectionView.dequeueConfiguredReusableSupplementary(using: footerRegistration, for: indexPath)
+        dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
+            collectionView.dequeueConfiguredReusableSupplementary(using: footerRegistration, for: indexPath)
         }
     }
 
@@ -290,110 +166,18 @@ final class SettingsViewController: UICollectionViewController {
         DemoMode.shared.isActive && !ProAccess.shared.isPro
     }
 
-    private func toggleRow(_ cell: UICollectionViewListCell, symbol: String, title: String, isOn: Bool, onChange: @escaping (Bool) -> Void) {
-        var content = IconRowContentConfiguration(symbol: symbol, title: title)
-        content.toggle = .init(isOn: isOn, onChange: onChange)
-        cell.contentConfiguration = content
-    }
-
-    private func menu(for setting: PreferenceSetting, item: Item) -> UIMenu {
-        let actions = setting.choices.map { choice in
-            UIAction(title: choice.title, state: choice.isSelected ? .on : .off) { [weak self] _ in
-                Haptics.selection()
-                setting.select(choice)
-                self?.reconfigure([item])
-            }
-        }
-        return UIMenu(title: setting.title, children: actions)
-    }
-
-    private func downloadQualityMenu() -> UIMenu {
-        let current = Preferences.downloadQuality
-        let actions = DownloadQuality.allCases.map { quality in
-            let action = UIAction(title: quality.title, subtitle: quality.detail, state: quality == current ? .on : .off) { [weak self] _ in
-                Haptics.selection()
-                Preferences.downloadQuality = quality
-                self?.reconfigure([.downloadQuality])
-            }
-            return action
-        }
-        return UIMenu(title: String(localized: "Download Quality"), children: actions)
-    }
-
-    private func appearanceMenu() -> UIMenu {
-        let current = Preferences.appearance
-        let actions = Preferences.Appearance.allCases.map { appearance in
-            UIAction(title: appearance.title, state: appearance == current ? .on : .off) { [weak self] _ in
-                Haptics.selection()
-                self?.apply(appearance)
-            }
-        }
-        return UIMenu(title: String(localized: "Appearance"), children: actions)
-    }
-
-    private func apply(_ appearance: Preferences.Appearance) {
-        Preferences.appearance = appearance
-        if let window = view.window, !UIAccessibility.isReduceMotionEnabled {
-            UIView.transition(with: window, duration: 0.25, options: .transitionCrossDissolve) {
-                AppearanceController.apply()
-            }
-        } else {
-            AppearanceController.apply()
-        }
-        reconfigure([.appearance])
-    }
-
-    override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        coordinator.animate(alongsideTransition: nil) { [weak self] _ in self?.reconfigure([.libraryGrid]) }
-    }
-
-    /// A phone names the grid by its column count; a large window shows more columns than that, so it names the poster size instead.
-    private func gridTitle(_ columns: Int) -> String {
-        guard Theme.Room(width: view.bounds.width, height: view.bounds.height) != .compact else { return String(localized: "\(columns) Columns") }
-        return columns == 2 ? String(localized: "Large Posters") : String(localized: "Compact Posters")
-    }
-
-    private func libraryGridMenu() -> UIMenu {
-        let current = Preferences.libraryColumns
-        let actions = [2, 3].map { columns in
-            UIAction(title: gridTitle(columns), state: columns == current ? .on : .off) { [weak self] _ in
-                Haptics.selection()
-                Preferences.libraryColumns = columns
-                self?.reconfigure([.libraryGrid])
-            }
-        }
-        return UIMenu(title: String(localized: "Library Grid"), children: actions)
-    }
-
-    override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        dataSource.itemIdentifier(for: indexPath)?.isSelectable ?? false
-    }
-
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
         case .pro:
             openPro()
-        case .manageStorage:
-            (tabBarController as? TabBarController)?.select(.downloads)
-        case .libraries:
-            navigationController?.pushViewController(LibrariesViewController(api: api), animated: true)
-        case .shareLogs:
-            shareLogs(from: collectionView.cellForItem(at: indexPath))
-        case .clearCache:
-            confirmClearCache()
-        case .sourceCode:
-            if let url = AppInfo.sourceURL {
-                UIApplication.shared.open(url)
-            }
+        case .category(let category):
+            navigationController?.pushViewController(SettingsCategoryViewController(api: api, category: category), animated: true)
         case .signOut:
             confirmSignOut()
         case .leaveDemo:
             DemoCoordinator.shared.confirmLeaving(from: self)
-        default:
-            break
         }
     }
 
@@ -403,46 +187,6 @@ final class SettingsViewController: UICollectionViewController {
             return
         }
         navigationController?.pushViewController(ProStatusViewController(), animated: true)
-    }
-
-    private func shareLogs(from source: UIView?) {
-        Task { [weak self] in
-            let device = UIDevice.current
-            let url = await DiagnosticsReport.export(deviceDescription: DiagnosticsReport.deviceDescription(
-                systemName: device.systemName, systemVersion: device.systemVersion, model: device.model
-            ))
-            guard let self else { return }
-            guard let url else {
-                let alert = UIAlertController(title: String(localized: "No Logs Yet"), message: String(localized: "There are no diagnostic logs to share."), preferredStyle: .alert)
-                alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
-                present(alert, animated: true)
-                return
-            }
-            let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-            activity.completionWithItemsHandler = { _, _, _, _ in
-                try? FileManager.default.removeItem(at: url)
-            }
-            activity.popoverPresentationController?.sourceView = source ?? view
-            activity.popoverPresentationController?.sourceRect = source?.bounds ?? .zero
-            present(activity, animated: true)
-        }
-    }
-
-    private func confirmClearCache() {
-        let alert = UIAlertController(
-            title: String(localized: "Clear Image Cache?"),
-            message: String(localized: "Posters and backdrops will be downloaded again as you browse."),
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: String(localized: "Clear"), style: .destructive) { [weak self] _ in
-            Task { [weak self] in
-                await ImageLoader.shared.clearCache()
-                Haptics.success()
-                self?.loadSizes()
-            }
-        })
-        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
-        present(alert, animated: true)
     }
 
     private func confirmSignOut() {

@@ -77,6 +77,10 @@ struct DemoLibraryTests {
             let movie = try await demo.metadata("1001")
             #expect(movie.Marker?.contains { $0.isCredits } == true)
             #expect(movie.Marker?.contains { $0.type == "intro" } == false)
+            let resumed = try await demo.metadata("4095")
+            let resumedCredits = try #require(resumed.Marker?.first { $0.isCredits })
+            #expect(resumedCredits.startSecs > resumed.positionSecs + 15, "a title resumed past the clip reaches its credits at the end of the clip, not at once")
+            #expect(resumedCredits.endSecs <= resumed.positionSecs + 30.5)
         }
     }
 

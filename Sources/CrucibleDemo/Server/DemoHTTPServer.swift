@@ -183,6 +183,7 @@ final class DemoConnection: @unchecked Sendable {
     private let onClose: @Sendable (DemoConnection) -> Void
     private var buffer = Data()
     private var closed = false
+    private var streamTask: Task<Void, Never>?
 
     init(connection: NWConnection, parent: DispatchQueue, handler: @escaping DemoHTTPServer.Handler, onClose: @escaping @Sendable (DemoConnection) -> Void) {
         self.connection = connection
@@ -247,6 +248,11 @@ final class DemoConnection: @unchecked Sendable {
 
     private func write(_ response: DemoResponse, for request: DemoRequest, keepAlive: Bool) {
         guard !closed else { return }
+        if let stream = response.stream {
+            send(stream, head: response.head(length: nil, keepAlive: false))
+            receive()
+            return
+        }
         var payload = response.head(length: response.body.count, keepAlive: keepAlive)
         if !request.isHead { payload.append(response.body) }
         connection.send(content: payload, completion: .contentProcessed { [self] error in
@@ -262,9 +268,25 @@ final class DemoConnection: @unchecked Sendable {
         })
     }
 
+    /// Sends the head, then each chunk of `stream` as it comes, until the stream ends or the client goes away, which the read
+    /// that stays open notices.
+    private func send(_ stream: AsyncStream<Data>, head: Data) {
+        connection.send(content: head, completion: .contentProcessed { _ in })
+        streamTask = Task { [self] in
+            for await chunk in stream {
+                let sent = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                    connection.send(content: chunk, completion: .contentProcessed { error in continuation.resume(returning: error == nil) })
+                }
+                guard sent, !Task.isCancelled else { break }
+            }
+            queue.async { self.close() }
+        }
+    }
+
     private func close() {
         guard !closed else { return }
         closed = true
+        streamTask?.cancel()
         connection.cancel()
         onClose(self)
     }
@@ -272,6 +294,7 @@ final class DemoConnection: @unchecked Sendable {
     private func finish() {
         guard !closed else { return }
         closed = true
+        streamTask?.cancel()
         onClose(self)
     }
 }

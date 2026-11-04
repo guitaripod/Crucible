@@ -23,6 +23,17 @@ final class ShowDetailViewController: UICollectionViewController {
     private var loadTask: Task<Void, Never>?
     private var seasonTask: Task<Void, Never>?
     private var model: ShowDetailModel?
+    private lazy var moreItem: UIBarButtonItem = {
+        let item = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: moreMenu())
+        item.accessibilityLabel = String(localized: "More")
+        return item
+    }()
+    private lazy var rating = RatingCoordinator(
+        api: api,
+        ratingKey: showRatingKey,
+        refresh: { [weak self] in self?.reconfigure([.actions]) },
+        reload: { [weak self] in self?.loadData() }
+    )
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var downloadObserver: UUID?
     private var pendingFullReconfigure = false
@@ -68,7 +79,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func updateBarButtons() {
         var items: [UIBarButtonItem] = []
-        if !multiSelect.isEditing { items.append(hero.chrome.playItem) }
+        if !multiSelect.isEditing { items.append(contentsOf: [hero.chrome.playItem, moreItem]) }
         if multiSelect.isEditing || !(model?.episodes.isEmpty ?? true) { items.append(multiSelect.barButton) }
         navigationItem.rightBarButtonItems = items
     }
@@ -321,6 +332,8 @@ final class ShowDetailViewController: UICollectionViewController {
         config.isWatched = model.isWatched
         config.watchedMenu = watchedMenu(model)
         config.watchedAccessibilityLabel = model.watchedAccessibilityLabel
+        config.userRating = rating.shown(served: model.userRating)
+        config.onRate = { [weak self] source in self?.rate(from: source) }
         return config
     }
 
@@ -533,6 +546,28 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    private func moreMenu() -> UIMenu {
+        UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
+            guard let self, let show = model?.show else {
+                completion([])
+                return
+            }
+            Task { @MainActor in
+                var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [show], api: api, host: self)]
+                if let watchlist = await WatchlistScreen.toggleAction(for: show, api: api, host: self) { elements.append(watchlist) }
+                if let manage = ManageMenus.itemMenu(for: show, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
+                    elements.append(manage)
+                }
+                completion(elements)
+            }
+        }])
+    }
+
+    private func rate(from source: UIView? = nil) {
+        guard let model else { return }
+        rating.present(from: self, source: source ?? view, title: model.show.title, served: model.userRating)
+    }
+
     private func setWatched(_ watched: Bool, ratingKey: String) {
         Haptics.light()
         Task { [weak self] in
@@ -566,6 +601,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     return
                 }
                 model = loaded
+                rating.loaded()
                 contentUnavailableConfiguration = nil
                 await applySnapshot()
             } catch {
@@ -969,6 +1005,7 @@ extension ShowDetailViewController: CommandHandling, MediaScreen {
     func canPerform(_ command: AppCommand) -> Bool {
         switch command {
         case .play: return model?.isPrimaryEnabled == true && model?.upNext != nil
+        case .rate: return model != nil
         case .refresh: return true
         default: return false
         }
@@ -977,6 +1014,7 @@ extension ShowDetailViewController: CommandHandling, MediaScreen {
     func perform(_ command: AppCommand) {
         switch command {
         case .play: playUpNext()
+        case .rate: rate()
         case .refresh: loadData()
         default: break
         }

@@ -20,10 +20,29 @@ struct DemoRouter: Sendable {
             return await stateResponse(parts, request)
         case "library":
             return await libraryResponse(parts, request)
+        case "playlists":
+            return await playlistsResponse(parts, request)
+        case "actions":
+            return await watchlistAction(parts, request)
         case "hubs":
             return await hubsResponse(parts, request)
         case "status":
-            return parts == ["status", "sessions", "history", "all"] ? await library.historyResponse(request) : .notFound()
+            if request.method == "DELETE", parts.count == 4, parts[1] == "sessions", parts[2] == "history" {
+                return await library.deleteHistoryRow(parts[3])
+            }
+            switch parts {
+            case ["status", "sessions", "history", "all"]: return await library.historyResponse(request)
+            case ["status", "sessions"]: return await library.sessionsResponse()
+            case ["status", "sessions", "terminate"]: return await library.terminateSession(request.first("sessionId"))
+            default: return .notFound()
+            }
+        case "activities":
+            if request.method == "DELETE", parts.count == 2 { return await library.cancelActivity(parts[1]) }
+            return await library.activitiesResponse()
+        case "updater":
+            return parts.count == 2 && parts[1] == "status" ? DemoLibrary.updaterResponse() : .empty()
+        case "statistics":
+            return parts == ["statistics", "resources"] ? DemoLibrary.resourcesResponse() : .notFound()
         case "photo":
             return await photoResponse(request)
         case "actors":
@@ -58,19 +77,23 @@ struct DemoRouter: Sendable {
     }
 
     private func stateResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        if parts == [":", "eventsource", "notifications"] {
+            return .eventStream(library.events.subscribe())
+        }
         guard parts.count == 2 else { return .notFound() }
         switch parts[1] {
         case "scrobble":
             await library.scrobble(request.first("key") ?? "")
         case "unscrobble":
             await library.unscrobble(request.first("key") ?? "")
+        case "rate":
+            await library.rate(request.first("key") ?? "", rating: request.int("rating") ?? 0)
         case "timeline":
-            await library.timeline(
-                request.first("ratingKey") ?? "",
-                timeMs: request.int("time") ?? 0,
-                durationMs: request.int("duration") ?? 0,
-                state: request.first("state") ?? ""
-            )
+            let key = request.first("ratingKey") ?? ""
+            let state = request.first("state") ?? ""
+            let timeMs = request.int("time") ?? 0
+            await library.timeline(key, timeMs: timeMs, durationMs: request.int("duration") ?? 0, state: state)
+            library.events.playback(ratingKey: key, state: state, timeMs: timeMs, clientIdentifier: request.headers["x-plex-client-identifier"])
         case "progress":
             let key = (request.first("key") ?? "").split(separator: "/").last.map(String.init) ?? ""
             await library.progress(key, timeMs: request.int("time") ?? 0)
@@ -81,7 +104,14 @@ struct DemoRouter: Sendable {
     }
 
     private func libraryResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        if parts == ["library", "sections", "watchlist", "all"] {
+            return await library.watchlistResponse()
+        }
         switch (parts.count > 1 ? parts[1] : "", parts.count) {
+        case ("sections", 4) where ["refresh", "analyze", "emptyTrash"].contains(parts[3]):
+            return parts[3] == "refresh" ? await library.noteScan(sectionID: parts[2]) : .empty()
+        case ("sections", 4) where parts[3] == "all" && request.method == "PUT":
+            return await library.editFields(request)
         case ("sections", 2):
             return await library.sectionsResponse()
         case ("sections", 3...5):
@@ -90,6 +120,8 @@ struct DemoRouter: Sendable {
             return await library.sectionResponse(parts[2], what: what, bucket: bucket, request: request)
         case ("metadata", 3...5):
             return await metadataResponse(parts, request)
+        case ("collections", 4) where parts[3] == "children":
+            return await library.collectionChildrenResponse(parts[2], request: request)
         case ("onDeck", 2):
             return await library.onDeckResponse()
         case ("recentlyAdded", 2):
@@ -106,9 +138,75 @@ struct DemoRouter: Sendable {
         }
     }
 
+    private func watchlistAction(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        guard parts.count == 2, let key = request.first("ratingKey") else { return .notFound() }
+        switch parts[1] {
+        case "addToWatchlist": return await library.changeWatchlist(discoverKey: key, adding: true)
+        case "removeFromWatchlist": return await library.changeWatchlist(discoverKey: key, adding: false)
+        case "removeFromContinueWatching": return await library.removeFromContinueWatching(key)
+        default: return .notFound()
+        }
+    }
+
+    private func playlistsResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        switch (request.method, parts.count) {
+        case ("GET", 1):
+            return await library.playlistsResponse()
+        case ("POST", 1):
+            return await library.createPlaylist(title: request.first("title") ?? "", uri: request.first("uri") ?? "")
+        case ("DELETE", 2):
+            return await library.deletePlaylist(parts[1])
+        case ("GET", 3) where parts[2] == "items":
+            return await library.playlistItemsResponse(parts[1], request: request)
+        case ("PUT", 3) where parts[2] == "items":
+            return await library.addToPlaylist(parts[1], uri: request.first("uri") ?? "")
+        case ("DELETE", 4) where parts[2] == "items":
+            return await library.removeFromPlaylist(parts[1], itemID: Int(parts[3]) ?? 0)
+        case ("PUT", 5) where parts[2] == "items" && parts[4] == "move":
+            return await library.movePlaylistItem(parts[1], itemID: Int(parts[3]) ?? 0, after: request.int("after"))
+        default:
+            return .notFound()
+        }
+    }
+
     private func metadataResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
         if parts.count >= 4, parts[3] == "thumb" || parts[3] == "art" {
             return await imageResponse(path: request.path)
+        }
+        if parts.count == 4, parts[3] == "subtitles" {
+            switch request.method {
+            case "GET":
+                return await library.subtitleSearchResponse(parts[2], language: request.first("language") ?? "en")
+            case "PUT":
+                return await library.downloadSubtitle(
+                    parts[2], language: request.first("language") ?? "en", name: request.first("language") ?? "en",
+                    hearingImpaired: request.flag("hearingImpaired")
+                )
+            default:
+                return .notFound()
+            }
+        }
+        if parts.count == 3, request.method == "DELETE" {
+            return .json(["errors": [["code": 1, "message": "Media deletion is not allowed on this server"]]], status: 403)
+        }
+        if parts.count == 4 {
+            switch parts[3] {
+            case "refresh", "analyze", "unmatch", "match":
+                return .empty()
+            case "matches":
+                return await library.matchesResponse(parts[2], title: request.first("title"), year: request.int("year"))
+            case "posters", "arts":
+                return await library.artworkResponse(parts[2], kind: parts[3])
+            case "poster", "art":
+                return await library.selectArtwork(parts[2], kind: parts[3], url: request.first("url"))
+            case "prefs" where request.method == "PUT":
+                return await library.setShowPreferences(parts[2], request)
+            default:
+                break
+            }
+        }
+        if parts.count == 3, request.flag("includePreferences") {
+            return await library.metadataWithPreferences(parts[2])
         }
         switch parts.count {
         case 3: return await library.metadataResponse(parts[2], sub: nil)

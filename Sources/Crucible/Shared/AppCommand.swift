@@ -7,7 +7,7 @@ enum AppCommand: String, CaseIterable {
     case back
     case statistics, history, surpriseMe
     case refresh, largerPosters, smallerPosters
-    case play, skip, playNext, closePlayer, toggleWatched, download
+    case play, skip, playNext, closePlayer, toggleWatched, download, rate
     case settings, switchServer
     case newWindow
 
@@ -31,6 +31,7 @@ enum AppCommand: String, CaseIterable {
         case .closePlayer: return String(localized: "Close Player")
         case .toggleWatched: return String(localized: "Mark as Watched")
         case .download: return String(localized: "Download")
+        case .rate: return String(localized: "Rate…", comment: "Menu bar command that opens the star rating control for the title on screen")
         case .settings: return String(localized: "Settings…")
         case .switchServer: return String(localized: "Switch Server…")
         case .newWindow: return String(localized: "New Window")
@@ -57,6 +58,7 @@ enum AppCommand: String, CaseIterable {
         case .closePlayer: return "xmark"
         case .toggleWatched: return "checkmark.circle"
         case .download: return "arrow.down.circle"
+        case .rate: return "star"
         case .settings: return "gearshape"
         case .switchServer: return "server.rack"
         case .newWindow: return "macwindow.badge.plus"
@@ -84,7 +86,7 @@ enum AppCommand: String, CaseIterable {
         case .closePlayer: return (UIKeyCommand.inputEscape, [])
         case .settings: return (",", .command)
         case .newWindow: return ("n", .command)
-        case .toggleWatched, .download, .switchServer: return nil
+        case .toggleWatched, .download, .rate, .switchServer: return nil
         }
     }
 
@@ -183,7 +185,7 @@ enum AppMenu {
     private static var media: UIMenu {
         UIMenu(title: String(localized: "Media"), identifier: mediaIdentifier, children: [
             UIMenu(options: .displayInline, children: [AppCommand.play, .skip, .playNext, .closePlayer].map { $0.menuElement() }),
-            UIMenu(options: .displayInline, children: [AppCommand.toggleWatched, .download].map { $0.menuElement() }),
+            UIMenu(options: .displayInline, children: [AppCommand.toggleWatched, .download, .rate].map { $0.menuElement() }),
         ])
     }
 }

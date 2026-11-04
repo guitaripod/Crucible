@@ -36,4 +36,12 @@ struct DetailRelatedCardTests {
         #expect(card.posterPath == "/show")
         #expect(card.subtitle == nil)
     }
+
+    @Test func anEpisodeNamesItsShowAndPlaceInIt() {
+        let card = DetailRelatedCard(item: DetailFixtures.item([
+            "type": "episode", "grandparentTitle": "The Salt Road", "parentIndex": 2, "index": 4, "thumb": "/still", "grandparentThumb": "/show",
+        ]))
+        #expect(card.posterPath == "/show")
+        #expect(card.subtitle == "The Salt Road · S2 · E4")
+    }
 }

@@ -13,6 +13,17 @@ extension DemoLibrary {
         save()
     }
 
+    /// Keeps the viewer's star rating on the scale the server uses (one point per half star); anything outside it removes the rating.
+    func rate(_ key: String, rating: Int) {
+        guard items[key] != nil else { return }
+        let kept = (1...10).contains(rating) ? rating : nil
+        items[key]?.set("userRating", kept)
+        var ratings = persisted.ratings ?? [:]
+        ratings[key] = kept
+        persisted.ratings = ratings
+        save()
+    }
+
     func unscrobble(_ key: String) {
         guard items[key] != nil else { return }
         _ = mark(key, watched: false)
@@ -22,6 +33,7 @@ extension DemoLibrary {
     /// Records where the player is. Stopping at the end of the title (or of the demo clip, which is all there is to play) finishes it.
     func timeline(_ key: String, timeMs: Int, durationMs: Int, state: String) {
         guard var item = items[key], item.isPlayable else { return }
+        hiddenFromContinue.remove(key)
         item.set("lastViewedAt", Int(Date().timeIntervalSince1970))
         items[key] = item
         if state == "stopped", durationMs > 0, isFinished(timeMs: timeMs, durationMs: durationMs) {
@@ -38,6 +50,7 @@ extension DemoLibrary {
 
     func progress(_ key: String, timeMs: Int) {
         guard var item = items[key], item.isPlayable, timeMs > 0 else { return }
+        hiddenFromContinue.remove(key)
         item.set("lastViewedAt", Int(Date().timeIntervalSince1970))
         item.set("viewOffset", timeMs)
         items[key] = item
@@ -86,9 +99,19 @@ extension DemoLibrary {
         )
     }
 
-    private func save() {
+    func save() {
         persisted.onDeck = onDeck
+        persisted.hiddenFromContinue = hiddenFromContinue.sorted()
         store.scheduleSave(persisted)
+    }
+
+    /// Takes a title off Continue Watching and On Deck until it is played again, the way the server does.
+    func removeFromContinueWatching(_ key: String) -> DemoResponse {
+        guard let item = items[key] else { return .notFound() }
+        let episodes = item.kind == .show || item.kind == .season ? leafKeys(of: key) : [key]
+        hiddenFromContinue.formUnion(episodes)
+        save()
+        return .empty()
     }
 
     /// Keeps On Deck honest: once an episode is finished, its show's entry moves on to the next episode to watch.
@@ -115,7 +138,7 @@ extension DemoLibrary {
         for entry in onDeck {
             guard let item = items[entry] else { continue }
             let resolved = item.isWatched ? nextUnwatched(after: entry) : entry
-            if let resolved, seen.insert(resolved).inserted { keys.append(resolved) }
+            if let resolved, !hiddenFromContinue.contains(resolved), seen.insert(resolved).inserted { keys.append(resolved) }
         }
         return keys
     }

@@ -255,6 +255,19 @@ final class TabBarController: UITabBarController {
         homeNavigation.pushViewController(Self.detail(api: api, ratingKey: ratingKey, mediaType: mediaType), animated: true)
     }
 
+    /// Opens Statistics on the You tab, for the weekly recap and Year in Review notifications.
+    func openStatistics() {
+        if presentedViewController != nil { dismiss(animated: false) }
+        show(StatisticsViewController(api: api), onTopOf: .you)
+    }
+
+    /// Opens the half-star sheet for a title a reminder asked about, over whatever is on screen.
+    func presentRating(for ask: RatingAsk) {
+        if presentedViewController != nil { dismiss(animated: false) }
+        let host = open(.home)?.topViewController ?? self
+        RateAskActions.rate(ask, api: api, from: host, source: host.view) { _ in }
+    }
+
     private static func detail(api: APIClient, ratingKey: String, mediaType: String) -> UIViewController {
         mediaType == "show"
             ? ShowDetailViewController(api: api, showRatingKey: ratingKey)
@@ -343,7 +356,7 @@ final class TabBarController: UITabBarController {
             return (currentNavigation?.viewControllers.count ?? 0) > 1
         case .switchServer:
             return !DemoMode.shared.isActive
-        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download:
+        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             return contentHandler?.canPerform(command) ?? false
         case .newWindow, .skip, .playNext, .closePlayer:
             return false
@@ -369,7 +382,7 @@ final class TabBarController: UITabBarController {
         case .skip: presentedPlayer?.performShownSkip()
         case .playNext: presentedPlayer?.playOfferedNextEpisode()
         case .closePlayer: presentedPlayer?.close()
-        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download:
+        case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             contentHandler?.perform(command)
         }
     }
