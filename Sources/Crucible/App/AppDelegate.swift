@@ -10,11 +10,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         CrucibleLog.configure()
-        NSSetUncaughtExceptionHandler { exception in
-            let stack = exception.callStackSymbols.joined(separator: "\n")
-            MidgarLog.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", category: .lifecycle)
-            MidgarLog.flush()
-        }
+        CrucibleLog.logUncaughtExceptions()
         MidgarLog.notice("App launched (log: \(MidgarLog.logFileURLs.first?.path ?? "none"))", category: .lifecycle)
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         application.beginReceivingRemoteControlEvents()
@@ -99,16 +95,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 extension AppDelegate: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
+    /// Handles the response on the main actor and answers it there: UIKit updates the app's snapshot when the answer comes,
+    /// which it can only do on the main thread, and the async form of this method answers from whichever thread its task
+    /// ended on, which stopped the app whenever a notification was tapped.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         let tap = NotificationTap(response)
-        await NotificationCoordinator.shared.handle(tap)
+        nonisolated(unsafe) let answer = completionHandler
+        Task { @MainActor in
+            await NotificationCoordinator.shared.handle(tap)
+            answer()
+        }
     }
 }

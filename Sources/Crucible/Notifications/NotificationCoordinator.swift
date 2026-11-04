@@ -28,10 +28,11 @@ final class NotificationCoordinator {
     private var foregroundObserver: (any NSObjectProtocol)?
 
     /// Called once from `application(_:didFinishLaunchingWithOptions:)`: the background task must be registered before
-    /// launch ends.
+    /// launch ends. Its launch handler runs on the main queue: it is made on the main actor, and the runtime stops the app
+    /// when such a handler runs on the background queue the scheduler uses otherwise.
     func install() {
         registerCategories()
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.refreshTaskIdentifier, using: nil) { task in
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.refreshTaskIdentifier, using: .main) { task in
             guard let refresh = task as? BGAppRefreshTask else {
                 task.setTaskCompleted(success: false)
                 return

@@ -7,9 +7,11 @@ extension DownloadManager {
     /// iOS 26's continued-processing task keeps the in-process fetcher alive long after the ~30s
     /// assertion grace, with system-managed progress UI — the only sanctioned way to keep
     /// user-initiated downloads running in background now that the transfer daemon ignores us.
+    /// The launch handler runs on the main queue: it is made on the main actor, and the runtime stops the app when such a
+    /// handler runs on the background queue the scheduler uses otherwise.
     func registerContinuedProcessing() {
         guard #available(iOS 26.0, *) else { return }
-        let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.continuedTaskIdentifier, using: nil) { task in
+        let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.continuedTaskIdentifier, using: .main) { task in
             MidgarLog.notice("Continued processing launch handler invoked", category: .persistence)
             guard let task = task as? BGContinuedProcessingTask else {
                 task.setTaskCompleted(success: false)

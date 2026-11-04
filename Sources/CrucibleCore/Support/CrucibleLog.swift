@@ -15,6 +15,17 @@ package enum CrucibleLog {
     package static func configure() {
         MidgarLog.configure(subsystem: "com.guitaripod.crucible", fileName: fileName)
     }
+
+    /// Writes an uncaught Objective-C exception and its stack to the log before the process ends. The handler is made here,
+    /// outside any actor, because the exception can be thrown on any thread: one made in an app delegate is the main actor's,
+    /// and the runtime stops the process the moment it runs anywhere else, before a line is written.
+    package static func logUncaughtExceptions() {
+        NSSetUncaughtExceptionHandler { exception in
+            let stack = exception.callStackSymbols.joined(separator: "\n")
+            MidgarLog.fault("Uncaught exception: \(exception.name.rawValue) - \(exception.reason ?? "no reason")\n\(stack)", category: .lifecycle)
+            MidgarLog.flush()
+        }
+    }
 }
 
 extension MidgarLog.Category {
