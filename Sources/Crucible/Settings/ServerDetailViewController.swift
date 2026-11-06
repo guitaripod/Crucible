@@ -40,7 +40,7 @@ final class ServerDetailViewController: UIViewController {
         view.backgroundColor = Theme.Color.canvas
 
         model = ServerConnectionModel()
-        model.onChange = { [weak self] in self?.reconfigureLive() }
+        model.onChange = { [weak self] in self?.modelChanged() }
         model.onFinish = { [weak self] in self?.finishProbing() }
 
         configureCollectionView()
@@ -65,6 +65,7 @@ final class ServerDetailViewController: UIViewController {
             var config = Theme.groupedListConfiguration()
             let section = Section(rawValue: sectionIndex)
             config.headerMode = section == .connections ? .supplementary : .none
+            config.footerMode = section == .connections ? .supplementary : .none
             config.showsSeparators = section != .server && section != .test
             let layoutSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
             if section == .test {
@@ -170,8 +171,36 @@ final class ServerDetailViewController: UIViewController {
             header.contentConfiguration = content
             header.accessibilityTraits = .header
         }
-        dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
-            collectionView.dequeueConfiguredReusableSupplementary(using: header, for: indexPath)
+        let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { footer, _, _ in
+            var content = UIListContentConfiguration.groupedFooter()
+            content.text = ServerConnectionModel.routesFooter
+            content.textProperties.color = Theme.Color.labelSecondary
+            footer.contentConfiguration = content
+        }
+        dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
+            kind == UICollectionView.elementKindSectionFooter
+                ? collectionView.dequeueConfiguredReusableSupplementary(using: footer, for: indexPath)
+                : collectionView.dequeueConfiguredReusableSupplementary(using: header, for: indexPath)
+        }
+    }
+
+    /// Uses the route picked until the network changes; a route that does not answer as the server is refused with a word why.
+    private func use(_ url: URL) {
+        Task { [weak self] in
+            guard let self else { return }
+            if await model.use(url) {
+                Haptics.success()
+                reconfigureLive()
+                return
+            }
+            Haptics.error()
+            let alert = UIAlertController(
+                title: String(localized: "Couldn\u{2019}t Use This Connection", comment: "Alert when a picked server connection does not answer"),
+                message: String(localized: "It didn\u{2019}t answer as your server, so Crucible stays on the connection it uses now.", comment: "Alert when a picked server connection does not answer"),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+            present(alert, animated: true)
         }
     }
 
@@ -184,6 +213,16 @@ final class ServerDetailViewController: UIViewController {
         snapshot.appendItems([.test], toSection: .test)
         snapshot.appendItems([.addServer, .tailnetAccess, .switchServer], toSection: .actions)
         dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    /// New or dropped routes rebuild the list; otherwise the rows on screen are redrawn in place.
+    private func modelChanged() {
+        let shown = dataSource.snapshot().itemIdentifiers(inSection: .connections)
+        guard shown == model.routes.map({ .route($0) }) else {
+            applySnapshot()
+            return
+        }
+        reconfigureLive()
     }
 
     private func reconfigureLive() {
@@ -268,6 +307,7 @@ extension ServerDetailViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .addServer, .tailnetAccess, .switchServer: return true
+        case .route: return true
         default: return false
         }
     }
@@ -278,6 +318,7 @@ extension ServerDetailViewController: UICollectionViewDelegate {
         case .addServer: presentAddServer()
         case .tailnetAccess: presentTailnetAccess()
         case .switchServer: presentServerSwitcher()
+        case .route(let url): use(url)
         default: break
         }
     }

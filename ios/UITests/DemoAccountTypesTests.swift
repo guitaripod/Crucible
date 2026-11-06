@@ -136,6 +136,27 @@ final class DemoAccountTypesTests: XCTestCase {
         IOSTest.capture("03-unlocked", in: self)
     }
 
+    func testServerAndConnectionSaysItSwitchesByItselfAndHoldsAPickedRoute() {
+        let app = enterDemo()
+        openYou(app)
+        XCTAssertTrue(hasRow("you.settings", in: app), "You lists Settings")
+        element(app, "you.settings").tap()
+        let category = element(app, "settings.category.connection")
+        XCTAssertTrue(category.waitForExistence(timeout: 20), "Settings lists Server & Connection")
+        category.tap()
+        let destination = element(app, "settings.dest.serverConnection")
+        XCTAssertTrue(destination.waitForExistence(timeout: 20), "the category opens the server screen")
+        destination.tap()
+        let footer = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH 'Crucible moves to the best connection'")).firstMatch
+        XCTAssertTrue(footer.waitForExistence(timeout: 20), "the routes say the app picks the best one by itself")
+        let route = app.cells.containing(NSPredicate(format: "label CONTAINS 'Local'")).firstMatch
+        XCTAssertTrue(route.waitForExistence(timeout: 20), "the demo's route is listed")
+        IOSTest.capture("01-server-and-connection", in: self)
+        route.tap()
+        IOSTest.settle(2)
+        XCTAssertFalse(app.alerts.firstMatch.exists, "picking the route in use holds it without complaint")
+    }
+
     func testClosingThePlexSignInSheetGivesTheWelcomeScreenBack() {
         let app = IOSTest.launch()
         let demo = element(app, "onboarding.demo")

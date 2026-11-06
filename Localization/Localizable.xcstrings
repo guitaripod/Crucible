@@ -22907,6 +22907,71 @@
         }
       }
     },
+    "Couldn’t Use This Connection" : {
+      "comment" : "Alert when a picked server connection does not answer",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbindung nicht verwendbar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo usar esta conexión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’utiliser cette connexion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile usare questa connessione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この接続を使用できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 연결을 사용할 수 없어요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można użyć tego połączenia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível usar esta conexão"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法使用此连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法使用此連線"
+          }
+        }
+      }
+    },
     "Couldn’t load this season." : {
       "localizations" : {
         "de" : {
@@ -24377,6 +24442,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crucible 已在您的 tailnet 中搜尋 %@。"
+          }
+        }
+      }
+    },
+    "Crucible moves to the best connection that answers whenever your network changes: home first, then Tailscale, then remote. Choose one to use it until the network changes again." : {
+      "comment" : "Footer under the server's connections in Server & Connection",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible wechselt bei jeder Netzwerkänderung zur besten Verbindung, die antwortet: zuerst zu Hause, dann Tailscale, dann remote. Wähle eine, um sie bis zur nächsten Netzwerkänderung zu verwenden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible pasa a la mejor conexión que responde cada vez que cambia tu red: primero la de casa, luego Tailscale y después la remota. Elige una para usarla hasta que la red vuelva a cambiar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible passe à la meilleure connexion qui répond dès que votre réseau change : d’abord celle de la maison, puis Tailscale, puis la connexion distante. Choisissez-en une pour l’utiliser jusqu’au prochain changement de réseau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible passa alla migliore connessione che risponde ogni volta che la rete cambia: prima quella di casa, poi Tailscale, poi quella remota. Scegline una per usarla fino al prossimo cambio di rete."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ネットワークが変わるたびに、Crucible は応答する最適な接続に切り替えます。優先順位は自宅、Tailscale、リモートの順です。接続を選ぶと、次にネットワークが変わるまでその接続を使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "네트워크가 바뀔 때마다 Crucible은 응답하는 가장 좋은 연결로 전환해요. 집 연결이 먼저, 그다음 Tailscale, 그다음 원격 연결이에요. 연결을 선택하면 네트워크가 다시 바뀔 때까지 그 연결을 사용해요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy sieć się zmienia, Crucible przełącza się na najlepsze połączenie, które odpowiada: najpierw domowe, potem Tailscale, a potem zdalne. Wybierz jedno, aby używać go do następnej zmiany sieci."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible passa para a melhor conexão que responde sempre que sua rede muda: primeiro a de casa, depois o Tailscale e depois a remota. Escolha uma para usá-la até a rede mudar de novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每当网络变化时，Crucible 会切换到可响应的最佳连接：优先家庭网络，其次 Tailscale，然后是远程连接。选择一个连接，即可一直使用，直到网络再次变化。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每當網路變更時，Crucible 會切換至可回應的最佳連線：優先家中網路，其次 Tailscale，然後是遠端連線。選擇一個連線，即可持續使用，直到網路再次變更。"
           }
         }
       }
@@ -37444,6 +37574,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的伺服器是否使用 Tailscale？"
+          }
+        }
+      }
+    },
+    "It didn’t answer as your server, so Crucible stays on the connection it uses now." : {
+      "comment" : "Alert when a picked server connection does not answer",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie hat nicht als dein Server geantwortet, daher bleibt Crucible bei der aktuellen Verbindung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No respondió como tu servidor, así que Crucible sigue con la conexión que usa ahora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elle n’a pas répondu comme votre serveur, Crucible garde donc la connexion actuelle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ha risposto come il tuo server, quindi Crucible resta sulla connessione attuale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーとして応答しなかったため、Crucible は現在の接続を使い続けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버로 응답하지 않아서 Crucible은 지금 쓰는 연결을 유지해요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie odpowiedziało jako Twój serwer, więc Crucible zostaje przy obecnym połączeniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ela não respondeu como seu servidor, então o Crucible continua na conexão atual."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它没有以你的服务器身份响应，因此 Crucible 继续使用当前连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它沒有以您的伺服器身分回應，因此 Crucible 會繼續使用目前的連線。"
           }
         }
       }
@@ -80883,6 +81078,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "透過網際網路或 Plex 中繼連線至伺服器時使用，這時上傳速度通常是限制。"
+          }
+        }
+      }
+    },
+    "Uses this connection until the network changes" : {
+      "comment" : "VoiceOver hint of a server connection row",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwendet diese Verbindung bis zur nächsten Netzwerkänderung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa esta conexión hasta que cambie la red"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise cette connexion jusqu’au prochain changement de réseau"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa questa connessione fino al prossimo cambio di rete"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次にネットワークが変わるまでこの接続を使います"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "네트워크가 바뀔 때까지 이 연결을 사용해요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używa tego połączenia do następnej zmiany sieci"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa esta conexão até a rede mudar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在网络变化前一直使用此连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在網路變更前持續使用此連線"
           }
         }
       }

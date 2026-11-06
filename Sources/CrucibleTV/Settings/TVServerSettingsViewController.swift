@@ -60,7 +60,26 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
         case RowID.switchServer:
             env.session.switchServer()
         default:
-            break
+            guard id.hasPrefix(RowID.routePrefix), let url = URL(string: String(id.dropFirst(RowID.routePrefix.count))) else { return }
+            use(url)
+        }
+    }
+
+    /// Uses the route picked until the network changes; a route that does not answer as the server is refused with a word why.
+    private func use(_ url: URL) {
+        Task { [weak self] in
+            guard let self else { return }
+            if await model.use(url) {
+                render()
+                return
+            }
+            let alert = UIAlertController(
+                title: String(localized: "Couldn\u{2019}t Use This Connection", comment: "Alert when a picked server connection does not answer"),
+                message: String(localized: "It didn\u{2019}t answer as your server, so Crucible stays on the connection it uses now.", comment: "Alert when a picked server connection does not answer"),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+            present(alert, animated: true)
         }
     }
 
@@ -92,8 +111,7 @@ final class TVServerSettingsViewController: TVSettingsScaffold {
             subtitle: route.isInUse ? String(localized: "In use · \(route.detail)") : route.detail,
             value: route.latencyText,
             symbol: route.kind.symbolName,
-            accessory: route.isInUse ? .checkmark : .none,
-            isEnabled: !route.isDimmed
+            accessory: route.isInUse ? .checkmark : .none
         )
     }
 
@@ -110,6 +128,7 @@ final class TVServerCardView: TVReadOnlyPanel {
     private let subtitleLabel = UILabel()
     private let statusDot = TVStatusDot(color: Theme.Color.labelTertiary)
     private let statusLabel = UILabel()
+    private let footnoteLabel = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -123,6 +142,7 @@ final class TVServerCardView: TVReadOnlyPanel {
         nameLabel.text = card.name
         subtitleLabel.text = card.subtitle
         statusLabel.text = card.status
+        footnoteLabel.text = ServerConnectionModel.routesFooter
         statusDot.setColor(card.tone.color)
         accessibilityLabel = String(localized: "\(card.name), \(card.subtitle), \(card.status)")
     }
@@ -156,10 +176,15 @@ final class TVServerCardView: TVReadOnlyPanel {
         statusRow.spacing = Theme.Space.xs
         statusRow.alignment = .center
 
-        let text = UIStackView(arrangedSubviews: [nameLabel, subtitleLabel, statusRow])
+        footnoteLabel.font = Theme.Font.caption1Regular
+        footnoteLabel.textColor = Theme.Color.labelSecondary
+        footnoteLabel.numberOfLines = 0
+
+        let text = UIStackView(arrangedSubviews: [nameLabel, subtitleLabel, statusRow, footnoteLabel])
         text.axis = .vertical
         text.spacing = Theme.Space.xs
         text.setCustomSpacing(Theme.Space.s, after: subtitleLabel)
+        text.setCustomSpacing(Theme.Space.m, after: statusRow)
 
         let root = UIStackView(arrangedSubviews: [iconWell, text])
         root.axis = .vertical

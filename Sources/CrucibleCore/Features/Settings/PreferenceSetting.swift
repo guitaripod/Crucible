@@ -333,6 +333,9 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         default:
             return
         }
+        if self == .preferLocalConnection || self == .allowRelayConnection {
+            ServerRouteMonitor.shared.preferencesChanged()
+        }
         Self.didChange?(self)
     }
 

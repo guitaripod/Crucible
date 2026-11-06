@@ -107,21 +107,59 @@ extension PlaybackSession {
 
     /// AVPlayer failures are otherwise completely silent (a black screen): every failure is logged with
     /// its real error, a direct-play failure is retried once through the transcoder, and a transcode that
-    /// fails soon after the app came back (the server reaped it) is restarted at the viewer's position.
+    /// fails soon after the app came back (the server reaped it) or after the app moved to another route
+    /// (`routeMoved` has rebuilt it) is restarted at the viewer's position. Any other first transcode
+    /// failure asks for the routes to be tried before it is reported: when the route in use turns out to be
+    /// gone, the move rebuilds the stream on the new route and the failure is dropped. Failures that arrive
+    /// while that look runs wait for it.
     private func handleFailure(_ message: String) {
-        guard !isStopped else { return }
+        guard !isStopped, routeCheckTask == nil else { return }
         let wasDirectPlay = stream?.isDirectPlay ?? false
         MidgarLog.error("Playback failed ratingKey=\(request.ratingKey) directPlay=\(wasDirectPlay): \(message)", category: .playback)
         let justReturned = returnedAt.map { Date().timeIntervalSince($0) <= PlaybackFailurePolicy.returnWindow } ?? false
         let gone = liveness?.mayBeGone(at: now()) ?? false
-        switch failurePolicy.decide(wasDirectPlay: wasDirectPlay, isOffline: request.offline != nil, justReturned: justReturned || gone) {
+        let moved = ServerRouteMonitor.shared.lastMove.map { Date().timeIntervalSince($0.at) <= PlaybackFailurePolicy.returnWindow } ?? false
+        let afterBreak = justReturned || gone || moved
+        guard !afterBreak, !wasDirectPlay, request.offline == nil, !hasCheckedRouteAfterFailure else {
+            resolveFailure(message, wasDirectPlay: wasDirectPlay, afterBreak: afterBreak)
+            return
+        }
+        hasCheckedRouteAfterFailure = true
+        routeCheckTask = Task { [weak self] in
+            let decision = await ServerRouteMonitor.shared.checkNow(reason: "playback failed")
+            guard let self, !Task.isCancelled, !isStopped else { return }
+            routeCheckTask = nil
+            if case .move(_, .lost) = decision { return }
+            resolveFailure(message, wasDirectPlay: wasDirectPlay, afterBreak: false)
+        }
+    }
+
+    /// The route the stream came from is gone and the app moved to another: the stream is resolved again at the playhead on the
+    /// new route, in the same tracks, so it plays on instead of freezing until AVPlayer gives up on the old address.
+    func routeMoved(_ move: ServerRouteMonitor.Move) {
+        guard move.reason == .lost, !isStopped, request.offline == nil, player != nil else { return }
+        MidgarLog.notice("Rebuilding the stream on the new route ratingKey=\(request.ratingKey) position=\(Int(bestKnownPosition))", category: .playback)
+        failurePolicy.noteReturn()
+        rebuildTask?.cancel()
+        rebuildTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await selectStreams(subtitleId: selectedSubtitleId, audioStreamId: selectedAudioStreamId)
+            } catch {
+                MidgarLog.error("Rebuilding the stream on the new route failed ratingKey=\(request.ratingKey): \(error.localizedDescription)", category: .playback)
+            }
+        }
+    }
+
+    private func resolveFailure(_ message: String, wasDirectPlay: Bool, afterBreak: Bool) {
+        switch failurePolicy.decide(wasDirectPlay: wasDirectPlay, isOffline: request.offline != nil, justReturned: afterBreak) {
         case .ignore:
             break
         case .restartTranscode:
             guard !isRestarting else { return }
             let position = bestKnownPosition
             MidgarLog.notice("Restarting the transcode after a failure ratingKey=\(request.ratingKey) position=\(Int(position))", category: .playback)
-            restartTranscode(atAbsolute: position, resumesPlayback: wasPlayingAtLastTick, freshSession: true, reason: "failure after a return")
+            restartTranscode(atAbsolute: position, resumesPlayback: wasPlayingAtLastTick, freshSession: true, reason: "failure after a return or a route move")
         case .fail:
             emit(.failed(message))
         case .fallBackToTranscode:

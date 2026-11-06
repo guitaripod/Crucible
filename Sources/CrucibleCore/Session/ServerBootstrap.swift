@@ -110,6 +110,12 @@ package enum ServerBootstrap {
         return [primary] + others.filter { seen.insert($0).inserted }
     }
 
+    /// Keeps `routes` as the server's known routes, best-first after the pinned one, as found again on plex.tv and the tailnet.
+    static func updateCandidates(_ routes: [URL]) {
+        guard let pinned = UserDefaults.standard.string(forKey: serverURIKey).flatMap(URL.init(string:)) else { return }
+        UserDefaults.standard.set(orderedRoutes(primary: pinned, others: routes).map(\.absoluteString), forKey: candidateURIsKey)
+    }
+
     /// Rewrites the pinned URI after a successful failover, keeping the full candidate list.
     static func repin(uri: URL) {
         guard var candidates = UserDefaults.standard.stringArray(forKey: candidateURIsKey)?.compactMap(URL.init(string:)) else {

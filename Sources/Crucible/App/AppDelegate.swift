@@ -22,6 +22,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         DemoCoordinator.shared.install()
         DownloadManager.shared.bootstrap()
         NotificationCoordinator.shared.install()
+        ServerRouteMonitor.shared.start()
+        Self.followAppActivity()
         PreferenceSetting.didChange = { setting in Self.preferenceChanged(setting) }
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -29,6 +31,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             installMainMenu()
         }
         return true
+    }
+
+    /// The route monitor looks again when the app comes back to the front, and rests while it is away.
+    private static func followAppActivity() {
+        let center = NotificationCenter.default
+        center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { ServerRouteMonitor.shared.appBecameActive() }
+        }
+        center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { ServerRouteMonitor.shared.appResignedActive() }
+        }
     }
 
     /// Carries a change made in Settings to the part of the app that owns it.

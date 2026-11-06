@@ -198,7 +198,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             message: failure.message,
             canOpenDownloads: hasOffline
         )
-        gate.onOpenDownloads = { [weak self] in self?.showOfflineDownloads(connection: connection) }
+        gate.onOpenDownloads = { [weak self] in self?.showOfflineDownloads(connection: ServerBootstrap.connection() ?? connection) }
     }
 
     /// Shows the library another window connected to, without connecting again. Home loads its own shelves when the payload is no longer
@@ -243,6 +243,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         DownloadManager.shared.configure(baseURL: connection.serverURI, token: connection.authToken)
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
+        ServerRouteMonitor.shared.mainAppReady()
         return TabBarController(payload: payload)
     }
 

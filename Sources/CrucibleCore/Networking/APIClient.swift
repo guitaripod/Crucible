@@ -51,9 +51,10 @@ package actor APIClient {
     private static let cacheTTL: TimeInterval = 120
     private var containerCache: [String: CacheEntry] = [:]
 
-    /// Current server base URL. Awaitable from anywhere; follows failover repins.
+    /// Current server base URL. Awaitable from anywhere; follows a route switch made by any client or the route monitor.
     package var baseURL: URL {
-        get { baseURLStorage }
+        followMovedRoute()
+        return baseURLStorage
     }
     package init(baseURL: URL, token: String) {
         self.baseURLStorage = baseURL
@@ -61,15 +62,29 @@ package actor APIClient {
         self.decoder = JSONDecoder()
     }
 
-    /// Called (rarely) when failover repins the server address; reconfigures the URL-derived
-    /// singletons so image loads and downloads follow the new route.
+    /// Called (rarely) when the server's route changes; reconfigures the URL-derived singletons so image loads and downloads
+    /// follow the new route.
     package nonisolated static let onBaseURLChanged = OSAllocatedUnfairLock<(@Sendable (URL) -> Void)?>(initialState: nil)
 
-    private func applyFailover(to newURL: URL) {
-        guard newURL != baseURLStorage else { return }
-        baseURLStorage = newURL
+    /// The route the connected server moved to last and the routes it replaced, so every client of that server follows a
+    /// switch made by one of them, or by the route monitor, on its next request instead of finding the old route dead itself.
+    private nonisolated static let movedRoute = OSAllocatedUnfairLock<(from: Set<URL>, to: URL)?>(initialState: nil)
+
+    /// Moves every client of the server reachable at `routes` to `url`, and the image loader and downloads with them.
+    package nonisolated static func move(to url: URL, replacing routes: Set<URL>) {
+        movedRoute.withLock { $0 = (routes.union([url]), url) }
+        onBaseURLChanged.withLock { $0 }?(url)
+    }
+
+    /// A sign-out or another server: no client follows the last server's move any more.
+    package nonisolated static func forgetMovedRoute() {
+        movedRoute.withLock { $0 = nil }
+    }
+
+    private func followMovedRoute() {
+        guard let moved = Self.movedRoute.withLock({ $0 }), moved.to != baseURLStorage, moved.from.contains(baseURLStorage) else { return }
+        baseURLStorage = moved.to
         containerCache.removeAll()
-        Self.onBaseURLChanged.withLock { $0 }?(newURL)
     }
 
     package func invalidateCache() {
@@ -93,11 +108,18 @@ package actor APIClient {
     }
 
     private func requestRaw(_ endpoint: PlexEndpoint) async throws -> (Data, HTTPURLResponse) {
-        let urlRequest = try endpoint.urlRequest(baseURL: baseURL, token: token)
+        followMovedRoute()
+        let used = baseURLStorage
+        let urlRequest = try endpoint.urlRequest(baseURL: used, token: token)
         do {
             return try await Self.performWithRetry { try await Self.send(urlRequest) }
         } catch {
             guard Self.isTransportFailure(error), Self.canAttemptFailover else { throw error }
+            followMovedRoute()
+            if baseURLStorage != used {
+                let moved = try endpoint.urlRequest(baseURL: baseURLStorage, token: token)
+                return try await Self.performWithRetry { try await Self.send(moved) }
+            }
             try await Self.backoff(attempt: 1)
             return try await failover { try await Self.send(try endpoint.urlRequest(baseURL: $0, token: token)) }
         }
@@ -229,7 +251,7 @@ package actor APIClient {
         _ replay: @Sendable (URL) async throws -> (Data, HTTPURLResponse)
     ) async throws -> (Data, HTTPURLResponse) {
         logger.error("Transport failure on \(self.baseURLStorage.absoluteString, privacy: .public); attempting failover")
-        let candidates = await Self.discoverCandidates(token: token, pinned: baseURL).filter { $0 != baseURL }
+        let candidates = await Self.discoverCandidates(token: ServerBootstrap.plexTVToken ?? token, pinned: baseURL).filter { $0 != baseURL }
         var reachable = await ServerConnectionResolver.firstReachable(candidates, token: token)
         if reachable == nil, let connection = ServerBootstrap.connection() {
             let tailnet = await ServerConnectionResolver.tailnetRoutes(for: connection).filter { $0 != baseURL }
@@ -243,7 +265,8 @@ package actor APIClient {
         logger.notice("Failover to \(candidate.absoluteString, privacy: .public)")
         MidgarLog.notice("Failover to \(candidate.absoluteString)", category: .networking)
         ServerBootstrap.repin(uri: candidate)
-        applyFailover(to: candidate)
+        Self.move(to: candidate, replacing: Set(candidates + [baseURLStorage]))
+        followMovedRoute()
         return try await Self.performWithRetry { try await replay(candidate) }
     }
 

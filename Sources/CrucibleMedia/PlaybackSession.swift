@@ -102,6 +102,10 @@ package final class PlaybackSession {
     var undoTask: Task<Void, Never>?
     var upNextTask: Task<Void, Never>?
     var fallbackTask: Task<Void, Never>?
+    var routeCheckTask: Task<Void, Never>?
+    var rebuildTask: Task<Void, Never>?
+    var hasCheckedRouteAfterFailure = false
+    var routeObservation: UUID?
 
     /// `installsRemoteCommands` is false for a player whose system UI already owns the remote
     /// commands (the tvOS player): a second set of handlers would double-toggle play and pause.
@@ -235,6 +239,9 @@ package final class PlaybackSession {
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
         self.player = player
+        if request.offline == nil {
+            routeObservation = ServerRouteMonitor.shared.observe { [weak self] move in self?.routeMoved(move) }
+        }
         if let item = player.currentItem { configureItem?(item) }
         if !request.isExtra {
             reporter = PlaybackReporter(
@@ -390,7 +397,11 @@ package final class PlaybackSession {
     }
 
     private func cancelBackgroundWork() {
-        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask] { task?.cancel() }
+        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask, routeCheckTask, rebuildTask] { task?.cancel() }
+        routeCheckTask = nil
+        rebuildTask = nil
+        if let routeObservation { ServerRouteMonitor.shared.stopObserving(routeObservation) }
+        routeObservation = nil
         pingTask = nil
         undoTask = nil
         upNextTask = nil

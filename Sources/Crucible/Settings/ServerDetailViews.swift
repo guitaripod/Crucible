@@ -221,7 +221,8 @@ final class RouteRowContentView: UIView, UIContentView {
         parts.append(config.detail)
         parts.append(config.latencyText)
         accessibilityLabel = parts.joined(separator: ", ")
-        accessibilityTraits = config.isInUse ? [.staticText, .selected] : .staticText
+        accessibilityTraits = config.isInUse ? [.button, .selected] : .button
+        accessibilityHint = String(localized: "Uses this connection until the network changes", comment: "VoiceOver hint of a server connection row")
     }
 }
 

@@ -60,11 +60,22 @@ package final class YouConnectionStatus {
 
     private(set) var task: Task<Void, Never>?
     private var probedURL: URL?
+    private var api: APIClient?
 
     init() {}
 
     package func refresh(api: APIClient) {
+        self.api = api
         refresh(baseURL: { await api.baseURL }, identityCheck: { await api.identityCheck() })
+    }
+
+    /// The app moved to another route: it is measured again at once, so You says where the server is reached now.
+    package func routeChanged() {
+        task?.cancel()
+        task = nil
+        probedURL = nil
+        guard let api else { return }
+        refresh(api: api)
     }
 
     func refresh(baseURL: @escaping @Sendable () async -> URL, identityCheck: @escaping @Sendable () async -> Bool) {
@@ -80,6 +91,7 @@ package final class YouConnectionStatus {
             let clock = ContinuousClock()
             let start = clock.now
             let ok = await identityCheck()
+            guard !Task.isCancelled else { return }
             let elapsed = start.duration(to: clock.now)
             probedURL = url
             let milliseconds = Int((Double(elapsed.components.seconds) * 1000 + Double(elapsed.components.attoseconds) / 1e15).rounded())
@@ -93,6 +105,7 @@ package final class YouConnectionStatus {
         task?.cancel()
         task = nil
         probedURL = nil
+        api = nil
         update(.connecting)
     }
 

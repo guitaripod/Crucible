@@ -57,23 +57,55 @@ package final class ServerConnectionModel {
     package var onFinish: (() -> Void)?
 
     private let environment: Environment
+    private let monitor: ServerRouteMonitor
     private var probes: [URL: ProbeState] = [:]
     private var relayRoutes: Set<URL> = []
     private var version: String?
     private var isOwned: Bool?
     private var probeTask: Task<Void, Never>?
+    private var moveObservation: UUID?
 
-    package init(environment: Environment = .live) {
+    /// How the routes section explains itself: the app picks the route on its own, and a route the viewer picks holds until the
+    /// network changes.
+    package static let routesFooter = String(
+        localized: "Crucible moves to the best connection that answers whenever your network changes: home first, then Tailscale, then remote. Choose one to use it until the network changes again.",
+        comment: "Footer under the server's connections in Server & Connection"
+    )
+
+    package init(environment: Environment = .live, monitor: ServerRouteMonitor = .shared) {
         self.environment = environment
-        let active = environment.connection()?.serverURI ?? Self.fallbackURL
+        self.monitor = monitor
+        routes = Self.knownRoutes(environment)
+        moveObservation = monitor.observe { [weak self] _ in self?.routeMoved() }
+    }
+
+    deinit {
+        probeTask?.cancel()
+        if let moveObservation {
+            Task { @MainActor [monitor] in monitor.stopObserving(moveObservation) }
+        }
+    }
+
+    private static func knownRoutes(_ environment: Environment) -> [URL] {
+        let active = environment.connection()?.serverURI ?? fallbackURL
         var known = environment.connection()?.candidateURIs ?? []
         if !known.contains(active) {
             known.insert(active, at: 0)
         }
-        routes = known.uniqued(by: \.self)
+        return known.uniqued(by: \.self)
     }
 
-    deinit { probeTask?.cancel() }
+    /// Uses `url` until the network changes, when it answers as the server. Returns whether it did.
+    package func use(_ url: URL) async -> Bool {
+        let used = await monitor.use(url)
+        onChange?()
+        return used
+    }
+
+    private func routeMoved() {
+        routes = Self.knownRoutes(environment)
+        onChange?()
+    }
 
     /// The route the app is pinned to; failover repins update the persisted connection.
     package var activeRouteURL: URL {
@@ -154,6 +186,7 @@ package final class ServerConnectionModel {
     /// Probes every route at once and looks up the server on plex.tv. Replaces a run in flight.
     package func runTest() {
         probeTask?.cancel()
+        routes = Self.knownRoutes(environment)
         let urls = routes
         let token = authToken ?? ""
         let plexTVToken = environment.connection()?.plexTVToken ?? token

@@ -222,6 +222,7 @@ final class TVAppCoordinator: TVSessionActions {
         ImageLoader.shared.configure(baseURL: connection.serverURI, token: connection.authToken, machineIdentifier: connection.machineIdentifier)
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
+        ServerRouteMonitor.shared.mainAppReady()
         TVTopShelfRefresher.activate(api: api, machineIdentifier: connection.machineIdentifier)
         let environment = TVAppEnvironment(payload: payload, router: router, session: TVWeakSession(self))
         return TVRootTabBarController(environment: environment)

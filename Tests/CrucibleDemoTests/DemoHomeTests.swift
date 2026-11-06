@@ -147,3 +147,16 @@ extension DemoPlexTVTests {
         }
     }
 }
+
+/// The route monitor's own probe takes a route only when it answers as the server it is looking for, so an address that is the
+/// server at home and some other machine elsewhere is never taken for it.
+struct DemoRouteProbeTests {
+    @Test func aRouteCountsOnlyWhenItAnswersAsTheServer() async throws {
+        try await withDemo { demo in
+            let probe = ServerRouteMonitor.Environment.live.probe
+            #expect(await probe(demo.base, demo.endpoint.token, demo.endpoint.machineIdentifier, 3))
+            #expect(!(await probe(demo.base, demo.endpoint.token, "some-other-server", 3)))
+            #expect(!(await probe(URL(string: "http://127.0.0.1:9")!, demo.endpoint.token, demo.endpoint.machineIdentifier, 1)))
+        }
+    }
+}
