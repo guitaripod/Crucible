@@ -2,8 +2,8 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// About: the app's identity on the left, version, build, licence, source and the open-source
-/// credits on the right.
+/// About: the app's identity on the left, version, build, licence, source, the support address and the
+/// open-source credits on the right.
 final class TVAboutViewController: TVSettingsScaffold {
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -64,6 +64,7 @@ final class TVAboutViewController: TVSettingsScaffold {
                 symbol: "chevron.left.forwardslash.chevron.right"
             ))
         }
+        rows.append(TVRowItem(id: "about.support", title: String(localized: "Support"), subtitle: AppInfo.supportAddress, symbol: "envelope"))
         for credit in AppInfo.acknowledgements {
             rows.append(TVRowItem(
                 id: "about.credit.\(credit.name)",

@@ -10,6 +10,8 @@ package enum AppInfo {
 
     package static let sourceURL = URL(string: "https://github.com/guitaripod/Crucible")
     package static let licenseName = "GPL-3.0"
+    package static let supportAddress = "marcus@midgarcorp.cc"
+    package static let supportMailURL = URL(string: "mailto:\(supportAddress)?subject=Crucible")
     package static let licenseSummary = String(localized: "Crucible is free software, released under the GNU General Public License v3.0. You can read, change and share the source.")
 
     package static let acknowledgements = [

@@ -4,7 +4,7 @@ import UIKit
 
 final class AboutViewController: UICollectionViewController {
     enum Item: Int, Hashable, CaseIterable {
-        case version, build, license, source
+        case version, build, license, source, support
     }
 
     private var dataSource: UICollectionViewDiffableDataSource<Int, Item>!
@@ -50,6 +50,8 @@ final class AboutViewController: UICollectionViewController {
                 content = IconRowContentConfiguration(symbol: "doc.text", title: String(localized: "License"), value: AppInfo.licenseName)
             case .source:
                 content = IconRowContentConfiguration(symbol: "chevron.left.forwardslash.chevron.right", title: String(localized: "Source Code"), value: "GitHub")
+            case .support:
+                content = IconRowContentConfiguration(symbol: "envelope", title: String(localized: "Support"), value: AppInfo.supportAddress)
             }
             cell.contentConfiguration = content
             cell.accessories = []
@@ -72,13 +74,27 @@ final class AboutViewController: UICollectionViewController {
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
-        dataSource.itemIdentifier(for: indexPath) == .source
+        let item = dataSource.itemIdentifier(for: indexPath)
+        return item == .source || item == .support
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        if let url = AppInfo.sourceURL {
-            UIApplication.shared.open(url)
+        switch dataSource.itemIdentifier(for: indexPath) {
+        case .source:
+            if let url = AppInfo.sourceURL { UIApplication.shared.open(url) }
+        case .support:
+            openSupport()
+        default:
+            break
+        }
+    }
+
+    /// Starts an email to support, or copies the address where no mail app can take it.
+    private func openSupport() {
+        guard let url = AppInfo.supportMailURL else { return }
+        UIApplication.shared.open(url) { opened in
+            if !opened { UIPasteboard.general.string = AppInfo.supportAddress }
         }
     }
 }
