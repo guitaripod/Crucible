@@ -87,16 +87,16 @@ struct SettingsServerConnectionTests {
         #expect(model.card.subtitle == "Plex Media Server 1.41.0 · Owned by you")
 
         let rows = model.routeRows
-        #expect(rows.map(\.kind) == [.local, .relay, .remote])
-        #expect(rows.map(\.kindTitle) == ["Local", "Plex Relay", "Remote"])
-        #expect(rows.map(\.latencyText) == ["12 ms", "180 ms", "Unreachable"])
+        #expect(rows.map(\.kind) == [.local, .remote, .relay])
+        #expect(rows.map(\.kindTitle) == ["Local", "Remote", "Plex Relay"])
+        #expect(rows.map(\.latencyText) == ["12 ms", "Unreachable", "180 ms"])
         #expect(rows.map(\.isInUse) == [true, false, false])
-        #expect(rows.map(\.showsWarning) == [false, true, false])
+        #expect(rows.map(\.showsWarning) == [false, false, true])
         #expect(rows.map(\.isDimmed) == [false, true, true])
         #expect(rows[0].detail == Self.local.absoluteString)
         #expect(rows[0].detailIsMonospaced)
-        #expect(rows[1].detail == "Bandwidth limited, may force transcoding")
-        #expect(!rows[1].detailIsMonospaced)
+        #expect(rows[2].detail == "Bandwidth limited, may force transcoding")
+        #expect(!rows[2].detailIsMonospaced)
     }
 
     @Test func sharedServersAreLabelledAsSuch() async throws {
@@ -173,5 +173,27 @@ struct SettingsServerConnectionTests {
         #expect(model.isTesting)
         #expect(model.probeState(for: Self.local) == .probing)
         model.stop()
+    }
+
+    @Test func containerNetworkRoutesStayHiddenUnlessTheyAnswer() async {
+        let bridge = URL(string: "https://172-17-0-1.abc.plex.direct:32400")!
+        let answering = URL(string: "http://172.18.0.1:32400")!
+        #expect(ConnectionRoute.isContainerBridge(bridge))
+        #expect(!ConnectionRoute.isContainerBridge(URL(string: "http://172.16.0.4:32400")!))
+        #expect(!ConnectionRoute.isContainerBridge(Self.local))
+        let model = ServerConnectionModel(environment: Self.environment(
+            connection: Self.connection(candidates: [bridge, Self.remote, answering]),
+            probes: [Self.local: ConnectionProbe(latencyMs: 4, version: nil, machineIdentifier: "machine-1"), answering: ConnectionProbe(latencyMs: 9, version: nil, machineIdentifier: "machine-1")]
+        ))
+        #expect(!model.routes.contains(bridge))
+        await finish(model)
+        #expect(model.routes == [Self.local, answering, Self.remote], "an answering container route is listed, one that does not is not")
+    }
+
+    @Test func theListKeepsItsOrderWhicheverRouteIsInUse() {
+        let atHome = ServerConnectionModel(environment: Self.environment(connection: Self.connection(active: Self.local, candidates: [Self.remote, Self.tailscale]), probes: [:]))
+        let away = ServerConnectionModel(environment: Self.environment(connection: Self.connection(active: Self.tailscale, candidates: [Self.local, Self.remote]), probes: [:]))
+        #expect(atHome.routes == away.routes)
+        #expect(atHome.routes == [Self.local, Self.tailscale, Self.remote])
     }
 }

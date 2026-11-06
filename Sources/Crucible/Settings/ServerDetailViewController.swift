@@ -215,12 +215,11 @@ final class ServerDetailViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
-    /// New or dropped routes rebuild the list; otherwise the rows on screen are redrawn in place.
+    /// New, dropped or reordered routes rebuild the list, and every row on screen is drawn again, since a rebuilt list keeps the
+    /// cells of the routes it already had as they were.
     private func modelChanged() {
-        let shown = dataSource.snapshot().itemIdentifiers(inSection: .connections)
-        guard shown == model.routes.map({ .route($0) }) else {
+        if dataSource.snapshot().itemIdentifiers(inSection: .connections) != model.routes.map({ .route($0) }) {
             applySnapshot()
-            return
         }
         reconfigureLive()
     }

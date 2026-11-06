@@ -51,7 +51,17 @@ package final class ServerConnectionModel {
 
     private static let fallbackURL = URL(string: "http://localhost:32400")!
 
-    package private(set) var routes: [URL]
+    private var known: [URL]
+
+    /// The routes the screen lists: every known route except the addresses of container networks on the server's own machine,
+    /// which plex.tv advertises but no other device can reach, unless one of them does answer or is in use.
+    package var routes: [URL] {
+        known.filter { url in
+            guard ConnectionRoute.isContainerBridge(url) else { return true }
+            if case .reachable = probes[url] { return true }
+            return url == activeRouteURL
+        }
+    }
     package private(set) var isTesting = false
     package var onChange: (() -> Void)?
     package var onFinish: (() -> Void)?
@@ -75,7 +85,7 @@ package final class ServerConnectionModel {
     package init(environment: Environment = .live, monitor: ServerRouteMonitor = .shared) {
         self.environment = environment
         self.monitor = monitor
-        routes = Self.knownRoutes(environment)
+        known = Self.knownRoutes(environment)
         moveObservation = monitor.observe { [weak self] _ in self?.routeMoved() }
     }
 
@@ -86,13 +96,18 @@ package final class ServerConnectionModel {
         }
     }
 
+    /// Within a tier: the server's own addresses before its container networks, HTTPS before HTTP, then by address.
+    private static func listingKey(_ url: URL) -> (Int, Int, String) {
+        (ConnectionRoute.isContainerBridge(url) ? 1 : 0, ConnectionRoute.isHTTPS(url) ? 0 : 1, url.absoluteString)
+    }
+
+    /// Every known route, best tier first, in an order that does not change when the app moves between them, so a move only
+    /// moves the In Use mark.
     private static func knownRoutes(_ environment: Environment) -> [URL] {
         let active = environment.connection()?.serverURI ?? fallbackURL
-        var known = environment.connection()?.candidateURIs ?? []
-        if !known.contains(active) {
-            known.insert(active, at: 0)
-        }
-        return known.uniqued(by: \.self)
+        let known = [active] + (environment.connection()?.candidateURIs ?? [])
+        let stable = known.sorted { Self.listingKey($0) < Self.listingKey($1) }
+        return RoutePlan.ordered(stable, kind: ConnectionRoute.kind(of:), allowRelay: true)
     }
 
     /// Uses `url` until the network changes, when it answers as the server. Returns whether it did.
@@ -103,7 +118,7 @@ package final class ServerConnectionModel {
     }
 
     private func routeMoved() {
-        routes = Self.knownRoutes(environment)
+        known = Self.knownRoutes(environment)
         onChange?()
     }
 
@@ -186,8 +201,8 @@ package final class ServerConnectionModel {
     /// Probes every route at once and looks up the server on plex.tv. Replaces a run in flight.
     package func runTest() {
         probeTask?.cancel()
-        routes = Self.knownRoutes(environment)
-        let urls = routes
+        known = Self.knownRoutes(environment)
+        let urls = known
         let token = authToken ?? ""
         let plexTVToken = environment.connection()?.plexTVToken ?? token
         let environment = environment

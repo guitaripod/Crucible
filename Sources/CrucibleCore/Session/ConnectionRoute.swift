@@ -43,6 +43,13 @@ package enum ConnectionRoute {
         return kind(ofName: host)
     }
 
+    /// Whether `url` is an address of a container network (Docker's 172.17.0.0 to 172.31.255.255 bridges) on the server's own
+    /// machine, literal or inside a `plex.direct` name.
+    package static func isContainerBridge(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased(), let octets = directAddress(from: host) else { return false }
+        return octets[0] == 172 && (17...31).contains(octets[1])
+    }
+
     package static func isHTTPS(_ url: URL) -> Bool {
         url.scheme?.lowercased() == "https"
     }

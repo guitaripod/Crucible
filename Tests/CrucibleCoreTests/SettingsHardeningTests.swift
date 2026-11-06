@@ -95,6 +95,6 @@ struct ServerRoutesAreUniqueTests {
             probe: { _, _ in nil },
             serverResource: { _ in nil }
         ))
-        #expect(model.routes == [Self.remote, Self.local])
+        #expect(model.routes == [Self.local, Self.remote])
     }
 }

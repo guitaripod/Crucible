@@ -177,6 +177,8 @@ final class RouteRowContentView: UIView, UIContentView {
         checkIcon.image = UIImage(systemName: "checkmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .bold))
         checkIcon.tintColor = Theme.Color.accentText
         checkIcon.setContentHuggingPriority(.required, for: .horizontal)
+        checkIcon.setContentCompressionResistancePriority(.required, for: .horizontal)
+        warningIcon.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         let titleRow = UIStackView(arrangedSubviews: [kindLabel, inUseLabel, UIView()])
         titleRow.spacing = 8
