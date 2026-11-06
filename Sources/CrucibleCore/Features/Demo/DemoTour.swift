@@ -63,6 +63,8 @@ package enum DemoCopy {
     package static let finaleBody = String(localized: "Crucible is free to use with your own server. Crucible Pro adds unlimited downloads, full Statistics, the Year in Review poster and Top Shelf, once, for every device.")
     package static let finaleKeepExploring = String(localized: "Keep exploring")
     package static let finalePro = String(localized: "See Crucible Pro")
+    package static let freePreviewTitle = String(localized: "Preview Free Version", comment: "Demo switch that locks Crucible Pro's features the way a free install has them")
+    package static let freePreviewDetail = String(localized: "Locks Crucible Pro’s features as on a free install. A purchase made here is real.", comment: "Under the demo's Preview Free Version switch")
 }
 
 /// The demo's guided tour: which steps the user has done, saved per demo session. When enough are done the soft paywall appears once.

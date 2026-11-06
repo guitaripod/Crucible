@@ -8,6 +8,7 @@ import UIKit
 final class TVYouViewController: TVSettingsScaffold {
     private enum RowID {
         static let demo = "you.demo"
+        static let freePreview = "you.demoFreePreview"
         static let switchProfile = "you.switchProfile"
         static let playlists = "you.playlists"
         static let watchlist = "you.watchlist"
@@ -87,6 +88,7 @@ final class TVYouViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         switch id {
         case RowID.demo: push(TVScreens.demoTour(env))
+        case RowID.freePreview: DemoMode.shared.setPreviewsFreeVersion(!DemoMode.shared.previewsFreeVersion)
         case RowID.switchProfile: push(TVScreens.profiles(env))
         case RowID.playlists: push(TVScreens.playlists(env))
         case RowID.watchlist: push(TVScreens.watchlist(env))
@@ -177,7 +179,7 @@ final class TVYouViewController: TVSettingsScaffold {
 
     /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
     private func refreshHomeProfiles() async {
-        guard !DemoMode.shared.isActive, let token = ServerBootstrap.accountToken else { return }
+        guard let token = ServerBootstrap.accountToken else { return }
         _ = try? await HomeProfiles.load(accountToken: token)
     }
 
@@ -214,7 +216,7 @@ final class TVYouViewController: TVSettingsScaffold {
         if ProAccess.shared.isStoreBacked {
             rows.insert(proRow(), at: 2)
         }
-        if !DemoMode.shared.isActive, HomeProfiles.knownCount > 1 {
+        if HomeProfiles.knownCount > 1 {
             rows.insert(TVRowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron), at: 0)
         }
         if ServerOwnership.isOwner(), let activity = rows.firstIndex(where: { $0.id == RowID.activity }) {
@@ -222,6 +224,7 @@ final class TVYouViewController: TVSettingsScaffold {
         }
         if inDemo {
             rows.removeAll { $0.id == RowID.server }
+            if ProAccess.shared.isStoreBacked, !ProAccess.shared.isPro { rows.insert(freePreviewRow(), at: 0) }
             rows.insert(demoRow(), at: 0)
         }
         setRows(rows)
@@ -239,6 +242,16 @@ final class TVYouViewController: TVSettingsScaffold {
     }
 
     /// Sign Out becomes Leave the Demo while the demo runs: there is no account to sign out of.
+    private func freePreviewRow() -> TVRowItem {
+        TVRowItem(
+            id: RowID.freePreview,
+            title: DemoCopy.freePreviewTitle,
+            subtitle: DemoCopy.freePreviewDetail,
+            value: DemoMode.shared.previewsFreeVersion ? String(localized: "On") : String(localized: "Off"),
+            symbol: "lock"
+        )
+    }
+
     private func signOutRow(inDemo: Bool) -> TVRowItem {
         guard inDemo else {
             return TVRowItem(id: RowID.signOut, title: String(localized: "Sign Out"), symbol: "rectangle.portrait.and.arrow.right", isDestructive: true)

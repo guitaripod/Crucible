@@ -30,8 +30,8 @@ package protocol DemoProviding: AnyObject, Sendable {
 }
 
 /// The demo: a fictional Plex library that runs inside the app so nobody needs a server, an account or a Plex Pass to try Crucible.
-/// While it is on, the saved session points at it, everything is unlocked and the Statistics are the demo's own; leaving it forgets
-/// all of that like a sign-out does.
+/// While it is on, the saved session points at it, everything is unlocked unless the free version is being previewed, and the
+/// Statistics and the Pro Week are the demo's own; leaving it forgets all of that like a sign-out does.
 @MainActor
 package final class DemoMode {
     package static let shared = DemoMode()
@@ -39,6 +39,7 @@ package final class DemoMode {
     package typealias Observer = @MainActor (Bool) -> Void
 
     package static let activeKey = "crucible_demo_active"
+    package static let freePreviewKey = "crucible_demo_free_preview"
 
     package private(set) var provider: (any DemoProviding)?
     package private(set) var endpoint: DemoEndpoint?
@@ -56,18 +57,34 @@ package final class DemoMode {
 
     package var isActive: Bool { defaults.bool(forKey: Self.activeKey) }
 
+    /// The demo shows the free version: Crucible Pro's features are locked as on a free install, reaching one opens the paywall, a
+    /// purchase unlocks them for real, and the first title watched to the end starts a Pro Week of the demo's own.
+    package var previewsFreeVersion: Bool { isActive && defaults.bool(forKey: Self.freePreviewKey) }
+
+    package func setPreviewsFreeVersion(_ preview: Bool) {
+        guard isActive, preview != previewsFreeVersion else { return }
+        defaults.set(preview, forKey: Self.freePreviewKey)
+        access.setDemoUnlocked(!preview)
+        MidgarLog.notice("Demo free version preview \(preview ? "on" : "off")", category: .lifecycle)
+        notify()
+    }
+
     /// Offers the demo. Called once by an app entry point that links `CrucibleDemo`.
     package func install(_ provider: any DemoProviding) {
         self.provider = provider
     }
 
-    /// Starts the library and signs the app in to it. Throws when the library cannot start; nothing has changed then.
+    /// Starts the library and signs the app in to it, unlocked, as the owner, with the demo's Pro Week still to come. Throws when the
+    /// library cannot start; nothing has changed then.
     package func enter() async throws {
         guard let provider else { throw DemoError.unavailable }
         let endpoint = try await provider.start()
-        configureSession(for: endpoint)
+        configureSession(for: endpoint, resuming: false)
         self.endpoint = endpoint
         defaults.set(true, forKey: Self.activeKey)
+        defaults.removeObject(forKey: Self.freePreviewKey)
+        access.useDemoProWeek(false)
+        access.useDemoProWeek(true)
         access.setDemoUnlocked(true)
         DemoTour.shared.begin()
         MidgarLog.notice("Demo started", category: .lifecycle)
@@ -75,31 +92,34 @@ package final class DemoMode {
     }
 
     /// Brings a demo that was running when the app last quit back to life. The library starts on a new port, so the saved server address
-    /// is replaced. When it cannot start the demo is left and the app returns to its welcome screen.
+    /// is replaced; the Home profile watching and the free version preview stay as they were. When it cannot start the demo is left and
+    /// the app returns to its welcome screen.
     @discardableResult
     package func resume() async -> Bool {
         guard isActive else { return false }
         guard let provider, let endpoint = try? await provider.start() else {
             MidgarLog.error("The demo could not resume; leaving it", category: .lifecycle)
-            defaults.set(false, forKey: Self.activeKey)
-            PlexTVHost.setOverride(nil)
-            access.setDemoUnlocked(false)
+            forgetDemoState()
             return false
         }
-        configureSession(for: endpoint)
+        guard isActive else {
+            await provider.stop()
+            return false
+        }
+        configureSession(for: endpoint, resuming: true)
         self.endpoint = endpoint
-        access.setDemoUnlocked(true)
+        access.useDemoProWeek(true)
+        access.setDemoUnlocked(!previewsFreeVersion)
         notify()
         return true
     }
 
-    /// Leaves the demo: stops the library and forgets the session, the statistics and the tour, exactly like a sign-out.
+    /// Leaves the demo: stops the library and forgets the session, the statistics and the tour, exactly like a sign-out. The demo is
+    /// over before the library stops, so a resume that comes in meanwhile cannot bring it back.
     package func exit(_ collaborators: AccountSessionCollaborators) async {
+        forgetDemoState()
         await provider?.stop()
-        defaults.set(false, forKey: Self.activeKey)
-        PlexTVHost.setOverride(nil)
         endpoint = nil
-        access.setDemoUnlocked(false)
         DemoTour.shared.reset()
         AccountSessionReset.signOut(collaborators)
         MidgarLog.notice("Demo left", category: .lifecycle)
@@ -117,12 +137,23 @@ package final class DemoMode {
         observers[token] = nil
     }
 
-    private func configureSession(for endpoint: DemoEndpoint) {
+    /// Points the saved session at the library. Entering starts a new session; resuming only moves it to the library's new address,
+    /// so the Home profile watching stays.
+    private func configureSession(for endpoint: DemoEndpoint, resuming: Bool) {
         PlexTVHost.setOverride(endpoint.plexTVURL)
-        ServerBootstrap.clear()
+        if !resuming { ServerBootstrap.clear() }
         ServerBootstrap.saveToken(endpoint.token)
         ServerBootstrap.saveServer(uri: endpoint.serverURL, name: endpoint.serverName, machineIdentifier: endpoint.machineIdentifier)
         defaults.set(endpoint.accountName, forKey: PlexAccountName.defaultsKey)
+    }
+
+    /// The demo is over: its flag, its free version preview, its unlock and its Pro Week go, and plex.tv is the real one again.
+    private func forgetDemoState() {
+        defaults.set(false, forKey: Self.activeKey)
+        defaults.removeObject(forKey: Self.freePreviewKey)
+        PlexTVHost.setOverride(nil)
+        access.useDemoProWeek(false)
+        access.setDemoUnlocked(false)
     }
 
     private func notify() {

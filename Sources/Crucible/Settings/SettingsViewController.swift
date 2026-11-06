@@ -161,9 +161,10 @@ final class SettingsViewController: UICollectionViewController {
         return ProWeek.daysLeftText(until: endsAt)
     }
 
-    /// While the demo runs everything is unlocked, but the row still offers Pro, so it reads as the offer instead of a status.
+    /// While the demo runs everything is unlocked, but the row still offers Pro, so it reads as the offer instead of a status. A
+    /// preview of the free version reads as a free install does.
     private static var showsDemoOffer: Bool {
-        DemoMode.shared.isActive && !ProAccess.shared.isPro
+        DemoMode.shared.isActive && !DemoMode.shared.previewsFreeVersion && !ProAccess.shared.isPro
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {

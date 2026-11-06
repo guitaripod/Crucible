@@ -299,6 +299,71 @@ final class DemoTests: TVTestCase {
         XCTAssertTrue(app.buttons["stats.range.month"].isSelected, "Month should be chosen")
     }
 
+    private func waitForValue(_ element: XCUIElement, _ value: String, timeout: TimeInterval = 10) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", value), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    func testPreviewFreeVersionLocksTheRangesUntilItIsTurnedOff() {
+        let app = launchIntoHome()
+        openYou(app)
+        let row = element(app, "you.demoFreePreview")
+        XCTAssertTrue(row.waitForExistence(timeout: 15), "the demo offers Preview Free Version")
+        XCTAssertEqual(row.value as? String, "Off", "the demo starts with everything unlocked")
+        YouNavigation.openRow(app, "you.demoFreePreview")
+        XCTAssertTrue(waitForValue(row, "On"), "selecting the row turned the preview on")
+        TVTest.capture("12-free-preview-on", in: self)
+        YouNavigation.openRow(app, "you.statistics")
+        XCTAssertTrue(app.collectionViews["stats.collection"].waitForExistence(timeout: 90))
+        TVTest.settle(2)
+        XCTAssertTrue(app.buttons["stats.range.month"].label.contains("locked"), "Month is locked in the free preview")
+        TVTest.capture("13-free-preview-statistics", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(row.waitForExistence(timeout: 15))
+        YouNavigation.moveFocusUp(app, to: "you.demoFreePreview")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(waitForValue(row, "Off"), "selecting the row again turned the preview off")
+        YouNavigation.openRow(app, "you.statistics")
+        XCTAssertTrue(app.collectionViews["stats.collection"].waitForExistence(timeout: 90))
+        TVTest.settle(2)
+        XCTAssertFalse(app.buttons["stats.range.month"].label.contains("locked"), "with the preview off every range is open")
+    }
+
+    func testTheDemosHomeSwitchesToTheKidsProfileAndBack() {
+        let app = launchIntoHome()
+        openYou(app)
+        YouNavigation.moveFocus(app, to: "you.activity")
+        XCTAssertTrue(element(app, "you.dashboard").exists, "the demo's owner has the Server Dashboard")
+        YouNavigation.moveFocusUp(app, to: "you.switchProfile")
+        TVTest.remote.press(.select)
+        let kids = element(app, "profiles.8c2f6a4d1e9b3c75")
+        XCTAssertTrue(kids.waitForExistence(timeout: 20), "the demo's Home lists Kids")
+        XCTAssertTrue(element(app, "profiles.5a3e9c1f7b2d4e60").exists, "the demo's Home lists Sam")
+        TVTest.settle(1)
+        TVTest.capture("14-demo-profiles", in: self)
+        YouNavigation.moveFocus(app, to: "profiles.8c2f6a4d1e9b3c75")
+        TVTest.remote.press(.select)
+        waitForHome(app)
+        openYou(app)
+        let switchRow = element(app, "you.switchProfile")
+        XCTAssertTrue(switchRow.waitForExistence(timeout: 20))
+        XCTAssertTrue(switchRow.label.contains("Kids") || (switchRow.value as? String ?? "").contains("Kids"), "You names Kids, not \(switchRow.label)")
+        YouNavigation.moveFocus(app, to: "you.activity")
+        XCTAssertFalse(element(app, "you.dashboard").exists, "a managed profile gets no owner tools")
+        TVTest.capture("15-kids", in: self)
+        YouNavigation.moveFocusUp(app, to: "you.switchProfile")
+        TVTest.remote.press(.select)
+        let owner = element(app, "profiles.d3a41e7b5c9f4a2e")
+        XCTAssertTrue(owner.waitForExistence(timeout: 20))
+        YouNavigation.moveFocusUp(app, to: "profiles.d3a41e7b5c9f4a2e")
+        TVTest.remote.press(.select)
+        waitForHome(app)
+        openYou(app)
+        TVTest.settle(3)
+        YouNavigation.moveFocus(app, to: "you.activity")
+        XCTAssertTrue(element(app, "you.dashboard").waitForExistence(timeout: 20), "back as the owner, the owner's tools return")
+    }
+
     func testCrucibleProRowStillShowsThePaywallDuringTheDemo() {
         let app = launchIntoHome()
         openYou(app)

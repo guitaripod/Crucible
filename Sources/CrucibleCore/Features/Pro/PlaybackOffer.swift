@@ -20,15 +20,28 @@ package enum PlaybackOffer {
         case offer
     }
 
-    /// Counts a finished item and says what to show. Only a store-backed install outside the demo, whose store has answered,
-    /// counts: the demo unlocks everything without owning it, and the policy remembers an owner for good. While the week runs
-    /// the items still count, so the first finish after it can be the offer, but nothing is offered during it.
+    /// Counts a finished item and says what to show. Only a store-backed install whose store has answered counts. The demo never
+    /// counts toward the offer policy, which remembers an owner for good: it unlocks everything, and while it previews the free
+    /// version it only begins and ends a Pro Week of its own. While the week runs the items still count, so the first finish after
+    /// it can be the offer, but nothing is offered during it.
     package static func noteFinishedItem(access: ProAccess = .shared, demo: DemoMode = .shared) -> Outcome {
-        guard access.isStoreBacked, !demo.isActive, access.status != .unknown else { return .nothing }
+        guard access.isStoreBacked, access.status != .unknown else { return .nothing }
+        if demo.isActive { return demo.previewsFreeVersion ? demoProWeekNote(access) : .nothing }
         if access.startProWeekIfEligible() || access.isProWeekAnnouncementDue { return .proWeekStarted }
         let isDue = noteValue(access.status.isPro)
         if access.isProWeekEndNoticeDue { return .proWeekEnded }
         guard isDue, !access.proWeekPhase.isActive else { return .nothing }
         return .offer
+    }
+
+    /// Tells the offer policy an offer was shown. One shown in the demo is not the policy's to count.
+    package static func recordOffer(demo: DemoMode = .shared) {
+        guard !demo.isActive else { return }
+        noteOffered()
+    }
+
+    private static func demoProWeekNote(_ access: ProAccess) -> Outcome {
+        if access.startProWeekIfEligible() || access.isProWeekAnnouncementDue { return .proWeekStarted }
+        return access.isProWeekEndNoticeDue ? .proWeekEnded : .nothing
     }
 }

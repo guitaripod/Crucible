@@ -8,7 +8,7 @@ final class YouViewController: UICollectionViewController {
     }
 
     enum Item: Hashable {
-        case demo, profile, switchProfile, year, playlists, watchlist, activity, dashboard, history, statistics, settings, server, about
+        case demo, freePreview, profile, switchProfile, year, playlists, watchlist, activity, dashboard, history, statistics, settings, server, about
     }
 
     private let api: APIClient
@@ -82,11 +82,11 @@ final class YouViewController: UICollectionViewController {
 
     /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
     private func refreshHomeProfiles() async {
-        guard !isInDemo, let token = ServerBootstrap.accountToken else { return }
+        guard let token = ServerBootstrap.accountToken else { return }
         _ = try? await HomeProfiles.load(accountToken: token)
     }
 
-    private var offersProfiles: Bool { !isInDemo && HomeProfiles.knownCount > 1 }
+    private var offersProfiles: Bool { HomeProfiles.knownCount > 1 }
 
     private func makeLayout() -> UICollectionViewLayout {
         UICollectionViewCompositionalLayout { [weak self] index, environment in
@@ -130,6 +130,15 @@ final class YouViewController: UICollectionViewController {
                 )
                 cell.accessories = [.disclosureIndicator()]
                 cell.accessibilityIdentifier = "you.demo"
+            case .freePreview:
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: "lock",
+                    title: DemoCopy.freePreviewTitle,
+                    subtitle: DemoCopy.freePreviewDetail,
+                    toggle: .init(isOn: DemoMode.shared.previewsFreeVersion) { DemoMode.shared.setPreviewsFreeVersion($0) }
+                )
+                cell.accessories = []
+                cell.accessibilityIdentifier = "you.demoFreePreview"
             case .profile:
                 cell.contentConfiguration = profileConfiguration()
                 cell.accessories = isInDemo ? [] : [.disclosureIndicator()]
@@ -160,6 +169,7 @@ final class YouViewController: UICollectionViewController {
             case .statistics:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "chart.bar", title: String(localized: "Statistics"))
                 cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.statistics"
             case .settings:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "gearshape", title: String(localized: "Settings"))
                 cell.accessories = [.disclosureIndicator()]
@@ -201,6 +211,9 @@ final class YouViewController: UICollectionViewController {
 
     private var isInDemo: Bool { DemoMode.shared.isActive }
 
+    /// The free version can be previewed with a store behind the app, by a viewer who has not bought Pro, which nothing locks.
+    private var offersFreePreview: Bool { ProAccess.shared.isStoreBacked && !ProAccess.shared.isPro }
+
     private var demoProgress: String {
         DemoPhoneTourPlan.progress(steps: DemoTour.shared.steps, completed: DemoTour.shared.completed)
     }
@@ -214,7 +227,7 @@ final class YouViewController: UICollectionViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         if isInDemo {
             snapshot.appendSections([.demo])
-            snapshot.appendItems([.demo], toSection: .demo)
+            snapshot.appendItems(offersFreePreview ? [.demo, .freePreview] : [.demo], toSection: .demo)
         }
         snapshot.appendSections([.profile])
         snapshot.appendItems(offersProfiles ? [.profile, .switchProfile] : [.profile], toSection: .profile)
@@ -242,6 +255,9 @@ final class YouViewController: UICollectionViewController {
         let destination: UIViewController
         switch item {
         case .demo: destination = DemoTourViewController()
+        case .freePreview:
+            DemoMode.shared.setPreviewsFreeVersion(!DemoMode.shared.previewsFreeVersion)
+            return
         case .switchProfile:
             let profiles = ProfilesViewController(machineIdentifier: ServerBootstrap.savedMachineIdentifier ?? "")
             profiles.onSwitched = { [weak profiles] in

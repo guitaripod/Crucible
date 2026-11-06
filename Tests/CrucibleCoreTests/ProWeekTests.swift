@@ -219,4 +219,21 @@ struct ProWeekTopShelfSnapshotTests {
         #expect(decoded.availableUntil == nil)
         #expect(decoded.isAvailable(at: start))
     }
+
+    @Test func theDemosStoreKeepsItsWeekApartAndForgetsIt() throws {
+        let suite = "proweek-demo-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let device = ProWeekStore.ephemeral()
+        let demo = ProWeekStore.demo(defaults: defaults)
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        demo.saveStart(start)
+        demo.wasAnnounced = true
+        #expect(demo.start == start)
+        #expect(defaults.object(forKey: "proWeek.start") == nil)
+        #expect(device.start == nil)
+        demo.forgetDemoWeek()
+        #expect(demo.start == nil)
+        #expect(!demo.wasAnnounced)
+    }
 }

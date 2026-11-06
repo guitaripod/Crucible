@@ -59,24 +59,29 @@ package enum ProWeek {
 }
 
 /// Where the Pro Week's dates and its two notes live. The live store keeps the start in the keychain as well, because a
-/// reinstall would otherwise hand out another week; the item is never synchronizable, so a week belongs to one device. Tests
-/// and previews get a store of their own that forgets everything with the process.
+/// reinstall would otherwise hand out another week; the item is never synchronizable, so a week belongs to one device. The
+/// demo's store keeps its own week under keys of its own, only in the defaults, so it can be forgotten. Tests and previews get
+/// a store of their own that forgets everything with the process.
 package final class ProWeekStore: @unchecked Sendable {
-    private static let startKey = "proWeek.start"
-    private static let announcedKey = "proWeek.announced"
-    private static let endNoticeKey = "proWeek.endNoticeShown"
     private static let keychainService = "com.guitaripod.crucible.proweek"
     private static let keychainAccount = "start"
+    private static let demoPrefix = "demo."
 
     private let defaults: UserDefaults
     private let usesKeychain: Bool
     private let suiteName: String?
+    private let keyPrefix: String
 
-    private init(defaults: UserDefaults, usesKeychain: Bool, suiteName: String?) {
+    private init(defaults: UserDefaults, usesKeychain: Bool, suiteName: String?, keyPrefix: String = "") {
         self.defaults = defaults
         self.usesKeychain = usesKeychain
         self.suiteName = suiteName
+        self.keyPrefix = keyPrefix
     }
+
+    private var startKey: String { keyPrefix + "proWeek.start" }
+    private var announcedKey: String { keyPrefix + "proWeek.announced" }
+    private var endNoticeKey: String { keyPrefix + "proWeek.endNoticeShown" }
 
     deinit {
         if let suiteName { defaults.removePersistentDomain(forName: suiteName) }
@@ -87,6 +92,11 @@ package final class ProWeekStore: @unchecked Sendable {
         ProWeekStore(defaults: defaults, usesKeychain: true, suiteName: nil)
     }
 
+    /// The demo's own week, in the defaults only.
+    package static func demo(defaults: UserDefaults = .standard) -> ProWeekStore {
+        ProWeekStore(defaults: defaults, usesKeychain: false, suiteName: nil, keyPrefix: demoPrefix)
+    }
+
     /// A store in a throwaway defaults suite that is removed with the store.
     package static func ephemeral() -> ProWeekStore {
         let suite = "crucible.proweek.\(UUID().uuidString)"
@@ -95,29 +105,38 @@ package final class ProWeekStore: @unchecked Sendable {
 
     package var start: Date? {
         let stored = usesKeychain ? Self.keychainStart() : nil
-        guard let seconds = stored ?? (defaults.object(forKey: Self.startKey) as? Double) else { return nil }
+        guard let seconds = stored ?? (defaults.object(forKey: startKey) as? Double) else { return nil }
         return Date(timeIntervalSince1970: seconds)
     }
 
     package func saveStart(_ date: Date) {
-        defaults.set(date.timeIntervalSince1970, forKey: Self.startKey)
+        defaults.set(date.timeIntervalSince1970, forKey: startKey)
         if usesKeychain { Self.writeKeychainStart(date.timeIntervalSince1970) }
     }
 
     package var wasAnnounced: Bool {
-        get { defaults.bool(forKey: Self.announcedKey) }
-        set { defaults.set(newValue, forKey: Self.announcedKey) }
+        get { defaults.bool(forKey: announcedKey) }
+        set { defaults.set(newValue, forKey: announcedKey) }
     }
 
     package var endNoticeShown: Bool {
-        get { defaults.bool(forKey: Self.endNoticeKey) }
-        set { defaults.set(newValue, forKey: Self.endNoticeKey) }
+        get { defaults.bool(forKey: endNoticeKey) }
+        set { defaults.set(newValue, forKey: endNoticeKey) }
+    }
+
+    /// Forgets the demo's week and its two notes when the demo ends. A store that keeps its week in the keychain, the device's, is
+    /// left alone.
+    package func forgetDemoWeek() {
+        guard !usesKeychain else { return }
+        for key in [startKey, announcedKey, endNoticeKey] {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     #if DEBUG
     /// Forgets the week, its two notes and the keychain item, for debug launches that restage or remove the week.
     package func reset() {
-        for key in [Self.startKey, Self.announcedKey, Self.endNoticeKey] {
+        for key in [startKey, announcedKey, endNoticeKey] {
             defaults.removeObject(forKey: key)
         }
         if usesKeychain { SecItemDelete(Self.baseQuery as CFDictionary) }

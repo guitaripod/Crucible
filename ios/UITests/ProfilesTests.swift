@@ -1,8 +1,8 @@
 import XCTest
 
 /// Plex Home profiles on iPhone, against the mock server, whose plex.tv has a Home of three: Marcus (the owner), Kids and Sam, whose
-/// PIN is 1234. It runs only when `CRUCIBLE_PHONE_MOCK` names the running mock (`tv.sh mock-up` prints it); the built-in demo has no
-/// Home to switch in.
+/// PIN is 1234. It runs only when `CRUCIBLE_PHONE_MOCK` names the running mock (`tv.sh mock-up` prints it); the built-in demo's own
+/// Home is covered by `DemoAccountTypesTests`.
 @MainActor
 final class ProfilesTests: XCTestCase {
     override func setUp() {

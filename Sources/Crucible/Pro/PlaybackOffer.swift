@@ -28,11 +28,11 @@ extension PlaybackOffer {
             host.present(ProWeekStartViewController(endsAt: endsAt), animated: true)
         case .proWeekEnded:
             access.markProWeekEndNoticeShown()
-            noteOffered()
+            recordOffer()
             MidgarLog.info("Pro Week end shown after a finished item", category: .store)
             PaywallPresenter.showOffer(from: host, followsProWeek: true)
         case .offer:
-            noteOffered()
+            recordOffer()
             MidgarLog.info("Pro offered after a finished item", category: .store)
             PaywallPresenter.showOffer(from: host)
         }

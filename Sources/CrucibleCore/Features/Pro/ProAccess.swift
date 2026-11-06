@@ -17,7 +17,7 @@ package struct PaywallRequest: Equatable, Sendable {
 /// behind it, refreshes it when the app comes to the front, and tells observers when it changes.
 @MainActor
 package final class ProAccess {
-    package static let shared = ProAccess(provider: UnlockedProAccess(), weekStore: .live())
+    package static let shared = ProAccess(provider: UnlockedProAccess(), weekStore: .live(), demoWeekStore: .demo())
 
     package typealias Observer = @MainActor (ProStatus) -> Void
     package typealias PaywallPresenter = @MainActor (PaywallRequest, @escaping @MainActor (Bool) -> Void) -> Void
@@ -30,7 +30,9 @@ package final class ProAccess {
     private var updatesTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var weekTimer: Task<Void, Never>?
-    private let weekStore: ProWeekStore
+    private var weekStore: ProWeekStore
+    private let deviceWeekStore: ProWeekStore
+    private let demoWeekStore: ProWeekStore
     private let now: () -> Date
 
     /// The Pro Week as of the last check (`ProWeek`). Observers hear when it begins and when it ends.
@@ -39,11 +41,19 @@ package final class ProAccess {
     /// - Parameters:
     ///   - weekStore: Where the Pro Week is remembered. Only the shared instance uses the live store; every other instance, as
     ///     in tests and previews, gets a throwaway one.
+    ///   - demoWeekStore: Where the demo's own Pro Week is remembered while the demo runs.
     ///   - now: The clock, injectable for tests.
-    package init(provider: any ProAccessProviding, weekStore: ProWeekStore = .ephemeral(), now: @escaping () -> Date = Date.init) {
+    package init(
+        provider: any ProAccessProviding,
+        weekStore: ProWeekStore = .ephemeral(),
+        demoWeekStore: ProWeekStore = .ephemeral(),
+        now: @escaping () -> Date = Date.init
+    ) {
         self.provider = provider
         self.status = provider.isStoreBacked ? .unknown : .pro(.included)
         self.weekStore = weekStore
+        deviceWeekStore = weekStore
+        self.demoWeekStore = demoWeekStore
         self.now = now
         proWeekPhase = ProWeek.phase(start: weekStore.start, now: now())
     }
@@ -111,6 +121,16 @@ package final class ProAccess {
         guard phase != proWeekPhase else { return }
         proWeekPhase = phase
         notify()
+    }
+
+    /// While the demo runs its Pro Week is its own, so previewing the free version there never starts or ends the device's one week;
+    /// leaving the demo forgets the demo's week and brings the device's back.
+    package func useDemoProWeek(_ inDemo: Bool) {
+        let store = inDemo ? demoWeekStore : deviceWeekStore
+        if !inDemo { demoWeekStore.forgetDemoWeek() }
+        guard store !== weekStore else { return }
+        weekStore = store
+        refreshProWeek()
     }
 
     package func setDemoUnlocked(_ unlocked: Bool) {

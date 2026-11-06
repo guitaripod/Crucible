@@ -119,4 +119,36 @@ struct PlaybackOfferTests {
         #expect(free.proWeekPhase == .notStarted && unanswered.proWeekPhase == .notStarted && source.proWeekPhase == .notStarted)
         #expect(counted.isEmpty)
     }
+
+    @Test func theDemosFreePreviewStartsAWeekOfItsOwnAndNeverCountsTowardTheOfferPolicy() async {
+        let access = await started(.free)
+        let mode = demo(active: true, access: access)
+        mode.setPreviewsFreeVersion(true)
+        access.useDemoProWeek(true)
+        var answers: [PlaybackOffer.Outcome] = []
+        let counted = await recording {
+            answers.append(PlaybackOffer.noteFinishedItem(access: access, demo: mode))
+            access.markProWeekAnnounced()
+            answers.append(PlaybackOffer.noteFinishedItem(access: access, demo: mode))
+        }
+        #expect(answers == [.proWeekStarted, .nothing])
+        #expect(counted.isEmpty)
+        #expect(access.hasFullAccess && !access.isPro)
+        access.useDemoProWeek(false)
+        #expect(access.proWeekPhase == .notStarted)
+        #expect(!access.hasFullAccess)
+        access.useDemoProWeek(true)
+        #expect(access.proWeekPhase == .notStarted, "leaving the demo forgets its week")
+    }
+
+    @Test func anOfferShownInTheDemoIsNotRecorded() {
+        let access = ProAccess(provider: UnlockedProAccess())
+        var recorded = 0
+        PlaybackOffer.noteOffered = { recorded += 1 }
+        defer { PlaybackOffer.noteOffered = {} }
+        PlaybackOffer.recordOffer(demo: demo(active: true, access: access))
+        #expect(recorded == 0)
+        PlaybackOffer.recordOffer(demo: demo(active: false, access: access))
+        #expect(recorded == 1)
+    }
 }

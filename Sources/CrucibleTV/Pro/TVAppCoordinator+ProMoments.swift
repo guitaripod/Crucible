@@ -59,17 +59,18 @@ extension TVAppCoordinator {
         case .proWeekEnded:
             guard show(ProTVMoments.proWeekEnded()) else { return }
             access.markProWeekEndNoticeShown()
-            PlaybackOffer.noteOffered()
+            PlaybackOffer.recordOffer()
         case .offer:
             guard let moment, show(moment) else { return }
-            PlaybackOffer.noteOffered()
+            PlaybackOffer.recordOffer()
         }
     }
 
     /// Only the main screens qualify: nothing is presented over them, so a note never lands on the player, the paywall or another
-    /// alert, and never in the demo.
+    /// alert, and never in the demo unless it previews the free version.
     private var canPresentProMoment: Bool {
-        guard !DemoMode.shared.isActive, let root = window.rootViewController as? TVRootTabBarController else { return false }
+        guard !DemoMode.shared.isActive || DemoMode.shared.previewsFreeVersion,
+              let root = window.rootViewController as? TVRootTabBarController else { return false }
         return root.presentedViewController == nil
     }
 

@@ -40910,6 +40910,71 @@
         }
       }
     },
+    "Locks Crucible Pro’s features as on a free install. A purchase made here is real." : {
+      "comment" : "Under the demo's Preview Free Version switch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sperrt die Funktionen von Crucible Pro wie bei einer kostenlosen Installation. Ein Kauf hier ist echt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloquea las funciones de Crucible Pro como en una instalación gratuita. Una compra hecha aquí es real."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verrouille les fonctions de Crucible Pro comme sur une installation gratuite. Un achat effectué ici est réel."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocca le funzioni di Crucible Pro come in un'installazione gratuita. Un acquisto fatto qui è reale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無料版と同じように Crucible Pro の機能をロックします。ここでの購入は実際に行われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무료 설치처럼 Crucible Pro 기능을 잠가요. 여기서 하는 구매는 실제 구매예요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokuje funkcje Crucible Pro jak w bezpłatnej instalacji. Zakup dokonany tutaj jest prawdziwy."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueia os recursos do Crucible Pro como em uma instalação gratuita. Uma compra feita aqui é real."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "像免费安装那样锁定 Crucible Pro 的功能。在此处进行的购买是真实的。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如同免費安裝般鎖定 Crucible Pro 的功能。在此進行的購買是真實的。"
+          }
+        }
+      }
+    },
     "Log" : {
       "comment" : "Accessibility label for the log text",
       "localizations" : {
@@ -56355,6 +56420,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按住以查看更多選項"
+          }
+        }
+      }
+    },
+    "Preview Free Version" : {
+      "comment" : "Demo switch that locks Crucible Pro's features the way a free install has them",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kostenlose Version ansehen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver la versión gratuita"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperçu de la version gratuite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteprima versione gratuita"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無料版をプレビュー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무료 버전 미리 보기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podgląd wersji bezpłatnej"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prévia da versão gratuita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览免费版"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預覽免費版"
           }
         }
       }
