@@ -38,6 +38,13 @@ final class DemoEvents: Sendable {
         ]]])
     }
 
+    /// A title left a library, the way a server's timeline says so once a deletion has settled.
+    func deleted(ratingKey: String, sectionID: String, type: Int) {
+        publish("timeline", ["TimelineEntry": [[
+            "identifier": "com.plexapp.plugins.library", "sectionID": sectionID, "itemID": ratingKey, "type": type, "state": 9,
+        ] as [String: Any]]])
+    }
+
     private func publish(_ type: String, _ payload: [String: Any]) {
         var container = payload
         container["type"] = type

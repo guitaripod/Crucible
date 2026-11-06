@@ -23,13 +23,17 @@ struct DemoManageTests {
         }
     }
 
-    @Test func fixMatchOffersTheCurrentMatchFirstAndMatchingIsAccepted() async throws {
+    @Test func fixMatchOffersTheCurrentMatchFirstAndTheMatchPickedRenamesTheTitle() async throws {
         try await withDemo { demo in
             let results = try await LibraryManagement.matches(ratingKey: "1008", title: "Lantern", year: 2001, api: demo.api)
             #expect(results.count == 3)
             #expect(results.first?.matched == true)
             #expect(results.dropFirst().contains { $0.name == "Lantern" && $0.year == 1990 })
             try await LibraryManagement.match(ratingKey: "1008", to: results[1], api: demo.api)
+            let matched = try await demo.metadata("1008")
+            #expect(matched.title == results[1].name)
+            #expect(matched.year == results[1].year)
+            #expect(matched.guid == results[1].guid)
             try await LibraryManagement.unmatch(ratingKey: "1008", api: demo.api)
             try await LibraryManagement.refresh(ratingKey: "1008", api: demo.api)
             try await LibraryManagement.analyze(ratingKey: "1008", api: demo.api)
@@ -64,16 +68,52 @@ struct DemoManageTests {
             #expect(chosen.thumb == other.imagePath)
             let backgrounds = try await LibraryManagement.artwork(ratingKey: "1008", kind: .background, api: demo.api)
             #expect(backgrounds.first?.imagePath == before.art)
+            let background = try #require(backgrounds.dropFirst().first)
+            try await LibraryManagement.select(background, kind: .background, ratingKey: "1008", api: demo.api)
+            let backdrop = try await demo.metadata("1008")
+            #expect(backdrop.art == background.imagePath)
+            #expect(backdrop.art != before.art)
         }
     }
 
-    @Test func deletingIsRefusedTheWayAServerWithDeletionOffRefusesIt() async throws {
+    @Test func deletingTakesAFilmOutOfTheLibraryForTheSession() async throws {
         try await withDemo { demo in
-            await #expect(throws: (any Error).self) {
-                try await LibraryManagement.delete(ratingKey: "1008", api: demo.api)
+            let section = try await demo.api.requestContainer(.sectionItems(sectionId: "1", start: 0, size: 200)).Metadata ?? []
+            #expect(section.contains { $0.ratingKey == "1008" })
+            try await LibraryManagement.delete(ratingKey: "1008", api: demo.api)
+            await demo.api.invalidateCache()
+            await #expect(throws: (any Error).self) { _ = try await demo.metadata("1008") }
+            let after = try await demo.api.requestContainer(.sectionItems(sectionId: "1", start: 0, size: 200)).Metadata ?? []
+            #expect(after.count == section.count - 1)
+            #expect(!after.contains { $0.ratingKey == "1008" })
+        }
+    }
+
+    @Test func deletingAShowTakesItsSeasonsAndEpisodesWithIt() async throws {
+        try await withDemo { demo in
+            let show = try await demo.metadata("2001")
+            let seasons = try await demo.api.requestContainer(.children(ratingKey: "2001")).Metadata ?? []
+            let season = try #require(seasons.first?.ratingKey)
+            let episodes = try await demo.api.requestContainer(.children(ratingKey: season)).Metadata ?? []
+            let episode = try #require(episodes.first?.ratingKey)
+            #expect(show.ratingKey == "2001")
+            try await LibraryManagement.delete(ratingKey: "2001", api: demo.api)
+            await demo.api.invalidateCache()
+            for key in ["2001", season, episode] {
+                await #expect(throws: (any Error).self) { _ = try await demo.metadata(key) }
             }
-            let kept = try await demo.metadata("1008")
-            #expect(kept.id == "1008")
+            let history = try await demo.api.requestContainer(.history(start: 0, size: 500)).Metadata ?? []
+            #expect(!history.isEmpty)
+            #expect(!history.contains { $0.grandparentTitle == show.title }, "the show's plays leave the watch history with it")
+        }
+    }
+
+    @Test func deletingAFilmTakesItsExtrasWithIt() async throws {
+        try await withDemo { demo in
+            #expect(try await demo.metadata("8101").ratingKey == "8101")
+            try await LibraryManagement.delete(ratingKey: "1001", api: demo.api)
+            await demo.api.invalidateCache()
+            await #expect(throws: (any Error).self) { _ = try await demo.metadata("8101") }
         }
     }
 
@@ -124,6 +164,9 @@ struct DemoManageTests {
             #expect(release.version?.isEmpty == false)
             #expect(release.added?.isEmpty == false)
             try await LibraryManagement.checkForUpdates(api: demo.api)
+            try await LibraryManagement.installUpdate(api: demo.api)
+            await demo.api.invalidateCache()
+            #expect(try await LibraryManagement.availableUpdate(api: demo.api) == nil)
         }
     }
 }

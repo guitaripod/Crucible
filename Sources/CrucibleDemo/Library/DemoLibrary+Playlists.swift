@@ -26,7 +26,7 @@ extension DemoLibrary {
             nextPlaylistKey = persisted.nextPlaylistKey ?? nextPlaylistKey
             return
         }
-        for seed in Self.seedPlaylists {
+        for seed in Self.seedPlaylists where viewer.isAdmin {
             _ = makePlaylist(title: seed.title, keys: seed.keys)
         }
     }

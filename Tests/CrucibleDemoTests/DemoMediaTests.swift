@@ -220,4 +220,22 @@ struct DemoMediaTests {
         }
         #expect(total > 1_000_000 && total <= 12 * 1_048_576)
     }
+
+    @Test func aFilmHasThreeChaptersInsideTheClipAndKeepsTheTracksPicked() async throws {
+        try await withDemo { demo in
+            let film = try await demo.metadata("1008")
+            let chapters = ChapterList.playable(film.Chapter ?? [])
+            #expect(chapters.count == 3)
+            #expect(chapters.first?.startTimeOffset == 0)
+            #expect(chapters.last?.endTimeOffset == 30_000)
+
+            let part = try #require(film.Media?.first?.Part?.first)
+            let spanish = try #require(film.audioStreams.first { $0.language == "Spanish" }?.id)
+            let (_, response) = try await demo.get("/library/parts/\(part.id)?allParts=1&audioStreamID=\(spanish)&subtitleStreamID=0", method: "PUT")
+            #expect(response.statusCode == 200)
+            let picked = try await demo.metadata("1008")
+            #expect(picked.audioStreams.filter { $0.selected == true }.map(\.id) == [spanish])
+            #expect(picked.subtitleStreams.allSatisfy { $0.selected != true })
+        }
+    }
 }

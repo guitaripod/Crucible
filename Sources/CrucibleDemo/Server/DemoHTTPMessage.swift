@@ -11,6 +11,11 @@ struct DemoRequest: Sendable {
         query[name]?.first
     }
 
+    /// The Plex token the request carries, in its header or its query.
+    var token: String? {
+        headers["x-plex-token"] ?? first("X-Plex-Token")
+    }
+
     func int(_ name: String) -> Int? {
         first(name).flatMap { Int($0) }
     }

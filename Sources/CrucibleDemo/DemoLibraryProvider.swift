@@ -13,7 +13,7 @@ package actor DemoLibraryProvider: DemoProviding {
 
     private struct Running {
         let server: DemoHTTPServer
-        let library: DemoLibrary
+        let home: DemoHomeLibraries
         let endpoint: DemoEndpoint
     }
 
@@ -43,24 +43,34 @@ package actor DemoLibraryProvider: DemoProviding {
         return try await task.value
     }
 
-    /// The library being served, for tests that look inside it.
-    var library: DemoLibrary? { running?.library }
+    /// The owner's library, for tests that look inside it.
+    var library: DemoLibrary? { running?.home.owner }
+
+    /// The library of a member of the demo's Home, for tests that look inside it.
+    func library(for member: DemoHome.Member) async throws -> DemoLibrary? {
+        try await running?.home.library(for: member)
+    }
 
     package func stop() async {
         if let starting { _ = try? await starting.value }
         guard let current = running else { return }
         running = nil
         await current.server.stop()
-        await current.library.flush()
+        await current.home.flush()
         Self.log.notice("Demo library stopped")
     }
 
     private func launch() async throws -> DemoEndpoint {
         let assets = try assetsOverride ?? DemoAssets.bundled()
-        let library = try await DemoLibrary(catalogURL: assets.catalogue, store: DemoStateStore(fileURL: stateFileURL))
+        let home = try await DemoHomeLibraries(catalogue: assets.catalogue, ownerStateFile: stateFileURL)
+        let library = home.owner
         let plexTV = DemoPlexTV(machineIdentifier: library.machineIdentifier, serverName: Self.serverName)
-        let router = DemoRouter(library: library, plexTV: plexTV, assets: assets, serverName: Self.serverName)
-        let server = DemoHTTPServer { await router.handle($0) }
+        let server = DemoHTTPServer { request in
+            guard let library = try? await home.library(for: DemoHome.member(forToken: request.token)) else {
+                return DemoResponse(status: 500)
+            }
+            return await DemoRouter(library: library, plexTV: plexTV, assets: assets, serverName: Self.serverName).handle(request)
+        }
         let port = try await server.start()
         guard let url = URL(string: "http://127.0.0.1:\(port)") else { throw DemoServerError.notReady }
         let endpoint = DemoEndpoint(
@@ -71,7 +81,7 @@ package actor DemoLibraryProvider: DemoProviding {
             serverName: Self.serverName,
             accountName: Self.accountName
         )
-        running = Running(server: server, library: library, endpoint: endpoint)
+        running = Running(server: server, home: home, endpoint: endpoint)
         Self.log.notice("Demo library listening on port \(port)")
         return endpoint
     }

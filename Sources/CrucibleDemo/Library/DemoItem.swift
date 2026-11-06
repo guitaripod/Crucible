@@ -98,3 +98,9 @@ struct DemoPersistedState: Codable {
     var nextEntryID: Int?
     var nextPlaylistKey: Int?
 }
+
+/// The audio and subtitle tracks picked for one file; nil keeps the file's default, a subtitle of 0 is none.
+struct DemoStreamChoice: Sendable {
+    var audio: Int?
+    var subtitle: Int?
+}

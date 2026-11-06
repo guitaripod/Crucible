@@ -40,6 +40,7 @@ extension DemoLibrary {
         if item.isPlayable {
             out["Media"] = mediaJSON(item)
             out["Marker"] = markersJSON(item)
+            if item.fields.string("type") != "clip" { out["Chapter"] = chaptersJSON(item) }
         }
         if let extras = extrasJSON(of: key) {
             out["Extras"] = extras
@@ -95,6 +96,7 @@ extension DemoLibrary {
             streams.append(stream)
         }
         streams += downloadedSubtitles[key] ?? []
+        if let choice = streamSelections[partID] { streams = streams.map { Self.applying(choice, to: $0) } }
         let container = canDirectPlay(item) ? "mp4" : "mkv"
         return [[
             "id": id, "duration": item.durationMs, "bitrate": uhd ? 14800 : 8800, "width": facts.width, "height": facts.height,
@@ -124,6 +126,34 @@ extension DemoLibrary {
         ])
         return markers
     }
+
+    /// A track picked for the file is the selected one of its kind; the others of that kind are not.
+    private static func applying(_ choice: DemoStreamChoice, to stream: DemoJSON) -> DemoJSON {
+        var stream = stream
+        let id = stream.int("id")
+        switch stream.int("streamType") {
+        case 2: if let audio = choice.audio { stream["selected"] = id == audio }
+        case 3: if let subtitle = choice.subtitle { stream["selected"] = id == subtitle }
+        default: break
+        }
+        return stream
+    }
+
+    /// Three chapters spread over the clip every title plays, shifted like the markers for a title resumed past the clip.
+    private func chaptersJSON(_ item: DemoItem) -> [DemoJSON] {
+        let names = item.kind == .episode ? Self.episodeChapters : Self.movieChapters
+        let start = canDirectPlay(item) ? 0 : item.viewOffset
+        let length = clipMilliseconds / names.count
+        return names.enumerated().map { index, name in
+            [
+                "id": (Int(item.ratingKey) ?? 0) * 10 + index, "index": index + 1, "tag": name,
+                "startTimeOffset": start + index * length, "endTimeOffset": start + (index + 1) * length,
+            ]
+        }
+    }
+
+    private static let movieChapters = ["Opening", "The Crossing", "Homecoming"]
+    private static let episodeChapters = ["Cold Open", "Part One", "Part Two"]
 
     func hub(_ identifier: String, _ title: String, keys: [String], kind: String = "mixed") -> DemoJSON {
         let metadata = keys.compactMap { render($0) }

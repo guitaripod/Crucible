@@ -2,9 +2,12 @@ import Foundation
 
 /// The fictional library: the catalogue read from the bundle, the watch state the viewer changes, and the viewing history.
 /// Everything is answered from memory; the watch state is also written to a small file so the demo remembers across launches.
+/// Each member of the demo's Plex Home has one of these: the owner's carries the demo's year of viewing, Sam's starts unwatched,
+/// and the Kids profile sees only family titles with what it watched of them.
 actor DemoLibrary {
     static let accountID = 1
 
+    let viewer: DemoHome.Member
     let machineIdentifier: String
     let clipMilliseconds: Int
 
@@ -20,24 +23,28 @@ actor DemoLibrary {
     var stoppedSessions = Set<String>()
     var showPreferences: [String: [String: String]] = [:]
     var scans: [String: (title: String, at: Date)] = [:]
+    var updateInstalled = false
+    var streamSelections: [Int: DemoStreamChoice] = [:]
     let events = DemoEvents()
     var history: [DemoHistoryRow] = []
     var playlists: [DemoPlaylistState] = []
     var extraKeys: [String: [String]] = [:]
     var downloadedSubtitles: [String: [DemoJSON]] = [:]
-    var watchlistGuids = DemoLibrary.defaultWatchlist
+    var watchlistGuids: [String]
     var nextEntryID = 1000
     var nextPlaylistKey = 9200
     var persisted: DemoPersistedState
     let store: DemoStateStore
     let now: Int
 
-    init(catalogURL: URL, store: DemoStateStore, now: Date = Date()) async throws {
+    init(catalogURL: URL, store: DemoStateStore, now: Date = Date(), viewer: DemoHome.Member = DemoHome.owner) async throws {
         let data = try Data(contentsOf: catalogURL)
         guard let root = try JSONSerialization.jsonObject(with: data) as? DemoJSON,
               let rawItems = root["items"] as? [DemoJSON] else { throw DemoLibraryError.badCatalogue }
+        self.viewer = viewer
         self.store = store
         self.now = Int(now.timeIntervalSince1970)
+        watchlistGuids = viewer.isAdmin ? DemoLibrary.defaultWatchlist : []
         machineIdentifier = root.string("machineIdentifier") ?? ""
         clipMilliseconds = (root.int("clipSeconds") ?? 30) * 1000
         persisted = store.load()
@@ -51,9 +58,14 @@ actor DemoLibrary {
         }
         onDeck = (root["onDeck"] as? [String]) ?? []
         try loadItems(rawItems)
+        if viewer.isRestricted { keepFamilyTitles() }
+        let startsUnwatched = !viewer.isAdmin && !viewer.isRestricted
+        if startsUnwatched { forgetCatalogueViewing() }
         linkChildren()
         installExtras()
-        history = DemoHistory.build(items: items, showKeys: showKeys, movieKeys: movieKeys, now: now)
+        if !startsUnwatched {
+            history = DemoHistory.build(items: items, showKeys: showKeys, movieKeys: movieKeys, now: now)
+        }
         applyPersistedState()
         seedPlaylistsIfNeeded()
         recountAll()
@@ -97,6 +109,31 @@ actor DemoLibrary {
             default: break
             }
         }
+    }
+
+    /// A restricted profile sees the films and shows rated for families, with their seasons and episodes, and nothing else.
+    private func keepFamilyTitles() {
+        let allowed = Set((movieKeys + showKeys).filter { key in
+            items[key]?.fields.string("contentRating").map(DemoHome.familyRatings.contains) ?? false
+        })
+        items = items.filter { key, item in
+            switch item.kind {
+            case .movie, .show: return allowed.contains(key)
+            case .season, .episode: return item.show.map(allowed.contains) ?? false
+            }
+        }
+        movieKeys = movieKeys.filter(allowed.contains)
+        showKeys = showKeys.filter(allowed.contains)
+        onDeck = onDeck.filter { items[$0] != nil }
+    }
+
+    /// A member with an account of their own has watched and rated nothing here yet.
+    private func forgetCatalogueViewing() {
+        for key in items.keys {
+            setWatchFields(key, viewCount: 0, viewOffset: 0, lastViewedAt: 0)
+            items[key]?.set("userRating", nil)
+        }
+        onDeck = []
     }
 
     private func linkChildren() {

@@ -25,16 +25,29 @@ enum DemoSubtitles {
         "Pidä valo himmeänä ja radio pois päältä.", "Mitä he jättivätkin, se tikittää yhä.", "Pidä kiinni. Tämä on viimeinen.",
     ]
 
-    /// The SubRip text for subtitle stream `streamID`; the last digit of a stream id says which of the five tracks it is.
+    /// The SubRip text for subtitle stream `streamID` of a title's own tracks; the last digit of a stream id says which of the five
+    /// tracks it is.
     static func srt(forStream streamID: Int) -> String {
-        let lines: [String]
         switch streamID % 10 {
-        case 6: lines = sdh
-        case 7: lines = spanish
-        case 8: lines = finnish
-        default: lines = english
+        case 6: return srt(sdh)
+        case 7: return srt(spanish)
+        case 8: return srt(finnish)
+        default: return srt(english)
         }
-        return zip(cues, lines).enumerated()
+    }
+
+    /// The SubRip text of a subtitle found online, in its language: Spanish and Finnish have their own lines, everything else reads
+    /// in English.
+    static func srt(language: String, hearingImpaired: Bool) -> String {
+        switch language {
+        case "es": return srt(spanish)
+        case "fi": return srt(finnish)
+        default: return srt(hearingImpaired ? sdh : english)
+        }
+    }
+
+    private static func srt(_ lines: [String]) -> String {
+        zip(cues, lines).enumerated()
             .map { "\($0.offset + 1)\n\($0.element.0.start) --> \($0.element.0.end)\n\($0.element.1)\n" }
             .joined(separator: "\n")
     }

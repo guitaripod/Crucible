@@ -10,7 +10,7 @@ struct DemoCollection {
 }
 
 extension DemoLibrary {
-    static let collections = [
+    static let catalogueCollections = [
         DemoCollection(
             ratingKey: "9101", title: "Salvage Stories", sectionID: "1",
             summary: "Crews, wrecks and the people who go back for what was left behind.",
@@ -28,16 +28,28 @@ extension DemoLibrary {
         ),
     ]
 
+    /// The collections with the titles this viewer can see, leaving out any that would be empty.
+    var collections: [DemoCollection] {
+        Self.catalogueCollections.compactMap { collection in
+            let members = collection.members.filter { items[$0] != nil }
+            guard !members.isEmpty else { return nil }
+            return DemoCollection(
+                ratingKey: collection.ratingKey, title: collection.title, sectionID: collection.sectionID,
+                summary: collection.summary, members: members
+            )
+        }
+    }
+
     func collectionsResponse(sectionID: String, request: DemoRequest) -> DemoResponse {
-        let keys = Self.collections.filter { $0.sectionID == sectionID }.map { $0.ratingKey }
+        let keys = collections.filter { $0.sectionID == sectionID }.map { $0.ratingKey }
         var (fields, page) = paged(keys, request)
         fields["librarySectionID"] = Int(sectionID) ?? 0
-        fields["Metadata"] = page.compactMap { key in Self.collections.first { $0.ratingKey == key }.map(collectionJSON) }
+        fields["Metadata"] = page.compactMap { key in collections.first { $0.ratingKey == key }.map(collectionJSON) }
         return .container(fields)
     }
 
     func collectionChildrenResponse(_ ratingKey: String, request: DemoRequest) -> DemoResponse {
-        guard let collection = Self.collections.first(where: { $0.ratingKey == ratingKey }) else { return .notFound() }
+        guard let collection = collections.first(where: { $0.ratingKey == ratingKey }) else { return .notFound() }
         var (fields, page) = paged(collection.members, request)
         fields["key"] = ratingKey
         fields["title1"] = collection.title
@@ -46,7 +58,7 @@ extension DemoLibrary {
     }
 
     func collectionTags(of key: String) -> [DemoJSON] {
-        Self.collections.filter { $0.members.contains(key) }.map { ["tag": $0.title] as DemoJSON }
+        collections.filter { $0.members.contains(key) }.map { ["tag": $0.title] as DemoJSON }
     }
 
     private func collectionJSON(_ collection: DemoCollection) -> DemoJSON {

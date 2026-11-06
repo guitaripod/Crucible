@@ -1,8 +1,8 @@
 import Foundation
 
 /// The owner's tools against the demo library, so the demo shows them working: scans and refreshes are accepted (a scan
-/// shows as a background task for a few seconds), Fix Match offers a few candidates, edits and artwork choices take effect
-/// for the session, stopping a stream ends it, and deleting is refused the way a server with media deletion off refuses it.
+/// shows as a background task for a few seconds), Fix Match offers a few candidates and takes the one picked, edits, artwork
+/// choices, deletions and the server update take effect for the session, and stopping a stream ends it.
 extension DemoLibrary {
     static let scanSeconds: TimeInterval = 10
 
@@ -73,6 +73,58 @@ extension DemoLibrary {
         return .container(["size": results.count, "SearchResult": results])
     }
 
+    /// The title takes the name, year and guid of the match picked, as a server does once it has fetched that match's metadata.
+    func applyMatch(_ key: String, guid: String?, name: String?, year: Int?) -> DemoResponse {
+        guard items[key] != nil, let guid, let name, !name.isEmpty else { return .notFound() }
+        items[key]?.fields["guid"] = guid
+        items[key]?.fields["title"] = name
+        items[key]?.fields["titleSort"] = name.lowercased()
+        if let year { items[key]?.set("year", year) }
+        return .empty()
+    }
+
+    /// Removes a film with its extras, a show with its seasons and episodes, a season with its episodes, or one episode, and their
+    /// plays in the watch history, for the rest of the session.
+    func deleteItem(_ key: String) -> DemoResponse {
+        guard let item = items[key], item.fields.string("type") != "clip" else { return .notFound() }
+        let removed = Set([key] + item.children + item.children.flatMap { items[$0]?.children ?? [] } + (extraKeys[key] ?? []))
+        for parent in [item.season, item.show].compactMap({ $0 }) {
+            items[parent]?.children.removeAll(where: removed.contains)
+        }
+        for gone in removed { items[gone] = nil }
+        movieKeys.removeAll(where: removed.contains)
+        showKeys.removeAll(where: removed.contains)
+        for show in episodeKeysByShow.keys { episodeKeysByShow[show]?.removeAll(where: removed.contains) }
+        if item.kind == .show { episodeKeysByShow[key] = nil }
+        extraKeys[key] = nil
+        onDeck.removeAll(where: removed.contains)
+        hiddenFromContinue.subtract(removed)
+        history.removeAll { removed.contains($0.ratingKey) }
+        recountAll()
+        events.deleted(ratingKey: key, sectionID: String(item.sectionID), type: Self.timelineType(item.kind))
+        return .empty()
+    }
+
+    /// The metadata type a server's timeline gives a title of `kind`.
+    private static func timelineType(_ kind: DemoItem.Kind) -> Int {
+        switch kind {
+        case .movie: return 1
+        case .show: return 2
+        case .season: return 3
+        case .episode: return 4
+        }
+    }
+
+    /// Remembers the audio and subtitle tracks picked for a file, so the next look at the title has them selected. A subtitle of 0
+    /// is none.
+    func selectStreams(partID: Int, audio: Int?, subtitle: Int?) -> DemoResponse {
+        var choice = streamSelections[partID] ?? DemoStreamChoice()
+        if let audio { choice.audio = audio }
+        if let subtitle { choice.subtitle = subtitle }
+        streamSelections[partID] = choice
+        return .empty()
+    }
+
     func editFields(_ request: DemoRequest) -> DemoResponse {
         guard let key = request.first("id"), items[key] != nil else { return .notFound() }
         for field in ["title", "titleSort", "originalTitle", "summary"] {
@@ -129,13 +181,19 @@ extension DemoLibrary {
         return .empty()
     }
 
-    static func updaterResponse() -> DemoResponse {
-        .container(["size": 1, "canInstall": false, "Release": [[
+    /// The release the server offers, until Install Now has put it on.
+    func updaterResponse() -> DemoResponse {
+        .container(["size": 1, "canInstall": !updateInstalled, "Release": [[
             "version": "1.43.6.10123",
             "added": "Faster scanning of large libraries.\nBetter matching of anime episodes.",
             "fixed": "Subtitles could start a second late after a seek.",
-            "state": "notify",
+            "state": updateInstalled ? "installed" : "notify",
         ]]])
+    }
+
+    func installUpdate() -> DemoResponse {
+        updateInstalled = true
+        return .empty()
     }
 
     static func resourcesResponse(now: Date = Date()) -> DemoResponse {

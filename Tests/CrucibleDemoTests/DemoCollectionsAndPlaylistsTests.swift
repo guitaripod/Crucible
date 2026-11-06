@@ -156,6 +156,9 @@ struct DemoSubtitleSearchTests {
             let after = try await demo.metadata("1003").subtitleStreams
             #expect(after.count == before + 1)
             #expect(after.last?.language == "Finnish")
+            let path = try #require(after.last?.key)
+            let (data, _) = try await demo.get(path)
+            #expect(String(decoding: data, as: UTF8.self).contains("Meidän ei pitäisi olla täällä."), "a Finnish download reads in Finnish")
         }
     }
 }

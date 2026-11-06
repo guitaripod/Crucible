@@ -40,7 +40,11 @@ struct DemoRouter: Sendable {
             if request.method == "DELETE", parts.count == 2 { return await library.cancelActivity(parts[1]) }
             return await library.activitiesResponse()
         case "updater":
-            return parts.count == 2 && parts[1] == "status" ? DemoLibrary.updaterResponse() : .empty()
+            switch (request.method, parts.count == 2 ? parts[1] : "") {
+            case (_, "status"): return await library.updaterResponse()
+            case ("PUT", "apply"): return await library.installUpdate()
+            default: return .empty()
+            }
         case "statistics":
             return parts == ["statistics", "resources"] ? DemoLibrary.resourcesResponse() : .notFound()
         case "photo":
@@ -68,9 +72,13 @@ struct DemoRouter: Sendable {
             guard let id = Int(parts[3]) else { return .notFound() }
             return await plexTV.pollPin(id)
         case (_, "resources", 3):
-            return await plexTV.resources(baseURL: "http://\(request.headers["host"] ?? "127.0.0.1")")
+            return await plexTV.resources(baseURL: "http://\(request.headers["host"] ?? "127.0.0.1")", token: request.token)
         case (_, "user", 3):
-            return await plexTV.user()
+            return await plexTV.user(token: request.token)
+        case ("GET", "home", 4) where parts[3] == "users":
+            return await plexTV.homeUsers()
+        case ("POST", "home", 6) where parts[3] == "users" && parts[5] == "switch":
+            return await plexTV.switchUser(uuid: parts[4], pin: request.formFields["pin"])
         default:
             return .notFound()
         }
@@ -127,12 +135,12 @@ struct DemoRouter: Sendable {
         case ("recentlyAdded", 2):
             return await library.recentlyAddedResponse(request)
         case ("parts", 3):
-            return .empty()
+            guard request.method == "PUT" else { return .empty() }
+            return await library.selectStreams(partID: Int(parts[2]) ?? 0, audio: request.int("audioStreamID"), subtitle: request.int("subtitleStreamID"))
         case ("parts", 5):
             return partResponse(parts[4], request)
         case ("streams", 3):
-            let id = Int(parts[2]) ?? 0
-            return .text(DemoSubtitles.srt(forStream: id))
+            return .text(await library.subtitleText(forStream: Int(parts[2]) ?? 0))
         default:
             return .notFound()
         }
@@ -170,7 +178,7 @@ struct DemoRouter: Sendable {
     }
 
     private func metadataResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
-        if parts.count >= 4, parts[3] == "thumb" || parts[3] == "art" {
+        if parts.count >= 4, parts[3] == "thumb" || parts[3] == "art", request.method == "GET" || request.isHead {
             return await imageResponse(path: request.path)
         }
         if parts.count == 4, parts[3] == "subtitles" {
@@ -187,12 +195,14 @@ struct DemoRouter: Sendable {
             }
         }
         if parts.count == 3, request.method == "DELETE" {
-            return .json(["errors": [["code": 1, "message": "Media deletion is not allowed on this server"]]], status: 403)
+            return await library.deleteItem(parts[2])
         }
         if parts.count == 4 {
             switch parts[3] {
-            case "refresh", "analyze", "unmatch", "match":
+            case "refresh", "analyze", "unmatch":
                 return .empty()
+            case "match":
+                return await library.applyMatch(parts[2], guid: request.first("guid"), name: request.first("name"), year: request.int("year"))
             case "matches":
                 return await library.matchesResponse(parts[2], title: request.first("title"), year: request.int("year"))
             case "posters", "arts":
