@@ -313,7 +313,10 @@ final class ServerSetupViewController: UIViewController {
                 guard let authURL = PlexAuthURL.url(clientIdentifier: PlexHeaders.clientIdentifier, code: pin.code) else {
                     throw SignInFailure(message: String(localized: "Failed to build auth URL"))
                 }
-                let nav = UINavigationController(rootViewController: PlexWebAuthViewController(url: authURL))
+                let auth = PlexWebAuthViewController(url: authURL)
+                auth.onClose = { [weak self] in self?.cancelSignIn() }
+                let nav = UINavigationController(rootViewController: auth)
+                nav.isModalInPresentation = true
                 present(nav, animated: true)
                 sheet = nav
                 showStatus(String(localized: "Waiting for authorization..."), color: Theme.Color.labelSecondary)
@@ -329,11 +332,22 @@ final class ServerSetupViewController: UIViewController {
         return nil
     }
 
+    /// Closing the Plex sign-in sheet gives the sign-in up, so the welcome screen, and the demo on it, are ready again at once.
+    private func cancelSignIn() {
+        authTask?.cancel()
+        authTask = nil
+        pendingManualAddress = nil
+        statusLabel.isHidden = true
+        setBusy(false)
+    }
+
     private func discoverServers(token: String) async throws {
         let discovery = ServerDiscovery(token: token)
         switch try await discovery.listing(progress: { [weak self] in self?.show($0) }) {
         case .none:
-            showError(String(localized: "No Plex server found on your account"))
+            showError(offersDemo
+                ? String(localized: "No Plex server found on your account. Try the demo to explore Crucible without one.")
+                : String(localized: "No Plex server found on your account"))
             setBusy(false)
         case .single(let server):
             await connectToOnlyServer(server, discovery: discovery)
@@ -564,6 +578,9 @@ private final class EmberGlowView: UIView {
 }
 
 final class PlexWebAuthViewController: UIViewController {
+    /// Called when the person closes the sheet before signing in.
+    var onClose: (() -> Void)?
+
     private let url: URL
     private var webView: WKWebView!
 
@@ -583,6 +600,7 @@ final class PlexWebAuthViewController: UIViewController {
             systemItem: .done,
             primaryAction: UIAction { [weak self] _ in
                 self?.dismiss(animated: true)
+                self?.onClose?()
             }
         )
 

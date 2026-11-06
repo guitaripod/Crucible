@@ -26,6 +26,7 @@ final class ServerAddressSheetViewController: UIViewController {
     private let field = UITextField()
     private let errorLabel = UILabel()
     private let connectButton = ThemeButton.primary(title: String(localized: "Connect"))
+    private let closeButton = ThemeButton.icon(symbol: "xmark", label: String(localized: "Cancel"))
     private var submitTask: Task<Void, Never>?
     private var activeObserver: NSObjectProtocol?
     private var isSubmitting = false
@@ -128,7 +129,11 @@ final class ServerAddressSheetViewController: UIViewController {
     }
 
     private func layoutViews() {
-        var arranged: [UIView] = [titleLabel, hintLabel]
+        closeButton.addAction(UIAction { [weak self] _ in self?.dismiss(animated: true) }, for: .touchUpInside)
+        let header = UIStackView(arrangedSubviews: [titleLabel, closeButton])
+        header.alignment = .center
+        header.spacing = 12
+        var arranged: [UIView] = [header, hintLabel]
         if let recovery {
             arranged += recovery.model.steps.map { step in
                 RecoveryStepView(model: recovery.model, step: step) { [weak self] in self?.perform(step) }
@@ -208,6 +213,8 @@ final class ServerAddressSheetViewController: UIViewController {
         connectButton.configuration = config
         connectButton.isEnabled = typedAddress != nil && !isSubmitting
         field.isEnabled = !isSubmitting
+        closeButton.isEnabled = !isSubmitting
+        isModalInPresentation = isSubmitting
     }
 
     private func showError(_ message: String) {

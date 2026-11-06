@@ -46,9 +46,10 @@ final class DemoCoordinator {
 
     // MARK: - Show me
 
-    /// Takes the user to where `step` happens and starts it where that takes no more than a tap.
-    func show(_ step: DemoTourStep) {
-        guard let tabBar, tabBar.presentedViewController == nil else { return }
+    /// Takes the user to where `step` happens, in the window `source` is in, and starts it where that takes no more than a tap.
+    func show(_ step: DemoTourStep, from source: UIViewController) {
+        guard let tabBar = (source.view.window?.rootViewController as? TabBarController) ?? frontTabBar,
+              tabBar.presentedViewController == nil else { return }
         switch step {
         case .play: playHighlightedTitle(in: tabBar)
         case .browse: tabBar.open(.library)
@@ -110,8 +111,23 @@ final class DemoCoordinator {
         }
     }
 
+    /// The main screen of the window in front: the one the person is using when an iPad shows several.
+    private var frontTabBar: TabBarController? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.filter { Self.frontness($0) != nil }
+        let front = scenes.sorted { (Self.frontness($0) ?? 0) < (Self.frontness($1) ?? 0) }
+            .compactMap { ($0.keyWindow ?? $0.windows.first)?.rootViewController as? TabBarController }
+            .first
+        return front ?? tabBar
+    }
+
+    /// How far in front a window is: the active one first, then one in the foreground, then one in the background. A scene that is not
+    /// attached yet has no place.
+    private static func frontness(_ scene: UIWindowScene) -> Int? {
+        [UIScene.ActivationState.foregroundActive, .foregroundInactive, .background].firstIndex(of: scene.activationState)
+    }
+
     private func currentScreen() -> DemoPhoneFinaleGate.Screen {
-        guard let tabBar else { return .init(appIsActive: false, hasModal: true, inTransition: false, keyboardIsUp: keyboardIsUp) }
+        guard let tabBar = frontTabBar else { return .init(appIsActive: false, hasModal: true, inTransition: false, keyboardIsUp: keyboardIsUp) }
         let navigation = tabBar.selectedViewController as? UINavigationController
         return .init(
             appIsActive: UIApplication.shared.applicationState == .active,
@@ -122,7 +138,7 @@ final class DemoCoordinator {
     }
 
     private func presentFinale() {
-        guard let tabBar else { return }
+        guard let tabBar = frontTabBar else { return }
         MidgarLog.notice("Demo finale shown", category: .ui)
         let sheet = DemoFinaleViewController()
         sheet.onConnect = { [weak self, weak sheet] in

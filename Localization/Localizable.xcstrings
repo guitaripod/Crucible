@@ -46889,6 +46889,70 @@
         }
       }
     },
+    "No Plex server found on your account. Try the demo to explore Crucible without one." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf deinem Konto wurde kein Plex-Server gefunden. Probiere die Demo aus, um Crucible ohne Server zu erkunden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró ningún servidor de Plex en tu cuenta. Prueba la demo para explorar Crucible sin servidor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun serveur Plex trouvé sur votre compte. Essayez la démo pour découvrir Crucible sans serveur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun server Plex trovato nel tuo account. Prova la demo per esplorare Crucible senza un server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントに Plex サーバーが見つかりません。デモを試せば、サーバーなしで Crucible を体験できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 계정에서 Plex 서버를 찾을 수 없어요. 데모를 체험하면 서버 없이 Crucible을 둘러볼 수 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono serwera Plex na Twoim koncie. Wypróbuj wersję demonstracyjną, aby poznać Crucible bez serwera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum servidor Plex encontrado na sua conta. Experimente a demonstração para explorar o Crucible sem um servidor."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你的账户中未找到 Plex 服务器。试用演示，无需服务器即可体验 Crucible。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的帳號中找不到 Plex 伺服器。試用示範，不需伺服器即可探索 Crucible。"
+          }
+        }
+      }
+    },
     "No Settings Found" : {
       "comment" : "Settings search empty state title",
       "localizations" : {

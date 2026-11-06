@@ -158,7 +158,7 @@ final class DemoTourViewController: UICollectionViewController {
             break
         case .step(let step):
             Haptics.selection()
-            DemoCoordinator.shared.show(step)
+            DemoCoordinator.shared.show(step, from: self)
         case .connect, .leave:
             DemoCoordinator.shared.confirmLeaving(from: self)
         case .pro:
