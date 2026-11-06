@@ -17,8 +17,10 @@ APP = "6822066419"
 LIFETIME = "6822070507"
 YEARLY = "6822070396"
 REVIEW_NOTE = (
-    "Crucible Pro is offered on the paywall: iPhone, start a second download or open You > Statistics > Month; "
-    "Apple TV, You > Statistics > Month. Settings > Crucible Pro opens it too. Sign in with the demo Plex account in the app review notes."
+    "Crucible Pro is offered on the paywall. No account is needed: on the Welcome screen tap Try the demo, then turn on "
+    "You > Preview Free Version so Crucible Pro is locked as on a free install. Then open You > Statistics > Month, or "
+    "Settings > Crucible Pro (Apple TV: You > Crucible Pro). A sandbox purchase unlocks the features at once; Restore "
+    "Purchases is on the paywall."
 )
 
 
