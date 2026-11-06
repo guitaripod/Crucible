@@ -33,4 +33,4 @@ Children
 Crucible is not directed at children and does not knowingly collect information from anyone.
 
 Changes and contact
-If this policy changes, the new version appears at the address above with its date. Questions go to https://github.com/guitaripod/Crucible/issues.
+If this policy changes, the new version appears at the address above with its date. Questions go to marcus@midgarcorp.cc.
