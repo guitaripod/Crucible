@@ -58,6 +58,13 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         NSLocalNetworkUsageDescription: Crucible connects to your Plex Media Server on your home network to browse and play your library.
+        NSApplicationServices:
+          Browses:
+            - NSApplicationServiceIdentifier: crucible-pair
+              NSApplicationServicePlatformSupport:
+                - iOS
+                - iPadOS
+              NSApplicationServiceUsageDescription: Crucible pairs this Apple TV with Crucible Server through your iPhone, which hands it the pairing over Apple's encrypted link.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         CFBundleURLTypes:

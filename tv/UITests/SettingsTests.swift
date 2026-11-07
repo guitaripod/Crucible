@@ -153,18 +153,35 @@ final class SettingsTests: TVTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.libraries"), "Menu on the error state must pop to the You list")
     }
 
-    func testCrucibleServerExplainsSetupAndTakesACode() {
+    func testCrucibleServerShowsACodeForIPhoneAndTakesATypedOne() {
         let app = TVTest.launch()
         YouNavigation.openYouTab(app)
         YouNavigation.openRow(app, "you.crucibleServer")
-        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.enterCode", timeout: 15), "Enter Pairing Code should take focus while nothing is paired")
-        XCTAssertTrue(app.staticTexts["crucible-server"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'crucible-server setup'")).firstMatch.exists)
+        let showCode = YouNavigation.row(app, "settings.crucibleServer.showCode")
+        XCTAssertTrue(showCode.waitForExistence(timeout: 15), "Show Code for iPhone should be offered while nothing is paired")
+        if YouNavigation.row(app, "settings.crucibleServer.pairWithIPhone").exists {
+            XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.pairWithIPhone"), "Pair with iPhone should take focus where the picker works")
+            TVTest.remote.press(.right)
+        }
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.showCode"))
         TVTest.settle()
         TVTest.capture("01-crucible-server-not-set-up", in: self)
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(YouNavigation.row(app, "settings.crucibleServer.qr").waitForExistence(timeout: 10), "Show Code for iPhone should show a QR code")
+        XCTAssertTrue(YouNavigation.row(app, "settings.crucibleServer.codeStatus").exists)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.codeCancel"), "Cancel should hold the focus beside the code")
+        TVTest.settle(2)
+        TVTest.capture("02-crucible-server-qr", in: self)
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.showCode", timeout: 10), "Menu should come back to Show Code for iPhone")
+
+        TVTest.remote.press(.right)
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.enterCode"))
         TVTest.remote.press(.select)
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5), "Enter Pairing Code should ask for the code")
         TVTest.settle()
-        TVTest.capture("02-crucible-server-code", in: self)
+        TVTest.capture("03-crucible-server-code", in: self)
     }
 
     func testServerShowsRoutesAndConnectionState() {

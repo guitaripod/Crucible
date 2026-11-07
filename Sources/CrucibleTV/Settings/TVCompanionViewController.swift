@@ -1,5 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
+import DeviceDiscoveryUI
+import Network
 import UIKit
 
 /// Settings › Crucible Server on Apple TV: what it is and how to set it up, or which computer this Apple TV is paired
@@ -9,8 +11,14 @@ final class TVCompanionViewController: UIViewController {
     private let heading = UILabel()
     private let statusLabel = UILabel()
     private let detailLabel = UILabel()
+    private lazy var phoneButton = TVButton.make(.glass, title: CompanionCopy.pairWithIPhone) { [weak self] in self?.pairWithIPhone() }
+    private lazy var showCodeButton = TVButton.make(.glass, title: CompanionCopy.showCode) { [weak self] in self?.showCode() }
     private lazy var codeButton = TVButton.make(.glass, title: CompanionCopy.enterCode) { [weak self] in self?.askForCode() }
+    private let handOffQueue = DispatchQueue(label: "com.guitaripod.crucible.companion-handoff")
+    private static let handOff = NWBrowser.Descriptor.applicationService(name: CompanionHandOff.serviceName)
     private lazy var unpairButton = TVButton.make(.glass, title: CompanionCopy.unpair) { [weak self] in self?.confirmUnpair() }
+    private var statusTask: Task<Void, Never>?
+    private var handingOff = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -24,8 +32,13 @@ final class TVCompanionViewController: UIViewController {
             label.font = Theme.Font.body
         }
         codeButton.accessibilityIdentifier = "settings.crucibleServer.enterCode"
+        phoneButton.accessibilityIdentifier = "settings.crucibleServer.pairWithIPhone"
+        showCodeButton.accessibilityIdentifier = "settings.crucibleServer.showCode"
+        let buttons = UIStackView(arrangedSubviews: [phoneButton, showCodeButton, codeButton])
+        buttons.axis = .horizontal
+        buttons.spacing = Theme.Space.m
         unpairButton.accessibilityIdentifier = "settings.crucibleServer.unpair"
-        let stack = UIStackView(arrangedSubviews: [heading, statusLabel, detailLabel, codeButton, unpairButton])
+        let stack = UIStackView(arrangedSubviews: [heading, statusLabel, detailLabel, buttons, unpairButton])
         stack.axis = .vertical
         stack.alignment = .leading
         stack.spacing = Theme.Space.l
@@ -45,7 +58,13 @@ final class TVCompanionViewController: UIViewController {
     }
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        [CompanionStore.current() == nil ? codeButton : unpairButton]
+        guard CompanionStore.current() == nil else { return [unpairButton] }
+        return [Self.canPairWithIPhone ? phoneButton : showCodeButton]
+    }
+
+    /// Whether this Apple TV can show the system's picker of nearby iPhones and iPads running Crucible.
+    private static var canPairWithIPhone: Bool {
+        DDDevicePickerViewController.isSupported(handOff, using: .applicationService)
     }
 
     private func refresh() {
@@ -55,10 +74,13 @@ final class TVCompanionViewController: UIViewController {
         detailLabel.text = server == nil ? "\(CompanionCopy.stepsTV)\n\(CompanionCopy.installURL.absoluteString)" : nil
         detailLabel.isHidden = server != nil
         codeButton.isHidden = server != nil
+        showCodeButton.isHidden = server != nil
+        phoneButton.isHidden = server != nil || !Self.canPairWithIPhone
         unpairButton.isHidden = server == nil
         setNeedsFocusUpdate()
+        statusTask?.cancel()
         guard let server else { return }
-        Task { [weak self] in
+        statusTask = Task { [weak self] in
             let token = ServerBootstrap.connection()?.authToken ?? ""
             let text: String
             do throws(CompanionError) {
@@ -70,6 +92,7 @@ final class TVCompanionViewController: UIViewController {
             } catch {
                 text = error.message
             }
+            guard !Task.isCancelled else { return }
             self?.statusLabel.text = text
         }
     }
@@ -87,6 +110,65 @@ final class TVCompanionViewController: UIViewController {
             pair(code: code)
         })
         present(alert, animated: TVMotion.animationsEnabled)
+    }
+
+    /// Lets the person pick a nearby iPhone or iPad running Crucible; once they allow it there, it hands over a pairing
+    /// for the server it is paired with, including the certificate fingerprint it pinned.
+    private func pairWithIPhone() {
+        guard !handingOff, let picker = DDDevicePickerViewController(browseDescriptor: Self.handOff, parameters: .applicationService) else { return }
+        handingOff = true
+        present(picker, animated: TVMotion.animationsEnabled)
+        Task { [weak self] in
+            let endpoint: NWEndpoint
+            do {
+                endpoint = try await picker.endpoint
+            } catch {
+                picker.dismiss(animated: TVMotion.animationsEnabled)
+                self?.handingOff = false
+                return
+            }
+            picker.dismiss(animated: TVMotion.animationsEnabled)
+            await self?.handOff(from: endpoint)
+            self?.handingOff = false
+        }
+    }
+
+    private func handOff(from endpoint: NWEndpoint) async {
+        statusTask?.cancel()
+        statusLabel.text = CompanionCopy.waitingForIPhone
+        let connection = NWConnection(to: endpoint, using: .applicationService)
+        defer { connection.cancel() }
+        let line: String
+        do throws(CompanionHandOffChannel.Failure) {
+            try await CompanionHandOffChannel.ready(connection, queue: handOffQueue)
+            try await CompanionHandOffChannel.send(CompanionHandOff.helloLine(deviceName: UIDevice.current.name), on: connection)
+            line = try await CompanionHandOffChannel.readLine(from: connection, timeout: .seconds(120))
+        } catch {
+            statusLabel.text = CompanionCopy.handOffEnded
+            return
+        }
+        switch CompanionHandOff.answer(inLine: line) {
+        case .invite(let invite)?:
+            statusLabel.text = CompanionCopy.pairing
+            do throws(CompanionError) {
+                _ = try await PreviouslyOnRequest.pair(invite, deviceName: UIDevice.current.name, platform: "tvos", handedOn: true)
+                refresh()
+            } catch {
+                statusLabel.text = error.message
+            }
+        case .declined?, nil:
+            statusLabel.text = CompanionCopy.declined
+        }
+    }
+
+    private func showCode() {
+        let screen = TVCompanionCodeViewController()
+        screen.onPaired = { [weak self] in
+            guard let self else { return }
+            navigationController?.popToViewController(self, animated: TVMotion.animationsEnabled)
+            refresh()
+        }
+        TVNavigation.push(screen, from: self)
     }
 
     private func pair(code: String) {
