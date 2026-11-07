@@ -71,18 +71,27 @@ pub fn machine_name() -> String {
         .unwrap_or_else(|| "Plex server".into())
 }
 
-/// The model to use: the one asked for, else the best preferred model with a window for a whole episode's dialogue,
-/// else the preferred one with any window, else the first listed.
-fn choose_model(models: &[Listed], wanted: Option<&str>) -> Option<Listed> {
+/// The models worth trying, best first: the one asked for alone, else the preferred models with a window for a whole
+/// episode's dialogue, then the preferred ones with a smaller window, then whatever else is listed.
+fn candidates(models: &[Listed], wanted: Option<&str>) -> Vec<Listed> {
     if let Some(wanted) = wanted {
-        return models.iter().find(|model| model.id == wanted).cloned();
+        return models.iter().filter(|model| model.id == wanted).cloned().collect();
     }
-    let preferred = |roomy: bool| {
-        PREFERRED.iter().find_map(|name| {
-            models.iter().find(|model| model.id.to_lowercase().contains(name) && (!roomy || model.context.unwrap_or(DEFAULT_CONTEXT) >= ROOMY)).cloned()
-        })
+    let rank = |model: &Listed| {
+        let preference = PREFERRED.iter().position(|name| model.id.to_lowercase().contains(name)).unwrap_or(PREFERRED.len());
+        let roomy = model.context.unwrap_or(DEFAULT_CONTEXT) >= ROOMY;
+        (preference == PREFERRED.len(), !roomy, preference)
     };
-    preferred(true).or_else(|| preferred(false)).or_else(|| models.first().cloned())
+    let mut ordered = models.to_vec();
+    ordered.sort_by_key(rank);
+    ordered
+}
+
+/// Whether the model answers a tiny request, giving a model server time to load it.
+async fn answers(url: &str, model: &Listed) -> bool {
+    let brain = Brain::new(Model { url: url.into(), name: model.id.clone(), context: model.context.unwrap_or(DEFAULT_CONTEXT) });
+    let check = brain.ask_json("Reply with JSON only.", "Reply with {\"ok\": true}", 20);
+    matches!(tokio::time::timeout(Duration::from_secs(180), check).await, Ok(Ok(_)))
 }
 
 pub async fn run(paths: &Paths, options: Options) -> Result<(), String> {
@@ -173,10 +182,16 @@ async fn pick_model(options: &Options) -> Option<Model> {
     for (name, url) in hosts {
         let probe = Brain::new(Model { url: url.clone(), name: String::new(), context: DEFAULT_CONTEXT });
         let Ok(models) = probe.listed().await else { continue };
-        let Some(chosen) = choose_model(&models, options.model.as_deref()) else { continue };
         println!("Found {name} at {url} with {} models.", models.len());
-        if options.assume_yes || confirm(&format!("Use {} for recaps and answers?", chosen.id), true) {
-            return Some(Model { url, name: chosen.id, context: chosen.context.unwrap_or(DEFAULT_CONTEXT) });
+        for candidate in candidates(&models, options.model.as_deref()).into_iter().take(4) {
+            if !(options.assume_yes || confirm(&format!("Use {} for recaps and answers?", candidate.id), true)) {
+                continue;
+            }
+            println!("Checking {} (a model can take a few minutes to load)...", candidate.id);
+            if answers(&url, &candidate).await {
+                return Some(Model { url, name: candidate.id, context: candidate.context.unwrap_or(DEFAULT_CONTEXT) });
+            }
+            println!("{} did not answer; trying the next one.", candidate.id);
         }
     }
     None
@@ -201,13 +216,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn prefers_a_good_summary_model_with_room_for_an_episode() {
+    fn tries_good_summary_models_with_room_for_an_episode_first() {
         let listed = |id: &str, context: Option<u32>| Listed { id: id.into(), context };
-        let models = vec![listed("gemma3-1b-gguf", Some(16_384)), listed("gemma4-26b-a4b-gguf", Some(8_192)), listed("qwen3-30b-a3b", Some(131_072))];
-        assert_eq!(choose_model(&models, None).map(|m| m.id), Some("qwen3-30b-a3b".into()));
-        assert_eq!(choose_model(&models[..2], None).map(|m| m.id), Some("gemma4-26b-a4b-gguf".into()));
-        assert_eq!(choose_model(&models, Some("gemma3-1b-gguf")).map(|m| m.id), Some("gemma3-1b-gguf".into()));
-        assert_eq!(choose_model(&models, Some("missing")), None);
-        assert_eq!(choose_model(&[listed("only", None)], None).map(|m| m.id), Some("only".into()));
+        let models = vec![listed("flint", Some(262_144)), listed("gemma4-26b-a4b-gguf", Some(8_192)), listed("qwen3-30b-a3b", Some(131_072))];
+        let order: Vec<String> = candidates(&models, None).into_iter().map(|m| m.id).collect();
+        assert_eq!(order, vec!["qwen3-30b-a3b", "gemma4-26b-a4b-gguf", "flint"]);
+        assert_eq!(candidates(&models, Some("flint")).len(), 1);
+        assert!(candidates(&models, Some("missing")).is_empty());
     }
 }

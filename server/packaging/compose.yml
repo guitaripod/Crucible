@@ -1,0 +1,10 @@
+services:
+  crucible-server:
+    image: ghcr.io/guitaripod/crucible-server:latest
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      PLEX_URL: http://127.0.0.1:32400
+    volumes:
+      - ./config:/config
+      - /path/to/your/media:/path/to/your/media:ro

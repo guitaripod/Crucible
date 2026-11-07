@@ -13,9 +13,22 @@ Nothing leaves your network. The model runs on this machine or on a computer on 
 
 ## Install
 
+On the computer that runs Plex:
+
 ```sh
-cargo install --path server        # or download a release binary
-crucible-server setup
+curl -fsSL https://raw.githubusercontent.com/guitaripod/Crucible/master/server/packaging/install.sh | sh    # Linux and macOS
+brew install guitaripod/tap/crucible-server && crucible-server setup                           # macOS
+yay -S crucible-server-bin && crucible-server setup                                              # Arch Linux
+cargo install --path server && crucible-server setup                                             # from source
+```
+
+With Docker (Unraid, Synology, TrueNAS, any NAS): build the image from `server/packaging/Dockerfile` with the
+Linux release binary beside it, mount your media read-only at the paths Plex uses, and run setup once in the
+container before starting it:
+
+```sh
+docker compose -f server/packaging/compose.yml run --rm -it crucible-server setup --no-service
+docker compose -f server/packaging/compose.yml up -d
 ```
 
 `setup` finds Plex on this machine, checks that Plex refuses requests without a token, signs you in at
