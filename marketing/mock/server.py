@@ -34,6 +34,7 @@ def initial_flags():
         "clip_markers": os.environ.get("MOCK_CLIP_MARKERS") == "1",
         "fail_metadata_once": os.environ.get("MOCK_FAIL_METADATA_ONCE", ""),
         "no_credits": os.environ.get("MOCK_NO_CREDITS") == "1",
+        "early_credits": os.environ.get("MOCK_EARLY_CREDITS") == "1",
     }
 
 
@@ -43,6 +44,7 @@ FLAGS = initial_flags()
 def apply_flags():
     library.CLIP_MARKERS = FLAGS["clip_markers"]
     library.NO_CREDITS = FLAGS["no_credits"]
+    library.EARLY_CREDITS = FLAGS["early_credits"]
 
 
 apply_flags()

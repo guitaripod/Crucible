@@ -203,6 +203,24 @@ final class PlayerTests: TVTestCase {
         XCTAssertFalse(app.tabBars.firstMatch.exists, "the player stays up")
     }
 
+    /// An earlier credits marker that is not final (Plex marks credits over closing scenes of some South Park episodes) is only
+    /// a Skip Credits button: the Up Next card waits for the final credits, so the episode is never cut short.
+    func testUpNextWaitsForTheFinalCreditsPastAnEarlierCreditsMarker() {
+        setFlags("clip_markers=1&early_credits=1")
+        setProgress(Self.episode, seconds: 78)
+        let app = launch(playing: Self.episode, arguments: ["-autoplayNextEpisode", "<false/>", "-skipIntroMode", "2"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        let card = app.otherElements["player.upNext"]
+        let deadline = Date().addingTimeInterval(24)
+        while Date() < deadline {
+            XCTAssertFalse(card.exists, "the Up Next card came at a credits marker that is not the final credits")
+            TVTest.settle(1)
+        }
+        TVTest.capture("01-early-credits-play-on", in: self)
+        XCTAssertTrue(waitForFocusedUpNextCard(in: app, timeout: 30), "the final credits never offered the next episode")
+        TVTest.capture("02-up-next-at-the-final-credits", in: self)
+    }
+
     /// Skip Outro off: the credits play without the Up Next card and nothing starts the next episode.
     func testSkipOutroOffLetsTheCreditsPlayWithoutTheCard() {
         setFlags("clip_markers=1")

@@ -65,6 +65,34 @@ struct PlaybackUpNextTests {
         #expect(!afterSeekBack)
     }
 
+    /// South Park S1E3 on the owner's server: Plex marks credits at 21:12 and 21:52 over scenes that carry on, and the final
+    /// credits at 23:02. Up Next waits for the final ones.
+    @Test func upNextWaitsForTheFinalCreditsNotAnEarlierCreditsMarker() {
+        let markers = [
+            PlexMarker(type: "credits", startTimeOffset: 1_272_000, endTimeOffset: 1_296_000, final: nil),
+            PlexMarker(type: "credits", startTimeOffset: 1_312_000, endTimeOffset: 1_334_000, final: nil),
+            PlexMarker(type: "credits", startTimeOffset: 1_382_000, endTimeOffset: 1_410_000, final: true),
+            PlexMarker(type: "intro", startTimeOffset: 90_000, endTimeOffset: 122_000, final: nil),
+        ]
+        var resolver = UpNextResolver(ratingKey: "301", isEpisode: true, seasonRatingKey: "200", markers: markers)
+        #expect(resolver.creditsStartSecs == 1_382)
+        let atFirstCredits = resolver.creditsReached(at: 1_272)
+        let atSecondCredits = resolver.creditsReached(at: 1_312)
+        let atFinalCredits = resolver.creditsReached(at: 1_382)
+        #expect(!atFirstCredits)
+        #expect(!atSecondCredits)
+        #expect(atFinalCredits)
+    }
+
+    @Test func withoutAFinalFlagTheLastCreditsMarkerIsTheClosingOne() {
+        let markers = [
+            PlexMarker(type: "credits", startTimeOffset: 1_284_000, endTimeOffset: 1_318_000, final: nil),
+            PlexMarker(type: "credits", startTimeOffset: 1_382_000, endTimeOffset: 1_420_000, final: nil),
+        ]
+        #expect(PlexMarker.closingCreditsStart(in: markers) == 1_382)
+        #expect(PlexMarker.closingCreditsStart(in: [Self.intro]) == nil)
+    }
+
     @Test func creditsNeverTriggerForMoviesOrWithoutACreditsMarker() {
         var movie = UpNextResolver(ratingKey: "1", isEpisode: false, seasonRatingKey: nil, markers: [Self.credits])
         let movieTriggered = movie.creditsReached(at: 5_000)

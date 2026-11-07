@@ -21,6 +21,8 @@ CLIP_DURATION_MS = 150000
 CLIP_CREDITS_START_MS = 110000
 CLIP_MARKERS = False
 NO_CREDITS = False
+EARLY_CREDITS = False
+EARLY_CREDITS_MS = (80000, 95000)
 
 FIRST = ["Maren", "Idris", "Tove", "Sam", "Ana", "Tom", "Kasia", "Joel", "Imara", "Luca", "Nia", "Oskar", "Priya", "Dante",
          "Elin", "Rafi", "Wren", "Mateo", "Sana", "Bram", "Linnea", "Kofi", "Ines", "Callum", "Yara", "Teo", "Hanne", "Dario",
@@ -334,10 +336,14 @@ STREAM_SUBS = [
 
 
 def clip_markers(markers):
-    """Moves credits markers inside the 150 s clip so playback can reach them (mock flag clip_markers)."""
+    """Moves credits markers inside the 150 s clip so playback can reach them (mock flag clip_markers). With early_credits an
+    episode also carries a credits marker that is not final, before the final credits, the way Plex marks credits over a
+    closing scene of some South Park episodes."""
     out = []
     for m in markers:
         if m["type"] == "credits":
+            if EARLY_CREDITS:
+                out.append({"id": m["id"] + 5, "type": "credits", "startTimeOffset": EARLY_CREDITS_MS[0], "endTimeOffset": EARLY_CREDITS_MS[1]})
             m = dict(m, startTimeOffset=CLIP_CREDITS_START_MS, endTimeOffset=CLIP_DURATION_MS)
         out.append(m)
     return out

@@ -92,6 +92,7 @@ package struct UpNextResolver: Sendable {
     private let seasonRatingKey: String?
     private let showRatingKey: String?
     private let queue: PlaybackQueue?
+    /// Where the closing credits begin, which is when Up Next is offered; earlier credits markers only get a skip button.
     package let creditsStartSecs: Double?
     private var creditsTriggered = false
 
@@ -108,7 +109,7 @@ package struct UpNextResolver: Sendable {
         self.seasonRatingKey = seasonRatingKey
         self.showRatingKey = showRatingKey
         self.queue = queue
-        self.creditsStartSecs = markers.first(where: \.isCredits)?.startSecs
+        self.creditsStartSecs = PlexMarker.closingCreditsStart(in: markers)
     }
 
     /// Whether there can be a successor at all: another entry of the queue, or for an episode in a known season the next one of the show.

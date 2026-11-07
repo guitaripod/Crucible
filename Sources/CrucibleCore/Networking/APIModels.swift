@@ -641,6 +641,14 @@ package struct PlexMarker: Decodable, Sendable {
     package var isCredits: Bool { type == "credits" }
     package var startSecs: Double { Double(startTimeOffset ?? 0) / 1000.0 }
     package var endSecs: Double { Double(endTimeOffset ?? 0) / 1000.0 }
+
+    /// Where an item's closing credits begin: the credits marker the server flags as final, else the last credits marker. Plex
+    /// also marks credits earlier in an episode (credits over a closing scene that carries on, a stinger), which can be skipped
+    /// but are not the end: a South Park episode can carry two of them minutes before its final credits.
+    package static func closingCreditsStart(in markers: [PlexMarker]) -> Double? {
+        let credits = markers.filter(\.isCredits)
+        return (credits.first { $0.final == true } ?? credits.max { $0.startSecs < $1.startSecs })?.startSecs
+    }
 }
 
 package struct PlexRole: Decodable, Sendable, Hashable {
@@ -776,7 +784,6 @@ extension PlexMetadata {
     package var writers: [String] { Writer?.map(\.tag) ?? [] }
     package var relatedHubs: [PlexHub] { (Related?.Hub ?? []).filter { !($0.Metadata?.isEmpty ?? true) } }
     var introMarker: PlexMarker? { Marker?.first { $0.isIntro } }
-    var firstCreditsMarker: PlexMarker? { Marker?.first { $0.isCredits } }
 }
 
 package struct PlexMedia: Decodable, Sendable {
