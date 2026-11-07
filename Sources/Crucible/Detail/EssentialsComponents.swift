@@ -29,6 +29,7 @@ final class EssentialsBarContentView: UIView, UIContentView {
     init(configuration: EssentialsBarConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         button.showsMenuAsPrimaryAction = true
         button.isPointerInteractionEnabled = true
         button.setContentHuggingPriority(.required, for: .horizontal)
@@ -45,6 +46,9 @@ final class EssentialsBarContentView: UIView, UIContentView {
         let text = UIStackView(arrangedSubviews: [detailLabel, sourceLabel])
         text.axis = .vertical
         text.spacing = 2
+        text.setContentCompressionResistancePriority(.required, for: .vertical)
+        detailLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+        sourceLabel.setContentCompressionResistancePriority(.required, for: .vertical)
         let row = UIStackView(arrangedSubviews: [button, text])
         row.axis = .horizontal
         row.alignment = .center

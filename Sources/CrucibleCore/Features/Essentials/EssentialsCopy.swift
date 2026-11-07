@@ -6,7 +6,7 @@ package enum EssentialsCopy {
     package static func duration(_ seconds: Double) -> String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-        formatter.unitsStyle = .short
+        formatter.unitsStyle = .abbreviated
         formatter.zeroFormattingBehavior = .dropAll
         return formatter.string(from: max(60, seconds)) ?? ""
     }
