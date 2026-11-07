@@ -16,6 +16,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::config::{Config, Policy};
+use crate::home::Home;
 use crate::jobs::{Jobs, State as JobState};
 use crate::net::{classify, Peer};
 use crate::pairing::{new_device_token, Pairings, Refused};
@@ -38,6 +39,7 @@ pub struct AppState {
     pub writer: Option<Arc<Writer>>,
     pub jobs: Jobs,
     pub owner_token_hash: Option<String>,
+    pub home: Home,
     accepted: Mutex<HashMap<String, Instant>>,
 }
 
@@ -49,7 +51,7 @@ impl AppState {
         fingerprint: String,
         plex: Plex,
         writer: Option<Arc<Writer>>,
-        owner_token: Option<&str>,
+        home: Home,
     ) -> Self {
         AppState {
             config,
@@ -59,7 +61,8 @@ impl AppState {
             plex,
             writer,
             jobs: Jobs::default(),
-            owner_token_hash: owner_token.map(hash_token),
+            owner_token_hash: home.owner_token_hash(),
+            home,
             accepted: Mutex::new(HashMap::new()),
         }
     }
@@ -179,8 +182,20 @@ async fn admit(state: &AppState, headers: &HeaderMap) -> Result<(String, String)
         .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "no_plex_token", "The request carries no Plex token."))?
         .to_string();
     let hashed = hash_token(&plex_token);
-    if state.config.policy == Policy::OnlyMe && state.owner_token_hash.as_deref() != Some(hashed.as_str()) {
-        return Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "The owner keeps Crucible Server to themselves."));
+    let owner = state.owner_token_hash.as_deref() == Some(hashed.as_str());
+    match state.config.policy {
+        Policy::OnlyMe if !owner => {
+            return Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "The owner keeps Crucible Server to themselves."));
+        }
+        Policy::MyPlexHome if !owner => match state.home.admits(&hashed).await {
+            Ok(true) => {}
+            Ok(false) => return Err(ApiError::new(StatusCode::FORBIDDEN, "home_only", "The owner keeps Crucible Server to their Plex Home.")),
+            Err(_) => {
+                return Err(ApiError::new(StatusCode::SERVICE_UNAVAILABLE, "home_unknown", "Crucible Server could not ask plex.tv who is in the Plex Home.")
+                    .hint("Try again in a minute."));
+            }
+        },
+        _ => {}
     }
     let fresh = {
         let accepted = state.accepted.lock().unwrap_or_else(PoisonError::into_inner);

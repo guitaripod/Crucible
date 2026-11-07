@@ -9,9 +9,11 @@ use axum_server::tls_rustls::RustlsConfig;
 use crate::api::{router, AppState};
 use crate::brain::Brain;
 use crate::config::Config;
+use crate::home::Home;
 use crate::pairing::Pairings;
 use crate::paths::Paths;
 use crate::plex::Plex;
+use crate::plextv::PlexTv;
 use crate::recap::Writer;
 use crate::store::Store;
 use crate::{setup, tls};
@@ -33,7 +35,7 @@ pub async fn run(paths: &Paths) -> Result<(), String> {
         identity.fingerprint.clone(),
         plex,
         writer,
-        owner_token.as_deref(),
+        Home::new(PlexTv::new(&client), owner_token, config.machine_identifier.clone()),
     ));
     let tls = RustlsConfig::from_pem_file(paths.certificate(), paths.private_key()).await.map_err(|error| error.to_string())?;
     let address = SocketAddr::from(([0, 0, 0, 0], config.port));

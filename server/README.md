@@ -63,7 +63,8 @@ episode's dialogue, a smaller one reads an even sample of it.
   follows pairing links only to addresses on the home network or the tailnet.
 - Every request carries the person's own Plex token for this server, and Plex is asked as that person, so a
   restricted profile sees only what Plex already shows it. The owner chooses who may use the server: only them,
-  their Plex Home, or everyone the server is shared with.
+  their Plex Home (the members plex.tv lists with access to this server, asked again at most every ten minutes), or
+  everyone the server is shared with. `crucible-server doctor` says how many people that is.
 - Summaries use names only from the episode's dialogue, synopsis and cast; a summary that invents one, or a sentence
   the sources don't support, is rewritten or dropped.
 

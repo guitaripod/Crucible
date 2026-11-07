@@ -5,6 +5,7 @@ pub mod brain;
 pub mod config;
 pub mod dialogue;
 pub mod doctor;
+pub mod home;
 pub mod jobs;
 pub mod net;
 pub mod pairing;

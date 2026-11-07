@@ -1,8 +1,11 @@
-//! plex.tv, asked only at setup: the owner signs in with a PIN at plex.tv/link, and the companion checks that the
-//! Plex server on this machine belongs to them.
+//! plex.tv: at setup the owner signs in with a PIN at plex.tv/link and the companion checks that the Plex server on this
+//! machine belongs to them; under the My Plex Home policy it also lists who is in the owner's Plex Home.
 
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
+use quick_xml::events::Event;
+use quick_xml::XmlVersion;
 use serde::Deserialize;
 
 use crate::plex::PRODUCT;
@@ -10,6 +13,11 @@ use crate::plex::PRODUCT;
 /// plex.tv's API, or `CRUCIBLE_PLEXTV_URL` (a test server that speaks the same routes).
 fn base() -> String {
     std::env::var("CRUCIBLE_PLEXTV_URL").map(|url| format!("{}/api/v2", url.trim_end_matches('/'))).unwrap_or_else(|_| "https://plex.tv/api/v2".into())
+}
+
+/// plex.tv's older XML API, where the owner's friends and the shares of each server are listed.
+fn legacy_base() -> String {
+    std::env::var("CRUCIBLE_PLEXTV_URL").map(|url| url.trim_end_matches('/').to_string()).unwrap_or_else(|_| "https://plex.tv".into())
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -20,6 +28,8 @@ pub enum PlexTvError {
     Status(u16),
     #[error("plex.tv sent something unexpected: {0}")]
     Decode(String),
+    #[error("the owner is not signed in: run crucible-server setup")]
+    NotSignedIn,
 }
 
 /// A sign-in code the owner types at plex.tv/link.
@@ -107,6 +117,68 @@ impl PlexTv {
     pub async fn resources(&self, token: &str) -> Result<Vec<Resource>, PlexTvError> {
         Self::json(self.get("/resources?includeHttps=1").header("X-Plex-Token", token)).await
     }
+
+    /// The Plex tokens that the people in the owner's Plex Home, other than the owner, use for the server with this
+    /// machine identifier.
+    pub async fn home_tokens(&self, owner_token: &str, machine_identifier: &str) -> Result<Vec<String>, PlexTvError> {
+        let users = self.xml("/api/users", owner_token).await?;
+        let shares = self.xml(&format!("/api/servers/{machine_identifier}/shared_servers"), owner_token).await?;
+        Ok(home_share_tokens(&users, &shares))
+    }
+
+    async fn xml(&self, path: &str, token: &str) -> Result<String, PlexTvError> {
+        let request = self
+            .http
+            .get(format!("{}{path}", legacy_base()))
+            .header("Accept", "application/xml")
+            .header("X-Plex-Product", PRODUCT)
+            .header("X-Plex-Version", env!("CARGO_PKG_VERSION"))
+            .header("X-Plex-Client-Identifier", &self.client_id)
+            .header("X-Plex-Token", token);
+        let response = request.send().await.map_err(|error| PlexTvError::Unreachable(error.to_string()))?;
+        if !response.status().is_success() {
+            return Err(PlexTvError::Status(response.status().as_u16()));
+        }
+        response.text().await.map_err(|error| PlexTvError::Decode(error.to_string()))
+    }
+}
+
+/// The tokens of the shares (`SharedServer` in `shares`) that belong to a Plex Home member (`User` with `home="1"` in
+/// `users`).
+pub fn home_share_tokens(users: &str, shares: &str) -> Vec<String> {
+    let home: HashSet<String> = elements(users, "User")
+        .into_iter()
+        .filter(|user| matches!(user.get("home").map(String::as_str), Some("1" | "true")))
+        .filter_map(|user| user.get("id").cloned())
+        .collect();
+    elements(shares, "SharedServer")
+        .into_iter()
+        .filter(|share| share.get("userID").is_some_and(|id| home.contains(id)))
+        .filter_map(|share| share.get("accessToken").cloned())
+        .filter(|token| !token.is_empty())
+        .collect()
+}
+
+/// The attributes of every `tag` element in `xml`.
+fn elements(xml: &str, tag: &str) -> Vec<HashMap<String, String>> {
+    let mut reader = quick_xml::Reader::from_str(xml);
+    let mut found = Vec::new();
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(element) | Event::Empty(element)) if element.name().as_ref() == tag => found.push(
+                element
+                    .attributes()
+                    .flatten()
+                    .filter_map(|attribute| {
+                        let value = attribute.normalized_value(XmlVersion::Implicit1_0).ok()?;
+                        Some((attribute.key.as_ref().to_string(), value.into_owned()))
+                    })
+                    .collect(),
+            ),
+            Ok(Event::Eof) | Err(_) => return found,
+            _ => {}
+        }
+    }
 }
 
 /// The owner's entry for the Plex server with this machine identifier, if the account owns it.
@@ -117,6 +189,23 @@ pub fn owned_server<'a>(resources: &'a [Resource], machine_identifier: &str) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_home_members_share_token_counts_and_a_friends_does_not() {
+        let users = r#"<?xml version="1.0" encoding="UTF-8"?>
+<MediaContainer friendlyName="myPlex" identifier="com.plexapp.plugins.myplex" totalSize="3">
+  <User id="31" title="Kids" username="" home="1" restricted="1"><Server id="9" machineIdentifier="abc" name="arch" owned="1"/></User>
+  <User id="32" title="Sam &amp; Co" username="sam" home="1" restricted="0"/>
+  <User id="41" title="Robin" username="robin" home="0" restricted="0"/>
+</MediaContainer>"#;
+        let shares = r#"<MediaContainer friendlyName="myPlex" machineIdentifier="abc">
+  <SharedServer id="1" userID="31" accessToken="kids-token" owned="0"><Section id="2" key="2" title="TV" type="show" shared="1"/></SharedServer>
+  <SharedServer id="2" userID="41" accessToken="robin-token" owned="0"/>
+  <SharedServer id="3" userID="32" accessToken="" owned="0"/>
+</MediaContainer>"#;
+        assert_eq!(home_share_tokens(users, shares), vec!["kids-token".to_string()]);
+        assert!(home_share_tokens("not xml <", shares).is_empty());
+    }
 
     #[test]
     fn finds_only_an_owned_server_with_the_same_identifier() {

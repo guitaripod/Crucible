@@ -21,6 +21,7 @@ hex = "0.4"
 hmac = "0.12"
 if-addrs = "0.13"
 qrcode = { version = "0.14", default-features = false }
+quick-xml = "0.42"
 rand = "0.8"
 rcgen = { version = "0.13", default-features = false, features = ["pem", "ring"] }
 regex = "1"

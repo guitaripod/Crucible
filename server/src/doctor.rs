@@ -3,9 +3,11 @@
 use std::time::Duration;
 
 use crate::brain::Brain;
-use crate::config::Config;
+use crate::config::{Config, Policy};
+use crate::home::Home;
 use crate::paths::Paths;
 use crate::plex::Plex;
+use crate::plextv::PlexTv;
 use crate::store::Store;
 use crate::{setup, tls};
 
@@ -18,6 +20,21 @@ pub struct Check {
 
 fn check(name: &'static str, ok: bool, detail: impl Into<String>) -> Check {
     Check { name, ok, detail: detail.into() }
+}
+
+/// Who the owner's policy lets in; for My Plex Home, how many people plex.tv lists in the Home with access.
+async fn who_may_use_it(paths: &Paths, config: &Config, client: &str) -> Check {
+    match config.policy {
+        Policy::OnlyMe => check("Who may use it", true, "only you"),
+        Policy::Everyone => check("Who may use it", true, "everyone this Plex server is shared with"),
+        Policy::MyPlexHome => {
+            let owner = std::fs::read_to_string(paths.plex_token()).ok().map(|token| token.trim().to_string());
+            match Home::new(PlexTv::new(client), owner, config.machine_identifier.clone()).count().await {
+                Ok(count) => check("Who may use it", true, format!("you and {count} more in your Plex Home with access to this server")),
+                Err(error) => check("Who may use it", false, format!("{error}: only you until plex.tv lists your Plex Home")),
+            }
+        }
+    }
 }
 
 pub async fn run(paths: &Paths) -> Vec<Check> {
@@ -52,6 +69,7 @@ pub async fn run(paths: &Paths) -> Vec<Check> {
         },
         Err(_) => checks.push(check("Owner sign-in", false, "no owner token: run setup")),
     }
+    checks.push(who_may_use_it(paths, &config, &client).await);
     let ffmpeg = tokio::process::Command::new("ffmpeg").arg("-version").output().await;
     match ffmpeg {
         Ok(output) if output.status.success() => {

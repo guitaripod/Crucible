@@ -214,6 +214,7 @@ HOME_USERS = [
      "guest": False, "restricted": False, "protected": True, "home": True},
 ]
 HOME_PINS = {"sam-32c9": "1234"}
+FRIEND = {"id": 41, "title": "Robin", "username": "robin", "serverToken": "mock-server-friend-41"}
 PROFILE_TOKEN_PREFIX = "mock-profile-"
 SERVER_TOKENS = collections.deque(maxlen=200)
 
@@ -223,6 +224,22 @@ def home_users():
     account outside any Home."""
     users = HOME_USERS[:1] if env("MOCK_HOME") == "none" else HOME_USERS
     return {"id": 7, "name": "Marcus's Home", "guestUserID": None, "subscription": True, "users": users}
+
+
+def plextv_users_xml():
+    """plex.tv's XML list of the people the owner shares with: the Home's Kids and Sam, and Robin, a friend outside it."""
+    members = [] if env("MOCK_HOME") == "none" else [u for u in HOME_USERS if not u["admin"]]
+    rows = [f'<User id="{u["id"]}" title="{u["title"]}" username="{u["username"]}" home="1" restricted="{int(u["restricted"])}"/>'
+            for u in members]
+    rows.append(f'<User id="{FRIEND["id"]}" title="{FRIEND["title"]}" username="{FRIEND["username"]}" home="0" restricted="0"/>')
+    return f'<MediaContainer friendlyName="myPlex" identifier="com.plexapp.plugins.myplex" totalSize="{len(rows)}">{"".join(rows)}</MediaContainer>'
+
+
+def plextv_shares_xml():
+    """plex.tv's XML list of this server's shares, each with the token its person uses for the server."""
+    shares = [(u["id"], "mock-server-" + u["uuid"]) for u in HOME_USERS if not u["admin"]] + [(FRIEND["id"], FRIEND["serverToken"])]
+    rows = [f'<SharedServer id="{n}" userID="{user}" accessToken="{token}" owned="0"/>' for n, (user, token) in enumerate(shares, 1)]
+    return f'<MediaContainer friendlyName="myPlex" machineIdentifier="{library.MACHINE_ID}">{"".join(rows)}</MediaContainer>'
 
 
 def switch_home_user(uuid, pin):
@@ -754,7 +771,7 @@ class Handler(BaseHTTPRequestHandler):
         if not p.startswith("/mock/"):
             with LOCK:
                 PATH_LOG.append(self.path)
-                if not p.startswith("/api/v2/") and self.headers.get("X-Plex-Token"):
+                if not p.startswith("/api/") and self.headers.get("X-Plex-Token"):
                     SERVER_TOKENS.append(self.headers.get("X-Plex-Token"))
 
         if p == "/mock/requests":
@@ -769,6 +786,11 @@ class Handler(BaseHTTPRequestHandler):
 
         if p.startswith("/api/v2/") or p.startswith("/mock/"):
             return self.plextv(p, q)
+
+        if p == "/api/users":
+            return self.send_text(plextv_users_xml(), "application/xml")
+        if re.match(r"^/api/servers/[^/]+/shared_servers$", p):
+            return self.send_text(plextv_shares_xml(), "application/xml")
 
         if p == "/:/eventsource/notifications":
             return self.event_stream()
