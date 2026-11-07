@@ -365,6 +365,10 @@ extension PlaybackSession {
             }
         case .nextTrack:
             loadUpNext(reason: .requested)
+        case .rate(let rate):
+            noteViewerAction()
+            player.defaultRate = rate
+            if player.rate > 0 { player.rate = rate }
         }
     }
 

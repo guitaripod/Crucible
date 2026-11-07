@@ -80,7 +80,30 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     init(api: APIClient, request: PlaybackRequest) {
         self.api = api
         self.request = request
-        self.session = PlaybackSession(api: api, request: request)
+        self.session = Self.makeSession(api: api, request: request)
+    }
+
+    /// A session whose every item carries the title and episode line the system player shows above the video.
+    private static func makeSession(api: APIClient, request: PlaybackRequest) -> PlaybackSession {
+        let session = PlaybackSession(api: api, request: request)
+        let titles = titleMetadata(for: request.metadata)
+        session.configureItem = { item in item.externalMetadata = titles }
+        return session
+    }
+
+    private static func titleMetadata(for metadata: PlaybackMetadata?) -> [AVMetadataItem] {
+        guard let metadata else { return [] }
+        let line = metadata.showName.map { show in
+            [show, Formatters.episodeCode(metadata.seasonNumber, metadata.episodeNumber)].compactMap { $0 }.joined(separator: " · ")
+        }
+        return [(AVMetadataIdentifier.commonIdentifierTitle, metadata.title), (.iTunesMetadataTrackSubTitle, line)].compactMap { identifier, value in
+            guard let value, !value.isEmpty else { return nil }
+            let item = AVMutableMetadataItem()
+            item.identifier = identifier
+            item.value = value as NSString
+            item.extendedLanguageTag = "und"
+            return item
+        }
     }
 
     private static func offlineSource(from asset: OfflineAsset, resumeSecs: Double = 0) -> OfflinePlaybackSource {
@@ -171,13 +194,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
         Self.playingCoordinator = self
 
-        let playerVC = AVPlayerViewController()
-        playerVC.player = player
-        playerVC.allowsPictureInPicturePlayback = true
-        playerVC.canStartPictureInPictureAutomaticallyFromInline = true
-        playerVC.modalPresentationStyle = .fullScreen
-        playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
-        playerVC.delegate = self
+        let playerVC = makePlayerController(for: player)
         self.playerVC = playerVC
         installMoreButton(on: playerVC)
 
@@ -193,6 +210,20 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         viewController.present(playerVC, animated: true) {
             DemoTour.shared.record(.play)
         }
+    }
+
+    /// The system player, with Picture in Picture and the speed menu. Now Playing is left to `NowPlayingBridge`: the system
+    /// player would publish the item's own clock, which on a stream converted from a resume position starts at zero.
+    private func makePlayerController(for player: AVPlayer) -> AVPlayerViewController {
+        let playerVC = AVPlayerViewController()
+        playerVC.player = player
+        playerVC.updatesNowPlayingInfoCenter = false
+        playerVC.allowsPictureInPicturePlayback = true
+        playerVC.canStartPictureInPictureAutomaticallyFromInline = true
+        playerVC.modalPresentationStyle = .fullScreen
+        playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
+        playerVC.delegate = self
+        return playerVC
     }
 
     private func observeEvents() {
@@ -668,7 +699,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         advanceTask?.cancel()
         advanceTask = Task { [weak self] in
             guard let self else { return }
-            let nextSession = PlaybackSession(api: api, request: next)
+            let nextSession = Self.makeSession(api: api, request: next)
             do {
                 _ = try await nextSession.prepare()
             } catch {

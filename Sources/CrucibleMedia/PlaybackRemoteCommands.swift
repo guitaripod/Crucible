@@ -1,10 +1,12 @@
+import AVKit
 import CrucibleCore
 import Foundation
 import MediaPlayer
 
 /// Connects the system remote commands (lock screen, Control Center, headset and Siri Remote
 /// buttons) to a playback session. The commands are process-wide, so a session owns them only
-/// between `init` and `tearDown()`.
+/// between `init` and `tearDown()`, which removes this session's handlers alone: the next episode's
+/// session installs its own before the one it replaces is stopped.
 @MainActor
 final class PlaybackRemoteCommands {
     enum Action: Sendable {
@@ -14,9 +16,11 @@ final class PlaybackRemoteCommands {
         case skip(by: Double)
         case seek(to: Double)
         case nextTrack
+        case rate(Float)
     }
 
     private let handler: @MainActor @Sendable (Action) -> Void
+    private var targets: [(command: MPRemoteCommand, target: Any)] = []
 
     init(supportsNextTrack: Bool, handler: @escaping @MainActor @Sendable (Action) -> Void) {
         self.handler = handler
@@ -27,52 +31,60 @@ final class PlaybackRemoteCommands {
         let center = MPRemoteCommandCenter.shared()
         let handler = self.handler
 
-        center.playCommand.addTarget { @Sendable _ in
+        add(center.playCommand) { @Sendable _ in
             Task { @MainActor in handler(.play) }
             return .success
         }
-        center.pauseCommand.addTarget { @Sendable _ in
+        add(center.pauseCommand) { @Sendable _ in
             Task { @MainActor in handler(.pause) }
             return .success
         }
-        center.togglePlayPauseCommand.addTarget { @Sendable _ in
+        add(center.togglePlayPauseCommand) { @Sendable _ in
             Task { @MainActor in handler(.togglePlayPause) }
             return .success
         }
         center.skipForwardCommand.preferredIntervals = [NSNumber(value: Preferences.skipForwardSeconds)]
-        center.skipForwardCommand.addTarget { @Sendable event in
+        add(center.skipForwardCommand) { @Sendable event in
             guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
             let interval = skip.interval
             Task { @MainActor in handler(.skip(by: interval)) }
             return .success
         }
         center.skipBackwardCommand.preferredIntervals = [NSNumber(value: Preferences.skipBackSeconds)]
-        center.skipBackwardCommand.addTarget { @Sendable event in
+        add(center.skipBackwardCommand) { @Sendable event in
             guard let skip = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
             let interval = skip.interval
             Task { @MainActor in handler(.skip(by: -interval)) }
             return .success
         }
-        center.changePlaybackPositionCommand.addTarget { @Sendable event in
+        add(center.changePlaybackPositionCommand) { @Sendable event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let position = event.positionTime
             Task { @MainActor in handler(.seek(to: position)) }
             return .success
         }
+        center.changePlaybackRateCommand.supportedPlaybackRates = AVPlaybackSpeed.systemDefaultSpeeds.map { NSNumber(value: $0.rate) }
+        add(center.changePlaybackRateCommand) { @Sendable event in
+            guard let event = event as? MPChangePlaybackRateCommandEvent else { return .commandFailed }
+            let rate = event.playbackRate
+            Task { @MainActor in handler(.rate(rate)) }
+            return .success
+        }
         center.nextTrackCommand.isEnabled = supportsNextTrack
-        center.nextTrackCommand.addTarget { @Sendable _ in
+        add(center.nextTrackCommand) { @Sendable _ in
             Task { @MainActor in handler(.nextTrack) }
             return .success
         }
     }
 
+    private func add(_ command: MPRemoteCommand, _ handler: @escaping @Sendable (MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus) {
+        targets.append((command, command.addTarget(handler: handler)))
+    }
+
     func tearDown() {
-        let center = MPRemoteCommandCenter.shared()
-        let commands: [MPRemoteCommand] = [
-            center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
-            center.skipForwardCommand, center.skipBackwardCommand,
-            center.changePlaybackPositionCommand, center.nextTrackCommand,
-        ]
-        commands.forEach { $0.removeTarget(nil) }
+        for (command, target) in targets {
+            command.removeTarget(target)
+        }
+        targets.removeAll()
     }
 }
