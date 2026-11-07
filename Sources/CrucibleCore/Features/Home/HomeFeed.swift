@@ -36,7 +36,7 @@ package final class HomeFeed {
 
         package static func live(api: APIClient) -> Environment {
             Environment(
-                fetchHubs: { try await api.requestContainer(.hubs()) },
+                fetchHubs: { try await EssentialsCenter.hubs(api: api) },
                 fetchRecentlyAdded: { try await api.requestContainer(.recentlyAdded(start: 0, size: SurpriseMe.recentlyAddedPoolSize)) },
                 loadSnapshot: { HomeSnapshotStore.loadSync() },
                 saveSnapshot: { HomeSnapshotStore.save($0) },

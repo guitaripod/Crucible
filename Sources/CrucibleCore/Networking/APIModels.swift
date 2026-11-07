@@ -90,7 +90,7 @@ package struct PlexMediaContainer: Decodable, Sendable {
     package let librarySectionID: Int?
     package let librarySectionTitle: String?
     package let Metadata: [PlexMetadata]?
-    package let Hub: [PlexHub]?
+    package var Hub: [PlexHub]?
     package let Directory: [PlexDirectory]?
 
     enum CodingKeys: String, CodingKey {
@@ -904,7 +904,7 @@ package struct PlexHub: Decodable, Sendable {
     package let title: String?
     package let size: Int?
     let promoted: Bool?
-    package let Metadata: [PlexMetadata]?
+    package var Metadata: [PlexMetadata]?
 
     enum CodingKeys: String, CodingKey {
         case type, hubIdentifier, title, size, promoted

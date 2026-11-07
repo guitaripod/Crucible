@@ -24,7 +24,7 @@ package enum TopShelfUpdater {
     ) async -> Bool {
         let container: PlexMediaContainer
         do {
-            container = try await api.requestContainer(.hubs())
+            container = try await EssentialsCenter.hubs(api: api)
         } catch {
             MidgarLog.error("Top Shelf refresh skipped: \(error.localizedDescription)", category: .networking)
             return false

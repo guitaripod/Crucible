@@ -157,6 +157,31 @@ struct EssentialsTests {
         #expect(!EssentialsActiveShows.contains("show", defaults: defaults, profile: "kid"))
     }
 
+    @Test func homeShowsTheNextKeptEpisodeInsteadOfAHiddenOne() async throws {
+        let guide = try Self.dragonBallSuper()
+        let center = EssentialsCenter(store: GuideStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), defaults: UserDefaults(suiteName: UUID().uuidString)!))
+        let show = try JSONDecoder().decode(PlexMetadata.self, from: Data(#"{"ratingKey":"show","type":"show","title":"Dragon Ball Super","Guid":[{"id":"tvdb://295068"}]}"#.utf8))
+        _ = await center.plan(show: show, episodes: Self.library(guide))
+        await center.save(EssentialsChoice(level: .skipAnimeOnly), showRatingKey: "show")
+        defer { EssentialsActiveShows.set("show", active: false) }
+        let hubs = try JSONDecoder().decode(PlexMediaContainer.self, from: Data(#"""
+        {"Hub":[
+          {"hubIdentifier":"home.ondeck","Metadata":[
+            {"ratingKey":"ep42","type":"episode","title":"A","grandparentRatingKey":"show","parentIndex":1,"index":42},
+            {"ratingKey":"ep47","type":"episode","title":"B","grandparentRatingKey":"show","parentIndex":1,"index":47},
+            {"ratingKey":"m1","type":"movie","title":"C"}]},
+          {"hubIdentifier":"home.continue","Metadata":[
+            {"ratingKey":"ep43","type":"episode","title":"D","grandparentRatingKey":"show","parentIndex":1,"index":43,"viewOffset":60000}]}
+        ]}
+        """#.utf8))
+        let api = APIClient(baseURL: URL(string: "http://127.0.0.1:9")!, token: "test")
+        let adjusted = await center.followingChoices(hubs, api: api)
+        #expect(adjusted.Hub?[0].Metadata?.map(\.id) == ["ep47", "m1"])
+        #expect(adjusted.Hub?[1].Metadata?.map(\.id) == ["ep43"])
+        await center.save(EssentialsChoice(), showRatingKey: "show")
+        #expect(await center.followingChoices(hubs, api: api).Hub?[0].Metadata?.map(\.id) == ["ep42", "ep47", "m1"])
+    }
+
     @Test func theStorePrefersTheNewerOfTheSeedAndTheSavedBundle() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = GuideStore(directory: directory, defaults: UserDefaults(suiteName: UUID().uuidString)!)

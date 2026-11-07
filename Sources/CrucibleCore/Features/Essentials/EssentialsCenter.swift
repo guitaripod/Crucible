@@ -69,17 +69,57 @@ package actor EssentialsCenter {
 
     package func successor(after ratingKey: String, showRatingKey: String, api: APIClient) async -> Successor {
         guard EssentialsActiveShows.contains(showRatingKey) else { return .notApplicable }
-        if entries[showRatingKey] == nil {
-            guard let show = try? await api.requestContainer(.metadata(ratingKey: showRatingKey)).Metadata?.first,
-                  let leaves = try? await api.requestContainer(.folderPath("/library/metadata/\(showRatingKey)/allLeaves")).Metadata else {
-                return .notApplicable
-            }
-            _ = await plan(show: show, episodes: leaves.filter { $0.mediaType == "episode" })
-        }
-        guard let entry = entries[showRatingKey], entry.plan.numbers[ratingKey] != nil || entry.episodes.contains(where: { $0.id == ratingKey }) else {
+        guard let entry = await entry(showRatingKey: showRatingKey, api: api),
+              entry.plan.numbers[ratingKey] != nil || entry.episodes.contains(where: { $0.id == ratingKey }) else {
             return .notApplicable
         }
         guard let next = entry.plan.next(after: ratingKey, in: entry.episodes) else { return .end }
         return .next(next)
+    }
+
+    /// `/hubs` the way Home and the Top Shelf show it: an episode nobody has started that the person's choices hide
+    /// gives way to the next episode they keep, or leaves when the show has none left. Episodes already started stay.
+    package func followingChoices(_ container: PlexMediaContainer, api: APIClient) async -> PlexMediaContainer {
+        guard var hubs = container.Hub else { return container }
+        var changed = false
+        for index in hubs.indices {
+            guard let items = hubs[index].Metadata else { continue }
+            var kept: [PlexMetadata] = []
+            for item in items {
+                let replacement = await following(item, api: api)
+                if replacement?.id != item.id { changed = true }
+                if let replacement, !kept.contains(where: { $0.id == replacement.id }) { kept.append(replacement) }
+            }
+            hubs[index].Metadata = kept
+        }
+        guard changed else { return container }
+        var adjusted = container
+        adjusted.Hub = hubs
+        return adjusted
+    }
+
+    /// The episode Home shows for `item`: itself, the next one the person keeps, or nil when the show has none left.
+    private func following(_ item: PlexMetadata, api: APIClient) async -> PlexMetadata? {
+        guard item.mediaType == "episode", (item.viewOffset ?? 0) == 0, let show = item.grandparentRatingKey,
+              EssentialsActiveShows.contains(show),
+              let entry = await entry(showRatingKey: show, api: api), entry.plan.hides(item.id) else { return item }
+        return entry.plan.next(after: item.id, in: entry.episodes)
+    }
+
+    /// The show's cached plan, built from the server the first time something other than the show page needs it.
+    private func entry(showRatingKey: String, api: APIClient) async -> Entry? {
+        if entries[showRatingKey] == nil {
+            guard let show = try? await api.requestContainer(.metadata(ratingKey: showRatingKey)).Metadata?.first,
+                  let leaves = try? await api.requestContainer(.folderPath("/library/metadata/\(showRatingKey)/allLeaves")).Metadata else {
+                return nil
+            }
+            _ = await plan(show: show, episodes: leaves.filter { $0.mediaType == "episode" })
+        }
+        return entries[showRatingKey]
+    }
+
+    /// `/hubs` with the person's Essentials choices applied, for Home, the launch and the Top Shelf.
+    package static func hubs(api: APIClient) async throws -> PlexMediaContainer {
+        await shared.followingChoices(try await api.requestContainer(.hubs()), api: api)
     }
 }

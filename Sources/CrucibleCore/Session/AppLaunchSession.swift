@@ -80,7 +80,7 @@ package enum AppLaunchSession {
         let api = APIClient(baseURL: connection.serverURI, token: connection.authToken)
         await PlaybackResumeSync.flush(api: api, server: connection.machineIdentifier)
         do {
-            async let hubs = api.requestContainer(.hubs())
+            async let hubs = EssentialsCenter.hubs(api: api)
             async let sections = api.requestContainer(.sections)
             let payload = try await LaunchPayload(connection: connection, api: api, hubs: hubs, sections: sections)
             await MainActor.run { LibraryVisibility.record(directories: payload.sections.Directory ?? []) }
