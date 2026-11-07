@@ -1,0 +1,22 @@
+WHAT'S NEW IN 2.8.0 (iPhone, iPad and Apple TV; all of it works in the demo)
+- Essentials: long anime can skip their anime-only episodes. To see it: start the demo, open TV Shows, then Paper Lanterns, a 52-episode animation. The show page offers once: "Paper Lanterns has 52 episodes. Skip the 11 anime-only episodes and save 4h 31m?". Choose Skip Them: the episode list, Up Next and Continue now pass over those episodes. The Episodes button beside the season picker switches back to All Episodes, and a long press on any episode offers Keep This Episode.
+- Where the guides come from: about once a week the app downloads one signed file of episode guides (Crucible Guides, an open dataset) from api.midgarcorp.cc. The request is identical for every user and carries nothing about the person or their library; a copy ships inside the app, and the demo uses its own built-in guide and never makes the request.
+- Skip Recap, Skip Preview and Skip Ending from the file's own chapter names. In the demo, play any Paper Lanterns episode: a few seconds in, its Recap chapter shows Skip Recap.
+- Crucible Server (optional, free, open source): a companion program the user may install on the computer that runs their Plex server. After pairing (Settings > Server & Connection > Crucible Server on iPhone and iPad, You > Crucible Server on Apple TV), a show's menu offers Previously On, a short recap of the episodes already watched, written by an AI model on the user's own computer; nothing goes to us or any cloud service. The app works fully without it. Source: https://github.com/guitaripod/Crucible/tree/master/server
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex requires a paid Plex Pass or Remote Watch Pass to stream a server's video away from home (https://support.plex.tv/articles/requirements-for-remote-playback-of-personal-media/), so we cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app instead (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+On the Welcome screen choose "Try the demo", then "Start exploring". The account types and settings below are under the You tab.
+
+ACCOUNT TYPES IN THE DEMO
+1. Server owner (the demo starts as "Demo"): every feature unlocked, plus the owner's tools: Manage in a title's long-press menu and on a library's header (Fix Match, Edit Details, poster and background, scans), Stop Stream in Server Activity, Server Dashboard under You.
+2. Plex Home member with a PIN: You > Switch Profile > Sam, PIN 1234. Sam has a watch history of their own and no owner tools.
+3. Managed (restricted) profile: You > Switch Profile > Kids, no PIN. Only family titles appear. Switch Profile > Demo returns to the owner.
+4. Free install and Crucible Pro: the demo starts unlocked. Turn on You > Preview Free Version to see a free install: Statistics ranges past Week, the Statistics library filter, the Year in Review poster and Top Shelf are locked, and the locks open the paywall. A purchase there (sandbox) unlocks them for real; Restore Purchases is on the paywall.
+
+CRUCIBLE PRO (in-app purchases, StoreKit with Midgar's own engine, MidgarKit)
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $24.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year, no free trial. Both approved; Apple TV shares them with iPhone and iPad through universal purchase. Playback is never gated. Paywall: You > Crucible Pro, the end of the demo tour, or any lock in the free preview.
+
+OTHER NOTES
+Local network access is requested to reach servers on the user's home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK; the only data is an anonymous Midgar ID (iCloud Keychain) for Crucible Pro purchases, as the privacy policy and App Privacy answers describe.
