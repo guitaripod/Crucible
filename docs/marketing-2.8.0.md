@@ -40,7 +40,19 @@ person or kept beyond servicing it.
 - iPad 13" (nine panels): Skip the filler second, from `marketing/store/shoot-ipad.sh`.
 - Apple TV (nine panels): the Essentials offer, focused, second; from the 4K simulator run of
   `DemoTests.testPaperLanternsOffersEssentialsOnceAndSkipsItsAnimeOnlyEpisodes`.
-- Upload with `scripts/asc-screenshots.py` once ASC holds the 2.8.0 versions.
+- Upload with `scripts/asc-screenshots.py --locales=all` once ASC holds the 2.8.0 versions.
+
+## Staging state (2026-11-07)
+
+- Apple TV 2.8.0 is staged in App Store Connect, not submitted: build 202611071235, the listing in all seventeen
+  languages, the review notes (`store/review-notes-2.8.0.txt`) and the nine Apple TV screenshots.
+- iOS 2.8.0 waits for 2.7.2 to leave review. Then: `midgar ship crucible --platform ios --version 2.8.0 --build
+  <newest VALID 2.8.0 build> --resume stage`, `midgar listing crucible --train ios --version 2.8.0 --apply`, point
+  `docs/asc-metadata.json`'s IOS id at the new version, `python3 scripts/asc-screenshots.py --only=iphone --locales=all`
+  and `--only=ipad`, and `asc review details-update` with the review notes.
+- The new subtitle ("Skip filler, recaps and intros" and its translations) is held back on purpose: the app info is
+  shared with iOS 2.7.2, which is still in review and has none of these features. Apply it together with the 2.8.0
+  submission (`midgar listing crucible --train tvos --version 2.8.0 --apply` shows it as 17 subtitle updates).
 
 ## Funnel
 
