@@ -260,6 +260,15 @@ mod tests {
     }
 
     #[test]
+    fn proofs_match_the_vectors_the_app_checks() {
+        let secret = [1u8; 16];
+        assert_eq!(server_proof(&secret, "ab12", "dn", "sn"), "52332ef92a0c052dc12c4aa512604632136ebd2dd837fe4d0a3eb56c0b788336");
+        assert_eq!(device_proof(&secret, "ab12", "dn", "sn"), "476d5e66beda9d7f2bd25fb30fc206e259411d14a04e81b7054535544d1e51c1");
+        assert_eq!(secret_id(&secret), "31d9e8154cbc91a2");
+        assert_eq!(BASE32_NOPAD.encode(&secret), "AEAQCAIBAEAQCAIBAEAQCAIBAE");
+    }
+
+    #[test]
     fn the_typed_code_spells_the_secret() {
         let pairings = Pairings::default();
         let shown = pairings.open();

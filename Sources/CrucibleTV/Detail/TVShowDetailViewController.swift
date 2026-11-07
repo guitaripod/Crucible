@@ -174,6 +174,27 @@ final class TVShowDetailViewController: TVDetailViewController {
         ))
     }
 
+    /// Asks the paired Crucible Server for a Previously On, saying it is being written meanwhile.
+    private func showPreviouslyOn() {
+        guard let model, presentedViewController == nil else { return }
+        let waiting = UIAlertController(title: CompanionCopy.previouslyOnTitle(model.show.title), message: CompanionCopy.writing, preferredStyle: .alert)
+        let task = Task { [weak self, weak waiting] in
+            let text: String
+            do throws(CompanionError) {
+                let (recap, server) = try await PreviouslyOnRequest.recap(model)
+                text = "\(recap.text)\n\n\(CompanionCopy.basis(recap, server: server))"
+            } catch {
+                text = error.message
+            }
+            guard !Task.isCancelled, let waiting else { return }
+            waiting.dismiss(animated: TVMotion.animationsEnabled) {
+                self?.present(TVSynopsisViewController(title: CompanionCopy.previouslyOnTitle(model.show.title), text: text), animated: TVMotion.animationsEnabled)
+            }
+        }
+        waiting.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in task.cancel() })
+        present(waiting, animated: TVMotion.animationsEnabled)
+    }
+
     private func actions(for model: ShowDetailModel) -> [TVDetailAction] {
         var actions = [
             TVDetailAction(
@@ -186,6 +207,9 @@ final class TVShowDetailViewController: TVDetailViewController {
                 handler: { [weak self] in self?.playUpNext() }
             ),
         ]
+        if PreviouslyOnRequest.isAvailable(model) {
+            actions.append(TVDetailAction(kind: .previouslyOn, title: CompanionCopy.previouslyOn, symbol: "text.quote", handler: { [weak self] in self?.showPreviouslyOn() }))
+        }
         if let plan = model.essentials, EssentialsCopy.shouldOffer(plan) {
             let preview = plan.preview(EssentialsChoice(level: .skipAnimeOnly))
             actions.append(TVDetailAction(

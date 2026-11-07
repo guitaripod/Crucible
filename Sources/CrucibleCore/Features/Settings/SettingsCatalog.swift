@@ -11,6 +11,7 @@ package enum SettingsDestination: String, Hashable, Sendable {
     case homeRows
     case libraries
     case serverConnection
+    case crucibleServer
     case manageStorage
     case notificationPermission
     case diagnostics
@@ -223,6 +224,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.appearance), category: .appearance, section: nil, platforms: phone),
             Spec(item: .preference(.libraryGrid), category: .appearance, section: nil, platforms: phone),
             Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: both),
+            Spec(item: .destination(.crucibleServer), category: .connection, section: nil, platforms: both),
             Spec(item: .preference(.preferLocalConnection), category: .connection, section: nil, platforms: both),
             Spec(item: .preference(.allowRelayConnection), category: .connection, section: nil, platforms: both),
             Spec(item: .privacyStatement, category: .privacy, section: nil, platforms: both),
@@ -337,6 +339,7 @@ package enum SettingsCatalog {
         case .homeRows: return String(localized: "Home Rows", comment: "Settings row that opens the Home row arrangement")
         case .libraries: return String(localized: "Libraries")
         case .serverConnection: return String(localized: "Server & Connection")
+        case .crucibleServer: return CompanionCopy.title
         case .manageStorage: return String(localized: "Manage Storage")
         case .notificationPermission: return String(localized: "Allow Notifications", comment: "Settings row showing whether iOS lets Crucible notify")
         case .diagnostics: return String(localized: "Diagnostics")
@@ -350,6 +353,7 @@ package enum SettingsCatalog {
         case .homeRows: return "rectangle.grid.1x2"
         case .libraries: return "rectangle.stack"
         case .serverConnection: return "server.rack"
+        case .crucibleServer: return "sparkles.tv"
         case .manageStorage: return "internaldrive"
         case .notificationPermission: return "bell"
         case .diagnostics: return "doc.text.magnifyingglass"
@@ -363,6 +367,7 @@ package enum SettingsCatalog {
         case .homeRows: return String(localized: "Turn Home's rows on or off and put them in the order you like.")
         case .libraries: return LibrariesSettings.homeFooterText
         case .serverConnection: return String(localized: "Which server Crucible uses, every route to it and how fast each one answers.")
+        case .crucibleServer: return CompanionCopy.pitch
         case .manageStorage: return String(localized: "What is downloaded and how much space it takes.")
         case .notificationPermission: return String(localized: "Crucible can only notify you when iOS allows it.")
         case .diagnostics: return String(localized: "The app's log and what the Top Shelf extension last saw.")
@@ -435,6 +440,7 @@ package enum SettingsCatalog {
             case .homeRows: return String(localized: "home, rows, order, hide, continue watching, recently added", comment: "Search keywords for Home Rows, comma separated")
             case .libraries: return String(localized: "libraries, movies, shows, hide, statistics", comment: "Search keywords for Libraries, comma separated")
             case .serverConnection: return String(localized: "server, switch, address, IP, Tailscale, relay", comment: "Search keywords for Server & Connection, comma separated")
+            case .crucibleServer: return String(localized: "companion, previously on, recap, pair, model, AI", comment: "Search keywords for Crucible Server, comma separated")
             case .manageStorage: return String(localized: "storage, space, delete, offline", comment: "Search keywords for Manage Storage, comma separated")
             case .notificationPermission: return String(localized: "permission, allow, notifications", comment: "Search keywords for the notification permission row, comma separated")
             case .diagnostics, .about, .sourceCode: return String(localized: "logs, version, help, support, GitHub, license", comment: "Search keywords for help and about rows, comma separated")

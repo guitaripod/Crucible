@@ -96,6 +96,8 @@ final class SettingsNavigator {
             host.navigationController?.pushViewController(LibrariesViewController(api: api), animated: true)
         case .serverConnection:
             host.navigationController?.pushViewController(ServerDetailViewController(api: api), animated: true)
+        case .crucibleServer:
+            host.navigationController?.pushViewController(CompanionViewController(), animated: true)
         case .manageStorage:
             (host.tabBarController as? TabBarController)?.select(.downloads)
         case .notificationPermission:
@@ -188,6 +190,8 @@ final class SettingsNavigator {
             return used > 0 ? Formatters.fileSize(used) : String(localized: "None")
         case .destination(.libraries):
             return LibrariesSettings.summary
+        case .destination(.crucibleServer):
+            return CompanionStore.current()?.name ?? CompanionCopy.notSetUp
         case .action(.clearImageCache):
             return ImageCacheMeter.formatted(await ImageCacheMeter.totalBytes())
         case .destination(.sourceCode):

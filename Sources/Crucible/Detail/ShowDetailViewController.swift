@@ -678,7 +678,14 @@ final class ShowDetailViewController: UICollectionViewController {
                 return
             }
             Task { @MainActor in
-                var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [show], api: api, host: self)]
+                var elements: [UIMenuElement] = []
+                if let model = self.model, PreviouslyOnRequest.isAvailable(model) {
+                    elements.append(UIAction(title: CompanionCopy.previouslyOn, image: UIImage(systemName: "text.quote")) { [weak self] _ in
+                        guard let self, let model = self.model else { return }
+                        PreviouslyOnViewController.present(for: model, from: self)
+                    })
+                }
+                elements.append(PlaylistMenu.addMenu(for: [show], api: api, host: self))
                 if let watchlist = await WatchlistScreen.toggleAction(for: show, api: api, host: self) { elements.append(watchlist) }
                 if let manage = ManageMenus.itemMenu(for: show, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
                     elements.append(manage)

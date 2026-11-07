@@ -1220,6 +1220,71 @@
         }
       }
     },
+    "%@ isn't answering. Check the model server on the computer with Plex." : {
+      "comment" : "Crucible Server status when its model does not answer",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ antwortet nicht. Prüfe den Modellserver auf dem Computer mit Plex."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no responde. Revisa el servidor de modelos del ordenador con Plex."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ne répond pas. Vérifiez le serveur de modèles sur l’ordinateur avec Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non risponde. Controlla il server dei modelli sul computer con Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ が応答しません。Plex のあるコンピューターのモデルサーバーを確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@이(가) 응답하지 않아요. Plex가 있는 컴퓨터의 모델 서버를 확인하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ nie odpowiada. Sprawdź serwer modeli na komputerze z Plexem."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ não está respondendo. Verifique o servidor de modelos no computador com Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 没有响应。请检查装有 Plex 的电脑上的模型服务。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 沒有回應。請檢查裝有 Plex 的電腦上的模型伺服器。"
+          }
+        }
+      }
+    },
     "%@ isn't named like any machine on your tailnet. Add it by address." : {
       "localizations" : {
         "de" : {
@@ -14619,6 +14684,71 @@
         }
       }
     },
+    "Another computer answered at that address, so Crucible didn't pair with it." : {
+      "comment" : "Crucible Server error when the certificate or proof does not match",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein anderer Computer hat unter dieser Adresse geantwortet, daher hat Crucible sich nicht mit ihm gekoppelt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro ordenador respondió en esa dirección, así que Crucible no se ha vinculado con él."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un autre ordinateur a répondu à cette adresse, Crucible ne s’est donc pas appairé avec lui."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un altro computer ha risposto a quell’indirizzo, quindi Crucible non ha effettuato l’abbinamento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのアドレスには別のコンピューターが応答したため、Crucible はペアリングしませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 주소에서 다른 컴퓨터가 응답해서 Crucible은 페어링하지 않았어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pod tym adresem odpowiedział inny komputer, więc Crucible się z nim nie sparował."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro computador respondeu nesse endereço, então o Crucible não pareou com ele."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该地址由另一台电脑响应，因此 Crucible 没有与它配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該位址由另一台電腦回應，因此 Crucible 沒有與它配對。"
+          }
+        }
+      }
+    },
     "Any" : {
       "comment" : "Surprise Me filter: any kind of title",
       "localizations" : {
@@ -24001,6 +24131,396 @@
         }
       }
     },
+    "Crucible Server" : {
+      "comment" : "Name of the optional companion that runs on the computer with Plex",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server"
+          }
+        }
+      }
+    },
+    "Crucible Server has no model set up yet." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Crucible Server ist noch kein Modell eingerichtet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server aún no tiene ningún modelo configurado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun modèle n’est encore configuré pour Crucible Server."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun modello è ancora configurato per Crucible Server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server にはまだモデルが設定されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server에 아직 모델이 설정되지 않았어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server nie ma jeszcze skonfigurowanego modelu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server ainda não tem um modelo configurado."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 尚未设置模型。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 尚未設定模型。"
+          }
+        }
+      }
+    },
+    "Crucible Server is still writing your last request." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server schreibt noch an deiner letzten Anfrage."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server todavía está procesando tu última solicitud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server traite encore votre dernière demande."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server sta ancora elaborando l’ultima richiesta."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server はまだ前回のリクエストを処理しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server가 아직 마지막 요청을 처리하고 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server nadal przetwarza Twoje poprzednie zapytanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server ainda está processando seu último pedido."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 仍在处理你上一个请求。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 仍在處理您上一個請求。"
+          }
+        }
+      }
+    },
+    "Crucible Server isn't answering. Check that the computer with Plex is on and on this network or your tailnet." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server antwortet nicht. Prüfe, ob der Computer mit Plex eingeschaltet ist und sich im selben Netzwerk oder in deinem Tailnet befindet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server no responde. Comprueba que el ordenador con Plex esté encendido y en esta red o en tu tailnet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server ne répond pas. Vérifiez que l’ordinateur avec Plex est allumé et sur ce réseau ou votre tailnet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server non risponde. Controlla che il computer con Plex sia acceso e sulla stessa rete o sulla tua tailnet."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server が応答しません。Plex のあるコンピューターの電源が入っていて、このネットワークまたはお使いの tailnet に接続されているか確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server가 응답하지 않아요. Plex가 있는 컴퓨터가 켜져 있고 이 네트워크 또는 내 tailnet에 연결돼 있는지 확인하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server nie odpowiada. Sprawdź, czy komputer z Plexem jest włączony i czy jest w tej samej sieci lub w Twoim tailnecie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server não está respondendo. Verifique se o computador com Plex está ligado e nesta rede ou no seu tailnet."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 没有响应。请确认装有 Plex 的电脑已开机，并与此设备处于同一网络或你的 tailnet 中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 沒有回應。請確認裝有 Plex 的電腦已開機，並與此裝置位於同一網路或您的 tailnet 中。"
+          }
+        }
+      }
+    },
+    "Crucible Server sent an answer this version of Crucible doesn't understand. Update both." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server hat eine Antwort gesendet, die diese Version von Crucible nicht versteht. Aktualisiere beide."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server envió una respuesta que esta versión de Crucible no entiende. Actualiza ambos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server a envoyé une réponse que cette version de Crucible ne comprend pas. Mettez les deux à jour."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server ha inviato una risposta che questa versione di Crucible non comprende. Aggiorna entrambi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server が、この版の Crucible が理解できない応答を送信しました。両方を更新してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server가 이 버전의 Crucible이 이해할 수 없는 응답을 보냈어요. 둘 다 업데이트하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server wysłał odpowiedź, której ta wersja Crucible nie rozumie. Zaktualizuj oba."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server enviou uma resposta que esta versão do Crucible não entende. Atualize os dois."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 发来的回答，此版本的 Crucible 无法理解。请同时更新两者。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 傳來的回答，此版本的 Crucible 無法理解。請同時更新兩者。"
+          }
+        }
+      }
+    },
+    "Crucible Server took too long. Try again in a moment." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server hat zu lange gebraucht. Versuche es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server tardó demasiado. Inténtalo de nuevo en un momento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server a mis trop de temps. Réessayez dans un instant."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server ci ha messo troppo tempo. Riprova tra poco."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server の応答に時間がかかりすぎました。しばらくしてから再試行してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server의 응답이 너무 오래 걸렸어요. 잠시 후 다시 시도하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server odpowiadał zbyt długo. Spróbuj ponownie za chwilę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server demorou demais. Tente novamente em instantes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 响应超时。请稍后再试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 回應逾時。請稍後再試。"
+          }
+        }
+      }
+    },
     "Crucible asked the online computers on your tailnet and none of them answered as %@. Check that Plex is running." : {
       "localizations" : {
         "de" : {
@@ -30749,6 +31269,71 @@
         }
       }
     },
+    "Enter Pairing Code" : {
+      "comment" : "Button that pairs with Crucible Server from a typed code",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopplungscode eingeben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introducir código de vinculación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisir le code d’appairage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci codice di abbinamento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペアリングコードを入力"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어링 코드 입력"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz kod parowania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserir código de pareamento"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入配对码"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入配對碼"
+          }
+        }
+      }
+    },
     "Enter a hostname or IP address, optionally with a port." : {
       "localizations" : {
         "de" : {
@@ -34096,6 +34681,71 @@
         }
       }
     },
+    "Free and optional. It runs on the computer with Plex and writes a Previously On before you press play, from your own episodes, on your own hardware." : {
+      "comment" : "What Crucible Server does, shown before it is set up",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kostenlos und optional. Es läuft auf dem Computer mit Plex und schreibt vor dem Abspielen ein „Was bisher geschah“ aus deinen eigenen Folgen, auf deiner eigenen Hardware."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratis y opcional. Se ejecuta en el ordenador con Plex y escribe un «Anteriormente» antes de que pulses Reproducir, a partir de tus propios episodios y en tu propio equipo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratuit et facultatif. Il tourne sur l’ordinateur avec Plex et rédige un résumé « Précédemment » avant que vous ne lanciez la lecture, à partir de vos propres épisodes, sur votre propre matériel."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratuito e facoltativo. Gira sul computer con Plex e scrive un riassunto «Nelle puntate precedenti» prima che tu prema play, dai tuoi episodi, sul tuo hardware."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無料・任意。Plex のあるコンピューターで動作し、再生前に手元のエピソードから「前回までのあらすじ」を、お使いのハードウェア上で作成します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무료이며 선택 사항이에요. Plex가 있는 컴퓨터에서 실행되며, 재생하기 전에 내 에피소드로 '지난 이야기'를 만들어요. 모든 처리는 내 하드웨어에서 이뤄져요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezpłatny i opcjonalny. Działa na komputerze z Plexem i przygotowuje „W poprzednich odcinkach” przed odtworzeniem, z Twoich własnych odcinków, na Twoim własnym sprzęcie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratuito e opcional. Roda no computador com Plex e escreve um resumo «Anteriormente» antes de você apertar play, com os seus próprios episódios, no seu próprio hardware."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免费且可选。它运行在装有 Plex 的电脑上，在你点击播放前，根据你自己的剧集在你自己的硬件上生成「前情提要」。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免費且選用。它在裝有 Plex 的電腦上執行，會在你按下播放前，根據你自己的集數，在你自己的硬體上撰寫「前情提要」。"
+          }
+        }
+      }
+    },
     "Free for %lld days" : {
       "localizations" : {
         "de" : {
@@ -34758,6 +35408,71 @@
         }
       }
     },
+    "From %@ to %@, written on %@" : {
+      "comment" : "What a recap draws on, e.g. From S1 · E3 to S1 · E5, written on arch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von %@ bis %@, geschrieben auf %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@ a %@, escrito en %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@ à %@, rédigé sur %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da %@ a %@, scritto su %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ から %@ まで、%@ で作成"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@부터 %@까지, %@에서 작성됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Od %@ do %@, napisane na %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@ a %@, escrito em %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基于 %@ 至 %@，在 %@ 上撰写"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基於 %@ 至 %@，於 %@ 撰寫"
+          }
+        }
+      }
+    },
     "From %@ · CC BY-SA" : {
       "comment" : "Attribution under Essentials, naming the wikis the episode guide comes from",
       "localizations" : {
@@ -34819,6 +35534,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "來源：%@ · CC BY-SA"
+          }
+        }
+      }
+    },
+    "From %@, written on %@" : {
+      "comment" : "What a recap draws on, e.g. From S1 · E5, written on arch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus %@, geschrieben auf %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@, escrito en %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@, rédigé sur %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da %@, scritto su %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ から、%@ で作成"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 기준, %@에서 작성됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z %@, napisane na %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De %@, escrito em %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基于 %@，在 %@ 上撰写"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基於 %@，於 %@ 撰寫"
           }
         }
       }
@@ -37332,6 +38112,71 @@
         }
       }
     },
+    "How to Install" : {
+      "comment" : "Opens Crucible Server's install instructions",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So installierst du es"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo instalarlo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment l’installer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Come installarlo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インストール方法"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설치 방법"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak zainstalować"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como instalar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装方法"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝方法"
+          }
+        }
+      }
+    },
     "How was %@?" : {
       "comment" : "Question asking the viewer to rate a title they just finished, e.g. How was Dune?",
       "localizations" : {
@@ -39255,6 +40100,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "6 月"
+          }
+        }
+      }
+    },
+    "KQ7M-2XRD-…" : {
+      "comment" : "Placeholder of the pairing code field; keep the letters as they are",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KQ7M-2XRD-…"
           }
         }
       }
@@ -50349,6 +51259,71 @@
         }
       }
     },
+    "Not Set Up" : {
+      "comment" : "Crucible Server status before pairing",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht eingerichtet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin configurar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non configuré"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non configurato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 안 됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieskonfigurowany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não configurado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未設定"
+          }
+        }
+      }
+    },
     "Not done yet" : {
       "comment" : "Demo tour step is not complete",
       "localizations" : {
@@ -52668,6 +53643,71 @@
         }
       }
     },
+    "On the computer with Plex, install Crucible Server and run crucible-server setup. Then scan the code it shows with the Camera, or enter the code here." : {
+      "comment" : "How to set up Crucible Server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installiere Crucible Server auf dem Computer mit Plex und führe crucible-server setup aus. Scanne dann den angezeigten Code mit der Kamera oder gib ihn hier ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En el ordenador con Plex, instala Crucible Server y ejecuta crucible-server setup. Luego escanea el código que muestra con la cámara o introdúcelo aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur l’ordinateur avec Plex, installez Crucible Server et exécutez crucible-server setup. Scannez ensuite le code affiché avec l’appareil photo, ou saisissez le code ici."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sul computer con Plex installa Crucible Server ed esegui crucible-server setup. Poi inquadra il codice mostrato con la fotocamera oppure inserisci il codice qui."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex のあるコンピューターに Crucible Server をインストールし、crucible-server setup を実行してください。表示されたコードをカメラで読み取るか、ここにコードを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex가 있는 컴퓨터에 Crucible Server를 설치하고 crucible-server setup을 실행하세요. 그다음 화면에 표시된 코드를 카메라로 스캔하거나 여기에 코드를 입력하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na komputerze z Plexem zainstaluj Crucible Server i uruchom crucible-server setup. Następnie zeskanuj wyświetlony kod aparatem albo wpisz kod tutaj."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No computador com Plex, instale o Crucible Server e execute crucible-server setup. Depois escaneie o código exibido com a Câmera ou digite o código aqui."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在装有 Plex 的电脑上安装 Crucible Server，然后运行 crucible-server setup。接着用相机扫描它显示的代码，或在这里输入代码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在裝有 Plex 的電腦上安裝 Crucible Server，然後執行 crucible-server setup。接著用相機掃描它顯示的代碼，或在這裡輸入代碼。"
+          }
+        }
+      }
+    },
     "On your iPhone or computer, go to " : {
       "localizations" : {
         "de" : {
@@ -54140,6 +55180,266 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PIN"
+          }
+        }
+      }
+    },
+    "Pair" : {
+      "comment" : "Button that pairs this device with Crucible Server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koppeln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vincular"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペアリング"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어링"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparuj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parear"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配對"
+          }
+        }
+      }
+    },
+    "Pair with Crucible Server on %@?" : {
+      "comment" : "Confirmation before pairing from a scanned code, e.g. Pair with Crucible Server on arch?",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Crucible Server auf %@ koppeln?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Vincular con Crucible Server en %@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairer avec Crucible Server sur %@ ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbinare a Crucible Server su %@?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の Crucible Server とペアリングしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@의 Crucible Server와 페어링할까요?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparować z Crucible Server na %@?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parear com o Crucible Server em %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要与 %@ 上的 Crucible Server 配对吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要與 %@ 上的 Crucible Server 配對嗎？"
+          }
+        }
+      }
+    },
+    "Paired with %@" : {
+      "comment" : "Crucible Server status, e.g. Paired with arch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekoppelt mit %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinculado con %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairé avec %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbinato a %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ とペアリング済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@와(과) 페어링됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparowano z %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pareado com %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已与 %@ 配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已與 %@ 配對"
+          }
+        }
+      }
+    },
+    "Pairing…" : {
+      "comment" : "Shown while pairing with Crucible Server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gekoppelt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinculando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairage…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbinamento…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペアリング中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어링 중…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parowanie…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pareando…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在配对…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在配對…"
           }
         }
       }
@@ -58280,6 +59580,201 @@
         }
       }
     },
+    "Previously On" : {
+      "comment" : "Menu item and button that shows a recap of the episodes watched so far",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was bisher geschah"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteriormente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Précédemment"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nelle puntate precedenti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W poprzednich odcinkach"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteriormente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前情提要"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前情提要"
+          }
+        }
+      }
+    },
+    "Previously On stops until you pair again." : {
+      "comment" : "Confirmation message for unpairing Crucible Server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ pausiert, bis du dich erneut koppelst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Anteriormente» se detiene hasta que vuelvas a vincular."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Précédemment » sera interrompu jusqu’à un nouvel appairage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Nelle puntate precedenti» si interrompe finché non effettui di nuovo l’abbinamento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再度ペアリングするまで「前回までのあらすじ」は停止します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 페어링할 때까지 '지난 이야기'가 중지돼요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„W poprzednich odcinkach” wstrzymane do ponownego sparowania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Anteriormente fica desativado até você parear novamente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新配对之前，「前情提要」将停止工作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新配對前，「前情提要」將停止運作。"
+          }
+        }
+      }
+    },
+    "Previously on %@" : {
+      "comment" : "Title of a recap, e.g. Previously on Dragon Ball Super",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was bisher geschah: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteriormente: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Précédemment : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nelle puntate precedenti: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじ：%@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W poprzednich odcinkach: %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anteriormente: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前情提要：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前情提要：%@"
+          }
+        }
+      }
+    },
     "Privacy & Data" : {
       "comment" : "Settings category for privacy and stored data",
       "localizations" : {
@@ -60404,6 +61899,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可以觀看"
+          }
+        }
+      }
+    },
+    "Ready · %@" : {
+      "comment" : "Crucible Server status with its model, e.g. Ready · gemma4-26b",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereit · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo · %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prêt · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了 · %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "준비됨 · %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe · %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就绪 · %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就緒 · %@"
+          }
+        }
+      }
+    },
+    "Ready · skips only, no model yet" : {
+      "comment" : "Crucible Server status when it has no model",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereit · nur Überspringen, noch kein Modell"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo · solo saltos, aún sin modelo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prêt · sauts uniquement, pas encore de modèle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto · solo salti, nessun modello ancora"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了 · スキップのみ、モデル未設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "준비됨 · 건너뛰기만, 모델 아직 없음"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe · tylko pomijanie, brak modelu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto · somente pulos, ainda sem modelo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就绪 · 仅跳过，尚无模型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就緒 · 僅跳過，尚無模型"
           }
         }
       }
@@ -76047,6 +77672,71 @@
         }
       }
     },
+    "That pairing code is wrong or has expired. Run crucible-server pair for a new one." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Kopplungscode ist falsch oder abgelaufen. Führe crucible-server pair aus, um einen neuen zu erhalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese código de vinculación es incorrecto o ha caducado. Ejecuta crucible-server pair para obtener uno nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce code d’appairage est incorrect ou a expiré. Exécutez crucible-server pair pour en obtenir un nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il codice di abbinamento non è valido o è scaduto. Esegui crucible-server pair per ottenerne uno nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのペアリングコードは無効か期限切れです。crucible-server pair を実行して新しいコードを取得してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어링 코드가 잘못되었거나 만료됐어요. crucible-server pair를 실행해 새 코드를 받으세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten kod parowania jest nieprawidłowy lub wygasł. Uruchom crucible-server pair, aby uzyskać nowy."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esse código de pareamento está errado ou expirou. Execute crucible-server pair para gerar um novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该配对码有误或已过期。请运行 crucible-server pair 获取新的配对码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此配對碼有誤或已過期。請執行 crucible-server pair 取得新的配對碼。"
+          }
+        }
+      }
+    },
     "The App Store did not answer. Try again in a moment." : {
       "localizations" : {
         "de" : {
@@ -78869,6 +80559,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這會從伺服器的磁碟刪除 %@ 的檔案。此操作無法復原，且伺服器只有在其設定中開啟「允許刪除媒體」時才允許。"
+          }
+        }
+      }
+    },
+    "This device isn't paired with Crucible Server any more. Pair it again." : {
+      "comment" : "Crucible Server error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät ist nicht mehr mit Crucible Server gekoppelt. Koppele es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo ya no está vinculado con Crucible Server. Vincúlalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet appareil n’est plus appairé avec Crucible Server. Appairez-le à nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo dispositivo non è più abbinato a Crucible Server. Abbinalo di nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスは Crucible Server とのペアリングが解除されています。もう一度ペアリングしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기는 더 이상 Crucible Server와 페어링되어 있지 않아요. 다시 페어링하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To urządzenie nie jest już sparowane z Crucible Server. Sparuj je ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo não está mais pareado com o Crucible Server. Pareie-o novamente."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备已不再与 Crucible Server 配对。请重新配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此裝置已不再與 Crucible Server 配對。請重新配對。"
           }
         }
       }
@@ -82817,6 +84572,71 @@
         }
       }
     },
+    "Unpair This Device" : {
+      "comment" : "Button that forgets the pairing with Crucible Server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät entkoppeln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desvincular este dispositivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dissocier cet appareil"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi abbinamento da questo dispositivo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスのペアリングを解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기 페어링 해제"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odłącz to urządzenie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desparear este dispositivo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解除此设备的配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解除此裝置的配對"
+          }
+        }
+      }
+    },
     "Unreachable" : {
       "comment" : "Server state: it did not answer",
       "localizations" : {
@@ -86608,6 +88428,136 @@
         }
       }
     },
+    "Writing your Previously On…" : {
+      "comment" : "Shown while Crucible Server writes a recap",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein „Was bisher geschah“ wird geschrieben…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribiendo tu Anteriormente…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédaction de votre « Précédemment »…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione del riassunto «Nelle puntate precedenti»…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじを作成中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기를 작성하는 중…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przygotowywanie „W poprzednich odcinkach”…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrevendo seu Anteriormente…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在撰写前情提要…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在撰寫前情提要…"
+          }
+        }
+      }
+    },
+    "Written on %@" : {
+      "comment" : "Where a recap was written, e.g. Written on arch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschrieben auf %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrito en %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédigé sur %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scritto su %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ で作成"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에서 작성됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisane na %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrito em %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰写于 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰寫於 %@"
+          }
+        }
+      }
+    },
     "Year" : {
       "comment" : "Sort option: by release year",
       "localizations" : {
@@ -90168,6 +92118,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除, 重設, 刪除, 忘記, 快取"
+          }
+        }
+      }
+    },
+    "companion, previously on, recap, pair, model, AI" : {
+      "comment" : "Search keywords for Crucible Server, comma separated",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begleiter, was bisher geschah, Rückblick, koppeln, Modell, KI"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "compañero, anteriormente, resumen, vincular, modelo, IA"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "compagnon, précédemment, résumé, appairer, modèle, IA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "companion, nelle puntate precedenti, riassunto, abbinare, modello, IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンパニオン, 前回までのあらすじ, まとめ, ペアリング, モデル, AI"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴패니언, 지난 이야기, 요약, 페어링, 모델, AI"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "towarzysz, w poprzednich odcinkach, streszczenie, parowanie, model, AI"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "companion, anteriormente, resumo, parear, modelo, IA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伴侣, 前情提要, 回顾, 配对, 模型, AI"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伴侶, 前情提要, 回顧, 配對, 模型, AI"
           }
         }
       }

@@ -19,6 +19,7 @@ struct TVDetailAction {
         case manage
         case essentialsOffer
         case essentials
+        case previouslyOn
     }
 
     enum Appearance: Sendable {

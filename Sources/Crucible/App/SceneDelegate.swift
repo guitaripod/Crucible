@@ -7,6 +7,7 @@ import UIKit
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var pendingActivity: NSUserActivity?
+    private var pendingInvite: CompanionInvite?
     private var launchTask: Task<Void, Never>?
 
     /// The window that connects to the server on behalf of every window. The others hold their launch screen and take its result, so
@@ -31,6 +32,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
 
         pendingActivity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
+        pendingInvite = connectionOptions.urlContexts.lazy.compactMap { CompanionInvite(url: $0.url) }.first
         MidgarLog.notice("Window connected (\(UIApplication.shared.connectedScenes.count) open, activity: \(pendingActivity?.activityType ?? "none"))", category: .lifecycle)
         connectToLibrary()
     }
@@ -49,6 +51,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
         route(userActivity)
+    }
+
+    /// A `crucible://pair` link from a Crucible Server QR code the Camera scanned.
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        guard let invite = URLContexts.lazy.compactMap({ CompanionInvite(url: $0.url) }).first else { return }
+        offerPairing(invite)
+    }
+
+    private func offerPairing(_ invite: CompanionInvite) {
+        guard window?.rootViewController is TabBarController, let host = topPresented() else {
+            pendingInvite = invite
+            return
+        }
+        CompanionPairingFlow.confirm(invite, from: host)
+    }
+
+    private func topPresented() -> UIViewController? {
+        var top = window?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        return top
     }
 
     func stateRestorationActivity(for scene: UIScene) -> NSUserActivity? {
@@ -258,6 +280,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             if let tabBar = root as? TabBarController {
                 DemoCoordinator.shared.mainAppDidAppear(tabBar)
                 NotificationCoordinator.shared.mainAppDidAppear(tabBar)
+            }
+            if let invite = self.pendingInvite {
+                self.pendingInvite = nil
+                self.offerPairing(invite)
             }
             guard let pending = self.pendingActivity else { return }
             self.pendingActivity = nil

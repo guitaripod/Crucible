@@ -117,6 +117,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         case .homeRows: screen = TVHomeRowsViewController()
         case .libraries: screen = TVScreens.settings(env, page: .libraries)
         case .serverConnection: screen = TVScreens.settings(env, page: .server)
+        case .crucibleServer: screen = TVCompanionViewController()
         case .diagnostics: screen = TVScreens.settings(env, page: .diagnostics)
         case .about: screen = TVScreens.settings(env, page: .about)
         case .manageStorage, .notificationPermission, .sourceCode: return
