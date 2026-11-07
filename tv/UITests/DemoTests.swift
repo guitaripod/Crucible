@@ -561,4 +561,48 @@ final class DemoTests: TVTestCase {
         XCTAssertFalse(finale.waitForExistence(timeout: 3), "Keep exploring should close the finale")
         XCTAssertTrue(app.buttons["search.top.play"].exists, "the results are still there after the finale")
     }
+
+    /// Moves down from the tab bar into Home's first row of cards, then along it until the focused card names `title`.
+    private func focusHomeCard(_ app: XCUIApplication, named title: String) -> Bool {
+        guard AppNavigation.move(app, .down, untilFocusHasPrefix: AppNavigation.homeCardPrefix, limit: 4) else { return false }
+        for _ in 0..<12 {
+            if AppNavigation.focusedElement(app).label.contains(title) { return true }
+            TVTest.remote.press(.right)
+            TVTest.settle(0.5)
+        }
+        return AppNavigation.focusedElement(app).label.contains(title)
+    }
+
+    func testPaperLanternsOffersEssentialsOnceAndSkipsItsAnimeOnlyEpisodes() {
+        let app = launchIntoHome()
+        XCTAssertTrue(focusHomeCard(app, named: "Paper Lanterns"), "Home has no Paper Lanterns card, focus is on \(AppNavigation.focusedIdentifier(app)): \(AppNavigation.focusedElement(app).label)")
+        TVTest.remote.longPress(.select, duration: 1.6)
+        let goToShow = app.descendants(matching: .any)["Go to Show"]
+        XCTAssertTrue(goToShow.waitForExistence(timeout: 5), "the card's menu has no Go to Show")
+        TVTest.settle(1)
+        for _ in 0..<3 {
+            TVTest.remote.press(.down)
+            TVTest.settle(0.5)
+        }
+        TVTest.remote.press(.select)
+
+        let offer = app.buttons["detail.action.essentialsOffer"]
+        XCTAssertTrue(offer.waitForExistence(timeout: 30), "Paper Lanterns never offered Essentials")
+        XCTAssertTrue(offer.label.contains("Skip the 11 anime-only episodes"), offer.label)
+        for _ in 0..<4 where !offer.hasFocus {
+            TVTest.remote.press(.right)
+            TVTest.settle(0.5)
+        }
+        XCTAssertTrue(offer.hasFocus, "focus never reached the offer, it is on \(AppNavigation.focusedIdentifier(app))")
+        TVTest.settle(2)
+        TVTest.capture("17-essentials-offer", in: self)
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(TVTest.waitForNoElement(offer, timeout: 10), "accepting should retire the offer")
+        let episodes = app.buttons["detail.action.essentials"]
+        XCTAssertTrue(episodes.waitForExistence(timeout: 10), "the show has no Episodes button")
+        XCTAssertEqual(episodes.label, "Episodes: Skip Anime-Only")
+        TVTest.settle(1.5)
+        TVTest.capture("18-essentials-on", in: self)
+    }
 }
