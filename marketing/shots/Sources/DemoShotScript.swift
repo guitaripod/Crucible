@@ -97,12 +97,12 @@ enum DemoShotScript {
         await ShotHarness.settle(1)
         await ShotHarness.capture("d06-tour-0")
 
-        DemoCoordinator.shared.show(.play)
+        DemoCoordinator.shared.show(.play, from: tabBar)
         await ShotHarness.settle(5)
         await ShotHarness.capture("d07-playing")
         await dismissEverything(tabBar)
 
-        DemoCoordinator.shared.show(.browse)
+        DemoCoordinator.shared.show(.browse, from: tabBar)
         await ShotHarness.settle(5)
         await ShotHarness.capture("d08-library")
 
@@ -110,11 +110,11 @@ enum DemoShotScript {
         await ShotHarness.settle(1)
         await ShotHarness.capture("d09-tour-partial")
 
-        DemoCoordinator.shared.show(.search)
+        DemoCoordinator.shared.show(.search, from: tabBar)
         await ShotHarness.settle(3)
         await ShotHarness.capture("d10-search")
 
-        DemoCoordinator.shared.show(.statistics)
+        DemoCoordinator.shared.show(.statistics, from: tabBar)
         await ShotHarness.settle(14)
         await ShotHarness.capture("d11-stats")
         await ShotHarness.settle(3)
@@ -130,12 +130,12 @@ enum DemoShotScript {
             await ShotHarness.settle(1.5)
         }
 
-        DemoCoordinator.shared.show(.poster)
+        DemoCoordinator.shared.show(.poster, from: tabBar)
         await ShotHarness.settle(16)
         await ShotHarness.capture("d14-poster")
         await dismissEverything(tabBar)
 
-        DemoCoordinator.shared.show(.download)
+        DemoCoordinator.shared.show(.download, from: tabBar)
         await ShotHarness.settle(4)
         await ShotHarness.capture("d15-downloads")
 
@@ -166,7 +166,7 @@ enum DemoShotScript {
         await ShotHarness.settle(3.5)
         press("Start exploring", in: topPresented())
         await ShotHarness.settle(1)
-        DemoCoordinator.shared.show(.play)
+        DemoCoordinator.shared.show(.play, from: tabBar)
         await ShotHarness.settle(3)
         await captureUpNext(named: "u1-portrait", tabBar: tabBar)
         await captureUpNext(named: "u2-portrait-xl", tabBar: tabBar, largeText: true)
