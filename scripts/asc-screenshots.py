@@ -6,7 +6,10 @@ Sources: marketing/appstore/iphone/*.png (1320x2868) and marketing/appstore/ipad
 marketing/store/compose.py, and marketing/appstore/tvos/*.png (3840x2160), uploaded in file-name order.
 Each set is read back afterwards and must hold the expected number of COMPLETE screenshots.
 
-Usage: python3 scripts/asc-screenshots.py [--only=iphone|ipad|tvos] [--skip-existing]
+With --locales=all, every localized iPhone set in marketing/appstore/l10n/<locale>/iphone is uploaded to that locale too;
+locales without their own set show the en-US screenshots.
+
+Usage: python3 scripts/asc-screenshots.py [--only=iphone|ipad|tvos] [--locales=all] [--skip-existing]
 """
 import json
 import os
@@ -32,19 +35,19 @@ def asc(*args):
     return json.loads(body) if body.strip().startswith("{") else result.stdout
 
 
-def localization(version_id):
+def localization(version_id, locale):
     rows = asc("localizations", "list", "--version", version_id).get("data", [])
-    return next(r["id"] for r in rows if r["attributes"]["locale"] == "en-US")
+    return next(r["id"] for r in rows if r["attributes"]["locale"] == locale)
 
 
-def upload(kind, replace):
-    source = os.path.join(SHOTS, kind)
+def upload(kind, replace, locale="en-US"):
+    source = os.path.join(SHOTS, kind) if locale == "en-US" else os.path.join(SHOTS, "l10n", locale, kind)
     expected = len([f for f in os.listdir(source) if f.endswith(".png")])
-    loc_id = localization(VERSIONS[kind])
+    loc_id = localization(VERSIONS[kind], locale)
     flags = ["--replace", "--confirm"] if replace else ["--skip-existing"]
     command = ["asc", "screenshots", "upload", "--version-localization", loc_id, "--path", source,
                "--device-type", DEVICES[kind][0], *flags]
-    print(f"{kind}: uploading {expected} screenshots ({' '.join(flags)})", flush=True)
+    print(f"{kind} {locale}: uploading {expected} screenshots ({' '.join(flags)})", flush=True)
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         return f"{kind}: upload failed: {(result.stderr or result.stdout)[-300:].strip()}"
@@ -66,6 +69,9 @@ def main():
     only = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--only=")), None)
     replace = "--skip-existing" not in sys.argv
     failures = [message for kind in VERSIONS if not only or kind == only if (message := upload(kind, replace))]
+    if "--locales=all" in sys.argv and (not only or only == "iphone"):
+        localized = sorted(os.listdir(os.path.join(SHOTS, "l10n"))) if os.path.isdir(os.path.join(SHOTS, "l10n")) else []
+        failures += [message for locale in localized if (message := upload("iphone", replace, locale))]
     if failures:
         sys.exit("!! " + "\n!! ".join(failures))
     print("all sets verified", flush=True)
