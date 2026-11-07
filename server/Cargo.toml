@@ -1,6 +1,6 @@
 [package]
 name = "crucible-server"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "GPL-3.0-only"
 description = "The optional companion on the Plex machine: pairs with Crucible on iPhone, iPad and Apple TV, skips what files mark, and catches you up with grounded recaps from a local model"
