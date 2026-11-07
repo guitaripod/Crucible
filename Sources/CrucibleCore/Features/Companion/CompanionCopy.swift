@@ -128,7 +128,7 @@ package enum PreviouslyOnRequest {
     /// Where an Apple TV looks for Crucible Server before it knows one: beside the Plex server it uses, when that is on
     /// the home network or tailnet, so a handed-on pairing and the Plex token it carries go nowhere else.
     package static func hostsBesidePlex() -> [String] {
-        CompanionPairing.hostBesidePlex(ServerBootstrap.connection()?.serverURI).map { [$0] }?.filter(CompanionInvite.isNearby) ?? []
+        CompanionPairing.hostBesidePlex(ServerBootstrap.connection()?.serverURI).map { [$0] }?.filter { CompanionInvite.isNearby($0, tailnetNames: true) } ?? []
     }
 
     /// The pairing a nearby iPhone handed over, tried only beside the Plex server this Apple TV uses and only with the

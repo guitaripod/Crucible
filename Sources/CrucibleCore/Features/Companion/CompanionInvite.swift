@@ -69,8 +69,10 @@ package struct CompanionInvite: Equatable, Sendable {
 
     /// Whether a link's host is on the home network or a tailnet: a private, link-local, CGNAT or ULA address, a `.local`
     /// name, or a plex.direct name for a private address. A scanned or forged link can never send a pairing, and later
-    /// the person's Plex token, to a computer on the internet.
-    static func isNearby(_ hostPort: String) -> Bool {
+    /// the person's Plex token, to a computer on the internet. `tailnetNames` also admits MagicDNS names under `ts.net`,
+    /// right for the address this device already reaches its own Plex server at but never for a link, since Funnel can
+    /// put such a name on the internet.
+    static func isNearby(_ hostPort: String, tailnetNames: Bool = false) -> Bool {
         var host = hostPort
         if host.hasPrefix("["), let close = host.firstIndex(of: "]") {
             host = String(host[host.index(after: host.startIndex)..<close])
@@ -78,7 +80,7 @@ package struct CompanionInvite: Equatable, Sendable {
             host = String(host[..<colon])
         }
         host = host.lowercased()
-        if host.hasSuffix(".local") { return true }
+        if host.hasSuffix(".local") || tailnetNames && host.hasSuffix(".ts.net") { return true }
         if host.hasSuffix(".plex.direct"), let label = host.split(separator: ".").first {
             host = label.replacingOccurrences(of: "-", with: ".")
         }

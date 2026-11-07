@@ -35,6 +35,8 @@ struct CompanionTests {
         for host in ["evil.example:32500", "8.8.8.8:32500", "172.32.0.1:32500", "100.128.0.1:32500", "[2001:db8::1]:32500", "8-8-8-8.abc.plex.direct:32500", "arch.tail1234.ts.net:32500"] {
             #expect(!CompanionInvite.isNearby(host), "\(host)")
         }
+        #expect(CompanionInvite.isNearby("arch.tail1234.ts.net:32500", tailnetNames: true))
+        #expect(!CompanionInvite.isNearby("evil.example:32500", tailnetNames: true))
         let mixed = try #require(URL(string: "crucible://pair?v=1&hosts=evil.example:32500,192.168.1.5:32500&secret=AEAQCAIBAEAQCAIBAEAQCAIBAE"))
         #expect(CompanionInvite(url: mixed)?.hosts == ["192.168.1.5:32500"])
         #expect(CompanionInvite(url: URL(string: "crucible://pair?v=1&hosts=evil.example:32500&secret=AEAQCAIBAEAQCAIBAEAQCAIBAE")!) == nil)
@@ -102,6 +104,11 @@ struct CompanionLiveTests {
         #expect(fromPhone.fingerprint == server.fingerprint)
         await #expect(throws: CompanionError.codeRefused) {
             try await CompanionPairing.pair(nearby, deviceName: "Again", platform: "tvos", machineIdentifier: nil, plexToken: client.plexToken)
+        }
+        let withdrawn = try await handOn()
+        try await client.withdraw(withdrawn)
+        await #expect(throws: CompanionError.codeRefused) {
+            try await CompanionPairing.pair(withdrawn, deviceName: "Gone", platform: "tvos", machineIdentifier: nil, plexToken: client.plexToken)
         }
         #expect(hello.plexMachineIdentifier?.isEmpty == false)
         await #expect(throws: CompanionError.otherPlexServer) {

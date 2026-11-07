@@ -99,7 +99,10 @@ final class CompanionAdvertiser {
                 do throws(CompanionError) {
                     guard self?.active === connection else { return }
                     let invite = try await client.inviteForNearbyDevice()
-                    guard self?.active === connection else { return }
+                    guard self?.active === connection else {
+                        try? await client.withdraw(invite)
+                        return
+                    }
                     Haptics.success()
                     self?.answer(.invite(invite), on: connection)
                 } catch {

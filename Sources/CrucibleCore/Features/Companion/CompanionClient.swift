@@ -229,18 +229,7 @@ package enum CompanionPairing {
                 if let machineIdentifier, hello.plexMachineIdentifier != machineIdentifier {
                     throw CompanionError.otherPlexServer
                 }
-                let deviceNonce = (0..<16).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
-                let began: Began = try await connection.send("POST", "pair", body: Begin(id: invite.secretID, deviceNonce: deviceNonce))
-                let expected = CompanionProof.server(secret: invite.secret, fingerprint: seen, deviceNonce: deviceNonce, serverNonce: began.serverNonce)
-                guard CompanionProof.matches(expected, began.proof) else { throw CompanionError.wrongServer }
-                let proof = CompanionProof.device(secret: invite.secret, fingerprint: seen, deviceNonce: deviceNonce, serverNonce: began.serverNonce)
-                let finished: Finished
-                do throws(CompanionError) {
-                    finished = try await connection.send("POST", "pair/confirm", body: Finish(id: invite.secretID, proof: proof, name: deviceName, platform: platform),
-                                                         headers: plexToken.map { ["Crucible-Plex-Token": $0] } ?? [:])
-                } catch {
-                    throw Self.afterConfirming(error)
-                }
+                let finished = try await exchange(invite, on: connection, fingerprint: seen, deviceName: deviceName, platform: platform, plexToken: plexToken)
                 let others: [String] = invite.hosts.filter { $0 != host }
                 return CompanionServer(
                     name: finished.name,
@@ -258,12 +247,39 @@ package enum CompanionPairing {
         throw failure
     }
 
-    /// What a failed last step means: with no answer, or one this device could not read, the server may already have
-    /// paired it and used the secret up, so trying another address would only report a wrong code.
-    private static func afterConfirming(_ error: CompanionError) -> CompanionError {
+    /// The two proofs over `connection`. When the last step goes unanswered, or its answer cannot be read, the server
+    /// is asked once more: a secret it still holds means the step never landed, so the exchange simply runs again; a
+    /// secret it no longer knows may have paired this device, which is reported rather than retried as a wrong code.
+    private static func exchange(_ invite: CompanionInvite, on connection: Connection, fingerprint: String, deviceName: String, platform: String, plexToken: String?) async throws(CompanionError) -> Finished {
+        var unanswered = false
+        while true {
+            let deviceNonce = (0..<16).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
+            let began: Began
+            do throws(CompanionError) {
+                began = try await connection.send("POST", "pair", body: Begin(id: invite.secretID, deviceNonce: deviceNonce))
+            } catch {
+                throw unanswered ? .pairingUnconfirmed : error
+            }
+            let expected = CompanionProof.server(secret: invite.secret, fingerprint: fingerprint, deviceNonce: deviceNonce, serverNonce: began.serverNonce)
+            guard CompanionProof.matches(expected, began.proof) else { throw .wrongServer }
+            let proof = CompanionProof.device(secret: invite.secret, fingerprint: fingerprint, deviceNonce: deviceNonce, serverNonce: began.serverNonce)
+            do throws(CompanionError) {
+                return try await connection.send("POST", "pair/confirm", body: Finish(id: invite.secretID, proof: proof, name: deviceName, platform: platform),
+                                                 headers: plexToken.map { ["Crucible-Plex-Token": $0] } ?? [:])
+            } catch {
+                guard Self.mayHavePaired(error) else { throw error }
+                guard !unanswered else { throw .pairingUnconfirmed }
+                unanswered = true
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+    }
+
+    /// Whether a failed last step may have reached the server: it went unanswered, or its answer could not be read.
+    private static func mayHavePaired(_ error: CompanionError) -> Bool {
         switch error {
-        case .unreachable, .failed: .pairingUnconfirmed
-        default: error
+        case .unreachable, .failed: true
+        default: false
         }
     }
 
@@ -391,11 +407,22 @@ package struct CompanionClient: Sendable {
     /// An invite for a nearby device: a fresh secret handed to the server, with where the server answers on the home
     /// network or tailnet and the fingerprint this device pinned, so the other device pins the same certificate.
     package func inviteForNearbyDevice() async throws(CompanionError) -> CompanionInvite {
-        let hosts = server.hosts.filter(CompanionInvite.isNearby)
+        let hosts = server.hosts.filter { CompanionInvite.isNearby($0) }
         guard !hosts.isEmpty else { throw .notNearby }
         let secret = CompanionInvite.newSecret()
         try await addDevice(secret: secret)
         return CompanionInvite(name: server.name, hosts: hosts, secret: secret, fingerprint: server.fingerprint)
+    }
+
+    /// Closes a pairing this device handed on, because the device it was for left before using it.
+    package func withdraw(_ invite: CompanionInvite) async throws(CompanionError) {
+        let _: Withdrawn = try await onFirstHost(timeout: 10) { connection throws(CompanionError) in
+            try await connection.send("DELETE", "pair/code/\(invite.secretID)", body: Nothing?.none, headers: headers)
+        }
+    }
+
+    private struct Withdrawn: Decodable {
+        let withdrawn: Bool
     }
 
     package func hello() async throws(CompanionError) -> CompanionHello {
