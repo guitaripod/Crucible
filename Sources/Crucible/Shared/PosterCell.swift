@@ -11,6 +11,8 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var placeholderIcon: String = "film"
     var isUnwatched: Bool = false
     var unwatchedCount: Int?
+    /// A word for the corner pill when there is no count to show ("New", "Premiere").
+    var badgeText: String?
     var isDownloaded: Bool = false
     var showPlayButton: Bool = false
     var onQuickPlay: (() -> Void)?
@@ -18,7 +20,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     static func == (lhs: PosterContentConfiguration, rhs: PosterContentConfiguration) -> Bool {
         lhs.posterPath == rhs.posterPath && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle
             && lhs.progress == rhs.progress && lhs.isUnwatched == rhs.isUnwatched
-            && lhs.unwatchedCount == rhs.unwatchedCount && lhs.isDownloaded == rhs.isDownloaded
+            && lhs.unwatchedCount == rhs.unwatchedCount && lhs.badgeText == rhs.badgeText && lhs.isDownloaded == rhs.isDownloaded
             && lhs.showPlayButton == rhs.showPlayButton
     }
 
@@ -29,6 +31,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
         hasher.combine(progress)
         hasher.combine(isUnwatched)
         hasher.combine(unwatchedCount)
+        hasher.combine(badgeText)
         hasher.combine(isDownloaded)
         hasher.combine(showPlayButton)
     }
@@ -262,9 +265,10 @@ final class PosterContentView: UIView, UIContentView {
         if let progress = config.progress, hasProgress { progressBar.progress = progress }
 
         let showsCount = (config.unwatchedCount ?? 0) > 0
-        countPill.isHidden = !showsCount
-        countLabel.text = config.unwatchedCount.map(String.init)
-        unwatchedDot.isHidden = !(config.isUnwatched && !showsCount && !hasProgress)
+        let pillText = showsCount ? config.unwatchedCount.map(String.init) : config.badgeText?.localizedUppercase
+        countPill.isHidden = (pillText ?? "").isEmpty
+        countLabel.text = pillText
+        unwatchedDot.isHidden = !(config.isUnwatched && countPill.isHidden && !hasProgress)
         downloadChip.isHidden = !config.isDownloaded
         playChip.isHidden = !config.showPlayButton
 
@@ -301,6 +305,7 @@ final class PosterContentView: UIView, UIContentView {
     private static func spokenDescription(for config: PosterContentConfiguration) -> String {
         var parts = [config.title]
         if let subtitle = config.subtitle, !subtitle.isEmpty { parts.append(subtitle) }
+        if let badge = config.badgeText, !badge.isEmpty { parts.append(badge) }
         if let count = config.unwatchedCount, count > 0 {
             parts.append(String(localized: "\(count) unwatched"))
         } else if config.isUnwatched {

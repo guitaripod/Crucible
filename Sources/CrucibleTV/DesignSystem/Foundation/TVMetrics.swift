@@ -75,6 +75,7 @@ enum TVMetrics {
         static let cornerRadius: CGFloat = Theme.Radius.s
         static let watchedDimming: CGFloat = 0.55
         static let badgeInset: CGFloat = 14
+        static let artCaptionSpacing: CGFloat = 8
         static let dotDiameter: CGFloat = 20
         static let checkDiameter: CGFloat = 40
     }

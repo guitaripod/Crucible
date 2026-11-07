@@ -45,8 +45,10 @@ enum TVHomeContent {
             title: model.title,
             subtitle: model.subtitle,
             detail: model.trailingText,
+            eyebrow: model.news?.eyebrow,
             progress: model.progress,
             isUnwatched: model.isUnwatched,
+            badgeText: model.news?.badge.localizedUppercase,
             placeholderSymbol: model.usesSeriesPlaceholder ? "tv" : "film"
         )
     }
@@ -67,7 +69,7 @@ enum TVHomeContent {
             eyebrow: model.eyebrow,
             title: model.title,
             metaParts: model.metaParts,
-            badges: [media.contentRating].compactMap { $0 },
+            badges: model.badges,
             synopsis: media.summary,
             progress: model.progress,
             accessibilityText: model.accessibilityText

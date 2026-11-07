@@ -8,21 +8,24 @@ package struct HomeHeroModel: Hashable, Sendable {
     package let title: String
     package let subtitle: String?
     package let metaParts: [String]
+    /// The chips under the facts: "4K" for an Ultra HD file, then the content rating.
+    package let badges: [String]
     package let actionTitle: String
     package let trailingText: String?
     package let progress: Double?
     package let spokenLabel: String
     package let accessibilityText: String
 
-    package init(item: PlexMetadata, eyebrow: String, cachedArt: [String: String] = [:], continuing: Bool = false) {
+    package init(item: PlexMetadata, eyebrow: String, cachedArt: [String: String] = [:], continuing: Bool = false, now: Date = Date()) {
         let position = continuing ? item.continueSecs : item.resumeSecs
         let resuming = position > 0
         id = item.id
         backdropPath = Self.backdropPath(for: item, cachedArt: cachedArt)
-        self.eyebrow = eyebrow
+        self.eyebrow = continuing ? eyebrow : (HomeFormat.episodeNews(item, now: now)?.eyebrow ?? eyebrow)
         title = HomeFormat.title(for: item)
         subtitle = HomeFormat.heroSubtitle(for: item)
-        metaParts = Self.metaParts(for: item, position: position)
+        metaParts = Self.metaParts(for: item, position: position) + [HomeFormat.endsAt(item, position: position, now: now)].compactMap { $0 }
+        badges = [Self.isUltraHD(item) ? "4K" : nil, item.contentRating].compactMap { $0 }.filter { !$0.isEmpty }
         actionTitle = resuming ? String(localized: "Resume", comment: "Button or menu label that resumes playback from the saved position") : String(localized: "Play", comment: "Button or menu label that starts playback")
         trailingText = HomeFormat.remaining(item, position: position)
             ?? HomeFormat.elapsed(item, position: position)
@@ -39,7 +42,7 @@ package struct HomeHeroModel: Hashable, Sendable {
             episode,
             timePhrase,
         ].compactMap { $0 }.joined(separator: ", ")
-        accessibilityText = [eyebrow, title, episode, timePhrase, item.summary]
+        accessibilityText = [self.eyebrow, title, episode, timePhrase, item.summary]
             .compactMap { $0 }
             .filter { !$0.isEmpty }
             .joined(separator: ". ")
@@ -52,6 +55,12 @@ package struct HomeHeroModel: Hashable, Sendable {
             return item.grandparentArt ?? item.art ?? cachedArt[item.id] ?? item.thumb
         }
         return item.art ?? cachedArt[item.id] ?? item.thumb ?? item.grandparentThumb
+    }
+
+    /// A 4K file by its resolution tag or its frame, so a scope picture (3840×1600) counts too.
+    private static func isUltraHD(_ item: PlexMetadata) -> Bool {
+        guard let media = item.Media?.first else { return false }
+        return media.videoResolution?.lowercased() == "4k" || (media.width ?? 0) >= 3840 || (media.height ?? 0) >= 2160
     }
 
     /// The facts line of a hero as separate parts, the time left or runtime last: "S2 · E4", the

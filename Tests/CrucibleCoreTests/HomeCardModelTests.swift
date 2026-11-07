@@ -120,9 +120,11 @@ struct HomeHeroModelTests {
     }
 
     @Test func metaPartsFollowTheMediaType() {
-        #expect(HomeHeroModel(item: resuming, eyebrow: "x").metaParts == ["S2 · E4", "Low Tide", "33 min left"])
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let ends = { (seconds: Double) in "Ends at \(now.addingTimeInterval(seconds).formatted(date: .omitted, time: .shortened))" }
+        #expect(HomeHeroModel(item: resuming, eyebrow: "x", now: now).metaParts == ["S2 · E4", "Low Tide", "33 min left", ends(1980)])
         let movie = F.item("1", fields: ["year": 2021, "duration": 7_500_000])
-        #expect(HomeHeroModel(item: movie, eyebrow: "x").metaParts == ["2021", "2 h 05 m"])
+        #expect(HomeHeroModel(item: movie, eyebrow: "x", now: now).metaParts == ["2021", "2 h 05 m", ends(7500)])
         let season = F.item("2", type: "season", title: "Season 2", fields: ["year": 2019])
         #expect(HomeHeroModel(item: season, eyebrow: "x").metaParts == ["Season 2", "2019"])
         let show = F.item("3", type: "show", fields: ["year": 2019])

@@ -29,6 +29,7 @@ final class TVCardContentView: UIView, UIContentView {
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let progressBar = ProgressBar()
+    private let artCaptionLabel = UILabel()
     private let scrim = TVGradientView.bottomScrim()
     private let unwatchedDot = UIView()
     private let watchedBadge = UIImageView()
@@ -101,8 +102,20 @@ final class TVCardContentView: UIView, UIContentView {
         overlay.addSubview(scrim)
 
         progressBar.style = .onArt
-        progressBar.translatesAutoresizingMaskIntoConstraints = false
-        overlay.addSubview(progressBar)
+        progressBar.heightAnchor.constraint(equalToConstant: Theme.Metric.progressBarThickness).isActive = true
+        artCaptionLabel.font = TVFont.artCaption
+        artCaptionLabel.textColor = Theme.Color.onArt
+        artCaptionLabel.adjustsFontForContentSizeCategory = false
+        artCaptionLabel.lineBreakMode = .byTruncatingTail
+        artCaptionLabel.layer.shadowColor = UIColor.black.cgColor
+        artCaptionLabel.layer.shadowOpacity = 0.6
+        artCaptionLabel.layer.shadowRadius = 4
+        artCaptionLabel.layer.shadowOffset = .zero
+        let footer = UIStackView(arrangedSubviews: [artCaptionLabel, progressBar])
+        footer.axis = .vertical
+        footer.spacing = TVMetrics.Card.artCaptionSpacing
+        footer.translatesAutoresizingMaskIntoConstraints = false
+        overlay.addSubview(footer)
 
         unwatchedDot.backgroundColor = Theme.Color.accent
         unwatchedDot.layer.cornerRadius = TVMetrics.Card.dotDiameter / 2
@@ -131,10 +144,9 @@ final class TVCardContentView: UIView, UIContentView {
             scrim.bottomAnchor.constraint(equalTo: overlay.bottomAnchor),
             scrim.heightAnchor.constraint(equalTo: overlay.heightAnchor, multiplier: 0.4),
 
-            progressBar.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: inset),
-            progressBar.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -inset),
-            progressBar.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -inset),
-            progressBar.heightAnchor.constraint(equalToConstant: Theme.Metric.progressBarThickness),
+            footer.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: inset),
+            footer.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -inset),
+            footer.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -inset),
 
             unwatchedDot.topAnchor.constraint(equalTo: overlay.topAnchor, constant: inset),
             unwatchedDot.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -inset),
@@ -165,6 +177,8 @@ final class TVCardContentView: UIView, UIContentView {
 
         let showsProgress = item.hasProgress
         progressBar.isHidden = !showsProgress
+        artCaptionLabel.text = item.detail
+        artCaptionLabel.isHidden = !style.scrimsArtwork || (item.detail ?? "").isEmpty
         if let progress = item.progress, showsProgress { progressBar.progress = progress }
         unwatchedDot.isHidden = !(item.isUnwatched && !showsProgress && !item.isWatched)
         watchedBadge.isHidden = !item.isWatched || showsProgress

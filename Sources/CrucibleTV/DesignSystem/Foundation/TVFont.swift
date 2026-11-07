@@ -18,6 +18,9 @@ enum TVFont {
 
     static var eyebrow: UIFont { Theme.Font.scaled(.caption2, 23, .bold, maximum: 31) }
 
+    /// The time left or runtime written on a card's artwork, above its progress bar: caption2 23 semibold.
+    static var artCaption: UIFont { Theme.Font.scaled(.caption2, 23, .semibold, maximum: 31) }
+
     /// The title of a pushed screen (title2 57 bold), its summary beside it and its description below.
     static var screenTitle: UIFont { Theme.Font.title2 }
 

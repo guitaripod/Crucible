@@ -15,6 +15,7 @@ enum HomeMediaActions {
         config.subtitle = card.subtitle
         config.progress = card.progress
         config.isUnwatched = card.isUnwatched
+        config.badgeText = card.news?.badge
         config.isDownloaded = DownloadManager.shared.isDownloaded(item.id)
         return config
     }

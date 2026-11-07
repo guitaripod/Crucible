@@ -14,13 +14,15 @@ package struct HomeCardModel: Hashable, Sendable {
     package let progress: Double?
     package let trailingText: String?
     package let isUnwatched: Bool
+    /// What sets an Up Next episode apart from just being the next one; its `badge` goes on the artwork.
+    package let news: EpisodeNews?
     package let unwatchedCount: Int?
     package let isWatched: Bool
     package let isPlayable: Bool
     package let showsPlayChip: Bool
     package let usesSeriesPlaceholder: Bool
 
-    package init(item: PlexMetadata, bucket: HomeBucket, layout: Layout) {
+    package init(item: PlexMetadata, bucket: HomeBucket, layout: Layout, now: Date = Date()) {
         id = item.id
         title = HomeFormat.title(for: item)
         isWatched = HomeMediaRules.isWatched(item)
@@ -32,6 +34,7 @@ package struct HomeCardModel: Hashable, Sendable {
             ? (item.durationSecs > 0 ? item.continueSecs / item.durationSecs : 0)
             : item.progressFraction
         progress = position > 0 && item.duration != nil ? fraction : nil
+        news = bucket == .upNext ? HomeFormat.episodeNews(item, now: now) : nil
         switch layout {
         case .poster:
             subtitle = Self.posterSubtitle(for: item, bucket: bucket)
@@ -75,6 +78,7 @@ package struct HomeCardModel: Hashable, Sendable {
 
     private static func landscapeSubtitle(for item: PlexMetadata, bucket: HomeBucket) -> String? {
         switch bucket {
+        case .upNext where item.mediaType == "episode": return HomeFormat.continueSubtitle(for: item)
         case .upNext: return HomeFormat.upNextSubtitle(for: item)
         case .recentlyAdded: return HomeFormat.recentSubtitle(for: item)
         case .hero, .continueWatching: return HomeFormat.continueSubtitle(for: item)
