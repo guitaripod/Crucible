@@ -1,0 +1,19 @@
+WHAT CHANGED IN 2.7.3 (Apple TV only)
+- The row of buttons at the top of each library tab no longer breaks when it is wider than the screen. The demo account owns its server, so the row holds All, Unwatched, In Progress, Genre, Sort, Filters, Manage, Collections and Folders. In 2.7.2 it squeezed buttons down to "…" and the remote could not move along it; it now scrolls sideways with the focus and every button keeps its name. To see it: start the demo, open the Movies tab, press Up to All, then press Right through to Folders.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex requires a paid Plex Pass or Remote Watch Pass to stream a server's video away from home (https://support.plex.tv/articles/requirements-for-remote-playback-of-personal-media/), so we cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app instead (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+On the Welcome screen choose "Try the demo", then "Start exploring". The account types and settings below are under the You tab.
+
+ACCOUNT TYPES IN THE DEMO
+1. Server owner (the demo starts as "Demo"): every feature unlocked, plus the owner's tools: Manage in a title's long-press menu and on a library's header (Fix Match, Edit Details, poster and background, scans), Stop Stream in Server Activity, Server Dashboard under You.
+2. Plex Home member with a PIN: You > Switch Profile > Sam, PIN 1234. Sam has a watch history of their own and no owner tools.
+3. Managed (restricted) profile: You > Switch Profile > Kids, no PIN. Only family titles appear. Switch Profile > Demo returns to the owner.
+4. Free install and Crucible Pro: the demo starts unlocked. Turn on You > Preview Free Version to see a free install: Statistics ranges past Week, the Statistics library filter, the Year in Review poster and Top Shelf are locked, and the locks open the paywall. A purchase there (sandbox) unlocks them for real; Restore Purchases is on the paywall.
+
+CRUCIBLE PRO (in-app purchases, StoreKit with Midgar's own engine, MidgarKit)
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $24.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year, no free trial. Both approved; Apple TV shares them with iPhone and iPad through universal purchase. Playback is never gated. Paywall: You > Crucible Pro, the end of the demo tour, or any lock in the free preview.
+
+OTHER NOTES
+Sign in with Plex shows a code to enter at plex.tv/link; an account with no server is pointed to the demo. Local network access is requested to reach servers on the user's home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK; the only data is an anonymous Midgar ID (iCloud Keychain) for Crucible Pro purchases, as the privacy policy and App Privacy answers describe.
