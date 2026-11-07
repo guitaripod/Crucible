@@ -42,6 +42,8 @@ package struct ShowDetailModel: Sendable {
     package let allEpisodes: [PlexMetadata]
     package let episodesFailed: Bool
     package let upNext: UpNext?
+    /// The show's Crucible Guides plan, when a guide covers it: which episodes the person's choices hide.
+    package let essentials: EssentialsPlan?
 
     package var userRating: UserRating? {
         UserRating(plexValue: show.userRating)
@@ -53,7 +55,8 @@ package struct ShowDetailModel: Sendable {
         selectedSeasonKey: String? = nil,
         episodes: [PlexMetadata] = [],
         allEpisodes: [PlexMetadata] = [],
-        episodesFailed: Bool = false
+        episodesFailed: Bool = false,
+        essentials: EssentialsPlan? = nil
     ) {
         self.show = show
         self.seasons = seasons
@@ -61,30 +64,36 @@ package struct ShowDetailModel: Sendable {
         self.episodes = episodes
         self.allEpisodes = allEpisodes
         self.episodesFailed = episodesFailed
-        self.upNext = Self.computeUpNext(in: allEpisodes.isEmpty ? episodes : allEpisodes)
+        self.essentials = essentials
+        self.upNext = Self.computeUpNext(in: allEpisodes.isEmpty ? episodes : allEpisodes, hidden: essentials?.hiddenKeys ?? [])
     }
 
     package func replacingShow(_ show: PlexMetadata) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials)
     }
 
     package func selectingSeason(_ key: String) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: episodes, allEpisodes: allEpisodes)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: episodes, allEpisodes: allEpisodes, essentials: essentials)
     }
 
     package func replacingEpisodes(_ episodes: [PlexMetadata]) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, essentials: essentials)
+    }
+
+    /// The same screen under a new Essentials plan, after the person changes their choice.
+    package func replacingEssentials(_ essentials: EssentialsPlan?) -> ShowDetailModel {
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials)
     }
 
     /// Selects `key` and clears the episode list, for screens that show a loading state until the
     /// new season's episodes arrive instead of the previous season's.
     package func loadingSeason(_ key: String) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: [], allEpisodes: allEpisodes)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: [], allEpisodes: allEpisodes, essentials: essentials)
     }
 
     /// The selected season's episodes could not be fetched: no episodes, flagged so a screen can offer Retry instead of "empty".
     package func failingEpisodes() -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: [], allEpisodes: allEpisodes, episodesFailed: true)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: [], allEpisodes: allEpisodes, episodesFailed: true, essentials: essentials)
     }
 
     package var selectedSeason: PlexMetadata? {
@@ -242,8 +251,9 @@ package struct ShowDetailModel: Sendable {
     /// in progress, otherwise the first unwatched episode after the most recently watched one, and the very
     /// first episode once everything is watched. Following the most recent watch keeps this screen in step
     /// with the server's own Continue Watching, which is built from that too.
-    package static func computeUpNext(in episodes: [PlexMetadata]) -> UpNext? {
-        let ordered = EpisodeOrder.sorted(episodes)
+    package static func computeUpNext(in episodes: [PlexMetadata], hidden: Set<String> = []) -> UpNext? {
+        let all = EpisodeOrder.sorted(episodes)
+        let ordered = hidden.isEmpty ? all : all.filter { !hidden.contains($0.id) || ($0.positionSecs > 0 && !$0.isWatched) }
         guard let first = ordered.first else { return nil }
         let inProgress = ordered.filter { !$0.isWatched && $0.positionSecs > 0 }
         let watched = ordered.filter(\.isWatched)

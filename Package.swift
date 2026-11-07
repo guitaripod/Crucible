@@ -29,7 +29,7 @@ var dependencies: [Package.Dependency] = [
 ]
 
 var targets: [Target] = [
-    .target(name: "CrucibleCore", dependencies: [midgarCore]),
+    .target(name: "CrucibleCore", dependencies: [midgarCore], resources: [.copy("Resources/guides.envelope.json")]),
     .target(name: "CrucibleStats", dependencies: ["CrucibleCore", grdb, midgarCore]),
 ]
 

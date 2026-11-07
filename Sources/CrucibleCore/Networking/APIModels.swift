@@ -180,6 +180,8 @@ package struct PlexMetadata: Decodable, Sendable {
     package let Marker: [PlexMarker]?
     package let Chapter: [PlexChapter]?
     package let Related: PlexRelatedHubs?
+    /// The external ids Plex's agents attach (`tvdb://…`, `tmdb://…`, `imdb://…`), present when the request asked `includeGuids`.
+    package let externalGuids: [PlexGuid]?
 
     package init(
         ratingKey: String?,
@@ -242,8 +244,10 @@ package struct PlexMetadata: Decodable, Sendable {
         titleSort: String? = nil,
         originalTitle: String? = nil,
         playbackSession: PlexPlaybackSession? = nil,
-        historyKey: String? = nil
+        historyKey: String? = nil,
+        externalGuids: [PlexGuid]? = nil
     ) {
+        self.externalGuids = externalGuids
         self.historyKey = historyKey
         self.titleSort = titleSort
         self.originalTitle = originalTitle
@@ -324,6 +328,7 @@ package struct PlexMetadata: Decodable, Sendable {
         case playbackSession = "Session"
         case subtype, guid, grandparentGuid, parentGuid, historyKey
         case extrasContainer = "Extras"
+        case externalGuids = "Guid"
     }
 
     /// The server spells ids and counts as numbers on a library listing and as strings on a history row, and one field it
@@ -404,7 +409,8 @@ package struct PlexMetadata: Decodable, Sendable {
             titleSort: string(.titleSort),
             originalTitle: string(.originalTitle),
             playbackSession: list(PlexPlaybackSession.self, .playbackSession),
-            historyKey: string(.historyKey)
+            historyKey: string(.historyKey),
+            externalGuids: list([PlexGuid].self, .externalGuids)
         )
     }
 }
@@ -869,6 +875,22 @@ extension PlexStream: Hashable {
 
 package struct PlexTag: Decodable, Sendable {
     package let tag: String
+}
+
+/// One external id of an item, such as `tvdb://295068`.
+package struct PlexGuid: Decodable, Sendable, Hashable {
+    package let id: String
+
+    package init(id: String) {
+        self.id = id
+    }
+}
+
+extension PlexMetadata {
+    /// The tvdb, tmdb and imdb ids Plex's agents matched the item to.
+    package var externalIDs: ExternalIDs {
+        ExternalIDs(guids: (externalGuids ?? []).map(\.id))
+    }
 }
 
 package struct PlexHub: Decodable, Sendable {

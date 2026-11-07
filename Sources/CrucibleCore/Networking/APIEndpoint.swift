@@ -268,6 +268,7 @@ package enum PlexEndpoint: Sendable {
         switch self {
         case .metadata:
             return [
+                URLQueryItem(name: "includeGuids", value: "1"),
                 URLQueryItem(name: "includeMarkers", value: "1"),
                 URLQueryItem(name: "includeChapters", value: "1"),
                 URLQueryItem(name: "includeRelated", value: "1"),

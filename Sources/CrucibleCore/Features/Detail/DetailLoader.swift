@@ -86,13 +86,15 @@ package enum ShowDetailLoader {
             }
             selected = latest
         }
+        let essentials = await EssentialsCenter.shared.plan(show: show, episodes: allEpisodes)
         return ShowDetailModel(
             show: show,
             seasons: seasons,
             selectedSeasonKey: selected,
             episodes: seasonEpisodes,
             allEpisodes: allEpisodes,
-            episodesFailed: seasonFailed
+            episodesFailed: seasonFailed,
+            essentials: essentials
         )
     }
 

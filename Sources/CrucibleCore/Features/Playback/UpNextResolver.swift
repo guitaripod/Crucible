@@ -139,6 +139,13 @@ package struct UpNextResolver: Sendable {
         }
         guard let seasonRatingKey else { return nil }
         if reason == .credits, Preferences.skipOutroMode == .off { return nil }
+        if let showRatingKey {
+            switch await EssentialsCenter.shared.successor(after: ratingKey, showRatingKey: showRatingKey, api: api) {
+            case .next(let episode): return Self.offer(episode, season: episode.parentRatingKey ?? seasonRatingKey, reason: reason)
+            case .end: return nil
+            case .notApplicable: break
+            }
+        }
         let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
         if let next = EpisodeOrder.next(after: ratingKey, in: container.Metadata ?? []) {
             return Self.offer(next, season: seasonRatingKey, reason: reason)
