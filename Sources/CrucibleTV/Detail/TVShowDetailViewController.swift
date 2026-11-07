@@ -164,7 +164,7 @@ final class TVShowDetailViewController: TVDetailViewController {
             },
             episodesHeader: TVSectionHeader(
                 title: model.selectedSeasonTitle,
-                secondaryText: episodesState == .loaded ? (model.essentials.map(EssentialsCopy.barDetail) ?? Self.episodeCount(episodes.count)) : nil
+                secondaryText: episodesState == .loaded ? (model.essentials.flatMap { EssentialsCopy.seasonDetail($0, season: model.episodes) } ?? Self.episodeCount(episodes.count)) : nil
             ),
             episodes: episodeCards,
             showsEpisodes: model.selectedSeason != nil,

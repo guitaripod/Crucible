@@ -91,6 +91,18 @@ struct EssentialsTests {
         #expect(upNext?.episode.id == "ep1")
     }
 
+    @Test func theSeasonHeaderCountsOnlyThatSeason() throws {
+        let guide = try Self.dragonBallSuper()
+        let episodes = Self.library(guide)
+        let plan = try #require(EssentialsPlan.make(guide: guide, episodes: episodes, choice: EssentialsChoice(level: .skipAnimeOnly)))
+        let arc = Array(episodes[27..<46])
+        let hidden = arc.filter { plan.hides($0.id) }.count
+        #expect(hidden > 0)
+        let detail = try #require(EssentialsCopy.seasonDetail(plan, season: arc))
+        #expect(detail.hasPrefix("\(19 - hidden) of 19 episodes · saves "))
+        #expect(EssentialsCopy.seasonDetail(plan, season: Array(episodes[0..<14])) == nil)
+    }
+
     @Test func aLibrarySplitIntoSeasonsStillLinesUp() throws {
         let guide = try Self.dragonBallSuper()
         let bounds = [14, 27, 46, 76, 131]

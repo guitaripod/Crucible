@@ -25,6 +25,15 @@ package enum EssentialsCopy {
         return String(localized: "\(plan.shownCount) of \(plan.episodeCount) episodes · saves \(duration(hidden.seconds))", comment: "Essentials bar, e.g. 110 of 131 episodes · saves 8 h 6 min")
     }
 
+    /// The season header's count where it sits beside one season's name, as on Apple TV: "21 of 26 episodes · saves
+    /// 2 h 10 min" for that season alone, or nil when Essentials hides none of its episodes.
+    package static func seasonDetail(_ plan: EssentialsPlan, season episodes: [PlexMetadata]) -> String? {
+        let hidden = episodes.filter { plan.hides($0.id) }
+        guard !hidden.isEmpty else { return nil }
+        let seconds = hidden.reduce(0) { $0 + $1.durationSecs }
+        return String(localized: "\(episodes.count - hidden.count) of \(episodes.count) episodes · saves \(duration(seconds))", comment: "Essentials bar, e.g. 110 of 131 episodes · saves 8 h 6 min")
+    }
+
     /// "From the Dragon Ball Wiki and Wikipedia · CC BY-SA", the attribution the sources' licence asks for.
     package static func sourceLine(_ guide: GuideShow) -> String {
         let names = guide.sources.map(\.name)
