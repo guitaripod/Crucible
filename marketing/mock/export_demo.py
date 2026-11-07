@@ -116,6 +116,8 @@ def artwork_names(lib):
     for item in lib.items.values():
         rk = item["ratingKey"]
         kind = item["_kind"]
+        if kind == "extra":
+            continue
         if kind == "episode":
             names.add(f"still_{rk}.jpg")
         else:
