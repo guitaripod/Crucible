@@ -97,6 +97,7 @@ final class CompanionAdvertiser {
         alert.addAction(UIAlertAction(title: CompanionCopy.allow, style: .default) { [weak self] _ in
             Task { @MainActor in
                 do throws(CompanionError) {
+                    guard self?.active === connection else { return }
                     let invite = try await client.inviteForNearbyDevice()
                     guard self?.active === connection else { return }
                     Haptics.success()
