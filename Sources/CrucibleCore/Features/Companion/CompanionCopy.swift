@@ -125,9 +125,18 @@ package enum PreviouslyOnRequest {
         return CompanionClient(server: server, plexToken: token)
     }
 
-    /// Where an Apple TV looks for Crucible Server before it knows one: beside the Plex server it uses.
+    /// Where an Apple TV looks for Crucible Server before it knows one: beside the Plex server it uses, when that is on
+    /// the home network or tailnet, so a handed-on pairing and the Plex token it carries go nowhere else.
     package static func hostsBesidePlex() -> [String] {
-        CompanionPairing.hostBesidePlex(ServerBootstrap.connection()?.serverURI).map { [$0] } ?? []
+        CompanionPairing.hostBesidePlex(ServerBootstrap.connection()?.serverURI).map { [$0] }?.filter(CompanionInvite.isNearby) ?? []
+    }
+
+    /// The pairing a nearby iPhone handed over, tried only beside the Plex server this Apple TV uses and only with the
+    /// certificate the iPhone pinned, so a device that is not the person's iPhone cannot point it at another computer.
+    package static func besidePlex(_ invite: CompanionInvite) -> CompanionInvite? {
+        let hosts = hostsBesidePlex()
+        guard invite.fingerprint != nil, !hosts.isEmpty else { return nil }
+        return CompanionInvite(name: invite.name, hosts: hosts, secret: invite.secret, fingerprint: invite.fingerprint)
     }
 
     /// Pairs with the secret this Apple TV shows once a paired iPhone hands it to the server, keeping the pairing.

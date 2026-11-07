@@ -239,7 +239,7 @@ package enum CompanionPairing {
                     finished = try await connection.send("POST", "pair/confirm", body: Finish(id: invite.secretID, proof: proof, name: deviceName, platform: platform),
                                                          headers: plexToken.map { ["Crucible-Plex-Token": $0] } ?? [:])
                 } catch {
-                    throw error == .unreachable ? .pairingUnconfirmed : error
+                    throw Self.afterConfirming(error)
                 }
                 let others: [String] = invite.hosts.filter { $0 != host }
                 return CompanionServer(
@@ -256,6 +256,15 @@ package enum CompanionPairing {
             }
         }
         throw failure
+    }
+
+    /// What a failed last step means: with no answer, or one this device could not read, the server may already have
+    /// paired it and used the secret up, so trying another address would only report a wrong code.
+    private static func afterConfirming(_ error: CompanionError) -> CompanionError {
+        switch error {
+        case .unreachable, .failed: .pairingUnconfirmed
+        default: error
+        }
     }
 
     /// Pairs with a secret this device made and showed (the Apple TV's QR code) once a paired device has handed it to the

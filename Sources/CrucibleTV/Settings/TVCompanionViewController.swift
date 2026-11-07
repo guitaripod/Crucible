@@ -148,7 +148,11 @@ final class TVCompanionViewController: UIViewController {
             return
         }
         switch CompanionHandOff.answer(inLine: line) {
-        case .invite(let invite)?:
+        case .invite(let handed)?:
+            guard let invite = PreviouslyOnRequest.besidePlex(handed) else {
+                statusLabel.text = CompanionError.unreachable.message
+                return
+            }
             statusLabel.text = CompanionCopy.pairing
             do throws(CompanionError) {
                 _ = try await PreviouslyOnRequest.pair(invite, deviceName: UIDevice.current.name, platform: "tvos", handedOn: true)
