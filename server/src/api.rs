@@ -244,7 +244,7 @@ async fn devices(State(state): State<Shared>, headers: HeaderMap) -> Result<Json
 
 async fn remove_device(State(state): State<Shared>, headers: HeaderMap, Path(id): Path<String>) -> Result<StatusCode, ApiError> {
     let me = device_of(&state, &headers)?;
-    if me.id != id && state.config.policy != Policy::OnlyMe {
+    if me.id != id {
         caller(&state, &headers).await.and_then(|caller| {
             if state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str()) {
                 Ok(())
