@@ -80,7 +80,7 @@ final class TVLibraryHeaderView: UIView {
         controls.spacing = Theme.Space.s
         controls.setCustomSpacing(Theme.Space.m, after: chips)
 
-        let stack = UIStackView(arrangedSubviews: [titleView, controls])
+        let stack = UIStackView(arrangedSubviews: [titleView, Self.scroller(for: controls)])
         stack.axis = .vertical
         stack.alignment = .fill
         stack.spacing = Theme.Space.m
@@ -91,13 +91,42 @@ final class TVLibraryHeaderView: UIView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            controls.heightAnchor.constraint(equalToConstant: TVMetrics.Control.chipHeight),
         ])
         installUpGuide()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Puts the controls in a row that scrolls sideways after the focus. An owner's library can hold more controls than the
+    /// screen is wide, more so with a selected genre or a longer language, and a stack held to the header's width would
+    /// squeeze its buttons to "…", push the last ones off the screen and strand the focus. The row is never narrower than the
+    /// header, so while everything fits the spacer still pushes Manage, Collections and Folders to the trailing edge, and it
+    /// does not clip, so a focused chip lifts in full and the row runs to the screen edges like a shelf.
+    private static func scroller(for controls: UIStackView) -> UIScrollView {
+        let scroller = UIScrollView()
+        scroller.clipsToBounds = false
+        scroller.contentInsetAdjustmentBehavior = .never
+        scroller.showsHorizontalScrollIndicator = false
+        scroller.showsVerticalScrollIndicator = false
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        scroller.addSubview(controls)
+        let content = scroller.contentLayoutGuide
+        let frame = scroller.frameLayoutGuide
+        let fillsHeader = controls.widthAnchor.constraint(equalTo: frame.widthAnchor)
+        fillsHeader.priority = .defaultLow
+        NSLayoutConstraint.activate([
+            fillsHeader,
+            controls.topAnchor.constraint(equalTo: content.topAnchor),
+            controls.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            controls.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            controls.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            controls.heightAnchor.constraint(equalTo: frame.heightAnchor),
+            controls.widthAnchor.constraint(greaterThanOrEqualTo: frame.widthAnchor),
+            frame.heightAnchor.constraint(equalToConstant: TVMetrics.Control.chipHeight),
+        ])
+        return scroller
+    }
 
     /// Pressing Up from the first poster of a row would otherwise skip the chips and jump to the tab bar;
     /// a guide just under the header sends it to the selected chip instead. It is switched off while the
