@@ -142,11 +142,11 @@ impl Store {
         self.lock().query_row("SELECT 1 FROM pending_pairings WHERE id = ?1", params![id], |_| Ok(())).optional().map(|found| found.is_some())
     }
 
-    /// Takes a waiting secret out of the database, if it is there and unexpired.
+    /// Takes a secret the terminal showed out of the database, expired or not, with when it expires.
     pub fn take_pending_pairing(&self, id: &str) -> rusqlite::Result<Option<([u8; 16], i64)>> {
         let connection = self.lock();
         let found: Option<(String, i64)> = connection
-            .query_row("SELECT secret, expires FROM pending_pairings WHERE id = ?1 AND expires > ?2", params![id, now()], |row| Ok((row.get(0)?, row.get(1)?)))
+            .query_row("SELECT secret, expires FROM pending_pairings WHERE id = ?1", params![id], |row| Ok((row.get(0)?, row.get(1)?)))
             .optional()?;
         connection.execute("DELETE FROM pending_pairings WHERE id = ?1", params![id])?;
         Ok(found.and_then(|(secret, expires)| hex::decode(secret).ok()?.try_into().ok().map(|secret| (secret, expires))))
@@ -195,6 +195,7 @@ mod tests {
         assert_eq!(store.take_pending_pairing("abc").unwrap().map(|(secret, _)| secret), Some([7; 16]));
         assert!(store.take_pending_pairing("abc").unwrap().is_none());
         store.add_pending_pairing("old", &[1; 16], now() - 1).unwrap();
+        assert!(store.take_pending_pairing("old").unwrap().is_some_and(|(_, expires)| expires < now()));
         assert!(store.take_pending_pairing("old").unwrap().is_none());
     }
 

@@ -155,24 +155,45 @@ impl Pairings {
         Ok(Shown { secret, code: grouped(&secret) })
     }
 
-    /// Moves a secret the terminal left in the database into memory, if one has this id.
-    fn adopt(&self, pending: &mut Vec<Pending>, id: &str) {
+    /// Moves a secret the terminal left in the database into memory, if one has this id; one that has already expired
+    /// is remembered as used instead, so it can never be handed on.
+    fn adopt(&self, pending: &mut Vec<Pending>, spent: &mut Vec<(String, Instant)>, id: &str) {
         if pending.iter().any(|entry| entry.id == id) {
             return;
         }
         let Some(store) = &self.store else { return };
         if let Ok(Some((secret, expires))) = store.take_pending_pairing(id) {
-            let remaining = Duration::from_secs((expires - crate::store::now()).max(0) as u64);
-            pending.push(Pending { secret, id: id.to_string(), expires: Instant::now() + remaining, exchanges: Vec::new(), failures: 0, handed_by: None });
+            let remaining = expires - crate::store::now();
+            if remaining <= 0 {
+                Self::remember(spent, id);
+                return;
+            }
+            let expires = Instant::now() + Duration::from_secs(remaining as u64);
+            pending.push(Pending { secret, id: id.to_string(), expires, exchanges: Vec::new(), failures: 0, handed_by: None });
         }
+    }
+
+    /// Records a secret as used, keeping at most the newest `SPENT_LIMIT`.
+    fn remember(spent: &mut Vec<(String, Instant)>, id: &str) {
+        if spent.len() >= SPENT_LIMIT {
+            spent.remove(0);
+        }
+        spent.push((id.to_string(), Instant::now()));
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Vec<Pending>> {
         self.pending.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    fn prune(pending: &mut Vec<Pending>, now: Instant) {
-        pending.retain(|entry| entry.expires > now && entry.failures < ATTEMPTS);
+    /// Drops secrets that expired or took too many wrong proofs, remembering them as used.
+    fn prune(pending: &mut Vec<Pending>, spent: &mut Vec<(String, Instant)>, now: Instant) {
+        pending.retain(|entry| {
+            let open = entry.expires > now && entry.failures < ATTEMPTS;
+            if !open {
+                Self::remember(spent, &entry.id);
+            }
+            open
+        });
     }
 
     /// Opens a new secret for the terminal to show.
@@ -194,7 +215,7 @@ impl Pairings {
         let mut spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
         spent.retain(|(_, at)| at.elapsed() < SPENT_FOR);
         let mut pending = self.lock();
-        Self::prune(&mut pending, now);
+        Self::prune(&mut pending, &mut spent, now);
         let shown_by_terminal = || self.store.as_ref().is_some_and(|store| store.has_pending_pairing(&id).unwrap_or(true));
         if spent.iter().any(|(used, _)| *used == id) || pending.iter().any(|entry| entry.id == id) || handed_by.is_some() && shown_by_terminal() {
             return Err(Refused::Reused);
@@ -221,6 +242,20 @@ impl Pairings {
         self.lock().retain(|entry| entry.handed_by.as_deref() != Some(device));
     }
 
+    /// Closes the secret with this id that the paired device `device` handed on, when the device it was for left first;
+    /// whether there was one.
+    pub fn withdraw(&self, id: &str, device: &str) -> bool {
+        let mut spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut pending = self.lock();
+        let before = pending.len();
+        pending.retain(|entry| !(entry.id == id && entry.handed_by.as_deref() == Some(device)));
+        let withdrawn = pending.len() < before;
+        if withdrawn {
+            Self::remember(&mut spent, id);
+        }
+        withdrawn
+    }
+
     /// Whether the open secret with this id came from a paired device rather than the owner's terminal, so the device
     /// redeeming it must also pass the owner's policy.
     pub fn is_handed(&self, id: &str) -> bool {
@@ -229,13 +264,13 @@ impl Pairings {
 
     /// Step one: the device names the secret and sends its nonce; the server answers with its nonce and its proof.
     pub fn begin(&self, id: &str, device_nonce: &str, fingerprint: &str) -> Result<(String, String), Refused> {
-        let spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
         if spent.iter().any(|(used, _)| used == id) {
             return Err(Refused::Unknown);
         }
         let mut pending = self.lock();
-        Self::prune(&mut pending, Instant::now());
-        self.adopt(&mut pending, id);
+        Self::prune(&mut pending, &mut spent, Instant::now());
+        self.adopt(&mut pending, &mut spent, id);
         let entry = pending.iter_mut().find(|entry| entry.id == id).ok_or(Refused::Unknown)?;
         let server_nonce = random_hex(16);
         let answer = server_proof(&entry.secret, fingerprint, device_nonce, &server_nonce);
@@ -250,7 +285,7 @@ impl Pairings {
     pub fn finish(&self, id: &str, proof: &str, fingerprint: &str) -> Result<(), Refused> {
         let mut spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
         let mut pending = self.lock();
-        Self::prune(&mut pending, Instant::now());
+        Self::prune(&mut pending, &mut spent, Instant::now());
         let index = pending.iter().position(|entry| entry.id == id).ok_or(Refused::Unknown)?;
         let entry = &mut pending[index];
         if entry.exchanges.is_empty() {
@@ -264,10 +299,7 @@ impl Pairings {
             return Err(Refused::Proof);
         }
         pending.remove(index);
-        if spent.len() >= SPENT_LIMIT {
-            spent.remove(0);
-        }
-        spent.push((id.to_string(), Instant::now()));
+        Self::remember(&mut spent, id);
         Ok(())
     }
 }
@@ -381,6 +413,36 @@ mod tests {
         pairings.revoke_handed_by("phone");
         assert!(!pairings.is_handed(&secret_id(&[6u8; 16])));
         assert!(pairings.is_handed(&secret_id(&[7u8; 16])));
+    }
+
+    #[test]
+    fn a_terminal_secret_stays_its_own_after_a_device_begins_on_it() {
+        let store = std::sync::Arc::new(crate::store::Store::in_memory().unwrap());
+        let expired = [11u8; 16];
+        store.add_pending_pairing(&secret_id(&expired), &expired, crate::store::now() - 1).unwrap();
+        let server = Pairings::backed_by(store.clone());
+        assert_eq!(server.begin(&secret_id(&expired), "dn", FP), Err(Refused::Unknown));
+        assert_eq!(server.open_with(expired, "phone").err(), Some(Refused::Reused));
+        let shown = Pairings::open_for_server(&store).unwrap();
+        let id = secret_id(&shown.secret);
+        server.begin(&id, "dn", FP).unwrap();
+        for _ in 0..ATTEMPTS {
+            assert_eq!(server.finish(&id, "00", FP), Err(Refused::Proof));
+        }
+        assert_eq!(server.begin(&id, "dn", FP), Err(Refused::Unknown));
+        assert_eq!(server.open_with(shown.secret, "phone").err(), Some(Refused::Reused));
+    }
+
+    #[test]
+    fn only_the_device_that_handed_a_secret_on_can_withdraw_it() {
+        let pairings = Pairings::default();
+        let secret = [12u8; 16];
+        let id = secret_id(&secret);
+        pairings.open_with(secret, "phone").unwrap();
+        assert!(!pairings.withdraw(&id, "tablet"));
+        assert!(pairings.withdraw(&id, "phone"));
+        assert_eq!(pairings.begin(&id, "dn", FP), Err(Refused::Unknown));
+        assert_eq!(pairings.open_with(secret, "phone").err(), Some(Refused::Reused));
     }
 
     #[test]

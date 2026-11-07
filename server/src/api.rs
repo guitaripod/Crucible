@@ -120,6 +120,7 @@ pub fn router(state: Shared) -> Router {
         .route("/pair", post(pair))
         .route("/pair/confirm", post(pair_confirm))
         .route("/pair/code", post(pair_code))
+        .route("/pair/code/{id}", delete(withdraw_code))
         .route("/devices", get(devices))
         .route("/devices/{id}", delete(remove_device))
         .route("/brain", get(brain))
@@ -276,6 +277,16 @@ async fn pair_code(State(state): State<Shared>, headers: HeaderMap, Json(body): 
     })?;
     tracing::info!(by = %caller.device.id, "a paired device opened a pairing for another device");
     Ok((StatusCode::CREATED, Json(json!({"expiresIn": crate::pairing::LIFETIME.as_secs()}))))
+}
+
+/// The device that handed a secret on closes it again, because the device it was for left before using it.
+async fn withdraw_code(State(state): State<Shared>, headers: HeaderMap, Path(id): Path<String>) -> Result<Json<Value>, ApiError> {
+    let me = device_of(&state, &headers)?;
+    if state.pairings.withdraw(&id, &me.id) {
+        Ok(Json(json!({"withdrawn": true})))
+    } else {
+        Err(ApiError::new(StatusCode::NOT_FOUND, "not_found", "This device has no such pairing open."))
+    }
 }
 
 fn refused(_: Refused) -> ApiError {
