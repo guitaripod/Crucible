@@ -8,6 +8,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     private var pendingActivity: NSUserActivity?
     private var pendingInvite: CompanionInvite?
+    private var pendingDevice: CompanionDeviceInvite?
     private var launchTask: Task<Void, Never>?
 
     /// The window that connects to the server on behalf of every window. The others hold their launch screen and take its result, so
@@ -33,6 +34,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         pendingActivity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
         pendingInvite = connectionOptions.urlContexts.lazy.compactMap { CompanionInvite(url: $0.url) }.first
+        pendingDevice = connectionOptions.urlContexts.lazy.compactMap { CompanionDeviceInvite(url: $0.url) }.first
+        CompanionAdvertiser.shared.refresh()
         MidgarLog.notice("Window connected (\(UIApplication.shared.connectedScenes.count) open, activity: \(pendingActivity?.activityType ?? "none"))", category: .lifecycle)
         connectToLibrary()
     }
@@ -53,10 +56,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         route(userActivity)
     }
 
-    /// A `crucible://pair` link from a Crucible Server QR code the Camera scanned.
+    /// A `crucible://pair` link from a Crucible Server QR code the Camera scanned, or a `crucible://add-device` link from
+    /// the code an Apple TV shows.
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        guard let invite = URLContexts.lazy.compactMap({ CompanionInvite(url: $0.url) }).first else { return }
-        offerPairing(invite)
+        if let invite = URLContexts.lazy.compactMap({ CompanionInvite(url: $0.url) }).first {
+            offerPairing(invite)
+        } else if let device = URLContexts.lazy.compactMap({ CompanionDeviceInvite(url: $0.url) }).first {
+            offerAdding(device)
+        }
+    }
+
+    private func offerAdding(_ device: CompanionDeviceInvite) {
+        guard window?.rootViewController is TabBarController, let host = topPresented() else {
+            pendingDevice = device
+            return
+        }
+        CompanionPairingFlow.confirmAdd(device, from: host)
     }
 
     private func offerPairing(_ invite: CompanionInvite) {
@@ -83,6 +98,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         ProAccess.shared.refresh()
         AutoDownloadPolicy.shared.evaluateOnForeground()
         refreshDemoLibrary()
+        CompanionAdvertiser.shared.refresh()
         Task { await GuideStore.shared.refresh() }
     }
 
@@ -284,6 +300,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             if let invite = self.pendingInvite {
                 self.pendingInvite = nil
                 self.offerPairing(invite)
+            } else if let device = self.pendingDevice {
+                self.pendingDevice = nil
+                self.offerAdding(device)
             }
             guard let pending = self.pendingActivity else { return }
             self.pendingActivity = nil

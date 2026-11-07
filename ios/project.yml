@@ -79,6 +79,9 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         LSRequiresIPhoneOS: true
         NSLocalNetworkUsageDescription: Crucible connects to your Plex Media Server on your home network to browse and play your library.
+        NSApplicationServices:
+          Advertises:
+            - NSApplicationServiceIdentifier: crucible-pair
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         UIBackgroundModes:

@@ -101,7 +101,7 @@ final class CompanionViewController: UICollectionViewController {
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
             var content = UIListContentConfiguration.groupedFooter()
-            content.text = CompanionStore.current() == nil ? CompanionCopy.steps : CompanionCopy.unpairMessage
+            content.text = CompanionStore.current() == nil ? CompanionCopy.steps : CompanionCopy.addAppleTV
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content
@@ -163,6 +163,7 @@ final class CompanionViewController: UICollectionViewController {
         alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         alert.addAction(UIAlertAction(title: CompanionCopy.unpair, style: .destructive) { [weak self] _ in
             CompanionStore.forget()
+            CompanionAdvertiser.shared.refresh()
             Haptics.success()
             self?.refresh()
         })
@@ -194,11 +195,43 @@ enum CompanionPairingFlow {
                 Haptics.error()
                 message = error.message
             }
+            CompanionAdvertiser.shared.refresh()
             progress.dismiss(animated: true) {
                 show(message, from: host)
                 completion()
             }
         }
+    }
+
+    /// Hands the server the secret an Apple TV shows as a QR code, after asking, so that Apple TV can finish pairing.
+    static func confirmAdd(_ device: CompanionDeviceInvite, from host: UIViewController) {
+        guard let client = PreviouslyOnRequest.client() else {
+            show(CompanionCopy.pairThisIPhoneFirst, from: host)
+            return
+        }
+        guard !device.isExpired() else {
+            show(CompanionCopy.tvCodeExpired, from: host)
+            return
+        }
+        let alert = UIAlertController(title: CompanionCopy.addQuestion(device: device.name, server: client.server.name), message: CompanionCopy.addWarning, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: CompanionCopy.allow, style: .default) { _ in
+            guard !device.isExpired() else {
+                show(CompanionCopy.tvCodeExpired, from: host)
+                return
+            }
+            Task { @MainActor in
+                do throws(CompanionError) {
+                    try await client.addDevice(secret: device.secret)
+                    Haptics.success()
+                    show(CompanionCopy.added(device.name), from: host)
+                } catch {
+                    Haptics.error()
+                    show(error.message, from: host)
+                }
+            }
+        })
+        host.present(alert, animated: true)
     }
 
     static func show(_ message: String, from host: UIViewController) {
