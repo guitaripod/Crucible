@@ -255,7 +255,7 @@ package final class PlaybackSession {
             )
         }
 
-        markerTracker = MarkerTracker(markers: stream.markers)
+        markerTracker = MarkerTracker(segments: stream.segments)
         upNext = UpNextResolver(
             ratingKey: request.ratingKey,
             isEpisode: request.isEpisode,

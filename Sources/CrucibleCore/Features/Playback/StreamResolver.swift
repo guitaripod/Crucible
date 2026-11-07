@@ -8,6 +8,8 @@ package struct ResolvedStream: Sendable {
     package let subtitles: [PlexStream]
     package let audioTracks: [PlexStream]
     package let markers: [PlexMarker]
+    /// Every skippable stretch: Plex's markers, then what the file's chapter names mark.
+    package let segments: [SkipMarker]
     /// The file being played, for Stream Info.
     package let media: PlexMedia?
     /// What the server decided about a converted stream, when it said.
@@ -29,8 +31,10 @@ package struct ResolvedStream: Sendable {
         decision: PlaybackDecision? = nil,
         chapters: [PlexChapter] = [],
         chosenSubtitleId: Int? = nil,
-        chosenAudioStreamId: Int? = nil
+        chosenAudioStreamId: Int? = nil,
+        segments: [SkipMarker]? = nil
     ) {
+        self.segments = segments ?? markers.compactMap(SkipMarker.init)
         self.chosenSubtitleId = chosenSubtitleId
         self.chosenAudioStreamId = chosenAudioStreamId
         self.url = url
@@ -48,7 +52,8 @@ package struct ResolvedStream: Sendable {
     package func restarted(url: URL, sessionId: String) -> ResolvedStream {
         ResolvedStream(
             url: url, isDirectPlay: isDirectPlay, sessionId: sessionId, subtitles: subtitles, audioTracks: audioTracks, markers: markers,
-            media: media, decision: decision, chapters: chapters, chosenSubtitleId: chosenSubtitleId, chosenAudioStreamId: chosenAudioStreamId
+            media: media, decision: decision, chapters: chapters, chosenSubtitleId: chosenSubtitleId, chosenAudioStreamId: chosenAudioStreamId,
+            segments: segments
         )
     }
 }
@@ -100,6 +105,7 @@ package enum StreamResolver {
         let audioTracks = part.Stream?.filter { $0.streamType == 2 } ?? []
         let markers = metadata.Marker ?? []
         let chapters = ChapterList.playable(metadata.Chapter ?? [])
+        let segments = SkipSegments.make(markers: markers, chapters: metadata.Chapter ?? [], durationSecs: Double(part.duration ?? metadata.duration ?? 0) / 1000)
 
         var selectedSubtitleId = selectedSubtitleId
         var selectedAudioStreamId = selectedAudioStreamId
@@ -126,7 +132,8 @@ package enum StreamResolver {
                 media: media,
                 chapters: chapters,
                 chosenSubtitleId: selectedSubtitleId,
-                chosenAudioStreamId: selectedAudioStreamId
+                chosenAudioStreamId: selectedAudioStreamId,
+                segments: segments
             )
         }
 
@@ -170,7 +177,8 @@ package enum StreamResolver {
             decision: decision,
             chapters: chapters,
             chosenSubtitleId: selectedSubtitleId,
-            chosenAudioStreamId: selectedAudioStreamId
+            chosenAudioStreamId: selectedAudioStreamId,
+            segments: segments
         )
     }
 

@@ -110,9 +110,33 @@ struct PlaybackMarkerTrackerTests {
     }
 
     @Test func unknownMarkerTypesBehaveLikeIntros() {
-        var tracker = makeTracker([PlexMarker(type: "commercial", startTimeOffset: 10_000, endTimeOffset: 40_000, final: nil)])
+        var tracker = makeTracker([PlexMarker(type: "bookmark", startTimeOffset: 10_000, endTimeOffset: 40_000, final: nil)])
         let action = tracker.evaluate(absolute: 10, mode: .button, outroMode: .button, upNextVisible: false, undoVisible: false)
         #expect(action == .showSkip(SkipMarker(kind: .intro, startSecs: 10, endSecs: 40), progress: 0))
+    }
+
+    @Test func commercialBreaksAreOfferedUnderTheirOwnName() {
+        var tracker = makeTracker([PlexMarker(type: "commercial", startTimeOffset: 10_000, endTimeOffset: 40_000, final: nil)])
+        let action = tracker.evaluate(absolute: 10, mode: .button, outroMode: .button, upNextVisible: false, undoVisible: false)
+        #expect(action == .showSkip(SkipMarker(kind: .commercial, startSecs: 10, endSecs: 40), progress: 0))
+        #expect(SkipMarker(kind: .commercial, startSecs: 0, endSecs: 1).title == "Skip Commercial")
+    }
+
+    @Test func chapterSegmentsAreOfferedButNeverSkippedAutomatically() {
+        let recap = SkipMarker(kind: .recap, startSecs: 85, endSecs: 134, fromChapter: true)
+        let intro = SkipMarker(kind: .intro, startSecs: 0, endSecs: 85, fromChapter: true)
+        var tracker = MarkerTracker(segments: [intro, recap])
+        #expect(tracker.evaluate(absolute: 1, mode: .automatic, outroMode: .button, upNextVisible: false, undoVisible: false) == .showSkip(intro, progress: 1.0 / 85.0))
+        #expect(tracker.evaluate(absolute: 90, mode: .automatic, outroMode: .button, upNextVisible: false, undoVisible: false) == .showSkip(recap, progress: 5.0 / 49.0))
+        #expect(tracker.evaluate(absolute: 90, mode: .off, outroMode: .button, upNextVisible: false, undoVisible: false) == .hideSkip)
+        #expect(recap.title == "Skip Recap")
+    }
+
+    @Test func storedTypesRoundTripThroughADownload() {
+        for segment in [SkipMarker(kind: .preview, startSecs: 1, endSecs: 2, fromChapter: true), SkipMarker(kind: .credits, startSecs: 3, endSecs: 4)] {
+            let stored = PlexMarker(type: segment.storedType, startTimeOffset: 1000 * Int(segment.startSecs), endTimeOffset: 1000 * Int(segment.endSecs), final: nil)
+            #expect(SkipMarker(stored) == segment)
+        }
     }
 
     @Test func titlesNameTheKindOfMarker() {

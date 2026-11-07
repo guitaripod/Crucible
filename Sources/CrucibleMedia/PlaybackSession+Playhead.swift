@@ -224,7 +224,7 @@ extension PlaybackSession {
         let gone = liveness?.mayBeGone(at: now()) ?? false
         guard rewind > 0 || gone else { return }
         let snapshot = bestKnownPosition
-        let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.markers.map(SkipMarker.init))
+        let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.segments)
         MidgarLog.notice("Playing after a pause ratingKey=\(request.ratingKey) pause=\(Int(pause.seconds))s position=\(Int(snapshot)) target=\(Int(target)) sessionGone=\(gone)", category: .playback)
         if stream.isDirectPlay {
             seekAfterReturn(to: target, resumesPlayback: true)

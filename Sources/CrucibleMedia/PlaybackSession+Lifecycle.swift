@@ -102,7 +102,7 @@ extension PlaybackSession {
         let wasPlaying = resumesAfterReturn || player.rate > 0
         let resumes = player.rate > 0 || BreakRule.resumesPlaying(wasPlaying: wasPlaying, away: away)
         let rewind = Preferences.rewindAfterBreak ? BreakRule.rewind(after: away) : 0
-        let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.markers.map(SkipMarker.init))
+        let target = BreakRule.target(snapshot: snapshot, rewind: rewind, markers: stream.segments)
         let plan = ReturnPlan.make(target: target, isDirectPlay: stream.isDirectPlay)
         MidgarLog.notice("Playback returned ratingKey=\(request.ratingKey) trigger=\(trigger) away=\(Int(away.seconds))s snapshot=\(Int(snapshot)) target=\(Int(target)) plan=\(plan) playing=\(resumes)", category: .playback)
         if !resumes { player.pause() }

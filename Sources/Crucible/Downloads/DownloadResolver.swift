@@ -53,12 +53,8 @@ enum DownloadResolver {
         let token = api.token
         let durationMs = part.duration ?? metadata.duration ?? 0
 
-        let markers: [StoredMarker] = (metadata.Marker ?? []).compactMap { marker in
-            guard let type = marker.type,
-                  let start = marker.startTimeOffset,
-                  let end = marker.endTimeOffset else { return nil }
-            return StoredMarker(type: type, startMs: start, endMs: end)
-        }
+        let markers = SkipSegments.make(markers: metadata.Marker ?? [], chapters: metadata.Chapter ?? [], durationSecs: Double(durationMs) / 1000)
+            .map { StoredMarker(type: $0.storedType, startMs: Int(($0.startSecs * 1000).rounded()), endMs: Int(($0.endSecs * 1000).rounded())) }
 
         let mediaType = metadata.mediaType
         let posterPath: String? = mediaType == "episode"
