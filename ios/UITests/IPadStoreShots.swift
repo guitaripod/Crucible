@@ -75,6 +75,18 @@ final class IPadStoreShots: XCTestCase {
         IOSTest.capture("05-player", in: self)
         closePlayer(app)
 
+        press(app, "[")
+        open("Paper Lanterns", in: app)
+        let accept = app.buttons["Skip Them"]
+        XCTAssertTrue(accept.waitForExistence(timeout: 30), "Paper Lanterns never offered Essentials")
+        for _ in 0..<3 where accept.frame.maxY > app.frame.height * 0.8 {
+            app.collectionViews.firstMatch.swipeUp(velocity: .slow)
+            IOSTest.settle(1)
+        }
+        IOSTest.settle(2)
+        IOSTest.capture("04c-essentials", in: self)
+        press(app, "[")
+
         press(app, "f")
         let field = app.searchFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 30), "Command-F did not open Search")

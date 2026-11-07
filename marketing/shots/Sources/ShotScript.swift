@@ -43,6 +43,7 @@ enum ShotScript {
         await ShotHarness.settle(1.5)
         await ShotHarness.capture("04b-show-episodes")
         home?.popToRootViewController(animated: false)
+        await captureEssentials(api: api, home: home)
 
         tabBar.select(.search)
         await ShotHarness.settle(1.5)
@@ -95,8 +96,66 @@ enum ShotScript {
         you?.popToRootViewController(animated: false)
 
         await playEpisode(api: api, tabBar: tabBar)
+        await playRecap(api: api, tabBar: tabBar)
 
         await ShotHarness.capture("done")
+    }
+
+    /// Only the Essentials and Skip Recap scenes, for capturing them in every app language without the whole tour.
+    static func runEssentials() async {
+        guard let tabBar = await ShotHarness.waitForTabBar() else { return }
+        let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
+        await ShotHarness.settle(3)
+        tabBar.select(.home)
+        await ShotHarness.settle(1)
+        await captureEssentials(api: api, home: navigation(tabBar))
+        await playRecap(api: api, tabBar: tabBar)
+        await ShotHarness.capture("done")
+    }
+
+    /// Paper Lanterns with its demo guide: the one-time offer, then the list with the anime-only episodes skipped.
+    private static func captureEssentials(api: APIClient, home: UINavigationController?) async {
+        UserDefaults.standard.set(true, forKey: DemoMode.activeKey)
+        home?.pushViewController(ShowDetailViewController(api: api, showRatingKey: "2005"), animated: false)
+        await ShotHarness.settle(4)
+        await ShotHarness.capture("04c-essentials-offer")
+        await EssentialsCenter.shared.save(EssentialsChoice(level: .skipAnimeOnly, offered: true), showRatingKey: "2005")
+        home?.popToRootViewController(animated: false)
+        home?.pushViewController(ShowDetailViewController(api: api, showRatingKey: "2005"), animated: false)
+        await ShotHarness.settle(4)
+        await ShotHarness.capture("04d-essentials-on")
+        scroll(home?.topViewController, to: 470)
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("04e-essentials-list")
+        await EssentialsCenter.shared.save(EssentialsChoice(offered: true), showRatingKey: "2005")
+        home?.popToRootViewController(animated: false)
+        UserDefaults.standard.set(false, forKey: DemoMode.activeKey)
+    }
+
+    /// An anime episode of Paper Lanterns in landscape, filling the screen, paused inside its Opening chapter and then its
+    /// Recap chapter, so the player shows Skip Intro and Skip Recap from the file's own chapter names.
+    private static func playRecap(api: APIClient, tabBar: TabBarController) async {
+        tabBar.presentedViewController?.dismiss(animated: false)
+        await ShotHarness.settle(2)
+        guard let season = try? await api.requestContainer(.children(ratingKey: "2005")).Metadata?.first,
+              let episodes = try? await api.requestContainer(.children(ratingKey: season.id)).Metadata,
+              let item = episodes.first(where: { $0.index == 7 }) else { return }
+        let coordinator = Theme.quickPlay(api: api, item: item, from: tabBar)
+        await ShotHarness.settle(6)
+        DemoShotScript.rotate(to: .landscapeRight)
+        await ShotHarness.settle(3)
+        for (seconds, name) in [(40.0, "09b-skip-intro"), (100.0, "09b-skip-recap")] {
+            guard let player = tabBar.presentedViewController as? AVPlayerViewController else { break }
+            player.videoGravity = .resizeAspectFill
+            player.player?.play()
+            await player.player?.seek(to: CMTime(seconds: seconds, preferredTimescale: 600))
+            await ShotHarness.settle(4)
+            player.player?.pause()
+            await ShotHarness.settle(1)
+            await ShotHarness.capture(name)
+        }
+        DemoShotScript.rotate(to: .portrait)
+        withExtendedLifetime(coordinator) {}
     }
 
     private static func navigation(_ tabBar: TabBarController) -> UINavigationController? {

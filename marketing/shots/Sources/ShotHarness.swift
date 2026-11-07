@@ -59,6 +59,8 @@ enum ShotHarness {
                         await EpisodeFlowProbe.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "subtitles" {
                         await SubtitleProbe.run()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "essentials" {
+                        await ShotScript.runEssentials()
                     } else {
                         await ShotScript.run()
                     }

@@ -12,7 +12,8 @@ the 6.9-inch set in marketing/appstore/iphone. ipad: 2752x2064 landscape capture
 (marketing/store/shoot-ipad.sh) become the 13-inch set in marketing/appstore/ipad. Every device is shown whole, scaled to the room
 under the captions. Each entry of captions.json names a
 capture, a headline and a subhead; the capture is set into Apple's bezel by the `frames` CLI, placed on the ember gradient
-with a soft shadow, and the captions are typeset above it. scripts/asc-screenshots.py uploads both folders.
+with a soft shadow, and the captions are typeset above it. An iPhone entry with a "stack" names landscape captures (2868x1320)
+shown one above the other instead, as the player is. scripts/asc-screenshots.py uploads both folders.
 """
 
 import json
@@ -57,6 +58,9 @@ DEVICES = {
         "device_gap": 80,
         "text_margin": 80,
         "bleed": False,
+        "landscape_width": 1480,
+        "landscape_gap": 100,
+        "landscape_margin": 44,
     },
     "ipad": {
         "raw": os.path.join(ROOT, "marketing/shots/out/raw-ipad"),
@@ -85,11 +89,33 @@ def font(weight, size):
 
 
 SPACELESS = {"ja", "zh-Hans", "zh-Hant"}
+NO_LINE_START = set("、。，．・：；？！）」』】〉》ー々ぁぃぅぇぉっゃゅょァィゥェォッャュョ")
+NO_LINE_END = set("（「『【〈《")
+CLAUSE_ENDS = set("，、。・：；")
+
+
+def script(character):
+    """The run a character belongs to when a line must not break inside it: Latin words and katakana words."""
+    if character.isascii() and (character.isalnum() or character in "'-"):
+        return "latin"
+    if "\u30a0" <= character <= "\u30ff":
+        return "katakana"
+    return None
 
 
 def units(text):
-    """The pieces a line may break between: words, or single characters in scripts written without spaces."""
-    return list(text) if LOCALE in SPACELESS else text.split()
+    """The pieces a line may break between: words, or in scripts written without spaces single characters, keeping
+    Latin and katakana words whole and following kinsoku, so no line starts with closing punctuation or a small kana."""
+    if LOCALE not in SPACELESS:
+        return text.split()
+    pieces = []
+    for character in text:
+        kind = script(character)
+        if pieces and (character in NO_LINE_START or pieces[-1][-1] in NO_LINE_END or (kind and kind == script(pieces[-1][-1]))):
+            pieces[-1] += character
+        else:
+            pieces.append(character)
+    return pieces
 
 
 def wrap(text, face, width):
@@ -108,19 +134,20 @@ def wrap(text, face, width):
 
 
 def balance(lines, face, width):
-    """Two ragged lines read better when their lengths are close; a one-word last line reads as a typo."""
+    """Two ragged lines read better when their lengths are close; a one-word last line reads as a typo. Scripts written
+    without spaces break after a comma when one fits, since a break inside a word cannot be told from one between."""
     if len(lines) != 2:
         return lines
     joiner = "" if LOCALE in SPACELESS else " "
     words = units(joiner.join(lines))
-    best = lines
+    candidates = []
     for split in range(1, len(words)):
-        first, second = joiner.join(words[:split]), joiner.join(words[split:])
-        if face.getlength(first) > width or face.getlength(second) > width:
-            continue
-        if abs(face.getlength(first) - face.getlength(second)) < abs(face.getlength(best[0]) - face.getlength(best[1])):
-            best = [first, second]
-    return best
+        first, second = joiner.join(words[:split]).strip(), joiner.join(words[split:]).strip()
+        if face.getlength(first) <= width and face.getlength(second) <= width:
+            candidates.append([first, second])
+    if LOCALE in SPACELESS and any(first[-1] in CLAUSE_ENDS for first, _ in candidates):
+        candidates = [pair for pair in candidates if pair[0][-1] in CLAUSE_ENDS]
+    return min(candidates, key=lambda pair: abs(face.getlength(pair[0]) - face.getlength(pair[1])), default=lines)
 
 
 def fit(text, weight, spec, width, max_lines):
@@ -189,16 +216,23 @@ def compose(kind, entry, device_top):
     """One screenshot: the captions centred in the band above `device_top`, where every device of the set starts."""
     spec = DEVICES[kind]
     width, height = spec["size"]
+    stack = entry.get("stack", [])
     path = os.path.join(spec["raw"], f"{entry['screen']}.png")
-    with Image.open(path) as capture:
-        if capture.size != spec["size"]:
-            sys.exit(f"{kind}/{entry['screen']}: capture is {capture.size}, expected {spec['size']}")
+    for screen in stack or [entry["screen"]]:
+        expected = spec["size"][::-1] if stack else spec["size"]
+        with Image.open(os.path.join(spec["raw"], f"{screen}.png")) as capture:
+            if capture.size != expected:
+                sys.exit(f"{kind}/{screen}: capture is {capture.size}, expected {expected}")
     canvas = background(spec["size"])
     draw = ImageDraw.Draw(canvas)
     headline, subhead = typeset(kind, entry)
     offset = (device_top - spec["device_gap"] - caption_bottom(kind, entry)) // 2
     y = draw_lines(draw, headline[1], headline[0], headline[2], spec["headline_top"] + offset, width, HEADLINE_COLOR)
     draw_lines(draw, subhead[1], subhead[0], subhead[2], y + spec["gap"], width, SUBHEAD_COLOR)
+    if stack:
+        devices = [framed(os.path.join(spec["raw"], f"{screen}.png"), spec["color"], spec["landscape_width"]) for screen in stack]
+        paste_stack(canvas, devices, spec, device_top)
+        return canvas.convert("RGB")
     device = framed(path, spec["color"], spec["device_width"])
     top = device_top
     if not spec["bleed"] and top + device.height > height - spec["device_gap"]:
@@ -206,6 +240,18 @@ def compose(kind, entry, device_top):
         device = device.resize((round(device.width * scale), round(device.height * scale)), Image.LANCZOS)
     paste_with_shadow(canvas, device, ((width - device.width) // 2, top))
     return canvas.convert("RGB")
+
+
+def paste_stack(canvas, devices, spec, device_top):
+    """Landscape captures stacked one above the other, each as wide as `landscape_width`, centred together in the room under
+    the captions. Wider than the canvas, each keeps its right edge `landscape_margin` inside it, where the player's skip
+    button sits, and runs off the left."""
+    width, height = spec["size"]
+    total = sum(device.height for device in devices) + spec["landscape_gap"] * (len(devices) - 1)
+    top = device_top + (height - device_top - total) // 2
+    for device in devices:
+        paste_with_shadow(canvas, device, (min((width - device.width) // 2, width - spec["landscape_margin"] - device.width), top))
+        top += device.height + spec["landscape_gap"]
 
 
 def localized(captions, locale):

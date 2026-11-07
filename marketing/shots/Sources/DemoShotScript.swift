@@ -193,7 +193,7 @@ enum DemoShotScript {
         }
     }
 
-    private static func rotate(to orientation: UIInterfaceOrientationMask) {
+    static func rotate(to orientation: UIInterfaceOrientationMask) {
         guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
         scene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation)) { _ in }
         topPresented()?.setNeedsUpdateOfSupportedInterfaceOrientations()
