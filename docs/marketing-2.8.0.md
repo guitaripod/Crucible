@@ -45,8 +45,9 @@ person or kept beyond servicing it.
 
 ## Staging state (2026-11-07)
 
-- Apple TV 2.8.0 is staged in App Store Connect, not submitted: build 202611071235, the listing in all seventeen
-  languages, the review notes (`store/review-notes-2.8.0.txt`) and the nine Apple TV screenshots.
+- Apple TV 2.8.0 is staged in App Store Connect, not submitted: build 202611071414 (Apple TV pairing through the
+  iPhone), What's New in all seventeen languages read back from App Store Connect, the review notes
+  (`store/review-notes-2.8.0.txt`) and the nine Apple TV screenshots. The newest iOS 2.8.0 build is 202611071409.
 - iOS 2.8.0 waits for 2.7.2 to leave review. Then: `midgar ship crucible --platform ios --version 2.8.0 --build
   <newest VALID 2.8.0 build> --resume stage`, `midgar listing crucible --train ios --version 2.8.0 --apply`, point
   `docs/asc-metadata.json`'s IOS id at the new version, `python3 scripts/asc-screenshots.py --only=iphone --locales=all`
