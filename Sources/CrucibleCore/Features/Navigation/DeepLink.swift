@@ -37,6 +37,12 @@ package enum DeepLink: Equatable, Sendable {
         type == "movie" || type == "episode" || type == "clip"
     }
 
+    package var ratingKey: String {
+        switch self {
+        case .item(let ratingKey, _), .play(let ratingKey): ratingKey
+        }
+    }
+
     /// The link in its `crucible://` form, the inverse of `init?(url:)`.
     package var url: URL {
         var components = URLComponents()

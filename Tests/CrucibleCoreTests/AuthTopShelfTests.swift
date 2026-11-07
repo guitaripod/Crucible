@@ -37,9 +37,10 @@ struct AuthTopShelfTests {
         let first = snapshot.sections[0].items[0]
         #expect(first.ratingKey == "11")
         #expect(first.type == "episode")
-        #expect(first.title == "Low Tide")
-        #expect(first.subtitle == "The Show · S2 · E4")
+        #expect(first.title == "The Show")
+        #expect(first.subtitle == "Continue Watching · 35 min left")
         #expect(first.summary == "A body on the rocks.")
+        #expect(first.attributes == [TopShelfAttribute(name: "Episode", values: ["S2 · E4 · Low Tide"])])
         #expect(snapshot.sections[1].items[0].subtitle == "Up Next")
     }
 
@@ -56,11 +57,12 @@ struct AuthTopShelfTests {
         #expect(snapshot.sections[1].items.map(\.ratingKey) == ["21"])
     }
 
-    @Test func eachSectionIsCappedAtTwelveItems() {
-        let many = (1...20).map { movie("\($0)") }
-        let snapshot = build(continueItems: many, onDeck: many.map { movie("9\($0.id)") })
+    @Test func tenCardsAreSharedOutAndTheSlotsLeftOverGoToContinueWatchingFirst() {
+        let many = (1...20).map { movie("\($0)", offset: 1000) }
+        let snapshot = build(continueItems: many, onDeck: (1...20).map { movie("9\($0)") })
 
-        #expect(snapshot.sections.map(\.items.count) == [12, 12])
+        #expect(snapshot.sections.map(\.items.count) == [6, 4])
+        #expect(snapshot.itemCount == TopShelfBuilder.maxItems)
         #expect(snapshot.sections[0].items.first?.ratingKey == "1")
     }
 
@@ -77,8 +79,10 @@ struct AuthTopShelfTests {
         #expect(snapshot.isEmpty)
     }
 
-    @Test func artworkIsALandscapeStillForEpisodesAndABackdropForMovies() {
-        #expect(TopShelfBuilder.imagePath(for: episode("11")) == "/library/metadata/11/thumb/1")
+    @Test func artworkIsTheShowsBackdropForEpisodesAndTheTitlesOwnForMovies() {
+        #expect(TopShelfBuilder.imagePath(for: episode("11")) == "/library/metadata/100/art/1")
+        let still = AuthFixtures.metadata(#"{"ratingKey": "15", "type": "episode", "title": "Still", "thumb": "/still"}"#)
+        #expect(TopShelfBuilder.imagePath(for: still) == "/still")
         #expect(TopShelfBuilder.imagePath(for: movie("12")) == "/library/metadata/12/art/1")
         let bare = AuthFixtures.metadata(#"{"ratingKey": "13", "type": "movie", "title": "Bare", "thumb": "/t"}"#)
         #expect(TopShelfBuilder.imagePath(for: bare) == "/t")
@@ -144,8 +148,8 @@ struct AuthTopShelfTests {
 
         #expect(plan.items.map(\.identifier) == ["11", "30"])
         let resume = plan.items[0]
-        #expect(resume.title == "Low Tide")
-        #expect(resume.contextTitle == "The Show · S2 · E4")
+        #expect(resume.title == "The Show")
+        #expect(resume.contextTitle == "Continue Watching · 35 min left")
         #expect(resume.summary == "A body on the rocks.")
         #expect(resume.imageURL != nil)
         #expect(resume.image2xURL != nil)

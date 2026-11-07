@@ -141,7 +141,7 @@ The same engine in a layout built for the couch and the Siri Remote. Everything 
 - **Rate, collect, queue** — rate any title in half stars with the remote's swipe, open a library's Collections or a title's own collection, add titles to playlists from a long press or the detail screen, play or shuffle a playlist, watch trailers and extras, filter a library by decade, rating or resolution, search for subtitles, keep a watchlist, and open a cast member's titles
 - **Search**, **Watch History**, **Statistics** (heatmap, patterns, binges, taste) and a **Year in Review** card on the You tab, plus Settings and Server & Connection
 - **Player** on the system player — Skip Intro and Skip Credits as native actions, an Up Next card that offers Play Now or Watch Credits with a countdown (or Still watching? after a run nobody touched the remote in), audio and subtitle menus, resume where you left off through sleep, the screen saver and a dropped stream, Rewind After a Break, progress reported through the timeline API
-- **Top Shelf** — Continue Watching and Up Next on the Apple TV Home screen
+- **Top Shelf** — Continue Watching, Up Next and new arrivals on the Apple TV Home screen, each with its details, badges and cast, playing the scene where you stopped or the trailer
 - **Sign in from your phone** — a short code for plex.tv/link plus a QR code
 - **Liquid Glass** controls on tvOS 26 (Apple TV 4K 2nd generation or later); older systems and boxes get the classic look with the same layout
 

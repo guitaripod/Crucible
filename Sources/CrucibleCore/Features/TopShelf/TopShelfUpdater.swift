@@ -2,8 +2,9 @@ import Foundation
 import MidgarCore
 
 /// Keeps the Top Shelf snapshot current. The tvOS scene calls `refresh` on launch, when the app
-/// returns to the foreground and after playback; `notify` is where it tells the system the Top
-/// Shelf changed (`TVTopShelfContentProvider.topShelfContentDidChange()`).
+/// returns to the foreground and after playback: it fetches Home's hubs, picks the cards, fetches
+/// their details and writes the snapshot; `notify` is where it tells the system the Top Shelf
+/// changed (`TVTopShelfContentProvider.topShelfContentDidChange()`).
 ///
 /// ```swift
 /// await TopShelfUpdater.refresh(api: api, machineIdentifier: connection.machineIdentifier) {
@@ -28,15 +29,20 @@ package enum TopShelfUpdater {
             MidgarLog.error("Top Shelf refresh skipped: \(error.localizedDescription)", category: .networking)
             return false
         }
+        let picks = TopShelfBuilder.picks(buckets: HomeBuckets(hubs: container.Hub), excludedLibraries: excludedLibraries ?? LibraryVisibility.excluded)
+        let details = await TopShelfDetailsLoader.load(for: picks, api: api, machineIdentifier: machineIdentifier, now: now)
         let serverURL = await api.baseURL
         guard !Task.isCancelled else { return false }
-        let source = TopShelfBuilder.Source(serverURL: serverURL, token: api.token, machineIdentifier: machineIdentifier)
-        let snapshot = TopShelfBuilder.snapshot(
-            buckets: HomeBuckets(hubs: container.Hub),
-            source: source,
-            excludedLibraries: excludedLibraries ?? LibraryVisibility.excluded,
-            now: now
-        ).available(until: availableUntil)
+        let quality = QualityPolicy.current(for: serverURL)
+        let source = TopShelfBuilder.Source(
+            serverURL: serverURL,
+            token: api.token,
+            machineIdentifier: machineIdentifier,
+            clientIdentifier: PlexHeaders.clientIdentifier,
+            platform: AppPlatform.plexName,
+            maxVideoBitrate: quality == .original ? nil : quality.rawValue
+        )
+        let snapshot = TopShelfBuilder.snapshot(picks: picks, details: details, source: source, now: now).available(until: availableUntil)
         return await MainActor.run {
             guard !Task.isCancelled else { return false }
             return write(snapshot, to: store, notify: notify)
@@ -57,7 +63,8 @@ package enum TopShelfUpdater {
         }
         if let existing, existing.hasSameContent(as: snapshot) { return false }
         guard store.save(snapshot) else { return false }
-        MidgarLog.info("Top Shelf updated: \(snapshot.itemCount) items at \(store.existingSnapshotPath ?? "unknown path")", category: .lifecycle)
+        let previews = snapshot.sections.flatMap(\.items).filter { $0.previewURL != nil }.count
+        MidgarLog.info("Top Shelf updated: \(snapshot.itemCount) items, \(previews) previews at \(store.existingSnapshotPath ?? "unknown path")", category: .lifecycle)
         notify()
         return true
     }
@@ -66,6 +73,7 @@ package enum TopShelfUpdater {
     /// Top Shelf. Only tvOS has a Top Shelf; elsewhere this does nothing.
     @MainActor
     package static func clear(store: TopShelfStore? = nil, notify: () -> Void) {
+        Task { await TopShelfMetadataCache.shared.removeAll() }
         let store = store ?? (AppPlatform.isTV ? .shared : TopShelfStore(directory: nil))
         guard store.load() != nil else { return }
         store.clear()

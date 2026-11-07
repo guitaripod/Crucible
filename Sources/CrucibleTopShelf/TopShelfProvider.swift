@@ -11,15 +11,17 @@ open class TopShelfProvider: TVTopShelfContentProvider {
         let store = TopShelfStore.shared
         let snapshot = store.load()
         let plan = TopShelfPlan(snapshot: snapshot)
+        let previews = plan?.items.filter { $0.previewURL != nil }.count ?? 0
         store.saveReceipt(
             TopShelfReceipt(
                 itemCount: plan?.items.count ?? 0,
                 imageCount: plan?.items.filter { $0.imageURL != nil }.count ?? 0,
+                previewCount: previews,
                 snapshotSchema: snapshot?.schema
             )
         )
         MidgarLog.info(
-            "Top Shelf extension: \(plan?.items.count ?? 0) items, schema \(snapshot.map { String($0.schema) } ?? "none"), snapshot \(store.existingSnapshotPath ?? "none")",
+            "Top Shelf extension: \(plan?.items.count ?? 0) items, \(previews) previews, schema \(snapshot.map { String($0.schema) } ?? "none"), snapshot \(store.existingSnapshotPath ?? "none")",
             category: .lifecycle
         )
         completionHandler(plan.map(Self.content(for:)))
@@ -34,10 +36,31 @@ open class TopShelfProvider: TVTopShelfContentProvider {
         card.title = item.title
         card.contextTitle = item.contextTitle
         card.summary = item.summary
+        card.genre = item.genre
+        card.duration = item.duration ?? 0
+        card.creationDate = item.creationDate
+        card.mediaOptions = mediaOptions(item.mediaOptions)
+        card.namedAttributes = item.attributes.map { TVTopShelfNamedAttribute(name: $0.name, values: $0.values) }
         card.setImageURL(item.imageURL, for: .screenScale1x)
         card.setImageURL(item.image2xURL, for: .screenScale2x)
+        card.previewVideoURL = item.previewURL
         card.playAction = item.playURL.map { TVTopShelfAction(url: $0) }
         card.displayAction = TVTopShelfAction(url: item.displayURL)
         return card
+    }
+
+    private static func mediaOptions(_ options: [TopShelfMediaOption]) -> TVTopShelfCarouselItem.MediaOptions {
+        options.reduce(into: []) { result, option in
+            switch option {
+            case .hd: result.insert(.videoResolutionHD)
+            case .uhd: result.insert(.videoResolution4K)
+            case .hdr: result.insert(.videoColorSpaceHDR)
+            case .dolbyVision: result.insert(.videoColorSpaceDolbyVision)
+            case .atmos: result.insert(.audioDolbyAtmos)
+            case .closedCaptions: result.insert(.audioTranscriptionClosedCaptioning)
+            case .sdh: result.insert(.audioTranscriptionSDH)
+            case .audioDescription: result.insert(.audioDescription)
+            }
+        }
     }
 }

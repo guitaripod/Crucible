@@ -77,7 +77,7 @@ package struct TopShelfStore: Sendable {
                 MidgarLog.error("Top Shelf snapshot at \(url.path) could not be read", category: .persistence)
                 continue
             }
-            guard snapshot.schema == TopShelfSnapshot.schemaVersion else { continue }
+            guard TopShelfSnapshot.readableSchemas.contains(snapshot.schema) else { continue }
             return snapshot
         }
         return nil

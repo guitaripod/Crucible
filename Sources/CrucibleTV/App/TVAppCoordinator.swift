@@ -38,6 +38,7 @@ final class TVAppCoordinator: TVSessionActions {
 
     func open(urls: [URL]) {
         for url in urls {
+            if let link = DeepLink(url: url) { TVTopShelfRefresher.endPreview(of: link.ratingKey) }
             router.handle(url)
         }
     }

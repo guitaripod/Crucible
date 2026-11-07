@@ -18,12 +18,36 @@ enum TVTopShelfRefresher {
     private static var session: (api: APIClient, machineIdentifier: String)?
     private static var task: Task<Void, Never>?
     private static var proObserver: UUID?
+    private static var previewsToEnd = Set<String>()
 
     static func activate(api: APIClient, machineIdentifier: String) {
         session = (api, machineIdentifier)
         MidgarLog.info(TopShelfStore.shared.diagnostics.logSummary, category: .persistence)
         observePro()
+        let pending = previewsToEnd
+        previewsToEnd.removeAll()
+        pending.forEach(endPreview(of:))
         refresh()
+    }
+
+    /// The viewer went from a Top Shelf card into the app, so the preview the card may have been playing has nobody
+    /// watching: its transcoder session is ended instead of being left to time out while the real playback starts. Links
+    /// that arrive before the session exists wait for it.
+    static func endPreview(of ratingKey: String) {
+        guard let session else {
+            previewsToEnd.insert(ratingKey)
+            return
+        }
+        let item = TopShelfStore.shared.load()?.sections.flatMap(\.items).first { $0.ratingKey == ratingKey }
+        guard let preview = item?.previewSession else { return }
+        let api = session.api
+        Task {
+            do {
+                try await api.requestVoid(.stopTranscode(session: preview))
+            } catch {
+                MidgarLog.error("Top Shelf preview \(preview) did not stop: \(error.localizedDescription)", category: .networking)
+            }
+        }
     }
 
     /// Does nothing without an active session. A refresh already running is replaced.

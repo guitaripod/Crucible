@@ -157,10 +157,13 @@ package enum DetailFormat {
         return badges
     }
 
-    private static func dynamicRange(_ item: PlexMetadata) -> String? {
+    package static let dolbyVisionBadge = "DOLBY VISION"
+
+    /// "DOLBY VISION", "HDR10+", "HDR10" or "HDR" from the video stream's label, nil for SDR.
+    package static func dynamicRange(_ item: PlexMetadata) -> String? {
         let video = item.Media?.first?.Part?.first?.Stream?.first { $0.streamType == 1 }
         let title = [video?.displayTitle, video?.title].compactMap { $0 }.joined(separator: " ").lowercased()
-        if title.contains("dovi") || title.contains("dolby vision") { return "DOLBY VISION" }
+        if title.contains("dovi") || title.contains("dolby vision") { return dolbyVisionBadge }
         if title.contains("hdr10+") { return "HDR10+" }
         if title.contains("hdr10") { return "HDR10" }
         if title.contains("hdr") || title.contains("hlg") { return "HDR" }
