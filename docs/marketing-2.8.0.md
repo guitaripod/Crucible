@@ -20,7 +20,8 @@ both, in every one of the seventeen listing languages, and every claim below is 
 | Lock screen and Control Center keep their controls between episodes | d1112be |
 | Libraries take the shape of their artwork | e3d5da2 |
 | Apple TV: Top Shelf carousel with previews, richer Home cards | db4205b, a3bf88c |
-| Crucible Server: scan its code, Previously On written on your own hardware from the subtitles, no invented names, nothing leaves the network | `server/` (server-v0.1.0 on GitHub, Homebrew, AUR): HMAC pairing pinned to the certificate, `recap::write_summary` name and support checks, LAN/tailnet-only listener; the app's `Features/Companion`, `CompanionTests` including a live pairing with the Rust server |
+| Crucible Server: scan its code, Previously On written on your own hardware from the subtitles, no invented names, nothing leaves the network | `server/` (server-v0.2.0 on GitHub, Homebrew, AUR): HMAC pairing pinned to the certificate, `recap::write_summary` name and support checks, LAN/tailnet-only listener; the app's `Features/Companion`, `CompanionTests` including a live pairing with the Rust server |
+| An Apple TV pairs through a paired iPhone (Pair with iPhone, then Allow) or by a code the iPhone scans | `TVCompanionViewController` (DeviceDiscoveryUI picker, `crucible-pair` application service), `TVCompanionCodeViewController`, the iPhone's `CompanionAdvertiser`; server-v0.2.0 `/pair/code` admits the Apple TV by the owner's policy; `CompanionLiveTests` pairs both paths with the Rust server |
 
 Privacy: the only new request is the weekly guides download from `api.midgarcorp.cc`, identical for everyone and
 carrying no identifier. The policy (listing and midgarcorp.cc/crucible/privacy) now says so, and says what happens
