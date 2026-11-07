@@ -69624,7 +69624,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passer %lld épisodes d’anime · économise %@"
+            "value" : "Passer %lld hors-série · économise %@"
           }
         },
         "it" : {
@@ -69660,13 +69660,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳过 %lld 集纯动画 · 节省 %@"
+            "value" : "跳过 %lld 集动画原创 · 节省 %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳過 %lld 集純動畫 · 節省 %@"
+            "value" : "跳過 %lld 集動畫原創 · 節省 %@"
           }
         }
       }
@@ -69753,7 +69753,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passer l’anime seul"
+            "value" : "Passer les hors-série"
           }
         },
         "it" : {
@@ -69789,13 +69789,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳过纯动画"
+            "value" : "跳过动画原创"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳過純動畫"
+            "value" : "跳過動畫原創"
           }
         }
       }
@@ -70256,7 +70256,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abspann überspringen"
+            "value" : "Ending überspringen"
           }
         },
         "es" : {
@@ -70304,13 +70304,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳过片尾"
+            "value" : "跳过片尾曲"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳過片尾"
+            "value" : "跳過片尾曲"
           }
         }
       }
@@ -70849,7 +70849,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passer les %lld épisodes d’anime seul et économiser %@ ?"
+            "value" : "Passer les %lld épisodes hors-série et économiser %@ ?"
           }
         },
         "it" : {
@@ -70885,13 +70885,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳过 %lld 集纯动画并节省 %@？"
+            "value" : "跳过这 %lld 集动画原创并节省 %@？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳過 %lld 集純動畫並節省 %@？"
+            "value" : "跳過這 %lld 集動畫原創並節省 %@？"
           }
         }
       }
@@ -71042,7 +71042,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passé · anime seul"
+            "value" : "Passé · hors-série"
           }
         },
         "it" : {
@@ -71078,13 +71078,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已跳过 · 纯动画"
+            "value" : "已跳过 · 动画原创"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已跳過 · 純動畫"
+            "value" : "已跳過 · 動畫原創"
           }
         }
       }
