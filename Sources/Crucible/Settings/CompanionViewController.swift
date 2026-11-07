@@ -7,7 +7,6 @@ import CrucibleDesign
 final class CompanionViewController: UICollectionViewController {
     private enum Row: Hashable {
         case status
-        case steps
         case enterCode
         case howToInstall
         case unpair
@@ -30,7 +29,10 @@ final class CompanionViewController: UICollectionViewController {
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.accessibilityIdentifier = "settings.crucibleServer"
         collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { _, environment in
-            let section = NSCollectionLayoutSection.list(using: UICollectionLayoutListConfiguration.wellRows(), layoutEnvironment: environment)
+            var config = UICollectionLayoutListConfiguration.wellRows()
+            config.headerMode = .supplementary
+            config.footerMode = .supplementary
+            let section = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
             Theme.centerReadable(section, environment)
             return section
         }
@@ -73,10 +75,7 @@ final class CompanionViewController: UICollectionViewController {
             var content: IconRowContentConfiguration
             switch row {
             case .status:
-                let server = CompanionStore.current()
-                content = IconRowContentConfiguration(symbol: "sparkles.tv", title: server.map { CompanionCopy.paired($0.name) } ?? CompanionCopy.title, subtitle: server == nil ? CompanionCopy.pitch : status)
-            case .steps:
-                content = IconRowContentConfiguration(symbol: "terminal", title: CompanionCopy.notSetUp, subtitle: CompanionCopy.steps)
+                content = IconRowContentConfiguration(symbol: "sparkles.tv", title: CompanionStore.current().map { CompanionCopy.paired($0.name) } ?? CompanionCopy.notSetUp, subtitle: status)
             case .enterCode:
                 content = IconRowContentConfiguration(symbol: "keyboard", title: CompanionCopy.enterCode)
             case .howToInstall:
@@ -92,20 +91,41 @@ final class CompanionViewController: UICollectionViewController {
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, row in
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: row)
         }
+        let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+            var content = UIListContentConfiguration.groupedHeader()
+            content.text = CompanionCopy.pitch
+            content.textProperties.font = Theme.Font.subheadline
+            content.textProperties.color = Theme.Color.labelSecondary
+            content.textProperties.transform = .none
+            cell.contentConfiguration = content
+        }
+        let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
+            var content = UIListContentConfiguration.groupedFooter()
+            content.text = CompanionStore.current() == nil ? CompanionCopy.steps : CompanionCopy.unpairMessage
+            content.textProperties.font = Theme.Font.caption1Regular
+            content.textProperties.color = Theme.Color.labelSecondary
+            cell.contentConfiguration = content
+        }
+        dataSource.supplementaryViewProvider = { collectionView, kind, indexPath in
+            kind == UICollectionView.elementKindSectionHeader
+                ? collectionView.dequeueConfiguredReusableSupplementary(using: header, for: indexPath)
+                : collectionView.dequeueConfiguredReusableSupplementary(using: footer, for: indexPath)
+        }
     }
 
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Int, Row>()
         snapshot.appendSections([0])
-        let rows: [Row] = CompanionStore.current() == nil ? [.status, .steps, .enterCode, .howToInstall] : [.status, .unpair]
+        let rows: [Row] = CompanionStore.current() == nil ? [.enterCode, .howToInstall] : [.status, .unpair]
         snapshot.appendItems(rows)
         snapshot.reconfigureItems(rows)
+        snapshot.reloadSections([0])
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
         guard let row = dataSource.itemIdentifier(for: indexPath) else { return false }
-        return row != .status && row != .steps
+        return row != .status
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
