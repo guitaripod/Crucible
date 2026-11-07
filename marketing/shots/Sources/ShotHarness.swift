@@ -61,6 +61,8 @@ enum ShotHarness {
                         await SubtitleProbe.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "essentials" {
                         await ShotScript.runEssentials()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "companion" {
+                        await ShotScript.runCompanion()
                     } else {
                         await ShotScript.run()
                     }

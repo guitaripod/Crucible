@@ -101,6 +101,39 @@ enum ShotScript {
         await ShotHarness.capture("done")
     }
 
+    /// Crucible Server's screens against a running server: Settings before pairing, pairing with the code in
+    /// `CRUCIBLE_COMPANION_CODE` at `CRUCIBLE_COMPANION_HOST`, Settings after, and Paper Lanterns' Previously On.
+    static func runCompanion() async {
+        guard let tabBar = await ShotHarness.waitForTabBar() else { return }
+        let environment = ProcessInfo.processInfo.environment
+        let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
+        CompanionStore.forget()
+        await ShotHarness.settle(3)
+        let settings = UINavigationController(rootViewController: CompanionViewController())
+        settings.modalPresentationStyle = .fullScreen
+        tabBar.present(settings, animated: false)
+        await ShotHarness.settle(2)
+        await ShotHarness.capture("13-companion-setup")
+        if let code = environment["CRUCIBLE_COMPANION_CODE"], let host = environment["CRUCIBLE_COMPANION_HOST"],
+           let invite = CompanionInvite(code: code, hosts: [host]) {
+            _ = try? await PreviouslyOnRequest.pair(invite, deviceName: "Shot Harness", platform: "ios")
+        }
+        settings.setViewControllers([CompanionViewController()], animated: false)
+        await ShotHarness.settle(6)
+        await ShotHarness.capture("13b-companion-paired")
+        settings.dismiss(animated: false)
+        await ShotHarness.settle(1)
+        let model = try? await ShowDetailLoader.load(api: api, showRatingKey: "2005", initialSeasonKey: nil, selectedSeasonKey: { nil }, onShow: { _ in })
+        if let model {
+            PreviouslyOnViewController.present(for: model, from: tabBar)
+            await ShotHarness.settle(2)
+            await ShotHarness.capture("13c-previously-on-writing")
+            await ShotHarness.settle(40)
+            await ShotHarness.capture("13d-previously-on")
+        }
+        await ShotHarness.capture("done")
+    }
+
     /// Only the Essentials and Skip Recap scenes, for capturing them in every app language without the whole tour.
     static func runEssentials() async {
         guard let tabBar = await ShotHarness.waitForTabBar() else { return }
