@@ -1,0 +1,47 @@
+[package]
+name = "crucible-server"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "The optional companion on the Plex machine: pairs with Crucible on iPhone, iPad and Apple TV, skips what files mark, and catches you up with grounded recaps from a local model"
+repository = "https://github.com/guitaripod/Crucible"
+
+[[bin]]
+name = "crucible-server"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }
+base64 = "0.22"
+clap = { version = "4", features = ["derive", "env"] }
+data-encoding = "2"
+dirs = "6"
+hex = "0.4"
+hmac = "0.12"
+if-addrs = "0.13"
+qrcode = { version = "0.14", default-features = false }
+rand = "0.8"
+rcgen = { version = "0.13", default-features = false, features = ["pem", "ring"] }
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "process", "sync", "time", "fs", "net"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+
+[profile.release]
+lto = "thin"
+strip = true
