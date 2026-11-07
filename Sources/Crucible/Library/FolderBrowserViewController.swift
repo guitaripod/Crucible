@@ -31,6 +31,7 @@ final class FolderBrowserViewController: UICollectionViewController {
     private let source: LibraryFolderListing.Source
     private let folderTitle: String?
     private var dataSource: UICollectionViewDiffableDataSource<SectionKind, Item>!
+    private var artworkAspect = Theme.Size.posterAspect
     private var loadTask: Task<Void, Never>?
     private var playerCoordinator: PlayerCoordinator?
 
@@ -82,7 +83,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 return listSection
             }
 
-            return Theme.gridLayout(environment: environment)
+            return Theme.gridLayout(environment: environment, aspect: artworkAspect)
         }
     }
 
@@ -100,6 +101,7 @@ final class FolderBrowserViewController: UICollectionViewController {
 
         let mediaReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [unowned self] cell, _, item in
             var config = LibraryPoster(folderItem: item).configuration
+            config.artworkAspect = artworkAspect
             config.showPlayButton = item.ratingKey != nil
             config.onQuickPlay = { [weak self] in
                 self?.quickPlay(item)
@@ -125,6 +127,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 let listing = try await LibraryFolderListing.load(source, api: api)
                 let folders = listing.folders.map { Item.folder(key: $0.key, title: $0.title) }
                 let media = listing.media.map(Item.media)
+                artworkAspect = CGFloat(ArtworkAspect.dominant(listing.media.map { LibraryPoster(folderItem: $0).aspect }))
 
                 var snapshot = NSDiffableDataSourceSnapshot<SectionKind, Item>()
                 if !folders.isEmpty {

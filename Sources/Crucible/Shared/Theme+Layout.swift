@@ -135,15 +135,16 @@ extension Theme {
     }
 
     /// Poster grid whose column count follows the library-density preference, so a phone shows three
-    /// columns by default and two on request; wider containers add columns on top of that.
-    @MainActor static func gridLayout(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+    /// columns by default and two on request; wider containers add columns on top of that. `aspect` is the
+    /// height over width every card's artwork takes, the shape most of the grid's artwork has.
+    @MainActor static func gridLayout(environment: NSCollectionLayoutEnvironment, aspect: CGFloat = Size.posterAspect) -> NSCollectionLayoutSection {
         let containerWidth = environment.container.effectiveContentSize.width
-        let columns = gridColumns(forWidth: containerWidth)
+        let columns = gridColumns(forWidth: containerWidth, aspect: aspect)
         let gutter: CGFloat = 10
         let margin = Room(environment).gutter
         let availableWidth = containerWidth - (margin * 2) - (gutter * CGFloat(columns - 1))
         let itemWidth = floor(availableWidth / CGFloat(columns))
-        let estimatedHeight = floor(itemWidth * Size.posterAspect) + Size.captionBlockHeight
+        let estimatedHeight = floor(itemWidth * aspect) + Size.captionBlockHeight
 
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / CGFloat(columns)), heightDimension: .estimated(estimatedHeight))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -189,13 +190,21 @@ extension Theme {
         return layoutSection
     }
 
-    /// A phone keeps the preferred count; wider containers add columns so a poster stays near its target width (larger for the
-    /// two-column preference), never fewer than the phone's count plus two.
-    @MainActor static func gridColumns(forWidth width: CGFloat, preferred: Int = Preferences.libraryColumns) -> Int {
-        if width < 500 { return preferred }
-        let target: CGFloat = preferred == 2 ? 200 : 150
+    /// A phone keeps the preferred count, one fewer for landscape artwork; wider containers add columns so a card stays near its
+    /// target width (larger for the two-column preference, and wider the flatter its artwork), never fewer than the phone's count
+    /// plus two, or plus one for landscape artwork.
+    @MainActor static func gridColumns(forWidth width: CGFloat, preferred: Int = Preferences.libraryColumns, aspect: CGFloat = Size.posterAspect) -> Int {
+        let landscape = aspect < 1
+        let phone = landscape ? max(preferred - 1, 1) : preferred
+        if width < 500 { return phone }
+        let target = (preferred == 2 ? 200 : 150) * artworkWidthFactor(aspect)
         let fitting = Int((width - 30) / (target + 10))
-        return max(preferred + 2, fitting)
+        return max(phone + (landscape ? 1 : 2), fitting)
+    }
+
+    /// How much wider than a poster a card of `aspect` artwork is drawn so it covers about the same area; never narrower than a poster.
+    static func artworkWidthFactor(_ aspect: CGFloat) -> CGFloat {
+        max(1, (Size.posterAspect / aspect).squareRoot())
     }
 
     /// Standard flat-card surface for grouped list cells so every inset-grouped screen shares one look.

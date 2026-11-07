@@ -8,6 +8,9 @@ enum TVMetrics {
     static let gutter: CGFloat = 40
     static let gridRowSpacing: CGFloat = 50
 
+    /// The width a grid divides into columns: the screen inside the 80pt safe margins on either side.
+    static let gridWidth: CGFloat = 1760
+
     /// Room kept above a shelf's cards (between header and artwork) and below them (between the
     /// caption and the next header). The larger bottom gap keeps a header attached to its own shelf,
     /// and both leave room for a focused, enlarged card.

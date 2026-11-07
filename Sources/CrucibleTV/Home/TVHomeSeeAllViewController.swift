@@ -11,6 +11,7 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
     private var items: [PlexMetadata]
     private var mediaByID: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
+    private var posterStyle = TVCardStyle.poster
 
     init(env: TVAppEnvironment, bucket: HomeBucket, title: String, items: [PlexMetadata], onChange: @escaping @MainActor () -> Void) {
         self.bucket = bucket
@@ -42,6 +43,7 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
         guard isViewLoaded else { return }
         mediaByID = Dictionary(newItems.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
         let ids = newItems.map(\.id)
+        adoptArtworkStyle(of: newItems)
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -67,14 +69,25 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
 
     private var isPoster: Bool { bucket == .recentlyAdded }
 
+    /// Recently Added lays its cards out in the shape most of their artwork has (posters, or the frames of personal videos);
+    /// the snapshot that follows redraws the cards on screen in it.
+    private func adoptArtworkStyle(of items: [PlexMetadata]) {
+        guard isPoster else { return }
+        let bucket = bucket
+        let style = TVCardStyle.grid(aspect: ArtworkAspect.dominant(items.map {
+            ArtworkAspect.of($0, path: TVHomeContent.card(for: $0, bucket: bucket).artworkPath)
+        }))
+        guard style != posterStyle else { return }
+        posterStyle = style
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+
     private func makeLayout() -> UICollectionViewLayout {
         let poster = isPoster
-        return UICollectionViewCompositionalLayout { _, _ in
-            let section = TVShelf.grid(
-                columns: poster ? 6 : 4,
-                itemHeight: (poster ? TVCardStyle.poster : TVCardStyle.landscape).itemSize.height,
-                header: false
-            )
+        return UICollectionViewCompositionalLayout { [weak self] _, _ in
+            let section = poster
+                ? TVShelf.grid(self?.posterStyle ?? .poster)
+                : TVShelf.grid(columns: 4, itemHeight: TVCardStyle.landscape.itemSize.height, header: false)
             section.boundarySupplementaryItems = [TVScreenTitleView.headerItem()]
             return section
         }
@@ -82,7 +95,7 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
 
     private func configureDataSource() {
         let bucket = bucket
-        let poster = TVPosterCell.registration()
+        let poster = TVPosterCell.registration { [weak self] in self?.posterStyle ?? .poster }
         let landscape = TVLandscapeCell.registration()
         let header = TVScreenTitleView.headerRegistration { [weak self] _ in
             guard let self else { return nil }

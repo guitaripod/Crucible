@@ -27,6 +27,7 @@ final class TVMediaGridViewController: TVScreenViewController {
     private let screenTitle: String
     private let empty: Empty
     private let style: TVCardStyle
+    private var cardStyle: TVCardStyle
     private let card: (PlexMetadata) -> TVCardItem
     private let load: () async throws -> [PlexMetadata]
     private var items: [PlexMetadata] = []
@@ -37,11 +38,13 @@ final class TVMediaGridViewController: TVScreenViewController {
     private lazy var refreshSlot = makeTaskSlot()
     private lazy var liveSlot = makeTaskSlot()
 
-    /// `style` is the shape of the cards: posters in six columns, or 16:9 pictures in three.
+    /// `style` is the shape of the cards: 16:9 pictures in three columns, or by default whatever shape most of the cards'
+    /// artwork has (posters in six columns, square playlist covers, a collection of personal videos at their own shape).
     init(title: String, empty: Empty = Empty(), style: TVCardStyle = .poster, card: @escaping (PlexMetadata) -> TVCardItem, load: @escaping () async throws -> [PlexMetadata]) {
         screenTitle = title
         self.empty = empty
         self.style = style
+        cardStyle = style
         self.card = card
         self.load = load
         super.init(layout: UICollectionViewLayout())
@@ -112,6 +115,7 @@ final class TVMediaGridViewController: TVScreenViewController {
         mediaByID = Dictionary(loaded.map { ($0.entryID, $0) }, uniquingKeysWith: { _, latest in latest })
         var seen = Set<String>()
         let ids = loaded.map(\.entryID).filter { seen.insert($0).inserted }
+        adoptArtworkStyle(of: loaded)
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -131,17 +135,31 @@ final class TVMediaGridViewController: TVScreenViewController {
         }
     }
 
+    private var followsArtwork: Bool { style == .poster }
+
+    /// Lays a grid that follows its artwork out in the shape most of the cards' artwork has; the snapshot that follows redraws
+    /// the cards on screen in it.
+    private func adoptArtworkStyle(of items: [PlexMetadata]) {
+        guard followsArtwork else { return }
+        let shaped = TVCardStyle.grid(aspect: ArtworkAspect.dominant(items.map { ArtworkAspect.of($0, path: card($0).artworkPath) }))
+        guard shaped != cardStyle else { return }
+        cardStyle = shaped
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+
     private func makeLayout() -> UICollectionViewLayout {
-        let style = style
-        return UICollectionViewCompositionalLayout { _, _ in
-            let section = TVShelf.grid(columns: style == .poster ? 6 : 3, itemHeight: style.itemSize.height, header: false)
+        UICollectionViewCompositionalLayout { [weak self] _, _ in
+            let style = self?.cardStyle ?? .poster
+            let section = self?.followsArtwork ?? true
+                ? TVShelf.grid(style)
+                : TVShelf.grid(columns: 3, itemHeight: style.itemSize.height, header: false)
             section.boundarySupplementaryItems = [TVScreenTitleView.headerItem()]
             return section
         }
     }
 
     private func configureDataSource() {
-        let poster = TVPosterCell.registration()
+        let poster = TVPosterCell.registration { [weak self] in self?.cardStyle ?? .poster }
         let landscape = TVLandscapeCell.registration()
         let header = TVScreenTitleView.headerRegistration { [weak self] _ in
             guard let self else { return nil }

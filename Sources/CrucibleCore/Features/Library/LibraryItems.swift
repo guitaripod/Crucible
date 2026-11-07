@@ -3,6 +3,8 @@ import Foundation
 /// What a library poster shows, independent of how a platform draws it.
 package struct LibraryPoster: Equatable, Sendable {
     package let posterPath: String?
+    /// The shape of the artwork at `posterPath`, height over width.
+    package let aspect: Double
     package let title: String
     package let subtitle: String?
     package let placeholderIcon: String
@@ -12,6 +14,7 @@ package struct LibraryPoster: Equatable, Sendable {
 
     private init(
         posterPath: String?,
+        of item: PlexMetadata,
         title: String,
         subtitle: String?,
         placeholderIcon: String,
@@ -20,6 +23,7 @@ package struct LibraryPoster: Equatable, Sendable {
         unwatchedCount: Int? = nil
     ) {
         self.posterPath = posterPath
+        self.aspect = ArtworkAspect.of(item, path: posterPath)
         self.title = title
         self.subtitle = subtitle
         self.placeholderIcon = placeholderIcon
@@ -36,6 +40,7 @@ package struct LibraryPoster: Equatable, Sendable {
             let progress = item.progressFraction
             self.init(
                 posterPath: item.thumb ?? item.grandparentThumb,
+                of: item,
                 title: item.title,
                 subtitle: year,
                 placeholderIcon: kind.placeholderIcon,
@@ -46,6 +51,7 @@ package struct LibraryPoster: Equatable, Sendable {
             let unwatched = (item.leafCount ?? 0) - (item.viewedLeafCount ?? 0)
             self.init(
                 posterPath: item.thumb ?? item.grandparentThumb,
+                of: item,
                 title: item.title,
                 subtitle: year,
                 placeholderIcon: kind.placeholderIcon,
@@ -61,6 +67,7 @@ package struct LibraryPoster: Equatable, Sendable {
         case .movie:
             self.init(
                 posterPath: item.thumb ?? item.grandparentThumb,
+                of: item,
                 title: item.title,
                 subtitle: when,
                 placeholderIcon: kind.placeholderIcon
@@ -69,6 +76,7 @@ package struct LibraryPoster: Equatable, Sendable {
             let detail = [Formatters.episodeCode(item.parentIndex, item.index), when].compactMap { $0 }.joined(separator: " · ")
             self.init(
                 posterPath: item.grandparentThumb ?? item.thumb,
+                of: item,
                 title: item.grandparentTitle ?? item.title,
                 subtitle: detail.isEmpty ? nil : detail,
                 placeholderIcon: kind.placeholderIcon
@@ -80,6 +88,7 @@ package struct LibraryPoster: Equatable, Sendable {
         let episodic = item.mediaType == "show" || item.mediaType == "episode"
         self.init(
             posterPath: item.thumb ?? item.grandparentThumb,
+            of: item,
             title: item.title,
             subtitle: LibraryFormat.folderMediaSubtitle(item),
             placeholderIcon: episodic ? "tv" : "film"

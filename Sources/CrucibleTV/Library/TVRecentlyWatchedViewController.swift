@@ -4,7 +4,8 @@ import UIKit
 
 /// "See All" for a library's Recently Watched shelf: the same play history as a poster grid with far
 /// more titles than the shelf holds. It opens on the shelf's items and fills in once the longer
-/// history arrives.
+/// history arrives. Its cards keep the library grid's `style`, since play history says nothing about
+/// the shape of a title's artwork.
 final class TVRecentlyWatchedViewController: TVScreenViewController {
     enum Section: Hashable {
         case title, grid
@@ -20,15 +21,17 @@ final class TVRecentlyWatchedViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var items: [PlexMetadata]
     private var itemsById: [String: PlexMetadata] = [:]
+    private let cardStyle: TVCardStyle
     private lazy var loadSlot = makeTaskSlot()
     private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self) { [weak self] item, watched in
         self?.markWatched(item, watched)
     }
 
-    init(env: TVAppEnvironment, section: LibrarySection, items: [PlexMetadata]) {
+    init(env: TVAppEnvironment, section: LibrarySection, items: [PlexMetadata], style: TVCardStyle) {
         self.env = env
         self.section = section
         self.items = items
+        cardStyle = style
         super.init(layout: UICollectionViewLayout())
         title = String(localized: "Recently Watched")
     }
@@ -48,13 +51,14 @@ final class TVRecentlyWatchedViewController: TVScreenViewController {
     private func makeLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { [weak self] index, _ in
             guard let self, dataSource.snapshot().sectionIdentifiers.indices.contains(index) else { return TVShelf.grid() }
-            return dataSource.snapshot().sectionIdentifiers[index] == .title ? TVScreenTitleView.section() : TVShelf.grid()
+            return dataSource.snapshot().sectionIdentifiers[index] == .title ? TVScreenTitleView.section() : TVShelf.grid(cardStyle)
         }
     }
 
     private func configureDataSource() {
         let titleRegistration = TVScreenTitleView.registration()
-        let posterRegistration = TVPosterCell.registration()
+        let style = cardStyle
+        let posterRegistration = TVPosterCell.registration { style }
         let kind = section.kind
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, item in
             switch item {

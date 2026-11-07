@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -15,6 +16,11 @@ final class TVArtworkView: UIImageView {
     private var loadTask: Task<Void, Never>?
     private var loadedPath: String?
     private var isShowingPlaceholder = true
+    private var artwork: UIImage?
+
+    /// Whether artwork far from the view's shape is shown whole, centred on the placeholder's surface, instead of cropped to
+    /// fill: a vertical phone video among landscape ones, a still where a poster was expected.
+    var showsOffShapeArtworkWhole = false
 
     init(kind: TVImagePipeline.Kind, nominalSize: CGSize, shape: TVCardStyle.Shape = .rounded, placeholderSymbol: String) {
         self.kind = kind
@@ -33,7 +39,11 @@ final class TVArtworkView: UIImageView {
         }
         showPlaceholder()
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: TVArtworkView, _: UITraitCollection) in
-            if view.isShowingPlaceholder { view.showPlaceholder() }
+            if view.isShowingPlaceholder {
+                view.showPlaceholder()
+            } else if let artwork = view.artwork {
+                view.image = view.framed(artwork)
+            }
         }
     }
 
@@ -76,13 +86,15 @@ final class TVArtworkView: UIImageView {
 
     private func showPlaceholder() {
         isShowingPlaceholder = true
+        artwork = nil
         image = TVPlaceholder.image(symbol: placeholderSymbol, size: nominalSize, traits: traitCollection, circular: shape == .circle)
     }
 
     private func display(_ artwork: UIImage) {
         isShowingPlaceholder = false
         loadTask = nil
-        let shown = shape == .circle ? artwork.circularCrop() : artwork
+        self.artwork = artwork
+        let shown = framed(artwork)
         guard !UIAccessibility.isReduceMotionEnabled else {
             image = shown
             return
@@ -90,5 +102,15 @@ final class TVArtworkView: UIImageView {
         UIView.transition(with: self, duration: TVMetrics.Duration.fade, options: [.transitionCrossDissolve, .allowUserInteraction]) {
             self.image = shown
         }
+    }
+
+    /// `artwork` as the view draws it: cropped to a circle, drawn whole on the placeholder's surface when its shape is far from
+    /// the view's (the focus effect forbids clipping, so the letterbox is part of the image), or unchanged to fill the view.
+    private func framed(_ artwork: UIImage) -> UIImage {
+        if shape == .circle { return artwork.circularCrop() }
+        guard showsOffShapeArtworkWhole, artwork.size.width > 0, nominalSize.width > 0 else { return artwork }
+        let aspect = nominalSize.height / nominalSize.width
+        guard !ArtworkAspect.fills(artwork.size.height / artwork.size.width, card: aspect) else { return artwork }
+        return artwork.centered(onAspect: aspect, background: Theme.Color.surfaceRaised.resolvedColor(with: traitCollection))
     }
 }

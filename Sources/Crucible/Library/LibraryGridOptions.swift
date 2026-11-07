@@ -11,26 +11,31 @@ extension LibraryGridOptions {
 
 /// The trailing "grid size" control shared by the library host and stand-alone grids. The menu is
 /// built lazily on every open so its checkmark always reflects the stored preference, and each
-/// choice names the columns it gives at the grid's current width (`width`), which on a large
-/// screen is more than the phone's two or three.
+/// choice names the columns it gives at the grid's current width (`width`) and card shape (`aspect`),
+/// which on a large screen is more than the phone's two or three.
 @MainActor
 enum LibraryGridSizeMenu {
     static func barButtonItem(
         width: @escaping @MainActor () -> CGFloat,
+        aspect: @escaping @MainActor () -> CGFloat,
         onChange: @escaping @MainActor @Sendable () -> Void
     ) -> UIBarButtonItem {
-        let item = UIBarButtonItem(image: UIImage(systemName: "square.grid.2x2"), menu: menu(width: width, onChange: onChange))
+        let item = UIBarButtonItem(image: UIImage(systemName: "square.grid.2x2"), menu: menu(width: width, aspect: aspect, onChange: onChange))
         item.accessibilityLabel = String(localized: "Grid Size")
         return item
     }
 
-    static func menu(width: @escaping @MainActor () -> CGFloat, onChange: @escaping @MainActor @Sendable () -> Void) -> UIMenu {
+    static func menu(
+        width: @escaping @MainActor () -> CGFloat,
+        aspect: @escaping @MainActor () -> CGFloat,
+        onChange: @escaping @MainActor @Sendable () -> Void
+    ) -> UIMenu {
         let deferred = UIDeferredMenuElement.uncached { completion in
             let current = Preferences.libraryColumns
-            let large = Theme.gridColumns(forWidth: width(), preferred: 2)
-            let compact = Theme.gridColumns(forWidth: width(), preferred: 3)
+            let large = Theme.gridColumns(forWidth: width(), preferred: 2, aspect: aspect())
+            let compact = Theme.gridColumns(forWidth: width(), preferred: 3, aspect: aspect())
             completion([
-                action(title: String(localized: "Large (\(large) columns)"), symbol: "square.grid.2x2", columns: 2, current: current, onChange: onChange),
+                action(title: String(localized: "Large (\(large) columns)", comment: "Grid size menu choice with the number of columns it gives; one column when the artwork is landscape"), symbol: "square.grid.2x2", columns: 2, current: current, onChange: onChange),
                 action(title: String(localized: "Compact (\(compact) columns)"), symbol: "square.grid.3x3", columns: 3, current: current, onChange: onChange),
             ])
         }

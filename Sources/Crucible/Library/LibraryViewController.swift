@@ -27,6 +27,8 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
 
     private lazy var gridSizeItem = LibraryGridSizeMenu.barButtonItem { [weak self] in
         self?.currentChild?.gridWidth ?? 0
+    } aspect: { [weak self] in
+        self?.currentChild?.artworkAspect ?? Theme.Size.posterAspect
     } onChange: { [weak self] in
         self?.reloadGrids()
     }

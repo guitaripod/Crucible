@@ -10,6 +10,7 @@ final class HomeSectionGridViewController: UICollectionViewController {
     private var items: [PlexMetadata]
     private var mediaById: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
+    private var artworkAspect = Theme.Size.posterAspect
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
@@ -18,9 +19,7 @@ final class HomeSectionGridViewController: UICollectionViewController {
         self.bucket = bucket
         self.items = items
         self.onChange = onChange
-        super.init(collectionViewLayout: UICollectionViewCompositionalLayout { _, environment in
-            Theme.gridLayout(environment: environment)
-        })
+        super.init(collectionViewLayout: UICollectionViewLayout())
         self.title = title
     }
 
@@ -34,6 +33,9 @@ final class HomeSectionGridViewController: UICollectionViewController {
         collectionView.allowsKeyboardFocus()
         collectionView.dragDelegate = mediaDrag
         view.backgroundColor = Theme.Color.canvas
+        collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { [weak self] _, environment in
+            Theme.gridLayout(environment: environment, aspect: self?.artworkAspect ?? Theme.Size.posterAspect)
+        }
         configureDataSource()
         update(items: items)
     }
@@ -44,6 +46,7 @@ final class HomeSectionGridViewController: UICollectionViewController {
         mediaById = Dictionary(newItems.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
         var seen = Set<String>()
         let ids = newItems.map(\.id).filter { seen.insert($0).inserted }
+        adoptArtworkAspect(of: newItems)
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -61,11 +64,24 @@ final class HomeSectionGridViewController: UICollectionViewController {
         }
     }
 
+    /// Lays the grid out in the shape most of the rail's artwork has; the snapshot that follows reshapes the cards on screen.
+    private func adoptArtworkAspect(of items: [PlexMetadata]) {
+        let bucket = bucket
+        let aspect = CGFloat(ArtworkAspect.dominant(items.map {
+            ArtworkAspect.of($0, path: HomeCardModel(item: $0, bucket: bucket, layout: .poster).imagePath)
+        }))
+        guard aspect != artworkAspect else { return }
+        artworkAspect = aspect
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+
     private func configureDataSource() {
         let bucket = bucket
         let registration = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
-            guard let item = self?.mediaById[id] else { return }
-            cell.contentConfiguration = HomeMediaActions.posterConfiguration(for: item, bucket: bucket)
+            guard let self, let item = mediaById[id] else { return }
+            var config = HomeMediaActions.posterConfiguration(for: item, bucket: bucket)
+            config.artworkAspect = artworkAspect
+            cell.contentConfiguration = config
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, id in
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: id)

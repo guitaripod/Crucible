@@ -25,9 +25,21 @@ class TVCardCell: UICollectionViewCell {
         }
     }
 
-    func configure(with item: TVCardItem) {
+    /// A registration whose cards are drawn in whatever `style` returns when each is configured, for a grid that takes the
+    /// shape of its artwork.
+    static func registration<Cell: TVCardCell>(
+        of type: Cell.Type,
+        style: @escaping @MainActor () -> TVCardStyle
+    ) -> UICollectionView.CellRegistration<Cell, TVCardItem> {
+        UICollectionView.CellRegistration<Cell, TVCardItem> { cell, _, item in
+            cell.configure(with: item, style: style())
+        }
+    }
+
+    /// Shows `item` in `style`, or in the cell's own style when none is given.
+    func configure(with item: TVCardItem, style: TVCardStyle? = nil) {
         self.item = item
-        contentConfiguration = TVCardConfiguration(item: item, style: Self.style)
+        contentConfiguration = TVCardConfiguration(item: item, style: style ?? Self.style)
         accessibilityLabel = item.spokenLabel
         accessibilityValue = item.spokenValue
         accessibilityHint = item.accessibilityHint
@@ -53,12 +65,17 @@ class TVCardCell: UICollectionViewCell {
     }
 }
 
-/// A 2:3 poster with its title and subtitle underneath (movies, shows, anything with portrait art).
+/// A 2:3 poster with its title and subtitle underneath (movies, shows, anything with portrait art), or a card
+/// of another shape captioned the same way when its grid takes the shape of its artwork.
 final class TVPosterCell: TVCardCell {
     override class var style: TVCardStyle { .poster }
 
     static func registration() -> UICollectionView.CellRegistration<TVPosterCell, TVCardItem> {
         registration(of: TVPosterCell.self)
+    }
+
+    static func registration(style: @escaping @MainActor () -> TVCardStyle) -> UICollectionView.CellRegistration<TVPosterCell, TVCardItem> {
+        registration(of: TVPosterCell.self, style: style)
     }
 }
 

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// One library as a screen: a header with the title, count, watch filters and Genre and Sort menus,
@@ -34,6 +35,11 @@ final class TVLibraryViewController: TVScreenViewController {
     private var hasPassedRevealDeadline = false
     private var shelfInserted = false
     private var shownState: String?
+
+    /// The cards, shaped like most of the grid's artwork, so an Other Videos library shows its frames at the videos' own shape
+    /// instead of cropped to posters. The Recently Watched shelf shares it, since it shows the same titles' artwork and the
+    /// play history it comes from says nothing about their shape.
+    private var cardStyle = TVCardStyle.poster
     private lazy var revealSlot = makeTaskSlot()
     private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self) { [weak self] item, watched in
         self?.model.setWatched(ratingKey: item.id, watched: watched)
@@ -156,9 +162,9 @@ final class TVLibraryViewController: TVScreenViewController {
             case .header:
                 return Self.headerSection()
             case .recents:
-                return TVShelf.poster()
+                return TVShelf.cards(cardStyle)
             case .grid:
-                return TVShelf.grid()
+                return TVShelf.grid(cardStyle)
             }
         }
     }
@@ -176,7 +182,7 @@ final class TVLibraryViewController: TVScreenViewController {
             guard let self else { return }
             cell.showLibraryHeader(headerContent())
         }
-        let posterRegistration = TVPosterCell.registration()
+        let posterRegistration = TVPosterCell.registration { [weak self] in self?.cardStyle ?? .poster }
         let kind = section.kind
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, item in
             switch item {
@@ -283,10 +289,11 @@ final class TVLibraryViewController: TVScreenViewController {
     }
 
     private func applySnapshot() {
+        adoptArtworkStyle()
+        let recents = shelfInserted ? model.visibleRecents : []
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.header])
         snapshot.appendItems([.header], toSection: .header)
-        let recents = shelfInserted ? model.visibleRecents : []
         if !recents.isEmpty {
             snapshot.appendSections([.recents])
             snapshot.appendItems(recents.map { Item.recent($0.id) }, toSection: .recents)
@@ -295,6 +302,17 @@ final class TVLibraryViewController: TVScreenViewController {
         snapshot.appendItems(model.gridIds.map(Item.media), toSection: .grid)
         dataSource.applyReconfiguringExisting(snapshot)
         updateRail()
+    }
+
+    /// Re-lays the grid and the shelf out once the items loaded so far change the shape most of their artwork has; the snapshot
+    /// that follows redraws the cards already on screen in it.
+    private func adoptArtworkStyle() {
+        let kind = section.kind
+        let style = TVCardStyle.grid(aspect: ArtworkAspect.dominant(model.gridIds.compactMap(model.item(withId:)).map { LibraryPoster(grid: $0, kind: kind).aspect }))
+        guard style != cardStyle else { return }
+        MidgarLog.info("TV library artwork shape section=\(section.id) artwork=\(style.artworkSize)", category: .ui)
+        cardStyle = style
+        collectionView.collectionViewLayout.invalidateLayout()
     }
 
     private func reconfigureHeader() {
@@ -423,7 +441,7 @@ final class TVLibraryViewController: TVScreenViewController {
     }
 
     private func showAllRecent() {
-        TVNavigation.push(TVRecentlyWatchedViewController(env: env, section: section, items: model.recentItems), from: self)
+        TVNavigation.push(TVRecentlyWatchedViewController(env: env, section: section, items: model.recentItems, style: cardStyle), from: self)
     }
 
     private func libraryItem(at indexPath: IndexPath) -> (item: PlexMetadata, isRecent: Bool)? {

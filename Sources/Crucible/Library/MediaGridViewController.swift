@@ -26,6 +26,7 @@ final class MediaGridViewController: UICollectionViewController {
     private var items: [PlexMetadata] = []
     private var itemsByID: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
+    private var artworkAspect = Theme.Size.posterAspect
     private var loadTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var listening: ServerEventListening?
@@ -35,9 +36,7 @@ final class MediaGridViewController: UICollectionViewController {
     init(title: String, empty: Empty = Empty(), load: @escaping () async throws -> [PlexMetadata]) {
         self.load = load
         self.empty = empty
-        super.init(collectionViewLayout: UICollectionViewCompositionalLayout { _, environment in
-            Theme.gridLayout(environment: environment)
-        })
+        super.init(collectionViewLayout: UICollectionViewLayout())
         self.title = title
     }
 
@@ -57,6 +56,9 @@ final class MediaGridViewController: UICollectionViewController {
         collectionView.allowsKeyboardFocus()
         collectionView.dragDelegate = mediaDrag
         collectionView.refreshControl = UIRefreshControl(frame: .zero, primaryAction: UIAction { [weak self] _ in self?.reload() })
+        collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { [weak self] _, environment in
+            Theme.gridLayout(environment: environment, aspect: self?.artworkAspect ?? Theme.Size.posterAspect)
+        }
         configureDataSource()
     }
 
@@ -117,6 +119,7 @@ final class MediaGridViewController: UICollectionViewController {
         itemsByID = Dictionary(loaded.map { ($0.entryID, $0) }, uniquingKeysWith: { _, latest in latest })
         var seen = Set<String>()
         let ids = loaded.map(\.entryID).filter { seen.insert($0).inserted }
+        adoptArtworkAspect(of: loaded)
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -132,6 +135,15 @@ final class MediaGridViewController: UICollectionViewController {
         } else {
             contentUnavailableConfiguration = nil
         }
+    }
+
+    /// Lays the grid out in the shape most of the cards' artwork has: square playlist covers, a collection of personal videos at
+    /// their own shape. The snapshot that follows reshapes the cards on screen.
+    private func adoptArtworkAspect(of items: [PlexMetadata]) {
+        let aspect = CGFloat(ArtworkAspect.dominant(items.map { ArtworkAspect.of($0, path: configuration($0).posterPath) }))
+        guard aspect != artworkAspect else { return }
+        artworkAspect = aspect
+        collectionView.collectionViewLayout.invalidateLayout()
     }
 
     private func showFailure(_ message: String) {
@@ -152,7 +164,9 @@ final class MediaGridViewController: UICollectionViewController {
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
             guard let self, let item = itemsByID[id] else { return }
-            cell.contentConfiguration = configuration(item)
+            var config = configuration(item)
+            config.artworkAspect = artworkAspect
+            cell.contentConfiguration = config
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, id in
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: id)

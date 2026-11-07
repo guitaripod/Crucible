@@ -42,10 +42,17 @@ class LibraryGridViewController: UIViewController {
 
     private lazy var gridSizeItem = LibraryGridSizeMenu.barButtonItem { [weak self] in
         self?.gridWidth ?? 0
+    } aspect: { [weak self] in
+        self?.artworkAspect ?? Theme.Size.posterAspect
     } onChange: { [weak self] in
         self?.reloadGridLayout()
     }
     private var appliedColumns = Preferences.libraryColumns
+
+    /// The shape of the cards: the shape most of the grid's artwork has, so an Other Videos library lays out its frames at the
+    /// videos' own shape instead of cropping them to posters. The Recently Watched rail shares it, since it shows the same
+    /// titles' artwork and the play history it comes from says nothing about their shape.
+    private(set) var artworkAspect = Theme.Size.posterAspect
 
     /// The width the poster grid lays out in, inside the safe area.
     var gridWidth: CGFloat {
@@ -185,9 +192,9 @@ class LibraryGridViewController: UIViewController {
             case .header:
                 return Self.headerSection(environment)
             case .recentlyWatched:
-                return Self.recentSection(environment: environment)
+                return Self.recentSection(environment: environment, aspect: artworkAspect)
             case .grid:
-                return Theme.gridLayout(environment: environment)
+                return Theme.gridLayout(environment: environment, aspect: artworkAspect)
             }
         }
     }
@@ -203,11 +210,12 @@ class LibraryGridViewController: UIViewController {
         return section
     }
 
-    private static func recentSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+    private static func recentSection(environment: NSCollectionLayoutEnvironment, aspect: CGFloat) -> NSCollectionLayoutSection {
         let room = Theme.Room(environment)
+        let width = (room.posterRailWidth * Theme.artworkWidthFactor(aspect)).rounded()
         return Theme.railSection(
-            width: room.posterRailWidth,
-            estimatedHeight: room.posterRailWidth * Theme.Size.posterAspect + Theme.Size.captionBlockHeight,
+            width: width,
+            estimatedHeight: width * aspect + Theme.Size.captionBlockHeight,
             columns: environment.traitCollection.preferredContentSizeCategory >= .accessibilityExtraLarge ? 2 : nil,
             gutter: room.gutter
         )
@@ -242,7 +250,9 @@ class LibraryGridViewController: UIViewController {
                 cell.contentConfiguration = PosterContentConfiguration()
                 return
             }
-            cell.contentConfiguration = RecentlyWatchedActions.posterConfiguration(for: item, kind: kind)
+            var config = RecentlyWatchedActions.posterConfiguration(for: item, kind: kind)
+            config.artworkAspect = artworkAspect
+            cell.contentConfiguration = config
         }
 
         let headerRegistration = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
@@ -275,6 +285,7 @@ class LibraryGridViewController: UIViewController {
 
     private func posterConfiguration(for item: PlexMetadata) -> PosterContentConfiguration {
         var config = LibraryPoster(grid: item, kind: kind).configuration
+        config.artworkAspect = artworkAspect
         if kind == .movie {
             config.isDownloaded = DownloadManager.shared.item(for: item.id)?.state == .completed
         }
@@ -300,6 +311,7 @@ class LibraryGridViewController: UIViewController {
     }
 
     private func applySnapshot() {
+        adoptArtworkAspect()
         let previous = Set(dataSource.snapshot().itemIdentifiers)
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.header])
@@ -315,6 +327,17 @@ class LibraryGridViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: false)
         updateScrubberVisibility()
         updateCurrentLetter()
+    }
+
+    /// Re-lays the grid and the rail out once the items loaded so far change the shape most of their artwork has; the snapshot
+    /// that follows reconfigures the cards already on screen to it.
+    private func adoptArtworkAspect() {
+        let kind = kind
+        let aspect = CGFloat(ArtworkAspect.dominant(model.gridIds.compactMap(model.item(withId:)).map { LibraryPoster(grid: $0, kind: kind).aspect }))
+        guard aspect != artworkAspect else { return }
+        MidgarLog.info("\(kind.logName) artwork aspect section=\(sectionId) aspect=\(aspect)", category: .ui)
+        artworkAspect = aspect
+        collectionView.collectionViewLayout.invalidateLayout()
     }
 
     private func reconfigureHeader() {
@@ -614,7 +637,7 @@ class LibraryGridViewController: UIViewController {
 
     private func showAllRecent() {
         Haptics.selection()
-        let grid = RecentlyWatchedGridViewController(api: api, sectionId: sectionId, kind: kind, items: model.recentItems)
+        let grid = RecentlyWatchedGridViewController(api: api, sectionId: sectionId, kind: kind, items: model.recentItems, artworkAspect: artworkAspect)
         navigationController?.pushViewController(grid, animated: true)
     }
 

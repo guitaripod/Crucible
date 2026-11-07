@@ -1,10 +1,15 @@
+import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// A 2:3 poster with its caption underneath. Overlay chrome is limited to state badges (unwatched
-/// dot or count, progress, downloaded) so the artwork stays legible.
+/// A card of artwork, a 2:3 poster unless its grid gives it another shape, with its caption underneath.
+/// Overlay chrome is limited to state badges (unwatched dot or count, progress, downloaded) so the artwork
+/// stays legible.
 struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var posterPath: String?
+    /// The card's height over its width, which its grid sets to the shape most of its artwork has. Artwork
+    /// of another shape is shown whole inside it instead of being cropped to it.
+    var artworkAspect: CGFloat = Theme.Size.posterAspect
     var title: String = ""
     var subtitle: String?
     var progress: Double?
@@ -18,7 +23,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var onQuickPlay: (() -> Void)?
 
     static func == (lhs: PosterContentConfiguration, rhs: PosterContentConfiguration) -> Bool {
-        lhs.posterPath == rhs.posterPath && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle
+        lhs.posterPath == rhs.posterPath && lhs.artworkAspect == rhs.artworkAspect && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle
             && lhs.progress == rhs.progress && lhs.isUnwatched == rhs.isUnwatched
             && lhs.unwatchedCount == rhs.unwatchedCount && lhs.badgeText == rhs.badgeText && lhs.isDownloaded == rhs.isDownloaded
             && lhs.showPlayButton == rhs.showPlayButton
@@ -26,6 +31,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(posterPath)
+        hasher.combine(artworkAspect)
         hasher.combine(title)
         hasher.combine(subtitle)
         hasher.combine(progress)
@@ -63,6 +69,7 @@ final class PosterContentView: UIView, UIContentView {
     private let subtitleLabel = UILabel()
     private let captionStack = UIStackView()
     private var captionHeightConstraint: NSLayoutConstraint?
+    private var artworkAspectConstraint: NSLayoutConstraint?
     private var imageTask: Task<Void, Never>?
     private var onQuickPlay: (() -> Void)?
     private var currentPosterPath: String? = "__unset__"
@@ -153,9 +160,6 @@ final class PosterContentView: UIView, UIContentView {
         countPill.addSubview(countLabel)
         cardView.translatesAutoresizingMaskIntoConstraints = false
 
-        let heightConstraint = cardView.heightAnchor.constraint(equalTo: cardView.widthAnchor, multiplier: Theme.Size.posterAspect)
-        heightConstraint.priority = UILayoutPriority(999)
-
         let bottomPin = mainStack.bottomAnchor.constraint(equalTo: bottomAnchor)
         bottomPin.priority = UILayoutPriority(999)
 
@@ -164,7 +168,6 @@ final class PosterContentView: UIView, UIContentView {
             mainStack.leadingAnchor.constraint(equalTo: leadingAnchor),
             mainStack.trailingAnchor.constraint(equalTo: trailingAnchor),
             bottomPin,
-            heightConstraint,
 
             imageView.topAnchor.constraint(equalTo: cardView.topAnchor),
             imageView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
@@ -255,6 +258,7 @@ final class PosterContentView: UIView, UIContentView {
     private func apply() {
         guard let config = configuration as? PosterContentConfiguration else { return }
         onQuickPlay = config.onQuickPlay
+        shapeCard(config.artworkAspect)
 
         titleLabel.text = config.title
         subtitleLabel.text = config.subtitle
@@ -291,8 +295,28 @@ final class PosterContentView: UIView, UIContentView {
         }
     }
 
+    /// Gives the card `aspect`, keeping the constraint when the shape is unchanged, and refits any artwork already shown.
+    private func shapeCard(_ aspect: CGFloat) {
+        if artworkAspectConstraint?.multiplier != aspect {
+            artworkAspectConstraint?.isActive = false
+            let constraint = cardView.heightAnchor.constraint(equalTo: cardView.widthAnchor, multiplier: aspect)
+            constraint.priority = UILayoutPriority(999)
+            constraint.isActive = true
+            artworkAspectConstraint = constraint
+        }
+        if let image = imageView.image { fit(image, aspect: aspect) }
+    }
+
+    /// Fills the card with artwork close to its shape and shows any other artwork whole, centred on the card's surface.
+    private func fit(_ image: UIImage, aspect: CGFloat) {
+        guard image.size.width > 0 else { return }
+        let fills = ArtworkAspect.fills(image.size.height / image.size.width, card: aspect)
+        imageView.contentMode = fills ? .scaleAspectFill : .scaleAspectFit
+    }
+
     private func show(_ image: UIImage) {
         placeholderView.isHidden = true
+        fit(image, aspect: (configuration as? PosterContentConfiguration)?.artworkAspect ?? Theme.Size.posterAspect)
         guard !UIAccessibility.isReduceMotionEnabled, imageView.image == nil else {
             imageView.image = image
             return

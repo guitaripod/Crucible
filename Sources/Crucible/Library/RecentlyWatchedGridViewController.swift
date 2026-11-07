@@ -4,7 +4,8 @@ import CrucibleDesign
 
 /// "See All" for a library's Recently Watched rail: the same play history as a poster grid, with far
 /// more titles than the rail holds. It opens on the rail's items and fills in once the longer
-/// history arrives.
+/// history arrives. Its cards keep the library grid's shape (`artworkAspect`), since play history
+/// says nothing about the shape of a title's artwork.
 final class RecentlyWatchedGridViewController: UICollectionViewController {
     private let api: APIClient
     private let sectionId: String
@@ -12,17 +13,19 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
     private var items: [PlexMetadata]
     private var itemsById: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
+    private let artworkAspect: CGFloat
     private var loadTask: Task<Void, Never>?
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
-    init(api: APIClient, sectionId: String, kind: LibraryGridKind, items: [PlexMetadata]) {
+    init(api: APIClient, sectionId: String, kind: LibraryGridKind, items: [PlexMetadata], artworkAspect: CGFloat) {
         self.api = api
         self.sectionId = sectionId
         self.kind = kind
         self.items = items
+        self.artworkAspect = artworkAspect
         super.init(collectionViewLayout: UICollectionViewCompositionalLayout { _, environment in
-            Theme.gridLayout(environment: environment)
+            Theme.gridLayout(environment: environment, aspect: artworkAspect)
         })
         title = String(localized: "Recently Watched")
     }
@@ -85,12 +88,15 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
 
     private func configureDataSource() {
         let kind = kind
+        let artworkAspect = artworkAspect
         let registration = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
             guard let item = self?.itemsById[id] else {
                 cell.contentConfiguration = PosterContentConfiguration()
                 return
             }
-            cell.contentConfiguration = RecentlyWatchedActions.posterConfiguration(for: item, kind: kind)
+            var config = RecentlyWatchedActions.posterConfiguration(for: item, kind: kind)
+            config.artworkAspect = artworkAspect
+            cell.contentConfiguration = config
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, id in
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: id)

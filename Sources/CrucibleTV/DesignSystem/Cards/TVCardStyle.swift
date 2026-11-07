@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -61,6 +62,31 @@ struct TVCardStyle: Hashable, Sendable {
         centersCaption: true,
         scrimsArtwork: false
     )
+
+    /// The card of a grid whose artwork is `aspect` tall for its width, captioned like a poster: the poster itself for
+    /// posters, otherwise as wide as covers about a poster's area (never narrower), rounded to whole columns of the grid.
+    static func grid(aspect: Double) -> TVCardStyle {
+        guard abs(aspect - ArtworkAspect.poster) > 0.005 else { return .poster }
+        let gutter = TVMetrics.gutter
+        let target = TVMetrics.Card.posterSize.width * max(1, (ArtworkAspect.poster / aspect).squareRoot())
+        let columns = max(1, Int(((TVMetrics.gridWidth + gutter) / (target + gutter)).rounded()))
+        let width = ((TVMetrics.gridWidth - gutter * CGFloat(columns - 1)) / CGFloat(columns)).rounded(.down)
+        return TVCardStyle(
+            artworkSize: CGSize(width: width, height: (width * aspect).rounded()),
+            itemWidth: width,
+            kind: aspect < 1 ? .backdrop : .poster,
+            shape: .rounded,
+            titleLines: 1,
+            showsEyebrow: false,
+            centersCaption: false,
+            scrimsArtwork: false
+        )
+    }
+
+    /// How many of these cards a grid row holds.
+    var gridColumns: Int {
+        max(1, Int(((TVMetrics.gridWidth + TVMetrics.gutter) / (itemWidth + TVMetrics.gutter)).rounded()))
+    }
 
     @MainActor
     var captionHeight: CGFloat {

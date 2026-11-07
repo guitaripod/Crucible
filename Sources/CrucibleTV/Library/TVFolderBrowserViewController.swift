@@ -23,6 +23,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var listing: LibraryFolderListing?
     private var mediaById: [String: PlexMetadata] = [:]
+    private var cardStyle = TVCardStyle.poster
     private var needsRefresh = false
     private lazy var loadSlot = makeTaskSlot()
     private lazy var refreshSlot = makeTaskSlot()
@@ -65,7 +66,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
             case .folders:
                 return TVRowList.section(environment: environment)
             case .media:
-                return TVShelf.grid()
+                return TVShelf.grid(cardStyle)
             }
         }
     }
@@ -73,7 +74,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     private func configureDataSource() {
         let titleRegistration = TVScreenTitleView.registration()
         let rowRegistration = TVRowCell.registration()
-        let posterRegistration = TVPosterCell.registration()
+        let posterRegistration = TVPosterCell.registration { [weak self] in self?.cardStyle ?? .poster }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { [weak self] collectionView, indexPath, item in
             switch item {
             case .title(let content):
@@ -95,6 +96,11 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     }
 
     private func applySnapshot() {
+        let style = TVCardStyle.grid(aspect: ArtworkAspect.dominant((listing?.media ?? []).map { LibraryPoster(folderItem: $0).aspect }))
+        if style != cardStyle {
+            cardStyle = style
+            collectionView.collectionViewLayout.invalidateLayout()
+        }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.title])
         snapshot.appendItems([.title(TVScreenTitleContent(title: screenTitle))], toSection: .title)

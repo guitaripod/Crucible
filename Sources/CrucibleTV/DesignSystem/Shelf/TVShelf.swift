@@ -27,6 +27,11 @@ enum TVShelf {
         shelf(itemSize: TVCardStyle.episode.itemSize, header: header)
     }
 
+    /// A shelf of `style` cards, for a row whose cards take the shape of their artwork.
+    static func cards(_ style: TVCardStyle, header: Bool = true) -> NSCollectionLayoutSection {
+        shelf(itemSize: style.itemSize, header: header)
+    }
+
     static func person(header: Bool = true) -> NSCollectionLayoutSection {
         shelf(itemSize: TVCardStyle.person.itemSize, header: header)
     }
@@ -75,6 +80,11 @@ enum TVShelf {
         section.contentInsets = shelfInsets
         if header { section.boundarySupplementaryItems = [headerItem()] }
         return section
+    }
+
+    /// A vertical grid of `style` cards, as many across as fit the grid's width.
+    static func grid(_ style: TVCardStyle, header: Bool = false) -> NSCollectionLayoutSection {
+        grid(columns: style.gridColumns, itemHeight: style.itemSize.height, header: header)
     }
 
     /// One full-width, fixed-height block above the shelves; hosts the hero info and never takes focus.

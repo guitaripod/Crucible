@@ -45,12 +45,18 @@ final class TVCardContentView: UIView, UIContentView {
             placeholderSymbol: configuration.item.placeholderSymbol
         )
         super.init(frame: .zero)
+        artwork.showsOffShapeArtworkWhole = style.shape == .rounded
         buildHierarchy()
         apply()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// The hierarchy is built for one style, so a card given another shape gets a new content view.
+    func supports(_ configuration: UIContentConfiguration) -> Bool {
+        (configuration as? TVCardConfiguration)?.style == style
+    }
 
     private func buildHierarchy() {
         artwork.translatesAutoresizingMaskIntoConstraints = false

@@ -55,6 +55,21 @@ enum TVPlaceholder {
 }
 
 extension UIImage {
+    /// The image drawn whole and centred on a `background` canvas `aspect` tall for its width, as large as the image itself.
+    func centered(onAspect aspect: CGFloat, background: UIColor) -> UIImage {
+        let canvas = size.height / size.width > aspect
+            ? CGSize(width: (size.height / aspect).rounded(), height: size.height)
+            : CGSize(width: size.width, height: (size.width * aspect).rounded())
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: canvas, format: format).image { context in
+            background.setFill()
+            context.fill(CGRect(origin: .zero, size: canvas))
+            draw(at: CGPoint(x: (canvas.width - size.width) / 2, y: (canvas.height - size.height) / 2))
+        }
+    }
+
     /// The image clipped to an ellipse with a transparent surround, so the system focus effect can
     /// follow the circle (`UIImageView.masksFocusEffectToContents`).
     func circularCrop() -> UIImage {
