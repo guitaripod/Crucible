@@ -31,7 +31,7 @@ tarball() {
     stage=$(mktemp -d)
     cp "$binary" "$stage/crucible-server"
     cp "$SERVER_DIR/README.md" "$SERVER_DIR/../LICENSE" "$stage/"
-    tar -czf "$OUT/$name.tar.gz" -C "$stage" .
+    COPYFILE_DISABLE=1 tar --no-xattrs --uid 0 --gid 0 -czf "$OUT/$name.tar.gz" -C "$stage" crucible-server README.md LICENSE
     rm -rf "$stage"
     (cd "$OUT" && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
     echo "$OUT/$name.tar.gz"
