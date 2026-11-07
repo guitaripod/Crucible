@@ -88,7 +88,7 @@ final class TVHomeActions {
         }
         actions.append(watchedAction(for: media))
         if let bucket, ContinueWatchingRemoval.applies(to: media, in: bucket) {
-            actions.append(removalAction(for: media, from: screen))
+            actions.append(removalAction(for: media, in: bucket, from: screen))
         }
         if media.isPlaylistable {
             actions.append(UIAction(title: PlaylistFormat.addToPlaylist, image: UIImage(systemName: "text.badge.plus")) { [weak self, weak screen] _ in
@@ -105,9 +105,9 @@ final class TVHomeActions {
         TVManageMenus.itemMenu(for: media, env: env, host: screen) { [weak self] in self?.onChange() }
     }
 
-    private func removalAction(for media: PlexMetadata, from screen: UIViewController) -> UIAction {
+    private func removalAction(for media: PlexMetadata, in bucket: HomeBucket, from screen: UIViewController) -> UIAction {
         let api = env.api
-        return UIAction(title: ContinueWatchingRemoval.title, image: UIImage(systemName: ContinueWatchingRemoval.symbol)) { [weak self, weak screen] _ in
+        return UIAction(title: ContinueWatchingRemoval.title(for: bucket), image: UIImage(systemName: ContinueWatchingRemoval.symbol)) { [weak self, weak screen] _ in
             Task { @MainActor in
                 do {
                     try await ContinueWatchingRemoval.remove(ratingKey: media.id, api: api)

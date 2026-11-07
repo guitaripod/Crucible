@@ -4,7 +4,13 @@ import MidgarCore
 /// Takes a title off Continue Watching and Up Next on the server, the way Plex's own apps do: the title keeps its watched state
 /// and its position, it only stops being offered until it is played again.
 package enum ContinueWatchingRemoval {
-    package static let title = String(localized: "Remove from Continue Watching", comment: "Menu item that takes a title off the Continue Watching and Up Next rows without marking it watched")
+    /// The menu item names the row the card sits in, so an Up Next episode the viewer never meant to start can be sent away
+    /// from there without marking it watched.
+    package static func title(for bucket: HomeBucket) -> String {
+        bucket == .upNext
+            ? String(localized: "Remove from Up Next", comment: "Menu item that takes an episode off the Up Next row without marking it watched")
+            : String(localized: "Remove from Continue Watching", comment: "Menu item that takes a title off the Continue Watching and Up Next rows without marking it watched")
+    }
     package static let symbol = "minus.circle"
 
     /// Cards in the rows Plex calls Continue Watching can leave them; Recently Added is not one of those rows.

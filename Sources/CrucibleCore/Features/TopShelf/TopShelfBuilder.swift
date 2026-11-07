@@ -167,7 +167,7 @@ package enum TopShelfBuilder {
     }
 
     /// The line above the title: the row it comes from, how much is left of something under way, and for an episode
-    /// that is more than just the next one, why ("New Episode", "Season Premiere").
+    /// that is more than just the next one, why ("New Episode", "New Season").
     package static func contextTitle(for pick: Pick, now: Date) -> String {
         let item = pick.item
         switch pick.kind {

@@ -11,7 +11,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var placeholderIcon: String = "film"
     var isUnwatched: Bool = false
     var unwatchedCount: Int?
-    /// A word for the corner pill when there is no count to show ("New", "Premiere").
+    /// A word for the corner pill when there is no count to show ("New", "New Season").
     var badgeText: String?
     var isDownloaded: Bool = false
     var showPlayButton: Bool = false

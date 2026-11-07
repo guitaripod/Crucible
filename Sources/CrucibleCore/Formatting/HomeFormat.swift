@@ -120,12 +120,10 @@ package enum HomeFormat {
     }
 
     /// Why an episode nobody has started yet deserves a word on Home and the Top Shelf, or nil when it is just the next one.
+    /// Only something that just arrived is news: an old season's first episode is simply what comes next.
     package static func episodeNews(_ item: PlexMetadata, now: Date = Date()) -> EpisodeNews? {
-        guard item.mediaType == "episode", !item.isWatched, item.resumeSecs == 0 else { return nil }
-        let opensSeason = item.index == 1 && (item.parentIndex ?? 0) > 1
-        let fresh = isFresh(item, now: now)
-        if opensSeason { return fresh ? .newSeason : .seasonPremiere }
-        return fresh ? .newEpisode : nil
+        guard item.mediaType == "episode", !item.isWatched, item.resumeSecs == 0, isFresh(item, now: now) else { return nil }
+        return item.index == 1 && (item.parentIndex ?? 0) > 1 ? .newSeason : .newEpisode
     }
 
     /// Arrived on the server in the last week and, when the server knows its air date, aired in the last month: a back
@@ -161,8 +159,6 @@ package enum HomeFormat {
 package enum EpisodeNews: Hashable, Sendable {
     /// Arrived in the last week, aired in the last month.
     case newEpisode
-    /// The first episode of a season after the first, which has been on the server a while.
-    case seasonPremiere
     /// The first episode of a season after the first, just arrived.
     case newSeason
 
@@ -170,7 +166,6 @@ package enum EpisodeNews: Hashable, Sendable {
     package var badge: String {
         switch self {
         case .newEpisode: String(localized: "New", comment: "Badge on an episode that arrived on the server in the last few days")
-        case .seasonPremiere: String(localized: "Premiere", comment: "Badge on the first episode of a new season")
         case .newSeason: String(localized: "New Season", comment: "Badge on, and label above, the first episode of a season that just arrived")
         }
     }
@@ -179,7 +174,6 @@ package enum EpisodeNews: Hashable, Sendable {
     package var eyebrow: String {
         switch self {
         case .newEpisode: String(localized: "New Episode", comment: "Label above an episode that arrived on the server in the last few days")
-        case .seasonPremiere: String(localized: "Season Premiere", comment: "Label above the first episode of a new season")
         case .newSeason: String(localized: "New Season", comment: "Badge on, and label above, the first episode of a season that just arrived")
         }
     }

@@ -30,8 +30,8 @@ struct HomeRichCardTests {
         #expect(HomeFormat.episodeNews(episode(), now: now) == nil)
     }
 
-    @Test func theFirstEpisodeOfALaterSeasonIsAPremiere() {
-        #expect(HomeFormat.episodeNews(episode(season: 3, index: 1), now: now) == .seasonPremiere)
+    @Test func onlyAJustArrivedSeasonOpenerIsANewSeason() {
+        #expect(HomeFormat.episodeNews(episode(season: 3, index: 1), now: now) == nil)
         #expect(HomeFormat.episodeNews(episode(season: 3, index: 1, addedDaysAgo: 1, aired: "2023-11-13"), now: now) == .newSeason)
         #expect(HomeFormat.episodeNews(episode(season: 1, index: 1), now: now) == nil)
     }
@@ -60,9 +60,10 @@ struct HomeRichCardTests {
         #expect(card.news == .newEpisode)
         #expect(card.news?.badge == "New")
 
-        let poster = HomeCardModel(item: episode(season: 4, index: 1), bucket: .upNext, layout: .poster, now: now)
+        let poster = HomeCardModel(item: episode(season: 4, index: 1, addedDaysAgo: 2), bucket: .upNext, layout: .poster, now: now)
         #expect(poster.subtitle == "S4 · E1 · 45 min")
-        #expect(poster.news?.badge == "Premiere")
+        #expect(poster.news?.badge == "New Season")
+        #expect(HomeCardModel(item: episode(season: 4, index: 1), bucket: .upNext, layout: .poster, now: now).news == nil)
 
         #expect(HomeCardModel(item: episode(addedDaysAgo: 1), bucket: .recentlyAdded, layout: .poster, now: now).news == nil)
     }

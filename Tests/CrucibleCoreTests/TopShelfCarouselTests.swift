@@ -71,8 +71,9 @@ struct TopShelfCarouselTests {
         let fresh = episode("12", addedAt: 1_700_000_000 - 86_400, aired: "2023-11-13")
         #expect(TopShelfBuilder.contextTitle(for: .init(item: fresh, kind: .upNext), now: now) == "New Episode")
 
-        let premiere = episode("13", season: 3, index: 1)
-        #expect(TopShelfBuilder.contextTitle(for: .init(item: premiere, kind: .upNext), now: now) == "Season Premiere")
+        let opener = episode("13", season: 3, index: 1, addedAt: 1_700_000_000 - 86_400, aired: "2023-11-13")
+        #expect(TopShelfBuilder.contextTitle(for: .init(item: opener, kind: .upNext), now: now) == "New Season")
+        #expect(TopShelfBuilder.contextTitle(for: .init(item: episode("16", season: 3, index: 1), kind: .upNext), now: now) == "Up Next")
         #expect(TopShelfBuilder.contextTitle(for: .init(item: episode("14"), kind: .upNext), now: now) == "Up Next")
         #expect(TopShelfBuilder.contextTitle(for: .init(item: movie("15"), kind: .recentlyAdded), now: now) == "Recently Added")
     }

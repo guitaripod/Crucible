@@ -81,7 +81,7 @@ enum HomeMediaActions {
             }
         })
         if let bucket, ContinueWatchingRemoval.applies(to: item, in: bucket) {
-            actions.append(removalAction(for: item, api: api, navigation: navigation, didChange: didChange))
+            actions.append(removalAction(for: item, in: bucket, api: api, navigation: navigation, didChange: didChange))
         }
         if HomeMediaRules.isDownloadable(item) {
             actions.append(DownloadMenu.action(for: item))
@@ -96,11 +96,12 @@ enum HomeMediaActions {
 
     private static func removalAction(
         for item: PlexMetadata,
+        in bucket: HomeBucket,
         api: APIClient,
         navigation: @escaping @MainActor () -> UINavigationController?,
         didChange: @escaping @MainActor () -> Void
     ) -> UIAction {
-        UIAction(title: ContinueWatchingRemoval.title, image: UIImage(systemName: ContinueWatchingRemoval.symbol)) { _ in
+        UIAction(title: ContinueWatchingRemoval.title(for: bucket), image: UIImage(systemName: ContinueWatchingRemoval.symbol)) { _ in
             Haptics.light()
             Task { @MainActor in
                 do {

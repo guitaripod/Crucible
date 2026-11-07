@@ -84,6 +84,20 @@ final class RateAndHomeRowsTests: TVTestCase {
         XCTAssertTrue(vanishes(show), "Not Now left the show on the shelf")
     }
 
+    func testRemoveFromUpNextDropsTheEpisode() {
+        let app = AppNavigation.launchHome()
+        XCTAssertTrue(AppNavigation.move(app, .down, untilFocusHasPrefix: "home.card.upNext.", limit: 8), "focus never reached Up Next")
+        let card = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch
+        let identifier = card.identifier
+        TVTest.remote.longPress(.select, duration: 1.6)
+        TVTest.settle(1.0)
+        XCTAssertTrue(app.descendants(matching: .any)["Remove from Up Next"].waitForExistence(timeout: 5), "the long-press menu offers Remove from Up Next")
+        TVTest.capture("01-remove-from-up-next-menu", in: self)
+        pickMenuItem(app, steps: 4)
+        XCTAssertTrue(vanishes(element(app, identifier)), "the removed episode stayed in Up Next")
+        TVTest.capture("02-removed-from-up-next", in: self)
+    }
+
     func testRemoveFromContinueWatchingDropsTheCard() {
         let app = AppNavigation.launchHome()
         let card = element(app, "home.card.continueWatching.1002")
