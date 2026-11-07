@@ -37,7 +37,7 @@
       "10-history": {"headline": "Jeder Abruf, Tag für Tag", "subhead": "Wiedergabeverlauf mit Postern, nach Tagen gruppiert"}
     },
     "es-ES": {
-      "04c-essentials-offer": {"headline": "Sáltate el relleno", "subhead": "Essentials oculta los episodios exclusivos del anime en series largas"},
+      "04c-essentials-offer": {"headline": "Sáltate el relleno", "subhead": "Esenciales oculta los episodios exclusivos del anime en series largas"},
       "09b-skip-recap": {"headline": "Sáltate el resumen", "subhead": "Omite intro, resumen y avance con los capítulos de tus archivos"},
       "01-home": {"headline": "Retoma justo donde lo dejaste", "subhead": "Inicio centrado en seguir viendo toda tu biblioteca de Plex"},
       "02b-library-settled": {"headline": "Todas tus bibliotecas al alcance", "subhead": "Filtros, orden, índice A–Z y Visto recientemente"},
@@ -50,7 +50,7 @@
       "10-history": {"headline": "Cada reproducción, día a día", "subhead": "Historial de visualización con pósteres, agrupado por día"}
     },
     "fr-FR": {
-      "04c-essentials-offer": {"headline": "Passe le remplissage", "subhead": "Essentials masque les épisodes propres à l'anime des longues séries"},
+      "04c-essentials-offer": {"headline": "Passe les fillers", "subhead": "Essentiels masque les épisodes hors-série des longues séries"},
       "09b-skip-recap": {"headline": "Passe le récap", "subhead": "Passe le générique, le récap et l'aperçu grâce aux chapitres de tes fichiers"},
       "01-home": {"headline": "Reprends là où tu t'es arrêté", "subhead": "Accueil axé sur la reprise de toute ta bibliothèque Plex"},
       "02b-library-settled": {"headline": "Toutes tes bibliothèques sous la main", "subhead": "Filtres, tri, index A–Z et Vu récemment"},
@@ -63,7 +63,7 @@
       "10-history": {"headline": "Chaque lecture, jour après jour", "subhead": "Historique de lecture avec affiches, groupé par jour"}
     },
     "it": {
-      "04c-essentials-offer": {"headline": "Salta i filler", "subhead": "Essentials nasconde gli episodi esclusivi dell'anime nelle serie lunghe"},
+      "04c-essentials-offer": {"headline": "Salta i filler", "subhead": "Essenziali nasconde gli episodi esclusivi dell'anime nelle serie lunghe"},
       "09b-skip-recap": {"headline": "Salta il riassunto", "subhead": "Salta sigla, riassunto e anteprima grazie ai capitoli dei tuoi file"},
       "01-home": {"headline": "Riprendi da dove avevi lasciato", "subhead": "Home pensata per riprendere tutta la tua libreria Plex"},
       "02b-library-settled": {"headline": "Ogni libreria a portata di mano", "subhead": "Filtri, ordinamento, indice A–Z e Visti di recente"},
@@ -76,7 +76,7 @@
       "10-history": {"headline": "Ogni riproduzione, giorno per giorno", "subhead": "Cronologia visioni con locandine, raggruppata per giorno"}
     },
     "ja": {
-      "04c-essentials-offer": {"headline": "フィラーをスキップ", "subhead": "Essentialsで長編アニメのアニメオリジナル回を非表示に"},
+      "04c-essentials-offer": {"headline": "フィラーをスキップ", "subhead": "エッセンシャルで長編アニメのアニメオリジナル回を非表示に"},
       "09b-skip-recap": {"headline": "あらすじをスキップ", "subhead": "ファイルのチャプターでOP・あらすじ・予告をスキップ"},
       "01-home": {"headline": "見逃した続きからすぐ再開", "subhead": "Plexライブラリ全体を再開中心に表示"},
       "02b-library-settled": {"headline": "全ライブラリをすぐ手元に", "subhead": "絞り込み、並べ替え、A–Z索引、最近視聴"},
@@ -89,7 +89,7 @@
       "10-history": {"headline": "毎日の再生をたどる", "subhead": "ポスター付きの視聴履歴を日別に表示"}
     },
     "ko": {
-      "04c-essentials-offer": {"headline": "필러는 건너뛰기", "subhead": "Essentials가 긴 시리즈의 애니 오리지널 회차를 숨겨요"},
+      "04c-essentials-offer": {"headline": "필러는 건너뛰기", "subhead": "에센셜이 긴 시리즈의 애니 오리지널 회차를 숨겨요"},
       "09b-skip-recap": {"headline": "요약 건너뛰기", "subhead": "파일 챕터로 오프닝, 요약, 예고를 건너뛰어요"},
       "01-home": {"headline": "보던 곳에서 바로 이어보기", "subhead": "Plex 라이브러리 전체를 이어보기 중심으로"},
       "02b-library-settled": {"headline": "모든 라이브러리를 한눈에", "subhead": "필터, 정렬, A–Z 색인, 최근 시청"},
@@ -115,7 +115,7 @@
       "10-history": {"headline": "Każde odtworzenie, dzień po dniu", "subhead": "Historia oglądania z plakatami, pogrupowana dniami"}
     },
     "pt-BR": {
-      "04c-essentials-offer": {"headline": "Pule os fillers", "subhead": "Essentials esconde os episódios exclusivos do anime em séries longas"},
+      "04c-essentials-offer": {"headline": "Pule os fillers", "subhead": "Essenciais esconde os episódios exclusivos do anime em séries longas"},
       "09b-skip-recap": {"headline": "Pule o resumo", "subhead": "Pule abertura, resumo e prévia com os capítulos dos seus arquivos"},
       "01-home": {"headline": "Continue de onde parou", "subhead": "Início focado em continuar assistindo sua biblioteca Plex"},
       "02b-library-settled": {"headline": "Todas as bibliotecas à mão", "subhead": "Filtros, ordenação, índice A–Z e Assistido recentemente"},
@@ -128,7 +128,7 @@
       "10-history": {"headline": "Cada play, dia a dia", "subhead": "Histórico de exibição com pôsteres, agrupado por dia"}
     },
     "zh-Hans": {
-      "04c-essentials-offer": {"headline": "跳过填充集", "subhead": "Essentials 隐藏长篇动画的动画原创集"},
+      "04c-essentials-offer": {"headline": "跳过填充集", "subhead": "「精选」隐藏长篇动画的动画原创集"},
       "09b-skip-recap": {"headline": "跳过前情回顾", "subhead": "借助文件自带章节跳过片头、回顾与预告"},
       "01-home": {"headline": "从上次停下的地方继续", "subhead": "以继续观看为核心的首页，涵盖整个 Plex 媒体库"},
       "02b-library-settled": {"headline": "所有媒体库触手可及", "subhead": "筛选、排序、A–Z 索引与最近观看"},
@@ -141,7 +141,7 @@
       "10-history": {"headline": "每一次播放，按日回顾", "subhead": "带海报的观看历史，按天分组显示"}
     },
     "zh-Hant": {
-      "04c-essentials-offer": {"headline": "跳過填充集", "subhead": "Essentials 隱藏長篇動畫的動畫原創集"},
+      "04c-essentials-offer": {"headline": "跳過填充集", "subhead": "「精選」隱藏長篇動畫的動畫原創集"},
       "09b-skip-recap": {"headline": "跳過前情回顧", "subhead": "借助檔案自帶章節跳過片頭、回顧與預告"},
       "01-home": {"headline": "從上次停下的地方繼續", "subhead": "以繼續觀看為核心的首頁，涵蓋整個 Plex 媒體庫"},
       "02b-library-settled": {"headline": "所有媒體庫觸手可及", "subhead": "篩選、排序、A–Z 索引與最近觀看"},
