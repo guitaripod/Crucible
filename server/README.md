@@ -36,6 +36,10 @@ plex.tv/link, finds a model server (llama-swap, Ollama or LM Studio on this mach
 server's certificate, keeps it running as a service (systemd user unit or launchd agent) and shows a QR code. Scan it
 with the iPhone's Camera, or in Crucible under Settings, Crucible Server.
 
+An Apple TV pairs through a paired iPhone or iPad: on the TV, You › Crucible Server › Pair with iPhone, pick the
+iPhone and tap Allow on it; or Show Code for iPhone and scan the TV's code with the iPhone's Camera. Typing the code
+`crucible-server pair` prints works too.
+
 ```sh
 crucible-server pair        # a new pairing code for another device
 crucible-server devices     # what is paired
@@ -53,6 +57,10 @@ episode's dialogue, a smaller one reads an even sample of it.
 - Pairing moves a single-use 128-bit secret out of band (the QR code or a typed code). The server proves it knows
   the secret first, keyed to the fingerprint of the certificate the device actually sees, so a machine pretending
   to be your Plex server learns nothing; then the device proves it and gets a token, kept only as a hash here.
+- An Apple TV gets its secret from a paired iPhone or iPad: over Apple's encrypted device-to-device link after you
+  tap Allow, or by the iPhone passing on the secret the TV shows, over its pinned connection. Either secret pairs one
+  device once, only while it is fresh, and only if the Plex account on the TV is one the server lets in. The iPhone
+  follows pairing links only to addresses on the home network or the tailnet.
 - Every request carries the person's own Plex token for this server, and Plex is asked as that person, so a
   restricted profile sees only what Plex already shows it. The owner chooses who may use the server: only them,
   their Plex Home, or everyone the server is shared with.

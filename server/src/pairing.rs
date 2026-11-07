@@ -1,7 +1,10 @@
 //! Pairing a device once. The owner's terminal shows a single-use 128-bit secret (as a QR code or a typed code);
 //! discovery never carries it. The server proves it knows the secret first, keyed to the fingerprint of the TLS
 //! certificate the device actually sees, so a host impersonating the Plex machine learns nothing; only then does the
-//! device prove it and receive its token.
+//! device prove it and receive its token. A paired device may also hand over a secret another device made and showed
+//! (an Apple TV's QR code); that secret pairs one device, and only one the server's policy admits for its Plex account.
+//! A used secret stays refused for a day while the server runs; handing one on takes a device the policy admits, which
+//! could hand on a fresh secret anyway.
 
 use std::sync::{Mutex, PoisonError};
 use std::time::{Duration, Instant};
@@ -17,6 +20,12 @@ pub const LIFETIME: Duration = Duration::from_secs(600);
 const ATTEMPTS: u32 = 5;
 /// Secrets that may be open at once.
 const OPEN_LIMIT: usize = 8;
+/// Open secrets one paired device may have handed on at once; a further one replaces its oldest.
+const HANDED_PER_DEVICE: usize = 2;
+/// How long a used secret stays refused, far longer than any secret stays open.
+const SPENT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
+/// Used secrets remembered at most.
+const SPENT_LIMIT: usize = 4096;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -46,6 +55,7 @@ struct Pending {
     expires: Instant,
     exchange: Option<(String, String)>,
     failures: u32,
+    handed_by: Option<String>,
 }
 
 /// Why a pairing step was refused. Every refusal looks the same to the device on purpose.
@@ -55,6 +65,10 @@ pub enum Refused {
     Unknown,
     #[error("the proof does not match")]
     Proof,
+    #[error("that secret is already open or was used")]
+    Reused,
+    #[error("too many pairings are open")]
+    Busy,
 }
 
 /// The open secrets the running server holds. A secret the terminal shows reaches it through the database, which
@@ -62,6 +76,7 @@ pub enum Refused {
 #[derive(Default)]
 pub struct Pairings {
     pending: Mutex<Vec<Pending>>,
+    spent: Mutex<Vec<(String, Instant)>>,
     store: Option<std::sync::Arc<crate::store::Store>>,
 }
 
@@ -127,7 +142,7 @@ fn encode_component(text: &str) -> String {
 
 impl Pairings {
     pub fn backed_by(store: std::sync::Arc<crate::store::Store>) -> Self {
-        Pairings { pending: Mutex::default(), store: Some(store) }
+        Pairings { pending: Mutex::default(), spent: Mutex::default(), store: Some(store) }
     }
 
     /// Shows a new secret from a terminal: kept in the database for the running server, returned for the QR code.
@@ -146,7 +161,7 @@ impl Pairings {
         let Some(store) = &self.store else { return };
         if let Ok(Some((secret, expires))) = store.take_pending_pairing(id) {
             let remaining = Duration::from_secs((expires - crate::store::now()).max(0) as u64);
-            pending.push(Pending { secret, id: id.to_string(), expires: Instant::now() + remaining, exchange: None, failures: 0 });
+            pending.push(Pending { secret, id: id.to_string(), expires: Instant::now() + remaining, exchange: None, failures: 0, handed_by: None });
         }
     }
 
@@ -162,23 +177,56 @@ impl Pairings {
     pub fn open(&self) -> Shown {
         let mut secret = [0u8; 16];
         rand::thread_rng().fill_bytes(&mut secret);
-        self.open_with(secret)
+        self.insert(secret, None).expect("a fresh random secret is never open or spent")
     }
 
-    /// Opens a secret another device brought (an Apple TV's own QR code, handed on by a paired iPhone).
-    pub fn open_with(&self, secret: [u8; 16]) -> Shown {
-        let mut pending = self.lock();
+    /// Opens a secret the paired device `by` brought (an Apple TV's QR code, or one an iPhone made for a nearby Apple
+    /// TV). A secret already open, used in the last day, or shown by the terminal is refused, so it pairs one device.
+    pub fn open_with(&self, secret: [u8; 16], by: &str) -> Result<Shown, Refused> {
+        self.insert(secret, Some(by))
+    }
+
+    fn insert(&self, secret: [u8; 16], handed_by: Option<&str>) -> Result<Shown, Refused> {
+        let id = secret_id(&secret);
         let now = Instant::now();
+        let mut spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
+        spent.retain(|(_, at)| at.elapsed() < SPENT_FOR);
+        let mut pending = self.lock();
         Self::prune(&mut pending, now);
+        if handed_by.is_some() {
+            self.adopt(&mut pending, &id);
+        }
+        if spent.iter().any(|(used, _)| *used == id) || pending.iter().any(|entry| entry.id == id) {
+            return Err(Refused::Reused);
+        }
+        if let Some(device) = handed_by {
+            let mine: Vec<usize> = pending.iter().enumerate().filter(|(_, entry)| entry.handed_by.as_deref() == Some(device)).map(|(index, _)| index).collect();
+            if mine.len() >= HANDED_PER_DEVICE {
+                pending.remove(mine[0]);
+            }
+            if pending.len() >= OPEN_LIMIT {
+                return Err(Refused::Busy);
+            }
+        }
         while pending.len() >= OPEN_LIMIT {
             pending.remove(0);
         }
-        pending.push(Pending { secret, id: secret_id(&secret), expires: now + LIFETIME, exchange: None, failures: 0 });
-        Shown { secret, code: grouped(&secret) }
+        pending.push(Pending { secret, id, expires: now + LIFETIME, exchange: None, failures: 0, handed_by: handed_by.map(str::to_string) });
+        Ok(Shown { secret, code: grouped(&secret) })
+    }
+
+    /// Whether the open secret with this id came from a paired device rather than the owner's terminal, so the device
+    /// redeeming it must also pass the owner's policy.
+    pub fn is_handed(&self, id: &str) -> bool {
+        self.lock().iter().any(|entry| entry.id == id && entry.handed_by.is_some())
     }
 
     /// Step one: the device names the secret and sends its nonce; the server answers with its nonce and its proof.
     pub fn begin(&self, id: &str, device_nonce: &str, fingerprint: &str) -> Result<(String, String), Refused> {
+        let spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
+        if spent.iter().any(|(used, _)| used == id) {
+            return Err(Refused::Unknown);
+        }
         let mut pending = self.lock();
         Self::prune(&mut pending, Instant::now());
         self.adopt(&mut pending, id);
@@ -191,6 +239,7 @@ impl Pairings {
 
     /// Step two: the device's proof over the same nonces. A match consumes the secret.
     pub fn finish(&self, id: &str, proof: &str, fingerprint: &str) -> Result<(), Refused> {
+        let mut spent = self.spent.lock().unwrap_or_else(PoisonError::into_inner);
         let mut pending = self.lock();
         Self::prune(&mut pending, Instant::now());
         let index = pending.iter().position(|entry| entry.id == id).ok_or(Refused::Unknown)?;
@@ -202,6 +251,10 @@ impl Pairings {
             return Err(Refused::Proof);
         }
         pending.remove(index);
+        if spent.len() >= SPENT_LIMIT {
+            spent.remove(0);
+        }
+        spent.push((id.to_string(), Instant::now()));
         Ok(())
     }
 }
@@ -266,6 +319,54 @@ mod tests {
         assert_eq!(device_proof(&secret, "ab12", "dn", "sn"), "476d5e66beda9d7f2bd25fb30fc206e259411d14a04e81b7054535544d1e51c1");
         assert_eq!(secret_id(&secret), "31d9e8154cbc91a2");
         assert_eq!(BASE32_NOPAD.encode(&secret), "AEAQCAIBAEAQCAIBAEAQCAIBAE");
+    }
+
+    #[test]
+    fn a_handed_secret_pairs_one_device_and_cannot_be_handed_again() {
+        let pairings = Pairings::default();
+        let secret = [9u8; 16];
+        pairings.open_with(secret, "phone").unwrap();
+        assert_eq!(pairings.open_with(secret, "phone").err(), Some(Refused::Reused));
+        let id = secret_id(&secret);
+        assert!(pairings.is_handed(&id));
+        let (server_nonce, _) = pairings.begin(&id, "dn", FP).unwrap();
+        pairings.finish(&id, &device_proof(&secret, FP, "dn", &server_nonce), FP).unwrap();
+        assert_eq!(pairings.open_with(secret, "other").err(), Some(Refused::Reused));
+        assert_eq!(pairings.begin(&id, "dn", FP), Err(Refused::Unknown));
+        assert!(!pairings.is_handed(&secret_id(&pairings.open().secret)));
+    }
+
+    #[test]
+    fn a_secret_the_terminal_shows_cannot_be_handed_on() {
+        let store = std::sync::Arc::new(crate::store::Store::in_memory().unwrap());
+        let shown = Pairings::open_for_server(&store).unwrap();
+        let server = Pairings::backed_by(store);
+        assert_eq!(server.open_with(shown.secret, "phone").err(), Some(Refused::Reused));
+        let id = secret_id(&shown.secret);
+        assert!(!server.is_handed(&id));
+        let (server_nonce, _) = server.begin(&id, "dn", FP).unwrap();
+        server.finish(&id, &device_proof(&shown.secret, FP, "dn", &server_nonce), FP).unwrap();
+        assert_eq!(server.begin(&id, "dn", FP), Err(Refused::Unknown));
+    }
+
+    #[test]
+    fn one_device_cannot_crowd_out_the_others() {
+        let pairings = Pairings::default();
+        let theirs = [1u8; 16];
+        pairings.open_with(theirs, "phone").unwrap();
+        for byte in 2..20u8 {
+            pairings.open_with([byte; 16], "flooder").unwrap();
+        }
+        assert!(pairings.is_handed(&secret_id(&theirs)));
+        assert!(!pairings.is_handed(&secret_id(&[2u8; 16])));
+        assert!(pairings.is_handed(&secret_id(&[19u8; 16])));
+        for (index, device) in ["a", "b"].iter().enumerate() {
+            pairings.open_with([100 + index as u8; 16], device).unwrap();
+            pairings.open_with([110 + index as u8; 16], device).unwrap();
+        }
+        pairings.open_with([120u8; 16], "c").unwrap();
+        assert_eq!(pairings.open_with([121u8; 16], "d").err(), Some(Refused::Busy));
+        assert!(pairings.is_handed(&secret_id(&theirs)));
     }
 
     #[test]

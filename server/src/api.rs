@@ -116,6 +116,7 @@ pub fn router(state: Shared) -> Router {
         .route("/hello", get(hello))
         .route("/pair", post(pair))
         .route("/pair/confirm", post(pair_confirm))
+        .route("/pair/code", post(pair_code))
         .route("/devices", get(devices))
         .route("/devices/{id}", delete(remove_device))
         .route("/brain", get(brain))
@@ -163,6 +164,13 @@ fn device_of(state: &AppState, headers: &HeaderMap) -> Result<Device, ApiError> 
 /// A paired device plus a Plex token this Plex server accepts, within the owner's policy.
 async fn caller(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiError> {
     let device = device_of(state, headers)?;
+    let (plex_token, hashed) = admit(state, headers).await?;
+    Ok(Caller { device, plex_token, person: hashed[..16].to_string() })
+}
+
+/// The Plex token a request carries, when Plex accepts it for this server and the owner's policy lets its person in;
+/// with its hash, which names the person without keeping the token.
+async fn admit(state: &AppState, headers: &HeaderMap) -> Result<(String, String), ApiError> {
     let plex_token = headers
         .get("crucible-plex-token")
         .and_then(|value| value.to_str().ok())
@@ -184,7 +192,7 @@ async fn caller(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiErro
         }
         state.accepted.lock().unwrap_or_else(PoisonError::into_inner).insert(hashed.clone(), Instant::now());
     }
-    Ok(Caller { device, plex_token, person: hashed[..16].to_string() })
+    Ok((plex_token, hashed))
 }
 
 async fn hello(State(state): State<Shared>) -> Json<Value> {
@@ -194,6 +202,7 @@ async fn hello(State(state): State<Shared>) -> Json<Value> {
         "version": env!("CARGO_PKG_VERSION"),
         "fingerprint": state.fingerprint,
         "brain": state.writer.is_some(),
+        "plexMachineIdentifier": state.config.machine_identifier,
     }))
 }
 
@@ -220,7 +229,10 @@ struct PairFinish {
     platform: String,
 }
 
-async fn pair_confirm(State(state): State<Shared>, Json(body): Json<PairFinish>) -> Result<(StatusCode, Json<Value>), ApiError> {
+async fn pair_confirm(State(state): State<Shared>, headers: HeaderMap, Json(body): Json<PairFinish>) -> Result<(StatusCode, Json<Value>), ApiError> {
+    if state.pairings.is_handed(&body.id) {
+        admit(&state, &headers).await?;
+    }
     state.pairings.finish(&body.id, &body.proof, &state.fingerprint).map_err(refused)?;
     let token = new_device_token();
     let name: String = body.name.chars().filter(|c| !c.is_control()).take(60).collect();
@@ -231,13 +243,33 @@ async fn pair_confirm(State(state): State<Shared>, Json(body): Json<PairFinish>)
     Ok((StatusCode::CREATED, Json(json!({"deviceId": id, "token": token, "name": state.config.name}))))
 }
 
+#[derive(Deserialize)]
+struct HandedCode {
+    secret: String,
+}
+
+/// A paired device hands on a secret another device showed it (an Apple TV's QR code, or one the iPhone made for a
+/// nearby Apple TV), so that device can pair by proving it knows the secret. Only a device whose person passes the
+/// owner's policy may add one.
+async fn pair_code(State(state): State<Shared>, headers: HeaderMap, Json(body): Json<HandedCode>) -> Result<(StatusCode, Json<Value>), ApiError> {
+    let caller = caller(&state, &headers).await?;
+    let secret = crate::pairing::secret_from_code(&body.secret)
+        .ok_or_else(|| ApiError::new(StatusCode::BAD_REQUEST, "bad_secret", "The secret must be 16 bytes of base32."))?;
+    state.pairings.open_with(secret, &caller.device.id).map_err(|refusal| match refusal {
+        Refused::Busy => ApiError::new(StatusCode::TOO_MANY_REQUESTS, "too_many_pairings", "Too many pairings are open. Try again in a few minutes."),
+        _ => ApiError::new(StatusCode::CONFLICT, "secret_reused", "That pairing code is already open or was used."),
+    })?;
+    tracing::info!(by = %caller.device.id, "a paired device opened a pairing for another device");
+    Ok((StatusCode::CREATED, Json(json!({"expiresIn": crate::pairing::LIFETIME.as_secs()}))))
+}
+
 fn refused(_: Refused) -> ApiError {
     ApiError::new(StatusCode::FORBIDDEN, "pairing_refused", "That pairing code is wrong or has expired.")
         .hint("Run crucible-server pair on the Plex machine for a new one.")
 }
 
 async fn devices(State(state): State<Shared>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
-    device_of(&state, &headers)?;
+    caller(&state, &headers).await?;
     let devices = state.store.devices().map_err(|error| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "database", error.to_string()))?;
     Ok(Json(json!({"devices": devices})))
 }
@@ -261,7 +293,7 @@ async fn remove_device(State(state): State<Shared>, headers: HeaderMap, Path(id)
 }
 
 async fn brain(State(state): State<Shared>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
-    device_of(&state, &headers)?;
+    caller(&state, &headers).await?;
     let Some(writer) = &state.writer else { return Ok(Json(json!({"model": null, "reachable": false}))) };
     let reachable = writer.brain.models().await.map(|models| models.contains(&writer.brain.model.name)).unwrap_or(false);
     Ok(Json(json!({"model": writer.brain.model.name, "reachable": reachable})))
