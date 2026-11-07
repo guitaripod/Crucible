@@ -40,7 +40,7 @@ install -m 0755 "$work/crucible-server" "$BIN_DIR/crucible-server"
 echo "Installed $BIN_DIR/crucible-server."
 command -v ffmpeg > /dev/null || echo "Install ffmpeg too, so recaps can read subtitles."
 case ":$PATH:" in *":$BIN_DIR:"*) ;; *) echo "Add $BIN_DIR to your PATH." ;; esac
-if [ -t 0 ] || [ -e /dev/tty ]; then
+if (: < /dev/tty) 2> /dev/null; then
     "$BIN_DIR/crucible-server" setup < /dev/tty
 else
     echo "Now run: crucible-server setup"
