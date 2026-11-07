@@ -301,7 +301,10 @@ async fn remove_device(State(state): State<Shared>, headers: HeaderMap, Path(id)
         })?;
     }
     match state.store.remove_device(&id) {
-        Ok(true) => Ok(StatusCode::NO_CONTENT),
+        Ok(true) => {
+            state.pairings.revoke_handed_by(&id);
+            Ok(StatusCode::NO_CONTENT)
+        }
         Ok(false) => Err(ApiError::new(StatusCode::NOT_FOUND, "not_found", "No such device.")),
         Err(error) => Err(ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "database", error.to_string())),
     }

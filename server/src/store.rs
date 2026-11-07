@@ -128,12 +128,18 @@ impl Store {
         self.lock().execute("DELETE FROM devices", [])
     }
 
-    /// Leaves a secret the terminal shows for the running server to pick up; it expires on its own.
+    /// Leaves a secret the terminal shows for the running server to pick up; it expires on its own, and its row stays a
+    /// day longer so a paired device cannot hand it on as its own.
     pub fn add_pending_pairing(&self, id: &str, secret: &[u8; 16], expires: i64) -> rusqlite::Result<()> {
         let connection = self.lock();
-        connection.execute("DELETE FROM pending_pairings WHERE expires <= ?1", params![now()])?;
+        connection.execute("DELETE FROM pending_pairings WHERE expires <= ?1", params![now() - 86_400])?;
         connection.execute("INSERT OR REPLACE INTO pending_pairings (id, secret, expires) VALUES (?1, ?2, ?3)", params![id, hex::encode(secret), expires])?;
         Ok(())
+    }
+
+    /// Whether the terminal ever showed this secret and it has not been taken, expired or not.
+    pub fn has_pending_pairing(&self, id: &str) -> rusqlite::Result<bool> {
+        self.lock().query_row("SELECT 1 FROM pending_pairings WHERE id = ?1", params![id], |_| Ok(())).optional().map(|found| found.is_some())
     }
 
     /// Takes a waiting secret out of the database, if it is there and unexpired.

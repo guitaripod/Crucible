@@ -123,7 +123,7 @@ impl PlexTv {
     pub async fn home_tokens(&self, owner_token: &str, machine_identifier: &str) -> Result<Vec<String>, PlexTvError> {
         let users = self.xml("/api/users", owner_token).await?;
         let shares = self.xml(&format!("/api/servers/{machine_identifier}/shared_servers"), owner_token).await?;
-        Ok(home_share_tokens(&users, &shares))
+        home_share_tokens(&users, &shares).map_err(PlexTvError::Decode)
     }
 
     async fn xml(&self, path: &str, token: &str) -> Result<String, PlexTvError> {
@@ -144,27 +144,38 @@ impl PlexTv {
 }
 
 /// The tokens of the shares (`SharedServer` in `shares`) that belong to a Plex Home member (`User` with `home="1"` in
-/// `users`).
-pub fn home_share_tokens(users: &str, shares: &str) -> Vec<String> {
-    let home: HashSet<String> = elements(users, "User")
+/// `users`), or why either list is not one plex.tv would send.
+pub fn home_share_tokens(users: &str, shares: &str) -> Result<Vec<String>, String> {
+    let home: HashSet<String> = elements(users, "User")?
         .into_iter()
         .filter(|user| matches!(user.get("home").map(String::as_str), Some("1" | "true")))
         .filter_map(|user| user.get("id").cloned())
         .collect();
-    elements(shares, "SharedServer")
+    Ok(elements(shares, "SharedServer")?
         .into_iter()
         .filter(|share| share.get("userID").is_some_and(|id| home.contains(id)))
         .filter_map(|share| share.get("accessToken").cloned())
         .filter(|token| !token.is_empty())
-        .collect()
+        .collect())
 }
 
-/// The attributes of every `tag` element in `xml`.
-fn elements(xml: &str, tag: &str) -> Vec<HashMap<String, String>> {
+/// The attributes of every `tag` element in a whole, well-formed `MediaContainer` document; anything else (an empty
+/// body, a captive portal's page, a cut-off answer) is an error rather than an empty list.
+fn elements(xml: &str, tag: &str) -> Result<Vec<HashMap<String, String>>, String> {
     let mut reader = quick_xml::Reader::from_str(xml);
+    reader.config_mut().check_end_names = true;
     let mut found = Vec::new();
+    let mut container = false;
+    let mut depth = 0usize;
     loop {
-        match reader.read_event() {
+        let event = reader.read_event();
+        match &event {
+            Ok(Event::Start(_)) => depth += 1,
+            Ok(Event::End(_)) => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+        match event {
+            Ok(Event::Start(element) | Event::Empty(element)) if element.name().as_ref() == "MediaContainer" => container = true,
             Ok(Event::Start(element) | Event::Empty(element)) if element.name().as_ref() == tag => found.push(
                 element
                     .attributes()
@@ -175,7 +186,9 @@ fn elements(xml: &str, tag: &str) -> Vec<HashMap<String, String>> {
                     })
                     .collect(),
             ),
-            Ok(Event::Eof) | Err(_) => return found,
+            Ok(Event::Eof) if container && depth == 0 => return Ok(found),
+            Ok(Event::Eof) => return Err("plex.tv's answer is not a MediaContainer".into()),
+            Err(error) => return Err(format!("plex.tv's answer does not parse: {error}")),
             _ => {}
         }
     }
@@ -203,8 +216,10 @@ mod tests {
   <SharedServer id="2" userID="41" accessToken="robin-token" owned="0"/>
   <SharedServer id="3" userID="32" accessToken="" owned="0"/>
 </MediaContainer>"#;
-        assert_eq!(home_share_tokens(users, shares), vec!["kids-token".to_string()]);
-        assert!(home_share_tokens("not xml <", shares).is_empty());
+        assert_eq!(home_share_tokens(users, shares), Ok(vec!["kids-token".to_string()]));
+        assert!(home_share_tokens("", shares).is_err());
+        assert!(home_share_tokens("<html><body>Sign in to this Wi-Fi</body></html>", shares).is_err());
+        assert!(home_share_tokens(users, "<MediaContainer><SharedServer userID=\"31\" accessToken=\"kids-token\">").is_err());
     }
 
     #[test]

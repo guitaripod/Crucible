@@ -26,6 +26,8 @@ const HANDED_PER_DEVICE: usize = 2;
 const SPENT_FOR: Duration = Duration::from_secs(24 * 60 * 60);
 /// Used secrets remembered at most.
 const SPENT_LIMIT: usize = 4096;
+/// Exchanges one secret keeps at once, so a device that saw a secret it may not use cannot crowd out the one that may.
+const EXCHANGES: usize = 4;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -53,7 +55,7 @@ struct Pending {
     secret: [u8; 16],
     id: String,
     expires: Instant,
-    exchange: Option<(String, String)>,
+    exchanges: Vec<(String, String)>,
     failures: u32,
     handed_by: Option<String>,
 }
@@ -161,7 +163,7 @@ impl Pairings {
         let Some(store) = &self.store else { return };
         if let Ok(Some((secret, expires))) = store.take_pending_pairing(id) {
             let remaining = Duration::from_secs((expires - crate::store::now()).max(0) as u64);
-            pending.push(Pending { secret, id: id.to_string(), expires: Instant::now() + remaining, exchange: None, failures: 0, handed_by: None });
+            pending.push(Pending { secret, id: id.to_string(), expires: Instant::now() + remaining, exchanges: Vec::new(), failures: 0, handed_by: None });
         }
     }
 
@@ -193,26 +195,30 @@ impl Pairings {
         spent.retain(|(_, at)| at.elapsed() < SPENT_FOR);
         let mut pending = self.lock();
         Self::prune(&mut pending, now);
-        if handed_by.is_some() {
-            self.adopt(&mut pending, &id);
-        }
-        if spent.iter().any(|(used, _)| *used == id) || pending.iter().any(|entry| entry.id == id) {
+        let shown_by_terminal = || self.store.as_ref().is_some_and(|store| store.has_pending_pairing(&id).unwrap_or(true));
+        if spent.iter().any(|(used, _)| *used == id) || pending.iter().any(|entry| entry.id == id) || handed_by.is_some() && shown_by_terminal() {
             return Err(Refused::Reused);
         }
         if let Some(device) = handed_by {
             let mine: Vec<usize> = pending.iter().enumerate().filter(|(_, entry)| entry.handed_by.as_deref() == Some(device)).map(|(index, _)| index).collect();
-            if mine.len() >= HANDED_PER_DEVICE {
-                pending.remove(mine[0]);
-            }
-            if pending.len() >= OPEN_LIMIT {
+            let replaces = mine.len() >= HANDED_PER_DEVICE;
+            if pending.len() - usize::from(replaces) >= OPEN_LIMIT {
                 return Err(Refused::Busy);
+            }
+            if replaces {
+                pending.remove(mine[0]);
             }
         }
         while pending.len() >= OPEN_LIMIT {
             pending.remove(0);
         }
-        pending.push(Pending { secret, id, expires: now + LIFETIME, exchange: None, failures: 0, handed_by: handed_by.map(str::to_string) });
+        pending.push(Pending { secret, id, expires: now + LIFETIME, exchanges: Vec::new(), failures: 0, handed_by: handed_by.map(str::to_string) });
         Ok(Shown { secret, code: grouped(&secret) })
+    }
+
+    /// Closes every secret the paired device `device` handed on, once it is unpaired.
+    pub fn revoke_handed_by(&self, device: &str) {
+        self.lock().retain(|entry| entry.handed_by.as_deref() != Some(device));
     }
 
     /// Whether the open secret with this id came from a paired device rather than the owner's terminal, so the device
@@ -233,7 +239,10 @@ impl Pairings {
         let entry = pending.iter_mut().find(|entry| entry.id == id).ok_or(Refused::Unknown)?;
         let server_nonce = random_hex(16);
         let answer = server_proof(&entry.secret, fingerprint, device_nonce, &server_nonce);
-        entry.exchange = Some((device_nonce.to_string(), server_nonce.clone()));
+        entry.exchanges.push((device_nonce.to_string(), server_nonce.clone()));
+        if entry.exchanges.len() > EXCHANGES {
+            entry.exchanges.remove(0);
+        }
         Ok((server_nonce, answer))
     }
 
@@ -244,9 +253,13 @@ impl Pairings {
         Self::prune(&mut pending, Instant::now());
         let index = pending.iter().position(|entry| entry.id == id).ok_or(Refused::Unknown)?;
         let entry = &mut pending[index];
-        let (device_nonce, server_nonce) = entry.exchange.clone().ok_or(Refused::Unknown)?;
-        let expected = device_proof(&entry.secret, fingerprint, &device_nonce, &server_nonce);
-        if !constant_time_equal(expected.as_bytes(), proof.as_bytes()) {
+        if entry.exchanges.is_empty() {
+            return Err(Refused::Unknown);
+        }
+        let matched = entry.exchanges.iter().any(|(device_nonce, server_nonce)| {
+            constant_time_equal(device_proof(&entry.secret, fingerprint, device_nonce, server_nonce).as_bytes(), proof.as_bytes())
+        });
+        if !matched {
             entry.failures += 1;
             return Err(Refused::Proof);
         }
@@ -350,6 +363,36 @@ mod tests {
     }
 
     #[test]
+    fn a_later_exchange_does_not_spoil_an_earlier_one() {
+        let pairings = Pairings::default();
+        let secret = [5u8; 16];
+        pairings.open_with(secret, "phone").unwrap();
+        let id = secret_id(&secret);
+        let (first, _) = pairings.begin(&id, "television", FP).unwrap();
+        pairings.begin(&id, "onlooker", FP).unwrap();
+        pairings.finish(&id, &device_proof(&secret, FP, "television", &first), FP).unwrap();
+    }
+
+    #[test]
+    fn unpairing_a_device_closes_what_it_handed_on() {
+        let pairings = Pairings::default();
+        pairings.open_with([6u8; 16], "phone").unwrap();
+        pairings.open_with([7u8; 16], "tablet").unwrap();
+        pairings.revoke_handed_by("phone");
+        assert!(!pairings.is_handed(&secret_id(&[6u8; 16])));
+        assert!(pairings.is_handed(&secret_id(&[7u8; 16])));
+    }
+
+    #[test]
+    fn an_expired_terminal_secret_cannot_be_handed_on_either() {
+        let store = std::sync::Arc::new(crate::store::Store::in_memory().unwrap());
+        let secret = [8u8; 16];
+        store.add_pending_pairing(&secret_id(&secret), &secret, crate::store::now() - 1).unwrap();
+        let server = Pairings::backed_by(store);
+        assert_eq!(server.open_with(secret, "phone").err(), Some(Refused::Reused));
+    }
+
+    #[test]
     fn one_device_cannot_crowd_out_the_others() {
         let pairings = Pairings::default();
         let theirs = [1u8; 16];
@@ -366,6 +409,9 @@ mod tests {
         }
         pairings.open_with([120u8; 16], "c").unwrap();
         assert_eq!(pairings.open_with([121u8; 16], "d").err(), Some(Refused::Busy));
+        pairings.open_with([122u8; 16], "a").unwrap();
+        assert!(!pairings.is_handed(&secret_id(&[100u8; 16])));
+        assert!(pairings.is_handed(&secret_id(&[110u8; 16])));
         assert!(pairings.is_handed(&secret_id(&theirs)));
     }
 
