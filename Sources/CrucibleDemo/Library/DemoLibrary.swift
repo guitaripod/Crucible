@@ -101,7 +101,6 @@ actor DemoLibrary {
                 show: raw.string("show"),
                 season: raw.string("season")
             )
-            item.artworkOf = raw.string("stillOf")
             item.chapterNames = raw["demoChapters"] as? [String]
             let key = item.ratingKey
             items[key] = item

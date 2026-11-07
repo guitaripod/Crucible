@@ -38,6 +38,15 @@ def slug(name):
     return "".join(c.lower() if c.isalnum() else "-" for c in name).strip("-")
 
 
+def anime_chapters(item, names):
+    """An anime episode's named chapters the way fansub and WEB releases cut them: the opening, a recap, two halves,
+    the ending song and the next episode's preview."""
+    duration = item.get("duration", 0)
+    bounds = [0, 85_000, 135_000, duration // 2, duration - 91_000, duration - 31_000, duration]
+    return [{"id": 950 + n, "index": n + 1, "tag": name, "startTimeOffset": bounds[n], "endTimeOffset": bounds[n + 1]}
+            for n, name in enumerate(names[:6])]
+
+
 def stable_rng(*parts):
     h = hashlib.sha256("|".join(str(p) for p in parts).encode()).digest()
     return random.Random(int.from_bytes(h[:8], "big"))
@@ -239,7 +248,20 @@ SHOWS = [
          summary="In a river town that celebrates with paper lanterns, a girl and her talking moth run errands for the wind and uncover where wishes go.",
          style=("sunset_pink", "river", "serif"), added=6, runtime=(22, 26),
          seasons=[["The Festival of Small Lights", "Wind Errand", "River of Paper", "The Lantern Maker", "Moth Night", "Dawn Release"]],
-         watch=lambda s, e: "w" if e <= 2 else ("p:0.74" if e == 3 else "")),
+         late=[
+             ["The Lantern Ledger", "Moth Mail", "Ink and Embers", "The Night Ferry", "Paper Crane Parade", "Gusts and Promises",
+              "A Lantern for Grandmother", "The Bell Under the Bridge", "Rainy Day Errands", "The Glassblower's Daughter",
+              "Kite Weather", "Lost and Found Shop", "The Fox Who Kept Time", "Moonlit Market", "Ember's Apprentice",
+              "Down the Long Canal", "The Silent Festival", "Letters to the River", "Paper Boats", "The Wind's Birthday"],
+             ["Upriver", "The Mill of Whispers", "Lanterns in the Snow", "The Cartographer's Moth", "Harbour of Kites",
+              "The Tea House Ghost", "Mirror Lake", "Feather and Flame", "The Wishkeeper's Gate", "Sky Lantern Summit", "Pip Alone",
+              "The Weavers of Light", "Night of a Hundred Moths", "The Broken Compass", "Rivers Meet", "The Old Lamplighter",
+              "Ashes and Wishes", "The Glass Bridge", "Homeward Wind", "The Lantern Festival Returns", "Where Wishes Go",
+              "The Last Errand", "Small Lights", "The Moth's Song", "Paper Moon", "Big Wishes"],
+         ],
+         guids=["tvdb://9100005", "tmdb://9100005"],
+         chapters=["Opening Theme", "Recap", "Part A", "Part B", "Ending Theme", "Next Episode Preview"],
+         watch=lambda s, e: "w" if s == 1 and e <= 2 else ("p:0.74" if (s, e) == (1, 3) else "")),
     dict(title="Dry Season", year=2022, end=2022, cr="TV-PG", rating=8.6, audience=8.4, studio="North Tide Pictures",
          genres=["Documentary"], tagline="Water is the only story.",
          summary="Six months with farmers, well-diggers and rain-counters in a country that has not seen a full wet season in years.",
@@ -477,60 +499,89 @@ class Library:
                 "_style": show["style"], "_genres": show["genres"], "_directors": [], "_writers": [d], "_cast": cast,
                 "_kind": "show", "_seasons": [], "_end": show["end"],
             }
+            if show.get("guids"):
+                show_item["Guid"] = [{"id": guid} for guid in show["guids"]]
             self.items[srk] = show_item
             self.shows.append(show_item)
-            ep_counter = 0
             for si, titles in enumerate(show["seasons"], start=1):
-                sk = self._rk("season")
-                season = {
-                    "ratingKey": sk, "key": f"/library/metadata/{sk}/children", "type": "season", "title": f"Season {si}",
-                    "parentRatingKey": srk, "parentTitle": title, "parentIndex": si, "index": si,
-                    "parentThumb": show_item["thumb"], "librarySectionID": 2, "librarySectionTitle": "TV Shows",
-                    "thumb": self._poster(sk, "thumb"), "art": show_item["art"], "leafCount": len(titles),
-                    "viewedLeafCount": 0, "addedAt": show_item["addedAt"], "year": show["year"] + si - 1,
-                    "_style": show["style"], "_kind": "season", "_episodes": [], "_show": srk,
-                    "summary": "", "_season": si,
-                }
-                self.items[sk] = season
-                show_item["_seasons"].append(season)
+                season = self._season(show, show_item, si, d)
                 for ei, etitle in enumerate(titles, start=1):
-                    ep_counter += 1
-                    ek = self._rk("episode")
-                    erng = stable_rng("ep", srk, si, ei)
-                    minutes = erng.randint(*show["runtime"])
-                    if title == "The Salt Road" and si == 2:
-                        minutes = 42 if ei == 4 else erng.randint(43, 48)
-                    duration = minutes * 60000
-                    if title == "The Salt Road" and si == 2:
-                        summary = SALT_S2_SUMMARIES[ei - 1]
-                    else:
-                        summary = SETUPS[(ei + si) % 8] + " " + TWISTS[(ei * 3 + si) % 8]
-                    air = datetime.date(show["year"] + si - 1, 1 + (ei * 1) % 12, 3 + ei)
-                    ep = {
-                        "ratingKey": ek, "key": f"/library/metadata/{ek}", "guid": f"plex://episode/{ek}", "type": "episode",
-                        "title": etitle, "titleSort": etitle.lower(), "grandparentRatingKey": srk, "parentRatingKey": sk,
-                        "grandparentTitle": title, "parentTitle": f"Season {si}", "parentIndex": si, "index": ei,
-                        "librarySectionID": 2, "librarySectionTitle": "TV Shows", "contentRating": show["cr"],
-                        "summary": summary, "duration": duration, "originallyAvailableAt": air.isoformat(),
-                        "year": air.year, "thumb": f"/library/metadata/{ek}/thumb/{1700000000 + int(ek)}",
-                        "art": show_item["art"], "grandparentThumb": show_item["thumb"], "grandparentArt": show_item["art"],
-                        "parentThumb": season["thumb"], "addedAt": show_item["addedAt"], "audienceRating": round(7 + erng.random() * 2.4, 1),
-                        "_style": show["style"], "_kind": "episode", "_show": srk, "_season": sk,
-                        "_genres": show["genres"], "_directors": [d], "_writers": [w[0]], "_cast": [],
-                    }
-                    ep["_media"] = self._media(ek, duration, 1920, 1080, False,
-                                              int(erng.uniform(1.0, 3.4) * 1073741824), "episode")
-                    ep["_markers"] = self._markers(ek, duration, "episode")
-                    state = show["watch"](si, ei)
-                    if state == "w":
-                        ep["viewCount"] = 1
-                        ep["lastViewedAt"] = self._t(erng.uniform(2, 200))
-                    elif state.startswith("p:"):
-                        ep["viewOffset"] = int(duration * float(state[2:]))
-                    self.items[ek] = ep
-                    season["_episodes"].append(ep)
+                    self._episode(show, show_item, season, si, ei, etitle, d, w)
+                season["leafCount"] = len(season["_episodes"])
+        for show in SHOWS:
+            for si, titles in enumerate(show.get("late", []), start=1):
+                show_item = next(item for item in self.shows if item["title"] == show["title"])
+                existing = [season for season in show_item["_seasons"] if season["_season"] == si]
+                season = existing[0] if existing else self._season(show, show_item, si, show_item["_writers"][0])
+                for etitle in titles:
+                    ei = len(season["_episodes"]) + 1
+                    self._episode(show, show_item, season, si, ei, etitle, show_item["_writers"][0], [show_item["_writers"][0]])
+                season["leafCount"] = len(season["_episodes"])
+            if show.get("late"):
+                show_item = next(item for item in self.shows if item["title"] == show["title"])
+                show_item["childCount"] = len(show_item["_seasons"])
         self._recount()
         self._set_progress_times()
+
+    def _season(self, show, show_item, si, d):
+        """A new season of `show`, registered with the show."""
+        srk = show_item["ratingKey"]
+        title = show["title"]
+        sk = self._rk("season")
+        season = {
+            "ratingKey": sk, "key": f"/library/metadata/{sk}/children", "type": "season", "title": f"Season {si}",
+            "parentRatingKey": srk, "parentTitle": title, "parentIndex": si, "index": si,
+            "parentThumb": show_item["thumb"], "librarySectionID": 2, "librarySectionTitle": "TV Shows",
+            "thumb": self._poster(sk, "thumb"), "art": show_item["art"], "leafCount": 0,
+            "viewedLeafCount": 0, "addedAt": show_item["addedAt"], "year": show["year"] + si - 1,
+            "_style": show["style"], "_kind": "season", "_episodes": [], "_show": srk,
+            "summary": "", "_season": si,
+        }
+        self.items[sk] = season
+        show_item["_seasons"].append(season)
+        return season
+
+    def _episode(self, show, show_item, season, si, ei, etitle, d, w):
+        """Episode `ei` of season `si`, appended to the season."""
+        srk = show_item["ratingKey"]
+        sk = season["ratingKey"]
+        title = show["title"]
+        ek = self._rk("episode")
+        erng = stable_rng("ep", srk, si, ei)
+        minutes = erng.randint(*show["runtime"])
+        if title == "The Salt Road" and si == 2:
+            minutes = 42 if ei == 4 else erng.randint(43, 48)
+        duration = minutes * 60000
+        if title == "The Salt Road" and si == 2:
+            summary = SALT_S2_SUMMARIES[ei - 1]
+        else:
+            summary = SETUPS[(ei + si) % 8] + " " + TWISTS[(ei * 3 + si) % 8]
+        air = datetime.date(show["year"] + si - 1, 1 + (ei * 1) % 12, 3 + ei)
+        ep = {
+            "ratingKey": ek, "key": f"/library/metadata/{ek}", "guid": f"plex://episode/{ek}", "type": "episode",
+            "title": etitle, "titleSort": etitle.lower(), "grandparentRatingKey": srk, "parentRatingKey": sk,
+            "grandparentTitle": title, "parentTitle": f"Season {si}", "parentIndex": si, "index": ei,
+            "librarySectionID": 2, "librarySectionTitle": "TV Shows", "contentRating": show["cr"],
+            "summary": summary, "duration": duration, "originallyAvailableAt": air.isoformat(),
+            "year": air.year, "thumb": f"/library/metadata/{ek}/thumb/{1700000000 + int(ek)}",
+            "art": show_item["art"], "grandparentThumb": show_item["thumb"], "grandparentArt": show_item["art"],
+            "parentThumb": season["thumb"], "addedAt": show_item["addedAt"], "audienceRating": round(7 + erng.random() * 2.4, 1),
+            "_style": show["style"], "_kind": "episode", "_show": srk, "_season": sk,
+            "_genres": show["genres"], "_directors": [d], "_writers": [w[0]], "_cast": [],
+        }
+        ep["_media"] = self._media(ek, duration, 1920, 1080, False,
+                                  int(erng.uniform(1.0, 3.4) * 1073741824), "episode")
+        ep["_markers"] = self._markers(ek, duration, "episode")
+        if show.get("chapters"):
+            ep["_chapters"] = show["chapters"]
+        state = show["watch"](si, ei)
+        if state == "w":
+            ep["viewCount"] = 1
+            ep["lastViewedAt"] = self._t(erng.uniform(2, 200))
+        elif state.startswith("p:"):
+            ep["viewOffset"] = int(duration * float(state[2:]))
+        self.items[ek] = ep
+        season["_episodes"].append(ep)
 
     def _set_progress_times(self):
         by_title = {}
@@ -721,6 +772,8 @@ class Library:
             out["Chapter"] = [{"id": 900 + n, "index": n + 1, "tag": name, "thumb": it.get("thumb"),
                                "startTimeOffset": duration * n // len(names), "endTimeOffset": duration * (n + 1) // len(names)}
                               for n, name in enumerate(names)]
+        if full and it.get("_chapters"):
+            out["Chapter"] = anime_chapters(it, it["_chapters"])
         if it["_kind"] in ("movie", "show") or full:
             if it.get("_genres"):
                 out["Genre"] = [{"id": int(GENRE_ID[g]), "tag": g} for g in it["_genres"]]

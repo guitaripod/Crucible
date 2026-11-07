@@ -43,7 +43,7 @@ POSTER_QUALITY, BACKDROP_QUALITY, STILL_QUALITY, AVATAR_QUALITY = 72, 62, 68, 74
 
 TIME_FIELDS = {"addedAt": "addedAgo", "updatedAt": "updatedAgo", "lastViewedAt": "lastViewedAgo"}
 INTERNAL_FIELDS = {"_style", "_genres", "_directors", "_writers", "_cast", "_kind", "_seasons", "_end", "_episodes", "_show",
-                   "_season", "_media", "_markers", "_related"}
+                   "_season", "_media", "_markers", "_related", "_chapters"}
 
 
 def build_library():
@@ -90,6 +90,8 @@ def export_item(lib, item):
     if item["_kind"] == "episode":
         out["show"] = item["_show"]
         out["season"] = item["_season"]
+        if item.get("_chapters"):
+            out["demoChapters"] = ["Opening", "Recap", "Part A", "Part B"]
     return out
 
 
