@@ -36,8 +36,15 @@ package actor GuideStore {
 
     private var savedURL: URL { directory.appendingPathComponent("guides.envelope.json") }
 
-    /// The current bundle: the newer of the saved download and the seed.
+    /// The current bundle: the newer of the saved download and the seed, with the demo library's own guide
+    /// added while the demo runs.
     package func bundle() -> GuideBundle? {
+        let base = trustedBundle()
+        guard defaults.bool(forKey: DemoMode.activeKey) else { return base }
+        return GuideBundle(format: 1, generated: base?.generated ?? "", licence: base?.licence ?? "", shows: (base?.shows ?? []) + [DemoGuide.paperLanterns])
+    }
+
+    private func trustedBundle() -> GuideBundle? {
         if let loaded { return loaded.bundle }
         let candidates = [try? Data(contentsOf: savedURL), seed()].compactMap { $0 }
         var best: (GuideBundle, Int)?
@@ -54,7 +61,7 @@ package actor GuideStore {
     /// it only when it is signed by a trusted key, unexpired and newer than the one in use.
     @discardableResult
     package func refresh(session: URLSession = .shared, force: Bool = false, now: Date = Date()) async -> Bool {
-        _ = bundle()
+        _ = trustedBundle()
         let last = defaults.double(forKey: Self.checkedKey)
         guard force || now.timeIntervalSince1970 - last >= Self.refreshInterval else { return false }
         var request = URLRequest(url: Self.url, timeoutInterval: 20)

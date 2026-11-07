@@ -13,6 +13,8 @@ final class TVShowDetailViewController: TVDetailViewController {
     private lazy var seasonSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
+    private var showsSkipped = false
+    private var highlightsOnly = false
     private var relatedByID: [String: PlexMetadata] = [:]
     private lazy var rating = RatingSaver(
         api: env.api,
@@ -122,6 +124,14 @@ final class TVShowDetailViewController: TVDetailViewController {
                 self?.markWatched(false, ratingKey: episode.id)
             },
         ]))
+        if let plan = model.essentials, plan.wouldHide(episode.id), let n = plan.number(of: episode.id) {
+            let kept = !plan.hides(episode.id)
+            children.append(UIAction(title: kept ? EssentialsCopy.hideAgain : EssentialsCopy.keep, image: UIImage(systemName: kept ? "minus.circle" : "plus.circle")) { [weak self] _ in
+                var choice = plan.choice
+                if kept { choice.kept.remove(n) } else { choice.kept.insert(n) }
+                self?.saveEssentials(choice)
+            })
+        }
         children.append(UIAction(title: String(localized: "Episode Details"), image: UIImage(systemName: "info.circle")) { [weak self] _ in
             self?.push(.item(ratingKey: episode.id, mediaType: "episode", showRatingKey: self?.showKey, seasonRatingKey: model.selectedSeasonKey))
         })
@@ -130,8 +140,13 @@ final class TVShowDetailViewController: TVDetailViewController {
 
     private func rebuild() {
         guard let model else { return }
-        let episodes = model.episodes
-        let episodeCards = episodes.map { TVDetailMapping.episode($0, status: model.status(for: $0)) }
+        let shield = SpoilerShield.isOn(showKey)
+        let highlightKeys = model.highlightKeys
+        let episodes = model.visibleEpisodes(showingSkipped: showsSkipped, highlights: highlightsOnly && model.essentials == nil ? highlightKeys : nil)
+        let episodeCards = episodes.map { episode in
+            let shielded = shield && !episode.isWatched
+            return TVDetailMapping.episode(episode, status: model.status(for: episode, shielded: shielded, highlights: highlightKeys), shielded: shielded)
+        }
         episodesByID = Dictionary(zip(episodeCards.map(\.id), episodes), uniquingKeysWith: { first, _ in first })
         let related = model.related
         let relatedCards = TVDetailMapping.related(related)
@@ -147,7 +162,10 @@ final class TVShowDetailViewController: TVDetailViewController {
             seasons: model.seasonChips.map {
                 TVChipItem(id: $0.id, title: [$0.title, $0.watchedText].compactMap { $0 }.joined(separator: "  ·  "), isSelected: $0.isSelected)
             },
-            episodesHeader: TVSectionHeader(title: model.selectedSeasonTitle, secondaryText: episodesState == .loaded ? Self.episodeCount(episodes.count) : nil),
+            episodesHeader: TVSectionHeader(
+                title: model.selectedSeasonTitle,
+                secondaryText: episodesState == .loaded ? (model.essentials.map(EssentialsCopy.barDetail) ?? Self.episodeCount(episodes.count)) : nil
+            ),
             episodes: episodeCards,
             showsEpisodes: model.selectedSeason != nil,
             episodesState: episodesState,
@@ -168,6 +186,23 @@ final class TVShowDetailViewController: TVDetailViewController {
                 handler: { [weak self] in self?.playUpNext() }
             ),
         ]
+        if let plan = model.essentials, EssentialsCopy.shouldOffer(plan) {
+            let preview = plan.preview(EssentialsChoice(level: .skipAnimeOnly))
+            actions.append(TVDetailAction(
+                kind: .essentialsOffer,
+                title: String(localized: "Skip \(preview.hidden) Anime-Only · Save \(EssentialsCopy.duration(preview.seconds))", comment: "Apple TV button that turns on Skip Anime-Only, e.g. Skip 21 Anime-Only · Save 8 h 6 min"),
+                symbol: "sparkles",
+                accessibilityLabel: EssentialsCopy.offerTitle(plan, show: model.show.title) + " " + EssentialsCopy.offerMessage(plan),
+                handler: { [weak self] in self?.answerOffer() }
+            ))
+        }
+        actions.append(TVDetailAction(
+            kind: .essentials,
+            title: model.essentials.map(EssentialsCopy.barTitle) ?? (highlightsOnly ? Highlights.title : EssentialsLevel.all.title),
+            symbol: "line.3.horizontal.decrease",
+            menu: essentialsMenu(for: model),
+            accessibilityLabel: String(localized: "Episodes: \(model.essentials.map(EssentialsCopy.barTitle) ?? EssentialsLevel.all.title)", comment: "VoiceOver label of the Essentials button, e.g. Episodes: Skip Anime-Only")
+        ))
         if let menu = watchedMenu(for: model) {
             actions.append(TVDetailAction(
                 kind: .watched,
@@ -201,6 +236,75 @@ final class TVShowDetailViewController: TVDetailViewController {
             actions.append(TVDetailAction(kind: .manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver", menu: manage))
         }
         return actions
+    }
+
+    private func essentialsMenu(for model: ShowDetailModel) -> UIMenu {
+        var sections: [UIMenuElement] = []
+        if let plan = model.essentials {
+            sections.append(UIMenu(options: .displayInline, children: EssentialsLevel.allCases.map { level in
+                let action = UIAction(title: level.title, state: plan.choice.level == level ? .on : .off) { [weak self] _ in
+                    var choice = plan.choice
+                    choice.level = level
+                    choice.offered = true
+                    self?.saveEssentials(choice)
+                }
+                action.subtitle = EssentialsCopy.levelSubtitle(plan, level: level)
+                return action
+            }))
+            var toggles: [UIMenuElement] = []
+            if let range = plan.guide.ranges.first {
+                let retold = UIAction(title: EssentialsCopy.retoldTitle(range), image: UIImage(systemName: "film"), state: plan.choice.seenRetold ? .on : .off) { [weak self] _ in
+                    var choice = plan.choice
+                    choice.seenRetold.toggle()
+                    choice.offered = true
+                    self?.saveEssentials(choice)
+                }
+                retold.subtitle = EssentialsCopy.retoldSubtitle(range)
+                toggles.append(retold)
+            }
+            if !plan.hiddenKeys.isEmpty {
+                toggles.append(UIAction(title: EssentialsCopy.showSkipped, image: UIImage(systemName: "eye"), state: showsSkipped ? .on : .off) { [weak self] _ in
+                    self?.showsSkipped.toggle()
+                    self?.rebuild()
+                })
+            }
+            if !toggles.isEmpty { sections.append(UIMenu(options: .displayInline, children: toggles)) }
+        } else if !model.highlightKeys.isEmpty {
+            sections.append(UIMenu(options: .displayInline, children: [false, true].map { highlights in
+                let action = UIAction(title: highlights ? Highlights.title : EssentialsLevel.all.title, state: highlightsOnly == highlights ? .on : .off) { [weak self] _ in
+                    self?.highlightsOnly = highlights
+                    self?.rebuild()
+                }
+                action.subtitle = highlights ? Highlights.subtitle : nil
+                return action
+            }))
+        }
+        let shield = UIAction(title: SpoilerShield.title, image: UIImage(systemName: "eye.slash"), state: SpoilerShield.isOn(showKey) ? .on : .off) { [weak self] _ in
+            guard let self else { return }
+            SpoilerShield.set(showKey, on: !SpoilerShield.isOn(showKey))
+            rebuild()
+        }
+        shield.subtitle = SpoilerShield.subtitle
+        sections.append(UIMenu(options: .displayInline, children: [shield]))
+        let title = model.essentials.map { EssentialsCopy.title + " · " + EssentialsCopy.sourceLine($0.guide) } ?? EssentialsCopy.title
+        return UIMenu(title: title, children: sections)
+    }
+
+    private func saveEssentials(_ choice: EssentialsChoice) {
+        Task { [weak self] in
+            guard let self else { return }
+            let plan = await EssentialsCenter.shared.save(choice, showRatingKey: showKey)
+            model = model?.replacingEssentials(plan)
+            rebuild()
+        }
+    }
+
+    private func answerOffer() {
+        guard let plan = model?.essentials else { return }
+        var choice = plan.choice
+        choice.offered = true
+        choice.level = .skipAnimeOnly
+        saveEssentials(choice)
     }
 
     private func watchedMenu(for model: ShowDetailModel) -> UIMenu? {

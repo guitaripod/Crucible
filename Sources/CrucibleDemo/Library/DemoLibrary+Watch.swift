@@ -155,7 +155,8 @@ extension DemoLibrary {
             let owner = item.kind == .season || item.kind == .episode ? (item.show ?? item.ratingKey) : item.ratingKey
             return "backdrop_\(owner).jpg"
         case "thumb":
-            return item.kind == .episode ? "still_\(item.ratingKey).jpg" : "poster_\(item.ratingKey).jpg"
+            let owner = item.artworkOf ?? item.ratingKey
+            return item.kind == .episode ? "still_\(owner).jpg" : "poster_\(owner).jpg"
         default:
             return nil
         }

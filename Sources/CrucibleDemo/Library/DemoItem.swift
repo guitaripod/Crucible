@@ -40,6 +40,10 @@ struct DemoItem {
     let show: String?
     let season: String?
     var children: [String] = []
+    /// Another item whose artwork this one borrows, for demo episodes added after the artwork was drawn.
+    var artworkOf: String?
+    /// The chapter names this title's file carries, when it has its own (an anime's Recap, Part A, Part B).
+    var chapterNames: [String]?
 
     mutating func set(_ key: String, _ value: Int?) {
         if let value {

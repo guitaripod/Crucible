@@ -17,6 +17,8 @@ struct TVDetailAction {
         case goToShow
         case nextEpisode
         case manage
+        case essentialsOffer
+        case essentials
     }
 
     enum Appearance: Sendable {
@@ -117,17 +119,17 @@ enum TVDetailMapping {
         }
     }
 
-    static func episode(_ episode: PlexMetadata, status: EpisodeStatus) -> TVCardItem {
+    static func episode(_ episode: PlexMetadata, status: EpisodeStatus, shielded: Bool = false) -> TVCardItem {
         let number = status.episodeNumber.map { "\($0)  ·  " } ?? ""
         return TVCardItem(
             id: "episode.\(episode.id)",
-            artworkPath: episode.thumb,
-            title: number + episode.title,
+            artworkPath: shielded ? nil : episode.thumb,
+            title: shielded ? status.title : number + status.title,
             subtitle: status.metaText.isEmpty ? nil : status.metaText,
             eyebrow: eyebrow(for: status.marker),
             progress: status.progress,
             isWatched: status.isWatched,
-            isDimmed: status.isWatched,
+            isDimmed: status.isWatched || status.isSkipped,
             placeholderSymbol: "tv",
             accessibilityHint: String(localized: "Press and hold for more options")
         )

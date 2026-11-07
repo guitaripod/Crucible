@@ -61,6 +61,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         ProAccess.shared.refresh()
         AutoDownloadPolicy.shared.evaluateOnForeground()
         refreshDemoLibrary()
+        Task { await GuideStore.shared.refresh() }
     }
 
     /// The work that follows the app coming back runs once, for the first window to return, not again for every other window.

@@ -89,7 +89,7 @@ actor DemoLibrary {
                     size: facts.int("size") ?? 0
                 )
             }
-            let item = DemoItem(
+            var item = DemoItem(
                 kind: kind,
                 fields: fields,
                 genres: raw["genres"] as? [String] ?? [],
@@ -101,6 +101,8 @@ actor DemoLibrary {
                 show: raw.string("show"),
                 season: raw.string("season")
             )
+            item.artworkOf = raw.string("stillOf")
+            item.chapterNames = raw["demoChapters"] as? [String]
             let key = item.ratingKey
             items[key] = item
             switch kind {

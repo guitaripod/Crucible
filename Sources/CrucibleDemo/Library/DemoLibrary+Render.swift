@@ -141,7 +141,7 @@ extension DemoLibrary {
 
     /// Three chapters spread over the clip every title plays, shifted like the markers for a title resumed past the clip.
     private func chaptersJSON(_ item: DemoItem) -> [DemoJSON] {
-        let names = item.kind == .episode ? Self.episodeChapters : Self.movieChapters
+        let names = item.chapterNames ?? (item.kind == .episode ? Self.episodeChapters : Self.movieChapters)
         let start = canDirectPlay(item) ? 0 : item.viewOffset
         let length = clipMilliseconds / names.count
         return names.enumerated().map { index, name in

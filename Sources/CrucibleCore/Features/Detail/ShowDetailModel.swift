@@ -195,8 +195,30 @@ package struct ShowDetailModel: Sendable {
         upNext != nil
     }
 
-    package func status(for episode: PlexMetadata, download: DownloadBadge = .idle) -> EpisodeStatus {
-        EpisodeStatus(episode: episode, isUpNext: upNext?.episode.id == episode.id, download: download)
+    package func status(for episode: PlexMetadata, download: DownloadBadge = .idle, shielded: Bool = false, highlights: Set<String> = []) -> EpisodeStatus {
+        var status = EpisodeStatus(episode: episode, isUpNext: upNext?.episode.id == episode.id, download: download)
+        if shielded, !episode.isWatched { status.title = SpoilerShield.title(for: episode) }
+        if let essentials, let note = EssentialsCopy.episodeNote(essentials, ratingKey: episode.id) {
+            status.metaParts.append(note)
+            status.isSkipped = essentials.hides(episode.id)
+        } else if highlights.contains(episode.id) {
+            status.metaParts.append(Highlights.note)
+        }
+        return status
+    }
+
+    /// The selected season's episodes as the list shows them: without the ones Essentials hides unless the person
+    /// asked to see them, and only the highlights when that filter is on.
+    package func visibleEpisodes(showingSkipped: Bool, highlights: Set<String>? = nil) -> [PlexMetadata] {
+        var list = episodes
+        if let essentials, !showingSkipped { list = list.filter { !essentials.hides($0.id) } }
+        if let highlights { list = list.filter { highlights.contains($0.id) } }
+        return list
+    }
+
+    /// The best-rated episodes of the whole show, offered when no guide covers it.
+    package var highlightKeys: Set<String> {
+        essentials == nil ? Highlights.keys(in: allEpisodes) : []
     }
 
     package var watchedOptions: WatchedOptions {

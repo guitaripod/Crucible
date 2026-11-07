@@ -5,13 +5,15 @@ import MidgarCore
 
 final class ShowDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, overview, seasonBar, episodes, related
+        case hero, actions, offer, overview, essentials, seasonBar, episodes, related
     }
 
     enum Item: Hashable {
         case hero
         case actions
+        case offer
         case overview
+        case essentials
         case seasonBar
         case episode(PlexMetadata)
         case related(PlexMetadata)
@@ -38,6 +40,8 @@ final class ShowDetailViewController: UICollectionViewController {
     private var downloadObserver: UUID?
     private var pendingFullReconfigure = false
     private var isOverviewExpanded = false
+    private var showsSkipped = false
+    private var highlightsOnly = false
     private var lastLayoutWidth: CGFloat = 0
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
@@ -216,7 +220,9 @@ final class ShowDetailViewController: UICollectionViewController {
             switch section {
             case .hero: return DetailLayout.fullWidth(top: 0, environment: environment)
             case .actions: return DetailLayout.fullWidth(top: 4, environment: environment)
+            case .offer: return DetailLayout.fullWidth(top: 16, environment: environment, maxWidth: Self.episodeListWidth)
             case .overview: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .essentials: return DetailLayout.fullWidth(top: 20, environment: environment, maxWidth: Self.episodeListWidth)
             case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4, environment: environment, maxWidth: Self.episodeListWidth)
             case .episodes: return self.episodesSection(environment)
             case .related: return DetailLayout.posterRail(environment)
@@ -269,6 +275,19 @@ final class ShowDetailViewController: UICollectionViewController {
             guard let self, let model = self.model else { return }
             cell.contentConfiguration = self.seasonBarConfiguration(model)
         }
+        let essentialsReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let model = self.model else { return }
+            cell.contentConfiguration = self.essentialsBarConfiguration(model)
+        }
+        let offerReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
+            guard let self, let model = self.model, let plan = model.essentials else { return }
+            cell.contentConfiguration = EssentialsOfferConfiguration(
+                title: EssentialsCopy.offerTitle(plan, show: model.show.title),
+                message: EssentialsCopy.offerMessage(plan),
+                onAccept: { [weak self] in self?.answerOffer(accepted: true) },
+                onDecline: { [weak self] in self?.answerOffer(accepted: false) }
+            )
+        }
         let episodeReg = UICollectionView.CellRegistration<UICollectionViewListCell, PlexMetadata> { [weak self] cell, _, item in
             guard let self, let model = self.model else { return }
             let episode = model.episodes.first { $0.id == item.id } ?? item
@@ -291,6 +310,8 @@ final class ShowDetailViewController: UICollectionViewController {
             case .actions: return cv.dequeueConfiguredReusableCell(using: actionsReg, for: indexPath, item: item)
             case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
             case .seasonBar: return cv.dequeueConfiguredReusableCell(using: seasonBarReg, for: indexPath, item: item)
+            case .essentials: return cv.dequeueConfiguredReusableCell(using: essentialsReg, for: indexPath, item: item)
+            case .offer: return cv.dequeueConfiguredReusableCell(using: offerReg, for: indexPath, item: item)
             case .episode(let e): return cv.dequeueConfiguredReusableCell(using: episodeReg, for: indexPath, item: e)
             case .related(let r): return cv.dequeueConfiguredReusableCell(using: relatedReg, for: indexPath, item: r)
             }
@@ -337,6 +358,109 @@ final class ShowDetailViewController: UICollectionViewController {
         return config
     }
 
+    private func essentialsBarConfiguration(_ model: ShowDetailModel) -> EssentialsBarConfiguration {
+        var config = EssentialsBarConfiguration()
+        if let plan = model.essentials {
+            config.title = EssentialsCopy.barTitle(plan)
+            config.detail = EssentialsCopy.barDetail(plan)
+            config.source = EssentialsCopy.sourceLine(plan.guide)
+        } else {
+            config.title = highlightsOnly ? Highlights.title : EssentialsLevel.all.title
+        }
+        config.menu = essentialsMenu(model)
+        return config
+    }
+
+    private func essentialsMenu(_ model: ShowDetailModel) -> UIMenu {
+        var sections: [UIMenuElement] = []
+        if let plan = model.essentials {
+            let levels = EssentialsLevel.allCases.map { level in
+                let action = UIAction(title: level.title, state: plan.choice.level == level ? .on : .off) { [weak self] _ in
+                    var choice = plan.choice
+                    choice.level = level
+                    choice.offered = true
+                    self?.saveEssentials(choice)
+                }
+                action.subtitle = EssentialsCopy.levelSubtitle(plan, level: level)
+                return action
+            }
+            sections.append(UIMenu(options: .displayInline, children: levels))
+            var toggles: [UIMenuElement] = []
+            if let range = plan.guide.ranges.first {
+                let retold = UIAction(title: EssentialsCopy.retoldTitle(range), image: UIImage(systemName: "film"), state: plan.choice.seenRetold ? .on : .off) { [weak self] _ in
+                    var choice = plan.choice
+                    choice.seenRetold.toggle()
+                    choice.offered = true
+                    self?.saveEssentials(choice)
+                }
+                retold.subtitle = EssentialsCopy.retoldSubtitle(range)
+                toggles.append(retold)
+            }
+            if !plan.hiddenKeys.isEmpty {
+                toggles.append(UIAction(title: EssentialsCopy.showSkipped, image: UIImage(systemName: "eye"), state: showsSkipped ? .on : .off) { [weak self] _ in
+                    self?.showsSkipped.toggle()
+                    self?.refreshEpisodes()
+                })
+            }
+            if !toggles.isEmpty { sections.append(UIMenu(options: .displayInline, children: toggles)) }
+        } else if !model.highlightKeys.isEmpty {
+            let filters = [false, true].map { highlights in
+                let action = UIAction(title: highlights ? Highlights.title : EssentialsLevel.all.title, state: highlightsOnly == highlights ? .on : .off) { [weak self] _ in
+                    self?.highlightsOnly = highlights
+                    self?.refreshEpisodes()
+                }
+                action.subtitle = highlights ? Highlights.subtitle : nil
+                return action
+            }
+            sections.append(UIMenu(options: .displayInline, children: filters))
+        }
+        let shield = UIAction(title: SpoilerShield.title, image: UIImage(systemName: "eye.slash"), state: SpoilerShield.isOn(showRatingKey) ? .on : .off) { [weak self] _ in
+            guard let self else { return }
+            SpoilerShield.set(showRatingKey, on: !SpoilerShield.isOn(showRatingKey))
+            Haptics.selection()
+            refreshEpisodes()
+        }
+        shield.subtitle = SpoilerShield.subtitle
+        sections.append(UIMenu(options: .displayInline, children: [shield]))
+        if model.essentials != nil {
+            sections.append(UIAction(title: EssentialsCopy.aboutGuides, image: UIImage(systemName: "info.circle")) { [weak self] _ in
+                self?.view.window?.windowScene?.open(EssentialsCopy.guidesURL, options: nil)
+            })
+        }
+        return UIMenu(title: EssentialsCopy.title, children: sections)
+    }
+
+    /// Saves a new Essentials choice for this show and redraws the list, Continue and the bar under it.
+    private func saveEssentials(_ choice: EssentialsChoice) {
+        Haptics.selection()
+        Task { [weak self] in
+            guard let self else { return }
+            let plan = await EssentialsCenter.shared.save(choice, showRatingKey: showRatingKey)
+            model = model?.replacingEssentials(plan)
+            await applySnapshot()
+        }
+    }
+
+    private func answerOffer(accepted: Bool) {
+        guard let plan = model?.essentials else { return }
+        var choice = plan.choice
+        choice.offered = true
+        if accepted { choice.level = .skipAnimeOnly }
+        saveEssentials(choice)
+    }
+
+    private func refreshEpisodes() {
+        Task { [weak self] in await self?.applySnapshot() }
+    }
+
+    /// Keeps one episode Essentials would hide, or lets it hide it again.
+    private func setKept(_ keep: Bool, episode: PlexMetadata) {
+        guard let plan = model?.essentials, let n = plan.number(of: episode.id) else { return }
+        var choice = plan.choice
+        if keep { choice.kept.insert(n) } else { choice.kept.remove(n) }
+        saveEssentials(choice)
+    }
+
     private func seasonBarConfiguration(_ model: ShowDetailModel) -> DetailSeasonBarConfiguration {
         var config = DetailSeasonBarConfiguration()
         config.seasonTitle = model.selectedSeasonTitle
@@ -358,10 +482,11 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func episodeConfiguration(_ episode: PlexMetadata, model: ShowDetailModel) -> EpisodeContentConfiguration {
-        let status = model.status(for: episode, download: DetailDownload.ringState(for: episode.id))
+        let shielded = SpoilerShield.isOn(showRatingKey) && !episode.isWatched
+        let status = model.status(for: episode, download: DetailDownload.ringState(for: episode.id), shielded: shielded, highlights: model.highlightKeys)
         var config = EpisodeContentConfiguration(status: status)
-        config.summary = episode.summary
-        config.thumbPath = episode.thumb
+        config.summary = shielded ? nil : episode.summary
+        config.thumbPath = shielded ? nil : episode.thumb
         config.showsDownloadControl = !collectionView.isEditing
         config.downloadMenu = DetailDownload.menu(for: episode, onPlayOffline: { [weak self] in self?.quickPlay(episode) })
         config.onDownloadTap = { [weak self] source in
@@ -653,17 +778,26 @@ final class ShowDetailViewController: UICollectionViewController {
         snapshot.appendSections([.hero, .actions])
         snapshot.appendItems([.hero], toSection: .hero)
         snapshot.appendItems([.actions], toSection: .actions)
+        if let plan = model.essentials, EssentialsCopy.shouldOffer(plan) {
+            snapshot.appendSections([.offer])
+            snapshot.appendItems([.offer], toSection: .offer)
+        }
 
         if model.hasSummary {
             snapshot.appendSections([.overview])
             snapshot.appendItems([.overview], toSection: .overview)
+        }
+        if !model.episodes.isEmpty || model.essentials != nil {
+            snapshot.appendSections([.essentials])
+            snapshot.appendItems([.essentials], toSection: .essentials)
         }
         if !model.seasons.isEmpty {
             snapshot.appendSections([.seasonBar])
             snapshot.appendItems([.seasonBar], toSection: .seasonBar)
         }
         snapshot.appendSections([.episodes])
-        snapshot.appendItems(model.episodes.map { .episode($0) }, toSection: .episodes)
+        let highlights = highlightsOnly && model.essentials == nil ? model.highlightKeys : nil
+        snapshot.appendItems(model.visibleEpisodes(showingSkipped: showsSkipped, highlights: highlights).map { .episode($0) }, toSection: .episodes)
 
         let related = model.related
         if !related.isEmpty {
@@ -676,7 +810,7 @@ final class ShowDetailViewController: UICollectionViewController {
         var refreshed = dataSource.snapshot()
         let dynamic = refreshed.itemIdentifiers.filter { item in
             switch item {
-            case .hero, .actions, .overview, .seasonBar, .episode: return true
+            case .hero, .actions, .offer, .overview, .essentials, .seasonBar, .episode: return true
             case .related: return false
             }
         }
@@ -967,6 +1101,12 @@ final class ShowDetailViewController: UICollectionViewController {
                     Haptics.light()
                     self?.playFromBeginning(episode)
                 }, at: 1)
+            }
+            if let plan = self?.model?.essentials, plan.wouldHide(episode.id) {
+                let kept = !plan.hides(episode.id)
+                children.append(UIAction(title: kept ? EssentialsCopy.hideAgain : EssentialsCopy.keep, image: UIImage(systemName: kept ? "minus.circle" : "plus.circle")) { [weak self] _ in
+                    self?.setKept(!kept, episode: episode)
+                })
             }
             return UIMenu(children: children).addingNewWindow(for: episode)
         })

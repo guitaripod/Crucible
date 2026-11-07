@@ -38,7 +38,7 @@ package final class DemoMode {
 
     package typealias Observer = @MainActor (Bool) -> Void
 
-    package static let activeKey = "crucible_demo_active"
+    package nonisolated static let activeKey = "crucible_demo_active"
     package static let freePreviewKey = "crucible_demo_free_preview"
 
     package private(set) var provider: (any DemoProviding)?

@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -31,6 +32,7 @@ final class TVSceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneWillEnterForeground(_ scene: UIScene) {
         coordinator?.sceneWillEnterForeground()
+        Task { await GuideStore.shared.refresh() }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

@@ -19,13 +19,15 @@ package struct EpisodeStatus: Equatable, Sendable {
     }
 
     package let episodeNumber: Int?
-    package let title: String
+    package var title: String
     package let isWatched: Bool
     package let isInProgress: Bool
     package let progress: Double?
     package let marker: Marker
     package let eyebrow: String
-    package let metaParts: [String]
+    package var metaParts: [String]
+    /// Hidden by the person's Essentials choice and listed only because they asked to see skipped episodes.
+    package var isSkipped = false
     package let spokenText: String
     package let download: DownloadBadge
     package let playTitle: String
@@ -87,7 +89,7 @@ package struct EpisodeStatus: Equatable, Sendable {
 
     /// Watched rows are dimmed so the unwatched ones stand out.
     package var contentAlpha: Double {
-        isWatched ? 0.55 : 1
+        isSkipped ? 0.45 : (isWatched ? 0.55 : 1)
     }
 
     private static func spokenDescription(episode: PlexMetadata, inProgress: Bool, download: DownloadBadge) -> String {
