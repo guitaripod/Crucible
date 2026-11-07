@@ -62,6 +62,7 @@ package actor GuideStore {
     @discardableResult
     package func refresh(session: URLSession = .shared, force: Bool = false, now: Date = Date()) async -> Bool {
         _ = trustedBundle()
+        guard !defaults.bool(forKey: DemoMode.activeKey) else { return false }
         let last = defaults.double(forKey: Self.checkedKey)
         guard force || now.timeIntervalSince1970 - last >= Self.refreshInterval else { return false }
         var request = URLRequest(url: Self.url, timeoutInterval: 20)
