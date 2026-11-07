@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleMedia
 import CrucibleDesign
 import MidgarCore
 @preconcurrency import UIKit
@@ -33,6 +34,8 @@ final class MediaDetailViewController: UICollectionViewController {
     private var model: MovieDetailModel?
     private var selectedSubtitleId: Int?
     private var selectedAudioTrackId: Int?
+    /// Whether the viewer picked audio or subtitles here; until then the screen shows the tracks playback would start with.
+    private var tracksPicked = false
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.related(at: indexPath) }
@@ -361,6 +364,7 @@ final class MediaDetailViewController: UICollectionViewController {
             let action = UIAction(title: option.title, state: option.isSelected ? .on : .off) { [weak self] _ in
                 Haptics.selection()
                 self?.selectedAudioTrackId = option.id
+                self?.tracksPicked = true
                 self?.reconfigure([.tracks])
             }
             action.subtitle = option.detail
@@ -373,6 +377,7 @@ final class MediaDetailViewController: UICollectionViewController {
         let off = UIAction(title: String(localized: "Off"), state: selectedSubtitleId == nil ? .on : .off) { [weak self] _ in
             Haptics.selection()
             self?.selectedSubtitleId = nil
+            self?.tracksPicked = true
             self?.reconfigure([.tracks])
         }
         let actions = options.map { option in
@@ -384,6 +389,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 guard option.isEnabled else { return }
                 Haptics.selection()
                 self?.selectedSubtitleId = option.id
+                self?.tracksPicked = true
                 self?.reconfigure([.tracks])
             }
             action.subtitle = option.detail
@@ -438,7 +444,14 @@ final class MediaDetailViewController: UICollectionViewController {
         hero.chrome.setTitle(model.item.title)
         (tabBarController as? TabBarController)?.updateWindowTitle()
         hero.chrome.setPlay(label: model.playAccessibilityLabel, available: true)
-        let tracks = model.reconciledTracks(audioId: selectedAudioTrackId, subtitleId: selectedSubtitleId)
+        let remembered = model.isEpisode ? ShowTrackMemory.languages(forShow: model.showKey, server: ServerBootstrap.savedMachineIdentifier) : nil
+        let tracks = model.reconciledTracks(
+            audioId: selectedAudioTrackId,
+            subtitleId: selectedSubtitleId,
+            viewerPicked: tracksPicked,
+            remembered: remembered,
+            captionLanguage: SystemCaptions.alwaysOnLanguage
+        )
         selectedAudioTrackId = tracks.audioId
         selectedSubtitleId = tracks.subtitleId
         selectDownloadedSubtitle(in: model)
@@ -605,6 +618,7 @@ final class MediaDetailViewController: UICollectionViewController {
         guard let added = model.item.subtitleStreams.compactMap(\.id).first(where: { !before.contains($0) }) else { return }
         subtitlesBeforeSearch = nil
         selectedSubtitleId = added
+        tracksPicked = true
     }
 
     private func playExtra(_ extra: PlexMetadata) {

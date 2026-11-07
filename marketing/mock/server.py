@@ -928,7 +928,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(container(size=0, error="mock part failure"), 500)
             return self.send_file(os.path.join(ASSETS, "clip.mp4"), "video/mp4", ranged=True)
 
-        if re.match(r"^/library/parts/\d+$", p):
+        m = re.match(r"^/library/parts/(\d+)$", p)
+        if m:
+            if self.command == "PUT":
+                number = lambda name: int(q[name][0]) if q.get(name) else None
+                with LOCK:
+                    LIB.select_streams(int(m.group(1)), audio=number("audioStreamID"), subtitle=number("subtitleStreamID"))
             return self.send_empty()
 
         m = re.match(r"^/library/streams/(\d+)$", p)
@@ -1031,6 +1036,8 @@ class Handler(BaseHTTPRequestHandler):
             parts = rest.split("/", 2)
             if len(parts) < 3 or parts[1] in REAPED_SESSIONS:
                 return self.not_found()
+            if parts[2].startswith("vtt-"):
+                return self.send_subtitle_rendition(parts[2])
             return self.send_hls_file(parts[2])
         name = rest.rsplit("/", 1)[-1]
         if name == "ping":
@@ -1039,6 +1046,13 @@ class Handler(BaseHTTPRequestHandler):
             if FLAGS["fail_transcode"]:
                 return self.send_json(container(size=0, error="mock transcode failure"), 500)
             REAPED_SESSIONS.discard(session)
+            path = (q.get("path") or [""])[0]
+            subtitle = None
+            if (q.get("subtitles") or ["auto"])[0] != "none":
+                with LOCK:
+                    subtitle = LIB.streamed_subtitle(path.rsplit("/", 1)[-1])
+            if subtitle:
+                return self.send_master_with_subtitle(session, subtitle)
             return self.send_session_playlist(session)
         if name == "stop":
             return self.send_empty()
@@ -1066,6 +1080,41 @@ class Handler(BaseHTTPRequestHandler):
         if kind and os.path.isfile(hls):
             return self.send_file(hls, kind)
         return self.send_empty()
+
+    def send_master_with_subtitle(self, session, subtitle):
+        """A master playlist like a real server's when a text subtitle is selected and the client takes WebVTT: the session's
+        media playlist plus the subtitle as a WebVTT rendition, declared after the variant as the server writes it."""
+        lines = [
+            "#EXTM3U",
+            '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2802000,RESOLUTION=1920x1080,SUBTITLES="vtt-base"',
+            f"session/{session}/index.m3u8",
+            f'#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="vtt-base",LANGUAGE="{subtitle["languageCode"]}",NAME="Default",DEFAULT=YES,'
+            f'AUTOSELECT=YES,FORCED=NO,URI="session/{session}/vtt-{subtitle["id"]}/index.m3u8"',
+        ]
+        self.send_text("\n".join(lines) + "\n", HLS_TYPES[".m3u8"])
+
+    def send_subtitle_rendition(self, name):
+        """The WebVTT rendition of a session: one segment that holds every cue of the clip."""
+        folder, _, file = name.partition("/")
+        if file == "index.m3u8":
+            body = ("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:150\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n"
+                    "#EXTINF:150.0,\n0.vtt\n#EXT-X-ENDLIST\n")
+            return self.send_text(body, HLS_TYPES[".m3u8"])
+        if file == "0.vtt":
+            label = folder.removeprefix("vtt-")
+            cues = [block.split("\n", 1)[1].replace(",", ".", 2) for block in SRT.strip().split("\n\n")]
+            cues = [cue.replace("We should not be out here.", f"We should not be out here. [{label}]") for cue in cues]
+            return self.send_text("WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:0,LOCAL:00:00:00.000\n\n" + "\n\n".join(cues) + "\n", "text/vtt")
+        return self.not_found()
+
+    def send_text(self, text, kind):
+        body = text.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def send_session_playlist(self, session):
         """The clip's playlist with every segment and the init section moved under session/<id>/."""

@@ -3,9 +3,10 @@ import Testing
 @testable import CrucibleCore
 
 struct TrackLanguagesTests {
-    private func stream(_ id: Int, _ type: Int, _ code: String?, title: String? = nil, channels: Int? = nil, isDefault: Bool = false, forced: Bool = false) -> PlexStream {
+    private func stream(_ id: Int, _ type: Int, _ code: String?, title: String? = nil, channels: Int? = nil, isDefault: Bool = false, forced: Bool = false, codec: String? = nil) -> PlexStream {
         var fields: [String: Any] = ["id": id, "streamType": type, "default": isDefault, "forced": forced]
         if let code { fields["languageCode"] = code }
+        if let codec { fields["codec"] = codec }
         if let title { fields["title"] = title }
         if let channels { fields["channels"] = channels }
         let data = try! JSONSerialization.data(withJSONObject: fields)
@@ -29,10 +30,37 @@ struct TrackLanguagesTests {
         ]
     }
 
-    @Test func theDefaultAudioAndNoSubtitleAskForNothing() {
-        let languages = TrackLanguages(subtitleId: nil, audioStreamId: 2, subtitles: subtitles, audioTracks: audio)
-        #expect(languages.isDefault)
-        #expect(TrackLanguages(subtitleId: nil, audioStreamId: nil, subtitles: subtitles, audioTracks: audio).isDefault)
+    @Test func theDefaultAudioWithoutSubtitlesToChooseAsksForNothing() {
+        #expect(TrackLanguages(subtitleId: nil, audioStreamId: 2, subtitles: [], audioTracks: audio).isDefault)
+        #expect(TrackLanguages(subtitleId: nil, audioStreamId: nil, subtitles: [], audioTracks: audio).isDefault)
+    }
+
+    @Test func subtitlesTurnedOffAreAChoiceButNoneEverPickedIsNot() {
+        let off = TrackLanguages(subtitleId: nil, audioStreamId: 2, subtitles: subtitles, audioTracks: audio, subtitlesOff: true)
+        #expect(off.subtitlesOff)
+        #expect(!off.isDefault)
+        #expect(off.streamIds(subtitles: subtitles, audioTracks: audio) == (nil, nil))
+        #expect(TrackLanguages(subtitleId: nil, audioStreamId: 2, subtitles: subtitles, audioTracks: audio).isDefault)
+        #expect(!TrackLanguages(subtitleId: 11, audioStreamId: 2, subtitles: subtitles, audioTracks: audio, subtitlesOff: true).subtitlesOff)
+        #expect(!TrackLanguages(subtitleId: nil, audioStreamId: 2, subtitles: [], audioTracks: audio, subtitlesOff: true).subtitlesOff)
+        #expect(!TrackLanguages(audio: nil, subtitle: .init(language: "eng"), subtitlesOff: true).subtitlesOff)
+    }
+
+    @Test func languagesSavedBeforeSubtitlesOffExistedStillDecode() throws {
+        let old = Data(#"{"subtitle":{"language":"eng","forced":false}}"#.utf8)
+        let decoded = try JSONDecoder().decode(TrackLanguages.self, from: old)
+        #expect(decoded.subtitle == .init(language: "eng"))
+        #expect(!decoded.subtitlesOff)
+        let off = TrackLanguages(audio: nil, subtitle: nil, subtitlesOff: true)
+        #expect(try JSONDecoder().decode(TrackLanguages.self, from: JSONEncoder().encode(off)) == off)
+    }
+
+    @Test func anImageSubtitleIsNeverPickedForARememberedLanguage() {
+        let image = stream(40, 3, "eng", codec: "hdmv_pgs_subtitle")
+        let text = stream(41, 3, "eng", codec: "srt")
+        let english = TrackLanguages(audio: nil, subtitle: .init(language: "eng"))
+        #expect(english.streamIds(subtitles: [image, text], audioTracks: audio) == (41, nil))
+        #expect(english.streamIds(subtitles: [image], audioTracks: audio) == (nil, nil))
     }
 
     @Test func choicesBecomeLanguagesWithTheKindOfTrack() {
@@ -91,6 +119,13 @@ struct ShowTrackMemoryTests {
         #expect(ShowTrackMemory.languages(forShow: "2001", server: "b", defaults: store) == nil)
         #expect(ShowTrackMemory.languages(forShow: "2002", server: "a", defaults: store) == nil)
         #expect(ShowTrackMemory.languages(forShow: nil, server: "a", defaults: store) == nil)
+    }
+
+    @Test func turningSubtitlesOffIsRemembered() {
+        let store = defaults()
+        let off = TrackLanguages(audio: nil, subtitle: nil, subtitlesOff: true)
+        ShowTrackMemory.remember(off, forShow: "2001", server: "a", defaults: store)
+        #expect(ShowTrackMemory.languages(forShow: "2001", server: "a", defaults: store) == off)
     }
 
     @Test func goingBackToTheDefaultsForgetsTheShow() {

@@ -55,10 +55,11 @@ struct PlaybackTrackMenuTests {
         #expect(options.map(\.isSelected) == [false, true, false])
     }
 
-    @Test func imageBasedSubtitlesAreListedButDisabled() throws {
+    @Test func imageBasedSubtitlesAreListedButDisabledAndTickedWhenBurnedIn() throws {
         let options = PlaybackTrackMenu.subtitleOptions(try subtitles(), selectedId: 6)
         #expect(options[2].isEnabled == false)
-        #expect(options[2].isSelected == false)
+        #expect(options[2].isSelected)
+        #expect(!options[0].isSelected)
         #expect(options[2].detail == "Image-based")
         #expect(options[1].isEnabled)
     }

@@ -36,6 +36,16 @@ extension DemoLibrary {
     }
 
     /// The SubRip text of subtitle stream `id`: a downloaded one in its own language, otherwise the title's own track the id names.
+    /// The text subtitle the server sends with a converted stream of title `key`: the one picked for its file, when it is text.
+    /// The burned-in kind (an image subtitle) and none are nil.
+    func streamedSubtitle(forTitle key: String) -> (id: Int, languageTag: String)? {
+        guard let id = Int(key), let picked = streamSelections[50000 + id]?.subtitle, picked != 0,
+              let stream = (render(key, full: true)?["Media"] as? [DemoJSON])?.first.flatMap({ ($0["Part"] as? [DemoJSON])?.first })
+                .flatMap({ ($0["Stream"] as? [DemoJSON])?.first { $0.int("id") == picked } }),
+              stream.string("codec") == "srt" else { return nil }
+        return (picked, stream.string("languageTag") ?? "en")
+    }
+
     func subtitleText(forStream id: Int) -> String {
         for stream in downloadedSubtitles.values.joined() where stream.int("id") == id {
             return DemoSubtitles.srt(language: stream.string("languageCode") ?? "en", hearingImpaired: stream["hearingImpaired"] as? Bool ?? false)

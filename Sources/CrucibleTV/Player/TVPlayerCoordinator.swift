@@ -114,7 +114,15 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         playerVC.appliesPreferredDisplayCriteriaAutomatically = true
         playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.view.accessibilityIdentifier = "player.view"
+        hideSystemSubtitleMenu()
         installHoldGestures()
+    }
+
+    /// The app's own Subtitles menu lists every subtitle the server has, the file's own tracks included, and shows or hides the
+    /// one travelling with the stream; the system's menu only knows the tracks in the stream, so a second Subtitles button would
+    /// offer less and disagree with the first. The track stays a real subtitle track, so it renders in the viewer's caption style.
+    private func hideSystemSubtitleMenu() {
+        playerVC.allowedSubtitleOptionLanguages = []
     }
 
     /// Starts a fresh session for `request` behind the pre-roll.
@@ -292,6 +300,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             offerWhatsNext()
         case .sleepTimerFired:
             carriedSleepTimer = nil
+            refreshTrackMenus()
+        case .tracksChanged:
             refreshTrackMenus()
         }
     }

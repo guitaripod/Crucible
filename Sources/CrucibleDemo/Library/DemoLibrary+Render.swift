@@ -7,7 +7,7 @@ extension DemoLibrary {
     private static let transcodeOnlyMargin = 6000
 
     private static let subtitleStreams: [(id: Int, language: String, code: String, tag: String, title: String, codec: String, selected: Bool, forced: Bool)] = [
-        (101, "English", "eng", "en", "English (SRT)", "srt", true, false),
+        (101, "English", "eng", "en", "English (SRT)", "srt", false, false),
         (102, "English", "eng", "en", "English SDH (SRT)", "srt", false, false),
         (103, "Spanish", "spa", "es", "Spanish (SRT)", "srt", false, false),
         (104, "Finnish", "fin", "fi", "Finnish (SRT)", "srt", false, false),

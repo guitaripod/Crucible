@@ -2,8 +2,8 @@ import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// A small glass button on the right edge of the player that opens Crucible's own player menu (the sleep timer), because
-/// the system player has no place for one on the iPhone. It shows with a tap on the video, like the system's controls, and
+/// A small glass button on the right edge of the player that opens Crucible's own player menu (subtitles, audio, the sleep
+/// timer, chapters), because the system player has no place for one on the iPhone. It shows with a tap on the video, like the system's controls, and
 /// fades a few seconds later; with VoiceOver on it stays.
 @MainActor
 final class PlayerMoreButton: NSObject, UIGestureRecognizerDelegate {
@@ -107,6 +107,19 @@ final class PlayerMoreButton: NSObject, UIGestureRecognizerDelegate {
         } else {
             apply()
         }
+    }
+}
+
+/// A menu of audio or subtitle tracks; image-based subtitles are listed but cannot be picked.
+@MainActor
+enum PlayerTrackMenu {
+    static func menu(title: String, symbol: String, options: [TrackOption], select: @escaping @MainActor (Int?) -> Void) -> UIMenu {
+        let actions = options.map { option in
+            let action = UIAction(title: option.title, subtitle: option.detail, state: option.isSelected ? .on : .off) { _ in select(option.id) }
+            if !option.isEnabled { action.attributes.insert(.disabled) }
+            return action
+        }
+        return UIMenu(title: title, image: UIImage(systemName: symbol), children: actions)
     }
 }
 

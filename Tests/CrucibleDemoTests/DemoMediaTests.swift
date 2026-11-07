@@ -117,8 +117,41 @@ struct DemoMediaTests {
 
             let forced = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: nil, forceTranscode: true)
             #expect(!forced.isDirectPlay)
-            let burned = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10015, selectedAudioStreamId: nil)
-            #expect(!burned.isDirectPlay)
+            let subtitled = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10015, selectedAudioStreamId: nil)
+            #expect(!subtitled.isDirectPlay)
+            #expect(subtitled.subtitleDelivery == .track)
+            let burned = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10019, selectedAudioStreamId: nil)
+            #expect(burned.subtitleDelivery == .burned)
+        }
+    }
+
+    @Test func aTextSubtitleTravelsAsAWebVTTRenditionAndOffClearsIt() async throws {
+        try await withDemo { demo in
+            let spanish = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10017, selectedAudioStreamId: nil)
+            #expect(try await demo.metadata("1001").subtitleStreams.first { $0.selected == true }?.id == 10017)
+            let master = String(decoding: try await URLSession.shared.data(from: spanish.url).0, as: UTF8.self)
+            #expect(master.contains("TYPE=SUBTITLES") && master.contains(#"SUBTITLES="vtt-base""#))
+            let rendition = try #require(master.split(separator: "\"").first { $0.hasSuffix("/index.m3u8") && $0.contains("vtt-") })
+            let playlistURL = try #require(URL(string: String(rendition), relativeTo: spanish.url)?.absoluteURL)
+            let playlist = String(decoding: try await URLSession.shared.data(from: playlistURL).0, as: UTF8.self)
+            #expect(playlist.contains("#EXT-X-ENDLIST"))
+            let cueURL = try #require(URL(string: "0.vtt", relativeTo: playlistURL)?.absoluteURL)
+            let vtt = String(decoding: try await URLSession.shared.data(from: cueURL).0, as: UTF8.self)
+            #expect(vtt.hasPrefix("WEBVTT") && vtt.contains("00:00:02.000 --> 00:00:05.000") && vtt.contains("No deberíamos"))
+
+            let off = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: 10012, forceTranscode: true)
+            #expect(off.subtitleDelivery == .none && off.chosenSubtitleId == nil)
+            #expect(try await demo.metadata("1001").subtitleStreams.allSatisfy { $0.selected != true })
+            #expect(!String(decoding: try await URLSession.shared.data(from: off.url).0, as: UTF8.self).contains("SUBTITLES"))
+        }
+    }
+
+    @Test func avFoundationShowsTheWebVTTCuesOnTheClipsTimeline() async throws {
+        try await withDemo { demo in
+            let stream = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10015, selectedAudioStreamId: nil)
+            let first = try #require(await firstCue(of: stream.url))
+            #expect(first.text == "We should not be out here.")
+            #expect(abs(first.seconds - 2) < 0.5)
         }
     }
 
@@ -199,6 +232,28 @@ struct DemoMediaTests {
         }
     }
 
+    /// Plays `url` with its only subtitle option on and returns the first cue it shows, or nil within ten seconds.
+    @MainActor
+    private func firstCue(of url: URL) async -> (text: String, seconds: Double)? {
+        let asset = AVURLAsset(url: url)
+        guard let group = try? await asset.loadMediaSelectionGroup(for: .legible), group.options.count == 1 else { return nil }
+        let item = AVPlayerItem(asset: asset)
+        let cues = LegibleCues()
+        let output = AVPlayerItemLegibleOutput()
+        output.setDelegate(cues, queue: .main)
+        item.add(output)
+        item.select(group.options.first, in: group)
+        let player = AVPlayer(playerItem: item)
+        player.isMuted = true
+        player.play()
+        defer { player.pause() }
+        for _ in 0..<40 {
+            if let first = await cues.first { return first }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return nil
+    }
+
     @MainActor
     private func readyDuration(of url: URL) async -> Double? {
         let item = AVPlayerItem(url: url)
@@ -237,5 +292,25 @@ struct DemoMediaTests {
             #expect(picked.audioStreams.filter { $0.selected == true }.map(\.id) == [spanish])
             #expect(picked.subtitleStreams.allSatisfy { $0.selected != true })
         }
+    }
+}
+
+/// Collects the first subtitle cue a player hands out, with the item time it showed at.
+private final class LegibleCues: NSObject, AVPlayerItemLegibleOutputPushDelegate, @unchecked Sendable {
+    private let lock = NSLock()
+    private var cue: (text: String, seconds: Double)?
+
+    var first: (text: String, seconds: Double)? {
+        get async { lock.withLock { cue } }
+    }
+
+    func legibleOutput(
+        _ output: AVPlayerItemLegibleOutput,
+        didOutputAttributedStrings strings: [NSAttributedString],
+        nativeSampleBuffers nativeSamples: [Any],
+        forItemTime itemTime: CMTime
+    ) {
+        guard let text = strings.first?.string else { return }
+        lock.withLock { if cue == nil { cue = (text, itemTime.seconds) } }
     }
 }

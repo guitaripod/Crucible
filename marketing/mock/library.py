@@ -325,7 +325,7 @@ SALT_S2_SUMMARIES = [
 ]
 
 STREAM_SUBS = [
-    (101, "English", "eng", "en", "English (SRT)", "srt", True, False),
+    (101, "English", "eng", "en", "English (SRT)", "srt", False, False),
     (102, "English", "eng", "en", "English SDH (SRT)", "srt", False, False),
     (103, "Spanish", "spa", "es", "Spanish (SRT)", "srt", False, False),
     (104, "Finnish", "fin", "fi", "Finnish (SRT)", "srt", False, False),
@@ -394,6 +394,27 @@ class Library:
             out.append({"id": 9000 + int(hashlib.md5(s.encode()).hexdigest()[:5], 16) % 90000, "tag": name, "role": role,
                         "thumb": f"/actors/{s}.jpg"})
         return out
+
+    def select_streams(self, part_id, audio=None, subtitle=None):
+        """Selects the audio and subtitle streams of a part, as a server's PUT /library/parts/<id> does; subtitle 0 is none."""
+        item = self.items.get(str(part_id - 50000))
+        if not item or not item.get("_media"):
+            return
+        for stream in item["_media"][0]["Part"][0]["Stream"]:
+            if stream["streamType"] == 2 and audio is not None:
+                stream["selected"] = stream["id"] == audio
+            elif stream["streamType"] == 3 and subtitle is not None:
+                stream["selected"] = stream["id"] == subtitle
+
+    def streamed_subtitle(self, rk):
+        """The text subtitle a converted stream of item `rk` carries as a WebVTT rendition: the part's selected one."""
+        item = self.items.get(str(rk))
+        if not item or not item.get("_media"):
+            return None
+        for stream in item["_media"][0]["Part"][0]["Stream"]:
+            if stream["streamType"] == 3 and stream.get("selected") and stream["codec"] == "srt":
+                return stream
+        return None
 
     def _media(self, rk, duration_ms, width, height, hdr, size, title_kind):
         part_id = 50000 + int(rk)

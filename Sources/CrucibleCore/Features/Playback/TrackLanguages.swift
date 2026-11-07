@@ -22,23 +22,36 @@ package struct TrackLanguages: Codable, Equatable, Sendable {
     package let audio: Track?
     /// The subtitle to show, or nil for none.
     package let subtitle: Track?
+    /// Whether the viewer turned subtitles off, which is kept apart from never having picked any: a file whose server selects a
+    /// subtitle for the viewer still starts without one.
+    package let subtitlesOff: Bool
 
-    package init(audio: Track?, subtitle: Track?) {
+    package init(audio: Track?, subtitle: Track?, subtitlesOff: Bool = false) {
         self.audio = audio
         self.subtitle = subtitle
+        self.subtitlesOff = subtitle == nil && subtitlesOff
     }
 
     /// What the chosen ids of `subtitles` and `audioTracks` amount to as languages. The file's default audio needs no
-    /// language: every episode's own default plays.
-    package init(subtitleId: Int?, audioStreamId: Int?, subtitles: [PlexStream], audioTracks: [PlexStream]) {
+    /// language: every episode's own default plays. `subtitlesOff` says the viewer turned subtitles off, which only holds while
+    /// no subtitle is chosen and the file has subtitles to turn off.
+    package init(subtitleId: Int?, audioStreamId: Int?, subtitles: [PlexStream], audioTracks: [PlexStream], subtitlesOff: Bool = false) {
         let defaultAudio = audioTracks.first { $0.isDefault == true } ?? audioTracks.first
         let chosenAudio = audioTracks.first { $0.id != nil && $0.id == audioStreamId && $0.id != defaultAudio?.id }
         audio = chosenAudio.flatMap(Self.track)
         subtitle = subtitles.first { $0.id != nil && $0.id == subtitleId }.flatMap(Self.track)
+        self.subtitlesOff = subtitle == nil && subtitlesOff && !subtitles.isEmpty
+    }
+
+    package init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        audio = try container.decodeIfPresent(Track.self, forKey: .audio)
+        subtitle = try container.decodeIfPresent(Track.self, forKey: .subtitle)
+        subtitlesOff = try container.decodeIfPresent(Bool.self, forKey: .subtitlesOff) ?? false
     }
 
     /// Whether this asks for nothing beyond the file's defaults.
-    package var isDefault: Bool { audio == nil && subtitle == nil }
+    package var isDefault: Bool { audio == nil && subtitle == nil && !subtitlesOff }
 
     /// The ids of the streams in `subtitles` and `audioTracks` that match these languages; nil where nothing matches or the
     /// default serves. A forced subtitle is only matched by a forced one, so a viewer who reads just the foreign dialogue
@@ -47,7 +60,7 @@ package struct TrackLanguages: Codable, Equatable, Sendable {
         let defaultAudio = audioTracks.first { $0.isDefault == true } ?? audioTracks.first
         let audioId = audio.flatMap { Self.best(for: $0, in: audioTracks) }?.id
         let subtitleId = subtitle.flatMap { wanted in
-            Self.best(for: wanted, in: subtitles.filter { ($0.forced == true) == wanted.forced })
+            Self.best(for: wanted, in: subtitles.filter { ($0.forced == true) == wanted.forced && !$0.isBitmap })
         }?.id
         return (subtitleId, audioId == defaultAudio?.id ? nil : audioId)
     }

@@ -1,49 +1,29 @@
 import AVFoundation
 import Foundation
 
-/// The subtitle and audio choices made on one item, carried to the item that replaces it. A transcode
-/// that is rebuilt (after a return, a heal or a far jump) is a new item, and the system player would pick
-/// its subtitles afresh, turning on subtitles the viewer had turned off.
+/// The audio choice made on one item, carried to the item that replaces it. A transcode that is rebuilt (after a return, a heal
+/// or a far jump) is a new item, and the system player would pick its audio afresh. Subtitles are not carried here: the session
+/// sets them on every item it plays (`syncSubtitles(on:)`).
 struct MediaSelectionCarry: Sendable {
-    private enum Choice: Sendable {
-        case off
-        case option(language: String?, name: String)
-    }
-
-    private var choices: [AVMediaCharacteristic: Choice] = [:]
+    private var audio: (language: String?, name: String)?
 
     static let empty = MediaSelectionCarry()
 
-    /// Reads what `item` has selected for subtitles and audio.
+    /// Reads what `item` has selected for audio.
     @MainActor
     static func capture(from item: AVPlayerItem?) async -> MediaSelectionCarry {
-        guard let item else { return .empty }
-        var carry = MediaSelectionCarry()
-        for characteristic in [AVMediaCharacteristic.legible, .audible] {
-            guard let group = try? await item.asset.loadMediaSelectionGroup(for: characteristic) else { continue }
-            if let selected = item.currentMediaSelection.selectedMediaOption(in: group) {
-                carry.choices[characteristic] = .option(language: selected.extendedLanguageTag, name: selected.displayName)
-            } else if characteristic == .legible {
-                carry.choices[characteristic] = .off
-            }
-        }
-        return carry
+        guard let item, let group = try? await item.asset.loadMediaSelectionGroup(for: .audible),
+              let selected = item.currentMediaSelection.selectedMediaOption(in: group) else { return .empty }
+        return MediaSelectionCarry(audio: (selected.extendedLanguageTag, selected.displayName))
     }
 
-    /// Selects the same choices on `item`: no subtitles if they were off, otherwise the option with the
-    /// same language and name. A choice the new item does not offer is left to the player.
+    /// Selects the same audio on `item`: the option with the same language and name, else the same language. A choice the new
+    /// item does not offer is left to the player.
     @MainActor
     func apply(to item: AVPlayerItem) async {
-        for (characteristic, choice) in choices {
-            guard let group = try? await item.asset.loadMediaSelectionGroup(for: characteristic) else { continue }
-            switch choice {
-            case .off:
-                if group.allowsEmptySelection { item.select(nil, in: group) }
-            case .option(let language, let name):
-                let match = group.options.first { $0.extendedLanguageTag == language && $0.displayName == name }
-                    ?? group.options.first { $0.extendedLanguageTag == language }
-                if let match { item.select(match, in: group) }
-            }
-        }
+        guard let audio, let group = try? await item.asset.loadMediaSelectionGroup(for: .audible) else { return }
+        let match = group.options.first { $0.extendedLanguageTag == audio.language && $0.displayName == audio.name }
+            ?? group.options.first { $0.extendedLanguageTag == audio.language }
+        if let match { item.select(match, in: group) }
     }
 }

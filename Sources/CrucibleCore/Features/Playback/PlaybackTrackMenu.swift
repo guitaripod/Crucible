@@ -2,7 +2,7 @@ import Foundation
 
 /// The audio and subtitle choices a player offers for the streams the server listed, the way the
 /// detail screens list them: image-based subtitles are shown but cannot be picked, because the
-/// player cannot render them.
+/// player cannot render them; one the server selected and burns into the picture is ticked.
 package enum PlaybackTrackMenu {
     /// The audio stream that is playing: the user's pick, else the default track, else the first.
     package static func playingAudioId(_ tracks: [PlexStream], selectedId: Int?) -> Int? {
@@ -33,7 +33,7 @@ package enum PlaybackTrackMenu {
                 id: stream.id,
                 title: stream.displayTitle ?? DetailFormat.languageName(stream),
                 detail: detail.isEmpty ? nil : detail,
-                isSelected: !stream.isBitmap && stream.id != nil && stream.id == selectedId,
+                isSelected: stream.id != nil && stream.id == selectedId,
                 isEnabled: !stream.isBitmap
             )
         }

@@ -46,6 +46,16 @@ enum DemoSubtitles {
         }
     }
 
+    /// SubRip text as one WebVTT segment on the clip's own timeline, which starts at zero.
+    static func webVTT(fromSubRip srt: String) -> String {
+        let cues = srt.components(separatedBy: "\n\n").compactMap { block -> String? in
+            let lines = block.split(separator: "\n", omittingEmptySubsequences: true).dropFirst()
+            guard let timing = lines.first, timing.contains("-->") else { return nil }
+            return ([timing.replacingOccurrences(of: ",", with: ".")] + lines.dropFirst().map(String.init)).joined(separator: "\n")
+        }
+        return (["WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:0,LOCAL:00:00:00.000"] + cues).joined(separator: "\n\n") + "\n"
+    }
+
     private static func srt(_ lines: [String]) -> String {
         zip(cues, lines).enumerated()
             .map { "\($0.offset + 1)\n\($0.element.0.start) --> \($0.element.0.end)\n\($0.element.1)\n" }

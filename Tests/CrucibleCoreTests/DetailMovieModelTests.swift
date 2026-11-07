@@ -231,6 +231,46 @@ struct DetailMovieModelTests {
         #expect(none.reconciledTracks(audioId: 5, subtitleId: 6) == TrackSelection(audioId: nil, subtitleId: nil))
     }
 
+    @Test func untilTheViewerPicksTheTracksAreTheOnesPlaybackStartsWith() {
+        var media = DetailFixtures.richMedia
+        var part = (media[0]["Part"] as! [[String: Any]])[0]
+        var streams = part["Stream"] as! [[String: Any]]
+        streams[1]["selected"] = false
+        streams[2]["selected"] = true
+        streams[3]["selected"] = true
+        part["Stream"] = streams
+        media[0]["Part"] = [part]
+        let model = MovieDetailModel(item: DetailFixtures.item(["Media": media]))
+        #expect(model.reconciledTracks(audioId: nil, subtitleId: nil, viewerPicked: false) == TrackSelection(audioId: 12, subtitleId: 13))
+        #expect(model.reconciledTracks(audioId: 11, subtitleId: nil, viewerPicked: true) == TrackSelection(audioId: 11, subtitleId: nil))
+        let off = TrackLanguages(audio: nil, subtitle: nil, subtitlesOff: true)
+        #expect(model.reconciledTracks(audioId: nil, subtitleId: nil, viewerPicked: false, remembered: off) == TrackSelection(audioId: 11, subtitleId: nil))
+    }
+
+    @Test func anImageSubtitleTheServerSelectedIsShownAsTheOneBurnedIn() {
+        var media = DetailFixtures.richMedia
+        var part = (media[0]["Part"] as! [[String: Any]])[0]
+        var streams = part["Stream"] as! [[String: Any]]
+        streams[4]["selected"] = true
+        part["Stream"] = streams
+        media[0]["Part"] = [part]
+        let model = MovieDetailModel(item: DetailFixtures.item(["Media": media]))
+        #expect(model.reconciledTracks(audioId: nil, subtitleId: nil, viewerPicked: false) == TrackSelection(audioId: 11, subtitleId: 14))
+        #expect(model.subtitleOptions(selectedId: 14).map(\.isSelected) == [false, true])
+    }
+
+    @Test func alwaysOnCaptionsPickASubtitleWhenTheServerSelectedNone() {
+        var media = DetailFixtures.richMedia
+        var part = (media[0]["Part"] as! [[String: Any]])[0]
+        var streams = part["Stream"] as! [[String: Any]]
+        streams[3]["languageCode"] = "eng"
+        part["Stream"] = streams
+        media[0]["Part"] = [part]
+        let model = MovieDetailModel(item: DetailFixtures.item(["Media": media]))
+        #expect(model.reconciledTracks(audioId: nil, subtitleId: nil, viewerPicked: false, captionLanguage: "en-GB") == TrackSelection(audioId: 11, subtitleId: 13))
+        #expect(model.reconciledTracks(audioId: nil, subtitleId: nil, viewerPicked: false) == TrackSelection(audioId: 11, subtitleId: nil))
+    }
+
     @Test func trackButtonValues() {
         let model = MovieDetailModel(item: DetailFixtures.item(["Media": DetailFixtures.richMedia]))
         #expect(model.audioButtonValue(selectedId: 11) == "English · 5.1")
@@ -255,7 +295,7 @@ struct DetailMovieModelTests {
         let subtitles = model.subtitleOptions(selectedId: 14)
         #expect(subtitles.map(\.id) == [13, 14])
         #expect(subtitles.map(\.isEnabled) == [true, false])
-        #expect(subtitles.map(\.isSelected) == [false, false])
+        #expect(subtitles.map(\.isSelected) == [false, true])
         #expect(subtitles.last?.detail == "Image-based")
         #expect(model.subtitleOptions(selectedId: 13).map(\.isSelected) == [true, false])
     }

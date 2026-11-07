@@ -165,16 +165,34 @@ package struct MovieDetailModel: Sendable {
         !item.audioStreams.isEmpty || !item.subtitleStreams.isEmpty
     }
 
-    /// Keeps the viewer's audio and subtitle picks when the new metadata still has them, and otherwise
-    /// falls back to the default audio track and no subtitles.
-    package func reconciledTracks(audioId: Int?, subtitleId: Int?) -> TrackSelection {
+    /// Keeps the viewer's audio and subtitle picks when the new metadata still has them. Until the viewer picks, the tracks are
+    /// the ones playback would start with: the languages remembered for the show (`remembered`), else the streams the server
+    /// selected for the viewer, which follow their Plex account's language and subtitle preferences, else a subtitle in
+    /// `captionLanguage` for a viewer who keeps captions always on; audio falls back to the file's default track.
+    package func reconciledTracks(
+        audioId: Int?,
+        subtitleId: Int?,
+        viewerPicked: Bool = true,
+        remembered: TrackLanguages? = nil,
+        captionLanguage: String? = nil
+    ) -> TrackSelection {
         let audioStreams = item.audioStreams
+        let subtitleStreams = item.subtitleStreams
         var audio = audioId
+        var subtitle = subtitleId
+        if !viewerPicked {
+            if let remembered {
+                (subtitle, audio) = remembered.streamIds(subtitles: subtitleStreams, audioTracks: audioStreams)
+            } else {
+                subtitle = subtitleStreams.first { $0.selected == true }?.id
+                    ?? captionLanguage.flatMap { StreamResolver.captionSubtitle(in: $0, among: subtitleStreams)?.id }
+                audio = audioStreams.first { $0.selected == true }?.id
+            }
+        }
         if audio == nil || !audioStreams.contains(where: { $0.id == audio }) {
             audio = (audioStreams.first(where: { $0.isDefault == true }) ?? audioStreams.first)?.id
         }
-        var subtitle = subtitleId
-        if let current = subtitle, !item.subtitleStreams.contains(where: { $0.id == current }) {
+        if let current = subtitle, !subtitleStreams.contains(where: { $0.id == current }) {
             subtitle = nil
         }
         return TrackSelection(audioId: audio, subtitleId: subtitle)
@@ -206,7 +224,8 @@ package struct MovieDetailModel: Sendable {
         }
     }
 
-    /// Image-based subtitles cannot be rendered by the player, so they are listed but disabled.
+    /// Image-based subtitles cannot be picked, because the player cannot render them: they are listed but disabled, and ticked
+    /// only when the server selected one for the viewer, which it burns into the picture.
     package func subtitleOptions(selectedId: Int?) -> [TrackOption] {
         item.subtitleStreams.map { stream in
             let detail = DetailFormat.subtitleDetail(stream)
@@ -214,7 +233,7 @@ package struct MovieDetailModel: Sendable {
                 id: stream.id,
                 title: stream.displayTitle ?? DetailFormat.languageName(stream),
                 detail: detail.isEmpty ? nil : detail,
-                isSelected: !stream.isBitmap && stream.id != nil && stream.id == selectedId,
+                isSelected: stream.id != nil && stream.id == selectedId,
                 isEnabled: !stream.isBitmap
             )
         }

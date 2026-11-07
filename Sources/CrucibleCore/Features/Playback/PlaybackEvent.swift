@@ -20,4 +20,6 @@ package enum PlaybackEvent: Sendable {
     case finished(PlaybackFinish)
     /// The sleep timer ran out and paused playback.
     case sleepTimerFired
+    /// The audio or subtitle playing changed, from the app's own menus or the system's controls and Siri.
+    case tracksChanged
 }

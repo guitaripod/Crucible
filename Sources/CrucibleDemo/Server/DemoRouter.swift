@@ -52,7 +52,7 @@ struct DemoRouter: Sendable {
         case "actors":
             return await imageResponse(path: request.path)
         case "video":
-            return transcodeResponse(parts, request)
+            return await transcodeResponse(parts, request)
         default:
             return .notFound()
         }
@@ -256,14 +256,17 @@ struct DemoRouter: Sendable {
         return DemoFiles.respond(assets.clip, contentType: "video/mp4", request: request)
     }
 
-    /// The universal transcoder: a master playlist on start, then the media playlist and segments of the session. The offset is not
-    /// honoured; every title is the same short clip.
-    private func transcodeResponse(_ parts: [String], _ request: DemoRequest) -> DemoResponse {
+    /// The universal transcoder: a master playlist on start, then the media playlist and segments of the session, and the WebVTT
+    /// rendition of a text subtitle picked for the file unless the start asks for none. The offset is not honoured; every title is the
+    /// same short clip.
+    private func transcodeResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
         guard parts.count >= 5, parts[1] == ":", parts[2] == "transcode", parts[3] == "universal" else { return .notFound() }
         switch parts[4] {
         case "start.m3u8", "start":
             let session = request.first("session") ?? "demo"
-            return .text(assets.masterPlaylist(session: session), contentType: DemoAssets.contentType(forFile: "x.m3u8"))
+            let key = (request.first("path") ?? "").split(separator: "/").last.map(String.init) ?? ""
+            let subtitle = request.first("subtitles") == "none" ? nil : await library.streamedSubtitle(forTitle: key)
+            return .text(assets.masterPlaylist(session: session, subtitle: subtitle), contentType: DemoAssets.contentType(forFile: "x.m3u8"))
         case "decision":
             return .container(["size": 1, "generalDecisionCode": 1000, "generalDecisionText": "Direct play OK.",
                                "directPlayDecisionCode": 1000, "transcodeDecisionCode": 1000])
@@ -271,9 +274,24 @@ struct DemoRouter: Sendable {
             return .empty()
         case "session":
             guard let name = parts.last, parts.count >= 7 else { return .notFound() }
+            if parts.count == 8, parts[6].hasPrefix("vtt-"), let stream = Int(parts[6].dropFirst(4)) {
+                return await subtitleRendition(stream: stream, file: name)
+            }
             return streamFile(name, request)
         default:
             return streamFile(parts[4], request)
+        }
+    }
+
+    private func subtitleRendition(stream: Int, file: String) async -> DemoResponse {
+        switch file {
+        case "index.m3u8":
+            let seconds = Int((Double(library.clipMilliseconds) / 1000).rounded(.up))
+            return .text(DemoAssets.subtitlePlaylist(seconds: seconds), contentType: DemoAssets.contentType(forFile: file))
+        case "0.vtt":
+            return .text(DemoSubtitles.webVTT(fromSubRip: await library.subtitleText(forStream: stream)), contentType: DemoAssets.contentType(forFile: file))
+        default:
+            return .notFound()
         }
     }
 

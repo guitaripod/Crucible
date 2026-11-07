@@ -57,6 +57,8 @@ enum ShotHarness {
                         await ProShotScript.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "flow" {
                         await EpisodeFlowProbe.run()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "subtitles" {
+                        await SubtitleProbe.run()
                     } else {
                         await ShotScript.run()
                     }

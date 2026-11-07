@@ -91,6 +91,24 @@ package final class PlaybackSession {
     var volumeBeforeFade: Float?
     let installsRemoteCommands: Bool
     var isChangingStreams = false
+    /// The latest audio and subtitle the viewer asked for while a change was still resolving; the running change takes it up
+    /// when it finishes, so no choice is lost.
+    var pendingStreamChoice: StreamChoice?
+    var pendingRebuild = false
+    /// Whether the viewer turned subtitles off (in a menu, the system controls or Siri), as opposed to none ever being picked: only
+    /// that is carried to the next episode and remembered for the show, so a file whose server picks a subtitle (such as forced
+    /// subtitles for a foreign language) still gets it.
+    var subtitlesTurnedOff = false
+    var subtitleSyncTask: Task<Void, Never>?
+    var selectionUpdateTask: Task<Void, Never>?
+    var subtitleObserver: (any NSObjectProtocol)?
+    var subtitleGroup: AVMediaSelectionGroup?
+    var subtitleItem: ObjectIdentifier?
+    /// The subtitle option the app last selected on the item, so the change notice for its own selection is not taken for the
+    /// viewer's.
+    var appliedSubtitleOption: AVMediaSelectionOption?
+    /// The choice a running change is resolving, which a pick made meanwhile is merged with.
+    var resolvingStreamChoice: StreamChoice?
     var isStopped = false
     var isUpNextVisible = false
     var isUndoVisible = false
@@ -188,13 +206,16 @@ package final class PlaybackSession {
     package func prepare() async throws -> ResolvedStream {
         if isStopped { throw CancellationError() }
         if let stream { return stream }
+        let languages = startingLanguages
         let resolved = try await StreamResolver.resolve(
             api: api,
             ratingKey: request.ratingKey,
             startSecs: request.transcodeStartSecs,
             selectedSubtitleId: selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId,
-            languages: startingLanguages
+            languages: languages,
+            honorsServerSelection: languages == nil,
+            captionLanguage: SystemCaptions.alwaysOnLanguage
         )
         guard !Task.isCancelled else {
             discardTranscode(of: resolved)
@@ -203,6 +224,7 @@ package final class PlaybackSession {
         stream = resolved
         selectedSubtitleId = resolved.chosenSubtitleId
         selectedAudioStreamId = resolved.chosenAudioStreamId
+        subtitlesTurnedOff = resolved.chosenSubtitleId == nil && languages?.subtitlesOff == true
         return resolved
     }
 
@@ -215,7 +237,13 @@ package final class PlaybackSession {
     /// The audio and subtitle playing now, as languages the next episode can find among its own streams.
     package var trackLanguages: TrackLanguages? {
         guard let stream else { return request.trackLanguages }
-        return TrackLanguages(subtitleId: selectedSubtitleId, audioStreamId: selectedAudioStreamId, subtitles: stream.subtitles, audioTracks: stream.audioTracks)
+        return TrackLanguages(
+            subtitleId: selectedSubtitleId,
+            audioStreamId: selectedAudioStreamId,
+            subtitles: stream.subtitles,
+            audioTracks: stream.audioTracks,
+            subtitlesOff: subtitlesTurnedOff
+        )
     }
 
     /// Gives up on a prepared stream that will not be played and ends the session.
@@ -238,6 +266,7 @@ package final class PlaybackSession {
         tracker.moved(to: request.resumePosition)
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
+        player.appliesMediaSelectionCriteriaAutomatically = false
         self.player = player
         if request.offline == nil {
             routeObservation = ServerRouteMonitor.shared.observe { [weak self] move in self?.routeMoved(move) }
@@ -292,6 +321,7 @@ package final class PlaybackSession {
         remoteCommands?.tearDown()
         remoteCommands = nil
         cancelBackgroundWork()
+        stopFollowingSubtitles()
         itemWatcher?.invalidate()
         itemWatcher = nil
         restartItemObserver?.invalidate()
@@ -397,7 +427,8 @@ package final class PlaybackSession {
     }
 
     private func cancelBackgroundWork() {
-        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask, routeCheckTask, rebuildTask] { task?.cancel() }
+        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask, routeCheckTask, rebuildTask, subtitleSyncTask] { task?.cancel() }
+        subtitleSyncTask = nil
         routeCheckTask = nil
         rebuildTask = nil
         if let routeObservation { ServerRouteMonitor.shared.stopObserving(routeObservation) }

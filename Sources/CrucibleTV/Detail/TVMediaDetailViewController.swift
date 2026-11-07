@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleMedia
 import MidgarCore
 import UIKit
 
@@ -12,6 +13,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private var model: MovieDetailModel?
     private var audioID: Int?
     private var subtitleID: Int?
+    /// Whether the viewer picked audio or subtitles here; until then the screen shows the tracks playback would start with.
+    private var tracksPicked = false
     private var relatedByID: [String: PlexMetadata] = [:]
     private var extrasByID: [String: PlexMetadata] = [:]
     private var subtitlesBeforeSearch: Set<Int>?
@@ -169,6 +172,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
               let added = model.item.subtitleStreams.compactMap(\.id).first(where: { !before.contains($0) }) else { return }
         subtitlesBeforeSearch = nil
         subtitleID = added
+        tracksPicked = true
     }
 
     private func playExtra(_ extra: PlexMetadata, of title: PlexMetadata) {
@@ -191,10 +195,22 @@ final class TVMediaDetailViewController: TVDetailViewController {
         return PersonFilmography.canOpen(roles[index]) ? roles[index] : nil
     }
 
+    /// The languages last chosen on the episode's show, which the episode starts in.
+    private func rememberedLanguages(for loaded: MovieDetailModel) -> TrackLanguages? {
+        guard loaded.isEpisode else { return nil }
+        return ShowTrackMemory.languages(forShow: loaded.showKey, server: ServerBootstrap.savedMachineIdentifier)
+    }
+
     private func adopt(_ loaded: MovieDetailModel) {
         model = loaded
         rating.loaded()
-        let tracks = loaded.reconciledTracks(audioId: audioID, subtitleId: subtitleID)
+        let tracks = loaded.reconciledTracks(
+            audioId: audioID,
+            subtitleId: subtitleID,
+            viewerPicked: tracksPicked,
+            remembered: rememberedLanguages(for: loaded),
+            captionLanguage: SystemCaptions.alwaysOnLanguage
+        )
         audioID = tracks.audioId
         subtitleID = tracks.subtitleId
         selectDownloadedSubtitle(in: loaded)
@@ -337,6 +353,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
         let actions = model.audioOptions(selectedId: audioID).map { option in
             let action = UIAction(title: option.title, state: option.isSelected ? .on : .off) { [weak self] _ in
                 self?.audioID = option.id
+                self?.tracksPicked = true
                 self?.rebuild()
             }
             action.subtitle = option.detail
@@ -348,6 +365,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private func subtitleMenu(for model: MovieDetailModel) -> UIMenu {
         let off = UIAction(title: String(localized: "Off", comment: "Subtitle option that turns subtitles off"), state: subtitleID == nil ? .on : .off) { [weak self] _ in
             self?.subtitleID = nil
+            self?.tracksPicked = true
             self?.rebuild()
         }
         let actions = model.subtitleOptions(selectedId: subtitleID).map { option in
@@ -358,6 +376,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
             ) { [weak self] _ in
                 guard option.isEnabled else { return }
                 self?.subtitleID = option.id
+                self?.tracksPicked = true
                 self?.rebuild()
             }
             action.subtitle = option.detail

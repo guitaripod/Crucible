@@ -253,6 +253,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         case .sleepTimerFired:
             Haptics.soft()
             moreButton?.refreshMenu()
+        case .tracksChanged:
+            moreButton?.refreshMenu()
         }
     }
 
@@ -267,7 +269,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func playerMenu() -> UIMenu {
-        var children: [UIMenuElement] = [
+        var children: [UIMenuElement] = trackMenus() + [
             PlayerSleepMenu.menu(timer: session.sleepTimer, isEpisode: request.isEpisode) { [weak self] choice in
                 self?.session.setSleepTimer(choice)
                 self?.moreButton?.refreshMenu()
@@ -288,6 +290,41 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             })
         }
         return UIMenu(children: children)
+    }
+
+    /// Subtitles and Audio for the streams the server lists. Showing or hiding the subtitle already in the stream is instant;
+    /// another language or audio track resolves the stream again at the playhead.
+    private func trackMenus() -> [UIMenuElement] {
+        guard let stream = session.stream else { return [] }
+        var menus: [UIMenuElement] = []
+        if !stream.subtitles.isEmpty {
+            let options = PlaybackTrackMenu.subtitleOptions(stream.subtitles, selectedId: session.selectedSubtitleId)
+            menus.append(PlayerTrackMenu.menu(title: String(localized: "Subtitles"), symbol: "captions.bubble", options: options) { [weak self] id in
+                self?.selectStreams(subtitleId: id, audioId: self?.session.selectedAudioStreamId)
+            })
+        }
+        if stream.audioTracks.count > 1 {
+            let options = PlaybackTrackMenu.audioOptions(stream.audioTracks, selectedId: session.selectedAudioStreamId)
+            menus.append(PlayerTrackMenu.menu(title: String(localized: "Audio"), symbol: "speaker.wave.2", options: options) { [weak self] id in
+                self?.selectStreams(subtitleId: self?.session.selectedSubtitleId, audioId: id)
+            })
+        }
+        return menus
+    }
+
+    private func selectStreams(subtitleId: Int?, audioId: Int?) {
+        viewerActed()
+        MidgarLog.notice("Switching streams ratingKey=\(request.ratingKey) audio=\(String(describing: audioId)) subtitle=\(String(describing: subtitleId))", category: .playback)
+        let session = session
+        Task { [weak self] in
+            do {
+                try await session.selectStreams(subtitleId: subtitleId, audioStreamId: audioId)
+            } catch {
+                guard !Task.isCancelled else { return }
+                self?.showPlaybackError(error.localizedDescription)
+            }
+            self?.moreButton?.refreshMenu()
+        }
     }
 
     private func showStreamInfo() {

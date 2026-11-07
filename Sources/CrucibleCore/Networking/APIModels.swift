@@ -842,6 +842,11 @@ package struct PlexStream: Decodable, Sendable, Identifiable {
         (languageCode ?? languageTag ?? language)?.lowercased()
     }
 
+    /// The stream's language as a BCP 47 tag where the server gave one, else its language code.
+    package var bcp47Language: String? {
+        languageTag ?? languageCode
+    }
+
     package var isBitmap: Bool {
         guard let codec else { return false }
         let bitmapCodecs = ["dvd_subtitle", "hdmv_pgs_subtitle", "pgssub", "vobsub", "dvb_subtitle"]

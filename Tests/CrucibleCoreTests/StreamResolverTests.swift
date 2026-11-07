@@ -52,6 +52,45 @@ struct StreamResolverTests {
         #expect(url.hasSuffix("&X-Plex-Product=Crucible"))
     }
 
+    @Test func transcodeURLAsksForTextSubtitlesAsAWebVTTRendition() throws {
+        let url = withQuality(.original) { transcode(subtitles: "none") }
+        #expect(url.contains("&subtitles=none"))
+        let extra = try #require(URLComponents(string: url)?.queryItems?.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value)
+        #expect(extra == "add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt)")
+    }
+
+    @Test func eachSubtitleDeliveryAsksTheTranscoderForItsOwnMode() {
+        #expect(SubtitleDelivery.none.transcodeParameter == "none")
+        #expect(SubtitleDelivery.track.transcodeParameter == "auto")
+        #expect(SubtitleDelivery.burned.transcodeParameter == "burn")
+    }
+
+    @Test func onlyTextTracksInsideTheFilePlayFromTheFile() {
+        #expect(StreamResolver.isFileTrack(subtitle(1, codec: "mov_text")))
+        #expect(StreamResolver.isFileTrack(subtitle(2, codec: "tx3g")))
+        #expect(!StreamResolver.isFileTrack(subtitle(3, codec: "srt")))
+        #expect(!StreamResolver.isFileTrack(subtitle(4, codec: "mov_text", key: "/library/streams/4")))
+        #expect(!StreamResolver.isFileTrack(subtitle(5, codec: "hdmv_pgs_subtitle")))
+    }
+
+    @Test func alwaysOnCaptionsPickAFullTextSubtitleInTheDevicesLanguage() {
+        let streams = [
+            subtitle(1, codec: "hdmv_pgs_subtitle", language: "eng"),
+            subtitle(2, codec: "srt", language: "eng", forced: true),
+            subtitle(3, codec: "srt", language: "fin"),
+            subtitle(4, codec: "srt", language: "eng"),
+        ]
+        #expect(StreamResolver.captionSubtitle(in: "en-US", among: streams)?.id == 4)
+        #expect(StreamResolver.captionSubtitle(in: "fi", among: streams)?.id == 3)
+        #expect(StreamResolver.captionSubtitle(in: "ja-JP", among: streams) == nil)
+    }
+
+    private func subtitle(_ id: Int, codec: String, key: String? = nil, language: String = "eng", forced: Bool = false) -> PlexStream {
+        var fields: [String: Any] = ["id": id, "streamType": 3, "codec": codec, "languageCode": language, "forced": forced]
+        if let key { fields["key"] = key }
+        return try! JSONDecoder().decode(PlexStream.self, from: JSONSerialization.data(withJSONObject: fields))
+    }
+
     @Test func transcodeURLAddsOffsetOnlyWhenResuming() {
         let fresh = withQuality(.original) { transcode() }
         #expect(!fresh.contains("offset="))

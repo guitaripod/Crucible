@@ -21,6 +21,7 @@ extension PlaybackSession {
             guard let self, let current = player?.currentItem, ObjectIdentifier(current) == watched else { return }
             handle(event)
         }
+        syncSubtitles(on: item)
     }
 
     private func handle(_ event: PlayerItemWatcher.Event) {
@@ -144,7 +145,7 @@ extension PlaybackSession {
         rebuildTask = Task { [weak self] in
             guard let self else { return }
             do {
-                try await selectStreams(subtitleId: selectedSubtitleId, audioStreamId: selectedAudioStreamId)
+                try await changeStreams(StreamChoice(subtitleId: selectedSubtitleId, audioStreamId: selectedAudioStreamId), rebuild: true)
             } catch {
                 MidgarLog.error("Rebuilding the stream on the new route failed ratingKey=\(request.ratingKey): \(error.localizedDescription)", category: .playback)
             }
@@ -259,16 +260,18 @@ extension PlaybackSession {
         restartResumesPlayback = resumesPlayback
         let previous = stream.sessionId
         let sessionId = freshSession ? UUID().uuidString : previous
+        let subtitleDelivery = stream.subtitleDelivery
         Task { [weak self] in
             guard let self else { return }
+            await selectionUpdateTask?.value
             let url = await StreamResolver.transcodeRestartURL(
                 api: api,
                 ratingKey: request.ratingKey,
                 offsetSecs: start,
                 sessionId: sessionId,
-                burnSubtitle: selectedSubtitleId != nil
+                subtitleDelivery: subtitleDelivery
             )
-            guard let url, !isStopped, let current = self.stream else {
+            guard let url, !isStopped, let current = self.stream, current.sessionId == previous else {
                 isRestarting = false
                 pendingRestart = nil
                 tracker.endRebuild()

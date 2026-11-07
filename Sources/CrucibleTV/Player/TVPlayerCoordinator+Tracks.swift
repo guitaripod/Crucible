@@ -5,9 +5,9 @@ import MidgarCore
 import UIKit
 
 extension TVPlayerCoordinator {
-    /// Audio and Subtitles menus in the transport bar for the streams the server lists, then the sleep timer. Picking a
-    /// track re-resolves the stream, exactly like choosing it on the detail screen before pressing Play: a non-default
-    /// audio track or a subtitle is burned in by the transcoder, and image-based subtitles are listed but disabled.
+    /// Audio and Subtitles menus in the transport bar for the streams the server lists, then the sleep timer. Off and the
+    /// subtitle travelling with the stream switch at once; another subtitle or audio track resolves the stream again at the
+    /// playhead, like choosing it on the detail screen before pressing Play. Image-based subtitles are listed but disabled.
     func refreshTrackMenus() {
         guard let session, let stream = session.stream else {
             playerVC.transportBarCustomMenuItems = []
