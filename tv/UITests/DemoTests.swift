@@ -264,6 +264,12 @@ final class DemoTests: TVTestCase {
         XCTAssertEqual(element(app, "demo.step.play").value as? String, "Show me")
     }
 
+    func testTheDemoOwnersMoviesHeaderReachesEveryButton() {
+        let app = launchIntoHome()
+        AppNavigation.selectTab("Movies", in: app)
+        LibraryHeaderWalk.walk(app, capture: "20-demo-library-header", in: self)
+    }
+
     func testSearchResultsTickTheSearchStep() {
         let app = launchIntoHome()
         doSearch(app)
