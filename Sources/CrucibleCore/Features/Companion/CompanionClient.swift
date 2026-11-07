@@ -47,8 +47,20 @@ package enum CompanionError: Error, Equatable, Sendable {
     case notPaired
     case noModel
     case busy
+    case otherPlexServer
+    case pairingUnconfirmed
+    case notNearby
     case refused(String)
     case failed(String)
+
+    /// How much an error says about why pairing failed, so trying several addresses reports the most telling one.
+    var weight: Int {
+        switch self {
+        case .unreachable: 0
+        case .wrongServer: 1
+        default: 2
+        }
+    }
 
     package var message: String {
         switch self {
@@ -58,16 +70,21 @@ package enum CompanionError: Error, Equatable, Sendable {
         case .notPaired: String(localized: "This device isn't paired with Crucible Server any more. Pair it again.", comment: "Crucible Server error")
         case .noModel: String(localized: "Crucible Server has no model set up yet.", comment: "Crucible Server error")
         case .busy: String(localized: "Crucible Server is still writing your last request.", comment: "Crucible Server error")
+        case .otherPlexServer: String(localized: "That Crucible Server runs beside a different Plex server than the one Crucible is using.", comment: "Crucible Server error when the server belongs to another Plex server")
+        case .pairingUnconfirmed: String(localized: "Crucible Server may have paired this device without answering. Run crucible-server devices on the computer with Plex, unpair any extra entry, then pair again with a new code.", comment: "Crucible Server error when the last pairing step got no answer")
+        case .notNearby: String(localized: "Crucible Server isn't at an address on your home network or tailnet, so an Apple TV can't pair through this iPhone. Enter a code from crucible-server pair on the Apple TV instead.", comment: "Crucible Server error when an iPhone cannot hand a pairing to a nearby Apple TV")
         case .refused(let message), .failed(let message): message
         }
     }
 }
 
 /// Accepts the server's self-made certificate only by its SHA-256 fingerprint: the one pinned at pairing, or, while
-/// pairing, whatever it is, recorded so the HMAC proofs can be bound to it.
+/// pairing, the first one this connection sees, recorded so the HMAC proofs are bound to it and every later request of
+/// the pairing goes to the same certificate.
 private final class FingerprintTrust: NSObject, URLSessionDelegate, Sendable {
     let expected: String?
     private let seen = OSAllocatedUnfairLock<String?>(initialState: nil)
+    private let rejection = OSAllocatedUnfairLock(initialState: false)
 
     init(expected: String?) {
         self.expected = expected
@@ -75,14 +92,23 @@ private final class FingerprintTrust: NSObject, URLSessionDelegate, Sendable {
 
     var fingerprint: String? { seen.withLock { $0 } }
 
+    /// Whether a certificate other than the pinned or first one answered.
+    var rejected: Bool { rejection.withLock { $0 } }
+
     func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
         guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
               let trust = challenge.protectionSpace.serverTrust,
               let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate],
               let leaf = chain.first else { return (.cancelAuthenticationChallenge, nil) }
         let fingerprint = SHA256.hash(data: SecCertificateCopyData(leaf) as Data).map { String(format: "%02x", $0) }.joined()
-        seen.withLock { $0 = fingerprint }
-        if let expected, expected != fingerprint { return (.cancelAuthenticationChallenge, nil) }
+        let first = seen.withLock { seen in
+            if seen == nil { seen = fingerprint }
+            return seen
+        }
+        guard (expected ?? first) == fingerprint else {
+            rejection.withLock { $0 = true }
+            return (.cancelAuthenticationChallenge, nil)
+        }
         return (.useCredential, URLCredential(trust: trust))
     }
 }
@@ -124,13 +150,14 @@ private struct Connection {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw trust.expected != nil && trust.fingerprint != nil && trust.fingerprint != trust.expected ? .wrongServer : .unreachable
+            throw trust.rejected ? .wrongServer : .unreachable
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             let detail = try? JSONDecoder().decode(ErrorBody.self, from: data).error
             switch (status, detail?.code) {
             case (_, "pairing_refused"): throw .codeRefused
+            case (_, "no_plex_token"), (_, "too_many_pairings"): throw .refused(detail?.message ?? HTTPURLResponse.localizedString(forStatusCode: status))
             case (401, _): throw .notPaired
             case (503, "no_model"): throw .noModel
             case (429, _): throw .busy
@@ -154,9 +181,10 @@ package struct CompanionHello: Decodable, Sendable {
     package let version: String
     package let fingerprint: String
     package let brain: Bool
+    package let plexMachineIdentifier: String?
 
     enum CodingKeys: String, CodingKey {
-        case protocolVersion = "protocol", name, version, fingerprint, brain
+        case protocolVersion = "protocol", name, version, fingerprint, brain, plexMachineIdentifier
     }
 }
 
@@ -185,22 +213,34 @@ package enum CompanionPairing {
         let name: String
     }
 
-    /// Tries each of the invite's hosts until one answers, checks that the server proves it saw the same secret over
-    /// the certificate this device sees, proves it back, and returns the pairing to keep.
-    package static func pair(_ invite: CompanionInvite, deviceName: String, platform: String, machineIdentifier: String?) async throws(CompanionError) -> CompanionServer {
+    /// Tries each of the invite's hosts until one answers, checks that the server says it runs beside this Plex server
+    /// and proves it saw the same secret over the certificate this device sees, proves it back, and returns the pairing
+    /// to keep. Pass `plexToken` only for a secret another device handed on, which the server admits by its owner's
+    /// policy; a secret from the owner's terminal needs no Plex token, so a link that names someone else's computer
+    /// never receives one while pairing.
+    package static func pair(_ invite: CompanionInvite, deviceName: String, platform: String, machineIdentifier: String?, plexToken: String? = nil) async throws(CompanionError) -> CompanionServer {
         var failure = CompanionError.unreachable
         for host in invite.hosts {
             guard let connection = Connection(host: host, expected: invite.fingerprint, timeout: 8) else { continue }
             defer { connection.session.invalidateAndCancel() }
             do throws(CompanionError) {
-                let _: CompanionHello = try await connection.send("GET", "hello", body: Nothing?.none)
+                let hello: CompanionHello = try await connection.send("GET", "hello", body: Nothing?.none)
                 guard let seen = connection.trust.fingerprint else { throw CompanionError.wrongServer }
+                if let machineIdentifier, hello.plexMachineIdentifier != machineIdentifier {
+                    throw CompanionError.otherPlexServer
+                }
                 let deviceNonce = (0..<16).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
                 let began: Began = try await connection.send("POST", "pair", body: Begin(id: invite.secretID, deviceNonce: deviceNonce))
                 let expected = CompanionProof.server(secret: invite.secret, fingerprint: seen, deviceNonce: deviceNonce, serverNonce: began.serverNonce)
                 guard CompanionProof.matches(expected, began.proof) else { throw CompanionError.wrongServer }
                 let proof = CompanionProof.device(secret: invite.secret, fingerprint: seen, deviceNonce: deviceNonce, serverNonce: began.serverNonce)
-                let finished: Finished = try await connection.send("POST", "pair/confirm", body: Finish(id: invite.secretID, proof: proof, name: deviceName, platform: platform))
+                let finished: Finished
+                do throws(CompanionError) {
+                    finished = try await connection.send("POST", "pair/confirm", body: Finish(id: invite.secretID, proof: proof, name: deviceName, platform: platform),
+                                                         headers: plexToken.map { ["Crucible-Plex-Token": $0] } ?? [:])
+                } catch {
+                    throw error == .unreachable ? .pairingUnconfirmed : error
+                }
                 let others: [String] = invite.hosts.filter { $0 != host }
                 return CompanionServer(
                     name: finished.name,
@@ -211,11 +251,29 @@ package enum CompanionPairing {
                     plexMachineIdentifier: machineIdentifier
                 )
             } catch {
-                if error == .codeRefused || error == .wrongServer { throw error }
-                failure = error
+                if error == .codeRefused || error == .pairingUnconfirmed || error == .otherPlexServer { throw error }
+                if error.weight > failure.weight { failure = error }
             }
         }
         throw failure
+    }
+
+    /// Pairs with a secret this device made and showed (the Apple TV's QR code) once a paired device has handed it to the
+    /// server, trying every two seconds until then. The server's proof stands in for a fingerprint: the real server
+    /// learns the secret from the paired device over its pinned connection. Anyone else who saw the code and can answer
+    /// at the Plex machine's address could prove it too, which is why the code is shown only while the Apple TV waits.
+    package static func waitForHandOff(_ invite: CompanionInvite, deviceName: String, platform: String, machineIdentifier: String?, plexToken: String?, until deadline: Date) async throws(CompanionError) -> CompanionServer {
+        var lastFailure = CompanionError.codeRefused
+        while Date() < deadline, !Task.isCancelled {
+            do throws(CompanionError) {
+                return try await pair(invite, deviceName: deviceName, platform: platform, machineIdentifier: machineIdentifier, plexToken: plexToken)
+            } catch {
+                if error == .otherPlexServer || error == .pairingUnconfirmed { throw error }
+                lastFailure = error
+            }
+            try? await Task.sleep(for: .seconds(2))
+        }
+        throw lastFailure
     }
 
     /// Where Crucible Server listens when it runs beside Plex: the Plex server's own host (a plex.direct name resolves
@@ -286,8 +344,8 @@ package struct CompanionClient: Sendable {
             do throws(CompanionError) {
                 return try await work(connection)
             } catch {
-                if error != .unreachable { throw error }
-                failure = error
+                if error.weight == 2 { throw error }
+                if error.weight > failure.weight { failure = error }
             }
         }
         throw failure
@@ -304,6 +362,31 @@ package struct CompanionClient: Sendable {
             try await connection.send("GET", "brain", body: Nothing?.none, headers: headers)
         }
         return (answer.model, answer.reachable)
+    }
+
+    private struct HandedCode: Encodable {
+        let secret: String
+    }
+
+    private struct Opened: Decodable {
+        let expiresIn: Int
+    }
+
+    /// Hands the server a secret another device made, so that device can pair by proving it knows it.
+    package func addDevice(secret: Data) async throws(CompanionError) {
+        let _: Opened = try await onFirstHost(timeout: 10) { connection throws(CompanionError) in
+            try await connection.send("POST", "pair/code", body: HandedCode(secret: Base32.encode(secret)), headers: headers)
+        }
+    }
+
+    /// An invite for a nearby device: a fresh secret handed to the server, with where the server answers on the home
+    /// network or tailnet and the fingerprint this device pinned, so the other device pins the same certificate.
+    package func inviteForNearbyDevice() async throws(CompanionError) -> CompanionInvite {
+        let hosts = server.hosts.filter(CompanionInvite.isNearby)
+        guard !hosts.isEmpty else { throw .notNearby }
+        let secret = CompanionInvite.newSecret()
+        try await addDevice(secret: secret)
+        return CompanionInvite(name: server.name, hosts: hosts, secret: secret, fingerprint: server.fingerprint)
     }
 
     package func hello() async throws(CompanionError) -> CompanionHello {

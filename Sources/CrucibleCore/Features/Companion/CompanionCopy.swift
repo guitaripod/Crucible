@@ -25,6 +25,40 @@ package enum CompanionCopy {
     package static let previouslyOn = String(localized: "Previously On", comment: "Menu item and button that shows a recap of the episodes watched so far")
     package static let writing = String(localized: "Writing your Previously On…", comment: "Shown while Crucible Server writes a recap")
 
+    package static let pairWithIPhone = String(localized: "Pair with iPhone", comment: "Apple TV button that pairs with Crucible Server through a nearby paired iPhone")
+    package static let showCode = String(localized: "Show Code for iPhone", comment: "Apple TV button that shows a QR code for a paired iPhone to scan")
+    package static let codeSteps = String(
+        localized: "On an iPhone or iPad already paired with Crucible Server, scan this code with the Camera. This Apple TV finishes pairing on its own.",
+        comment: "Shown beside the QR code an Apple TV shows for pairing"
+    )
+    package static let waitingForIPhone = String(localized: "Waiting for your iPhone…", comment: "Shown on Apple TV while it waits to be paired through an iPhone")
+    package static let declined = String(localized: "The iPhone didn't allow pairing.", comment: "Apple TV message when the iPhone declines")
+    package static let pairThisIPhoneFirst = String(localized: "Pair this iPhone with Crucible Server first, then try again from the Apple TV.", comment: "iPhone message when an Apple TV asks to pair but the iPhone is not paired")
+    package static let handOffEnded = String(localized: "The iPhone stopped answering before it handed over a pairing. Try again.", comment: "Apple TV message when the link to the iPhone ends during pairing")
+    package static let addWarning = String(localized: "Allow only a code your own Apple TV is showing right now. The device that made it can use Crucible Server like this iPhone.", comment: "Warning under the question whether to add an Apple TV to Crucible Server")
+    package static let tvCodeExpired = String(localized: "That Apple TV code has expired. Show a new one on the Apple TV, then scan it again.", comment: "iPhone message when the scanned Apple TV code is too old")
+    package static let codeExpired = String(localized: "This code has expired. Go back and show a new one.", comment: "Apple TV message when its pairing code stopped working")
+    package static let allow = String(localized: "Allow", comment: "Button that lets a nearby Apple TV pair through this iPhone")
+    package static let dontAllow = String(localized: "Don't Allow", comment: "Button that refuses to let a nearby Apple TV pair through this iPhone")
+    package static let addAppleTV = String(
+        localized: "To add an Apple TV, choose Pair with iPhone on the TV, or scan the code it shows with the Camera.",
+        comment: "Footer under Crucible Server settings on iPhone when paired"
+    )
+
+    /// "Pair Living Room with Crucible Server on arch?", asked on the iPhone when a nearby Apple TV asks through it.
+    package static func handOffQuestion(device: String, server: String) -> String {
+        String(localized: "Pair \(device) with Crucible Server on \(server)?", comment: "Question on iPhone when a nearby Apple TV asks to pair, e.g. Pair Living Room with Crucible Server on arch?")
+    }
+
+    /// "Add Living Room to Crucible Server on arch?", asked after scanning an Apple TV's code.
+    package static func addQuestion(device: String, server: String) -> String {
+        String(localized: "Add \(device) to Crucible Server on \(server)?", comment: "Question on iPhone after scanning an Apple TV's pairing code, e.g. Add Living Room to Crucible Server on arch?")
+    }
+
+    package static func added(_ device: String) -> String {
+        String(localized: "\(device) is finishing pairing.", comment: "Confirmation on iPhone after handing a pairing to an Apple TV, e.g. Living Room is finishing pairing.")
+    }
+
     package static func paired(_ name: String) -> String {
         String(localized: "Paired with \(name)", comment: "Crucible Server status, e.g. Paired with arch")
     }
@@ -77,8 +111,29 @@ package enum PreviouslyOnRequest {
     }
 
     /// Pairs from an invite as this device, for the Plex server Crucible is connected to, and keeps the pairing.
-    package static func pair(_ invite: CompanionInvite, deviceName: String, platform: String) async throws(CompanionError) -> CompanionServer {
-        let server = try await CompanionPairing.pair(invite, deviceName: deviceName, platform: platform, machineIdentifier: ServerBootstrap.connection()?.machineIdentifier)
+    /// `handedOn` marks an invite a paired iPhone handed over, whose secret the server admits by the person's Plex token.
+    package static func pair(_ invite: CompanionInvite, deviceName: String, platform: String, handedOn: Bool = false) async throws(CompanionError) -> CompanionServer {
+        let connection = ServerBootstrap.connection()
+        let server = try await CompanionPairing.pair(invite, deviceName: deviceName, platform: platform, machineIdentifier: connection?.machineIdentifier, plexToken: handedOn ? connection?.authToken : nil)
+        CompanionStore.save(server)
+        return server
+    }
+
+    /// The paired server's client, as the person signed in to Plex on this device.
+    package static func client() -> CompanionClient? {
+        guard let server = CompanionStore.current(), let token = ServerBootstrap.connection()?.authToken else { return nil }
+        return CompanionClient(server: server, plexToken: token)
+    }
+
+    /// Where an Apple TV looks for Crucible Server before it knows one: beside the Plex server it uses.
+    package static func hostsBesidePlex() -> [String] {
+        CompanionPairing.hostBesidePlex(ServerBootstrap.connection()?.serverURI).map { [$0] } ?? []
+    }
+
+    /// Pairs with the secret this Apple TV shows once a paired iPhone hands it to the server, keeping the pairing.
+    package static func waitForHandOff(_ invite: CompanionInvite, deviceName: String, until deadline: Date) async throws(CompanionError) -> CompanionServer {
+        let connection = ServerBootstrap.connection()
+        let server = try await CompanionPairing.waitForHandOff(invite, deviceName: deviceName, platform: "tvos", machineIdentifier: connection?.machineIdentifier, plexToken: connection?.authToken, until: deadline)
         CompanionStore.save(server)
         return server
     }

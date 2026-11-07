@@ -1092,6 +1092,71 @@
         }
       }
     },
+    "%@ is finishing pairing." : {
+      "comment" : "Confirmation on iPhone after handing a pairing to an Apple TV, e.g. Living Room is finishing pairing.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ schließt die Kopplung ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está terminando la vinculación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ termine l’appairage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sta completando l’abbinamento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ のペアリングを完了しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 페어링을 마무리하고 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kończy parowanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está concluindo o pareamento."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 正在完成配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 正在完成配對。"
+          }
+        }
+      }
+    },
     "%@ is part of Crucible Pro" : {
       "localizations" : {
         "de" : {
@@ -12151,6 +12216,71 @@
         }
       }
     },
+    "Add %@ to Crucible Server on %@?" : {
+      "comment" : "Question on iPhone after scanning an Apple TV's pairing code, e.g. Add Living Room to Crucible Server on arch?",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ zu Crucible Server auf %@ hinzufügen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Añadir %@ a Crucible Server en %@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter %@ à Crucible Server sur %@ ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungere %@ a Crucible Server su %@?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ を %@ 上の Crucible Server に追加しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 기기를 %@의 Crucible Server에 추가할까요?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodać %@ do Crucible Server na %@?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar %@ ao Crucible Server em %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将 %@ 添加到 %@ 上的 Crucible Server 吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要將 %@ 加入 %@ 上的 Crucible Server 嗎？"
+          }
+        }
+      }
+    },
     "Add Server by Address" : {
       "localizations" : {
         "de" : {
@@ -14104,6 +14234,71 @@
         }
       }
     },
+    "Allow" : {
+      "comment" : "Button that lets a nearby Apple TV pair through this iPhone",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "허용"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozwól"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許"
+          }
+        }
+      }
+    },
     "Allow Notifications" : {
       "comment" : "Settings row showing whether iOS lets Crucible notify",
       "localizations" : {
@@ -14229,6 +14424,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允許中繼"
+          }
+        }
+      }
+    },
+    "Allow only a code your own Apple TV is showing right now. The device that made it can use Crucible Server like this iPhone." : {
+      "comment" : "Warning under the question whether to add an Apple TV to Crucible Server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaube nur einen Code, den dein eigener Apple TV gerade anzeigt. Das Gerät, das ihn erstellt hat, kann Crucible Server wie dieses iPhone nutzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite solo un código que tu propio Apple TV esté mostrando ahora mismo. El dispositivo que lo creó podrá usar Crucible Server como este iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "N’autorisez qu’un code affiché en ce moment par votre propre Apple TV. L’appareil qui l’a créé pourra utiliser Crucible Server comme cet iPhone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti solo un codice che la tua Apple TV sta mostrando proprio ora. Il dispositivo che l’ha creato potrà usare Crucible Server come questo iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今あなたの Apple TV に表示されているコードだけを許可してください。コードを作ったデバイスは、この iPhone と同じように Crucible Server を使えるようになります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금 내 Apple TV에 표시된 코드만 허용하세요. 코드를 만든 기기는 이 iPhone처럼 Crucible Server를 사용할 수 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwalaj tylko na kod, który właśnie wyświetla Twój własny Apple TV. Urządzenie, które go utworzyło, będzie mogło korzystać z Crucible Server tak jak ten iPhone."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permita só um código que a sua própria Apple TV esteja mostrando agora. O dispositivo que o criou poderá usar o Crucible Server como este iPhone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只允许你自己的 Apple TV 此刻正在显示的代码。生成该代码的设备将能像这台 iPhone 一样使用 Crucible Server。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只允許你自己的 Apple TV 此刻正在顯示的代碼。產生該代碼的裝置將能像這支 iPhone 一樣使用 Crucible Server。"
           }
         }
       }
@@ -24391,6 +24651,136 @@
         }
       }
     },
+    "Crucible Server isn't at an address on your home network or tailnet, so an Apple TV can't pair through this iPhone. Enter a code from crucible-server pair on the Apple TV instead." : {
+      "comment" : "Crucible Server error when an iPhone cannot hand a pairing to a nearby Apple TV",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server hat keine Adresse in deinem Heimnetz oder Tailnet, daher kann sich ein Apple TV nicht über dieses iPhone koppeln. Gib stattdessen auf dem Apple TV einen Code von crucible-server pair ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server no tiene una dirección en tu red doméstica ni en tu tailnet, así que un Apple TV no puede vincularse a través de este iPhone. Introduce en el Apple TV un código de crucible-server pair."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server n’a pas d’adresse sur votre réseau domestique ni sur votre tailnet, donc une Apple TV ne peut pas s’appairer via cet iPhone. Saisissez plutôt sur l’Apple TV un code de crucible-server pair."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server non ha un indirizzo sulla tua rete di casa o sulla tua tailnet, quindi un’Apple TV non può abbinarsi tramite questo iPhone. Inserisci invece sull’Apple TV un codice di crucible-server pair."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server がホームネットワークや tailnet 上のアドレスにないため、Apple TV はこの iPhone 経由でペアリングできません。代わりに Apple TV で crucible-server pair のコードを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server가 홈 네트워크나 tailnet 주소에 있지 않아 Apple TV가 이 iPhone을 통해 페어링할 수 없어요. 대신 Apple TV에서 crucible-server pair의 코드를 입력하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server nie ma adresu w Twojej sieci domowej ani w tailnecie, więc Apple TV nie może sparować się przez ten iPhone. Zamiast tego wpisz na Apple TV kod z crucible-server pair."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server não tem um endereço na sua rede doméstica nem na sua tailnet, então uma Apple TV não pode parear por este iPhone. Digite na Apple TV um código do crucible-server pair."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 不在你的家庭网络或 tailnet 上的地址，因此 Apple TV 无法通过此 iPhone 配对。请改为在 Apple TV 上输入 crucible-server pair 给出的代码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 不在你的家庭網路或 tailnet 上的位址，因此 Apple TV 無法透過此 iPhone 配對。請改為在 Apple TV 上輸入 crucible-server pair 提供的代碼。"
+          }
+        }
+      }
+    },
+    "Crucible Server may have paired this device without answering. Run crucible-server devices on the computer with Plex, unpair any extra entry, then pair again with a new code." : {
+      "comment" : "Crucible Server error when the last pairing step got no answer",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server hat dieses Gerät möglicherweise gekoppelt, ohne zu antworten. Führe auf dem Computer mit Plex crucible-server devices aus, entkopple überzählige Einträge und kopple dann erneut mit einem neuen Code."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es posible que Crucible Server haya vinculado este dispositivo sin responder. Ejecuta crucible-server devices en el ordenador con Plex, desvincula cualquier entrada de más y vuelve a vincular con un código nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server a peut-être appairé cet appareil sans répondre. Lancez crucible-server devices sur l’ordinateur où tourne Plex, désappairez toute entrée en trop, puis appairez à nouveau avec un nouveau code."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server potrebbe aver abbinato questo dispositivo senza rispondere. Esegui crucible-server devices sul computer con Plex, rimuovi l’abbinamento delle voci in più, poi abbina di nuovo con un nuovo codice."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server が応答しないままこのデバイスをペアリングした可能性があります。Plex のあるコンピュータで crucible-server devices を実行し、余分な項目のペアリングを解除してから、新しいコードでもう一度ペアリングしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server가 응답 없이 이 기기를 페어링했을 수 있어요. Plex가 있는 컴퓨터에서 crucible-server devices를 실행해 불필요한 항목의 페어링을 해제한 다음, 새 코드로 다시 페어링하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server mógł sparować to urządzenie bez odpowiedzi. Uruchom crucible-server devices na komputerze z Plex, usuń parowanie zbędnych wpisów, a potem sparuj ponownie z nowym kodem."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Server pode ter pareado este dispositivo sem responder. Execute crucible-server devices no computador com o Plex, desfaça o pareamento de qualquer entrada a mais e pareie de novo com um código novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 可能已在未回应的情况下配对了此设备。请在装有 Plex 的电脑上运行 crucible-server devices，取消多余条目的配对，然后用新代码重新配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server 可能已在未回應的情況下配對了此裝置。請在裝有 Plex 的電腦上執行 crucible-server devices，取消多餘項目的配對，然後用新代碼重新配對。"
+          }
+        }
+      }
+    },
     "Crucible Server sent an answer this version of Crucible doesn't understand. Update both." : {
       "comment" : "Crucible Server error",
       "localizations" : {
@@ -28029,6 +28419,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉訊息"
+          }
+        }
+      }
+    },
+    "Don't Allow" : {
+      "comment" : "Button that refuses to let a nearby Apple TV pair through this iPhone",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No permitir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne pas autoriser"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non consentire"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可しない"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "허용 안 함"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pozwalaj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não Permitir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不允許"
           }
         }
       }
@@ -53643,6 +54098,71 @@
         }
       }
     },
+    "On an iPhone or iPad already paired with Crucible Server, scan this code with the Camera. This Apple TV finishes pairing on its own." : {
+      "comment" : "Shown beside the QR code an Apple TV shows for pairing",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanne diesen Code mit der Kamera auf einem iPhone oder iPad, das bereits mit Crucible Server gekoppelt ist. Dieser Apple TV schließt die Kopplung selbstständig ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escanea este código con la Cámara en un iPhone o iPad ya vinculado con Crucible Server. Este Apple TV completa la vinculación por sí solo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannez ce code avec l’appareil photo sur un iPhone ou un iPad déjà appairé avec Crucible Server. Cette Apple TV termine l’appairage toute seule."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inquadra questo codice con la Fotocamera da un iPhone o iPad già abbinato a Crucible Server. Questa Apple TV completa l’abbinamento da sola."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server とペアリング済みの iPhone または iPad のカメラで、このコードをスキャンしてください。この Apple TV はペアリングを自動的に完了します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server와 페어링된 iPhone 또는 iPad에서 카메라로 이 코드를 스캔하세요. 이 Apple TV가 페어링을 자동으로 마쳐요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeskanuj ten kod aparatem na iPhonie lub iPadzie, który jest już sparowany z Crucible Server. Ten Apple TV dokończy parowanie sam."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escaneie este código com a Câmera em um iPhone ou iPad já pareado com o Crucible Server. Esta Apple TV conclui o pareamento sozinha."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在已与 Crucible Server 配对的 iPhone 或 iPad 上，用相机扫描此代码。此 Apple TV 会自行完成配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在已與 Crucible Server 配對的 iPhone 或 iPad 上，用相機掃描此代碼。此 Apple TV 會自行完成配對。"
+          }
+        }
+      }
+    },
     "On the computer with Plex, install Crucible Server and run crucible-server setup, then enter the code it shows here." : {
       "comment" : "How to set up Crucible Server, on Apple TV",
       "localizations" : {
@@ -55314,6 +55834,136 @@
         }
       }
     },
+    "Pair %@ with Crucible Server on %@?" : {
+      "comment" : "Question on iPhone when a nearby Apple TV asks to pair, e.g. Pair Living Room with Crucible Server on arch?",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ mit Crucible Server auf %@ koppeln?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Vincular %@ con Crucible Server en %@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairer %@ avec Crucible Server sur %@ ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbinare %@ a Crucible Server su %@?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ を %@ 上の Crucible Server とペアリングしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 기기를 %@의 Crucible Server와 페어링할까요?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparować %@ z Crucible Server na %@?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parear %@ com o Crucible Server em %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将 %@ 与 %@ 上的 Crucible Server 配对吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要將 %@ 與 %@ 上的 Crucible Server 配對嗎？"
+          }
+        }
+      }
+    },
+    "Pair this iPhone with Crucible Server first, then try again from the Apple TV." : {
+      "comment" : "iPhone message when an Apple TV asks to pair but the iPhone is not paired",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koppele dieses iPhone zuerst mit Crucible Server und versuche es dann erneut über den Apple TV."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vincula primero este iPhone con Crucible Server y vuelve a intentarlo desde el Apple TV."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairez d’abord cet iPhone avec Crucible Server, puis réessayez depuis l’Apple TV."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbina prima questo iPhone a Crucible Server, poi riprova dall’Apple TV."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まずこの iPhone を Crucible Server とペアリングしてから、Apple TV でもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 이 iPhone을 Crucible Server와 페어링한 다음 Apple TV에서 다시 시도하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najpierw sparuj ten iPhone z Crucible Server, a potem spróbuj ponownie z Apple TV."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pareie primeiro este iPhone com o Crucible Server e depois tente de novo pela Apple TV."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先将此 iPhone 与 Crucible Server 配对，然后再从 Apple TV 重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先將此 iPhone 與 Crucible Server 配對，然後再從 Apple TV 重試。"
+          }
+        }
+      }
+    },
     "Pair with Crucible Server on %@?" : {
       "comment" : "Confirmation before pairing from a scanned code, e.g. Pair with Crucible Server on arch?",
       "localizations" : {
@@ -55375,6 +56025,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要與 %@ 上的 Crucible Server 配對嗎？"
+          }
+        }
+      }
+    },
+    "Pair with iPhone" : {
+      "comment" : "Apple TV button that pairs with Crucible Server through a nearby paired iPhone",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit iPhone koppeln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vincular con iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appairer avec un iPhone"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbina con iPhone"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneとペアリング"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone과 페어링"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paruj z iPhonem"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parear com iPhone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与 iPhone 配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "與 iPhone 配對"
           }
         }
       }
@@ -70011,6 +70726,71 @@
         }
       }
     },
+    "Show Code for iPhone" : {
+      "comment" : "Apple TV button that shows a QR code for a paired iPhone to scan",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code für iPhone anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar código para iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le code pour iPhone"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra codice per iPhone"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone用のコードを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone용 코드 보기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż kod dla iPhone"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar código para iPhone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示 iPhone 的代码"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示 iPhone 的代碼"
+          }
+        }
+      }
+    },
     "Show Settings" : {
       "comment" : "Title of the screen with the server's settings for one show",
       "localizations" : {
@@ -77672,6 +78452,136 @@
         }
       }
     },
+    "That Apple TV code has expired. Show a new one on the Apple TV, then scan it again." : {
+      "comment" : "iPhone message when the scanned Apple TV code is too old",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Apple-TV-Code ist abgelaufen. Lass auf dem Apple TV einen neuen anzeigen und scanne ihn erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese código del Apple TV ha caducado. Muestra uno nuevo en el Apple TV y vuelve a escanearlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce code d’Apple TV a expiré. Affichez-en un nouveau sur l’Apple TV, puis scannez-le à nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quel codice dell’Apple TV è scaduto. Mostrane uno nuovo sull’Apple TV, poi inquadralo di nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その Apple TV のコードは期限切れです。Apple TV で新しいコードを表示して、もう一度スキャンしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 Apple TV 코드는 만료됐어요. Apple TV에서 새 코드를 표시한 다음 다시 스캔하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten kod z Apple TV wygasł. Wyświetl nowy na Apple TV, a potem zeskanuj go ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esse código da Apple TV expirou. Mostre um novo na Apple TV e escaneie-o de novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该 Apple TV 代码已过期。请在 Apple TV 上显示新代码，然后重新扫描。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該 Apple TV 代碼已過期。請在 Apple TV 上顯示新代碼，然後重新掃描。"
+          }
+        }
+      }
+    },
+    "That Crucible Server runs beside a different Plex server than the one Crucible is using." : {
+      "comment" : "Crucible Server error when the server belongs to another Plex server",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Crucible Server läuft neben einem anderen Plex-Server als dem, den Crucible verwendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese Crucible Server funciona junto a un servidor Plex distinto del que usa Crucible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce Crucible Server tourne à côté d’un autre serveur Plex que celui qu’utilise Crucible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quel Crucible Server è accanto a un server Plex diverso da quello che usa Crucible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その Crucible Server は、Crucible が使っているものとは別の Plex サーバーと一緒に動いています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 Crucible Server는 Crucible이 사용하는 Plex 서버가 아닌 다른 Plex 서버 옆에서 실행 중이에요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten Crucible Server działa obok innego serwera Plex niż ten, którego używa Crucible."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esse Crucible Server roda ao lado de um servidor Plex diferente do que o Crucible está usando."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该 Crucible Server 与另一台 Plex 服务器一起运行，而不是 Crucible 正在使用的那台。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該 Crucible Server 與另一台 Plex 伺服器一起執行，而不是 Crucible 正在使用的那台。"
+          }
+        }
+      }
+    },
     "That PIN isn’t right." : {
       "comment" : "Error when the PIN of a Plex Home profile is wrong",
       "localizations" : {
@@ -78439,6 +79349,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "示範媒體庫、其觀看紀錄與導覽進度都會被移除。您可以從歡迎畫面再次試用示範。"
+          }
+        }
+      }
+    },
+    "The iPhone didn't allow pairing." : {
+      "comment" : "Apple TV message when the iPhone declines",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das iPhone hat die Kopplung nicht erlaubt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El iPhone no permitió la vinculación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’iPhone n’a pas autorisé l’appairage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’iPhone non ha consentito l’abbinamento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone がペアリングを許可しませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone에서 페어링을 허용하지 않았어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone nie zezwolił na parowanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O iPhone não permitiu o pareamento."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 未允许配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 未允許配對。"
+          }
+        }
+      }
+    },
+    "The iPhone stopped answering before it handed over a pairing. Try again." : {
+      "comment" : "Apple TV message when the link to the iPhone ends during pairing",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das iPhone hat nicht mehr geantwortet, bevor es eine Kopplung übergeben hat. Versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El iPhone dejó de responder antes de entregar una vinculación. Vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’iPhone a cessé de répondre avant de transmettre un appairage. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’iPhone ha smesso di rispondere prima di passare un abbinamento. Riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone がペアリングを渡す前に応答しなくなりました。もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone이 페어링을 넘겨주기 전에 응답을 멈췄어요. 다시 시도하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone przestał odpowiadać, zanim przekazał parowanie. Spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O iPhone parou de responder antes de passar um pareamento. Tente de novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 在交出配对之前停止了响应。请重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 在交出配對之前停止了回應。請再試一次。"
           }
         }
       }
@@ -80435,6 +81475,71 @@
         }
       }
     },
+    "This code has expired. Go back and show a new one." : {
+      "comment" : "Apple TV message when its pairing code stopped working",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code ist abgelaufen. Geh zurück und lass einen neuen anzeigen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este código ha caducado. Vuelve atrás y muestra uno nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce code a expiré. Revenez en arrière et affichez-en un nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo codice è scaduto. Torna indietro e mostrane uno nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコードは期限切れです。戻って新しいコードを表示してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 코드는 만료됐어요. 뒤로 가서 새 코드를 표시하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten kod wygasł. Wróć i wyświetl nowy."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este código expirou. Volte e mostre um novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此代码已过期。请返回并显示新代码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此代碼已過期。請返回並顯示新代碼。"
+          }
+        }
+      }
+    },
     "This collection has no titles." : {
       "localizations" : {
         "de" : {
@@ -82318,6 +83423,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您在此媒體庫觀看的作品會顯示在這裡。"
+          }
+        }
+      }
+    },
+    "To add an Apple TV, choose Pair with iPhone on the TV, or scan the code it shows with the Camera." : {
+      "comment" : "Footer under Crucible Server settings on iPhone when paired",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um einen Apple TV hinzuzufügen, wähle auf dem Fernseher „Mit iPhone koppeln“ oder scanne den angezeigten Code mit der Kamera."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para añadir un Apple TV, elige Vincular con iPhone en el televisor o escanea con la Cámara el código que muestra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour ajouter une Apple TV, choisissez Appairer avec un iPhone sur le téléviseur, ou scannez avec l’appareil photo le code qu’elle affiche."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per aggiungere un’Apple TV, scegli Abbina con iPhone sulla TV oppure inquadra con la Fotocamera il codice che mostra."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple TV を追加するには、テレビで「iPhoneとペアリング」を選ぶか、表示されたコードをカメラでスキャンしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple TV를 추가하려면 TV에서 ‘iPhone과 페어링’을 선택하거나 TV에 표시된 코드를 카메라로 스캔하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aby dodać Apple TV, wybierz na telewizorze Paruj z iPhonem albo zeskanuj aparatem kod, który on pokazuje."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para adicionar uma Apple TV, escolha Parear com iPhone na TV ou escaneie com a Câmera o código que ela mostra."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要添加 Apple TV，请在电视上选择“与 iPhone 配对”，或用相机扫描它显示的代码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要新增 Apple TV，請在電視上選擇「與 iPhone 配對」，或用相機掃描它顯示的代碼。"
           }
         }
       }
@@ -86304,6 +87474,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "等待 App Store…"
+          }
+        }
+      }
+    },
+    "Waiting for your iPhone…" : {
+      "comment" : "Shown on Apple TV while it waits to be paired through an iPhone",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warten auf iPhone…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando el iPhone…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente de l’iPhone…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa dell’iPhone…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneを待っています…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 대기 중…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oczekiwanie na iPhone…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando o iPhone…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待 iPhone…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待 iPhone…"
           }
         }
       }
