@@ -153,6 +153,20 @@ final class SettingsTests: TVTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.libraries"), "Menu on the error state must pop to the You list")
     }
 
+    func testCrucibleServerExplainsSetupAndTakesACode() {
+        let app = TVTest.launch()
+        YouNavigation.openYouTab(app)
+        YouNavigation.openRow(app, "you.crucibleServer")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "settings.crucibleServer.enterCode", timeout: 15), "Enter Pairing Code should take focus while nothing is paired")
+        XCTAssertTrue(app.staticTexts["crucible-server"].exists || app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'crucible-server setup'")).firstMatch.exists)
+        TVTest.settle()
+        TVTest.capture("01-crucible-server-not-set-up", in: self)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5), "Enter Pairing Code should ask for the code")
+        TVTest.settle()
+        TVTest.capture("02-crucible-server-code", in: self)
+    }
+
     func testServerShowsRoutesAndConnectionState() {
         let app = TVTest.launch()
         YouNavigation.openYouTab(app)

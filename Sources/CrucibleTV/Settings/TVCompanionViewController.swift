@@ -52,7 +52,7 @@ final class TVCompanionViewController: UIViewController {
         let server = CompanionStore.current()
         heading.text = server.map { CompanionCopy.paired($0.name) } ?? CompanionCopy.title
         statusLabel.text = server == nil ? CompanionCopy.pitch : CompanionCopy.checking
-        detailLabel.text = server == nil ? "\(CompanionCopy.steps)\n\(CompanionCopy.installURL.absoluteString)" : nil
+        detailLabel.text = server == nil ? "\(CompanionCopy.stepsTV)\n\(CompanionCopy.installURL.absoluteString)" : nil
         detailLabel.isHidden = server != nil
         codeButton.isHidden = server != nil
         unpairButton.isHidden = server == nil
@@ -75,7 +75,7 @@ final class TVCompanionViewController: UIViewController {
     }
 
     private func askForCode() {
-        let alert = UIAlertController(title: CompanionCopy.enterCode, message: CompanionCopy.steps, preferredStyle: .alert)
+        let alert = UIAlertController(title: CompanionCopy.enterCode, message: CompanionCopy.stepsTV, preferredStyle: .alert)
         alert.addTextField { field in
             field.placeholder = CompanionCopy.codePlaceholder
             field.autocapitalizationType = .allCharacters

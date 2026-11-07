@@ -23,6 +23,7 @@ final class TVYouViewController: TVSettingsScaffold {
         static let privacy = "you.privacy"
         static let libraries = "you.libraries"
         static let server = "you.server"
+        static let crucibleServer = "you.crucibleServer"
         static let diagnostics = "you.diagnostics"
         static let about = "you.about"
         static let signOut = "you.signOut"
@@ -103,6 +104,7 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.privacy: push(TVScreens.settings(env, page: .privacy))
         case RowID.libraries: push(TVScreens.settings(env, page: .libraries))
         case RowID.server: push(TVScreens.settings(env, page: .server))
+        case RowID.crucibleServer: push(TVCompanionViewController())
         case RowID.diagnostics: push(TVScreens.settings(env, page: .diagnostics))
         case RowID.about: push(TVScreens.settings(env, page: .about))
         case RowID.signOut: confirmSignOut()
@@ -208,6 +210,7 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.homeRows, title: SettingsCatalog.title(.homeRows), value: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows"), symbol: SettingsCatalog.symbol(.homeRows), accessory: .chevron),
             TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
+            TVRowItem(id: RowID.crucibleServer, title: CompanionCopy.title, value: CompanionStore.current()?.name ?? CompanionCopy.notSetUp, symbol: SettingsCatalog.symbol(.crucibleServer), accessory: .chevron),
             TVRowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .tv), value: SettingsCatalog.summary(of: .privacy, on: .tv), symbol: SettingsCategory.privacy.symbol, accessory: .chevron),
             TVRowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
             TVRowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
@@ -223,7 +226,7 @@ final class TVYouViewController: TVSettingsScaffold {
             rows.insert(TVRowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron), at: activity + 1)
         }
         if inDemo {
-            rows.removeAll { $0.id == RowID.server }
+            rows.removeAll { $0.id == RowID.server || $0.id == RowID.crucibleServer }
             if ProAccess.shared.isStoreBacked, !ProAccess.shared.isPro { rows.insert(freePreviewRow(), at: 0) }
             rows.insert(demoRow(), at: 0)
         }

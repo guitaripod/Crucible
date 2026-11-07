@@ -11,6 +11,7 @@ package enum CompanionCopy {
         localized: "On the computer with Plex, install Crucible Server and run crucible-server setup. Then scan the code it shows with the Camera, or enter the code here.",
         comment: "How to set up Crucible Server"
     )
+    package static let stepsTV = String(localized: "On the computer with Plex, install Crucible Server and run crucible-server setup, then enter the code it shows here.", comment: "How to set up Crucible Server, on Apple TV")
     package static let notSetUp = String(localized: "Not Set Up", comment: "Crucible Server status before pairing")
     package static let enterCode = String(localized: "Enter Pairing Code", comment: "Button that pairs with Crucible Server from a typed code")
     package static let codePlaceholder = String(localized: "KQ7M-2XRD-…", comment: "Placeholder of the pairing code field; keep the letters as they are")

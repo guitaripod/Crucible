@@ -53643,6 +53643,71 @@
         }
       }
     },
+    "On the computer with Plex, install Crucible Server and run crucible-server setup, then enter the code it shows here." : {
+      "comment" : "How to set up Crucible Server, on Apple TV",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installieren Sie Crucible Server auf dem Computer mit Plex, führen Sie crucible-server setup aus und geben Sie dann hier den angezeigten Code ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En el ordenador con Plex, instala Crucible Server y ejecuta crucible-server setup; después introduce aquí el código que muestra."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur l’ordinateur où tourne Plex, installez Crucible Server et lancez crucible-server setup, puis saisissez ici le code qu’il affiche."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sul computer con Plex, installa Crucible Server ed esegui crucible-server setup, poi inserisci qui il codice che mostra."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex が動いているコンピュータに Crucible Server をインストールして crucible-server setup を実行し、表示されたコードをここに入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex가 실행되는 컴퓨터에 Crucible Server를 설치하고 crucible-server setup을 실행한 다음, 표시된 코드를 여기에 입력하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na komputerze z Plex zainstaluj Crucible Server i uruchom crucible-server setup, a potem wpisz tutaj wyświetlony kod."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No computador com o Plex, instale o Crucible Server e execute crucible-server setup; depois digite aqui o código que ele mostrar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在运行 Plex 的电脑上安装 Crucible Server 并运行 crucible-server setup，然后在这里输入它显示的代码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在執行 Plex 的電腦上安裝 Crucible Server 並執行 crucible-server setup，然後在這裡輸入它顯示的代碼。"
+          }
+        }
+      }
+    },
     "On the computer with Plex, install Crucible Server and run crucible-server setup. Then scan the code it shows with the Camera, or enter the code here." : {
       "comment" : "How to set up Crucible Server",
       "localizations" : {
