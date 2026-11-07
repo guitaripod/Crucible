@@ -28,6 +28,15 @@ final class TVMediaGridViewController: TVScreenViewController {
     private let empty: Empty
     private let style: TVCardStyle
     private var cardStyle: TVCardStyle
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        guard let self else { return [] }
+        return items.map { item in
+            let path = self.card(item).artworkPath
+            return ArtworkAspect.Sample(path: path, guess: ArtworkAspect.of(item, path: path))
+        }
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
     private let card: (PlexMetadata) -> TVCardItem
     private let load: () async throws -> [PlexMetadata]
     private var items: [PlexMetadata] = []
@@ -115,7 +124,7 @@ final class TVMediaGridViewController: TVScreenViewController {
         mediaByID = Dictionary(loaded.map { ($0.entryID, $0) }, uniquingKeysWith: { _, latest in latest })
         var seen = Set<String>()
         let ids = loaded.map(\.entryID).filter { seen.insert($0).inserted }
-        adoptArtworkStyle(of: loaded)
+        adoptArtworkStyle()
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -139,12 +148,21 @@ final class TVMediaGridViewController: TVScreenViewController {
 
     /// Lays a grid that follows its artwork out in the shape most of the cards' artwork has; the snapshot that follows redraws
     /// the cards on screen in it.
-    private func adoptArtworkStyle(of items: [PlexMetadata]) {
-        guard followsArtwork else { return }
-        let shaped = TVCardStyle.grid(aspect: ArtworkAspect.dominant(items.map { ArtworkAspect.of($0, path: card($0).artworkPath) }))
-        guard shaped != cardStyle else { return }
-        cardStyle = shaped
+    private func adoptArtworkStyle() {
+        guard followsArtwork, artworkShape.update() else { return }
+        cardStyle = .grid(aspect: artworkShape.aspect)
         collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    /// Artwork that loaded since showed the grid's real shape (square playlist covers, a collection of videos without posters):
+    /// re-lays it out and redraws its cards in it.
+    private func artworkShapeDidChange() {
+        guard followsArtwork else { return }
+        cardStyle = .grid(aspect: artworkShape.aspect)
+        collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func makeLayout() -> UICollectionViewLayout {

@@ -26,7 +26,16 @@ final class MediaGridViewController: UICollectionViewController {
     private var items: [PlexMetadata] = []
     private var itemsByID: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
-    private var artworkAspect = Theme.Size.posterAspect
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        guard let self else { return [] }
+        return items.map { item in
+            let path = self.configuration(item).posterPath
+            return ArtworkAspect.Sample(path: path, guess: ArtworkAspect.of(item, path: path))
+        }
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
+    private var artworkAspect: CGFloat { CGFloat(artworkShape.aspect) }
     private var loadTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var listening: ServerEventListening?
@@ -119,7 +128,7 @@ final class MediaGridViewController: UICollectionViewController {
         itemsByID = Dictionary(loaded.map { ($0.entryID, $0) }, uniquingKeysWith: { _, latest in latest })
         var seen = Set<String>()
         let ids = loaded.map(\.entryID).filter { seen.insert($0).inserted }
-        adoptArtworkAspect(of: loaded)
+        if artworkShape.update() { collectionView.collectionViewLayout.invalidateLayout() }
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -137,13 +146,14 @@ final class MediaGridViewController: UICollectionViewController {
         }
     }
 
-    /// Lays the grid out in the shape most of the cards' artwork has: square playlist covers, a collection of personal videos at
-    /// their own shape. The snapshot that follows reshapes the cards on screen.
-    private func adoptArtworkAspect(of items: [PlexMetadata]) {
-        let aspect = CGFloat(ArtworkAspect.dominant(items.map { ArtworkAspect.of($0, path: configuration($0).posterPath) }))
-        guard aspect != artworkAspect else { return }
-        artworkAspect = aspect
+    /// Artwork that loaded since showed the grid's real shape (square playlist covers, a collection of videos without posters):
+    /// re-lays it out and reshapes the cards already on screen.
+    private func artworkShapeDidChange() {
+        guard isViewLoaded else { return }
         collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func showFailure(_ message: String) {

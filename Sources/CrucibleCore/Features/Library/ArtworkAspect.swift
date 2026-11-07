@@ -1,15 +1,30 @@
 import Foundation
 
 /// How tall a card's artwork is for its width, read from what the artwork is instead of assuming a poster: films, shows, seasons
-/// and collections have 2:3 posters, episodes and extras 16:9 stills, playlists and music square covers, and a personal video (an
-/// Other Videos library, a home movie) a frame Plex grabbed from the file, so its thumbnail has the shape of the video itself.
+/// and collections have 2:3 posters, episodes and extras 16:9 stills, playlists and music square covers, and a video Plex has no
+/// poster for (an Other Videos library, a home movie no agent matched) a frame Plex grabbed from the file, so its thumbnail has
+/// the shape of the video itself. These are guesses; the shapes of images measured as they load outrank them.
 package enum ArtworkAspect {
     package static let poster = 1.5
     package static let still = 9.0 / 16.0
     package static let square = 1.0
 
+    /// One card of a grid: the image it shows and the shape its kind of item has, the guess until the image itself is measured.
+    package struct Sample: Sendable {
+        package let path: String?
+        package let guess: Double
+
+        package init(path: String?, guess: Double) {
+            self.path = path
+            self.guess = guess
+        }
+    }
+
     /// The flattest and tallest shapes a grid is laid out in, so a malformed size cannot make a sliver or a tower of a card.
     private static let range = 0.4...1.8
+
+    /// How many of a grid's cards need a measured shape before only measurements count.
+    private static let measuredQuorum = 4
 
     /// How far apart artwork and card may be for the artwork to fill the card by cropping, as a fraction of the card's shape.
     private static let cropTolerance = 0.1
@@ -39,6 +54,26 @@ package enum ArtworkAspect {
         return best.map { min(max($0.aspect, range.lowerBound), range.upperBound) } ?? poster
     }
 
+    /// The grid's shape from what is known of its cards' artwork. A shape measured from the image itself (`measured`, remembered
+    /// from any earlier load) outranks the guess read from what the item is, and once a few cards (or every card of a short grid)
+    /// are measured only measurements count: a library whose items have no posters, only frames Plex grabbed from the files, lays
+    /// out at the frames' shape whatever kind of item they are, and a library with posters stays a poster grid. Until then each
+    /// card counts its measurement or its guess.
+    package static func dominant(_ samples: [Sample], measured: (String) -> Double?) -> Double {
+        let shapes = samples.map { sample in (measured: sample.path.flatMap(measured).map(snapped), guess: snapped(sample.guess)) }
+        let measuredShapes = shapes.compactMap(\.measured)
+        if !measuredShapes.isEmpty, measuredShapes.count >= min(measuredQuorum, samples.count) {
+            return dominant(measuredShapes)
+        }
+        return dominant(shapes.map { $0.measured ?? $0.guess })
+    }
+
+    /// A shape moved onto the standard one it is within cropping distance of (a 27×40 poster is a poster, a 1.85:1 frame a 16:9
+    /// still), so a grid of measured images lays out exactly like one of guessed shapes.
+    package static func snapped(_ aspect: Double) -> Double {
+        [poster, still, square].first { fills(aspect, card: $0) } ?? aspect
+    }
+
     /// Whether artwork `imageAspect` tall for its width can fill a card `cardAspect` tall by cropping: within a tenth, as a 27×40
     /// poster in a 2:3 card or a 1.85:1 frame in a 16:9 one. Further apart a crop would cut the picture away, so it is shown whole.
     package static func fills(_ imageAspect: Double, card cardAspect: Double) -> Bool {
@@ -52,9 +87,9 @@ package enum ArtworkAspect {
         case "photo":
             return frame(of: item) ?? square
         case "episode", "clip":
-            return item.isPersonalMedia ? frame(of: item) ?? still : still
+            return item.hasFrameArtwork ? frame(of: item) ?? still : still
         case "movie":
-            return item.isPersonalMedia ? frame(of: item) ?? still : poster
+            return item.hasFrameArtwork ? frame(of: item) ?? still : poster
         default:
             return poster
         }
@@ -68,10 +103,11 @@ package enum ArtworkAspect {
 }
 
 extension PlexMetadata {
-    /// Whether the item belongs to a library without a metadata agent (Plex's Personal Media agent, new or legacy), whose
-    /// thumbnails are frames of the file rather than posters or stills.
-    package var isPersonalMedia: Bool {
+    /// Whether Plex most likely drew the item's artwork from a frame of its file: items of a library without a metadata agent
+    /// (Plex's Personal Media agent, new or legacy) and items an agent never matched (`local://`), unless a poster sits beside
+    /// the file, which the measured image then shows.
+    package var hasFrameArtwork: Bool {
         guard let guid else { return false }
-        return guid.hasPrefix("tv.plex.agents.none://") || guid.hasPrefix("com.plexapp.agents.none://")
+        return guid.hasPrefix("tv.plex.agents.none://") || guid.hasPrefix("com.plexapp.agents.none://") || guid.hasPrefix("local://")
     }
 }

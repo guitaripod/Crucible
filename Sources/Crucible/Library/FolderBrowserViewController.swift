@@ -31,7 +31,16 @@ final class FolderBrowserViewController: UICollectionViewController {
     private let source: LibraryFolderListing.Source
     private let folderTitle: String?
     private var dataSource: UICollectionViewDiffableDataSource<SectionKind, Item>!
-    private var artworkAspect = Theme.Size.posterAspect
+    private var listing: LibraryFolderListing?
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        (self?.listing?.media ?? []).map { item in
+            let poster = LibraryPoster(folderItem: item)
+            return ArtworkAspect.Sample(path: poster.posterPath, guess: poster.aspect)
+        }
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
+    private var artworkAspect: CGFloat { CGFloat(artworkShape.aspect) }
     private var loadTask: Task<Void, Never>?
     private var playerCoordinator: PlayerCoordinator?
 
@@ -127,7 +136,8 @@ final class FolderBrowserViewController: UICollectionViewController {
                 let listing = try await LibraryFolderListing.load(source, api: api)
                 let folders = listing.folders.map { Item.folder(key: $0.key, title: $0.title) }
                 let media = listing.media.map(Item.media)
-                artworkAspect = CGFloat(ArtworkAspect.dominant(listing.media.map { LibraryPoster(folderItem: $0).aspect }))
+                self.listing = listing
+                artworkShape.update()
 
                 var snapshot = NSDiffableDataSourceSnapshot<SectionKind, Item>()
                 if !folders.isEmpty {
@@ -158,6 +168,15 @@ final class FolderBrowserViewController: UICollectionViewController {
                 contentUnavailableConfiguration = config
             }
         }
+    }
+
+    /// Artwork that loaded since showed the grid's real shape: re-lays it out and reshapes the cards already on screen.
+    private func artworkShapeDidChange() {
+        guard isViewLoaded else { return }
+        collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { if case .media = $0 { true } else { false } })
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func quickPlay(_ item: PlexMetadata) {

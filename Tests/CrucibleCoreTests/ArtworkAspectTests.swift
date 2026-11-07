@@ -32,7 +32,7 @@ struct ArtworkAspectTests {
             "type": "episode", "guid": "tv.plex.agents.none://9", "thumb": "/t",
             "Media": [["width": 1440, "height": 1080]],
         ])
-        #expect(wide.isPersonalMedia)
+        #expect(wide.hasFrameArtwork)
         #expect(ArtworkAspect.of(wide, path: "/t") == 0.5625)
         #expect(ArtworkAspect.of(tall, path: "/t") == 1280.0 / 720.0)
         #expect(ArtworkAspect.of(episode, path: "/t") == 0.75)
@@ -41,8 +41,9 @@ struct ArtworkAspectTests {
     @Test func personalVideoWithoutASizeIsAStill() {
         let item = DetailFixtures.item(["type": "movie", "guid": "tv.plex.agents.none://6", "thumb": "/t"])
         #expect(ArtworkAspect.of(item, path: "/t") == ArtworkAspect.still)
-        #expect(!DetailFixtures.item(["guid": "plex://movie/5d776b"]).isPersonalMedia)
-        #expect(!DetailFixtures.item(["guid": "local://12"]).isPersonalMedia)
+        #expect(!DetailFixtures.item(["guid": "plex://movie/5d776b"]).hasFrameArtwork)
+        let unmatched = DetailFixtures.item(["guid": "local://3", "thumb": "/t", "Media": [["width": 1920, "height": 1080]]])
+        #expect(ArtworkAspect.of(unmatched, path: "/t") == 0.5625)
     }
 
     @Test func gridTakesTheShapeMostOfItsArtworkHas() {
@@ -72,5 +73,45 @@ struct ArtworkAspectTests {
         let episode = try LibraryFixtures.item(#"{"ratingKey":"9","type":"episode","title":"Pilot","grandparentThumb":"/show","thumb":"/still"}"#)
         #expect(LibraryPoster(recent: episode, kind: .show).aspect == ArtworkAspect.poster)
         #expect(LibraryPoster(folderItem: episode).aspect == ArtworkAspect.still)
+    }
+}
+
+struct ArtworkMeasuredShapeTests {
+    private static let posters = (1...6).map { ArtworkAspect.Sample(path: "/m/\($0)", guess: ArtworkAspect.poster) }
+
+    @Test func framesWithoutPostersReshapeAGridOfMovies() {
+        let frames = Dictionary(uniqueKeysWithValues: (1...6).map { ("/m/\($0)", 405.0 / 720.0) })
+        #expect(ArtworkAspect.dominant(Self.posters, measured: { frames[$0] }) == ArtworkAspect.still)
+    }
+
+    @Test func aFewMeasuredFramesOutweighManyUnmeasuredGuesses() {
+        let samples = (1...200).map { ArtworkAspect.Sample(path: "/m/\($0)", guess: ArtworkAspect.poster) }
+        let frames = Dictionary(uniqueKeysWithValues: (1...4).map { ("/m/\($0)", 720.0 / 1280.0) })
+        #expect(ArtworkAspect.dominant(samples, measured: { frames[$0] }) == ArtworkAspect.still)
+    }
+
+    @Test func untilAQuorumIsMeasuredEachCardCountsItsBestShape() {
+        let frames = ["/m/1": 0.5625, "/m/2": 0.5625]
+        #expect(ArtworkAspect.dominant(Self.posters, measured: { frames[$0] }) == ArtworkAspect.poster)
+        let short = Array(Self.posters.prefix(2))
+        #expect(ArtworkAspect.dominant(short, measured: { frames[$0] }) == ArtworkAspect.still)
+    }
+
+    @Test func realPostersKeepAPosterGrid() {
+        let posters = Dictionary(uniqueKeysWithValues: (1...6).map { ("/m/\($0)", $0.isMultiple(of: 2) ? 1.48 : 1.5) })
+        #expect(ArtworkAspect.dominant(Self.posters, measured: { posters[$0] }) == ArtworkAspect.poster)
+    }
+
+    @Test func aPosterUploadedToAPersonalVideoWins() {
+        let clips = (1...5).map { ArtworkAspect.Sample(path: "/c/\($0)", guess: ArtworkAspect.still) }
+        let posters = Dictionary(uniqueKeysWithValues: (1...5).map { ("/c/\($0)", 1.5) })
+        #expect(ArtworkAspect.dominant(clips, measured: { posters[$0] }) == ArtworkAspect.poster)
+    }
+
+    @Test func measuredShapesSnapOnlyWhenClose() {
+        #expect(ArtworkAspect.snapped(40.0 / 27.0) == ArtworkAspect.poster)
+        #expect(ArtworkAspect.snapped(1 / 1.85) == ArtworkAspect.still)
+        #expect(ArtworkAspect.snapped(0.75) == 0.75)
+        #expect(ArtworkAspect.snapped(1280.0 / 720.0) == 1280.0 / 720.0)
     }
 }

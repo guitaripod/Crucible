@@ -24,6 +24,14 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     private var listing: LibraryFolderListing?
     private var mediaById: [String: PlexMetadata] = [:]
     private var cardStyle = TVCardStyle.poster
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        (self?.listing?.media ?? []).map { item in
+            let poster = LibraryPoster(folderItem: item)
+            return ArtworkAspect.Sample(path: poster.posterPath, guess: poster.aspect)
+        }
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
     private var needsRefresh = false
     private lazy var loadSlot = makeTaskSlot()
     private lazy var refreshSlot = makeTaskSlot()
@@ -96,9 +104,8 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     }
 
     private func applySnapshot() {
-        let style = TVCardStyle.grid(aspect: ArtworkAspect.dominant((listing?.media ?? []).map { LibraryPoster(folderItem: $0).aspect }))
-        if style != cardStyle {
-            cardStyle = style
+        if artworkShape.update() {
+            cardStyle = .grid(aspect: artworkShape.aspect)
             collectionView.collectionViewLayout.invalidateLayout()
         }
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
@@ -115,6 +122,15 @@ final class TVFolderBrowserViewController: TVScreenViewController {
             }
         }
         dataSource.applyReconfiguringExisting(snapshot)
+    }
+
+    /// Artwork that loaded since showed the grid's real shape: re-lays it out and redraws its cards in it.
+    private func artworkShapeDidChange() {
+        cardStyle = .grid(aspect: artworkShape.aspect)
+        collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { if case .media = $0 { true } else { false } })
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     /// Re-reads the folder after the user played or opened something, and redraws only what changed.

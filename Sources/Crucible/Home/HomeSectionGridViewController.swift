@@ -10,7 +10,17 @@ final class HomeSectionGridViewController: UICollectionViewController {
     private var items: [PlexMetadata]
     private var mediaById: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
-    private var artworkAspect = Theme.Size.posterAspect
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        guard let self else { return [] }
+        let bucket = bucket
+        return items.map { item in
+            let path = HomeCardModel(item: item, bucket: bucket, layout: .poster).imagePath
+            return ArtworkAspect.Sample(path: path, guess: ArtworkAspect.of(item, path: path))
+        }
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
+    private var artworkAspect: CGFloat { CGFloat(artworkShape.aspect) }
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
@@ -46,7 +56,7 @@ final class HomeSectionGridViewController: UICollectionViewController {
         mediaById = Dictionary(newItems.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
         var seen = Set<String>()
         let ids = newItems.map(\.id).filter { seen.insert($0).inserted }
-        adoptArtworkAspect(of: newItems)
+        if artworkShape.update() { collectionView.collectionViewLayout.invalidateLayout() }
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -64,15 +74,13 @@ final class HomeSectionGridViewController: UICollectionViewController {
         }
     }
 
-    /// Lays the grid out in the shape most of the rail's artwork has; the snapshot that follows reshapes the cards on screen.
-    private func adoptArtworkAspect(of items: [PlexMetadata]) {
-        let bucket = bucket
-        let aspect = CGFloat(ArtworkAspect.dominant(items.map {
-            ArtworkAspect.of($0, path: HomeCardModel(item: $0, bucket: bucket, layout: .poster).imagePath)
-        }))
-        guard aspect != artworkAspect else { return }
-        artworkAspect = aspect
+    /// Artwork that loaded since showed the grid's real shape: re-lays it out and reshapes the cards already on screen.
+    private func artworkShapeDidChange() {
+        guard isViewLoaded else { return }
         collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func configureDataSource() {

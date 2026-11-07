@@ -49,10 +49,16 @@ class LibraryGridViewController: UIViewController {
     }
     private var appliedColumns = Preferences.libraryColumns
 
-    /// The shape of the cards: the shape most of the grid's artwork has, so an Other Videos library lays out its frames at the
-    /// videos' own shape instead of cropping them to posters. The Recently Watched rail shares it, since it shows the same
-    /// titles' artwork and the play history it comes from says nothing about their shape.
-    private(set) var artworkAspect = Theme.Size.posterAspect
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        self?.artworkSamples() ?? []
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
+
+    /// The shape of the cards: the shape most of the grid's artwork really has, so a library whose titles have no posters lays
+    /// out their frames at the videos' own shape instead of cropping them to posters. The Recently Watched rail shares it, since
+    /// it shows the same titles' artwork.
+    var artworkAspect: CGFloat { CGFloat(artworkShape.aspect) }
 
     /// The width the poster grid lays out in, inside the safe area.
     var gridWidth: CGFloat {
@@ -332,12 +338,27 @@ class LibraryGridViewController: UIViewController {
     /// Re-lays the grid and the rail out once the items loaded so far change the shape most of their artwork has; the snapshot
     /// that follows reconfigures the cards already on screen to it.
     private func adoptArtworkAspect() {
-        let kind = kind
-        let aspect = CGFloat(ArtworkAspect.dominant(model.gridIds.compactMap(model.item(withId:)).map { LibraryPoster(grid: $0, kind: kind).aspect }))
-        guard aspect != artworkAspect else { return }
-        MidgarLog.info("\(kind.logName) artwork aspect section=\(sectionId) aspect=\(aspect)", category: .ui)
-        artworkAspect = aspect
+        guard artworkShape.update() else { return }
+        MidgarLog.info("\(kind.logName) artwork aspect section=\(sectionId) aspect=\(artworkAspect)", category: .ui)
         collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    private func artworkSamples() -> [ArtworkAspect.Sample] {
+        let kind = kind
+        return model.gridIds.compactMap(model.item(withId:)).map { item in
+            let poster = LibraryPoster(grid: item, kind: kind)
+            return ArtworkAspect.Sample(path: poster.posterPath, guess: poster.aspect)
+        }
+    }
+
+    /// Artwork that loaded since showed the grid's real shape: re-lays it out and reshapes the cards already on screen.
+    private func artworkShapeDidChange() {
+        guard isViewLoaded else { return }
+        MidgarLog.info("\(kind.logName) artwork aspect measured section=\(sectionId) aspect=\(artworkAspect)", category: .ui)
+        collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { $0 != .header })
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func reconfigureHeader() {

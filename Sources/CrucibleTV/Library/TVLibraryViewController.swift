@@ -40,6 +40,11 @@ final class TVLibraryViewController: TVScreenViewController {
     /// instead of cropped to posters. The Recently Watched shelf shares it, since it shows the same titles' artwork and the
     /// play history it comes from says nothing about their shape.
     private var cardStyle = TVCardStyle.poster
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        self?.artworkSamples() ?? []
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
     private lazy var revealSlot = makeTaskSlot()
     private lazy var actions = TVLibraryItemActions(env: env, kind: section.kind, presenter: self) { [weak self] item, watched in
         self?.model.setWatched(ratingKey: item.id, watched: watched)
@@ -307,12 +312,28 @@ final class TVLibraryViewController: TVScreenViewController {
     /// Re-lays the grid and the shelf out once the items loaded so far change the shape most of their artwork has; the snapshot
     /// that follows redraws the cards already on screen in it.
     private func adoptArtworkStyle() {
-        let kind = section.kind
-        let style = TVCardStyle.grid(aspect: ArtworkAspect.dominant(model.gridIds.compactMap(model.item(withId:)).map { LibraryPoster(grid: $0, kind: kind).aspect }))
-        guard style != cardStyle else { return }
-        MidgarLog.info("TV library artwork shape section=\(section.id) artwork=\(style.artworkSize)", category: .ui)
-        cardStyle = style
+        guard artworkShape.update() else { return }
+        cardStyle = .grid(aspect: artworkShape.aspect)
+        MidgarLog.info("TV library artwork shape section=\(section.id) artwork=\(cardStyle.artworkSize)", category: .ui)
         collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    private func artworkSamples() -> [ArtworkAspect.Sample] {
+        let kind = section.kind
+        return model.gridIds.compactMap(model.item(withId:)).map { item in
+            let poster = LibraryPoster(grid: item, kind: kind)
+            return ArtworkAspect.Sample(path: poster.posterPath, guess: poster.aspect)
+        }
+    }
+
+    /// Artwork that loaded since showed the grid's real shape: re-lays the grid and the shelf out and redraws their cards in it.
+    private func artworkShapeDidChange() {
+        cardStyle = .grid(aspect: artworkShape.aspect)
+        MidgarLog.info("TV library artwork shape measured section=\(section.id) artwork=\(cardStyle.artworkSize)", category: .ui)
+        collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers.filter { $0 != .header })
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func reconfigureHeader() {

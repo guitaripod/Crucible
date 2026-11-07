@@ -26,6 +26,7 @@ package actor ImageLoader {
     package nonisolated func configure(baseURL: URL, token: String, machineIdentifier: String) {
         config.withLock { $0 = Config(baseURL: baseURL, token: token, machineIdentifier: machineIdentifier) }
         Task { await self.cancelInFlight() }
+        Task { @MainActor in ArtworkShapes.shared.use(namespace: machineIdentifier) }
     }
 
     private func cancelInFlight() async {
@@ -80,6 +81,7 @@ package actor ImageLoader {
 
         if let cached = await disk.read(key: diskKey), let image = await Self.prepare(cached) {
             cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
+            remember(image, for: path)
             return image
         }
 
@@ -99,11 +101,19 @@ package actor ImageLoader {
             }
             disk.write(data, key: diskKey)
             cache.setObject(image, forKey: nsKey, cost: Self.cost(of: image))
+            remember(image, for: path)
             return image
         } catch {
             logger.debug("Image request \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+    }
+
+    /// Hands the image's real shape to `ArtworkShapes`; the transcoder never crops, so it is the shape of the artwork at `path`.
+    private func remember(_ image: UIImage, for path: String) {
+        guard image.size.width > 0 else { return }
+        let shape = Double(image.size.height / image.size.width)
+        Task { @MainActor in ArtworkShapes.shared.record(shape, for: path) }
     }
 
     private static func prepare(_ data: Data) async -> UIImage? {

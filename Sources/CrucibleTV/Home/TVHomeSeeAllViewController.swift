@@ -12,6 +12,16 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
     private var mediaByID: [String: PlexMetadata] = [:]
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private var posterStyle = TVCardStyle.poster
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        guard let self else { return [] }
+        let bucket = bucket
+        return items.map { item in
+            let path = TVHomeContent.card(for: item, bucket: bucket).artworkPath
+            return ArtworkAspect.Sample(path: path, guess: ArtworkAspect.of(item, path: path))
+        }
+    } onChange: { [weak self] in
+        self?.artworkShapeDidChange()
+    }
 
     init(env: TVAppEnvironment, bucket: HomeBucket, title: String, items: [PlexMetadata], onChange: @escaping @MainActor () -> Void) {
         self.bucket = bucket
@@ -43,7 +53,7 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
         guard isViewLoaded else { return }
         mediaByID = Dictionary(newItems.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
         let ids = newItems.map(\.id)
-        adoptArtworkStyle(of: newItems)
+        adoptArtworkStyle()
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(ids, toSection: 0)
@@ -69,17 +79,22 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
 
     private var isPoster: Bool { bucket == .recentlyAdded }
 
-    /// Recently Added lays its cards out in the shape most of their artwork has (posters, or the frames of personal videos);
-    /// the snapshot that follows redraws the cards on screen in it.
-    private func adoptArtworkStyle(of items: [PlexMetadata]) {
-        guard isPoster else { return }
-        let bucket = bucket
-        let style = TVCardStyle.grid(aspect: ArtworkAspect.dominant(items.map {
-            ArtworkAspect.of($0, path: TVHomeContent.card(for: $0, bucket: bucket).artworkPath)
-        }))
-        guard style != posterStyle else { return }
-        posterStyle = style
+    /// Recently Added lays its cards out in the shape most of their artwork has (posters, or the frames of videos without
+    /// posters); the snapshot that follows redraws the cards on screen in it.
+    private func adoptArtworkStyle() {
+        guard isPoster, artworkShape.update() else { return }
+        posterStyle = .grid(aspect: artworkShape.aspect)
         collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    /// Artwork that loaded since showed the grid's real shape: re-lays it out and redraws its cards in it.
+    private func artworkShapeDidChange() {
+        guard isPoster, isViewLoaded else { return }
+        posterStyle = .grid(aspect: artworkShape.aspect)
+        collectionView.collectionViewLayout.invalidateLayout()
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func makeLayout() -> UICollectionViewLayout {
