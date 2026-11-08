@@ -181,6 +181,13 @@ class TVDetailViewController: TVScreenViewController {
         showContent()
     }
 
+    /// Runs a refresh that adds what arrived after the page appeared (scores, a button) as a short cross-fade, so nothing
+    /// jumps into place.
+    func easeIn(_ refresh: @escaping () -> Void) {
+        guard hasContent, TVMotion.animationsEnabled else { return refresh() }
+        UIView.transition(with: collectionView, duration: 0.3, options: [.transitionCrossDissolve, .allowUserInteraction], animations: refresh)
+    }
+
     override func initialFocusIndexPath() -> IndexPath? {
         let snapshot = dataSource.snapshot()
         let enabled = snapshot.itemIdentifiers(inSection: .actions).first { item in

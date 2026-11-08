@@ -734,6 +734,7 @@ final class ShowDetailViewController: UICollectionViewController {
         }
         loadTask = Task { [weak self] in
             guard let self else { return }
+            let scoresTask = startScores()
             do {
                 let loaded = try await ShowDetailLoader.load(
                     api: api,
@@ -746,11 +747,12 @@ final class ShowDetailViewController: UICollectionViewController {
                     if model == nil { showLoadError(message: DetailMessage.showUnavailable) }
                     return
                 }
+                let settled = await settleScores(scoresTask)
                 model = loaded
                 rating.loaded()
                 contentUnavailableConfiguration = nil
                 await applySnapshot()
-                loadScores()
+                if !settled, let scoresTask { finishScores(scoresTask) }
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Show load failed ratingKey=\(showRatingKey): \(error.localizedDescription)", category: .networking)
@@ -793,7 +795,7 @@ final class ShowDetailViewController: UICollectionViewController {
         contentUnavailableConfiguration = config
     }
 
-    private func applySnapshot() async {
+    private func applySnapshot(animated: Bool = false) async {
         guard let model else { return }
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
@@ -831,7 +833,7 @@ final class ShowDetailViewController: UICollectionViewController {
             snapshot.appendItems(related.map { .related($0) }, toSection: .related)
         }
 
-        await dataSource.apply(snapshot, animatingDifferences: false)
+        await dataSource.apply(snapshot, animatingDifferences: animated)
 
         var refreshed = dataSource.snapshot()
         let dynamic = refreshed.itemIdentifiers.filter { item in
@@ -892,14 +894,28 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
-    /// Fetches the ratings strip in the background; the page never waits for Trakt.
-    private func loadScores() {
+    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    private func startScores() -> Task<[TraktScore], Never>? {
+        guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
+        let ratingKey = showRatingKey, api = api
+        return Task { await TraktScores.shared.scores(ratingKey: ratingKey, api: api) }
+    }
+
+    /// Waits a moment after the page's own data for the scores, so the page appears in one piece. Returns whether they came.
+    private func settleScores(_ task: Task<[TraktScore], Never>?) async -> Bool {
+        guard let task else { return true }
+        guard let found = await Settle.value(of: task, within: Settle.detailGrace) else { return false }
+        scores = found
+        return true
+    }
+
+    /// Scores that came after the page appeared ease in instead of jumping into place.
+    private func finishScores(_ task: Task<[TraktScore], Never>) {
         Task { [weak self] in
-            guard let self else { return }
-            let found = await TraktScores.shared.scores(ratingKey: showRatingKey, api: api)
-            guard found != scores else { return }
+            let found = await task.value
+            guard let self, found != scores else { return }
             scores = found
-            await applySnapshot()
+            await applySnapshot(animated: true)
         }
     }
 

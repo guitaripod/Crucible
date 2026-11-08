@@ -20,6 +20,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private var extrasByID: [String: PlexMetadata] = [:]
     private var subtitlesBeforeSearch: Set<Int>?
     private var isOnWatchlist: Bool?
+    /// The watchlist is being read alongside the page, so a second read is not started.
+    private var watchlistPending = false
     private lazy var watchlistSlot = makeTaskSlot()
     private lazy var subtitleSearchSlot = makeTaskSlot()
     private lazy var nextEpisodeSlot = makeTaskSlot()
@@ -40,12 +42,28 @@ final class TVMediaDetailViewController: TVDetailViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     override func fetch() async {
+        let isFirst = model == nil
+        let scoresTask = isFirst ? startScores() : nil
+        let watchlistTask = isFirst && isOnWatchlist == nil ? startWatchlist() : nil
         do {
             guard let loaded = try await MovieDetailLoader.load(api: env.api, ratingKey: ratingKey) else {
                 if !hasContent { showUnavailable(DetailMessage.itemUnavailable) }
                 return
             }
+            async let settledScores = settle(scoresTask)
+            async let settledWatchlist = settle(watchlistTask)
+            let (scoresIn, watchlistIn) = await (settledScores, settledWatchlist)
+            if let scoresIn { scores = scoresIn }
+            if let watchlistIn { isOnWatchlist = Self.contains(loaded.item, in: watchlistIn) }
+            watchlistPending = watchlistIn == nil && watchlistTask != nil
             adopt(loaded)
+            if scoresIn == nil, let scoresTask { finish(scoresTask) { $0.scores = $1 } }
+            if watchlistIn == nil, let watchlistTask {
+                finish(watchlistTask) { screen, watchlist in
+                    screen.watchlistPending = false
+                    screen.isOnWatchlist = Self.contains(loaded.item, in: watchlist)
+                }
+            }
         } catch {
             guard !Task.isCancelled else { return }
             MidgarLog.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
@@ -75,7 +93,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
     /// Finds out whether the title is on the watchlist, once, so the screen can offer the button that fits; a title that cannot be saved
     /// there (an episode, one with no guid) or an account that cannot be reached leaves the button out.
     private func loadWatchlistState(for item: PlexMetadata) {
-        guard isOnWatchlist == nil, let guid = item.guid, ["movie", "show"].contains(item.mediaType) else { return }
+        guard isOnWatchlist == nil, !watchlistPending, let guid = item.guid, ["movie", "show"].contains(item.mediaType) else { return }
         let token = env.api.token
         watchlistSlot.run { [weak self] in
             guard let watchlist = try? await WatchlistService.items(token: token), !Task.isCancelled else { return }
@@ -202,22 +220,42 @@ final class TVMediaDetailViewController: TVDetailViewController {
         return ShowTrackMemory.languages(forShow: loaded.showKey, server: ServerBootstrap.savedMachineIdentifier)
     }
 
-    /// Fetches the ratings strip in the background; the page never waits for Trakt.
-    private func loadScores(for ratingKey: String) {
+    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    private func startScores() -> Task<[TraktScore], Never>? {
+        guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
+        let ratingKey = ratingKey, api = env.api
+        return Task { await TraktScores.shared.scores(ratingKey: ratingKey, api: api) }
+    }
+
+    /// Starts reading the watchlist alongside the page, so the screen knows which watchlist button to show in its first pass.
+    private func startWatchlist() -> Task<[PlexMetadata]?, Never> {
+        let token = env.api.token
+        return Task { try? await WatchlistService.items(token: token) }
+    }
+
+    private static func contains(_ item: PlexMetadata, in watchlist: [PlexMetadata]?) -> Bool? {
+        guard let watchlist, let guid = item.guid, ["movie", "show"].contains(item.mediaType) else { return nil }
+        return WatchlistService.contains(guid: guid, in: watchlist)
+    }
+
+    private func settle<Value: Sendable>(_ task: Task<Value, Never>?) async -> Value? {
+        guard let task else { return nil }
+        return await Settle.value(of: task, within: Settle.detailGrace)
+    }
+
+    /// What arrived after the page appeared eases in with one refresh.
+    private func finish<Value: Sendable>(_ task: Task<Value, Never>, apply: @escaping @MainActor (TVMediaDetailViewController, Value) -> Void) {
         Task { [weak self] in
-            guard let self else { return }
-            let found = await TraktScores.shared.scores(ratingKey: ratingKey, api: env.api)
-            guard found != scores else { return }
-            scores = found
-            rebuild()
+            let value = await task.value
+            guard let self, !Task.isCancelled else { return }
+            apply(self, value)
+            easeIn { self.rebuild() }
         }
     }
 
     private func adopt(_ loaded: MovieDetailModel) {
-        let isFirst = model == nil
         model = loaded
         rating.loaded()
-        if isFirst { loadScores(for: loaded.item.id) }
         let tracks = loaded.reconciledTracks(
             audioId: audioID,
             subtitleId: subtitleID,

@@ -12,6 +12,8 @@ final class TVShowDetailViewController: TVDetailViewController {
     private var model: ShowDetailModel?
     private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: showKey)
     private var offersRequest = false
+    /// Seerr's answer about the show, asked for as soon as the show itself arrived.
+    private var pendingRequestTask: Task<Bool, Never>?
     private lazy var seasonSlot = makeTaskSlot()
     private lazy var requestSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
@@ -37,13 +39,19 @@ final class TVShowDetailViewController: TVDetailViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     override func fetch() async {
+        let isFirst = model == nil
+        let scoresTask = isFirst ? startScores() : nil
+        pendingRequestTask = nil
         do {
             let loaded = try await ShowDetailLoader.load(
                 api: env.api,
                 showRatingKey: showKey,
                 initialSeasonKey: initialSeasonKey,
                 selectedSeasonKey: { [weak self] in self?.model?.selectedSeasonKey },
-                onShow: { _ in }
+                onShow: { [weak self] show in
+                    guard isFirst, let self else { return }
+                    pendingRequestTask = startRequestState(for: show)
+                }
             )
             guard let loaded else {
                 if !hasContent { showUnavailable(DetailMessage.showUnavailable) }
@@ -51,12 +59,18 @@ final class TVShowDetailViewController: TVDetailViewController {
             }
             seasonSlot.cancel()
             loadingSeasonKey = nil
-            let isFirst = model == nil
+            let requestTask = pendingRequestTask
+            async let settledScores = settle(scoresTask)
+            async let settledRequest = settle(requestTask)
+            let (scoresIn, requestIn) = await (settledScores, settledRequest)
+            if let scoresIn { scores = scoresIn }
+            if let requestIn { offersRequest = requestIn }
             model = loaded
             rating.loaded()
             rebuild()
-            if isFirst { loadScores() }
-            loadRequestState()
+            if scoresIn == nil, let scoresTask { finish(scoresTask) { $0.scores = $1 } }
+            if requestIn == nil, let requestTask { finish(requestTask) { $0.offersRequest = $1 } }
+            if !isFirst { loadRequestState() }
         } catch {
             guard !Task.isCancelled else { return }
             MidgarLog.error("Show load failed ratingKey=\(showKey): \(error.localizedDescription)", category: .networking)
@@ -191,18 +205,39 @@ final class TVShowDetailViewController: TVDetailViewController {
             let offers = state?.canRequest(with: SeerrAccount.shared.permissions) ?? false
             guard offers != offersRequest else { return }
             offersRequest = offers
-            rebuild()
+            easeIn { self.rebuild() }
         }
     }
 
-    /// Fetches the ratings strip in the background; the page never waits for Trakt.
-    private func loadScores() {
+    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    private func startScores() -> Task<[TraktScore], Never>? {
+        guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
+        let ratingKey = showKey, api = env.api
+        return Task { await TraktScores.shared.scores(ratingKey: ratingKey, api: api) }
+    }
+
+    /// Starts asking Seerr about the show as soon as the show itself is known, while its seasons still load.
+    private func startRequestState(for show: PlexMetadata) -> Task<Bool, Never>? {
+        guard SeerrAccount.shared.isConnected else { return nil }
+        let api = env.api
+        return Task {
+            guard let state = try? await SeerrTitles.shared.state(for: show, api: api) else { return false }
+            return state.canRequest(with: SeerrAccount.shared.permissions)
+        }
+    }
+
+    private func settle<Value: Sendable>(_ task: Task<Value, Never>?) async -> Value? {
+        guard let task else { return nil }
+        return await Settle.value(of: task, within: Settle.detailGrace)
+    }
+
+    /// What arrived after the page appeared eases in with one refresh.
+    private func finish<Value: Sendable & Equatable>(_ task: Task<Value, Never>, apply: @escaping @MainActor (TVShowDetailViewController, Value) -> Void) {
         Task { [weak self] in
-            guard let self else { return }
-            let found = await TraktScores.shared.scores(ratingKey: showKey, api: env.api)
-            guard found != scores else { return }
-            scores = found
-            rebuild()
+            let value = await task.value
+            guard let self, !Task.isCancelled else { return }
+            apply(self, value)
+            easeIn { self.rebuild() }
         }
     }
 
