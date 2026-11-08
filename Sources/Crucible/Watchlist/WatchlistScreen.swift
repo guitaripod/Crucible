@@ -41,7 +41,7 @@ enum WatchlistScreen {
         Task { @MainActor in
             do {
                 guard let local = try await WatchlistService.localMatch(for: entry, api: api) else {
-                    grid?.presentSimpleAlert(title: WatchlistService.notInLibraryTitle, message: WatchlistService.notInLibraryText)
+                    SeerrRequestViewController.present(for: entry, api: api, isOnServer: false, from: grid)
                     return
                 }
                 HomeMediaActions.openDetail(local, api: api, from: grid?.navigationController)

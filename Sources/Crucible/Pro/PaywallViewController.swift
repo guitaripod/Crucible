@@ -212,7 +212,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     }
 
     private func makeFeatures() -> UIView {
-        let stack = UIStackView(arrangedSubviews: ProFeature.listed(isTV: false).map {
+        let stack = UIStackView(arrangedSubviews: ProFeature.listed(isTV: false, includingRequests: SeerrAccount.shared.managesRequests || model.request.feature == .manageRequests).map {
             PaywallFeatureRowView(feature: $0, isHighlighted: $0 == model.request.feature)
         })
         stack.axis = .vertical

@@ -58,7 +58,7 @@ final class TVProViewController: TVSettingsScaffold {
         let entitlement = ProAccess.shared.status.entitlement
         heading.setBody(entitlement?.summary())
         managePanel.isHidden = entitlement?.kind != .subscription
-        var rows = ProFeature.listed(isTV: true).map { feature in
+        var rows = ProFeature.listed(isTV: true, includingRequests: SeerrAccount.shared.managesRequests).map { feature in
             TVRowItem(id: RowID.feature(feature), title: feature.title, subtitle: feature.summary, symbol: feature.symbol, accessory: .checkmark)
         }
         rows.insert(

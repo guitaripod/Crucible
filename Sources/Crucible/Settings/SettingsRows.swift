@@ -100,6 +100,8 @@ final class SettingsNavigator {
             host.navigationController?.pushViewController(CompanionViewController(), animated: true)
         case .trakt:
             host.navigationController?.pushViewController(TraktSettingsViewController(api: api), animated: true)
+        case .seerr:
+            host.navigationController?.pushViewController(SeerrSettingsViewController(api: api), animated: true)
         case .manageStorage:
             (host.tabBarController as? TabBarController)?.select(.downloads)
         case .notificationPermission:
@@ -196,6 +198,8 @@ final class SettingsNavigator {
             return CompanionStore.current()?.name ?? CompanionCopy.notSetUp
         case .destination(.trakt):
             return TraktAccount.shared.summary
+        case .destination(.seerr):
+            return SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected")
         case .action(.clearImageCache):
             return ImageCacheMeter.formatted(await ImageCacheMeter.totalBytes())
         case .destination(.sourceCode):

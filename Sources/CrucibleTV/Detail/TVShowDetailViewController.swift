@@ -11,6 +11,7 @@ final class TVShowDetailViewController: TVDetailViewController {
     private let initialSeasonKey: String?
     private var model: ShowDetailModel?
     private var scores: [TraktScore] = []
+    private var offersRequest = false
     private lazy var seasonSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
@@ -54,6 +55,7 @@ final class TVShowDetailViewController: TVDetailViewController {
             rating.loaded()
             rebuild()
             if isFirst { loadScores() }
+            loadRequestState()
         } catch {
             guard !Task.isCancelled else { return }
             MidgarLog.error("Show load failed ratingKey=\(showKey): \(error.localizedDescription)", category: .networking)
@@ -178,6 +180,19 @@ final class TVShowDetailViewController: TVDetailViewController {
         ))
     }
 
+    /// Asks Seerr whether the show is missing seasons nobody asked for, which adds Request More Seasons; the page never waits.
+    private func loadRequestState() {
+        guard SeerrAccount.shared.isConnected, let show = model?.show else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            let state = try? await SeerrTitles.shared.state(for: show, api: env.api)
+            let offers = state?.canRequest(with: SeerrAccount.shared.permissions) ?? false
+            guard offers != offersRequest else { return }
+            offersRequest = offers
+            rebuild()
+        }
+    }
+
     /// Fetches the ratings strip in the background; the page never waits for Trakt.
     private func loadScores() {
         Task { [weak self] in
@@ -262,6 +277,12 @@ final class TVShowDetailViewController: TVDetailViewController {
             }
         ))
         let show = model.show
+        if offersRequest {
+            actions.append(TVDetailAction(kind: .request, title: SeerrCopy.requestMore, symbol: "plus.rectangle.on.rectangle", handler: { [weak self] in
+                guard let self else { return }
+                TVSeerrRequestViewController.open(show, env: env, isOnServer: true, from: self)
+            }))
+        }
         actions.append(TVDetailAction(
             kind: .playlist,
             title: PlaylistFormat.addToPlaylist,

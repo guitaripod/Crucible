@@ -7,7 +7,8 @@ import UIKit
 final class TVPaywallInfoColumn: UIStackView {
     private static let wellSide: CGFloat = TVMetrics.Row.iconWell
 
-    init(request: PaywallRequest, features: [ProFeature] = ProFeature.listed(isTV: true)) {
+    init(request: PaywallRequest, features: [ProFeature]? = nil) {
+        let features = features ?? ProFeature.listed(isTV: true, includingRequests: SeerrAccount.shared.managesRequests || request.feature == .manageRequests)
         super.init(frame: .zero)
         axis = .vertical
         alignment = .fill

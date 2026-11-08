@@ -37,7 +37,8 @@ extension TVScreens {
         Task { @MainActor [weak screen] in
             do {
                 guard let local = try await WatchlistService.localMatch(for: entry, api: env.api) else {
-                    screen?.presentAlert(title: WatchlistService.notInLibraryTitle, message: WatchlistService.notInLibraryText)
+                    guard let screen else { return }
+                    TVSeerrRequestViewController.open(entry, env: env, isOnServer: false, from: screen)
                     return
                 }
                 guard let screen else { return }

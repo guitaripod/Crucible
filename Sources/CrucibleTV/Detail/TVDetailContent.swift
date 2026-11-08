@@ -21,6 +21,7 @@ struct TVDetailAction {
         case essentials
         case previouslyOn
         case checkIn
+        case request
     }
 
     enum Appearance: Sendable {

@@ -695,6 +695,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     })
                 }
                 elements.append(PlaylistMenu.addMenu(for: [show], api: api, host: self))
+                if let request = await SeerrPhoneActions.requestMoreSeasons(for: show, api: api, host: self) { elements.append(request) }
                 if let watchlist = await WatchlistScreen.toggleAction(for: show, api: api, host: self) { elements.append(watchlist) }
                 if let manage = ManageMenus.itemMenu(for: show, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
                     elements.append(manage)

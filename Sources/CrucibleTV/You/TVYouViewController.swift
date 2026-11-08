@@ -25,6 +25,8 @@ final class TVYouViewController: TVSettingsScaffold {
         static let server = "you.server"
         static let crucibleServer = "you.crucibleServer"
         static let trakt = "you.trakt"
+        static let seerr = "you.seerr"
+        static let requests = "you.requests"
         static let diagnostics = "you.diagnostics"
         static let about = "you.about"
         static let signOut = "you.signOut"
@@ -107,6 +109,8 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.server: push(TVScreens.settings(env, page: .server))
         case RowID.crucibleServer: push(TVCompanionViewController())
         case RowID.trakt: push(TVTraktSettingsViewController())
+        case RowID.seerr: push(TVSeerrSettingsViewController(env: env))
+        case RowID.requests: push(TVSeerrRequestsViewController(env: env))
         case RowID.diagnostics: push(TVScreens.settings(env, page: .diagnostics))
         case RowID.about: push(TVScreens.settings(env, page: .about))
         case RowID.signOut: confirmSignOut()
@@ -214,6 +218,7 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
             TVRowItem(id: RowID.crucibleServer, title: CompanionCopy.title, value: CompanionStore.current()?.name ?? CompanionCopy.notSetUp, symbol: SettingsCatalog.symbol(.crucibleServer), accessory: .chevron),
             TVRowItem(id: RowID.trakt, title: TraktCopy.name, subtitle: TraktCopy.tagline, value: TraktAccount.shared.summary, symbol: SettingsCatalog.symbol(.trakt), accessory: .chevron),
+            TVRowItem(id: RowID.seerr, title: SeerrCopy.name, subtitle: SeerrCopy.tagline, value: SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected"), symbol: SettingsCatalog.symbol(.seerr), accessory: .chevron),
             TVRowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .tv), value: SettingsCatalog.summary(of: .privacy, on: .tv), symbol: SettingsCategory.privacy.symbol, accessory: .chevron),
             TVRowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
             TVRowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
@@ -224,6 +229,9 @@ final class TVYouViewController: TVSettingsScaffold {
         }
         if HomeProfiles.knownCount > 1 {
             rows.insert(TVRowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron), at: 0)
+        }
+        if SeerrAccount.shared.isConnected, let watchlist = rows.firstIndex(where: { $0.id == RowID.watchlist }) {
+            rows.insert(TVRowItem(id: RowID.requests, title: SeerrCopy.requests, symbol: "tray.full", accessory: .chevron), at: watchlist + 1)
         }
         if ServerOwnership.isOwner(), let activity = rows.firstIndex(where: { $0.id == RowID.activity }) {
             rows.insert(TVRowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron), at: activity + 1)
