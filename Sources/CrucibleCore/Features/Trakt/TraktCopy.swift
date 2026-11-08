@@ -29,6 +29,7 @@ package enum TraktCopy {
     package static let codeCopied = String(localized: "Copied", comment: "Shown after the Trakt code was copied")
     package static let requestingCode = String(localized: "Getting a code…", comment: "Status while Crucible asks Trakt for a code")
     package static let waiting = String(localized: "Waiting for approval…", comment: "Status while Crucible waits for the viewer to approve the code on Trakt")
+    package static let connecting = String(localized: "Connecting…", comment: "Status after the viewer approved the code, while Crucible finishes connecting")
     package static let expired = String(localized: "This code expired. Get a new one to try again.", comment: "Status when the Trakt code expired")
     package static let denied = String(localized: "The code was declined on Trakt.", comment: "Status when the viewer declined the Trakt code")
     package static let notAllowed = String(localized: "Trakt isn't letting this account connect to Crucible yet.", comment: "Status when Trakt refuses the account, for example for a development app")

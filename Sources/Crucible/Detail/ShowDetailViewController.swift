@@ -25,7 +25,7 @@ final class ShowDetailViewController: UICollectionViewController {
     private let initialSeasonKey: String?
     private var loadTask: Task<Void, Never>?
     /// What Trakt and the sources it collects score this show, once Trakt is connected and the show matched.
-    private var scores: [TraktScore] = []
+    private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: showRatingKey)
     private var seasonTask: Task<Void, Never>?
     private var model: ShowDetailModel?
     private lazy var moreItem: UIBarButtonItem = {
@@ -695,8 +695,12 @@ final class ShowDetailViewController: UICollectionViewController {
                     })
                 }
                 elements.append(PlaylistMenu.addMenu(for: [show], api: api, host: self))
-                if let request = await SeerrPhoneActions.requestMoreSeasons(for: show, api: api, host: self) { elements.append(request) }
-                if let watchlist = await WatchlistScreen.toggleAction(for: show, api: api, host: self) { elements.append(watchlist) }
+                async let offersSeasons = SeerrPhoneActions.offersMoreSeasons(for: show, api: api)
+                async let listed = WatchlistScreen.isListed(show, api: api)
+                if await offersSeasons { elements.append(SeerrPhoneActions.requestMoreSeasonsAction(for: show, api: api, host: self)) }
+                if let isListed = await listed, let watchlist = WatchlistScreen.toggleAction(for: show, isListed: isListed, api: api, host: self) {
+                    elements.append(watchlist)
+                }
                 if let manage = ManageMenus.itemMenu(for: show, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
                     elements.append(manage)
                 }

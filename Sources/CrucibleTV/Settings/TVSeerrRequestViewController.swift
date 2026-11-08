@@ -61,20 +61,32 @@ final class TVSeerrRequestViewController: TVSettingsScaffold {
     }
 
     private func load(refresh: Bool = false) {
+        if state == nil { presentState(.loading(title: nil)) }
         Task { [weak self] in
             guard let self else { return }
             do {
                 guard let found = try await SeerrTitles.shared.state(for: item, api: isOnServer ? env.api : nil, refresh: refresh) else {
                     failure = SeerrCopy.notIdentified
+                    presentState(nil)
                     return render()
                 }
                 state = found
                 failure = nil
                 selected = Set(found.requestableSeasons)
+                presentState(nil)
+                render()
             } catch {
-                failure = error.localizedDescription
+                guard state == nil else {
+                    presentAlert(title: String(localized: "Couldn\u{2019}t Load"), message: error.localizedDescription)
+                    return
+                }
+                presentState(.error(
+                    title: String(localized: "Couldn\u{2019}t Load"),
+                    message: error.localizedDescription,
+                    retryTitle: String(localized: "Try Again"),
+                    retry: { [weak self] in self?.load(refresh: true) }
+                ))
             }
-            render()
         }
     }
 
@@ -102,7 +114,7 @@ final class TVSeerrRequestViewController: TVSettingsScaffold {
         } else if let state {
             if showsPlay { rows.append(TVRowItem(id: "seerr.request.play", title: SeerrCopy.play, symbol: "play.fill", accessory: .chevron)) }
             if state.canRequest(with: SeerrAccount.shared.permissions) {
-                rows.append(TVRowItem(id: "seerr.request.submit", title: isWorking ? SeerrCopy.connecting : requestTitle, symbol: "plus.circle", isEnabled: canSubmit))
+                rows.append(TVRowItem(id: "seerr.request.submit", title: isWorking ? SeerrCopy.requesting : requestTitle, symbol: "plus.circle", isEnabled: canSubmit))
             } else if !SeerrAccount.shared.permissions.canRequest(state.kind), state.availability == .notRequested {
                 rows.append(TVRowItem(id: "seerr.request.message", title: SeerrError.notAllowed.localizedDescription, symbol: "info.circle", isStatic: true))
             }
@@ -130,8 +142,6 @@ final class TVSeerrRequestViewController: TVSettingsScaffold {
                     isStatic: !requestable || !partial
                 ))
             }
-        } else {
-            rows.append(TVRowItem(id: "seerr.request.loading", title: SeerrCopy.connecting, symbol: "tray.and.arrow.down", isStatic: true))
         }
         setRows(rows)
     }
@@ -174,12 +184,17 @@ final class TVSeerrRequestViewController: TVSettingsScaffold {
                 self.state = try await SeerrTitles.shared.request(state, seasons: seasons)
                 selected = Set(self.state?.requestableSeasons ?? [])
                 hasRequested = true
-                if !isOnServer, let guid = item.guid { await addToWatchlist(guid) }
+                isWorking = false
+                render()
+                if !isOnServer, let guid = item.guid {
+                    await addToWatchlist(guid)
+                    render()
+                }
             } catch {
+                isWorking = false
+                render()
                 presentAlert(title: SeerrCopy.connectFailed, message: error.localizedDescription)
             }
-            isWorking = false
-            render()
         }
     }
 

@@ -54,10 +54,20 @@ enum WatchlistScreen {
     /// Add to Watchlist or Remove from Watchlist for a title, whichever it is not yet; nil when the title has no guid to save it by or
     /// the account cannot be reached.
     static func toggleAction(for item: PlexMetadata, api: APIClient, host: UIViewController?) async -> UIAction? {
+        guard let isListed = await isListed(item, api: api) else { return nil }
+        return toggleAction(for: item, isListed: isListed, api: api, host: host)
+    }
+
+    /// Whether `item` is on the watchlist; nil when it has no guid to save it by or the account cannot be reached.
+    static func isListed(_ item: PlexMetadata, api: APIClient) async -> Bool? {
         guard let guid = item.guid, ["movie", "show"].contains(item.mediaType) else { return nil }
+        guard let watchlist = try? await WatchlistService.items(token: api.token) else { return nil }
+        return WatchlistService.contains(guid: guid, in: watchlist)
+    }
+
+    static func toggleAction(for item: PlexMetadata, isListed: Bool, api: APIClient, host: UIViewController?) -> UIAction? {
+        guard let guid = item.guid else { return nil }
         let token = api.token
-        guard let watchlist = try? await WatchlistService.items(token: token) else { return nil }
-        let isListed = WatchlistService.contains(guid: guid, in: watchlist)
         return UIAction(
             title: isListed ? WatchlistService.remove : WatchlistService.add,
             image: UIImage(systemName: isListed ? "bookmark.slash" : "bookmark")

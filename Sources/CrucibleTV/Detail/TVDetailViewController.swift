@@ -262,7 +262,7 @@ class TVDetailViewController: TVScreenViewController {
             switch section {
             case .header: return TVShelf.hero(height: Self.heroHeight)
             case .synopsis: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
-            case .scores: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
+            case .scores: return Self.headedBlock()
             case .actions: return Self.actionRow()
             case .seasons: return TVShelf.chips()
             case .episodes, .extras: return TVShelf.episode()
@@ -297,6 +297,11 @@ class TVDetailViewController: TVScreenViewController {
     }
 
     private static func informationSection() -> NSCollectionLayoutSection {
+        headedBlock()
+    }
+
+    /// A full-width block under a shelf title, as the ratings strip and the information panel are.
+    private static func headedBlock() -> NSCollectionLayoutSection {
         let section = block(top: 0, bottom: TVMetrics.shelfTopInset)
         section.boundarySupplementaryItems = [
             NSCollectionLayoutBoundarySupplementaryItem(
@@ -398,6 +403,7 @@ class TVDetailViewController: TVScreenViewController {
         case .cast: return TVSectionHeader(title: String(localized: "Cast & Crew"))
         case .related: return TVSectionHeader(title: String(localized: "More Like This"))
         case .information: return TVSectionHeader(title: String(localized: "Information"))
+        case .scores: return TVSectionHeader(title: TraktCopy.ratingsTitle)
         default: return nil
         }
     }

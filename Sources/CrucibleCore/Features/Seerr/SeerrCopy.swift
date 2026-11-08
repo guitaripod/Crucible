@@ -24,6 +24,7 @@ package enum SeerrCopy {
     package static let apiKeyMessage = String(localized: "Find it in Seerr under Settings › General. Requests made with it are made as Seerr's administrator.", comment: "Message of the prompt for the Seerr API key")
     package static let apiKeyPlaceholder = String(localized: "API Key", comment: "Placeholder of the Seerr API key field")
     package static let connecting = String(localized: "Connecting…", comment: "Status while Crucible signs in to Seerr")
+    package static let requesting = String(localized: "Requesting…", comment: "Request button while the request is being sent to Seerr")
     package static let connectFailed = String(localized: "Couldn't Connect", comment: "Title of the alert when connecting to Seerr failed")
     package static let disconnect = String(localized: "Disconnect", comment: "Button that disconnects Seerr")
     package static let disconnectTitle = String(localized: "Disconnect Seerr?", comment: "Confirmation title for disconnecting Seerr")

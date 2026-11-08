@@ -68,11 +68,18 @@ package final class SeerrRequests {
         return (try? await client.send(.requests(take: 1, skip: 0, filter: "pending", requestedBy: nil), as: SeerrPage<SeerrRequest>.self))?.pageInfo?.results ?? 0
     }
 
+    /// Each title the page names is looked up once, all of them at the same time.
     private func entries(for requests: [SeerrRequest], viewerID: Int) async -> [SeerrRequestEntry] {
+        let keys = Set(requests.compactMap { request in request.kind.flatMap { kind in request.media?.tmdbId.map { TitleKey(kind: kind, tmdbID: $0) } } })
+        let lookups = Dictionary(uniqueKeysWithValues: keys.map { key in
+            (key, Task { try? await titles.details(tmdbID: key.tmdbID, kind: key.kind) })
+        })
+        var found: [TitleKey: SeerrTitleDetails] = [:]
+        for (key, lookup) in lookups { found[key] = await lookup.value }
         var result: [SeerrRequestEntry] = []
         for request in requests {
             guard let kind = request.kind, let tmdbID = request.media?.tmdbId else { continue }
-            let details = try? await titles.details(tmdbID: tmdbID, kind: kind)
+            let details = found[TitleKey(kind: kind, tmdbID: tmdbID)]
             result.append(SeerrRequestEntry(
                 request: request,
                 title: details?.displayTitle ?? String(localized: "Untitled", comment: "A Seerr request whose title could not be loaded"),
@@ -83,6 +90,11 @@ package final class SeerrRequests {
             ))
         }
         return result
+    }
+
+    private struct TitleKey: Hashable, Sendable {
+        let kind: SeerrMediaKind
+        let tmdbID: Int
     }
 
     /// Where a request's title stands: the request's own refusal or failure first, then the title's availability.

@@ -90,22 +90,42 @@ package enum SeerrDiscovery {
         return found.map { ($0.1, $0.2) }
     }
 
-    /// The first address `typed` could mean that answers, or the reason none did.
+    /// The most likely address `typed` could mean that answers, or the reason none did. Every reading is tried at once,
+    /// so an address that never answers costs one timeout, not one per reading.
     package static func resolve(typed: String, client: SeerrClient = .shared) async -> Result<(URL, SeerrPublicSettings), SeerrError> {
         let addresses = addresses(from: typed)
         guard !addresses.isEmpty else { return .failure(.unreachable) }
-        var lastError = SeerrError.unreachable
-        for address in addresses {
-            do {
-                return .success((address, try await client.probe(address)))
-            } catch let error as SeerrError {
-                if error == .notPlex { return .failure(.notPlex) }
-                if error == .notSeerr { lastError = .notSeerr }
-            } catch {
-                continue
+        let outcomes = await withTaskGroup(of: (Int, Result<SeerrPublicSettings, SeerrError>).self) { group in
+            for (index, address) in addresses.enumerated() {
+                group.addTask {
+                    do {
+                        return (index, .success(try await client.probe(address)))
+                    } catch let error as SeerrError {
+                        return (index, .failure(error))
+                    } catch {
+                        return (index, .failure(.unreachable))
+                    }
+                }
             }
+            var outcomes: [Int: Result<SeerrPublicSettings, SeerrError>] = [:]
+            for await pair in group { outcomes[pair.0] = pair.1 }
+            return outcomes
         }
-        return .failure(lastError)
+        return pick(addresses: addresses, outcomes: outcomes)
+    }
+
+    /// The earliest reading that answered as Seerr; failing that, a Jellyfin or Emby Seerr, then something that is not Seerr.
+    static func pick(addresses: [URL], outcomes: [Int: Result<SeerrPublicSettings, SeerrError>]) -> Result<(URL, SeerrPublicSettings), SeerrError> {
+        for (index, address) in addresses.enumerated() {
+            if case .success(let settings) = outcomes[index] { return .success((address, settings)) }
+        }
+        let errors = outcomes.values.compactMap { outcome -> SeerrError? in
+            if case .failure(let error) = outcome { return error }
+            return nil
+        }
+        if errors.contains(.notPlex) { return .failure(.notPlex) }
+        if errors.contains(.notSeerr) { return .failure(.notSeerr) }
+        return .failure(.unreachable)
     }
 
     /// The address as a viewer reads it: host and port, and the path when Seerr sits under one.

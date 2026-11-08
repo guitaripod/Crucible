@@ -11,7 +11,7 @@ import UIKit
 final class TVMediaDetailViewController: TVDetailViewController {
     private let ratingKey: String
     private var model: MovieDetailModel?
-    private var scores: [TraktScore] = []
+    private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: ratingKey)
     private var audioID: Int?
     private var subtitleID: Int?
     /// Whether the viewer picked audio or subtitles here; until then the screen shows the tracks playback would start with.

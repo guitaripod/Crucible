@@ -58,9 +58,11 @@ package final class TraktPlugin: IntegrationPlugin {
         Task { await send(change, api: api) }
     }
 
+    /// Loads the account and starts sending what waits without holding up the other plugins: the outbox sends one change
+    /// a second, which for a long queue takes minutes.
     package func launched(api: APIClient, server: String) async {
         await account.load()
-        await flush(server: server, api: api)
+        Task { await self.flush(server: server, api: api) }
     }
 
     package func signedOut() async {

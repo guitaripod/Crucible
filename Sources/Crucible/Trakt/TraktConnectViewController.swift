@@ -183,7 +183,7 @@ final class TraktConnectViewController: UIViewController {
             show(TraktCopy.waiting, busy: true, failed: false)
             UIAccessibility.post(notification: .announcement, argument: "\(TraktCopy.waiting) \(code.userCode.map(String.init).joined(separator: " "))")
         case .approved(let token):
-            show(TraktCopy.waiting, busy: true, failed: false)
+            show(TraktCopy.connecting, busy: true, failed: false)
             await TraktAccount.shared.connect(with: token)
             Haptics.success()
             safari?.dismiss(animated: true)

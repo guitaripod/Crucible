@@ -144,7 +144,7 @@ package struct SettingsEntry: Hashable, Identifiable, Sendable {
         case .preference(let setting): return setting.title
         case .destination(let destination): return SettingsCatalog.title(destination)
         case .action(let action): return SettingsCatalog.title(action)
-        case .privacyStatement: return TraktTokenStore.hasToken ? String(localized: "No Tracking", comment: "Privacy statement row title while Trakt is connected") : String(localized: "Nothing Leaves This Device", comment: "Privacy statement row title")
+        case .privacyStatement: return TraktAccount.isLinked ? String(localized: "No Tracking", comment: "Privacy statement row title while Trakt is connected") : String(localized: "Nothing Leaves This Device", comment: "Privacy statement row title")
         }
     }
 
@@ -420,7 +420,7 @@ package enum SettingsCatalog {
     }
 
     static var privacyStatement: String {
-        TraktTokenStore.hasToken ? TraktCopy.privacyStatementConnected : privacyStatementLocal
+        TraktAccount.isLinked ? TraktCopy.privacyStatementConnected : privacyStatementLocal
     }
 
     static let privacyStatementLocal = String(localized: "Crucible has no analytics, no ads and no tracking. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device.", comment: "Privacy statement in Settings")

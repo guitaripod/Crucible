@@ -211,7 +211,19 @@ package final class TraktAccount {
         observers[id] = nil
     }
 
+    nonisolated private static let linkedLock = NSLock()
+    nonisolated(unsafe) private static var linked = false
+
+    /// Whether the viewer watching now has Trakt connected, as last loaded, readable anywhere without the Keychain.
+    package nonisolated static var isLinked: Bool { linkedLock.withLock { linked } }
+
     private func set(_ status: Status) {
+        let linked: Bool
+        switch status {
+        case .connected, .needsReconnect: linked = true
+        case .disconnected, .restricted, .unavailable: linked = false
+        }
+        Self.linkedLock.withLock { Self.linked = linked }
         guard status != self.status else { return }
         self.status = status
         notify()

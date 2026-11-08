@@ -197,7 +197,7 @@ final class SeerrRequestViewController: UICollectionViewController {
             )
             cell.backgroundConfiguration = .clear()
         case .loading:
-            cell.contentConfiguration = IconRowContentConfiguration(symbol: "tray.and.arrow.down", title: SeerrCopy.connecting)
+            cell.contentConfiguration = IconRowContentConfiguration(symbol: "tray.and.arrow.down", title: String(localized: "Loading"))
             let spinner = UIActivityIndicatorView(style: .medium)
             spinner.startAnimating()
             cell.accessories = [.customView(configuration: .init(customView: spinner, placement: .trailing()))]
@@ -280,7 +280,7 @@ final class SeerrRequestViewController: UICollectionViewController {
 
     private static func button(_ title: String, color: UIColor, bold: Bool, working: Bool) -> UIListContentConfiguration {
         var content = UIListContentConfiguration.cell()
-        content.text = working ? SeerrCopy.connecting : title
+        content.text = working ? SeerrCopy.requesting : title
         content.textProperties.font = bold ? Theme.Font.headline : Theme.Font.body
         content.textProperties.color = color
         content.textProperties.alignment = .center
@@ -344,13 +344,18 @@ final class SeerrRequestViewController: UICollectionViewController {
                 self.state = try await SeerrTitles.shared.request(state, seasons: seasons)
                 Haptics.success()
                 selected = Set(self.state?.requestableSeasons ?? [])
-                if !isOnServer, let guid = item.guid { await addToWatchlist(guid) }
+                isWorking = false
+                applySnapshot()
+                if !isOnServer, let guid = item.guid {
+                    await addToWatchlist(guid)
+                    applySnapshot()
+                }
             } catch {
                 Haptics.error()
+                isWorking = false
+                applySnapshot()
                 presentSimpleAlert(title: SeerrCopy.connectFailed, message: error.localizedDescription)
             }
-            isWorking = false
-            applySnapshot()
         }
     }
 

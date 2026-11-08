@@ -39,10 +39,11 @@ package final class TraktOutbox {
     static let ledgerCapacity = 2_000
 
     private let storage: URL?
+    private var writes = 0
     private var state: State
     private var draining = false
 
-    private struct State: Codable {
+    private struct State: Codable, Sendable {
         var pending: [TraktPendingChange] = []
         var sentPlays: [String] = []
     }
@@ -100,7 +101,11 @@ package final class TraktOutbox {
 
     package func clear() {
         state = State()
-        if let storage { try? FileManager.default.removeItem(at: storage) }
+        if let storage {
+            writes += 1
+            let order = writes
+            Task { await StateFileWriter.shared.remove(storage, order: order) }
+        }
     }
 
     /// Sends what is waiting for `server` through `send`, oldest first. A change Trakt refuses for good is dropped; one that
@@ -131,7 +136,10 @@ package final class TraktOutbox {
     }
 
     private func save() {
-        guard let storage, let data = try? JSONEncoder().encode(state) else { return }
-        try? data.write(to: storage, options: .atomic)
+        guard let storage else { return }
+        writes += 1
+        let order = writes
+        let snapshot = state
+        Task { await StateFileWriter.shared.write(snapshot, to: storage, order: order) }
     }
 }

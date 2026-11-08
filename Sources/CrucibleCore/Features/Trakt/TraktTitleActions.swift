@@ -27,6 +27,13 @@ package final class TraktScores {
         }
     }
 
+    /// The scores already fetched for `ratingKey` and still fresh, so a page can lay the strip out in its first pass.
+    package func cached(ratingKey: String, now: Date = Date()) -> [TraktScore] {
+        guard TraktAccount.shared.isConnected, let server = ServerBootstrap.savedMachineIdentifier,
+              let entry = cache["\(server)/\(ratingKey)"], now.timeIntervalSince(entry.at) < Self.lifetime else { return [] }
+        return entry.scores
+    }
+
     static func ratingsEndpoint(for target: TraktTarget) -> TraktEndpoint? {
         switch target.kind {
         case .movie:

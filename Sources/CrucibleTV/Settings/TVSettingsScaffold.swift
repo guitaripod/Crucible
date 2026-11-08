@@ -130,7 +130,7 @@ class TVSettingsScaffold: TVScreenViewController {
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let id = dataSource.itemIdentifier(for: indexPath), items[id]?.isEnabled ?? false else { return }
+        guard let id = dataSource.itemIdentifier(for: indexPath), let item = items[id], item.isEnabled, !item.isStatic else { return }
         rowDidSelect(id)
     }
 

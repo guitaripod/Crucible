@@ -34,7 +34,7 @@ final class MediaDetailViewController: UICollectionViewController {
     private var loadTask: Task<Void, Never>?
     private var model: MovieDetailModel?
     /// What Trakt and the sources it collects score this title, once Trakt is connected and the title matched.
-    private var scores: [TraktScore] = []
+    private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: ratingKey)
     private var selectedSubtitleId: Int?
     private var selectedAudioTrackId: Int?
     /// Whether the viewer picked audio or subtitles here; until then the screen shows the tracks playback would start with.

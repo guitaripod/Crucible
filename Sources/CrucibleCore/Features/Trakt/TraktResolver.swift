@@ -73,6 +73,7 @@ package final class TraktResolver {
 
     private let lookup: Lookup
     private let storage: URL?
+    private var writes = 0
     private var matches: [String: TraktMatch]
     private var inFlight: [String: Task<TraktResolution, Never>] = [:]
 
@@ -137,13 +138,19 @@ package final class TraktResolver {
         matches = [:]
         inFlight.values.forEach { $0.cancel() }
         inFlight = [:]
-        if let storage { try? FileManager.default.removeItem(at: storage) }
+        guard let storage else { return }
+        writes += 1
+        let order = writes
+        Task { await StateFileWriter.shared.remove(storage, order: order) }
     }
 
     private func remember(_ key: String, _ match: TraktMatch) {
         matches[key] = match
-        guard let storage, let data = try? JSONEncoder().encode(matches) else { return }
-        try? data.write(to: storage, options: .atomic)
+        guard let storage else { return }
+        writes += 1
+        let order = writes
+        let snapshot = matches
+        Task { await StateFileWriter.shared.write(snapshot, to: storage, order: order) }
     }
 
     private static func displayTitle(_ item: PlexMetadata) -> String {

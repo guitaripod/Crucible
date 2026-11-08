@@ -31,6 +31,9 @@ final class SeerrRequestsViewController: UICollectionViewController {
     private var filter = Filter.mine
     private var failure: String?
     private var loaded = false
+    private var loadTask: Task<Void, Never>?
+    private var arrivedPosters = Set<Int>()
+    private var posterFlush: Task<Void, Never>?
     nonisolated(unsafe) private var changeObserver: (any NSObjectProtocol)?
 
     init(api: APIClient) {
@@ -79,16 +82,19 @@ final class SeerrRequestsViewController: UICollectionViewController {
         }
     }
 
+    /// Loads the list for the current filter; a newer load cancels an older one, so a slow answer never replaces a newer list.
     private func reload() {
         let scope: SeerrRequests.Scope = filter == .mine ? .mine : .everyone
         let pendingOnly = filter == .awaiting
-        Task { [weak self] in
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
             do {
                 let entries = try await SeerrRequests.shared.load(scope: scope, pendingOnly: pendingOnly)
-                guard let self else { return }
+                guard !Task.isCancelled, let self else { return }
                 self.entries = entries
                 failure = nil
             } catch {
+                guard !Task.isCancelled else { return }
                 self?.failure = error.localizedDescription
             }
             guard let self else { return }
@@ -106,11 +112,25 @@ final class SeerrRequestsViewController: UICollectionViewController {
             Task { [weak self] in
                 guard let image = await RemoteImageLoader.shared.image(at: url), let self else { return }
                 posters[entry.id] = image
-                var snapshot = dataSource.snapshot()
-                guard snapshot.itemIdentifiers.contains(.entry(entry.id)) else { return }
-                snapshot.reconfigureItems([.entry(entry.id)])
-                await dataSource.apply(snapshot, animatingDifferences: false)
+                arrivedPosters.insert(entry.id)
+                schedulePosterFlush()
             }
+        }
+    }
+
+    /// Posters that arrive together are shown in one pass instead of one list update each.
+    private func schedulePosterFlush() {
+        guard posterFlush == nil else { return }
+        posterFlush = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(80))
+            guard let self else { return }
+            posterFlush = nil
+            var snapshot = dataSource.snapshot()
+            let rows = arrivedPosters.map(Row.entry).filter { snapshot.indexOfItem($0) != nil }
+            arrivedPosters = []
+            guard !rows.isEmpty else { return }
+            snapshot.reconfigureItems(rows)
+            await dataSource.apply(snapshot, animatingDifferences: false)
         }
     }
 

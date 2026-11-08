@@ -21,8 +21,8 @@ final class TVSeerrRequestsViewController: TVSettingsScaffold {
     private let heading = TVSettingsHeading(title: SeerrCopy.requests)
     private var entries: [SeerrRequestEntry] = []
     private var filter = Filter.mine
-    private var failure: String?
     private var loaded = false
+    private lazy var loadSlot = makeTaskSlot()
     nonisolated(unsafe) private var changeObserver: (any NSObjectProtocol)?
 
     init(env: TVAppEnvironment) {
@@ -52,19 +52,30 @@ final class TVSeerrRequestsViewController: TVSettingsScaffold {
         entries.first.map { "seerr.requests.\($0.id)" }
     }
 
+    /// Loads the list for the current filter; a newer load cancels an older one, so a slow answer never replaces a newer list.
     private func reload() {
         let scope: SeerrRequests.Scope = filter == .mine ? .mine : .everyone
         let pendingOnly = filter == .awaiting
-        Task { [weak self] in
+        if !loaded { presentState(.loading(title: nil)) }
+        loadSlot.run { [weak self] in
             do {
                 let entries = try await SeerrRequests.shared.load(scope: scope, pendingOnly: pendingOnly)
-                self?.entries = entries
-                self?.failure = nil
+                guard !Task.isCancelled, let self else { return }
+                self.entries = entries
+                loaded = true
+                presentState(nil)
+                render()
             } catch {
-                self?.failure = error.localizedDescription
+                guard !Task.isCancelled, let self else { return }
+                entries = []
+                loaded = true
+                presentState(.error(
+                    title: String(localized: "Couldn\u{2019}t Load"),
+                    message: error.localizedDescription,
+                    retryTitle: String(localized: "Try Again"),
+                    retry: { [weak self] in self?.reload() }
+                ))
             }
-            self?.loaded = true
-            self?.render()
         }
     }
 
@@ -73,12 +84,8 @@ final class TVSeerrRequestsViewController: TVSettingsScaffold {
         if SeerrAccount.shared.managesRequests {
             rows.append(TVRowItem(id: "seerr.requests.filter", title: String(localized: "Show", comment: "Apple TV row that switches which Seerr requests are listed"), value: filter.title, symbol: "line.3.horizontal.decrease.circle", accessory: .chevron))
         }
-        if let failure {
-            rows.append(TVRowItem(id: "seerr.requests.message", title: failure, symbol: "exclamationmark.triangle", isStatic: true))
-        } else if loaded, entries.isEmpty {
+        if loaded, entries.isEmpty {
             rows.append(TVRowItem(id: "seerr.requests.empty", title: SeerrCopy.noRequestsTitle, subtitle: SeerrCopy.noRequestsText, symbol: "tray", isStatic: true))
-        } else if !loaded {
-            rows.append(TVRowItem(id: "seerr.requests.loading", title: SeerrCopy.connecting, symbol: "tray.and.arrow.down", isStatic: true))
         }
         for entry in entries {
             var lines = [[SeerrCopy.label(entry.availability), entry.seasonsLabel].compactMap { $0 }.joined(separator: " · ")]
@@ -122,6 +129,8 @@ final class TVSeerrRequestsViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         if id == "seerr.requests.filter" {
             filter = Filter(rawValue: (filter.rawValue + 1) % Filter.allCases.count) ?? .mine
+            entries = []
+            loaded = false
             render()
             reload()
             return

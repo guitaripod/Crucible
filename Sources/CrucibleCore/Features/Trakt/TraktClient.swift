@@ -219,13 +219,12 @@ package actor TraktClient {
         return try JSONDecoder().decode(TraktToken.self, from: data)
     }
 
+    /// Takes the next free write slot before waiting for it, so writes that arrive together still leave a second apart.
     private func spaceWrites() async throws {
-        let clock = ContinuousClock()
-        if let lastWrite {
-            let elapsed = clock.now - lastWrite
-            if elapsed < Self.writeSpacing { try await sleep(Self.writeSpacing - elapsed) }
-        }
-        lastWrite = clock.now
+        let now = ContinuousClock.now
+        let slot = lastWrite.map { max(now, $0 + Self.writeSpacing) } ?? now
+        lastWrite = slot
+        if slot > now { try await sleep(slot - now) }
     }
 
     private static func retryAfter(_ response: HTTPURLResponse) -> Duration? {

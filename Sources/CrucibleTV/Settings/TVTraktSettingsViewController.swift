@@ -208,7 +208,7 @@ final class TVTraktLinkViewController: UIViewController {
             render(TraktCopy.waiting, busy: true)
             UIAccessibility.post(notification: .announcement, argument: "\(TraktCopy.waiting) \(code.userCode.map(String.init).joined(separator: " "))")
         case .approved(let token):
-            render(TraktCopy.waiting, busy: true)
+            render(TraktCopy.connecting, busy: true)
             await TraktAccount.shared.connect(with: token)
             await offerToStopTraktsPlexScrobbler()
             navigationController?.popViewController(animated: TVMotion.animationsEnabled)

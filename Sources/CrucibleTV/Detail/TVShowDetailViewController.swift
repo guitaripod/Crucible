@@ -10,9 +10,10 @@ final class TVShowDetailViewController: TVDetailViewController {
     private let showKey: String
     private let initialSeasonKey: String?
     private var model: ShowDetailModel?
-    private var scores: [TraktScore] = []
+    private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: showKey)
     private var offersRequest = false
     private lazy var seasonSlot = makeTaskSlot()
+    private lazy var requestSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
     private var showsSkipped = false
@@ -183,9 +184,10 @@ final class TVShowDetailViewController: TVDetailViewController {
     /// Asks Seerr whether the show is missing seasons nobody asked for, which adds Request More Seasons; the page never waits.
     private func loadRequestState() {
         guard SeerrAccount.shared.isConnected, let show = model?.show else { return }
-        Task { [weak self] in
+        requestSlot.run { [weak self] in
             guard let self else { return }
             let state = try? await SeerrTitles.shared.state(for: show, api: env.api)
+            guard !Task.isCancelled else { return }
             let offers = state?.canRequest(with: SeerrAccount.shared.permissions) ?? false
             guard offers != offersRequest else { return }
             offersRequest = offers
