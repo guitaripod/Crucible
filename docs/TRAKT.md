@@ -13,6 +13,21 @@ Design for a Trakt.tv integration on iPhone, iPad and Apple TV that covers the w
 | D3 | App Privacy label | Declare Product Interaction and Other User Content as linked, App Functionality, not tracking, because Crucible's client sends them to Trakt while the plugin is on (§10.2). The label already lists Identifiers and Purchases, so it is not losing "Data Not Collected" |
 | D4 | Tab or no tab | A Trakt tab appears when the plugin is on (iPhone on iOS 26, iPad sidebar, Apple TV). Where the tab bar has no room it lives in You (§8.5) |
 
+## Status
+
+Slices 1 and 2 are built (2026-11-08), on iPhone, iPad and Apple TV, against the development app:
+
+- The plugin seam (`CrucibleCore/Features/Integrations`) and Settings › Integrations › Trakt; nothing runs or is sent until Connect.
+- Connecting by device code: a sheet with the code and Open Trakt on iPhone and iPad, the code in tiles and a QR code on Apple TV. Tokens per Plex account and Home profile in the Keychain, refreshed a day early, single-use refresh tokens saved before use; restricted profiles cannot connect.
+- Matching by agent ids only (`TraktResolver`), with unmatched titles listed in Settings.
+- Scrobbling from `PlaybackSession` (start, pause, stop; credits before 80% still record the play), manual watched, unwatched (opt-in) and ratings sent, check-in on detail pages, the offline outbox and the sent-plays ledger, the double-play question after connecting, the "Marked watched on Trakt" banner.
+- The ratings strip on movie, episode and show pages on both platforms.
+- The demo answers as a stand-in Trakt, so App Review and screenshots need no account. Strings in all eleven languages.
+
+The Client ID is read from `Sources/CrucibleCore/Features/Trakt/TraktClientID.swift`, which is gitignored: a checkout without it builds with Trakt shown as unavailable, and a fork registers its own Trakt app. Everything above lives in Core (`Features/Trakt`) for now; the separate `CrucibleTrakt` target in §3.2 arrives with the GRDB mirror of slice 3. Not built yet: Use iPhone on Apple TV (§5), PKCE with the Universal Link, Fix Match, and slices 3 to 8.
+
+Before any App Store release with Trakt: D1 to D4, the App Privacy answers and the privacy policy (§10.2), the marketing set (§11), and a live check with a real account (only allow-listed accounts can sign in to the development app).
+
 ## 2. Trakt facts that shape the design
 
 | Fact | Source | Consequence |

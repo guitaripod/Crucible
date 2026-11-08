@@ -76,6 +76,7 @@ A proper download engine — not the afterthought the official app ships.
 - **Rate What You Watched** on Home: what you finished lately (a movie, a show you caught up with), each a tap from half-star ratings, with Not Now to let one go
 - **Notifications you choose**, each its own switch: a **rating reminder** after you finish something (press and hold it to rate right in the notification), **new episodes** of shows you are watching, **watchlist arrivals** when something you want lands on your server, a quiet **weekly recap** on Sunday evening and your **Year in Review** on December 1. They are worked out on the device from your own server in the background; nothing is sent anywhere
 - **Remove from Continue Watching** from any card's menu, on Home and in every library; the server keeps your progress, and playing it again brings it back
+- **Trakt, if you want it**: Settings › Integrations › Trakt stays off until you connect it with a code (a QR code on Apple TV). Then what you play is scrobbled as it plays (downloads too, once you're online), what you mark watched, rate or check in to goes to Trakt, and every title shows Trakt's score beside IMDb, Rotten Tomatoes, Metacritic and Letterboxd. If Trakt's own Plex sync already records your plays, Crucible asks which one should, so nothing counts twice. Crucible uses Trakt but is not endorsed or certified by Trakt
 
 ### Browse & discover
 
@@ -101,7 +102,7 @@ A proper download engine — not the afterthought the official app ships.
 ### Settings that find themselves
 
 - **Search** every setting by what it does ("captions", "cellular", "skip"), then land on it, highlighted, in its category
-- **Categories** (Playback, Skip Buttons or Remote, Home & Libraries, Downloads, Notifications, Appearance, Connection, Privacy, Help) each list their current values at a glance (Back 10 s · Ahead 30 s), and a category you changed offers **Restore Defaults** for just its own settings
+- **Categories** (Playback, Skip Buttons or Remote, Home & Libraries, Downloads, Notifications, Integrations, Appearance, Connection, Privacy, Help) each list their current values at a glance (Back 10 s · Ahead 30 s), and a category you changed offers **Restore Defaults** for just its own settings
 - **Home Rows**: turn each Home row on or off and put them in your order, on iPhone, iPad and Apple TV
 
 ### For server owners
