@@ -2187,6 +2187,71 @@
         }
       }
     },
+    "%@ votes" : {
+      "comment" : "Number of votes under a score, e.g. 12K votes",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Stimmen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ votos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ votes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ voti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 票"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 투표"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ głosów"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ votos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 人评分"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 人評分"
+          }
+        }
+      }
+    },
     "%@ watched" : {
       "localizations" : {
         "de" : {
@@ -9052,6 +9117,71 @@
         }
       }
     },
+    "%lld waiting" : {
+      "comment" : "Number of Trakt changes waiting to be sent",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld wartend"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pendientes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld en attente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld in attesa"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 件待機中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld개 대기 중"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld w kolejce"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld aguardando"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 项待发送"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 項待傳送"
+          }
+        }
+      }
+    },
     "%lld years ago" : {
       "localizations" : {
         "de" : {
@@ -14944,6 +15074,71 @@
         }
       }
     },
+    "Another App Records My Plays" : {
+      "comment" : "Trakt setting for when another scrobbler already records plays",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere App erfasst meine Wiedergaben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otra app registra mis reproducciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une autre app enregistre mes lectures"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un'altra app registra le mie riproduzioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "他のアプリが記録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 앱이 재생 기록"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inna aplikacja zapisuje odtworzenia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro app registra minhas reproduções"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他应用记录我的播放"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他 App 記錄我的播放"
+          }
+        }
+      }
+    },
     "Another computer answered at that address, so Crucible didn't pair with it." : {
       "comment" : "Crucible Server error when the certificate or proof does not match",
       "localizations" : {
@@ -15262,6 +15457,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "核准 Crucible"
+          }
+        }
+      }
+    },
+    "Approve Crucible on Trakt" : {
+      "comment" : "Title of the Trakt device-code screen",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible bei Trakt bestätigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aprueba Crucible en Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser Crucible sur Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approva Crucible su Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt で Crucible を承認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 Crucible 승인"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatwierdź Crucible w serwisie Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aprove o Crucible no Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Trakt 上批准 Crucible"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Trakt 上授權 Crucible"
           }
         }
       }
@@ -17453,6 +17713,71 @@
         }
       }
     },
+    "Cancel Check-In" : {
+      "comment" : "Action that cancels the current Trakt check-in",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in abbrechen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar check-in"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler le check-in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla check-in"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェックインを取り消す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "체크인 취소"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anuluj zameldowanie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar check-in"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消签到"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消簽到"
+          }
+        }
+      }
+    },
     "Cancel Download" : {
       "localizations" : {
         "de" : {
@@ -17904,6 +18229,71 @@
         }
       }
     },
+    "Check In" : {
+      "comment" : "Action that tells Trakt you are watching this now",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einchecken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hacer check-in"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェックイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "체크인"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamelduj się"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fazer check-in"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "签到"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簽到"
+          }
+        }
+      }
+    },
     "Check for Updates" : {
       "comment" : "Server dashboard action",
       "localizations" : {
@@ -18157,6 +18547,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請檢查連線，然後再試一次。"
+          }
+        }
+      }
+    },
+    "Check-in cancelled" : {
+      "comment" : "Confirmation after cancelling a Trakt check-in",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in abgebrochen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in cancelado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in annulé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in annullato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チェックインを取り消しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "체크인을 취소했습니다"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zameldowanie anulowane"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in cancelado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已取消签到"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已取消簽到"
+          }
+        }
+      }
+    },
+    "Checked in on Trakt" : {
+      "comment" : "Confirmation after a Trakt check-in",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei Trakt eingecheckt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in hecho en Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in effectué sur Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in effettuato su Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt にチェックインしました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에 체크인했습니다"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zameldowano w serwisie Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check-in feito no Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在 Trakt 上签到"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在 Trakt 上簽到"
           }
         }
       }
@@ -19707,6 +20227,136 @@
         }
       }
     },
+    "Connect Again" : {
+      "comment" : "Button that reconnects a Trakt account whose sign-in Trakt refused",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut verbinden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a conectar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnecter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricollega"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再接続"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 연결"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz ponownie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectar novamente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新連線"
+          }
+        }
+      }
+    },
+    "Connect Trakt" : {
+      "comment" : "Button that starts connecting a Trakt account",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt verbinden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectar Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecter Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collega Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に接続"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 연결"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectar Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接 Trakt"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連接 Trakt"
+          }
+        }
+      }
+    },
     "Connect the Tailscale app, come back, and Crucible looks again on its own." : {
       "localizations" : {
         "de" : {
@@ -20860,6 +21510,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "轉換影片，燒錄字幕"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "comment" : "Shown after the Trakt code was copied",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copié"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーしました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복사됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已複製"
+          }
+        }
+      }
+    },
+    "Copy Code" : {
+      "comment" : "Button that copies the Trakt code",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code kopieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar código"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le code"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia codice"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードをコピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드 복사"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj kod"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar código"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制代码"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複製代碼"
           }
         }
       }
@@ -24391,6 +25171,71 @@
         }
       }
     },
+    "Crucible Records Plays" : {
+      "comment" : "Double-scrobble choice: Crucible scrobbles and Trakt's Plex scrobbler is turned off",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible erfasst Wiedergaben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible registra las reproducciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible enregistre les lectures"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible registra le riproduzioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible が記録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible이 재생 기록"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible zapisuje odtworzenia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible registra as reproduções"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 Crucible 记录播放"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 Crucible 記錄播放"
+          }
+        }
+      }
+    },
     "Crucible Server" : {
       "comment" : "Name of the optional companion that runs on the computer with Plex",
       "localizations" : {
@@ -25360,6 +26205,71 @@
         }
       }
     },
+    "Crucible has no analytics, no ads and no tracking. It talks to your Plex server, to plex.tv, and to Trakt because you connected it. Your statistics and settings stay on this device." : {
+      "comment" : "Privacy statement in Settings while Trakt is connected",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible hat keine Analyse, keine Werbung und kein Tracking. Die App kommuniziert mit deinem Plex-Server, mit plex.tv und mit Trakt, weil du das so eingerichtet hast. Deine Statistiken und Einstellungen bleiben auf diesem Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible no tiene analítica, ni anuncios, ni rastreo. Se comunica con tu servidor de Plex, con plex.tv y con Trakt porque tú lo conectaste. Tus estadísticas y ajustes se quedan en este dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible n'a ni analyse, ni publicité, ni suivi. Il communique avec votre serveur Plex, avec plex.tv et avec Trakt parce que vous l'avez connecté. Vos statistiques et vos réglages restent sur cet appareil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible non ha analisi, pubblicità né tracciamento. Comunica con il tuo server Plex, con plex.tv e con Trakt perché l'hai collegato. Le tue statistiche e impostazioni restano su questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は分析、広告、トラッキングを一切行いません。接続しているため、Plex サーバー、plex.tv、Trakt と通信します。統計と設定はこの端末に残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 분석, 광고, 추적을 하지 않습니다. 연결하셨기 때문에 Plex 서버, plex.tv, Trakt와 통신합니다. 통계와 설정은 이 기기에만 남습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible nie ma analityki, reklam ani śledzenia. Łączy się z Twoim serwerem Plex, z plex.tv i z Trakt, bo je połączono. Twoje statystyki i ustawienia zostają na tym urządzeniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible não tem análises, anúncios nem rastreamento. Ele se comunica com seu servidor Plex, com o plex.tv e com o Trakt porque você os conectou. Suas estatísticas e ajustes ficam neste dispositivo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 没有分析、广告和追踪功能。因为你已连接，它会与你的 Plex 服务器、plex.tv 和 Trakt 通信。你的统计数据和设置只保存在这台设备上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 沒有分析、廣告與追蹤功能。因為您已連接，它會與您的 Plex 伺服器、plex.tv 及 Trakt 通訊。您的統計資料與設定只保存在這台裝置上。"
+          }
+        }
+      }
+    },
     "Crucible is free software, released under the GNU General Public License v3.0. You can read, change and share the source." : {
       "localizations" : {
         "de" : {
@@ -25616,6 +26526,71 @@
         }
       }
     },
+    "Crucible matches titles by the IMDb, TMDB and TVDB ids your server knows. These had none Trakt recognises, so nothing about them is sent." : {
+      "comment" : "Explanation of the unmatched titles list",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible ordnet Titel anhand der IMDb-, TMDB- und TVDB-IDs zu, die dein Server kennt. Bei diesen Titeln kennt Trakt keine dieser IDs, deshalb wird nichts über sie gesendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible empareja los títulos con los IDs de IMDb, TMDB y TVDB que conoce tu servidor. Trakt no reconoce ninguno de estos en esos títulos, así que no se envía nada sobre ellos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible associe les titres grâce aux identifiants IMDb, TMDB et TVDB connus de votre serveur. Ceux-ci n'en avaient aucun que Trakt reconnaît, donc rien à leur sujet n'est envoyé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible abbina i titoli tramite gli ID IMDb, TMDB e TVDB noti al tuo server. Questi non ne avevano nessuno riconosciuto da Trakt, quindi non viene inviato nulla che li riguardi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は、サーバーが把握している IMDb、TMDB、TVDB の ID でタイトルを照合します。Trakt が認識できる ID がなかったタイトルについては、何も送信されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 서버가 알고 있는 IMDb, TMDB, TVDB ID로 제목을 맞춥니다. Trakt에서 인식하는 ID가 없는 제목은 아무 정보도 전송되지 않습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible dopasowuje tytuły po identyfikatorach IMDb, TMDB i TVDB znanych Twojemu serwerowi. Tych tytułów Trakt nie rozpoznaje, więc nic o nich nie jest wysyłane."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible associa títulos pelos IDs de IMDb, TMDB e TVDB que seu servidor conhece. Estes não têm nenhum ID que o Trakt reconheça, então nada sobre eles é enviado."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 通过服务器已知的 IMDb、TMDB 和 TVDB 编号匹配作品。以下作品没有 Trakt 能识别的编号，因此不会发送任何相关信息。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 會依據伺服器已知的 IMDb、TMDB 與 TVDB 編號比對作品。以下作品沒有 Trakt 能辨識的編號，因此不會傳送任何相關資料。"
+          }
+        }
+      }
+    },
     "Crucible moves to the best connection that answers whenever your network changes: home first, then Tailscale, then remote. Choose one to use it until the network changes again." : {
       "comment" : "Footer under the server's connections in Server & Connection",
       "localizations" : {
@@ -25745,6 +26720,136 @@
         }
       }
     },
+    "Crucible stops scrobbling and keeps everything else." : {
+      "comment" : "Explanation of choosing Trakt's Plex sync to record plays",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible scrobbelt nicht mehr und behält alles andere bei."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible deja de hacer scrobbling y mantiene todo lo demás."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible arrête le scrobbling et garde le reste."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible interrompe lo scrobbling e mantiene tutto il resto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible はスクロブルを停止し、ほかの設定はそのままにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 스크로블을 멈추고 나머지 설정은 그대로 둡니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible przestaje robić scrobbling i zachowuje resztę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible para de fazer scrobble e mantém o resto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 将停止同步播放记录，其他设置保持不变。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 將停止同步播放紀錄，其餘設定維持不變。"
+          }
+        }
+      }
+    },
+    "Crucible stops sending to Trakt, tells Trakt to forget its access, and deletes what it kept about your Trakt account on this device. Your history on Trakt stays." : {
+      "comment" : "Confirmation message for disconnecting Trakt",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible sendet nichts mehr an Trakt, teilt Trakt mit, den Zugriff zu vergessen, und löscht auf diesem Gerät alles, was es über dein Trakt-Konto gespeichert hat. Dein Verlauf bei Trakt bleibt erhalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible deja de enviar datos a Trakt, le pide que olvide su acceso y borra lo que guardaba sobre tu cuenta de Trakt en este dispositivo. Tu historial en Trakt se conserva."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible arrête l'envoi vers Trakt, demande à Trakt d'oublier son accès et supprime sur cet appareil ce qu'il conservait de votre compte Trakt. Votre historique sur Trakt reste."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible smette di inviare dati a Trakt, chiede a Trakt di dimenticare il suo accesso ed elimina su questo dispositivo ciò che conservava sul tuo account Trakt. La cronologia su Trakt resta."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は Trakt への送信を停止し、Trakt にアクセス権の削除を依頼して、この端末に保存した Trakt アカウントの情報を消去します。Trakt の視聴履歴は残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 Trakt로 보내는 것을 멈추고, Trakt에 접근 권한을 삭제하도록 요청하며, 이 기기에 보관한 Trakt 계정 정보를 지웁니다. Trakt의 시청 기록은 그대로 남습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible przestaje wysyłać dane do Trakt, każe Trakt zapomnieć o dostępie i usuwa na tym urządzeniu wszystko, co zachował o Twoim koncie Trakt. Historia w Trakt zostaje."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible para de enviar dados ao Trakt, pede ao Trakt que esqueça o acesso e apaga o que guardou sobre sua conta Trakt neste dispositivo. Seu histórico no Trakt permanece."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 将停止向 Trakt 发送数据，通知 Trakt 撤销其访问权限，并删除本设备上保存的 Trakt 账户相关信息。你在 Trakt 上的历史记录会保留。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 將停止傳送資料至 Trakt，通知 Trakt 撤銷其存取權限，並刪除本裝置上保存的 Trakt 帳號相關資料。您在 Trakt 上的紀錄會保留。"
+          }
+        }
+      }
+    },
     "Crucible tested every connection and picked the fastest." : {
       "localizations" : {
         "de" : {
@@ -25869,6 +26974,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crucible 會測試所有連線，並選擇最快的一個。"
+          }
+        }
+      }
+    },
+    "Crucible uses Trakt but is not endorsed or certified by Trakt." : {
+      "comment" : "Required Trakt attribution line in Settings",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible verwendet Trakt, ist aber weder von Trakt unterstützt noch zertifiziert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible usa Trakt, pero Trakt no lo respalda ni lo certifica."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible utilise Trakt mais n'est ni approuvé ni certifié par Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible utilizza Trakt ma non è approvato né certificato da Trakt."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は Trakt を利用していますが、Trakt による推奨や認定は受けていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 Trakt를 사용하지만 Trakt의 승인이나 인증을 받은 앱이 아닙니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible korzysta z Trakt, ale nie jest przez Trakt rekomendowany ani certyfikowany."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible usa o Trakt, mas não é endossado nem certificado pelo Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 使用 Trakt，但未获得 Trakt 的认可或认证。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 使用 Trakt，但未獲得 Trakt 的認可或認證。"
           }
         }
       }
@@ -28355,6 +29525,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "導演"
+          }
+        }
+      }
+    },
+    "Disconnect" : {
+      "comment" : "Button that disconnects the Trakt account",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trennen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconectar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scollega"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続を解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결 해제"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozłącz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconectar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "断开连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中斷連線"
+          }
+        }
+      }
+    },
+    "Disconnect Trakt?" : {
+      "comment" : "Confirmation title for disconnecting Trakt",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt trennen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Desconectar Trakt?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecter Trakt ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scollegare Trakt?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt の接続を解除しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 연결을 해제하시겠습니까?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozłączyć Trakt?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconectar o Trakt?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "断开 Trakt 连接？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要中斷 Trakt 連線嗎？"
           }
         }
       }
@@ -36637,6 +37937,71 @@
         }
       }
     },
+    "Getting a code…" : {
+      "comment" : "Status while Crucible asks Trakt for a code",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code wird angefordert…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obteniendo código…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtention d'un code…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiesta del codice…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを取得中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드를 가져오는 중…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie kodu…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtendo um código…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在获取代码…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在取得代碼…"
+          }
+        }
+      }
+    },
     "Go" : {
       "localizations" : {
         "de" : {
@@ -39661,6 +41026,71 @@
         }
       }
     },
+    "Integrations" : {
+      "comment" : "Settings category for services such as Trakt",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrationen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integraciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intégrations"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrazioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連携"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연동"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integracje"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrações"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第三方服务"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第三方服務"
+          }
+        }
+      }
+    },
     "Interview" : {
       "comment" : "Kind of extra",
       "localizations" : {
@@ -41316,21 +42746,57 @@
           }
         },
         "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大（%lld 列）"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "大（%lld 列）"
+                }
+              }
+            }
           }
         },
         "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "크게 (%lld열)"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "크게 (%lld열)"
+                }
+              }
+            }
           }
         },
         "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Duże (kolumny: %lld)"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Duży (%lld kolumna)"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Duży (%lld kolumny)"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Duży (%lld kolumn)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Duży (%lld kolumny)"
+                }
+              }
+            }
           }
         },
         "pt-BR" : {
@@ -41358,15 +42824,27 @@
           }
         },
         "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大（%lld 列）"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "大（%lld 列）"
+                }
+              }
+            }
           }
         },
         "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大（%lld 欄）"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "大（%lld 欄）"
+                }
+              }
+            }
           }
         }
       }
@@ -43034,6 +44512,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連結您的 Plex 帳號"
+          }
+        }
+      }
+    },
+    "Live progress and plays from downloads. Trakt's Plex scrobbler is turned off; its other settings stay." : {
+      "comment" : "Explanation of choosing Crucible to record plays",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live-Fortschritt und Wiedergaben aus Downloads. Trakts Plex-Scrobbler wird ausgeschaltet, seine übrigen Einstellungen bleiben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso en directo y reproducciones desde descargas. El scrobbler de Plex de Trakt se apaga; sus otros ajustes se mantienen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression en direct et lectures issues des téléchargements. Le scrobbler Plex de Trakt est désactivé ; ses autres réglages restent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanzamento in diretta e riproduzioni dai download. Lo scrobbler Plex di Trakt viene disattivato; le altre impostazioni restano."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴中の進捗と、ダウンロードした作品の再生を記録します。Trakt の Plex スクロブラーはオフになります。その他の設定はそのままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청 진행률과 다운로드한 항목의 재생을 기록합니다. Trakt의 Plex 스크로블러는 꺼지며, 나머지 설정은 그대로 유지됩니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postęp na żywo i odtworzenia z pobranych plików. Scrobbler Plex w Trakt zostaje wyłączony, a jego pozostałe ustawienia pozostają."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresso ao vivo e reproduções de downloads. O scrobble do Plex no Trakt fica desativado; as outras configurações continuam."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时进度和下载内容的播放记录。Trakt 自带的 Plex 同步已关闭，其他设置保持不变。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即時進度與下載內容的播放紀錄。Trakt 內建的 Plex 同步已關閉，其餘設定維持不變。"
+          }
+        }
+      }
+    },
+    "Live progress while you watch, and plays from downloads once you're online." : {
+      "comment" : "Explanation of the scrobble setting",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live-Fortschritt beim Schauen und Wiedergaben aus Downloads, sobald du online bist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progreso en directo mientras ves y reproducciones desde descargas cuando vuelvas a estar en línea."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression en direct pendant la lecture, et lectures issues des téléchargements une fois en ligne."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanzamento in diretta durante la visione e riproduzioni dai download appena sei online."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴中の進捗を記録し、ダウンロードした作品の再生は、オンラインに戻ったときに記録します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청하는 동안의 진행률을 기록하고, 다운로드한 항목의 재생은 온라인에 연결되면 기록합니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postęp na żywo podczas oglądania i odtworzenia z pobranych plików, gdy jesteś online."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresso ao vivo enquanto você assiste, e reproduções de downloads quando você estiver online."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "观看时同步实时进度，联网后同步下载内容的播放记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "觀看時同步即時進度，連上網路後同步下載內容的播放紀錄。"
           }
         }
       }
@@ -45472,6 +47080,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "標示為已看"
+          }
+        }
+      }
+    },
+    "Marked watched on Trakt" : {
+      "comment" : "Banner in the player when Trakt recorded the play",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei Trakt als gesehen markiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcada como vista en Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marqué comme vu sur Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrassegnato come visto su Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt で視聴済みにしました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 시청함으로 표시됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oznaczono jako obejrzane w Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcado como assistido no Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在 Trakt 上标记为已观看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已在 Trakt 上標示為已看"
+          }
+        }
+      }
+    },
+    "Marking a title unwatched also removes its plays from your Trakt history." : {
+      "comment" : "Explanation of the Unwatched Removes Plays setting",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du einen Titel als ungesehen markierst, werden seine Wiedergaben auch aus deinem Trakt-Verlauf entfernt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar un título como no visto también elimina sus reproducciones de tu historial de Trakt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marquer un titre comme non vu supprime aussi ses lectures de votre historique Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrassegnare un titolo come non visto rimuove anche le sue riproduzioni dalla tua cronologia Trakt."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルを未視聴に戻すと、Trakt の視聴履歴からその再生記録も削除されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제목을 시청 안 함으로 표시하면 Trakt 시청 기록에서 해당 재생도 함께 삭제됩니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oznaczenie tytułu jako nieobejrzany usuwa też jego odtworzenia z historii Trakt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar um título como não assistido também remove as reproduções dele do seu histórico no Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将作品标记为未观看时，也会从 Trakt 历史记录中移除其播放记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將作品標示為未看時，也會從 Trakt 歷史紀錄中移除其播放紀錄。"
           }
         }
       }
@@ -50304,6 +52042,71 @@
         }
       }
     },
+    "No Tracking" : {
+      "comment" : "Privacy statement row title while Trakt is connected",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Tracking"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin rastreo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun suivi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun tracciamento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラッキングなし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "추적 없음"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez śledzenia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem rastreamento"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无追踪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無追蹤"
+          }
+        }
+      }
+    },
     "No activity yet" : {
       "localizations" : {
         "de" : {
@@ -51646,6 +53449,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法使用"
+          }
+        }
+      }
+    },
+    "Not Found on Trakt" : {
+      "comment" : "Trakt settings row listing titles Crucible could not match",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei Trakt nicht gefunden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No encontrado en Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introuvables sur Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non trovati su Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt で見つかりません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 찾을 수 없음"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono w Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não encontrado no Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 上未找到"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 上找不到"
           }
         }
       }
@@ -54357,6 +56225,71 @@
         }
       }
     },
+    "On your phone or computer, go to %@" : {
+      "comment" : "Apple TV instruction naming the Trakt activation address",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf deinem Handy oder Computer %@ aufrufen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En tu móvil u ordenador, ve a %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur votre téléphone ou votre ordinateur, allez sur %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sul telefono o sul computer, vai su %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スマートフォンやパソコンで %@ にアクセスしてください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰이나 컴퓨터에서 %@에 접속하세요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na telefonie lub komputerze wejdź na %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No celular ou no computador, acesse %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在手机或电脑上前往 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在手機或電腦上前往 %@"
+          }
+        }
+      }
+    },
     "Open Episode" : {
       "localizations" : {
         "de" : {
@@ -54737,6 +56670,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟 Tailscale"
+          }
+        }
+      }
+    },
+    "Open Trakt" : {
+      "comment" : "Button that opens the Trakt activation page",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt を開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 열기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 Trakt"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 Trakt"
+          }
+        }
+      }
+    },
+    "Open Trakt on any phone or computer, sign in and enter this code." : {
+      "comment" : "Instruction on the Trakt device-code screen",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne Trakt auf einem beliebigen Handy oder Computer, melde dich an und gib diesen Code ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Trakt en cualquier móvil u ordenador, inicia sesión e introduce este código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Trakt sur n'importe quel téléphone ou ordinateur, connectez-vous et saisissez ce code."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Trakt su un telefono o un computer qualsiasi, accedi e inserisci questo codice."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スマートフォンやパソコンで Trakt を開き、サインインしてこのコードを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰이나 컴퓨터에서 Trakt에 접속해 로그인한 다음, 이 코드를 입력하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Trakt na dowolnym telefonie lub komputerze, zaloguj się i wpisz ten kod."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra o Trakt em qualquer celular ou computador, entre na sua conta e digite este código."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在任意手机或电脑上打开 Trakt，登录并输入此代码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在任何手機或電腦上開啟 Trakt，登入後輸入此代碼。"
           }
         }
       }
@@ -62554,6 +64617,71 @@
         }
       }
     },
+    "Ratings" : {
+      "comment" : "Title of the ratings strip on a detail page",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewertungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valoraciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valutazioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "評価"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "평점"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oceny"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaliações"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评分"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "評分"
+          }
+        }
+      }
+    },
     "Reachable" : {
       "comment" : "Server route state: the server answered",
       "localizations" : {
@@ -63129,6 +65257,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近觀看"
+          }
+        }
+      }
+    },
+    "Records what you play as you play it, downloads too" : {
+      "comment" : "First line of the Trakt pitch: scrobbling",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfasst, was du abspielst, während du schaust, auch Downloads"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra lo que reproduces mientras lo ves, también descargas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistre ce que vous lisez au fil de la lecture, téléchargements compris"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra ciò che riproduci mentre lo riproduci, anche i download"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生した作品を、ダウンロード分も含めてその場で記録します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생하는 항목을 바로 기록합니다. 다운로드한 항목도 포함됩니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisuje to, co odtwarzasz, na bieżąco, także pobrane"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra o que você reproduz enquanto reproduz, inclusive downloads"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放时即时记录，下载内容也会记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放時即時記錄，下載內容也會記錄"
           }
         }
       }
@@ -64804,6 +66997,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每年自動續訂。可隨時取消。"
+          }
+        }
+      }
+    },
+    "Replace" : {
+      "comment" : "Button that cancels the current Trakt check-in for a new one",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置き換える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "바꾸기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zastąp"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substituir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代"
           }
         }
       }
@@ -67447,6 +69705,71 @@
         }
       }
     },
+    "Scan to approve with your phone" : {
+      "comment" : "Caption under the QR code on Apple TV",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dem Handy scannen und bestätigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escanea para aprobar con tu móvil"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannez pour autoriser avec votre téléphone"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scansiona per approvare con il telefono"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スマートフォンで読み取って承認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "휴대폰으로 스캔해 승인"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeskanuj telefonem, aby zatwierdzić"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escaneie para aprovar com o celular"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用手机扫码授权"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用手機掃描 QR Code 授權"
+          }
+        }
+      }
+    },
     "Scene" : {
       "comment" : "Kind of extra: a clip of a scene",
       "localizations" : {
@@ -67508,6 +69831,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "場景"
+          }
+        }
+      }
+    },
+    "Scrobble Playback" : {
+      "comment" : "Trakt setting that sends playback as it happens",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiedergabe scrobbeln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducción con scrobbling"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrobbler la lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrobbling della riproduzione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生をスクロブル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생 스크로블"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrobbling odtwarzania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fazer scrobble da reprodução"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步播放记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步播放紀錄"
           }
         }
       }
@@ -69311,6 +71699,136 @@
         }
       }
     },
+    "Send Changes" : {
+      "comment" : "Trakt setting that sends watched marks, ratings and check-ins",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar cambios"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer les modifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia modifiche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更を送信"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "변경 사항 보내기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysyłaj zmiany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar alterações"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送更改"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送變更"
+          }
+        }
+      }
+    },
+    "Sending to Trakt" : {
+      "comment" : "Trakt settings section for scrobbling and sent changes",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senden an Trakt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envío a Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoi vers Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invio a Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt への送信"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 전송"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysyłanie do Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envio ao Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送至 Trakt"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送至 Trakt"
+          }
+        }
+      }
+    },
     "Sends the app's log to whoever you choose, to help track down a problem." : {
       "localizations" : {
         "de" : {
@@ -69371,6 +71889,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將 App 紀錄傳送給您選擇的對象，協助找出問題。"
+          }
+        }
+      }
+    },
+    "Sends what you mark watched, your ratings and your check-ins" : {
+      "comment" : "Second line of the Trakt pitch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet, was du als gesehen markierst, deine Bewertungen und deine Check-ins"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía lo que marcas como visto, tus valoraciones y tus check-ins"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie ce que vous marquez comme vu, vos notes et vos check-ins"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia ciò che contrassegni come visto, le tue valutazioni e i tuoi check-in"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴済みにした作品、評価、チェックインを送信します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청함으로 표시한 항목, 평점, 체크인을 보냅니다"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysyła oznaczenia obejrzanych, Twoje oceny i zameldowania"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envia o que você marca como assistido, suas avaliações e seus check-ins"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送你标记的已观看状态、评分和签到"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳送您標示的已看狀態、評分與簽到"
           }
         }
       }
@@ -70079,6 +72662,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "伺服器：%@，%@"
+          }
+        }
+      }
+    },
+    "Services Crucible can work with. Each stays off, and sends nothing, until you connect it." : {
+      "comment" : "Explanation of the Integrations settings category",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dienste, mit denen Crucible arbeiten kann. Jeder bleibt aus und sendet nichts, bis du ihn verbindest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servicios con los que puede trabajar Crucible. Cada uno permanece desactivado y no envía nada hasta que lo conectes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Services compatibles avec Crucible. Chacun reste désactivé et n'envoie rien tant que vous ne le connectez pas."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servizi con cui Crucible può lavorare. Ognuno resta disattivato e non invia nulla finché non lo colleghi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible が連携できるサービスです。接続するまではそれぞれオフのままで、何も送信しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible과 함께 쓸 수 있는 서비스입니다. 연결하기 전까지는 각 서비스가 꺼져 있으며 아무 정보도 보내지 않습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usługi, z którymi Crucible może współpracować. Każda pozostaje wyłączona i nic nie wysyła, dopóki jej nie połączysz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serviços com os quais o Crucible pode funcionar. Cada um fica desligado e não envia nada até você conectá-lo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 可以使用的服务。每项服务在你连接之前都保持关闭，且不会发送任何内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 可搭配使用的服務。在您連線之前，每項服務都保持關閉，且不會傳送任何資料。"
           }
         }
       }
@@ -71302,6 +73950,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "影集"
+          }
+        }
+      }
+    },
+    "Shows Trakt's score next to IMDb and Rotten Tomatoes on every title" : {
+      "comment" : "Third line of the Trakt pitch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt bei jedem Titel Trakts Wertung neben IMDb und Rotten Tomatoes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra la puntuación de Trakt junto a IMDb y Rotten Tomatoes en cada título"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche la note de Trakt à côté d'IMDb et de Rotten Tomatoes sur chaque titre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il punteggio di Trakt accanto a IMDb e Rotten Tomatoes su ogni titolo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのタイトルで、IMDb や Rotten Tomatoes と並べて Trakt のスコアを表示します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 제목에서 IMDb, Rotten Tomatoes 옆에 Trakt 점수를 표시합니다"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje ocenę Trakt obok IMDb i Rotten Tomatoes przy każdym tytule"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra a nota do Trakt ao lado de IMDb e Rotten Tomatoes em cada título"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在每个作品上显示 Trakt 评分，并与 IMDb 和 Rotten Tomatoes 并列"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在每個作品上顯示 Trakt 評分，並與 IMDb 和 Rotten Tomatoes 並列"
           }
         }
       }
@@ -79033,6 +81746,71 @@
         }
       }
     },
+    "The code was declined on Trakt." : {
+      "comment" : "Status when the viewer declined the Trakt code",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code wurde bei Trakt abgelehnt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha rechazado el código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le code a été refusé sur Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il codice è stato rifiutato su Trakt."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt でコードが拒否されました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 코드가 거부되었습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt odrzucił kod."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O código foi recusado no Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此代码已在 Trakt 上被拒绝。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此代碼已在 Trakt 上遭拒。"
+          }
+        }
+      }
+    },
     "The connection dropped. Try again." : {
       "localizations" : {
         "de" : {
@@ -79991,6 +82769,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新下載項目預設使用的畫質。您仍可為每個下載項目另選畫質。"
+          }
+        }
+      }
+    },
+    "The ratings and watched marks you change" : {
+      "comment" : "Data sent to Trakt: ratings and watched state",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bewertungen und Als-gesehen-Markierungen, die du änderst"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las valoraciones y las marcas de visto que cambias"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les notes et les marques de visionnage que vous modifiez"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le valutazioni e i contrassegni di visione che modifichi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更した評価と視聴済みの状態"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "변경한 평점과 시청 표시"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oceny i oznaczenia obejrzanych, które zmieniasz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As avaliações e as marcações de assistido que você altera"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你更改的评分和已观看标记"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您變更的評分與已看標示"
           }
         }
       }
@@ -81282,6 +84125,71 @@
         }
       }
     },
+    "This Plex Home profile can't connect services. The account owner can, on their own profile." : {
+      "comment" : "Shown on a restricted Home profile instead of Connect Trakt",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Plex-Home-Profil kann keine Dienste verbinden. Das kann nur der Kontoinhaber in seinem eigenen Profil."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este perfil de Plex Home no puede conectar servicios. Solo el titular de la cuenta puede hacerlo desde su propio perfil."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce profil Plex Home ne peut pas connecter de services. Le titulaire du compte le peut, depuis son propre profil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo profilo Plex Home non può collegare servizi. Il titolare dell'account può farlo dal proprio profilo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この Plex Home プロフィールではサービスに接続できません。アカウントの所有者は、自分のプロフィールから接続できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Plex Home 프로필에서는 서비스를 연결할 수 없습니다. 계정 소유자는 자신의 프로필에서 연결할 수 있습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten profil Plex Home nie może łączyć usług. Może to zrobić właściciel konta na swoim profilu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este perfil do Plex Home não pode conectar serviços. O dono da conta pode, no próprio perfil."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Plex Home 个人资料无法连接服务。账户拥有者可以在自己的个人资料中进行连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Plex Home 個人檔案無法連線服務。帳號擁有者可在自己的個人檔案中連線。"
+          }
+        }
+      }
+    },
     "This Week" : {
       "comment" : "Name of the Home row that shows this week's watch time",
       "localizations" : {
@@ -81407,6 +84315,201 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此帳號並未擁有或共享 Plex 媒體伺服器。請使用擁有您伺服器的帳號登入，或以位址新增伺服器。"
+          }
+        }
+      }
+    },
+    "This build of Crucible can't connect to Trakt." : {
+      "comment" : "Trakt error when the build has no Trakt app",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Version von Crucible kann keine Verbindung zu Trakt herstellen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versión de Crucible no puede conectarse a Trakt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de Crucible ne peut pas se connecter à Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa build di Crucible non può collegarsi a Trakt."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このバージョンの Crucible は Trakt に接続できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 버전의 Crucible은 Trakt에 연결할 수 없습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja Crucible nie może łączyć się z Trakt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versão do Crucible não pode se conectar ao Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 无法连接 Trakt。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 無法連線至 Trakt。"
+          }
+        }
+      }
+    },
+    "This build of Crucible doesn't include Trakt." : {
+      "comment" : "Shown when the build has no Trakt client ID",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Version von Crucible enthält kein Trakt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versión de Crucible no incluye Trakt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de Crucible ne comprend pas Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa build di Crucible non include Trakt."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このバージョンの Crucible には Trakt が含まれていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 버전의 Crucible에는 Trakt 기능이 없습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja Crucible nie zawiera Trakt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versão do Crucible não inclui o Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 不包含 Trakt。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 不包含 Trakt。"
+          }
+        }
+      }
+    },
+    "This code expired. Get a new one to try again." : {
+      "comment" : "Status when the Trakt code expired",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Code ist abgelaufen. Hol dir einen neuen, um es erneut zu versuchen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este código ha caducado. Obtén uno nuevo para volver a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce code a expiré. Obtenez-en un nouveau pour réessayer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo codice è scaduto. Richiedine uno nuovo per riprovare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコードは期限切れです。新しいコードを取得して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드가 만료되었습니다. 새 코드를 받아 다시 시도하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten kod wygasł. Pobierz nowy, aby spróbować ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este código expirou. Gere um novo para tentar de novo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此代码已过期。请获取新代码后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此代碼已過期。請取得新代碼後再試一次。"
           }
         }
       }
@@ -81986,6 +85089,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此清單目前是空的。"
+          }
+        }
+      }
+    },
+    "This needs Trakt VIP." : {
+      "comment" : "Trakt error 426",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dafür ist Trakt VIP nötig."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requiere Trakt VIP."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela nécessite Trakt VIP."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serve Trakt VIP."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt VIP が必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt VIP가 필요합니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymaga konta VIP w Trakt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isso exige o VIP do Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此功能需要 Trakt VIP。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此功能需要 Trakt VIP。"
           }
         }
       }
@@ -83621,6 +86789,71 @@
         }
       }
     },
+    "Tomatometer" : {
+      "comment" : "Under a Rotten Tomatoes score",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomatometer"
+          }
+        }
+      }
+    },
     "Too many streams at once right now." : {
       "comment" : "Preset reason shown to someone whose stream the owner stopped",
       "localizations" : {
@@ -84198,6 +87431,71 @@
         }
       }
     },
+    "Track what you watch, everywhere" : {
+      "comment" : "Subtitle of the Trakt integration",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfolge, was du schaust, überall"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra lo que ves, en todas partes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suivez ce que vous regardez, partout"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traccia ciò che guardi, ovunque"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見た作品をどこでも記録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보는 것을 어디서든 기록"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Śledź, co oglądasz, wszędzie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registre o que você assiste, em qualquer lugar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随处追踪你的观看记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隨處追蹤您的觀看紀錄"
+          }
+        }
+      }
+    },
     "Trailer" : {
       "comment" : "Kind of extra: a trailer",
       "localizations" : {
@@ -84324,6 +87622,1046 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "預告片與額外內容"
+          }
+        }
+      }
+    },
+    "Trakt already has this." : {
+      "comment" : "Trakt error for a duplicate",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt hat das schon."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ya tiene esto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt a déjà cela."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha già questo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に登録済みです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에 이미 있습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ma to już zapisane."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt já tem isso."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已有此记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已有此紀錄。"
+          }
+        }
+      }
+    },
+    "Trakt already records plays from this server" : {
+      "comment" : "Title of the double-scrobble question",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt erfasst Wiedergaben von diesem Server bereits"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ya registra las reproducciones de este servidor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt enregistre déjà les lectures de ce serveur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt registra già le riproduzioni da questo server"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このサーバーの再生は Trakt で記録済みです"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 이 서버의 재생을 이미 기록 중"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt już zapisuje odtworzenia z tego serwera"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt já registra as reproduções deste servidor"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已记录此服务器的播放"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已記錄此伺服器的播放"
+          }
+        }
+      }
+    },
+    "Trakt asked Crucible to slow down. It will try again shortly." : {
+      "comment" : "Trakt error 429",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt hat Crucible gebeten, langsamer zu werden. Es versucht es bald erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha pedido a Crucible que reduzca el ritmo. Lo intentará de nuevo en breve."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt a demandé à Crucible de ralentir. Il réessaiera bientôt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha chiesto a Crucible di rallentare. Riproverà a breve."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt からリクエストを抑えるよう求められました。まもなく再試行します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 요청을 줄이라고 했습니다. 곧 다시 시도합니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt poprosił Crucible o zwolnienie. Spróbuje ponownie wkrótce."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt pediu ao Crucible que desacelerasse. Ele tentará de novo em breve."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 要求 Crucible 放慢速度，稍后将再次尝试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 要求 Crucible 放慢速度，稍後會再試一次。"
+          }
+        }
+      }
+    },
+    "Trakt couldn't use what Crucible sent." : {
+      "comment" : "Trakt error for a rejected request",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt konnte die Daten von Crucible nicht verwenden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt no pudo usar lo que envió Crucible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt n'a pas pu utiliser ce que Crucible a envoyé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt non ha potuto usare ciò che Crucible ha inviato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt が Crucible からの送信内容を処理できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 Crucible이 보낸 내용을 처리할 수 없었습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt nie mógł przetworzyć tego, co wysłało Crucible."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt não conseguiu usar o que o Crucible enviou."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 无法处理 Crucible 发送的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 無法處理 Crucible 傳送的內容。"
+          }
+        }
+      }
+    },
+    "Trakt doesn't know this title, so Crucible can't check in to it." : {
+      "comment" : "Check-in failure for an unmatched title",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt kennt diesen Titel nicht, deshalb kann Crucible dort nicht einchecken."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt no conoce este título, así que Crucible no puede hacer check-in en él."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ne connaît pas ce titre, Crucible ne peut donc pas y faire de check-in."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt non conosce questo titolo, quindi Crucible non può farne il check-in."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt がこのタイトルを認識していないため、チェックインできません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에 이 제목이 없어서 체크인할 수 없습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt nie zna tego tytułu, więc Crucible nie może się w nim zameldować."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt não conhece este título, então o Crucible não pode fazer check-in nele."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 不认识此作品，因此 Crucible 无法为其签到。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 不認識此作品，因此 Crucible 無法為其簽到。"
+          }
+        }
+      }
+    },
+    "Trakt doesn't know this title." : {
+      "comment" : "Trakt error for an unknown item",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt kennt diesen Titel nicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt no conoce este título."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ne connaît pas ce titre."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt non conosce questo titolo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt がこのタイトルを認識していません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에 없는 제목입니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt nie zna tego tytułu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt não conhece este título."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 不认识此作品。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 不認識此作品。"
+          }
+        }
+      }
+    },
+    "Trakt has locked this account. Contact Trakt support to unlock it." : {
+      "comment" : "Trakt error 423",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt hat dieses Konto gesperrt. Wende dich an den Trakt-Support, um es zu entsperren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha bloqueado esta cuenta. Contacta con el soporte de Trakt para desbloquearla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt a bloqué ce compte. Contactez le support de Trakt pour le débloquer."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha bloccato questo account. Contatta l'assistenza di Trakt per sbloccarlo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt によりこのアカウントはロックされています。ロックを解除するには Trakt サポートにお問い合わせください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 이 계정을 잠갔습니다. 잠금을 해제하려면 Trakt 지원팀에 문의하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt zablokował to konto. Skontaktuj się z pomocą Trakt, aby je odblokować."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt bloqueou esta conta. Fale com o suporte do Trakt para desbloqueá-la."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已锁定此账户，请联系 Trakt 支持以解锁。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已鎖定此帳號，請聯絡 Trakt 客服以解鎖。"
+          }
+        }
+      }
+    },
+    "Trakt isn't answering right now. Crucible will try again later." : {
+      "comment" : "Trakt error for a server problem",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt antwortet gerade nicht. Crucible versucht es später erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt no responde ahora mismo. Crucible lo intentará más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ne répond pas pour le moment. Crucible réessaiera plus tard."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt non risponde al momento. Crucible riproverà più tardi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt が応答していません。Crucible は後で再試行します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 지금 응답하지 않습니다. Crucible이 나중에 다시 시도합니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt nie odpowiada w tej chwili. Crucible spróbuje ponownie później."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt não está respondendo agora. O Crucible tentará de novo mais tarde."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 暂时无法响应，Crucible 稍后会再试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 目前無法回應，Crucible 稍後會再試一次。"
+          }
+        }
+      }
+    },
+    "Trakt isn't letting this account connect to Crucible yet." : {
+      "comment" : "Status when Trakt refuses the account, for example for a development app",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt erlaubt diesem Konto noch keine Verbindung zu Crucible."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt todavía no permite que esta cuenta se conecte a Crucible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ne permet pas encore à ce compte de se connecter à Crucible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt non consente ancora a questo account di collegarsi a Crucible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントは、まだ Crucible への接続が許可されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 아직 이 계정의 Crucible 연결을 허용하지 않았습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt na razie nie pozwala temu kontu łączyć się z Crucible."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt ainda não permite que esta conta se conecte ao Crucible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 暂不允许此账户连接 Crucible。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 暫不允許此帳號連線至 Crucible。"
+          }
+        }
+      }
+    },
+    "Trakt isn't letting this account use Crucible yet." : {
+      "comment" : "Trakt error for a development app or an unapproved app",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt erlaubt diesem Konto die Nutzung von Crucible noch nicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt todavía no permite que esta cuenta use Crucible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ne permet pas encore à ce compte d'utiliser Crucible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt non consente ancora a questo account di usare Crucible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントは、まだ Crucible の利用が許可されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 아직 이 계정의 Crucible 사용을 허용하지 않았습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt na razie nie pozwala temu kontu korzystać z Crucible."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt ainda não permite que esta conta use o Crucible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 暂不允许此账户使用 Crucible。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 暫不允許此帳號使用 Crucible。"
+          }
+        }
+      }
+    },
+    "Trakt signed Crucible out. Connect again in Settings." : {
+      "comment" : "Trakt error when the token is no longer accepted",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt hat Crucible abgemeldet. Verbinde dich in den Einstellungen erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha cerrado la sesión de Crucible. Vuelve a conectarte en Ajustes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt a déconnecté Crucible. Reconnectez-vous dans les Réglages."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha disconnesso Crucible. Ricollegalo nelle Impostazioni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt から Crucible がサインアウトされました。設定から再度接続してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 Crucible이 로그아웃되었습니다. 설정에서 다시 연결하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt wylogował Crucible. Połącz ponownie w Ustawieniach."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt desconectou o Crucible. Conecte de novo em Ajustes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已将 Crucible 退出登录。请在设置中重新连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已將 Crucible 登出。請在設定中重新連線。"
+          }
+        }
+      }
+    },
+    "Trakt signed Crucible out. Connect again to keep scrobbling." : {
+      "comment" : "Shown when Trakt refused the token",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt hat Crucible abgemeldet. Verbinde dich erneut, um weiter zu scrobbeln."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha cerrado la sesión de Crucible. Vuelve a conectarte para seguir con el scrobbling."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt a déconnecté Crucible. Reconnectez-vous pour continuer le scrobbling."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ha disconnesso Crucible. Ricollegalo per continuare lo scrobbling."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt から Crucible がサインアウトされました。スクロブルを続けるには、再度接続してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 Crucible이 로그아웃되었습니다. 스크로블을 계속하려면 다시 연결하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt wylogował Crucible. Połącz ponownie, aby kontynuować scrobbling."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt desconectou o Crucible. Conecte de novo para continuar fazendo scrobble."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已将 Crucible 退出登录。请重新连接以继续同步播放记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 已將 Crucible 登出。請重新連線以繼續同步播放紀錄。"
+          }
+        }
+      }
+    },
+    "Trakt · Connect again" : {
+      "comment" : "Integrations summary when Trakt signed Crucible out",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Erneut verbinden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Volver a conectar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Reconnecter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Ricollega"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 再接続"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 다시 연결"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Połącz ponownie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Conectar novamente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 需重新连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 需重新連線"
+          }
+        }
+      }
+    },
+    "Trakt · Connected" : {
+      "comment" : "Integrations summary while Trakt is connected",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Verbunden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Conectado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Connecté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Collegato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 接続済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 연결됨"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Połączono"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · Conectado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 已连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt · 已連線"
+          }
+        }
+      }
+    },
+    "Trakt's Plex Sync Records Them" : {
+      "comment" : "Double-scrobble choice: Trakt keeps recording, Crucible stops scrobbling",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakts Plex-Sync erfasst sie"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sincronización de Plex de Trakt los registra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La synchro Plex de Trakt les enregistre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sincronizzazione Plex di Trakt li registra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt の Plex 同期が記録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt의 Plex 동기화가 기록"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronizacja Plex w Trakt je zapisuje"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sincronização Plex do Trakt os registra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 Trakt 的 Plex 同步记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 Trakt 的 Plex 同步記錄"
+          }
+        }
+      }
+    },
+    "Trakt's own Plex sync is on. If both record, every episode counts twice. Pick one." : {
+      "comment" : "Message of the double-scrobble question",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakts eigener Plex-Sync ist an. Erfassen beide, zählt jede Folge doppelt. Wähle eine Option."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sincronización de Plex de Trakt está activada. Si ambas registran, cada episodio cuenta dos veces. Elige una."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La synchro Plex de Trakt est activée. Si les deux enregistrent, chaque épisode compte deux fois. Choisissez-en un."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sincronizzazione Plex di Trakt è attiva. Se registrano entrambe, ogni episodio conta due volte. Sceglierne una."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 独自の Plex 同期がオンです。両方が記録すると、すべてのエピソードが二重に数えられます。どちらか一方を選んでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt의 Plex 동기화가 켜져 있습니다. 둘 다 기록하면 모든 에피소드가 두 번 집계됩니다. 하나만 선택하세요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronizacja Plex w Trakt jest włączona. Jeśli oba zapiszą, każdy odcinek liczy się dwa razy. Wybierz jedno."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sincronização Plex do próprio Trakt está ativa. Se os dois registrarem, cada episódio conta duas vezes. Escolha um."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 自带的 Plex 同步已开启。如果两者都记录，每一集都会被计算两次。请选择其一。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 內建的 Plex 同步已開啟。若兩者都記錄，每一集都會被計算兩次。請擇一。"
           }
         }
       }
@@ -84968,6 +89306,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟或關閉首頁列，並依您喜歡的順序排列。"
+          }
+        }
+      }
+    },
+    "Turn on if Trakt's own Plex sync, PlexTraktSync or a webhook already records them, so nothing counts twice." : {
+      "comment" : "Explanation of the Another App Records My Plays setting",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einschalten, wenn Trakts eigener Plex-Sync, PlexTraktSync oder ein Webhook sie bereits erfasst, damit nichts doppelt zählt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actívalo si la sincronización de Plex de Trakt, PlexTraktSync o un webhook ya los registran, para que nada cuente dos veces."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez si la synchro Plex de Trakt, PlexTraktSync ou un webhook les enregistre déjà, pour que rien ne soit compté deux fois."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attiva se la sincronizzazione Plex di Trakt, PlexTraktSync o un webhook li registrano già, così nulla viene conteggiato due volte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 独自の Plex 同期、PlexTraktSync、ウェブフックがすでに記録している場合にオンにしてください。二重に数えられることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt의 Plex 동기화, PlexTraktSync 또는 웹훅이 이미 기록하고 있다면 켜세요. 그러면 두 번 집계되지 않습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Włącz, jeśli synchronizacja Plex w Trakt, PlexTraktSync lub webhook już je zapisuje, aby nic nie liczyło się podwójnie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ative se a sincronização Plex do Trakt, o PlexTraktSync ou um webhook já os registrar, para que nada conte duas vezes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果 Trakt 自带的 Plex 同步、PlexTraktSync 或 webhook 已在记录，请开启此项，以免重复计算。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "若 Trakt 內建的 Plex 同步、PlexTraktSync 或 webhook 已在記錄，請開啟此項，以免重複計算。"
           }
         }
       }
@@ -86126,6 +90529,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未看 %lld"
+          }
+        }
+      }
+    },
+    "Unwatched Removes Plays" : {
+      "comment" : "Trakt setting: marking unwatched removes plays on Trakt",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungesehen entfernt Wiedergaben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar como no visto elimina reproducciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non vu supprime les lectures"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non visto rimuove le riproduzioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未視聴で再生記録を削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청 안 함 시 재생 삭제"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieobejrzane usuwa odtworzenia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não assistido remove reproduções"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消已观看会移除播放记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消已看會移除播放紀錄"
           }
         }
       }
@@ -87543,6 +92011,71 @@
         }
       }
     },
+    "Waiting to Send" : {
+      "comment" : "Trakt settings row with the number of queued changes",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wartet auf Senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pendiente de enviar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d'envoi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In attesa di invio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送信待ち"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보내기 대기 중"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czeka na wysłanie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando envio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待发送"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待傳送"
+          }
+        }
+      }
+    },
     "Watch Credits" : {
       "localizations" : {
         "de" : {
@@ -88444,6 +92977,71 @@
         }
       }
     },
+    "What Trakt receives" : {
+      "comment" : "Heading of the list of data sent to Trakt",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was Trakt erhält"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que recibe Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que reçoit Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa riceve Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に送られる情報"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에 전송되는 정보"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co otrzymuje Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que o Trakt recebe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 会收到的内容"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 會收到的資料"
+          }
+        }
+      }
+    },
     "What arrived on your server most recently." : {
       "localizations" : {
         "de" : {
@@ -88760,6 +93358,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放影片時，Siri 遙控器觸控面板的功能。"
+          }
+        }
+      }
+    },
+    "What you mark watched, your ratings and check-ins." : {
+      "comment" : "Explanation of the Send Changes setting",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du als gesehen markierst, deine Bewertungen und Check-ins."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que marcas como visto, tus valoraciones y tus check-ins."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que vous marquez comme vu, vos notes et vos check-ins."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciò che contrassegni come visto, le tue valutazioni e i tuoi check-in."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴済みにした作品、評価、チェックイン。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청함으로 표시한 항목, 평점, 체크인."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oznaczenia obejrzanych, Twoje oceny i zameldowania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que você marca como assistido, suas avaliações e seus check-ins."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你标记为已观看的内容、评分和签到。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您標示為已看的內容、評分與簽到。"
+          }
+        }
+      }
+    },
+    "What you play, when, and how far" : {
+      "comment" : "Data sent to Trakt: playback",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du abspielst, wann und wie weit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que reproduces, cuándo y hasta dónde"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que vous lisez, quand et jusqu'où"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa riproduci, quando e fino a che punto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生した作品、再生した日時、再生位置"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생한 항목, 재생 시점, 재생 위치"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co odtwarzasz, kiedy i jak daleko"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que você reproduz, quando e até onde"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你播放的内容、时间和进度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您播放的內容、時間與進度"
           }
         }
       }
@@ -90568,6 +95296,136 @@
         }
       }
     },
+    "You're already checked in to something else on Trakt until %@." : {
+      "comment" : "Check-in conflict with the time it ends",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist bei Trakt bereits bei etwas anderem eingecheckt, bis %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya tienes un check-in en otra cosa en Trakt hasta %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes déjà en check-in sur autre chose sur Trakt jusqu'au %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai già effettuato il check-in su un'altra cosa su Trakt fino al %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt では %@ まで別の作品にチェックインしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 %@까지 다른 항목에 이미 체크인되어 있습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masz już zameldowanie w czymś innym w Trakt do %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você já tem um check-in em outra coisa no Trakt até %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已在 Trakt 上签到其他内容，直到 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您已在 Trakt 上簽到其他內容，直到 %@。"
+          }
+        }
+      }
+    },
+    "You're already checked in to something else on Trakt." : {
+      "comment" : "Check-in conflict without an end time",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist bei Trakt bereits bei etwas anderem eingecheckt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya tienes un check-in en otra cosa en Trakt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes déjà en check-in sur autre chose sur Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai già effettuato il check-in su un'altra cosa su Trakt."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt では別の作品にチェックイン中です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에서 이미 다른 항목에 체크인되어 있습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masz już zameldowanie w czymś innym w Trakt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você já tem um check-in em outra coisa no Trakt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已在 Trakt 上签到了其他内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您已在 Trakt 上簽到其他內容。"
+          }
+        }
+      }
+    },
     "You're an Early Bird" : {
       "localizations" : {
         "de" : {
@@ -90692,6 +95550,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您目前離線，且此 iPhone 上尚未儲存任何內容。"
+          }
+        }
+      }
+    },
+    "You're offline. Crucible will send this to Trakt when you're back." : {
+      "comment" : "Trakt error when offline",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist offline. Crucible sendet das an Trakt, sobald du wieder online bist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estás sin conexión. Crucible lo enviará a Trakt cuando vuelvas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes hors ligne. Crucible enverra ceci à Trakt dès votre retour."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sei offline. Crucible invierà questo a Trakt quando tornerai online."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインです。オンラインに戻ったら、Crucible が Trakt に送信します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오프라인 상태입니다. 다시 온라인이 되면 Crucible이 Trakt에 보냅니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak połączenia. Crucible wyśle to do Trakt, gdy wrócisz online."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está offline. O Crucible enviará isto ao Trakt quando você voltar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已离线。恢复联网后，Crucible 会将此内容发送至 Trakt。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您目前離線。恢復連線後，Crucible 會將此內容傳送至 Trakt。"
           }
         }
       }
@@ -91848,6 +96771,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的喜好"
+          }
+        }
+      }
+    },
+    "Your Trakt account is at one of its limits." : {
+      "comment" : "Trakt error 420",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Trakt-Konto hat eines seiner Limits erreicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu cuenta de Trakt ha alcanzado uno de sus límites."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre compte Trakt a atteint l'une de ses limites."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo account Trakt ha raggiunto uno dei suoi limiti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt アカウントが上限に達しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 계정이 한도에 도달했습니다."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoje konto Trakt osiągnęło jeden z limitów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua conta Trakt atingiu um dos seus limites."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Trakt 账户已达使用上限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的 Trakt 帳號已達使用上限。"
           }
         }
       }
@@ -95543,6 +100531,201 @@
         }
       }
     },
+    "of 10" : {
+      "comment" : "Under a score out of ten",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "von 10"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 10"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sur 10"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "su 10"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/10"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/10"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "na 10"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 10"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ 10"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ 10"
+          }
+        }
+      }
+    },
+    "of 100" : {
+      "comment" : "Under a Metacritic score",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "von 100"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 100"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sur 100"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "su 100"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/100"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/100"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "na 100"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 100"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ 100"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ 100"
+          }
+        }
+      }
+    },
+    "of 5" : {
+      "comment" : "Under a Letterboxd score",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "von 5"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 5"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sur 5"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "su 5"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/5"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/5"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "na 5"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "de 5"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ 5"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/ 5"
+          }
+        }
+      }
+    },
     "of plays after midnight" : {
       "localizations" : {
         "de" : {
@@ -96765,6 +101948,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部作品"
+          }
+        }
+      }
+    },
+    "trakt, scrobble, sync, history, ratings, check in, integration, plugin" : {
+      "comment" : "Search keywords for Trakt, comma separated",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobbeln, sync, verlauf, bewertungen, einchecken, integration, plugin"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobbling, sincronización, historial, valoraciones, check-in, integración, plugin"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobbler, synchro, historique, notes, check-in, intégration, plugin"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobbling, sincronizzazione, cronologia, valutazioni, check-in, integrazione, plugin"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobble, スクロブル, 同期, 履歴, 評価, チェックイン, 連携, プラグイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, 스크로블, 동기화, 기록, 평점, 체크인, 연동, 플러그인"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobbling, synchronizacja, historia, oceny, zameldowanie, integracja, wtyczka"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobble, sincronização, histórico, avaliações, check-in, integração, plugin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobble, 同步播放记录, 同步, 历史记录, 评分, 签到, 集成, 插件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trakt, scrobble, 同步播放紀錄, 同步, 歷史紀錄, 評分, 簽到, 整合, 外掛"
           }
         }
       }
