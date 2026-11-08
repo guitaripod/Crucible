@@ -86,8 +86,8 @@ package actor ScriptedProAccess: ProAccessProviding {
         case .ok, .cancel, .pending: break
         }
         return [
-            ProOffer(id: Self.lifetimeID, kind: .lifetime, priceText: "$24.99"),
-            ProOffer(id: Self.annualID, kind: .annual, priceText: "$7.99", monthlyEquivalentText: "$0.67 a month", trial: trialEligible ? .init(days: 14) : nil),
+            ProOffer(id: Self.lifetimeID, kind: .lifetime, priceText: "$39.99"),
+            ProOffer(id: Self.annualID, kind: .annual, priceText: "$14.99", monthlyEquivalentText: "$1.25 a month", trial: trialEligible ? .init(days: 14) : nil),
         ]
     }
 

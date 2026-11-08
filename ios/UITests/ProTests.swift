@@ -50,7 +50,7 @@ final class ProTests: XCTestCase {
 
         XCTAssertTrue(lifetime.isSelected, "the lifetime offer starts selected")
         XCTAssertFalse(annual.isSelected)
-        XCTAssertEqual(buy.label, "Unlock for $24.99")
+        XCTAssertEqual(buy.label, "Unlock for $39.99")
         XCTAssertFalse(disclosure.exists, "a lifetime purchase has no renewal terms")
 
         annual.tap()
@@ -65,7 +65,7 @@ final class ProTests: XCTestCase {
         lifetime.tap()
         XCTAssertTrue(IOSTest.wait(for: lifetime, "isSelected == true", timeout: 5), "tapping the lifetime card must select it again")
         XCTAssertFalse(annual.isSelected)
-        XCTAssertEqual(buy.label, "Unlock for $24.99")
+        XCTAssertEqual(buy.label, "Unlock for $39.99")
         XCTAssertTrue(IOSTest.wait(for: disclosure, "exists == false", timeout: 5), "the renewal terms go away with the annual offer")
         IOSTest.capture("03-lifetime-selected-again", in: self)
     }
