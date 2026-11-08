@@ -43,18 +43,15 @@ person or kept beyond servicing it.
   `DemoTests.testPaperLanternsOffersEssentialsOnceAndSkipsItsAnimeOnlyEpisodes`.
 - Upload with `scripts/asc-screenshots.py --locales=all` once ASC holds the 2.8.0 versions.
 
-## Staging state (2026-11-07)
+## Submitted (2026-11-08)
 
-- Apple TV 2.8.0 is staged in App Store Connect, not submitted: build 202611071414 (Apple TV pairing through the
-  iPhone), What's New in all seventeen languages read back from App Store Connect, the review notes
-  (`store/review-notes-2.8.0.txt`) and the nine Apple TV screenshots. The newest iOS 2.8.0 build is 202611071409.
-- iOS 2.8.0 waits for 2.7.2 to leave review. Then: `midgar ship crucible --platform ios --version 2.8.0 --build
-  <newest VALID 2.8.0 build> --resume stage`, `midgar listing crucible --train ios --version 2.8.0 --apply`, point
-  `docs/asc-metadata.json`'s IOS id at the new version, `python3 scripts/asc-screenshots.py --only=iphone --locales=all`
-  and `--only=ipad`, and `asc review details-update` with the review notes.
-- The new subtitle ("Skip filler, recaps and intros" and its translations) is held back on purpose: the app info is
-  shared with iOS 2.7.2, which is still in review and has none of these features. Apply it together with the 2.8.0
-  submission (`midgar listing crucible --train tvos --version 2.8.0 --apply` shows it as 17 subtitle updates).
+- iPhone and iPad 2.8.0 (build 202611080723) and Apple TV 2.8.0 (build 202611080732) are in review together, both
+  released on approval. iOS 2.7.2 was withdrawn from review and its version renamed 2.8.0, so iOS goes from 2.4.0
+  straight to 2.8.0; its What's New folds in 2.7.2's (`store/metadata/ios/version/2.8.0`).
+- The new subtitle ("Skip filler, recaps and intros" and its translations), descriptions, keywords and promotional
+  text are applied on both trains; `midgar listing crucible --train ios|tvos --version 2.8.0` plans no changes.
+- Screenshots: ten iPhone panels in eleven languages, nine iPad panels and nine Apple TV panels, all COMPLETE. Review
+  notes from `store/review-notes-2.8.0.txt` on both versions. Tag `2.8.0` is the commit both builds came from.
 
 ## Funnel
 
