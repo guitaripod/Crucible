@@ -23,7 +23,7 @@ package enum SearchScope: Int, CaseIterable, Sendable {
 }
 
 package enum SearchSection: Int, Hashable, Sendable {
-    case recent, browse, recentlyAdded, topResult, movies, shows, episodes
+    case recent, browse, recentlyAdded, topResult, movies, shows, episodes, elsewhere
 
     package var title: String? {
         switch self {
@@ -34,6 +34,7 @@ package enum SearchSection: Int, Hashable, Sendable {
         case .movies: return String(localized: "Movies")
         case .shows: return String(localized: "Shows")
         case .episodes: return String(localized: "Episodes")
+        case .elsewhere: return SeerrCopy.notConnectedTitle
         }
     }
 }

@@ -8,18 +8,33 @@ import MidgarCore
 enum WatchlistScreen {
     static func watchlist(api: APIClient) -> MediaGridViewController {
         let token = api.token
+        let book = SeerrStateBook()
         let grid = MediaGridViewController(
             title: WatchlistService.title,
             empty: .init(symbol: "bookmark", title: WatchlistService.emptyTitle, text: WatchlistService.emptyText)
         ) {
             try await WatchlistService.items(token: token)
         }
+        grid.configuration = { item in
+            var config = DetailLayout.posterConfiguration(for: item)
+            config.subtitle = book.cardSubtitle(for: item, fallback: config.subtitle)
+            return config
+        }
+        grid.onLoaded = { [weak grid] items in
+            book.load(items) { ids in grid?.reconfigure(ids) }
+        }
         grid.onSelect = { [weak grid] entry in
             open(entry, api: api, from: grid)
         }
         grid.contextMenu = { [weak grid] entry in
             guard let guid = entry.guid else { return nil }
-            return UIMenu(children: [
+            var request: [UIMenuElement] = []
+            if let state = book.states[entry.entryID], state.availability != .available, state.canRequest(with: SeerrAccount.shared.permissions) {
+                request.append(UIAction(title: SeerrCopy.request, image: UIImage(systemName: "plus.circle")) { _ in
+                    SeerrRequestViewController.present(for: entry, api: api, isOnServer: false, from: grid)
+                })
+            }
+            return UIMenu(children: request + [
                 UIAction(title: WatchlistService.remove, image: UIImage(systemName: "bookmark.slash"), attributes: .destructive) { _ in
                     Task { @MainActor in
                         do {

@@ -7,6 +7,8 @@ import CrucibleDesign
 /// stays legible.
 struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var posterPath: String?
+    /// Artwork from outside the Plex server (a title only Seerr knows), loaded as is.
+    var posterURL: URL?
     /// The card's height over its width, which its grid sets to the shape most of its artwork has. Artwork
     /// of another shape is shown whole inside it instead of being cropped to it.
     var artworkAspect: CGFloat = Theme.Size.posterAspect
@@ -23,7 +25,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     var onQuickPlay: (() -> Void)?
 
     static func == (lhs: PosterContentConfiguration, rhs: PosterContentConfiguration) -> Bool {
-        lhs.posterPath == rhs.posterPath && lhs.artworkAspect == rhs.artworkAspect && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle
+        lhs.posterPath == rhs.posterPath && lhs.posterURL == rhs.posterURL && lhs.artworkAspect == rhs.artworkAspect && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle
             && lhs.progress == rhs.progress && lhs.isUnwatched == rhs.isUnwatched
             && lhs.unwatchedCount == rhs.unwatchedCount && lhs.badgeText == rhs.badgeText && lhs.isDownloaded == rhs.isDownloaded
             && lhs.showPlayButton == rhs.showPlayButton
@@ -31,6 +33,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(posterPath)
+        hasher.combine(posterURL)
         hasher.combine(artworkAspect)
         hasher.combine(title)
         hasher.combine(subtitle)
@@ -278,7 +281,7 @@ final class PosterContentView: UIView, UIContentView {
 
         accessibilityLabel = Self.spokenDescription(for: config)
 
-        let newPath = config.posterPath
+        let newPath = config.posterURL?.absoluteString ?? config.posterPath
         guard newPath != currentPosterPath else { return }
         imageTask?.cancel()
         imageTask = nil
@@ -287,6 +290,14 @@ final class PosterContentView: UIView, UIContentView {
         placeholderView.isHidden = false
         placeholderView.image = UIImage(systemName: config.placeholderIcon)
 
+        if let posterURL = config.posterURL {
+            imageTask = Task { [weak self] in
+                let image = await RemoteImageLoader.shared.image(at: posterURL)
+                guard !Task.isCancelled, let self, let image else { return }
+                self.show(image)
+            }
+            return
+        }
         guard let posterPath = newPath else { return }
         imageTask = Task { [weak self] in
             let image = await ImageLoader.shared.loadImage(path: posterPath, width: 360)

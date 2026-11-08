@@ -15,6 +15,7 @@ package enum SeerrEndpoint: Sendable, Equatable {
     case moderate(id: Int, approve: Bool)
     case retry(id: Int)
     case quota(userID: Int)
+    case search(query: String)
 
     package var method: String {
         switch self {
@@ -38,6 +39,7 @@ package enum SeerrEndpoint: Sendable, Equatable {
         case .moderate(let id, let approve): return "request/\(id)/\(approve ? "approve" : "decline")"
         case .retry(let id): return "request/\(id)/retry"
         case .quota(let id): return "user/\(id)/quota"
+        case .search: return "search"
         }
     }
 
@@ -62,6 +64,8 @@ package enum SeerrEndpoint: Sendable, Equatable {
             return items
         case .status:
             return [URLQueryItem(name: "checkUpdateAvailable", value: "false")]
+        case .search(let query):
+            return [URLQueryItem(name: "query", value: query), URLQueryItem(name: "page", value: "1")]
         default:
             return []
         }

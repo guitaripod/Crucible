@@ -24,6 +24,8 @@ extension DemoRouter {
             return .json(["status": "ok"] as DemoJSON)
         case ("GET", let path) where path.count == 2 && (path[0] == "movie" || path[0] == "tv"):
             return await library.seerrDetails(kind: path[0], tmdbID: Int(path[1]) ?? 0)
+        case ("GET", ["search"]):
+            return await library.seerrSearch(request.first("query") ?? "")
         case ("GET", ["request"]):
             return await library.seerrRequestList(filter: request.first("filter") ?? "all", requestedBy: request.int("requestedBy"))
         case ("POST", ["request"]):

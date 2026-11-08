@@ -2,7 +2,7 @@ import Foundation
 import MidgarCore
 
 /// Where a title stands between being asked for and playing, the one state every Request button and badge shows.
-package enum SeerrAvailability: Equatable, Sendable {
+package enum SeerrAvailability: Hashable, Sendable {
     case notRequested
     case pending
     case approved
@@ -222,6 +222,24 @@ package final class SeerrTitles {
         return fetched
     }
 
+    /// Where each of `items` stands, for titles from Plex's catalogue such as the watchlist, looked up four at a time; `update`
+    /// hears each batch as it lands, keyed by the item's entry id, so a list fills in without waiting for the last title.
+    package func states(for items: [PlexMetadata], update: @escaping @MainActor ([String: SeerrTitleState]) -> Void) async {
+        guard account.isConnected else { return }
+        let candidates = items.filter { $0.mediaType == "movie" || $0.mediaType == "show" }
+        var start = 0
+        while start < candidates.count, !Task.isCancelled {
+            let chunk = candidates[start..<min(start + 4, candidates.count)]
+            start += 4
+            let lookups = chunk.map { item in (item.entryID, Task { try? await self.state(for: item, api: nil) }) }
+            var batch: [String: SeerrTitleState] = [:]
+            for (id, lookup) in lookups {
+                if let state = await lookup.value { batch[id] = state }
+            }
+            if !batch.isEmpty, !Task.isCancelled { update(batch) }
+        }
+    }
+
     /// Asks for `state`'s title, or for `seasons` of a show (every missing one when nil), and returns where it stands now.
     package func request(_ state: SeerrTitleState, seasons: [Int]? = nil) async throws -> SeerrTitleState {
         let wanted: [Int]?
@@ -240,6 +258,29 @@ package final class SeerrTitles {
         return try await self.state(tmdbID: state.tmdbID, kind: state.kind, refresh: true)
     }
 
+    /// Movies and shows Seerr finds for `query` that the server does not have, best matches first, at most `limit`.
+    package func search(_ query: String, limit: Int = 12) async -> [SeerrSearchHit] {
+        guard account.isConnected else { return [] }
+        do {
+            let page = try await client.send(.search(query: query), as: SeerrPage<SeerrSearchResult>.self)
+            return Array(page.results.compactMap(Self.hit).prefix(limit))
+        } catch {
+            MidgarLog.notice("Seerr search failed: \(error.localizedDescription)", category: .seerr)
+            return []
+        }
+    }
+
+    static func hit(_ result: SeerrSearchResult) -> SeerrSearchHit? {
+        guard let kind = SeerrMediaKind(rawValue: result.mediaType), let title = result.title ?? result.name else { return nil }
+        let availability = SeerrAvailability(media: result.mediaInfo)
+        guard availability != .available, availability != .partiallyAvailable, availability != .blocklisted else { return nil }
+        let date = result.releaseDate ?? result.firstAirDate
+        return SeerrSearchHit(
+            tmdbID: result.id, kind: kind, title: title, year: date.flatMap { $0.count >= 4 ? Int($0.prefix(4)) : nil },
+            posterPath: result.posterPath, overview: result.overview, availability: availability
+        )
+    }
+
     /// Withdraws the viewer's own request while it still waits for approval.
     package func withdraw(_ request: SeerrRequest, of state: SeerrTitleState) async throws -> SeerrTitleState {
         try await client.sendVoid(.cancelRequest(id: request.id))
@@ -251,5 +292,57 @@ package final class SeerrTitles {
     package func forgetAll() {
         tmdbIDs = [:]
         details = [:]
+    }
+}
+
+/// Where each title of a list stands in Seerr, for a screen that shows it on its cards: filled in batches after the list
+/// loads, a newer load replacing an older one.
+@MainActor
+package final class SeerrStateBook {
+    package private(set) var states: [String: SeerrTitleState] = [:]
+    private var task: Task<Void, Never>?
+    private var items: [PlexMetadata] = []
+    private var changed: (@MainActor ([String]) -> Void)?
+    nonisolated(unsafe) private var observer: (any NSObjectProtocol)?
+
+    package init() {
+        observer = NotificationCenter.default.addObserver(forName: .seerrRequestsChanged, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, let changed = self.changed else { return }
+                self.load(self.items, changed: changed)
+            }
+        }
+    }
+
+    deinit {
+        task?.cancel()
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    /// The line a card shows under its title: where the title stands once Seerr has said, otherwise `fallback`.
+    package func cardSubtitle(for item: PlexMetadata, fallback: String?) -> String? {
+        guard let state = states[item.entryID] else { return fallback }
+        return SeerrCopy.cardLabel(state.availability)
+    }
+
+    /// Looks `items` up when Seerr is connected and reports the entry ids whose cards changed.
+    package func load(_ items: [PlexMetadata], changed: @escaping @MainActor ([String]) -> Void) {
+        self.items = items
+        self.changed = changed
+        task?.cancel()
+        guard SeerrAccount.shared.isConnected else {
+            let had = Array(states.keys)
+            states = [:]
+            if !had.isEmpty { changed(had) }
+            return
+        }
+        task = Task { [weak self] in
+            await SeerrTitles.shared.states(for: items) { batch in
+                guard let self else { return }
+                let moved = batch.filter { self.states[$0.key] != $0.value }.map(\.key)
+                self.states.merge(batch) { _, new in new }
+                if !moved.isEmpty { changed(moved) }
+            }
+        }
     }
 }

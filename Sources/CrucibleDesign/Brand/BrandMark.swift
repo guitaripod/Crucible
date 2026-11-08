@@ -28,6 +28,30 @@ package enum BrandMark: String, CaseIterable, Sendable, Hashable {
         }
     }
 
+    /// The mark for a library's rating source, where one is drawn small enough for a menu.
+    package init?(source: RatingSource) {
+        switch source {
+        case .rottenTomatoesCritics, .rottenTomatoesAudience: self = .rottenTomatoesFresh
+        case .imdb: self = .imdb
+        case .tmdb: return nil
+        }
+    }
+
+    /// The mark fitted to a menu row's image size, drawn in its own colours.
+    @MainActor
+    package var menuImage: UIImage? {
+        guard let image else { return nil }
+        let height: CGFloat = 18
+        let width = min(40, height * image.size.width / max(image.size.height, 1))
+        let size = CGSize(width: width, height: height)
+        let fitted = UIGraphicsImageRenderer(size: size).image { _ in
+            let scale = min(size.width / image.size.width, size.height / image.size.height)
+            let drawn = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            image.draw(in: CGRect(x: (size.width - drawn.width) / 2, y: (size.height - drawn.height) / 2, width: drawn.width, height: drawn.height))
+        }
+        return fitted.withRenderingMode(.alwaysOriginal)
+    }
+
     /// The mark for a score: Rotten Tomatoes shows its rotten splat below 60%, as it does on its own site.
     package init(score: TraktScore) {
         switch score.source {

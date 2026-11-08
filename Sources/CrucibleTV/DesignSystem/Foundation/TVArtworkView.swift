@@ -76,6 +76,23 @@ final class TVArtworkView: UIImageView {
         }
     }
 
+    /// Shows artwork from a full URL outside the Plex server, such as a poster the viewer's Seerr serves.
+    func setArtwork(url: URL, placeholderSymbol: String) {
+        self.placeholderSymbol = placeholderSymbol
+        guard url.absoluteString != loadedPath else { return }
+        reset()
+        loadedPath = url.absoluteString
+        loadTask = Task { [weak self] in
+            let image = await RemoteImageLoader.shared.image(at: url)
+            guard !Task.isCancelled, let self else { return }
+            guard let image else {
+                self.loadTask = nil
+                return
+            }
+            self.display(image)
+        }
+    }
+
     /// Cancels any load in flight and returns to the placeholder.
     func reset() {
         loadTask?.cancel()

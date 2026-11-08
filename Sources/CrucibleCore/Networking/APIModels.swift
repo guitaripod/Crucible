@@ -182,6 +182,9 @@ package struct PlexMetadata: Decodable, Sendable {
     package let Related: PlexRelatedHubs?
     /// The external ids Plex's agents attach (`tvdb://…`, `tmdb://…`, `imdb://…`), present when the request asked `includeGuids`.
     package let externalGuids: [PlexGuid]?
+    /// Where `rating` and `audienceRating` come from, as Plex names them (`rottentomatoes://image.rating.ripe`, `imdb://image.rating`).
+    package let ratingImage: String?
+    package let audienceRatingImage: String?
 
     package init(
         ratingKey: String?,
@@ -245,9 +248,13 @@ package struct PlexMetadata: Decodable, Sendable {
         originalTitle: String? = nil,
         playbackSession: PlexPlaybackSession? = nil,
         historyKey: String? = nil,
-        externalGuids: [PlexGuid]? = nil
+        externalGuids: [PlexGuid]? = nil,
+        ratingImage: String? = nil,
+        audienceRatingImage: String? = nil
     ) {
         self.externalGuids = externalGuids
+        self.ratingImage = ratingImage
+        self.audienceRatingImage = audienceRatingImage
         self.historyKey = historyKey
         self.titleSort = titleSort
         self.originalTitle = originalTitle
@@ -329,6 +336,7 @@ package struct PlexMetadata: Decodable, Sendable {
         case subtype, guid, grandparentGuid, parentGuid, historyKey
         case extrasContainer = "Extras"
         case externalGuids = "Guid"
+        case ratingImage, audienceRatingImage
     }
 
     /// The server spells ids and counts as numbers on a library listing and as strings on a history row, and one field it
@@ -410,7 +418,9 @@ package struct PlexMetadata: Decodable, Sendable {
             originalTitle: string(.originalTitle),
             playbackSession: list(PlexPlaybackSession.self, .playbackSession),
             historyKey: string(.historyKey),
-            externalGuids: list([PlexGuid].self, .externalGuids)
+            externalGuids: list([PlexGuid].self, .externalGuids),
+            ratingImage: string(.ratingImage),
+            audienceRatingImage: string(.audienceRatingImage)
         )
     }
 }

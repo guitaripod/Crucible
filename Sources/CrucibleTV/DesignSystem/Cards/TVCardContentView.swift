@@ -191,6 +191,10 @@ final class TVCardContentView: UIView, UIContentView {
         badgeLabel.text = item.badgeText
         badgeLabel.isHidden = (item.badgeText ?? "").isEmpty
 
-        artwork.setArtwork(path: item.artworkPath, placeholderSymbol: item.placeholderSymbol)
+        if let url = item.artworkURL {
+            artwork.setArtwork(url: url, placeholderSymbol: item.placeholderSymbol)
+        } else {
+            artwork.setArtwork(path: item.artworkPath, placeholderSymbol: item.placeholderSymbol)
+        }
     }
 }

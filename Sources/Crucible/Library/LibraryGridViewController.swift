@@ -490,7 +490,7 @@ class LibraryGridViewController: UIViewController {
             ))
         }
         chips.append(FilterChipsView.Chip(id: Self.collectionsChip, title: String(localized: "Collections")))
-        chips.append(FilterChipsView.Chip(id: "sort", title: String(localized: "Sort: \(options.sortTitle(for: kind))"), menu: sortMenu(title: String(localized: "Sort By"), inline: false)))
+        chips.append(FilterChipsView.Chip(id: "sort", title: String(localized: "Sort: \(options.sortTitle(for: kind, sources: model.ratingSources))"), menu: sortMenu(title: String(localized: "Sort By"), inline: false)))
         return chips
     }
 
@@ -524,8 +524,8 @@ class LibraryGridViewController: UIViewController {
     }
 
     private func sortMenu(title: String, inline: Bool) -> UIMenu {
-        UIMenu(title: title, options: inline ? .displayInline : [], children: kind.sortOptions.map { option in
-            UIAction(title: option.title, state: model.options.sort == option.key ? .on : .off) { [weak self] _ in
+        UIMenu(title: title, options: inline ? .displayInline : [], children: kind.sortOptions(sources: model.ratingSources).map { option in
+            UIAction(title: option.title, image: option.source.flatMap(BrandMark.init(source:))?.menuImage, state: model.options.sort == option.key ? .on : .off) { [weak self] _ in
                 Haptics.selection()
                 self?.model.setSort(option.key)
             }

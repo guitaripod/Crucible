@@ -253,6 +253,54 @@ package struct SeerrTitleDetails: Decodable, Equatable, Sendable {
     }
 }
 
+/// One result of a Seerr search: a movie, a show or a person, with what Seerr knows of the title.
+package struct SeerrSearchResult: Decodable, Sendable {
+    package let id: Int
+    package let mediaType: String
+    package let title: String?
+    package let name: String?
+    package let releaseDate: String?
+    package let firstAirDate: String?
+    package let posterPath: String?
+    package let overview: String?
+    package let mediaInfo: SeerrMediaInfo?
+}
+
+/// A title a search found that the server does not have, offered for request.
+package struct SeerrSearchHit: Hashable, Sendable {
+    package let tmdbID: Int
+    package let kind: SeerrMediaKind
+    package let title: String
+    package let year: Int?
+    package let posterPath: String?
+    package let overview: String?
+    package let availability: SeerrAvailability
+
+    package init(tmdbID: Int, kind: SeerrMediaKind, title: String, year: Int?, posterPath: String?, overview: String?, availability: SeerrAvailability) {
+        self.tmdbID = tmdbID
+        self.kind = kind
+        self.title = title
+        self.year = year
+        self.posterPath = posterPath
+        self.overview = overview
+        self.availability = availability
+    }
+
+    /// The hit as a Plex-shaped title, carrying its TMDB id, for the screens that request titles.
+    package var asMetadata: PlexMetadata {
+        PlexMetadata(
+            ratingKey: "seerr-\(kind.rawValue)-\(tmdbID)", key: nil, type: kind == .tv ? "show" : "movie", title: title,
+            grandparentTitle: nil, grandparentRatingKey: nil, grandparentThumb: nil, grandparentArt: nil, parentTitle: nil,
+            parentRatingKey: nil, parentThumb: nil, parentIndex: nil, index: nil, year: year, summary: overview, tagline: nil,
+            contentRating: nil, studio: nil, rating: nil, audienceRating: nil, duration: nil, viewOffset: nil, viewCount: nil,
+            lastViewedAt: nil, viewedAt: nil, accountID: nil, deviceID: nil, addedAt: nil, originallyAvailableAt: nil, thumb: nil,
+            art: nil, leafCount: nil, viewedLeafCount: nil, childCount: nil, librarySectionID: nil, librarySectionTitle: nil,
+            Genre: nil, Role: nil, Director: nil, Writer: nil, Media: nil, Marker: nil, Related: nil,
+            externalGuids: [PlexGuid(id: "tmdb://\(tmdbID)")]
+        )
+    }
+}
+
 package struct SeerrPage<Item: Decodable & Sendable>: Decodable, Sendable {
     package struct PageInfo: Decodable, Sendable {
         package let pages: Int?

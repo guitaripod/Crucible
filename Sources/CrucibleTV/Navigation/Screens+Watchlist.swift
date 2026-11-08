@@ -5,12 +5,20 @@ extension TVScreens {
     /// The viewer's Plex watchlist: a title the server has opens, one it does not says so.
     static func watchlist(_ env: TVAppEnvironment) -> UIViewController {
         let token = env.api.token
+        let book = SeerrStateBook()
         let grid = TVMediaGridViewController(
             title: WatchlistService.title,
             empty: .init(symbol: "bookmark", title: WatchlistService.emptyTitle, message: WatchlistService.emptyText),
-            card: titleCard,
+            card: { item in
+                var card = titleCard(item)
+                card.subtitle = book.cardSubtitle(for: item, fallback: card.subtitle)
+                return card
+            },
             load: { try await WatchlistService.items(token: token) }
         )
+        grid.onLoaded = { [weak grid] items in
+            book.load(items) { ids in grid?.reconfigure(ids) }
+        }
         grid.onSelect = { [weak grid] entry in
             guard let grid else { return }
             open(entry, env: env, from: grid)

@@ -28,17 +28,19 @@ package enum SearchItem: Hashable, Sendable {
     case movie(PlexMetadata)
     case show(PlexMetadata)
     case episode(PlexMetadata)
+    /// A title only Seerr found, to request.
+    case elsewhere(SeerrSearchHit)
 
     package var metadata: PlexMetadata? {
         switch self {
-        case .recent, .genre: return nil
+        case .recent, .genre, .elsewhere: return nil
         case .recentlyAdded(let m), .top(let m), .movie(let m), .show(let m), .episode(let m): return m
         }
     }
 
     package var isSearchResult: Bool {
         switch self {
-        case .top, .movie, .show, .episode: return true
+        case .top, .movie, .show, .episode, .elsewhere: return true
         case .recent, .genre, .recentlyAdded: return false
         }
     }
@@ -46,6 +48,8 @@ package enum SearchItem: Hashable, Sendable {
 
 package struct SearchResults: Sendable {
     package let ordered: [PlexMetadata]
+    /// What Seerr found that the server does not have, when Seerr is connected.
+    package var elsewhere: [SeerrSearchHit] = []
 
     package init(hubs: [PlexHub], excluding excluded: Set<Int> = []) {
         var seen = Set<String>()
@@ -65,8 +69,9 @@ package struct SearchResults: Sendable {
         package let movies: [PlexMetadata]
         package let shows: [PlexMetadata]
         package let episodes: [PlexMetadata]
+        package var elsewhere: [SeerrSearchHit] = []
 
-        package var isEmpty: Bool { top == nil }
+        package var isEmpty: Bool { top == nil && elsewhere.isEmpty }
 
         package static let empty = Parts(top: nil, movies: [], shows: [], episodes: [])
     }
@@ -77,7 +82,15 @@ package struct SearchResults: Sendable {
             top: visible.first,
             movies: visible.filter { $0.mediaType == "movie" },
             shows: visible.filter { $0.mediaType == "show" },
-            episodes: visible.filter { $0.mediaType == "episode" }
+            episodes: visible.filter { $0.mediaType == "episode" },
+            elsewhere: elsewhere.filter { hit in
+                switch scope {
+                case .all: return true
+                case .movies: return hit.kind == .movie
+                case .shows: return hit.kind == .tv
+                case .episodes: return false
+                }
+            }
         )
     }
 }

@@ -104,6 +104,17 @@ package enum SeerrCopy {
         return String(localized: "Ready \(formatter.localizedString(for: eta, relativeTo: now))", comment: "When a download should finish, e.g. Ready in 2 hours")
     }
 
+    /// Where a title stands, short and in sentence case for the line under its poster.
+    package static func cardLabel(_ availability: SeerrAvailability) -> String {
+        switch availability {
+        case .available: return seasonStatus(.available)
+        case .notRequested: return seasonStatus(.missing)
+        case .partiallyAvailable: return String(localized: "Partly on your server", comment: "Under a poster: some seasons of the show arrived")
+        case .pending: return String(localized: "Awaiting approval", comment: "Under a poster: requested, waiting for approval")
+        default: return label(availability)
+        }
+    }
+
     package static func symbol(_ availability: SeerrAvailability) -> String {
         switch availability {
         case .notRequested: return "plus.circle"

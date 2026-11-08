@@ -118,6 +118,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         case .episodes: layoutSection = episodesSection(environment)
         case .recentlyAdded: layoutSection = posterSection(environment: environment, forceGrid: false)
         case .movies, .shows: layoutSection = posterSection(environment: environment, forceGrid: scope != .all)
+        case .elsewhere: layoutSection = posterSection(environment: environment, forceGrid: false)
         }
         if section.title != nil {
             let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44))
@@ -216,6 +217,10 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             cell.contentConfiguration = PosterContentConfiguration.search(item)
             SearchCellEffects.installPressEffect(on: cell)
         }
+        let elsewhereReg = UICollectionView.CellRegistration<UICollectionViewCell, SeerrSearchHit> { cell, _, hit in
+            cell.contentConfiguration = PosterContentConfiguration.elsewhere(hit)
+            SearchCellEffects.installPressEffect(on: cell)
+        }
         let topReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { [weak self] cell, _, item in
             guard let self else { return }
             cell.contentConfiguration = self.topResultConfiguration(for: item)
@@ -245,6 +250,8 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
                 return cv.dequeueConfiguredReusableCell(using: topReg, for: indexPath, item: metadata)
             case .episode(let metadata):
                 return cv.dequeueConfiguredReusableCell(using: episodeReg, for: indexPath, item: metadata)
+            case .elsewhere(let hit):
+                return cv.dequeueConfiguredReusableCell(using: elsewhereReg, for: indexPath, item: hit)
             }
         }
 
@@ -408,8 +415,14 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             snapshot.appendSections([.episodes])
             snapshot.appendItems(parts.episodes.map { .episode($0) }, toSection: .episodes)
         }
+        if !parts.elsewhere.isEmpty {
+            snapshot.appendSections([.elsewhere])
+            snapshot.appendItems(parts.elsewhere.map { .elsewhere($0) }, toSection: .elsewhere)
+        }
+        let addsElsewhereOnly = dataSource.snapshot().sectionIdentifiers.filter { $0 != .elsewhere } == snapshot.sectionIdentifiers.filter { $0 != .elsewhere }
+            && !dataSource.snapshot().sectionIdentifiers.contains(.elsewhere) && snapshot.sectionIdentifiers.contains(.elsewhere)
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
-        dataSource.apply(snapshot, animatingDifferences: false)
+        dataSource.apply(snapshot, animatingDifferences: addsElsewhereOnly && view.window != nil)
         collectionView.collectionViewLayout.invalidateLayout()
         contentUnavailableConfiguration = nil
         if snapshot.itemIdentifiers.isEmpty {
@@ -465,6 +478,9 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         case .top(let metadata), .movie(let metadata), .show(let metadata), .episode(let metadata):
             session.rememberCurrentQuery()
             open(metadata)
+        case .elsewhere(let hit):
+            session.rememberCurrentQuery()
+            SeerrRequestViewController.present(for: hit.asMetadata, api: api, isOnServer: false, posterURL: Self.posterURL(hit), from: self)
         }
     }
 
@@ -556,5 +572,24 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
     private func quickPlay(_ item: PlexMetadata) {
         playerCoordinator = Theme.quickPlay(api: api, item: item, from: self)
+    }
+}
+
+extension SearchViewController {
+    /// The poster Seerr serves for a title it found, from the viewer's own Seerr.
+    static func posterURL(_ hit: SeerrSearchHit) -> URL? {
+        SeerrAccount.shared.connection.flatMap { SeerrImage.poster(hit.posterPath, base: $0.address) }
+    }
+}
+
+extension PosterContentConfiguration {
+    /// A title only Seerr found: its poster from Seerr, its year and where it stands.
+    @MainActor static func elsewhere(_ hit: SeerrSearchHit) -> PosterContentConfiguration {
+        var config = PosterContentConfiguration()
+        config.posterURL = SearchViewController.posterURL(hit)
+        config.title = hit.title
+        config.subtitle = [hit.year.map(String.init), hit.availability == .notRequested ? nil : SeerrCopy.cardLabel(hit.availability)].compactMap { $0 }.joined(separator: " · ")
+        config.placeholderIcon = hit.kind == .tv ? "tv" : "film"
+        return config
     }
 }

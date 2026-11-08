@@ -69,6 +69,9 @@ final class SeerrTests: XCTestCase {
         watchlist.tap()
         let missing = app.cells.containing(NSPredicate(format: "label CONTAINS %@", "Night Train to Nowhere")).firstMatch
         XCTAssertTrue(missing.waitForExistence(timeout: 30), "the watchlist lists no Night Train")
+        let labelled = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "Night Train to Nowhere", "Not on your server")).firstMatch
+        XCTAssertTrue(labelled.waitForExistence(timeout: 30), "the watchlist card does not say the server lacks the title")
+        IOSTest.capture("03a-watchlist-states", in: self)
         missing.tap()
         let submit = IOSTest.element(app, "seerr.request.submit")
         XCTAssertTrue(submit.waitForExistence(timeout: 30), "the Request sheet offers no Request")
@@ -98,6 +101,32 @@ final class SeerrTests: XCTestCase {
         XCTAssertTrue(approve.waitForExistence(timeout: 10), "a waiting request offers no Approve")
         approve.tap()
         XCTAssertTrue(IOSTest.wait(for: sams, "exists == false", timeout: 30), "approving left the request waiting")
+    }
+
+    func testSearchOffersTitlesTheServerLacks() {
+        let app = enterDemo()
+        connect(app)
+        IOSTest.tab(app, "Search").tap()
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 20), "the search field never appeared")
+        field.tap()
+        field.typeText("Glass")
+        let elsewhere = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Glass Orchard")).firstMatch
+        XCTAssertTrue(elsewhere.waitForExistence(timeout: 30), "search does not offer Glass Orchard from Seerr")
+        let local = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Glass Harbour")).firstMatch
+        XCTAssertTrue(local.exists, "the server's own match is missing next to Seerr's")
+        app.keyboards.buttons.matching(NSPredicate(format: "label == 'search' OR label == 'Search'")).firstMatch.tap()
+        IOSTest.settle(1)
+        for _ in 0..<4 where !elsewhere.isHittable {
+            app.collectionViews.firstMatch.swipeUp()
+            IOSTest.settle(1)
+        }
+        IOSTest.capture("09-search-elsewhere", in: self)
+        elsewhere.tap()
+        let submit = IOSTest.element(app, "seerr.request.submit")
+        XCTAssertTrue(submit.waitForExistence(timeout: 30), "a Seerr result opens no Request sheet")
+        XCTAssertTrue(IOSTest.element(app, "seerr.season.3").waitForExistence(timeout: 10), "the show's seasons are not listed")
+        IOSTest.capture("10-search-request-sheet", in: self)
     }
 
     func testAShowMissingASeasonOffersRequestMoreSeasons() {

@@ -20,6 +20,10 @@ extension DemoLibrary {
         if item.kind == .movie || item.kind == .show || full, !item.genres.isEmpty {
             out["Genre"] = item.genres.map { ["id": genreIDs[$0] ?? 0, "tag": $0] as DemoJSON }
         }
+        if item.kind == .movie || item.kind == .show {
+            if let critic = item.fields.double("rating") { out["ratingImage"] = critic >= 6 ? "rottentomatoes://image.rating.ripe" : "rottentomatoes://image.rating.rotten" }
+            if item.fields.double("audienceRating") != nil { out["audienceRatingImage"] = "imdb://image.rating" }
+        }
         guard full else { return out }
         if out["Guid"] == nil, item.kind != .season {
             var guids = [["id": Self.demoIMDb(key)] as DemoJSON]

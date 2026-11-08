@@ -17,6 +17,8 @@ struct TVCardItem: Hashable, Sendable {
     var placeholderSymbol = "film"
     var accessibilityHint: String?
     var highlight: String?
+    /// Artwork from outside the Plex server (a title only Seerr knows), loaded as is.
+    var artworkURL: URL?
 
     init(
         id: String,

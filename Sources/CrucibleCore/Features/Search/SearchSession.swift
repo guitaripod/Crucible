@@ -155,12 +155,22 @@ package final class SearchSession {
                 try? await Task.sleep(for: delay)
             }
             guard !Task.isCancelled, let self else { return }
+            let seerrTask: Task<[SeerrSearchHit], Never>? = SeerrAccount.shared.isConnected ? Task { await SeerrTitles.shared.search(query) } : nil
             do {
-                let found = try await loader.search(query: query)
+                var found = try await loader.search(query: query)
                 guard !Task.isCancelled else { return }
+                let settled = await settleSeerr(seerrTask)
+                guard !Task.isCancelled else { return }
+                found.elsewhere = settled ?? []
                 results = found
                 resultsQuery = query
                 renderResults()
+                if settled == nil, let seerrTask {
+                    let late = await seerrTask.value
+                    guard !Task.isCancelled, resultsQuery == query, !late.isEmpty else { return }
+                    results?.elsewhere = late
+                    renderResults()
+                }
             } catch {
                 guard !Task.isCancelled, (error as? URLError)?.code != .cancelled else { return }
                 MidgarLog.error("Search failed query=\(query): \(error.localizedDescription)", category: .networking)
@@ -170,6 +180,12 @@ package final class SearchSession {
                 emit(.failed(query: query, message: error.localizedDescription))
             }
         }
+    }
+
+    /// Seerr's results when they come in step with the server's, so both appear together; nil when they are still on the way.
+    private func settleSeerr(_ task: Task<[SeerrSearchHit], Never>?) async -> [SeerrSearchHit]? {
+        guard let task else { return [] }
+        return await Settle.value(of: task, within: .milliseconds(400))
     }
 
     private func restoreSearch() {

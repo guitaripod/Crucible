@@ -155,6 +155,10 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
             snapshot.appendSections([.episodes])
             snapshot.appendItems(parts.episodes.map { .episode($0) }, toSection: .episodes)
         }
+        if !parts.elsewhere.isEmpty {
+            snapshot.appendSections([.elsewhere])
+            snapshot.appendItems(parts.elsewhere.map { .elsewhere($0) }, toSection: .elsewhere)
+        }
         dataSource.applyReconfiguringExisting(snapshot)
         collectionView.collectionViewLayout.invalidateLayout()
         showContent()
@@ -231,6 +235,8 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
             return Self.topResultSection()
         case .movies, .shows:
             return isFiltered ? TVShelf.grid(columns: 6, header: true) : TVShelf.poster()
+        case .elsewhere:
+            return TVShelf.poster()
         case .episodes:
             return isFiltered
                 ? TVShelf.grid(columns: 4, itemHeight: TVCardStyle.landscape.itemSize.height, header: true)
@@ -278,6 +284,8 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
                 return collectionView.dequeueConfiguredReusableCell(using: posters, for: indexPath, item: card)
             case .top(let metadata):
                 return collectionView.dequeueConfiguredReusableCell(using: top, for: indexPath, item: metadata)
+            case .elsewhere(let hit):
+                return collectionView.dequeueConfiguredReusableCell(using: posters, for: indexPath, item: Self.card(for: hit))
             case .episode(let metadata):
                 let card = TVSearchCards.episode(
                     metadata, query: self?.resultsQuery, watchedOverride: self?.watchedOverrides[metadata.id]
@@ -294,6 +302,18 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
             collectionView.dequeueConfiguredReusableSupplementary(using: headers, for: indexPath)
         }
+    }
+
+    /// A title only Seerr found: its poster from the viewer's Seerr, its year and where it stands.
+    private static func card(for hit: SeerrSearchHit) -> TVCardItem {
+        var card = TVCardItem(
+            id: "seerr.\(hit.kind.rawValue).\(hit.tmdbID)",
+            title: hit.title,
+            subtitle: [hit.year.map(String.init), hit.availability == .notRequested ? nil : SeerrCopy.cardLabel(hit.availability)].compactMap { $0 }.joined(separator: " · "),
+            placeholderSymbol: hit.kind == .tv ? "tv" : "film"
+        )
+        card.artworkURL = SeerrAccount.shared.connection.flatMap { SeerrImage.poster(hit.posterPath, base: $0.address) }
+        return card
     }
 
     private func chip(for item: TVSearchItem) -> TVChipItem? {
@@ -384,6 +404,9 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         case .movie(let metadata), .show(let metadata), .episode(let metadata):
             session.rememberCurrentQuery()
             open(metadata)
+        case .elsewhere(let hit):
+            session.rememberCurrentQuery()
+            TVSeerrRequestViewController.open(hit.asMetadata, env: env, isOnServer: false, from: navigator)
         case .scope, .recent, .clearRecents, .top:
             break
         }

@@ -25,6 +25,7 @@ final class SeerrRequestViewController: UICollectionViewController {
     private let item: PlexMetadata
     private let api: APIClient
     private let isOnServer: Bool
+    private let posterURL: URL?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Row>!
     private var state: SeerrTitleState?
     private var failure: String?
@@ -34,10 +35,11 @@ final class SeerrRequestViewController: UICollectionViewController {
     private var poster: UIImage?
 
     /// - Parameter isOnServer: whether `item` comes from the server, which knows its ids, rather than from the watchlist.
-    init(item: PlexMetadata, api: APIClient, isOnServer: Bool) {
+    init(item: PlexMetadata, api: APIClient, isOnServer: Bool, posterURL: URL? = nil) {
         self.item = item
         self.api = api
         self.isOnServer = isOnServer
+        self.posterURL = posterURL
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -45,14 +47,14 @@ final class SeerrRequestViewController: UICollectionViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     /// Shows the sheet for `item` from `host`, or says how to set requests up when Seerr is not connected.
-    static func present(for item: PlexMetadata, api: APIClient, isOnServer: Bool, from host: UIViewController?) {
+    static func present(for item: PlexMetadata, api: APIClient, isOnServer: Bool, posterURL: URL? = nil, from host: UIViewController?) {
         guard let host else { return }
         guard SeerrAccount.shared.isConnected else {
             let message = isOnServer ? SeerrCopy.notConnectedMessage : WatchlistService.notInLibraryText + "\n\n" + SeerrCopy.notConnectedMessage
             presentSetUp(title: isOnServer ? SeerrCopy.notConnectedTitle : WatchlistService.notInLibraryTitle, message: message, api: api, from: host)
             return
         }
-        let sheet = SeerrRequestViewController(item: item, api: api, isOnServer: isOnServer)
+        let sheet = SeerrRequestViewController(item: item, api: api, isOnServer: isOnServer, posterURL: posterURL)
         let navigation = UINavigationController(rootViewController: sheet)
         navigation.modalPresentationStyle = .pageSheet
         navigation.sheetPresentationController?.detents = [.medium(), .large()]
@@ -116,6 +118,15 @@ final class SeerrRequestViewController: UICollectionViewController {
     }
 
     private func loadPoster() {
+        if let posterURL {
+            Task { [weak self] in
+                let image = await RemoteImageLoader.shared.image(at: posterURL)
+                guard let self else { return }
+                poster = image
+                applySnapshot()
+            }
+            return
+        }
         guard let thumb = item.thumb else { return }
         Task { [weak self] in
             let image = await ImageLoader.shared.loadImage(path: thumb, width: 300)

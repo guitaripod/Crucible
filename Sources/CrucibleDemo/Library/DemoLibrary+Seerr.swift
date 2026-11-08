@@ -163,6 +163,32 @@ extension DemoLibrary {
         return json
     }
 
+    /// Titles whose name holds `query`: the ones only the stand-in knows, and the catalogue's own, which Seerr marks as on the
+    /// server.
+    func seerrSearch(_ query: String) -> DemoResponse {
+        let needle = query.lowercased()
+        var results: [DemoJSON] = []
+        for remote in Self.remoteTitles where remote.title.lowercased().contains(needle) {
+            var result: DemoJSON = [
+                "id": remote.tmdbID, "mediaType": remote.kind, "posterPath": items[remote.posterOf]?.fields.string("thumb") ?? "",
+                "overview": "A title this server does not have yet.",
+            ]
+            result[remote.kind == "tv" ? "name" : "title"] = remote.title
+            result[remote.kind == "tv" ? "firstAirDate" : "releaseDate"] = "\(remote.year)-03-14"
+            let requests = seerrRequests.filter { $0.tmdbID == remote.tmdbID }
+            if !requests.isEmpty { result["mediaInfo"] = mediaInfo(tmdbID: remote.tmdbID, kind: remote.kind, requests: requests, ratingKey: nil, onServer: []) }
+            results.append(result)
+        }
+        for item in items.values where (item.kind == .movie || item.kind == .show) && item.title.lowercased().contains(needle) {
+            let kind = item.kind == .show ? "tv" : "movie"
+            let tmdb = Self.demoTMDB(item.ratingKey)
+            var result: DemoJSON = ["id": tmdb, "mediaType": kind, "posterPath": item.fields.string("thumb") ?? "", "mediaInfo": ["status": 5, "ratingKey": item.ratingKey] as DemoJSON]
+            result[kind == "tv" ? "name" : "title"] = item.title
+            results.append(result)
+        }
+        return .json(["page": 1, "totalPages": 1, "totalResults": results.count, "results": results] as DemoJSON)
+    }
+
     func seerrRequestList(filter: String, requestedBy: Int?) -> DemoResponse {
         var list = seerrRequests.sorted { $0.id > $1.id }
         if let requestedBy { list = list.filter { $0.userID == requestedBy } }

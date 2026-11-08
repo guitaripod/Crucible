@@ -131,6 +131,11 @@ package final class LibraryGridModel {
         loadPage(offset: 0)
     }
 
+    /// Where this library's ratings come from, as far as its loaded titles tell.
+    package var ratingSources: LibraryRatingSources.Sources {
+        LibraryRatingSources.shared.sources(for: sectionId)
+    }
+
     package func loadPage(offset: Int) {
         fetchPage(offset: offset, size: LibraryGridPager.pageSize, then: nil)
     }
@@ -146,6 +151,7 @@ package final class LibraryGridModel {
                 let container = try await api.requestContainer(endpoint)
                 guard !Task.isCancelled else { return }
                 pager.apply(items: container.Metadata ?? [], offset: offset, totalSize: container.totalSize ?? 0)
+                LibraryRatingSources.shared.note(container.Metadata ?? [], section: sectionId)
                 contentState = settledContentState
                 onUpdate?(.pageLoaded)
                 completion?()

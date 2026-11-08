@@ -226,7 +226,7 @@ final class TVLibraryViewController: TVScreenViewController {
             isGenreSelected: options.genre != nil,
             genres: model.genres.map { .init(key: $0.key, title: $0.title, isSelected: options.genre == $0.key) },
             sortTitle: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"),
-            sorts: section.kind.sortOptions.map { .init(key: $0.key, title: $0.title, isSelected: options.sort == $0.key) },
+            sorts: section.kind.sortOptions(sources: model.ratingSources).map { .init(key: $0.key, title: $0.title, isSelected: options.sort == $0.key) },
             facets: model.availableFacets.map { facet in
                 .init(
                     facet: facet,

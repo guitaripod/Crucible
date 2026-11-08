@@ -18,6 +18,27 @@ package enum LibraryGridKind: Sendable {
         }
     }
 
+    /// The sort options, with the rating sorts named after where the library's ratings come from and an audience-rating sort
+    /// when the library has one.
+    package func sortOptions(sources: LibraryRatingSources.Sources) -> [LibrarySortOption] {
+        var options: [LibrarySortOption] = []
+        for option in sortOptions {
+            guard option.key == "rating:desc" else {
+                options.append(option)
+                continue
+            }
+            if let critic = sources.critic {
+                options.append(LibrarySortOption(key: option.key, title: critic.sortTitle, source: critic))
+            } else {
+                options.append(option)
+            }
+            if let audience = sources.audience, audience != sources.critic {
+                options.append(LibrarySortOption(key: "audienceRating:desc", title: audience.sortTitle, source: audience))
+            }
+        }
+        return options
+    }
+
     package var sortOptions: [LibrarySortOption] {
         switch self {
         case .movie:
@@ -71,10 +92,13 @@ package enum LibraryGridKind: Sendable {
 package struct LibrarySortOption: Equatable, Sendable {
     package let key: String
     package let title: String
+    /// The rating source a rating sort follows, so the menu can show its mark.
+    package let source: RatingSource?
 
-    package init(key: String, title: String) {
+    package init(key: String, title: String, source: RatingSource? = nil) {
         self.key = key
         self.title = title
+        self.source = source
     }
 }
 
@@ -173,7 +197,9 @@ package struct LibraryGridOptions: Equatable, Sendable {
         return choices.first { $0.key == key }.map { facet.display($0.title) } ?? facet.title
     }
 
-    package func sortTitle(for kind: LibraryGridKind) -> String {
-        kind.sortOptions.first { $0.key == sort }?.title ?? String(localized: "Title", comment: "Sort option: by title")
+    package func sortTitle(for kind: LibraryGridKind, sources: LibraryRatingSources.Sources = .init()) -> String {
+        if let option = kind.sortOptions(sources: sources).first(where: { $0.key == sort }) { return option.title }
+        if sort == "audienceRating:desc" { return String(localized: "Audience Rating", comment: "Sort option: by audience rating") }
+        return String(localized: "Title", comment: "Sort option: by title")
     }
 }

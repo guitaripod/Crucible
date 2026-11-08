@@ -73,6 +73,8 @@ final class SeerrTests: TVTestCase {
             TVTest.settle(0.4)
         }
         XCTAssertTrue(missing.hasFocus, "focus never reached Night Train")
+        XCTAssertTrue(IOSLikeLabel.contains(app, "Not on your server"), "the watchlist card does not say the server lacks the title")
+        TVTest.capture("02a-watchlist-states", in: self)
         TVTest.remote.press(.select)
         let submit = YouNavigation.row(app, "seerr.request.submit")
         XCTAssertTrue(submit.waitForExistence(timeout: 30), "Request offers no Request button")

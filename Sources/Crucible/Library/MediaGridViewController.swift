@@ -183,6 +183,15 @@ final class MediaGridViewController: UICollectionViewController {
         }
     }
 
+    /// Redraws the cards of `ids` after something they show changed outside the grid.
+    func reconfigure(_ ids: [String]) {
+        var snapshot = dataSource.snapshot()
+        let present = ids.filter { snapshot.indexOfItem($0) != nil }
+        guard !present.isEmpty else { return }
+        snapshot.reconfigureItems(present)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
     private func item(at indexPath: IndexPath) -> PlexMetadata? {
         dataSource.itemIdentifier(for: indexPath).flatMap { itemsByID[$0] }
     }
