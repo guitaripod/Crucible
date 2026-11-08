@@ -90,6 +90,10 @@ final class TraktTests: XCTestCase {
         XCTAssertTrue(ratings.waitForExistence(timeout: 30), "the detail page has no ratings strip")
         let trakt = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Trakt, '")).firstMatch
         XCTAssertTrue(trakt.waitForExistence(timeout: 10), "the strip has no Trakt score")
+        for _ in 0..<3 where !trakt.isHittable {
+            app.collectionViews.firstMatch.swipeUp()
+            IOSTest.settle(1)
+        }
         IOSTest.capture("04-detail-ratings-strip", in: self)
 
         let more = app.navigationBars.buttons["More"]

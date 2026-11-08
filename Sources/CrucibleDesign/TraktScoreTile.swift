@@ -1,8 +1,8 @@
 import CrucibleCore
 import UIKit
 
-/// One source's score on a detail page: the source's name, the score the way that source writes it, and its votes or
-/// scale. Trakt's own tile carries an ember edge so the strip reads from it outwards.
+/// One source's score on a detail page: the source's official mark, the score the way that source writes it, and its votes
+/// or scale. Trakt's own tile carries an ember edge so the strip reads from it outwards.
 package struct TraktScoreTileConfiguration: UIContentConfiguration, Hashable {
     package var score: TraktScore
 
@@ -20,7 +20,7 @@ package struct TraktScoreTileConfiguration: UIContentConfiguration, Hashable {
 
     /// The tile's size on this platform; the strip lays tiles out at this size.
     package static var size: CGSize {
-        AppPlatform.isTV ? CGSize(width: 240, height: 184) : CGSize(width: 108, height: 84)
+        AppPlatform.isTV ? CGSize(width: 240, height: 184) : CGSize(width: 108, height: 90)
     }
 }
 
@@ -29,7 +29,9 @@ package final class TraktScoreTileView: UIView, UIContentView {
         didSet { apply() }
     }
 
-    private let sourceLabel = UILabel()
+    private let logoView = UIImageView()
+    private let logoRow = UIView()
+    private var logoWidth: NSLayoutConstraint?
     private let valueLabel = UILabel()
     private let detailLabel = UILabel()
 
@@ -48,23 +50,19 @@ package final class TraktScoreTileView: UIView, UIContentView {
         layer.cornerRadius = Theme.Radius.m
         layer.cornerCurve = .continuous
         layer.borderWidth = AppPlatform.isTV ? 2 : 1
-        sourceLabel.font = Theme.Font.badge
-        sourceLabel.textColor = Theme.Color.labelTertiary
-        sourceLabel.adjustsFontForContentSizeCategory = true
-        sourceLabel.adjustsFontSizeToFitWidth = true
-        sourceLabel.minimumScaleFactor = 0.7
-        valueLabel.font = Theme.Font.title2
+        buildLogoRow()
+        valueLabel.font = AppPlatform.isTV ? Theme.Font.title2 : Theme.Font.scaled(.title2, 22, .bold, maximum: 26)
         valueLabel.textColor = Theme.Color.label
         valueLabel.adjustsFontForContentSizeCategory = true
         valueLabel.adjustsFontSizeToFitWidth = true
         valueLabel.minimumScaleFactor = 0.6
-        detailLabel.font = Theme.Font.caption2Regular
+        detailLabel.font = AppPlatform.isTV ? Theme.Font.caption2Regular : Theme.Font.scaled(.caption2, 11, .regular, maximum: 13)
         detailLabel.textColor = Theme.Color.labelTertiary
         detailLabel.adjustsFontForContentSizeCategory = true
         detailLabel.adjustsFontSizeToFitWidth = true
         detailLabel.minimumScaleFactor = 0.7
 
-        let stack = UIStackView(arrangedSubviews: [sourceLabel, valueLabel, detailLabel])
+        let stack = UIStackView(arrangedSubviews: [logoRow, valueLabel, detailLabel])
         stack.axis = .vertical
         stack.distribution = .equalSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -82,10 +80,32 @@ package final class TraktScoreTileView: UIView, UIContentView {
         }
     }
 
+    /// The mark sits at the tile's leading edge at one height for every source; a wide wordmark shrinks to the tile's width.
+    private func buildLogoRow() {
+        logoView.contentMode = .scaleAspectFit
+        logoView.translatesAutoresizingMaskIntoConstraints = false
+        logoRow.addSubview(logoView)
+        let width = logoView.widthAnchor.constraint(equalToConstant: Self.logoHeight)
+        width.priority = UILayoutPriority(999)
+        logoWidth = width
+        NSLayoutConstraint.activate([
+            logoRow.heightAnchor.constraint(equalToConstant: Self.logoHeight),
+            logoView.leadingAnchor.constraint(equalTo: logoRow.leadingAnchor),
+            logoView.topAnchor.constraint(equalTo: logoRow.topAnchor),
+            logoView.bottomAnchor.constraint(equalTo: logoRow.bottomAnchor),
+            logoView.trailingAnchor.constraint(lessThanOrEqualTo: logoRow.trailingAnchor),
+            width,
+        ])
+    }
+
+    private static var logoHeight: CGFloat { AppPlatform.isTV ? 36 : 20 }
+
     private func apply() {
         guard let configuration = configuration as? TraktScoreTileConfiguration else { return }
         let score = configuration.score
-        sourceLabel.text = TraktCopy.sourceName(score.source).uppercased()
+        let mark = BrandMark(score: score).image
+        logoView.image = mark
+        if let size = mark?.size, size.height > 0 { logoWidth?.constant = Self.logoHeight * size.width / size.height }
         valueLabel.text = TraktCopy.value(score)
         detailLabel.text = TraktCopy.detail(score)
         let highlighted = score.source == .trakt

@@ -39,13 +39,26 @@ enum SettingsRows {
                     menu: menu(for: setting, changed: changed)
                 )
             }
-        case .destination:
-            cell.contentConfiguration = IconRowContentConfiguration(symbol: entry.symbol, title: entry.title, subtitle: subtitle, value: status)
+        case .destination(let destination):
+            var content = IconRowContentConfiguration(symbol: entry.symbol, brand: brand(of: destination), title: entry.title, subtitle: subtitle, value: status)
+            content.isActionable = true
+            cell.contentConfiguration = content
             cell.accessories = [.disclosureIndicator()]
         case .action:
-            cell.contentConfiguration = IconRowContentConfiguration(symbol: entry.symbol, title: entry.title, subtitle: subtitle, value: status)
+            var content = IconRowContentConfiguration(symbol: entry.symbol, title: entry.title, subtitle: subtitle, value: status)
+            content.isActionable = true
+            cell.contentConfiguration = content
         case .privacyStatement:
             cell.contentConfiguration = IconRowContentConfiguration(symbol: entry.symbol, title: entry.title, subtitle: entry.explanation)
+        }
+    }
+
+    /// The official mark of the service a row opens, for the integrations.
+    static func brand(of destination: SettingsDestination) -> BrandMark? {
+        switch destination {
+        case .trakt: return .trakt
+        case .seerr: return .seerr
+        default: return nil
         }
     }
 

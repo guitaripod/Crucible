@@ -127,15 +127,16 @@ final class SettingsCategoryViewController: UICollectionViewController {
         statusTask?.cancel()
         let entries = sections.flatMap(\.entries)
         statusTask = Task { [weak self] in
-            var found = [String: String]()
             for entry in entries {
-                if let status = await SettingsNavigator.status(of: entry.item) { found[entry.id] = status }
+                let status = await SettingsNavigator.status(of: entry.item)
+                guard let self, !Task.isCancelled else { return }
+                guard statuses[entry.id] != status else { continue }
+                statuses[entry.id] = status
+                var snapshot = dataSource.snapshot()
+                guard snapshot.indexOfItem(.entry(entry.id)) != nil else { continue }
+                snapshot.reconfigureItems([.entry(entry.id)])
+                await dataSource.apply(snapshot, animatingDifferences: false)
             }
-            guard let self, !Task.isCancelled, found != statuses else { return }
-            statuses = found
-            var snapshot = dataSource.snapshot()
-            snapshot.reconfigureItems(found.keys.map { Item.entry($0) }.filter { snapshot.indexOfItem($0) != nil })
-            await dataSource.apply(snapshot, animatingDifferences: false)
         }
     }
 

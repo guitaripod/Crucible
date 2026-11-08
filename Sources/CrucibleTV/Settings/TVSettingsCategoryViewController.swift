@@ -67,6 +67,15 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         heading.setBody(entry?.explanation ?? category.explanation(on: .tv))
     }
 
+    /// The official mark of the service an integration row opens.
+    private static func brand(of entry: SettingsEntry) -> BrandMark? {
+        switch entry.item {
+        case .destination(.trakt): return .trakt
+        case .destination(.seerr): return .seerr
+        default: return nil
+        }
+    }
+
     private func refreshRows() {
         var rows = entries.map { entry in
             TVRowItem(
@@ -74,6 +83,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
                 title: entry.title,
                 value: value(of: entry),
                 symbol: entry.symbol,
+                brand: Self.brand(of: entry),
                 accessory: accessory(of: entry),
                 isStatic: entry.item == .privacyStatement
             )

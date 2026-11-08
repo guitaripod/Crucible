@@ -11,6 +11,8 @@ struct IconRowContentConfiguration: UIContentConfiguration {
     }
 
     var symbol: String
+    /// A service's official mark in place of the symbol, filling the icon well.
+    var brand: BrandMark?
     var title: String
     var subtitle: String?
     var badge: String?
@@ -18,6 +20,8 @@ struct IconRowContentConfiguration: UIContentConfiguration {
     var menu: UIMenu?
     var toggle: Toggle?
     var exposesToAccessibility = true
+    /// The row opens a screen or runs an action, so VoiceOver calls it a button.
+    var isActionable = false
 
     func makeContentView() -> UIView & UIContentView {
         IconRowContentView(configuration: self)
@@ -34,6 +38,7 @@ final class IconRowContentView: UIView, UIContentView {
     }
 
     private let wellView = UIView()
+    private let brandView = UIImageView()
     private let wellImage = UIImageView()
     private let titleLabel = UILabel()
     private let badgeLabel = UILabel()
@@ -67,18 +72,26 @@ final class IconRowContentView: UIView, UIContentView {
         wellImage.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
         wellImage.translatesAutoresizingMaskIntoConstraints = false
         wellView.addSubview(wellImage)
+        brandView.contentMode = .scaleAspectFit
+        brandView.translatesAutoresizingMaskIntoConstraints = false
+        wellView.addSubview(brandView)
         wellView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             wellView.widthAnchor.constraint(equalToConstant: 32),
             wellView.heightAnchor.constraint(equalToConstant: 32),
             wellImage.centerXAnchor.constraint(equalTo: wellView.centerXAnchor),
             wellImage.centerYAnchor.constraint(equalTo: wellView.centerYAnchor),
+            brandView.topAnchor.constraint(equalTo: wellView.topAnchor),
+            brandView.bottomAnchor.constraint(equalTo: wellView.bottomAnchor),
+            brandView.leadingAnchor.constraint(equalTo: wellView.leadingAnchor),
+            brandView.trailingAnchor.constraint(equalTo: wellView.trailingAnchor),
         ])
 
         titleLabel.font = Theme.Font.callout
         titleLabel.textColor = Theme.Color.label
         titleLabel.numberOfLines = 0
         titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
         badgeLabel.font = Theme.Font.scaled(.caption2, 10, .heavy, maximum: 14)
         badgeLabel.textColor = Theme.Color.onAccent
@@ -109,19 +122,22 @@ final class IconRowContentView: UIView, UIContentView {
         subtitleLabel.textColor = Theme.Color.labelSecondary
         subtitleLabel.numberOfLines = 0
         subtitleLabel.adjustsFontForContentSizeCategory = true
+        subtitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
         let textStack = UIStackView(arrangedSubviews: [titleRow, subtitleLabel])
         textStack.axis = .vertical
         textStack.spacing = 2
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textStack.setContentCompressionResistancePriority(UILayoutPriority(751), for: .horizontal)
 
         valueLabel.font = Theme.Font.subheadline
         valueLabel.textColor = Theme.Color.labelSecondary
         valueLabel.textAlignment = .right
-        valueLabel.numberOfLines = 0
+        valueLabel.numberOfLines = 1
+        valueLabel.lineBreakMode = .byTruncatingMiddle
         valueLabel.adjustsFontForContentSizeCategory = true
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
-        valueLabel.setContentCompressionResistancePriority(UILayoutPriority(751), for: .horizontal)
+        valueLabel.setContentCompressionResistancePriority(UILayoutPriority(749), for: .horizontal)
 
         menuChevron.image = UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
         menuChevron.tintColor = Theme.Color.labelTertiary
@@ -175,7 +191,10 @@ final class IconRowContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? IconRowContentConfiguration else { return }
-        wellImage.image = UIImage(systemName: config.symbol)
+        wellImage.image = config.brand == nil ? UIImage(systemName: config.symbol) : nil
+        brandView.image = config.brand?.image
+        brandView.isHidden = config.brand == nil
+        wellView.backgroundColor = config.brand == nil ? Theme.Color.surfaceRaised : .clear
         titleLabel.text = config.title
         subtitleLabel.text = config.subtitle
         subtitleLabel.isHidden = config.subtitle == nil
@@ -204,6 +223,7 @@ final class IconRowContentView: UIView, UIContentView {
         isAccessibilityElement = config.menu == nil && config.toggle == nil && config.exposesToAccessibility
         accessibilityElements = config.toggle == nil ? nil : [toggleSwitch]
         accessibilityLabel = spoken
+        accessibilityTraits = config.isActionable && config.menu == nil && config.toggle == nil ? .button : []
     }
 }
 

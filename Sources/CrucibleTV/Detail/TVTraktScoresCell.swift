@@ -12,6 +12,7 @@ final class TVTraktScoresCell: UICollectionViewCell {
         stack.axis = .horizontal
         stack.spacing = Theme.Space.s
         stack.alignment = .center
+        stack.distribution = .fillEqually
         stack.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -36,8 +37,11 @@ final class TVTraktScoresCell: UICollectionViewCell {
             let tile = TraktScoreTileView(configuration: TraktScoreTileConfiguration(score: score))
             tile.isAccessibilityElement = false
             tile.translatesAutoresizingMaskIntoConstraints = false
+            let preferred = tile.widthAnchor.constraint(equalToConstant: TraktScoreTileConfiguration.size.width)
+            preferred.priority = UILayoutPriority(999)
             NSLayoutConstraint.activate([
-                tile.widthAnchor.constraint(equalToConstant: TraktScoreTileConfiguration.size.width),
+                preferred,
+                tile.widthAnchor.constraint(lessThanOrEqualToConstant: TraktScoreTileConfiguration.size.width),
                 tile.heightAnchor.constraint(equalToConstant: TraktScoreTileConfiguration.size.height),
             ])
             stack.addArrangedSubview(tile)

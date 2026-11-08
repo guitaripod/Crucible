@@ -42,6 +42,8 @@ final class SeerrTests: TVTestCase {
     private func connect(_ app: XCUIApplication) {
         openYou(app)
         YouNavigation.moveFocus(app, to: "you.seerr", limit: 30)
+        TVTest.settle(1)
+        TVTest.capture("00-you-integrations", in: self)
         TVTest.remote.press(.select)
         TVTest.settle()
         let connect = YouNavigation.row(app, "seerr.connect")

@@ -15,6 +15,8 @@ struct TVRowItem: Hashable, Sendable {
     var subtitle: String?
     var value: String?
     var symbol: String?
+    /// A service's official mark in place of the symbol, filling the icon well.
+    var brand: BrandMark?
     var accessory: Accessory
     var isDestructive: Bool
     var isEnabled: Bool
@@ -26,6 +28,7 @@ struct TVRowItem: Hashable, Sendable {
         subtitle: String? = nil,
         value: String? = nil,
         symbol: String? = nil,
+        brand: BrandMark? = nil,
         accessory: Accessory = .none,
         isDestructive: Bool = false,
         isEnabled: Bool = true,
@@ -36,6 +39,7 @@ struct TVRowItem: Hashable, Sendable {
         self.subtitle = subtitle
         self.value = value
         self.symbol = symbol
+        self.brand = brand
         self.accessory = accessory
         self.isDestructive = isDestructive
         self.isEnabled = isEnabled
@@ -66,6 +70,7 @@ final class TVRowContentView: UIView, UIContentView {
     private let plate = UIView()
     private let iconWell = UIView()
     private let iconView = UIImageView()
+    private let brandView = UIImageView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let valueLabel = UILabel()
@@ -93,9 +98,13 @@ final class TVRowContentView: UIView, UIContentView {
         iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: TVMetrics.Symbol.row, weight: .semibold)
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconWell.addSubview(iconView)
+        brandView.contentMode = .scaleAspectFit
+        brandView.translatesAutoresizingMaskIntoConstraints = false
+        iconWell.addSubview(brandView)
 
         titleLabel.font = TVFont.rowTitle
         subtitleLabel.font = TVFont.cardSubtitle
+        subtitleLabel.numberOfLines = 2
         let text = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
         text.axis = .vertical
         text.spacing = 2
@@ -132,6 +141,10 @@ final class TVRowContentView: UIView, UIContentView {
             iconWell.heightAnchor.constraint(equalToConstant: TVMetrics.Row.iconWell),
             iconView.centerXAnchor.constraint(equalTo: iconWell.centerXAnchor),
             iconView.centerYAnchor.constraint(equalTo: iconWell.centerYAnchor),
+            brandView.topAnchor.constraint(equalTo: iconWell.topAnchor),
+            brandView.bottomAnchor.constraint(equalTo: iconWell.bottomAnchor),
+            brandView.leadingAnchor.constraint(equalTo: iconWell.leadingAnchor),
+            brandView.trailingAnchor.constraint(equalTo: iconWell.trailingAnchor),
         ])
     }
 
@@ -152,8 +165,11 @@ final class TVRowContentView: UIView, UIContentView {
         valueLabel.textColor = secondary
         valueLabel.isHidden = (item.value ?? "").isEmpty
 
-        iconWell.isHidden = item.symbol == nil
-        iconWell.backgroundColor = focused ? TVColor.onFocusFill.withAlphaComponent(0.08) : Theme.Color.accentTint
+        iconWell.isHidden = item.symbol == nil && item.brand == nil
+        iconWell.backgroundColor = item.brand != nil ? .clear : (focused ? TVColor.onFocusFill.withAlphaComponent(0.08) : Theme.Color.accentTint)
+        brandView.image = item.brand?.image
+        brandView.isHidden = item.brand == nil
+        iconView.isHidden = item.brand != nil
         iconView.image = item.symbol.flatMap { UIImage(systemName: $0) }
         iconView.tintColor = item.isDestructive ? Theme.Color.destructive : Theme.Color.accentText
 

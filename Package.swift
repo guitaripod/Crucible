@@ -61,7 +61,7 @@ if coreOnly {
     targets += [
         .target(name: "CrucibleActivity"),
         .target(name: "CrucibleMedia", dependencies: ["CrucibleCore", midgarCore]),
-        .target(name: "CrucibleDesign", dependencies: ["CrucibleCore"]),
+        .target(name: "CrucibleDesign", dependencies: ["CrucibleCore"], resources: [.process("Resources")]),
         .target(name: "CrucibleStatsUI", dependencies: ["CrucibleStats", "CrucibleDesign"]),
         .target(
             name: "Crucible",

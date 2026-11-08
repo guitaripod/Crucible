@@ -44,6 +44,8 @@ final class SeerrTests: XCTestCase {
         category.tap()
         let seerr = IOSTest.element(app, "settings.dest.seerr")
         XCTAssertTrue(seerr.waitForExistence(timeout: 20), "Integrations has no Seerr row")
+        IOSTest.settle(1)
+        IOSTest.capture("00-integrations", in: self)
         seerr.tap()
         let found = IOSTest.element(app, "seerr.found")
         XCTAssertTrue(found.waitForExistence(timeout: 30), "Crucible did not find the demo's Seerr")
