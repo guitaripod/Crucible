@@ -7,6 +7,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
     case fullStatistics
     case yearInReviewPoster
     case topShelf
+    case manageRequests
 
     package var title: String {
         switch self {
@@ -14,6 +15,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .fullStatistics: return String(localized: "Full Statistics")
         case .yearInReviewPoster: return String(localized: "Year in Review poster")
         case .topShelf: return String(localized: "Top Shelf")
+        case .manageRequests: return String(localized: "Manage Requests", comment: "Pro feature: approve and decline Seerr requests")
         }
     }
 
@@ -23,6 +25,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .fullStatistics: return String(localized: "Every range, the library filter, patterns, binges and taste, built from your own Plex history.")
         case .yearInReviewPoster: return String(localized: "Preview and share your year as a Story or Square poster.")
         case .topShelf: return String(localized: "Continue Watching and Up Next on the Apple TV Home screen.")
+        case .manageRequests: return String(localized: "Approve, decline and retry everyone's Seerr requests from the couch.", comment: "Pro feature summary for managing Seerr requests")
         }
     }
 
@@ -32,16 +35,19 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .fullStatistics: return "chart.bar.xaxis"
         case .yearInReviewPoster: return "sparkles.rectangle.stack"
         case .topShelf: return "tv"
+        case .manageRequests: return "tray.full"
         }
     }
 
     /// The features worth showing on the current platform: downloads exist only on the iPhone and Top Shelf only on Apple TV.
-    package static func listed(isTV: Bool = AppPlatform.isTV) -> [ProFeature] {
+    /// Managing requests shows only to someone who approves requests on a connected Seerr, or who reached for it.
+    package static func listed(isTV: Bool = AppPlatform.isTV, includingRequests: Bool = false) -> [ProFeature] {
         allCases.filter { feature in
             switch feature {
             case .unlimitedDownloads: return !isTV
             case .topShelf: return isTV
             case .fullStatistics, .yearInReviewPoster: return true
+            case .manageRequests: return includingRequests
             }
         }
     }

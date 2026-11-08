@@ -78,7 +78,7 @@ package protocol IntegrationPlugin: AnyObject {
 /// The plugins this build carries, and the seams the app calls them through.
 @MainActor
 package enum Integrations {
-    package static var plugins: [IntegrationPlugin] = [TraktPlugin.shared]
+    package static var plugins: [IntegrationPlugin] = [TraktPlugin.shared, SeerrPlugin.shared]
 
     /// One watcher per active plugin that follows `subject`.
     package static func playbackWatchers(for subject: PlaybackSubject) -> [PlaybackWatching] {
@@ -103,5 +103,16 @@ package enum Integrations {
 
     package static func signedOut() async {
         for plugin in plugins { await plugin.signedOut() }
+    }
+
+    /// The line under Integrations on the first Settings screen: the one integration that is on with its detail, the names
+    /// of several, or Off.
+    package static var summary: String {
+        let details = [TraktAccount.shared.isConnected || TraktAccount.shared.status == .needsReconnect ? TraktAccount.shared.summary : nil, SeerrAccount.shared.summary].compactMap { $0 }
+        switch details.count {
+        case 0: return TraktAccount.shared.summary
+        case 1: return details[0]
+        default: return [TraktCopy.name, SeerrCopy.name].joined(separator: ", ")
+        }
     }
 }

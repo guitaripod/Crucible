@@ -21,7 +21,11 @@ extension DemoLibrary {
             out["Genre"] = item.genres.map { ["id": genreIDs[$0] ?? 0, "tag": $0] as DemoJSON }
         }
         guard full else { return out }
-        if out["Guid"] == nil, item.kind != .season { out["Guid"] = [["id": Self.demoIMDb(key)] as DemoJSON] }
+        if out["Guid"] == nil, item.kind != .season {
+            var guids = [["id": Self.demoIMDb(key)] as DemoJSON]
+            if item.kind == .movie || item.kind == .show { guids.append(["id": "tmdb://\(Self.demoTMDB(key))"]) }
+            out["Guid"] = guids
+        }
         if !item.directors.isEmpty {
             out["Director"] = item.directors.enumerated().map { ["id": 7000 + $0.offset, "tag": $0.element] as DemoJSON }
         }

@@ -34,6 +34,9 @@ actor DemoLibrary {
     var nextEntryID = 1000
     /// How often the stand-in Trakt was asked whether its device code was approved; the second ask approves it.
     var traktPolls = 0
+    /// The stand-in Seerr's requests and the id its next one gets.
+    var seerrRequests: [DemoSeerrRequest] = []
+    var nextSeerrRequestID = 20
     var nextPlaylistKey = 9200
     var persisted: DemoPersistedState
     let store: DemoStateStore
@@ -47,6 +50,7 @@ actor DemoLibrary {
         self.store = store
         self.now = Int(now.timeIntervalSince1970)
         watchlistGuids = viewer.isAdmin ? DemoLibrary.defaultWatchlist : []
+        seerrRequests = DemoLibrary.initialSeerrRequests(now: now)
         machineIdentifier = root.string("machineIdentifier") ?? ""
         clipMilliseconds = (root.int("clipSeconds") ?? 30) * 1000
         persisted = store.load()

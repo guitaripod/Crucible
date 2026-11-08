@@ -12,6 +12,7 @@ struct DemoRouter: Sendable {
     func handle(_ request: DemoRequest) async -> DemoResponse {
         let parts = request.path.split(separator: "/").map(String.init)
         if Self.isTrakt(request) { return await traktResponse(parts, request) }
+        if parts.first == "seerr" { return await seerrResponse(Array(parts.dropFirst()), request) }
         switch parts.first {
         case nil, "identity":
             return await library.identityResponse(serverName: serverName)
@@ -219,6 +220,7 @@ struct DemoRouter: Sendable {
         if parts.count == 3, request.flag("includePreferences") {
             return await library.metadataWithPreferences(parts[2])
         }
+        if parts.count == 3, let entry = await library.catalogEntry(parts[2]) { return entry }
         switch parts.count {
         case 3: return await library.metadataResponse(parts[2], sub: nil)
         case 4: return await library.metadataResponse(parts[2], sub: parts[3])
@@ -245,7 +247,7 @@ struct DemoRouter: Sendable {
         return await imageResponse(path: path.isEmpty ? url : path)
     }
 
-    private func imageResponse(path: String) async -> DemoResponse {
+    func imageResponse(path: String) async -> DemoResponse {
         guard let name = await library.imageFileName(forPath: path) else { return .notFound() }
         var response = DemoFiles.respond(assets.image(name), contentType: "image/jpeg", request: nil)
         response.headers["Cache-Control"] = Self.imageCacheControl

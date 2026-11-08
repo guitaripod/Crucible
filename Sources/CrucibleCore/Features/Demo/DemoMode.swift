@@ -142,6 +142,7 @@ package final class DemoMode {
     private func configureSession(for endpoint: DemoEndpoint, resuming: Bool) {
         PlexTVHost.setOverride(endpoint.plexTVURL)
         TraktConfig.setOverride(endpoint.plexTVURL)
+        SeerrConfig.setStandIn(endpoint.serverURL.appendingPathComponent("seerr"))
         if !resuming { ServerBootstrap.clear() }
         ServerBootstrap.saveToken(endpoint.token)
         ServerBootstrap.saveServer(uri: endpoint.serverURL, name: endpoint.serverName, machineIdentifier: endpoint.machineIdentifier)
@@ -154,6 +155,7 @@ package final class DemoMode {
         defaults.removeObject(forKey: Self.freePreviewKey)
         PlexTVHost.setOverride(nil)
         TraktConfig.setOverride(nil)
+        SeerrConfig.setStandIn(nil)
         access.useDemoProWeek(false)
         access.setDemoUnlocked(false)
     }

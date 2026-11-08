@@ -25,6 +25,7 @@ package enum PlexEndpoint: Sendable {
     case search(query: String)
     case serverSessions
     case watchlist(start: Int = 0, size: Int = 100)
+    case catalogMetadata(key: String)
     case addToWatchlist(guid: String)
     case removeFromWatchlist(guid: String)
     case searchSubtitles(ratingKey: String, language: String, hearingImpaired: Bool, forced: Bool)
@@ -78,7 +79,7 @@ package enum PlexEndpoint: Sendable {
 
     var isPlexTV: Bool {
         switch self {
-        case .requestPin, .checkPin, .resources, .watchlist, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account: return true
+        case .requestPin, .checkPin, .resources, .watchlist, .catalogMetadata, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account: return true
         default: return false
         }
     }
@@ -88,7 +89,7 @@ package enum PlexEndpoint: Sendable {
     /// The plex.tv host an account-level endpoint lives on.
     var plexTVHost: URL {
         switch self {
-        case .watchlist: return PlexTVHost.discover
+        case .watchlist, .catalogMetadata: return PlexTVHost.discover
         case .addToWatchlist, .removeFromWatchlist: return PlexTVHost.metadata
         case .account: return PlexTVHost.account
         default: return Self.plexTVBaseURL
@@ -173,6 +174,8 @@ package enum PlexEndpoint: Sendable {
             return "/status/sessions"
         case .watchlist:
             return "/library/sections/watchlist/all"
+        case .catalogMetadata(let key):
+            return "/library/metadata/\(key)"
         case .addToWatchlist:
             return "/actions/addToWatchlist"
         case .removeFromWatchlist:
