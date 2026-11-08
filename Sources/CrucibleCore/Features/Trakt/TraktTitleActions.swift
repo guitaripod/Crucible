@@ -55,18 +55,48 @@ package enum TraktCheckin {
         case notMatched
     }
 
+    /// The title the viewer is checked in to on this device and when Trakt turns it into a play, so its page offers Cancel
+    /// Check-In instead of Check In until then.
+    package struct Active: Codable, Equatable, Sendable {
+        package let ratingKey: String
+        package let until: Date
+    }
+
+    private static var activeKey: String { "trakt.checkin.\(TraktTokenStore.currentOwner)" }
+
+    package static func active(now: Date = Date(), defaults: UserDefaults = .standard) -> Active? {
+        guard let data = defaults.data(forKey: activeKey), let active = try? JSONDecoder().decode(Active.self, from: data), active.until > now else { return nil }
+        return active
+    }
+
+    package static func isCheckedIn(to ratingKey: String, now: Date = Date()) -> Bool {
+        active(now: now)?.ratingKey == ratingKey
+    }
+
+    private static func remember(_ active: Active?, defaults: UserDefaults = .standard) {
+        guard let active, let data = try? JSONEncoder().encode(active) else { return defaults.removeObject(forKey: activeKey) }
+        defaults.set(data, forKey: activeKey)
+    }
+
+    /// Checks in to `ratingKey`, which Trakt shows as watching for `durationSecs` (two hours when unknown) and then as watched.
     @MainActor
-    package static func checkIn(ratingKey: String, api: APIClient) async throws -> Outcome {
+    package static func checkIn(ratingKey: String, durationSecs: Double? = nil, api: APIClient) async throws -> Outcome {
         guard let server = ServerBootstrap.savedMachineIdentifier else { throw TraktError.signedOut }
         switch await TraktResolver.shared.resolve(ratingKey: ratingKey, server: server, api: api) {
-        case .unmatched: return .notMatched
+        case .unmatched:
+            MidgarLog.notice("Trakt check-in to \(ratingKey) skipped: not matched", category: .trakt)
+            return .notMatched
         case .unknown: throw TraktError.offline
         case .found(let target):
             guard target.kind != .show else { return .notMatched }
             do {
                 try await TraktClient.shared.sendVoid(.checkin(kind: target.kind, ids: target.ids.traktOnly))
+                MidgarLog.notice("Trakt check-in to \(ratingKey) accepted", category: .trakt)
+                let runtime = (durationSecs ?? 0) > 0 ? durationSecs! : 7_200
+                remember(Active(ratingKey: ratingKey, until: Date().addingTimeInterval(runtime)))
                 return .checkedIn
             } catch TraktError.conflict(let data) {
+                MidgarLog.notice("Trakt check-in to \(ratingKey) refused: already checked in", category: .trakt)
                 return .alreadyWatching(until: expiry(in: data))
             }
         }
@@ -75,6 +105,8 @@ package enum TraktCheckin {
     /// Cancels whatever the viewer is checked in to, so another check-in can take its place.
     package static func cancel() async throws {
         try await TraktClient.shared.sendVoid(.cancelCheckin)
+        remember(nil)
+        MidgarLog.notice("Trakt check-in cancelled", category: .trakt)
     }
 
     static func expiry(in data: Data) -> Date? {

@@ -11,6 +11,7 @@ import UIKit
 final class TVMediaDetailViewController: TVDetailViewController {
     private let ratingKey: String
     private var model: MovieDetailModel?
+    private var scores: [TraktScore] = []
     private var audioID: Int?
     private var subtitleID: Int?
     /// Whether the viewer picked audio or subtitles here; until then the screen shows the tracks playback would start with.
@@ -201,9 +202,22 @@ final class TVMediaDetailViewController: TVDetailViewController {
         return ShowTrackMemory.languages(forShow: loaded.showKey, server: ServerBootstrap.savedMachineIdentifier)
     }
 
+    /// Fetches the ratings strip in the background; the page never waits for Trakt.
+    private func loadScores(for ratingKey: String) {
+        Task { [weak self] in
+            guard let self else { return }
+            let found = await TraktScores.shared.scores(ratingKey: ratingKey, api: env.api)
+            guard found != scores else { return }
+            scores = found
+            rebuild()
+        }
+    }
+
     private func adopt(_ loaded: MovieDetailModel) {
+        let isFirst = model == nil
         model = loaded
         rating.loaded()
+        if isFirst { loadScores(for: loaded.item.id) }
         let tracks = loaded.reconciledTracks(
             audioId: audioID,
             subtitleId: subtitleID,
@@ -242,7 +256,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
             extras: model.extras.map { TVCardItem(id: "extra.\($0.id)", artworkPath: $0.thumb, title: $0.title, subtitle: DetailExtras.subtitle($0), placeholderSymbol: "film") },
             cast: TVDetailMapping.people(model.castAndCrew),
             related: TVDetailMapping.related(related),
-            facts: facts
+            facts: facts,
+            scores: scores
         )
     }
 
@@ -284,6 +299,15 @@ final class TVMediaDetailViewController: TVDetailViewController {
                 presentRating(title: item.title, rating: current) { self.rating.save($0) }
             }
         ))
+        if TraktAccount.shared.isConnected, TraktAccount.shared.choices.sendsChanges {
+            let checkedIn = TraktCheckin.isCheckedIn(to: item.id)
+            actions.append(TVDetailAction(
+                kind: .checkIn,
+                title: checkedIn ? TraktCopy.cancelCheckIn : TraktCopy.checkIn,
+                symbol: checkedIn ? "mappin.slash" : "mappin.and.ellipse",
+                handler: { [weak self] in self?.checkIn(ratingKey: item.id, durationSecs: item.durationSecs) { self?.rebuild() } }
+            ))
+        }
         if item.isPlaylistable {
             actions.append(TVDetailAction(
                 kind: .playlist,

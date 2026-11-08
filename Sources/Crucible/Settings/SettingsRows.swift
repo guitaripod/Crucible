@@ -98,6 +98,8 @@ final class SettingsNavigator {
             host.navigationController?.pushViewController(ServerDetailViewController(api: api), animated: true)
         case .crucibleServer:
             host.navigationController?.pushViewController(CompanionViewController(), animated: true)
+        case .trakt:
+            host.navigationController?.pushViewController(TraktSettingsViewController(api: api), animated: true)
         case .manageStorage:
             (host.tabBarController as? TabBarController)?.select(.downloads)
         case .notificationPermission:
@@ -192,6 +194,8 @@ final class SettingsNavigator {
             return LibrariesSettings.summary
         case .destination(.crucibleServer):
             return CompanionStore.current()?.name ?? CompanionCopy.notSetUp
+        case .destination(.trakt):
+            return TraktAccount.shared.summary
         case .action(.clearImageCache):
             return ImageCacheMeter.formatted(await ImageCacheMeter.totalBytes())
         case .destination(.sourceCode):

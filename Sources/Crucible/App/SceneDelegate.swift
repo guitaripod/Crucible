@@ -10,6 +10,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private var pendingInvite: CompanionInvite?
     private var pendingDevice: CompanionDeviceInvite?
     private var launchTask: Task<Void, Never>?
+    private var traktObserver: (any NSObjectProtocol)?
 
     /// The window that connects to the server on behalf of every window. The others hold their launch screen and take its result, so
     /// several windows never validate the route or fetch the library at the same time.
@@ -31,6 +32,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.backgroundColor = CrystalGlyphView.canvas
         self.window = window
         window.makeKeyAndVisible()
+        traktObserver = TraktToast.observeWatched(in: window)
 
         pendingActivity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
         pendingInvite = connectionOptions.urlContexts.lazy.compactMap { CompanionInvite(url: $0.url) }.first

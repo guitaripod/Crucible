@@ -25,3 +25,35 @@ enum TVDetailNavigation {
     }
     #endif
 }
+
+extension TVDetailViewController {
+    /// Checks in to `ratingKey` on Trakt, offering to replace a check-in still running.
+    func checkIn(ratingKey: String, durationSecs: Double?, replacing: Bool = false, done: @escaping @MainActor () -> Void = {}) {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                if TraktCheckin.isCheckedIn(to: ratingKey), !replacing {
+                    try await TraktCheckin.cancel()
+                    presentAlert(title: TraktCopy.checkInCancelled)
+                    done()
+                    return
+                }
+                if replacing { try await TraktCheckin.cancel() }
+                switch try await TraktCheckin.checkIn(ratingKey: ratingKey, durationSecs: durationSecs, api: env.api) {
+                case .checkedIn:
+                    presentAlert(title: TraktCopy.checkedIn)
+                    done()
+                case .notMatched:
+                    presentAlert(title: TraktCopy.checkIn, message: TraktCopy.checkInNotMatched)
+                case .alreadyWatching(let until):
+                    let time = until.map { $0.formatted(date: .omitted, time: .shortened) }
+                    presentConfirmation(title: TraktCopy.checkIn, message: TraktCopy.alreadyCheckedIn(until: time), confirmTitle: TraktCopy.replaceCheckIn) { [weak self] in
+                        self?.checkIn(ratingKey: ratingKey, durationSecs: durationSecs, replacing: true, done: done)
+                    }
+                }
+            } catch {
+                presentAlert(title: TraktCopy.checkIn, message: error.localizedDescription)
+            }
+        }
+    }
+}

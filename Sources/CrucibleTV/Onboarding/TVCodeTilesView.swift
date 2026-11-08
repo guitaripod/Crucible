@@ -6,15 +6,19 @@ import UIKit
 final class TVCodeTilesView: UIStackView {
     static let tileSize = CGSize(width: 168, height: 208)
     static let tileSpacing: CGFloat = 20
-    private static let codeLength = 4
+    /// Smaller tiles for a code too long for the four large ones, such as Trakt's eight characters.
+    static let compactTileSize = CGSize(width: 96, height: 132)
 
     private let tiles: [Tile]
+    private let hint: String
 
-    override init(frame: CGRect) {
-        tiles = (0..<Self.codeLength).map { _ in Tile() }
-        super.init(frame: frame)
+    init(length: Int = 4, hint: String = String(localized: "Enter this code at plex.tv/link")) {
+        let compact = length > 4
+        tiles = (0..<length).map { _ in Tile(size: compact ? Self.compactTileSize : Self.tileSize, fontSize: compact ? 76 : 124) }
+        self.hint = hint
+        super.init(frame: .zero)
         axis = .horizontal
-        spacing = Self.tileSpacing
+        spacing = compact ? 12 : Self.tileSpacing
         distribution = .fillEqually
         tiles.forEach(addArrangedSubview)
         isAccessibilityElement = true
@@ -48,7 +52,7 @@ final class TVCodeTilesView: UIStackView {
         }
         if let code {
             accessibilityValue = code.uppercased().map(String.init).joined(separator: " ")
-            accessibilityHint = String(localized: "Enter this code at plex.tv/link")
+            accessibilityHint = hint
         } else {
             accessibilityValue = String(localized: "Not ready yet")
             accessibilityHint = nil
@@ -59,7 +63,7 @@ final class TVCodeTilesView: UIStackView {
         private let effectView = Glass.effectView(fallback: .prominent)
         private let label = UILabel()
 
-        init() {
+        init(size: CGSize, fontSize: CGFloat) {
             super.init(frame: .zero)
             effectView.translatesAutoresizingMaskIntoConstraints = false
             effectView.layer.cornerRadius = Theme.Radius.hero
@@ -67,7 +71,7 @@ final class TVCodeTilesView: UIStackView {
             effectView.clipsToBounds = true
             addSubview(effectView)
 
-            label.font = TVFont.mono(size: 124, weight: .bold)
+            label.font = TVFont.mono(size: fontSize, weight: .bold)
             label.textColor = Theme.Color.label
             label.textAlignment = .center
             label.adjustsFontSizeToFitWidth = true
@@ -76,8 +80,8 @@ final class TVCodeTilesView: UIStackView {
             effectView.contentView.addSubview(label)
 
             NSLayoutConstraint.activate([
-                widthAnchor.constraint(equalToConstant: TVCodeTilesView.tileSize.width),
-                heightAnchor.constraint(equalToConstant: TVCodeTilesView.tileSize.height),
+                widthAnchor.constraint(equalToConstant: size.width),
+                heightAnchor.constraint(equalToConstant: size.height),
                 effectView.topAnchor.constraint(equalTo: topAnchor),
                 effectView.bottomAnchor.constraint(equalTo: bottomAnchor),
                 effectView.leadingAnchor.constraint(equalTo: leadingAnchor),

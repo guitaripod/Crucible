@@ -20,6 +20,7 @@ struct TVDetailAction {
         case essentialsOffer
         case essentials
         case previouslyOn
+        case checkIn
     }
 
     enum Appearance: Sendable {
@@ -70,6 +71,8 @@ struct TVDetailContent {
     var cast: [TVDetailPerson] = []
     var related: [TVCardItem] = []
     var facts: [DetailFact] = []
+    /// What Trakt and the sources it collects score the title, shown under the synopsis.
+    var scores: [TraktScore] = []
 }
 
 /// Maps Plex models onto the card family and the hero block.

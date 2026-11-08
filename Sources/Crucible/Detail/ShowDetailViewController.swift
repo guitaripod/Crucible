@@ -5,7 +5,7 @@ import MidgarCore
 
 final class ShowDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, offer, overview, essentials, seasonBar, episodes, related
+        case hero, actions, offer, overview, scores, essentials, seasonBar, episodes, related
     }
 
     enum Item: Hashable {
@@ -13,6 +13,7 @@ final class ShowDetailViewController: UICollectionViewController {
         case actions
         case offer
         case overview
+        case score(TraktScore)
         case essentials
         case seasonBar
         case episode(PlexMetadata)
@@ -23,6 +24,8 @@ final class ShowDetailViewController: UICollectionViewController {
     private let showRatingKey: String
     private let initialSeasonKey: String?
     private var loadTask: Task<Void, Never>?
+    /// What Trakt and the sources it collects score this show, once Trakt is connected and the show matched.
+    private var scores: [TraktScore] = []
     private var seasonTask: Task<Void, Never>?
     private var model: ShowDetailModel?
     private lazy var moreItem: UIBarButtonItem = {
@@ -222,6 +225,7 @@ final class ShowDetailViewController: UICollectionViewController {
             case .actions: return DetailLayout.fullWidth(top: 4, environment: environment)
             case .offer: return DetailLayout.fullWidth(top: 16, environment: environment, maxWidth: Self.episodeListWidth)
             case .overview: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .scores: return DetailLayout.scoresRail(environment)
             case .essentials: return DetailLayout.fullWidth(top: 20, environment: environment, maxWidth: Self.episodeListWidth)
             case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4, environment: environment, maxWidth: Self.episodeListWidth)
             case .episodes: return self.episodesSection(environment)
@@ -303,12 +307,16 @@ final class ShowDetailViewController: UICollectionViewController {
         let relatedReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
             cell.contentConfiguration = DetailLayout.posterConfiguration(for: related)
         }
+        let scoreReg = UICollectionView.CellRegistration<UICollectionViewCell, TraktScore> { cell, _, score in
+            cell.contentConfiguration = TraktScoreTileConfiguration(score: score)
+        }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
             case .hero: return cv.dequeueConfiguredReusableCell(using: heroReg, for: indexPath, item: item)
             case .actions: return cv.dequeueConfiguredReusableCell(using: actionsReg, for: indexPath, item: item)
             case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
+            case .score(let score): return cv.dequeueConfiguredReusableCell(using: scoreReg, for: indexPath, item: score)
             case .seasonBar: return cv.dequeueConfiguredReusableCell(using: seasonBarReg, for: indexPath, item: item)
             case .essentials: return cv.dequeueConfiguredReusableCell(using: essentialsReg, for: indexPath, item: item)
             case .offer: return cv.dequeueConfiguredReusableCell(using: offerReg, for: indexPath, item: item)
@@ -317,9 +325,10 @@ final class ShowDetailViewController: UICollectionViewController {
             }
         }
 
-        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
+        let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             var config = SectionHeaderConfiguration()
-            config.title = String(localized: "More Like This")
+            let section = self?.dataSource?.sectionIdentifier(for: indexPath.section)
+            config.title = section == .scores ? TraktCopy.ratingsTitle : String(localized: "More Like This")
             cell.contentConfiguration = config
         }
         dataSource.supplementaryViewProvider = { cv, _, indexPath in
@@ -736,6 +745,7 @@ final class ShowDetailViewController: UICollectionViewController {
                 rating.loaded()
                 contentUnavailableConfiguration = nil
                 await applySnapshot()
+                loadScores()
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Show load failed ratingKey=\(showRatingKey): \(error.localizedDescription)", category: .networking)
@@ -794,6 +804,10 @@ final class ShowDetailViewController: UICollectionViewController {
             snapshot.appendSections([.overview])
             snapshot.appendItems([.overview], toSection: .overview)
         }
+        if !scores.isEmpty {
+            snapshot.appendSections([.scores])
+            snapshot.appendItems(scores.map(Item.score), toSection: .scores)
+        }
         if !model.episodes.isEmpty || model.essentials != nil {
             snapshot.appendSections([.essentials])
             snapshot.appendItems([.essentials], toSection: .essentials)
@@ -818,7 +832,7 @@ final class ShowDetailViewController: UICollectionViewController {
         let dynamic = refreshed.itemIdentifiers.filter { item in
             switch item {
             case .hero, .actions, .offer, .overview, .essentials, .seasonBar, .episode: return true
-            case .related: return false
+            case .related, .score: return false
             }
         }
         if !dynamic.isEmpty {
@@ -866,8 +880,21 @@ final class ShowDetailViewController: UICollectionViewController {
             navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
         case .related(let related):
             openRelated(related)
+        case .score(let score):
+            if let link = score.link { UIApplication.shared.open(link) }
         default:
             break
+        }
+    }
+
+    /// Fetches the ratings strip in the background; the page never waits for Trakt.
+    private func loadScores() {
+        Task { [weak self] in
+            guard let self else { return }
+            let found = await TraktScores.shared.scores(ratingKey: showRatingKey, api: api)
+            guard found != scores else { return }
+            scores = found
+            await applySnapshot()
         }
     }
 
@@ -883,6 +910,7 @@ final class ShowDetailViewController: UICollectionViewController {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .episode: return true
         case .related: return !collectionView.isEditing
+        case .score(let score): return score.link != nil && !collectionView.isEditing
         default: return false
         }
     }

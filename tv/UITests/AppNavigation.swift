@@ -82,8 +82,8 @@ enum AppNavigation {
         for bundle in ["com.apple.PineBoard", "com.apple.springboard"] {
             let system = XCUIApplication(bundleIdentifier: bundle)
             for query in [system.buttons, system.descendants(matching: .button)] {
-                let button = query["Open"]
-                if button.exists, button.hasFocus { return button }
+                let button = query.matching(NSPredicate(format: "label == 'Open' AND hasFocus == true")).firstMatch
+                if button.exists { return button }
             }
         }
         return nil

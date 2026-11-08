@@ -10,6 +10,7 @@ final class TVShowDetailViewController: TVDetailViewController {
     private let showKey: String
     private let initialSeasonKey: String?
     private var model: ShowDetailModel?
+    private var scores: [TraktScore] = []
     private lazy var seasonSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
@@ -48,9 +49,11 @@ final class TVShowDetailViewController: TVDetailViewController {
             }
             seasonSlot.cancel()
             loadingSeasonKey = nil
+            let isFirst = model == nil
             model = loaded
             rating.loaded()
             rebuild()
+            if isFirst { loadScores() }
         } catch {
             guard !Task.isCancelled else { return }
             MidgarLog.error("Show load failed ratingKey=\(showKey): \(error.localizedDescription)", category: .networking)
@@ -170,8 +173,20 @@ final class TVShowDetailViewController: TVDetailViewController {
             showsEpisodes: model.selectedSeason != nil,
             episodesState: episodesState,
             cast: TVDetailMapping.people(MovieDetailModel(item: model.show).castAndCrew),
-            related: relatedCards
+            related: relatedCards,
+            scores: scores
         ))
+    }
+
+    /// Fetches the ratings strip in the background; the page never waits for Trakt.
+    private func loadScores() {
+        Task { [weak self] in
+            guard let self else { return }
+            let found = await TraktScores.shared.scores(ratingKey: showKey, api: env.api)
+            guard found != scores else { return }
+            scores = found
+            rebuild()
+        }
     }
 
     /// Asks the paired Crucible Server for a Previously On, saying it is being written meanwhile.

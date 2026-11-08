@@ -24,6 +24,7 @@ final class TVYouViewController: TVSettingsScaffold {
         static let libraries = "you.libraries"
         static let server = "you.server"
         static let crucibleServer = "you.crucibleServer"
+        static let trakt = "you.trakt"
         static let diagnostics = "you.diagnostics"
         static let about = "you.about"
         static let signOut = "you.signOut"
@@ -105,6 +106,7 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.libraries: push(TVScreens.settings(env, page: .libraries))
         case RowID.server: push(TVScreens.settings(env, page: .server))
         case RowID.crucibleServer: push(TVCompanionViewController())
+        case RowID.trakt: push(TVTraktSettingsViewController())
         case RowID.diagnostics: push(TVScreens.settings(env, page: .diagnostics))
         case RowID.about: push(TVScreens.settings(env, page: .about))
         case RowID.signOut: confirmSignOut()
@@ -211,6 +213,7 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             TVRowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
             TVRowItem(id: RowID.crucibleServer, title: CompanionCopy.title, value: CompanionStore.current()?.name ?? CompanionCopy.notSetUp, symbol: SettingsCatalog.symbol(.crucibleServer), accessory: .chevron),
+            TVRowItem(id: RowID.trakt, title: TraktCopy.name, subtitle: TraktCopy.tagline, value: TraktAccount.shared.summary, symbol: SettingsCatalog.symbol(.trakt), accessory: .chevron),
             TVRowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .tv), value: SettingsCatalog.summary(of: .privacy, on: .tv), symbol: SettingsCategory.privacy.symbol, accessory: .chevron),
             TVRowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
             TVRowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),

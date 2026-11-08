@@ -6,7 +6,7 @@ import MidgarCore
 
 final class MediaDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, progress, links, tracks, overview, genres, extras, cast, details, related
+        case hero, actions, progress, links, tracks, overview, genres, scores, extras, cast, details, related
     }
 
     typealias Fact = DetailFact
@@ -19,6 +19,7 @@ final class MediaDetailViewController: UICollectionViewController {
         case tracks
         case overview
         case genres
+        case score(TraktScore)
         case extra(PlexMetadata)
         case castMember(PlexRole)
         case fact(Fact)
@@ -32,6 +33,8 @@ final class MediaDetailViewController: UICollectionViewController {
     private let seasonRatingKey: String?
     private var loadTask: Task<Void, Never>?
     private var model: MovieDetailModel?
+    /// What Trakt and the sources it collects score this title, once Trakt is connected and the title matched.
+    private var scores: [TraktScore] = []
     private var selectedSubtitleId: Int?
     private var selectedAudioTrackId: Int?
     /// Whether the viewer picked audio or subtitles here; until then the screen shows the tracks playback would start with.
@@ -180,6 +183,7 @@ final class MediaDetailViewController: UICollectionViewController {
             case .tracks: return DetailLayout.fullWidth(top: 16, environment: environment)
             case .overview: return DetailLayout.fullWidth(top: 20, environment: environment)
             case .genres: return DetailLayout.fullWidth(top: 16, environment: environment)
+            case .scores: return DetailLayout.scoresRail(environment)
             case .extras: return DetailLayout.landscapeRail(environment)
             case .cast: return DetailLayout.castRail(environment)
             case .details: return DetailLayout.factsGrid(environment)
@@ -234,6 +238,9 @@ final class MediaDetailViewController: UICollectionViewController {
                 placeholderIcon: "film"
             )
         }
+        let scoreReg = UICollectionView.CellRegistration<UICollectionViewCell, TraktScore> { cell, _, score in
+            cell.contentConfiguration = TraktScoreTileConfiguration(score: score)
+        }
         let castReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
             cell.contentConfiguration = CastContentConfiguration(thumbPath: role.thumb, name: role.tag ?? "", role: role.role)
         }
@@ -253,6 +260,7 @@ final class MediaDetailViewController: UICollectionViewController {
             case .tracks: return cv.dequeueConfiguredReusableCell(using: tracksReg, for: indexPath, item: item)
             case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
             case .genres: return cv.dequeueConfiguredReusableCell(using: genresReg, for: indexPath, item: item)
+            case .score(let score): return cv.dequeueConfiguredReusableCell(using: scoreReg, for: indexPath, item: score)
             case .extra(let extra): return cv.dequeueConfiguredReusableCell(using: extraReg, for: indexPath, item: extra)
             case .castMember(let role): return cv.dequeueConfiguredReusableCell(using: castReg, for: indexPath, item: role)
             case .fact(let fact): return cv.dequeueConfiguredReusableCell(using: factReg, for: indexPath, item: fact)
@@ -264,6 +272,7 @@ final class MediaDetailViewController: UICollectionViewController {
             guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else { return }
             var config = SectionHeaderConfiguration()
             switch section {
+            case .scores: config.title = TraktCopy.ratingsTitle
             case .extras: config.title = DetailExtras.title
             case .cast: config.title = String(localized: "Cast & Crew")
             case .details: config.title = String(localized: "Details")
@@ -425,6 +434,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 loadedFromServer = true
                 rating.loaded()
                 await display(loaded)
+                loadScores()
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Detail load failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
@@ -463,6 +473,17 @@ final class MediaDetailViewController: UICollectionViewController {
         )
         contentUnavailableConfiguration = nil
         await applySnapshot()
+    }
+
+    /// Fetches the ratings strip in the background; the page never waits for Trakt.
+    private func loadScores() {
+        Task { [weak self] in
+            guard let self else { return }
+            let found = await TraktScores.shared.scores(ratingKey: ratingKey, api: api)
+            guard found != scores else { return }
+            scores = found
+            await applySnapshot()
+        }
     }
 
     private func showLoadError(message: String) {
@@ -512,6 +533,11 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems([.genres], toSection: .genres)
         }
 
+        if !scores.isEmpty {
+            snapshot.appendSections([.scores])
+            snapshot.appendItems(scores.map(Item.score), toSection: .scores)
+        }
+
         let extraItems = model.extras.map { Item.extra($0) }
         if !extraItems.isEmpty {
             snapshot.appendSections([.extras])
@@ -551,6 +577,7 @@ final class MediaDetailViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .related, .extra: return true
+        case .score(let score): return score.link != nil
         case .castMember(let role): return PersonFilmography.canOpen(role)
         default: return false
         }
@@ -569,6 +596,8 @@ final class MediaDetailViewController: UICollectionViewController {
             navigationController?.pushViewController(PersonScreens.filmography(api: api, person: role), animated: true)
         case .extra(let extra):
             playExtra(extra)
+        case .score(let score):
+            if let link = score.link { UIApplication.shared.open(link) }
         default:
             break
         }
@@ -698,6 +727,9 @@ final class MediaDetailViewController: UICollectionViewController {
             Task { @MainActor in
                 var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [item], api: api, host: self)]
                 if let watchlist = await WatchlistScreen.toggleAction(for: item, api: api, host: self) { elements.append(watchlist) }
+                if let checkIn = TraktPhoneActions.checkInAction(ratingKey: ratingKey, mediaType: mediaType, durationSecs: item.durationSecs, api: api, host: self) {
+                    elements.append(checkIn)
+                }
                 if let manage = ManageMenus.itemMenu(for: item, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
                     elements.append(manage)
                 }

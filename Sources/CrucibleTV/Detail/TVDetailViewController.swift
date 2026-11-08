@@ -18,6 +18,7 @@ class TVDetailViewController: TVScreenViewController {
     enum Section: Int, Hashable, Sendable {
         case header
         case synopsis
+        case scores
         case actions
         case seasons
         case episodes
@@ -30,6 +31,7 @@ class TVDetailViewController: TVScreenViewController {
     enum Item: Hashable, Sendable {
         case header
         case synopsis
+        case scores
         case action(TVDetailAction.Kind)
         case season(String)
         case episode(String)
@@ -197,6 +199,10 @@ class TVDetailViewController: TVScreenViewController {
             snapshot.appendSections([.synopsis])
             snapshot.appendItems([.synopsis], toSection: .synopsis)
         }
+        if !content.scores.isEmpty {
+            snapshot.appendSections([.scores])
+            snapshot.appendItems([.scores], toSection: .scores)
+        }
         snapshot.appendSections([.actions])
         snapshot.appendItems(content.actions.map { .action($0.kind) }, toSection: .actions)
         if !content.seasons.isEmpty {
@@ -256,6 +262,7 @@ class TVDetailViewController: TVScreenViewController {
             switch section {
             case .header: return TVShelf.hero(height: Self.heroHeight)
             case .synopsis: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
+            case .scores: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
             case .actions: return Self.actionRow()
             case .seasons: return TVShelf.chips()
             case .episodes, .extras: return TVShelf.episode()
@@ -319,6 +326,7 @@ class TVDetailViewController: TVScreenViewController {
         let person = TVDetailPersonCell.registration()
         let related = TVPosterCell.registration()
         let information = TVDetailInformationCell.registration { [weak self] in self?.content?.facts ?? [] }
+        let scores = TVTraktScoresCell.registration { [weak self] in self?.content?.scores ?? [] }
         let placeholder = UICollectionView.CellRegistration<TVDetailEpisodePlaceholderCell, Int> { cell, _, index in
             cell.configure(index: index)
         }
@@ -358,6 +366,8 @@ class TVDetailViewController: TVScreenViewController {
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: related, for: indexPath, item: card), id)
             case .information:
                 return collectionView.dequeueConfiguredReusableCell(using: information, for: indexPath, item: 0)
+            case .scores:
+                return collectionView.dequeueConfiguredReusableCell(using: scores, for: indexPath, item: 0)
             case .emptyEpisodes:
                 return collectionView.dequeueConfiguredReusableCell(using: empty, for: indexPath, item: 0)
             case .episodePlaceholder(let index):

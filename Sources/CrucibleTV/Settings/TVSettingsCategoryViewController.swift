@@ -99,6 +99,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         case .destination(.libraries): return LibrariesSettings.summary
         case .destination(.homeRows): return String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows")
         case .destination(.about): return AppInfo.versionSummary
+        case .destination(.trakt): return TraktAccount.shared.summary
         default: return nil
         }
     }
@@ -118,6 +119,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         case .libraries: screen = TVScreens.settings(env, page: .libraries)
         case .serverConnection: screen = TVScreens.settings(env, page: .server)
         case .crucibleServer: screen = TVCompanionViewController()
+        case .trakt: screen = TVTraktSettingsViewController()
         case .diagnostics: screen = TVScreens.settings(env, page: .diagnostics)
         case .about: screen = TVScreens.settings(env, page: .about)
         case .manageStorage, .notificationPermission, .sourceCode: return

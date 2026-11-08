@@ -12,6 +12,7 @@ package enum SettingsDestination: String, Hashable, Sendable {
     case libraries
     case serverConnection
     case crucibleServer
+    case trakt
     case manageStorage
     case notificationPermission
     case diagnostics
@@ -68,6 +69,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
     case home
     case downloads
     case notifications
+    case integrations
     case appearance
     case connection
     case privacy
@@ -80,6 +82,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
         case .home: return String(localized: "Home & Libraries", comment: "Settings category for Home rows and library choices")
         case .downloads: return String(localized: "Downloads")
         case .notifications: return String(localized: "Notifications", comment: "Settings category for notifications")
+        case .integrations: return TraktCopy.integrationsTitle
         case .appearance: return String(localized: "Appearance")
         case .connection: return String(localized: "Server & Connection")
         case .privacy: return String(localized: "Privacy & Data", comment: "Settings category for privacy and stored data")
@@ -94,6 +97,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
         case .home: return "house"
         case .downloads: return "arrow.down.circle"
         case .notifications: return "bell.badge"
+        case .integrations: return "puzzlepiece.extension"
         case .appearance: return "circle.lefthalf.filled"
         case .connection: return "server.rack"
         case .privacy: return "hand.raised"
@@ -110,6 +114,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
         case .home: return String(localized: "Which rows Home shows, in what order, and which libraries count.")
         case .downloads: return String(localized: "Quality, cellular data and storage for offline viewing.")
         case .notifications: return String(localized: "Rating reminders, new episodes, watchlist arrivals and your weekly recap.")
+        case .integrations: return TraktCopy.integrationsExplanation
         case .appearance: return String(localized: "Light or dark, and poster size.")
         case .connection: return String(localized: "How Crucible reaches your Plex server.")
         case .privacy: return String(localized: "What is kept on this device, and how to clear it.")
@@ -138,7 +143,7 @@ package struct SettingsEntry: Hashable, Identifiable, Sendable {
         case .preference(let setting): return setting.title
         case .destination(let destination): return SettingsCatalog.title(destination)
         case .action(let action): return SettingsCatalog.title(action)
-        case .privacyStatement: return String(localized: "Nothing Leaves This Device", comment: "Privacy statement row title")
+        case .privacyStatement: return TraktTokenStore.hasToken ? String(localized: "No Tracking", comment: "Privacy statement row title while Trakt is connected") : String(localized: "Nothing Leaves This Device", comment: "Privacy statement row title")
         }
     }
 
@@ -221,6 +226,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.notifyWeeklyRecap), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyYearInReview), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyDownloads), category: .notifications, section: news, platforms: phone),
+            Spec(item: .destination(.trakt), category: .integrations, section: nil, platforms: both),
             Spec(item: .preference(.appearance), category: .appearance, section: nil, platforms: phone),
             Spec(item: .preference(.libraryGrid), category: .appearance, section: nil, platforms: phone),
             Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: both),
@@ -288,6 +294,8 @@ package enum SettingsCatalog {
         case .notifications:
             let on = NotificationKind.allCases.filter { Preferences.notifies($0) }.count
             return String(localized: "\(on) of \(NotificationKind.allCases.count) on", comment: "Summary of notification switches, e.g. 5 of 6 on")
+        case .integrations:
+            return TraktAccount.shared.summary
         case .appearance:
             return PreferenceSetting.appearance.valueLabel
         case .connection:
@@ -340,6 +348,7 @@ package enum SettingsCatalog {
         case .libraries: return String(localized: "Libraries")
         case .serverConnection: return String(localized: "Server & Connection")
         case .crucibleServer: return CompanionCopy.title
+        case .trakt: return TraktCopy.name
         case .manageStorage: return String(localized: "Manage Storage")
         case .notificationPermission: return String(localized: "Allow Notifications", comment: "Settings row showing whether iOS lets Crucible notify")
         case .diagnostics: return String(localized: "Diagnostics")
@@ -354,6 +363,7 @@ package enum SettingsCatalog {
         case .libraries: return "rectangle.stack"
         case .serverConnection: return "server.rack"
         case .crucibleServer: return "sparkles.tv"
+        case .trakt: return "checkmark.rectangle.stack"
         case .manageStorage: return "internaldrive"
         case .notificationPermission: return "bell"
         case .diagnostics: return "doc.text.magnifyingglass"
@@ -368,6 +378,7 @@ package enum SettingsCatalog {
         case .libraries: return LibrariesSettings.homeFooterText
         case .serverConnection: return String(localized: "Which server Crucible uses, every route to it and how fast each one answers.")
         case .crucibleServer: return CompanionCopy.pitch
+        case .trakt: return TraktCopy.tagline
         case .manageStorage: return String(localized: "What is downloaded and how much space it takes.")
         case .notificationPermission: return String(localized: "Crucible can only notify you when iOS allows it.")
         case .diagnostics: return String(localized: "The app's log and what the Top Shelf extension last saw.")
@@ -403,7 +414,11 @@ package enum SettingsCatalog {
         }
     }
 
-    static let privacyStatement = String(localized: "Crucible has no analytics, no ads and no tracking. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device.", comment: "Privacy statement in Settings")
+    static var privacyStatement: String {
+        TraktTokenStore.hasToken ? TraktCopy.privacyStatementConnected : privacyStatementLocal
+    }
+
+    static let privacyStatementLocal = String(localized: "Crucible has no analytics, no ads and no tracking. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device.", comment: "Privacy statement in Settings")
 
     /// Words that find a setting besides its title, comma separated so translators can add their own synonyms.
     static func keywords(for item: SettingsItem) -> String {
@@ -441,6 +456,7 @@ package enum SettingsCatalog {
             case .libraries: return String(localized: "libraries, movies, shows, hide, statistics", comment: "Search keywords for Libraries, comma separated")
             case .serverConnection: return String(localized: "server, switch, address, IP, Tailscale, relay", comment: "Search keywords for Server & Connection, comma separated")
             case .crucibleServer: return String(localized: "companion, previously on, recap, pair, model, AI", comment: "Search keywords for Crucible Server, comma separated")
+            case .trakt: return String(localized: "trakt, scrobble, sync, history, ratings, check in, integration, plugin", comment: "Search keywords for Trakt, comma separated")
             case .manageStorage: return String(localized: "storage, space, delete, offline", comment: "Search keywords for Manage Storage, comma separated")
             case .notificationPermission: return String(localized: "permission, allow, notifications", comment: "Search keywords for the notification permission row, comma separated")
             case .diagnostics, .about, .sourceCode: return String(localized: "logs, version, help, support, GitHub, license", comment: "Search keywords for help and about rows, comma separated")

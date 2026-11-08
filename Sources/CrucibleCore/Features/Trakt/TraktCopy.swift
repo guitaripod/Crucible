@@ -66,6 +66,8 @@ package enum TraktCopy {
     package static let markedWatched = String(localized: "Marked watched on Trakt", comment: "Banner in the player when Trakt recorded the play")
     package static let checkIn = String(localized: "Check In", comment: "Action that tells Trakt you are watching this now")
     package static let checkedIn = String(localized: "Checked in on Trakt", comment: "Confirmation after a Trakt check-in")
+    package static let cancelCheckIn = String(localized: "Cancel Check-In", comment: "Action that cancels the current Trakt check-in")
+    package static let checkInCancelled = String(localized: "Check-in cancelled", comment: "Confirmation after cancelling a Trakt check-in")
     package static let checkInNotMatched = String(localized: "Trakt doesn't know this title, so Crucible can't check in to it.", comment: "Check-in failure for an unmatched title")
     package static let replaceCheckIn = String(localized: "Replace", comment: "Button that cancels the current Trakt check-in for a new one")
 
