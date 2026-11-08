@@ -9,7 +9,7 @@ Design for a Trakt.tv integration on iPhone, iPad and Apple TV that covers the w
 | # | Decision | Recommendation |
 | --- | --- | --- |
 | D1 | Pay for Trakt Developer Premium ($149 a month, $1,788 a year) if Trakt only opens Production apps to Premium (portal commit 2026-10-28 "show production apps as unavailable without a developer plan") | Ask Trakt first (the production email already sent). If Premium is the only route, take it: it is the only way strangers can sign in, it lifts the two-app cap on free Trakt accounts, unlocks `up_next_nitro` and watch-now, and breaks even at about 85 lifetime or 265 yearly sales a year (§9.4) |
-| D2 | Prices when Trakt ships | Yearly $7.99 to $9.99 and lifetime $24.99 to $29.99 for new buyers, announced with a Pro week (§9.4). Existing buyers keep everything |
+| D2 | Prices when Trakt ships | Decided 2026-11-08 (founder handed pricing over): from 2026-12-07 yearly $14.99 (was $7.99) and lifetime $39.99 (launch $17.99 until then, instead of the planned $24.99); existing subscribers keep their price, lifetime buyers keep everything. Reasons in `docs/pricing.md` |
 | D3 | App Privacy label | Declare Product Interaction and Other User Content as linked, App Functionality, not tracking, because Crucible's client sends them to Trakt while the plugin is on (§10.2). The label already lists Identifiers and Purchases, so it is not losing "Data Not Collected" |
 | D4 | Tab or no tab | A Trakt tab appears when the plugin is on (iPhone on iOS 26, iPad sidebar, Apple TV). Where the tab bar has no room it lives in You (§8.5) |
 

@@ -4,8 +4,8 @@ One app record (App Store Connect app 6822066419, bundle id `com.guitaripod.cruc
 
 | Product id | Type | Price | Notes |
 |---|---|---|---|
-| `com.guitaripod.crucible.pro.lifetime` | non-consumable | $17.99 until 2026-12-07, then $24.99 | Family Sharing on; the rise is a scheduled price in App Store Connect |
-| `com.guitaripod.crucible.pro.yearly` | auto-renewable, group "Crucible Pro" | $7.99 per year | Family Sharing on; no introductory offer (the 14-day free trial was removed on 2026-10-31, Midgar D22) |
+| `com.guitaripod.crucible.pro.lifetime` | non-consumable | $17.99 (launch) until 2026-12-07, then $39.99 | Family Sharing on; the rise is a scheduled price in App Store Connect (base USA, every other territory equalized) |
+| `com.guitaripod.crucible.pro.yearly` | auto-renewable, group "Crucible Pro" | $7.99 per year until 2026-12-07, then $14.99 | Family Sharing on; no introductory offer (the 14-day free trial was removed on 2026-10-31, Midgar D22); the new price is scheduled per territory with existing subscribers preserved at their price, and the subscription is not sold in China, so `equalize` refuses and each territory is set with `asc subscriptions pricing prices set --preserved --start-date` |
 
 Created with the `asc` CLI:
 

@@ -26,6 +26,8 @@ about your server in one place".
   are the download drivers: Plex owners who run Seerr look for one app that requests and plays.
 - Pro: Manage Requests (new, listed on the paywall only for someone who approves requests on a connected Seerr), on
   top of the existing Pro features. Trakt's Pro slice (two-way sync, the Trakt tab, Up Next everywhere) is next.
+- Prices from 2026-12-07: $14.99 a year (was $7.99, subscribers keep theirs) and $39.99 lifetime (launch $17.99 until
+  then). Reasons and the market table: `docs/pricing.md`.
 
 ## Listing (to stage at release)
 
