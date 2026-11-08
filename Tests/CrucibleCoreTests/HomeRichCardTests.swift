@@ -61,7 +61,7 @@ struct HomeRichCardTests {
         #expect(card.news?.badge == "New")
 
         let poster = HomeCardModel(item: episode(season: 4, index: 1, addedDaysAgo: 2), bucket: .upNext, layout: .poster, now: now)
-        #expect(poster.subtitle == "S4 · E1 · 45 min")
+        #expect(poster.subtitle == "S4 · E1 · Gulls")
         #expect(poster.news?.badge == "New Season")
         #expect(HomeCardModel(item: episode(season: 4, index: 1), bucket: .upNext, layout: .poster, now: now).news == nil)
 

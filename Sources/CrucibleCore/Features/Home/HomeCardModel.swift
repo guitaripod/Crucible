@@ -69,9 +69,12 @@ package struct HomeCardModel: Hashable, Sendable {
             : (item.art ?? item.thumb)
     }
 
+    /// An episode names itself (S2 · E5 · Gulls) wherever it is the thing to watch next, as Apple TV's cards do; a movie
+    /// gives its year and runtime.
     private static func posterSubtitle(for item: PlexMetadata, bucket: HomeBucket) -> String? {
         switch bucket {
-        case .upNext, .hero, .continueWatching: return HomeFormat.upNextSubtitle(for: item)
+        case .upNext, .hero, .continueWatching:
+            return item.mediaType == "episode" ? HomeFormat.continueSubtitle(for: item) : HomeFormat.upNextSubtitle(for: item)
         case .recentlyAdded: return HomeFormat.recentSubtitle(for: item)
         }
     }

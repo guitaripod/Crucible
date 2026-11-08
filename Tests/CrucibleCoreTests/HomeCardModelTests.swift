@@ -17,12 +17,12 @@ struct HomeCardModelTests {
         "year": 2019, "thumb": "/s/thumb", "leafCount": 12, "viewedLeafCount": 5,
     ])
 
-    @Test func posterEpisodeUsesShowPosterTitleAndUpNextSubtitle() {
+    @Test func posterEpisodeUsesShowPosterTitleAndNamesTheEpisode() {
         let card = HomeCardModel(item: episode, bucket: .upNext, layout: .poster)
         #expect(card.id == "5")
         #expect(card.title == "The Show")
         #expect(card.imagePath == "/show/thumb")
-        #expect(card.subtitle == "S2 · E4 · 44 min")
+        #expect(card.subtitle == "S2 · E4 · Low Tide")
         #expect(card.usesSeriesPlaceholder)
         #expect(card.trailingText == nil)
         #expect(!card.showsPlayChip)
@@ -32,6 +32,8 @@ struct HomeCardModelTests {
         #expect(HomeCardModel(item: episode, bucket: .recentlyAdded, layout: .poster).subtitle == "S2 · E4 · Low Tide")
         #expect(HomeCardModel(item: movie, bucket: .recentlyAdded, layout: .poster).subtitle == "2021")
         #expect(HomeCardModel(item: movie, bucket: .continueWatching, layout: .poster).subtitle == "2021 · 2 h 05 m")
+        #expect(HomeCardModel(item: movie, bucket: .upNext, layout: .poster).subtitle == "2021 · 2 h 05 m")
+        #expect(HomeCardModel(item: episode, bucket: .continueWatching, layout: .poster).subtitle == "S2 · E4 · Low Tide")
         #expect(HomeCardModel(item: show, bucket: .recentlyAdded, layout: .poster).subtitle == "2019")
     }
 
