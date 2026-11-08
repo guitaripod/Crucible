@@ -45,6 +45,8 @@ package final class PlaybackSession {
     let serverID: String
     let continuation: AsyncStream<PlaybackEvent>.Continuation
     var reporter: PlaybackReporter?
+    /// The connected integrations following this playback (Trakt's scrobbler), told of each play, pause and the end.
+    var watchers: [PlaybackWatching] = []
     var remoteCommands: PlaybackRemoteCommands?
     var itemWatcher: PlayerItemWatcher?
     var playheadObserver: Any?
@@ -282,6 +284,7 @@ package final class PlaybackSession {
                 resumeStore: resumeStore,
                 server: serverID
             )
+            watchers = Integrations.playbackWatchers(for: playbackSubject)
         }
 
         markerTracker = MarkerTracker(segments: stream.segments)
@@ -331,6 +334,11 @@ package final class PlaybackSession {
         rateObserver?.invalidate()
         rateObserver = nil
 
+        if let finalPosition {
+            let date = Date()
+            watchers.forEach { $0.playback(.stopped(position: finalPosition, finished: finished, at: date)) }
+        }
+        watchers = []
         await invalidateCaches()
         await reporter?.stop(positionSecs: Self.reportPosition(for: finalPosition, finished: finished, duration: request.durationSecs))
         reporter = nil
@@ -344,6 +352,22 @@ package final class PlaybackSession {
         stream = nil
         continuation.finish()
         return finalPosition
+    }
+
+    /// What the integrations are told this playback is of.
+    private var playbackSubject: PlaybackSubject {
+        PlaybackSubject(
+            ratingKey: request.ratingKey,
+            mediaType: request.mediaType,
+            showRatingKey: request.showRatingKey,
+            title: request.metadata?.title ?? "",
+            showTitle: request.metadata?.showName,
+            seasonNumber: request.metadata?.seasonNumber,
+            episodeNumber: request.metadata?.episodeNumber,
+            durationSecs: request.durationSecs,
+            server: serverID,
+            api: api
+        )
     }
 
     /// Notes a finished movie or episode in the ledger that asks the viewer to rate what they watched. An episode closed

@@ -141,6 +141,7 @@ package final class DemoMode {
     /// so the Home profile watching stays.
     private func configureSession(for endpoint: DemoEndpoint, resuming: Bool) {
         PlexTVHost.setOverride(endpoint.plexTVURL)
+        TraktConfig.setOverride(endpoint.plexTVURL)
         if !resuming { ServerBootstrap.clear() }
         ServerBootstrap.saveToken(endpoint.token)
         ServerBootstrap.saveServer(uri: endpoint.serverURL, name: endpoint.serverName, machineIdentifier: endpoint.machineIdentifier)
@@ -152,6 +153,7 @@ package final class DemoMode {
         defaults.set(false, forKey: Self.activeKey)
         defaults.removeObject(forKey: Self.freePreviewKey)
         PlexTVHost.setOverride(nil)
+        TraktConfig.setOverride(nil)
         access.useDemoProWeek(false)
         access.setDemoUnlocked(false)
     }

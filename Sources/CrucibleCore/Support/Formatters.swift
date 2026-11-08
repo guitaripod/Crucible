@@ -41,6 +41,11 @@ package enum Formatters {
         return String(localized: "\(text) MB")
     }
 
+    /// A count shortened the way the interface language writes it, such as 12K or 1.2M.
+    package static func compactCount(_ count: Int) -> String {
+        count.formatted(.number.notation(.compactName).locale(interfaceLocale).precision(.significantDigits(1...3)))
+    }
+
     package static func resolution(_ width: Int?, _ height: Int?) -> String? {
         guard let height else { return nil }
         if height >= 2160 { return "4K" }

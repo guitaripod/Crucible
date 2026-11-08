@@ -32,6 +32,8 @@ actor DemoLibrary {
     var downloadedSubtitles: [String: [DemoJSON]] = [:]
     var watchlistGuids: [String]
     var nextEntryID = 1000
+    /// How often the stand-in Trakt was asked whether its device code was approved; the second ask approves it.
+    var traktPolls = 0
     var nextPlaylistKey = 9200
     var persisted: DemoPersistedState
     let store: DemoStateStore

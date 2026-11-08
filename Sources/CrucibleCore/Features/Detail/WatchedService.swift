@@ -18,6 +18,7 @@ package enum WatchedService {
                 try await api.requestConfirmed(.unscrobble(ratingKey: ratingKey))
             }
             await api.invalidateCache()
+            await MainActor.run { Integrations.watchedChanged(ratingKey, watched: watched, api: api) }
         } catch {
             MidgarLog.error("Mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
             throw error

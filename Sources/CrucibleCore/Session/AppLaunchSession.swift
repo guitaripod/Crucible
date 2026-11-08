@@ -87,6 +87,7 @@ package enum AppLaunchSession {
             let token = connection.plexTVToken
             let machine = connection.machineIdentifier
             Task { await ServerOwnership.refresh(token: token, machineIdentifier: machine) }
+            Task { @MainActor in await Integrations.launched(api: api, server: machine) }
             MidgarLog.notice("Launch ready: \(payload.sections.Directory?.count ?? 0) sections, \(payload.hubs.Hub?.count ?? 0) hubs via \(connection.serverURI.absoluteString)", category: .lifecycle)
             return .success(payload)
         } catch {

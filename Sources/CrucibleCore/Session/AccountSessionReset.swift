@@ -39,6 +39,7 @@ package enum AccountSessionReset {
     /// Forgets the account, the server and everything bound to either.
     package static func signOut(_ collaborators: AccountSessionCollaborators, defaults: UserDefaults = .standard) {
         collaborators.resetDownloads()
+        Task { await Integrations.signedOut() }
         resetServerBoundState(collaborators)
         RememberedServerAddress.forget(in: defaults)
         ServerBootstrap.clear()

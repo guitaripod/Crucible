@@ -11,6 +11,7 @@ struct DemoRouter: Sendable {
 
     func handle(_ request: DemoRequest) async -> DemoResponse {
         let parts = request.path.split(separator: "/").map(String.init)
+        if Self.isTrakt(request) { return await traktResponse(parts, request) }
         switch parts.first {
         case nil, "identity":
             return await library.identityResponse(serverName: serverName)

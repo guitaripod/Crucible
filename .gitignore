@@ -25,3 +25,4 @@ DerivedData/
 /.bsp/
 /marketing/shots/Sources/Localizable.xcstrings
 /.asc
+/Sources/CrucibleCore/Features/Trakt/TraktClientID.swift
