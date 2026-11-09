@@ -53,6 +53,7 @@ enum ShotHarness {
                 guard !started else { return }
                 started = true
                 Task {
+                    await ShotIntegrations.connect()
                     if environment["CRUCIBLE_SHOT_SCRIPT"] == "pro" {
                         await ProShotScript.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "flow" {
@@ -61,6 +62,8 @@ enum ShotHarness {
                         await SubtitleProbe.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "essentials" {
                         await ShotScript.runEssentials()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "integrations" {
+                        await ShotScript.runIntegrations()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "companion" {
                         await ShotScript.runCompanion()
                     } else {

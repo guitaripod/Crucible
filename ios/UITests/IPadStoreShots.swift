@@ -42,10 +42,66 @@ final class IPadStoreShots: XCTestCase {
         IOSTest.settle(2)
     }
 
+    /// Drags the content column (right of the sidebar) up by half the screen.
+    private func scrollContent(_ app: XCUIApplication) {
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.75))
+        from.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.3)))
+        IOSTest.settle(1)
+    }
+
+    /// Opens You › Settings › Integrations from the sidebar.
+    private func openIntegrations(_ app: XCUIApplication) {
+        guard let you = IPadDemo.libraryEntry(app, ["You"]) else {
+            XCTFail("the sidebar has no You")
+            return
+        }
+        you.tap()
+        IOSTest.settle(2)
+        let settingsRow = IOSTest.element(app, "you.settings")
+        for _ in 0..<6 where !settingsRow.isHittable {
+            scrollContent(app)
+        }
+        XCTAssertTrue(settingsRow.waitForExistence(timeout: 20), "You has no Settings row")
+        settingsRow.tap()
+        let settings = app.collectionViews["settings.root"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 30), "Settings did not open")
+        let category = IOSTest.element(app, "settings.category.integrations")
+        for _ in 0..<4 where !category.isHittable {
+            settings.swipeUp()
+        }
+        XCTAssertTrue(category.waitForExistence(timeout: 20), "Settings has no Integrations")
+        category.tap()
+    }
+
+    /// Taps `destination` in Integrations, then its Connect, waits for the account it signs in to and goes back.
+    private func connect(_ destination: String, button: String, account: String, in app: XCUIApplication) {
+        let row = IOSTest.element(app, destination)
+        XCTAssertTrue(row.waitForExistence(timeout: 20), "Integrations has no \(destination)")
+        row.tap()
+        let connect = IOSTest.element(app, button)
+        XCTAssertTrue(connect.waitForExistence(timeout: 30), "\(destination) offers no Connect")
+        connect.tap()
+        XCTAssertTrue(IOSTest.element(app, account).waitForExistence(timeout: 60), "\(destination) never connected")
+        IOSTest.settle(2)
+        IPadDemo.backButton(app).tap()
+        IOSTest.settle(2)
+    }
+
+    /// Connects the demo's stand-in Trakt and Seerr, so the screens show what both add: Trakt's score on a title, Everything in
+    /// Statistics and Seerr's titles in Search.
+    private func connectIntegrations(_ app: XCUIApplication) {
+        openIntegrations(app)
+        connect("settings.dest.trakt", button: "trakt.connect", account: "trakt.profile", in: app)
+        connect("settings.dest.seerr", button: "seerr.connect", account: "seerr.user", in: app)
+        press(app, "1", settle: 4)
+        XCTAssertTrue(IOSTest.wait(for: IPadDemo.homeTitle(app), "exists == true", timeout: 30), "Home did not come back")
+    }
+
     func testCapturesTheStoreScreens() {
         let app = IPadDemo.enter(extraEnvironment: ["CRUCIBLE_PRO": "lifetime"])
         XCUIDevice.shared.orientation = .landscapeLeft
         IOSTest.settle(4)
+        connectIntegrations(app)
         XCTAssertNotNil(IPadDemo.libraryEntry(app, ["Movies"]), "the sidebar is not showing")
         IOSTest.capture("01-home", in: self)
 
@@ -93,6 +149,11 @@ final class IPadStoreShots: XCTestCase {
         field.typeText("hal\n")
         IOSTest.settle(4)
         IOSTest.capture("06-search", in: self)
+        field.tap()
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("orchard\n")
+        IOSTest.settle(4)
+        IOSTest.capture("06b-search-request", in: self)
 
         press(app, "s", [.command, .shift], settle: 8)
         IOSTest.capture("07-stats", in: self)

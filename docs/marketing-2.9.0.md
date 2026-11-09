@@ -43,9 +43,14 @@ about your server in one place".
   request a watchlist title your server lacks or a show's missing seasons, watch it arrive, then play it. With
   Crucible Pro, approve and decline your household's requests from the couch." Translate into all seventeen
   listing languages when the version is created.
-- Screenshots: two new iPhone and iPad panels (the Request sheet downloading, the ratings strip) and one Apple TV
-  panel (Seerr found, one click); captures come from `ios/UITests/SeerrTests` and `TraktTests` in the demo, then
-  `marketing/store/compose.py`.
+- Screenshots (staged 2026-11-09, uploaded with the 2.9.0 version): every capture is taken with Trakt and Seerr
+  connected, so the screens show what they add. iPhone and iPad: Everything about a title now carries Trakt and IMDb
+  on the meta line, Find anything, even what's missing (Search with Seerr's Not on Your Server row, "orchard"
+  finding Silent Orchards and Glass Orchard) replaces the plain Search panel, and Know your viewing shows the Plex /
+  Everything switch. Apple TV: Halcyon with IMDb, Rotten Tomatoes, Trakt and Metacritic and Check In, and Statistics
+  on Everything. The iPhone harness connects the demo's stand-ins beside the mock (`ShotIntegrations`;
+  `SHOT_SCRIPT=integrations` retakes only these screens in every language), `IPadStoreShots` connects them in the
+  demo, the Apple TV panels come from `tv/UITests/TraktTests` at 4K; compose with `marketing/store/compose.py`.
 
 ## Privacy
 

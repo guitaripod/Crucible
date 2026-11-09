@@ -49,6 +49,16 @@ def anime_chapters(item, names):
             for n, name in enumerate(names[:6])]
 
 
+def demo_guids(item):
+    """The outside ids the in-app demo gives a title that carries none of its own (DemoLibrary.demoIMDb and demoTMDB), so the
+    demo's stand-in Trakt and Seerr know the mock's titles by the same ids."""
+    key = item["ratingKey"]
+    guids = [{"id": f"imdb://tt99{key}"}]
+    if item["_kind"] in ("movie", "show"):
+        guids.append({"id": f"tmdb://{900_000 + int(key)}"})
+    return guids
+
+
 def stable_rng(*parts):
     h = hashlib.sha256("|".join(str(p) for p in parts).encode()).digest()
     return random.Random(int.from_bytes(h[:8], "big"))
@@ -817,6 +827,8 @@ class Library:
         if it["_kind"] in ("movie", "show") or full:
             if it.get("_genres"):
                 out["Genre"] = [{"id": int(GENRE_ID[g]), "tag": g} for g in it["_genres"]]
+        if full and "Guid" not in out and it["_kind"] in ("movie", "show", "episode"):
+            out["Guid"] = demo_guids(it)
         if full:
             if it.get("_directors"):
                 out["Director"] = [{"id": 7000 + i, "tag": n} for i, n in enumerate(it["_directors"])]

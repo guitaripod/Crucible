@@ -54,6 +54,10 @@ enum ShotScript {
             if let controller { search.updateSearchResults(for: controller) }
             await ShotHarness.settle(2.5)
             await ShotHarness.capture("05-search")
+            controller?.searchBar.text = "orchard"
+            if let controller { search.updateSearchResults(for: controller) }
+            await ShotHarness.settle(3)
+            await ShotHarness.capture("05b-search-request")
         }
 
         tabBar.select(.downloads)
@@ -144,6 +148,52 @@ enum ShotScript {
         await captureEssentials(api: api, home: navigation(tabBar))
         await playRecap(api: api, tabBar: tabBar)
         await ShotHarness.capture("done")
+    }
+
+    /// Only the screens Trakt and Seerr change (a title's page, Search and Statistics with its share preview), for capturing them
+    /// in every app language without the whole tour.
+    static func runIntegrations() async {
+        guard let tabBar = await ShotHarness.waitForTabBar() else { return }
+        let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
+        await settleStatistics()
+        tabBar.select(.home)
+        await ShotHarness.settle(1)
+        let home = navigation(tabBar)
+        home?.pushViewController(MediaDetailViewController(api: api, ratingKey: "1001", mediaType: "movie"), animated: false)
+        await ShotHarness.settle(4)
+        await ShotHarness.capture("03-detail")
+        home?.popToRootViewController(animated: false)
+
+        tabBar.select(.search)
+        await ShotHarness.settle(1.5)
+        if let search = navigation(tabBar)?.topViewController as? SearchViewController, let controller = search.navigationItem.searchController {
+            for (query, name) in [("hal", "05-search"), ("orchard", "05b-search-request")] {
+                controller.searchBar.text = query
+                search.updateSearchResults(for: controller)
+                await ShotHarness.settle(3)
+                await ShotHarness.capture(name)
+            }
+        }
+
+        tabBar.select(.you)
+        await ShotHarness.settle(2)
+        let you = navigation(tabBar)
+        await ShotHarness.capture("08-you")
+        you?.pushViewController(StatisticsViewController(api: api), animated: false)
+        await ShotHarness.settle(14)
+        await ShotHarness.capture("07-stats")
+        await captureShare(from: you?.topViewController as? StatisticsViewController)
+        await ShotHarness.capture("done")
+    }
+
+    /// Waits until Statistics has read every play's length from the server (up to six minutes), as it has by the time the whole
+    /// tour reaches it, so the hero counts every play instead of estimating.
+    private static func settleStatistics() async {
+        for _ in 0..<180 {
+            if let snapshot = try? await StatsManager.shared.store?.snapshot(range: .year, source: .everything),
+               snapshot.overview.coverage >= 0.99, !snapshot.traktImportPending { break }
+            await ShotHarness.settle(2)
+        }
     }
 
     /// Paper Lanterns with its demo guide: the one-time offer, then the list with the anime-only episodes skipped.
