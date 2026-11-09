@@ -206,6 +206,19 @@ MOVIES = [
      ("forest_green", "forest", "cond"), 180, "unwatched", 3),
 ]
 
+REMOTE_TITLES = [
+    dict(tmdb=980_001, title="Night Train to Nowhere", kind="movie", year=2024, studio="Coldwater Pictures",
+         tagline="Every stop is the last one.", style=("crimson_night", "rails", "serif")),
+    dict(tmdb=980_002, title="Glass Orchard", kind="show", year=2023, studio="Fernhill Studios",
+         tagline="Nothing here grows by accident.", style=("aqua_mint", "hills", "light")),
+    dict(tmdb=980_003, title="Lowland Choir", kind="movie", year=2025, studio="Saltmarsh Films",
+         tagline="Forty voices, one flood.", style=("olive_haze", "lake", "cond")),
+    dict(tmdb=980_004, title="The Long Signal", kind="show", year=2022, studio="Orbit Lane Studios",
+         tagline="Someone out there is still listening.", style=("violet_neon", "city", "black")),
+]
+"""Titles the demo's stand-in Seerr and watchlist know that the server does not have, with posters of their own
+(art.py renders them as remote_<tmdb>.jpg, export_demo.py ships them as poster_r<tmdb>.jpg)."""
+
 SHOWS = [
     dict(title="The Salt Road", year=2019, end=2023, cr="TV-MA", rating=9.0, audience=8.7, studio="Gannet Films",
          genres=["Drama", "Thriller", "Mystery"], tagline="Everything washes up eventually.",

@@ -1025,6 +1025,10 @@ def build_tasks(lib, only=None):
                                   variant=int(ep["ratingKey"])))
     for slug_, name in sorted(lib.actors.items()):
         tasks.append(dict(kind="avatar", file=f"actor_{slug_}.jpg", name=name))
+    for remote in library.REMOTE_TITLES:
+        kicker = "ORIGINAL SERIES" if remote["kind"] == "show" else None
+        tasks.append(dict(kind="poster", file=f"remote_{remote['tmdb']}.jpg", style=remote["style"], title=remote["title"],
+                          tagline=remote["tagline"], billing=[f"A {remote['studio'].upper()} RELEASE"], kicker=kicker))
     if only:
         tasks = [t for t in tasks if any(o in t["file"] for o in only)]
     return tasks

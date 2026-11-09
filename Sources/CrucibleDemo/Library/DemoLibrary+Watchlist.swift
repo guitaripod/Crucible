@@ -1,9 +1,9 @@
 import Foundation
 
 extension DemoLibrary {
-    private static let remoteWatchlist: [(guid: String, title: String, year: Int, type: String, posterOf: String)] = [
-        ("plex://movie/demo-night-train", "Night Train to Nowhere", 2024, "movie", "1010"),
-        ("plex://show/demo-glass-orchard", "Glass Orchard", 2023, "show", "2005"),
+    private static let remoteWatchlist: [(guid: String, title: String, year: Int, type: String, tmdbID: Int)] = [
+        ("plex://movie/demo-night-train", "Night Train to Nowhere", 2024, "movie", 980_001),
+        ("plex://show/demo-glass-orchard", "Glass Orchard", 2023, "show", 980_002),
     ]
 
     static let defaultWatchlist = ["plex://movie/1001", "plex://movie/demo-night-train", "plex://movie/1006", "plex://show/demo-glass-orchard"]
@@ -18,7 +18,7 @@ extension DemoLibrary {
             let discoverKey = guid.split(separator: "/").last.map(String.init) ?? guid
             return [
                 "ratingKey": discoverKey, "key": "/library/metadata/\(discoverKey)", "guid": guid, "type": remote.type,
-                "title": remote.title, "year": remote.year, "thumb": items[remote.posterOf]?.fields.string("thumb") ?? "",
+                "title": remote.title, "year": remote.year, "thumb": Self.remotePoster(remote.tmdbID),
                 "summary": "A title Plex knows that this server does not have.",
             ]
         }

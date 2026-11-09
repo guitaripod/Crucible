@@ -143,13 +143,18 @@ def export_images(lib, out):
     rules = {"poster_": (POSTER_BOX, POSTER_QUALITY), "backdrop_": (BACKDROP_BOX, BACKDROP_QUALITY),
              "still_": (STILL_BOX, STILL_QUALITY), "actor_": (AVATAR_BOX, AVATAR_QUALITY)}
     names = artwork_names(lib)
+    for remote in library.REMOTE_TITLES:
+        source = os.path.join(ASSETS, f"remote_{remote['tmdb']}.jpg")
+        if not os.path.isfile(source):
+            sys.exit(f"missing artwork {source}; run python3 art.py remote_")
+        shrink(source, os.path.join(images, f"poster_r{remote['tmdb']}.jpg"), POSTER_BOX, POSTER_QUALITY)
     for name in names:
         source = os.path.join(ASSETS, name)
         if not os.path.isfile(source):
             sys.exit(f"missing artwork {source}; run python3 art.py")
         box, quality = next(rule for prefix, rule in rules.items() if name.startswith(prefix))
         shrink(source, os.path.join(images, name), box, quality)
-    return len(names)
+    return len(names) + len(library.REMOTE_TITLES)
 
 
 def run(*args):

@@ -80,6 +80,24 @@ struct DemoSeerrTests {
         }
     }
 
+    @Test func aTitleTheServerDoesNotHaveShowsItsOwnPoster() async throws {
+        try await withDemo { demo in
+            let (client, address) = client(demo)
+            await client.use(SeerrTarget(address: address, auth: .plex, secretKey: "demo"))
+            try await client.signIn()
+            let details = try await client.send(.show(tmdbID: 980_002), as: SeerrTitleDetails.self)
+            #expect(details.posterPath == "/remote/980002.jpg")
+            let poster = try #require(SeerrImage.poster(details.posterPath, base: address))
+            let (proxied, proxiedResponse) = try await URLSession.shared.data(from: poster)
+            #expect((proxiedResponse as? HTTPURLResponse)?.statusCode == 200)
+            #expect(proxied.starts(with: [0xFF, 0xD8]))
+            let (_, watchlist) = try await demo.get("/remote/980002.jpg")
+            #expect(watchlist.statusCode == 200)
+            let (_, unknown) = try await demo.get("/remote/123.jpg")
+            #expect(unknown.statusCode == 404)
+        }
+    }
+
     @Test func plexsCatalogueKnowsTheWatchlistTitlesTheServerDoesNotHave() async throws {
         try await withDemo { demo in
             let (data, response) = try await demo.get("/library/metadata/demo-glass-orchard")

@@ -51,7 +51,7 @@ struct DemoRouter: Sendable {
             return parts == ["statistics", "resources"] ? DemoLibrary.resourcesResponse() : .notFound()
         case "photo":
             return await photoResponse(request)
-        case "actors":
+        case "actors", "remote":
             return await imageResponse(path: request.path)
         case "video":
             return await transcodeResponse(parts, request)

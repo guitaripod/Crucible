@@ -23,15 +23,19 @@ extension DemoLibrary {
         let title: String
         let year: Int
         let seasons: Int
-        let posterOf: String
         let discoverKey: String?
+
+        var posterPath: String { DemoLibrary.remotePoster(tmdbID) }
     }
 
+    /// Where the poster of a title only the stand-ins know is served: its own artwork, not one of the server's.
+    static func remotePoster(_ tmdbID: Int) -> String { "/remote/\(tmdbID).jpg" }
+
     private static let remoteTitles: [RemoteTitle] = [
-        RemoteTitle(tmdbID: 980_001, kind: "movie", title: "Night Train to Nowhere", year: 2024, seasons: 0, posterOf: "1010", discoverKey: "demo-night-train"),
-        RemoteTitle(tmdbID: 980_002, kind: "tv", title: "Glass Orchard", year: 2023, seasons: 3, posterOf: "2005", discoverKey: "demo-glass-orchard"),
-        RemoteTitle(tmdbID: 980_003, kind: "movie", title: "Lowland Choir", year: 2025, seasons: 0, posterOf: "1018", discoverKey: nil),
-        RemoteTitle(tmdbID: 980_004, kind: "tv", title: "The Long Signal", year: 2022, seasons: 2, posterOf: "2007", discoverKey: nil),
+        RemoteTitle(tmdbID: 980_001, kind: "movie", title: "Night Train to Nowhere", year: 2024, seasons: 0, discoverKey: "demo-night-train"),
+        RemoteTitle(tmdbID: 980_002, kind: "tv", title: "Glass Orchard", year: 2023, seasons: 3, discoverKey: "demo-glass-orchard"),
+        RemoteTitle(tmdbID: 980_003, kind: "movie", title: "Lowland Choir", year: 2025, seasons: 0, discoverKey: nil),
+        RemoteTitle(tmdbID: 980_004, kind: "tv", title: "The Long Signal", year: 2022, seasons: 2, discoverKey: nil),
     ]
 
     static let seerrOwnerID = 1
@@ -90,7 +94,7 @@ extension DemoLibrary {
         if let remote = Self.remoteTitles.first(where: { $0.tmdbID == tmdbID && $0.kind == kind }) {
             var details: DemoJSON = [
                 "id": tmdbID, "overview": "A title this server does not have yet.",
-                "posterPath": items[remote.posterOf]?.fields.string("thumb") ?? "",
+                "posterPath": remote.posterPath,
             ]
             details[kind == "tv" ? "name" : "title"] = remote.title
             details[kind == "tv" ? "firstAirDate" : "releaseDate"] = "\(remote.year)-03-14"
@@ -170,7 +174,7 @@ extension DemoLibrary {
         var results: [DemoJSON] = []
         for remote in Self.remoteTitles where remote.title.lowercased().contains(needle) {
             var result: DemoJSON = [
-                "id": remote.tmdbID, "mediaType": remote.kind, "posterPath": items[remote.posterOf]?.fields.string("thumb") ?? "",
+                "id": remote.tmdbID, "mediaType": remote.kind, "posterPath": remote.posterPath,
                 "overview": "A title this server does not have yet.",
             ]
             result[remote.kind == "tv" ? "name" : "title"] = remote.title

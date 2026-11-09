@@ -149,6 +149,9 @@ extension DemoLibrary {
         if parts.count == 2, parts[0] == "actors", parts[1].hasSuffix(".jpg") {
             return "actor_\(parts[1])"
         }
+        if parts.count == 2, parts[0] == "remote", parts[1].hasSuffix(".jpg") {
+            return "poster_r\(parts[1])"
+        }
         guard parts.count >= 4, parts[0] == "library", parts[1] == "metadata", let item = items[parts[2]] else { return nil }
         switch parts[3] {
         case "art":
