@@ -513,7 +513,8 @@ final class PlayerTests: TVTestCase {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: Self.dismissalWait), "Menu closes the player")
     }
 
-    func testFinishingTheFirstVideoOffersProToAFreeViewerOnce() {
+    /// A free viewer's first finished video starts their Pro Week and says so, with nothing to buy.
+    func testFinishingTheFirstVideoStartsTheProWeek() {
         setFlags("no_credits=1")
         setProgress(Self.episode, seconds: 144)
         let app = launch(
@@ -526,9 +527,9 @@ final class PlayerTests: TVTestCase {
         XCTAssertTrue(leave.waitForExistence(timeout: 40))
         XCTAssertTrue(focusLeaveButton(leave), "Close can be focused")
         TVTest.remote.press(.select)
-        let offer = app.alerts["Go further with Crucible Pro"]
-        XCTAssertTrue(offer.waitForExistence(timeout: Self.dismissalWait), "the first finished video offers Pro")
-        TVTest.capture("01-pro-offer-after-the-first-video", in: self)
+        let offer = app.alerts["Crucible Pro is yours for a week"]
+        XCTAssertTrue(offer.waitForExistence(timeout: Self.dismissalWait), "the first finished video starts the Pro Week")
+        TVTest.capture("01-pro-week-after-the-first-video", in: self)
         XCTAssertTrue(offer.buttons["Not Now"].exists)
     }
 
@@ -812,10 +813,13 @@ final class PlayerTests: TVTestCase {
         URLComponents(string: "http://x" + line.dropFirst(4))?.queryItems?.first { $0.name == name }?.value
     }
 
+    /// Launches straight into `ratingKey`'s player. The device's own resume points are hidden for the run: a point an earlier test's app
+    /// saved but never got confirmed would be sent to the mock at launch, as it should be, and replace the progress this test set.
     private func launch(playing ratingKey: String, arguments: [String] = [], environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment.merge(environment) { _, new in new }
         app.launchArguments += arguments
+        app.launchArguments += ["-playbackResumePoints", "<data></data>"]
         if !arguments.contains("-streamingQuality") {
             app.launchArguments += ["-streamingQuality", Self.defaultQuality]
         }
