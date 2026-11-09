@@ -69,7 +69,7 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
     private func render() {
         let account = SeerrAccount.shared
         var rows: [TVRowItem] = []
-        var body = [SeerrCopy.pitchRequest, SeerrCopy.pitchState, SeerrCopy.pitchArrival].map { "· \($0)" }.joined(separator: "\n") + "\n\n" + SeerrCopy.privacy
+        var body = SeerrCopy.pitch.contextText + "\n\n" + SeerrCopy.privacy
         switch account.status {
         case .restricted:
             body = SeerrCopy.restricted
@@ -95,6 +95,7 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
                 if discovery != .idle, discovery != .searching {
                     rows.append(TVRowItem(id: "seerr.apiKey", title: SeerrCopy.useAPIKey, symbol: "key"))
                 }
+                rows += SeerrCopy.pitch.benefitRows(idPrefix: "seerr")
             }
         case .needsReconnect(let connection):
             body = SeerrCopy.needsReconnect

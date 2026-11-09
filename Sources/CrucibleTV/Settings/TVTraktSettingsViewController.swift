@@ -51,10 +51,12 @@ final class TVTraktSettingsViewController: TVSettingsScaffold {
         case .restricted:
             body = TraktCopy.restricted
         case .disconnected, .needsReconnect:
-            body = [TraktCopy.pitchSend, TraktCopy.pitchChanges, TraktCopy.pitchScores].map { "· \($0)" }.joined(separator: "\n")
-            body += "\n\n" + TraktCopy.consentTitle + ": " + [TraktCopy.consentPlays, TraktCopy.consentRatings].joined(separator: ", ") + ". " + TraktCopy.consentNever
+            body = TraktCopy.pitch.contextText
+            body += "\n\n" + TraktCopy.consentTitle + "\n" + [TraktCopy.consentPlays, TraktCopy.consentRatings].map { "· \($0)" }.joined(separator: "\n")
+            body += "\n" + TraktCopy.consentNever
             if account.status == .needsReconnect { body = TraktCopy.needsReconnect + "\n\n" + body }
             rows.append(TVRowItem(id: "trakt.connect", title: account.status == .needsReconnect ? TraktCopy.reconnect : TraktCopy.connect, symbol: "link", accessory: .chevron))
+            if account.status == .disconnected { rows += TraktCopy.pitch.benefitRows(idPrefix: "trakt") }
         case .connected(let profile):
             body = TraktCopy.tagline
             rows.append(TVRowItem(id: "trakt.profile", title: profile?.displayName ?? TraktCopy.name, subtitle: profile.map { "@\($0.username)" }, value: profile?.isVIP == true ? "VIP" : nil, symbol: "person.crop.circle.fill", isStatic: true))

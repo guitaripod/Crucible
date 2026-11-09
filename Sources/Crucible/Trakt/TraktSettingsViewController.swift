@@ -11,7 +11,8 @@ final class TraktSettingsViewController: UICollectionViewController {
     }
 
     private enum Row: Hashable {
-        case pitch(Int)
+        case hero
+        case benefit(Int)
         case consent
         case connect
         case message(String)
@@ -77,7 +78,8 @@ final class TraktSettingsViewController: UICollectionViewController {
             snapshot.appendItems([.message(TraktCopy.restricted)], toSection: .about)
         case .disconnected:
             snapshot.appendSections([.about])
-            snapshot.appendItems([.pitch(0), .pitch(1), .pitch(2), .consent, .connect], toSection: .about)
+            let benefits = TraktCopy.pitch.benefits.indices.map(Row.benefit)
+            snapshot.appendItems([.hero] + benefits + [.consent, .connect], toSection: .about)
         case .needsReconnect:
             snapshot.appendSections([.about, .sending])
             snapshot.appendItems([.message(TraktCopy.needsReconnect), .connect], toSection: .about)
@@ -136,15 +138,11 @@ final class TraktSettingsViewController: UICollectionViewController {
         cell.accessibilityIdentifier = "trakt.\(row)"
         let choices = account.choices
         switch row {
-        case .pitch(let index):
-            let lines = [("arrow.up.right", TraktCopy.pitchSend), ("checkmark.circle", TraktCopy.pitchChanges), ("star.leadinghalf.filled", TraktCopy.pitchScores)]
-            var content = UIListContentConfiguration.cell()
-            content.image = UIImage(systemName: lines[index].0)
-            content.imageProperties.tintColor = Theme.Color.accent
-            content.text = lines[index].1
-            content.textProperties.font = Theme.Font.subheadline
-            content.textProperties.color = Theme.Color.label
-            cell.contentConfiguration = content
+        case .hero:
+            let pitch = TraktCopy.pitch
+            cell.contentConfiguration = IntegrationHeroContentConfiguration(mark: .trakt, headline: pitch.headline, story: pitch.story)
+        case .benefit(let index):
+            cell.contentConfiguration = IconRowContentConfiguration(benefit: TraktCopy.pitch.benefits[index])
         case .consent:
             var content = UIListContentConfiguration.subtitleCell()
             content.image = UIImage(systemName: "hand.raised")

@@ -11,7 +11,8 @@ final class SeerrSettingsViewController: UICollectionViewController {
     }
 
     private enum Row: Hashable {
-        case pitch(Int)
+        case hero
+        case benefit(Int)
         case privacy
         case message(String)
         case searching
@@ -106,7 +107,8 @@ final class SeerrSettingsViewController: UICollectionViewController {
             snapshot.appendItems([.message(SeerrCopy.restricted)], toSection: .about)
         case .disconnected:
             snapshot.appendSections([.about, .connect])
-            snapshot.appendItems([.pitch(0), .pitch(1), .pitch(2), .privacy], toSection: .about)
+            let benefits = SeerrCopy.pitch.benefits.indices.map(Row.benefit)
+            snapshot.appendItems([.hero] + benefits + [.privacy], toSection: .about)
             snapshot.appendItems(connectRows, toSection: .connect)
         case .needsReconnect:
             snapshot.appendSections([.about, .account])
@@ -154,15 +156,11 @@ final class SeerrSettingsViewController: UICollectionViewController {
         cell.accessibilityIdentifier = "seerr.\(Self.identifier(row))"
         cell.accessibilityTraits = []
         switch row {
-        case .pitch(let index):
-            let lines = [("plus.circle", SeerrCopy.pitchRequest), ("arrow.down.circle", SeerrCopy.pitchState), ("bell.badge", SeerrCopy.pitchArrival)]
-            var content = UIListContentConfiguration.cell()
-            content.image = UIImage(systemName: lines[index].0)
-            content.imageProperties.tintColor = Theme.Color.accent
-            content.text = lines[index].1
-            content.textProperties.font = Theme.Font.subheadline
-            content.textProperties.color = Theme.Color.label
-            cell.contentConfiguration = content
+        case .hero:
+            let pitch = SeerrCopy.pitch
+            cell.contentConfiguration = IntegrationHeroContentConfiguration(mark: .seerr, headline: pitch.headline, story: pitch.story)
+        case .benefit(let index):
+            cell.contentConfiguration = IconRowContentConfiguration(benefit: SeerrCopy.pitch.benefits[index])
         case .privacy:
             var content = UIListContentConfiguration.cell()
             content.image = UIImage(systemName: "house")
@@ -217,7 +215,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
 
     private static func identifier(_ row: Row) -> String {
         switch row {
-        case .pitch(let index): return "pitch\(index)"
+        case .benefit(let index): return "benefit\(index)"
         case .message: return "message"
         default: return "\(row)"
         }

@@ -14,9 +14,34 @@ package enum TraktCopy {
     package static let disconnectTitle = String(localized: "Disconnect Trakt?", comment: "Confirmation title for disconnecting Trakt")
     package static let disconnectMessage = String(localized: "Crucible stops sending to Trakt, tells Trakt to forget its access, and deletes what it kept about your Trakt account on this device. Your history on Trakt stays.", comment: "Confirmation message for disconnecting Trakt")
 
-    package static let pitchSend = String(localized: "Records what you play as you play it, downloads too", comment: "First line of the Trakt pitch: scrobbling")
-    package static let pitchChanges = String(localized: "Sends what you mark watched, your ratings and your check-ins", comment: "Second line of the Trakt pitch")
-    package static let pitchScores = String(localized: "Shows Trakt's score next to IMDb and Rotten Tomatoes on every title", comment: "Third line of the Trakt pitch")
+    /// Why connect Trakt: one history of everything watched, kept without lifting a finger.
+    package static let pitch = IntegrationPitch(
+        headline: String(localized: "Every show and film you watch, remembered", comment: "Headline of the Trakt pitch in Settings"),
+        story: String(localized: "Trakt keeps one history of everything you watch, on Plex and everywhere else. Crucible fills it in as you watch, so you always know where you are in a show, what you've seen and what's worth watching next.", comment: "Story under the Trakt pitch headline"),
+        benefits: [
+            .init(
+                symbol: "checkmark.seal",
+                title: String(localized: "Nothing to log", comment: "Trakt benefit title: automatic scrobbling"),
+                detail: String(localized: "Every episode and film you watch is checked off on Trakt by itself, downloads too once you're back online.", comment: "Trakt benefit detail: automatic scrobbling")
+            ),
+            .init(
+                symbol: "square.stack.3d.up",
+                title: String(localized: "One history for everything", comment: "Trakt benefit title: one history"),
+                detail: String(localized: "What you watch on Plex sits beside what you log from other apps, streaming services and the cinema.", comment: "Trakt benefit detail: one history")
+            ),
+            .init(
+                symbol: "star.leadinghalf.filled",
+                title: String(localized: "Know what's worth it", comment: "Trakt benefit title: scores"),
+                detail: String(localized: "Trakt's score shows beside IMDb and Rotten Tomatoes on every title.", comment: "Trakt benefit detail: scores")
+            ),
+            .init(
+                symbol: "chart.bar.xaxis",
+                title: String(localized: "Your stats, complete", comment: "Trakt benefit title: Everything in Statistics"),
+                detail: String(localized: "With Crucible Pro, Statistics counts everything Trakt knows you watched, not only Plex.", comment: "Trakt benefit detail: Everything in Statistics"),
+                needsPro: true
+            ),
+        ]
+    )
     package static let consentTitle = String(localized: "What Trakt receives", comment: "Heading of the list of data sent to Trakt")
     package static let consentPlays = String(localized: "What you play, when, and how far", comment: "Data sent to Trakt: playback")
     package static let consentRatings = String(localized: "The ratings and watched marks you change", comment: "Data sent to Trakt: ratings and watched state")

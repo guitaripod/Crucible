@@ -6,9 +6,34 @@ package enum SeerrCopy {
     package static let tagline = String(localized: "Ask for what isn't on your server", comment: "Subtitle of the Seerr integration")
     package static let worksWith = String(localized: "Works with Seerr, Overseerr and Jellyseerr set up for Plex.", comment: "Which request apps the Seerr integration supports")
 
-    package static let pitchRequest = String(localized: "Request a movie or show from your watchlist, or the seasons a show is missing", comment: "First line of the Seerr pitch")
-    package static let pitchState = String(localized: "See it go from requested to downloading to ready to play", comment: "Second line of the Seerr pitch")
-    package static let pitchArrival = String(localized: "Requests join your Plex watchlist, so Watchlist Arrivals tells you when they land", comment: "Third line of the Seerr pitch")
+    /// Why connect Seerr: "it's not on Plex" stops being a dead end.
+    package static let pitch = IntegrationPitch(
+        headline: String(localized: "Want something? Ask for it", comment: "Headline of the Seerr pitch in Settings"),
+        story: String(localized: "Seerr runs beside your Plex server and turns “it’s not on Plex” into one tap. Request a film or a missing season in Crucible, and Seerr has it added to your server, ready to play.", comment: "Story under the Seerr pitch headline"),
+        benefits: [
+            .init(
+                symbol: "plus.circle",
+                title: String(localized: "Request it where you find it", comment: "Seerr benefit title: request anywhere"),
+                detail: String(localized: "Search, your Plex watchlist and a show's page offer Request for anything that isn't on the server.", comment: "Seerr benefit detail: request anywhere")
+            ),
+            .init(
+                symbol: "arrow.down.circle",
+                title: String(localized: "See it on its way", comment: "Seerr benefit title: request progress"),
+                detail: String(localized: "Follow each request from requested to approved to downloading, with how far along it is.", comment: "Seerr benefit detail: request progress")
+            ),
+            .init(
+                symbol: "bell.badge",
+                title: String(localized: "Know when it lands", comment: "Seerr benefit title: arrival notification"),
+                detail: String(localized: "Requests join your Plex watchlist, so Watchlist Arrivals tells you the moment they're ready.", comment: "Seerr benefit detail: arrival notification")
+            ),
+            .init(
+                symbol: "person.2.badge.gearshape",
+                title: String(localized: "Run the requests", comment: "Seerr benefit title: managing requests"),
+                detail: String(localized: "If you run the server, Crucible Pro lets you approve, decline and retry everyone's requests from your phone or the couch.", comment: "Seerr benefit detail: managing requests"),
+                needsPro: true
+            ),
+        ]
+    )
     package static let privacy = String(localized: "Seerr runs on your own server. Crucible talks to it directly and signs in with your Plex account; nothing goes anywhere else.", comment: "Privacy note in Seerr settings")
 
     package static let searching = String(localized: "Looking for Seerr on your network…", comment: "Status while Crucible looks for Seerr next to the Plex server")
@@ -57,7 +82,7 @@ package enum SeerrCopy {
         String(localized: "Request \(count) Seasons", comment: "Button that requests the chosen seasons, e.g. Request 2 Seasons")
     }
     package static let notConnectedTitle = String(localized: "Not on Your Server", comment: "Title when a title is not on the server and Seerr is not connected")
-    package static let notConnectedMessage = String(localized: "Connect Seerr, Overseerr or Jellyseerr in Settings › Integrations to request it from here.", comment: "Message when a title is not on the server and Seerr is not connected")
+    package static let notConnectedMessage = String(localized: "Connect Seerr, Overseerr or Jellyseerr in Settings › Integrations and you can request it right here; Crucible tells you when it's ready to play.", comment: "Message when a title is not on the server and Seerr is not connected")
     package static let setUp = String(localized: "Set Up Requests", comment: "Button that opens the Seerr settings")
     package static let notIdentified = String(localized: "Seerr couldn't identify this title.", comment: "Shown when Crucible finds no TMDB id for a title")
 

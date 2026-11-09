@@ -22002,67 +22002,67 @@
         }
       }
     },
-    "Connect Seerr, Overseerr or Jellyseerr in Settings › Integrations to request it from here." : {
+    "Connect Seerr, Overseerr or Jellyseerr in Settings › Integrations and you can request it right here; Crucible tells you when it's ready to play." : {
       "comment" : "Message when a title is not on the server and Seerr is not connected",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verbinde Seerr, Overseerr oder Jellyseerr unter Einstellungen › Integrationen, um es von hier aus anzufragen."
+            "value" : "Verbinde Seerr, Overseerr oder Jellyseerr unter Einstellungen › Integrationen, dann kannst du etwas direkt hier anfragen. Crucible sagt dir Bescheid, sobald es abspielbereit ist."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conecta Seerr, Overseerr o Jellyseerr en Ajustes › Integraciones para pedirlo desde aquí."
+            "value" : "Conecta Seerr, Overseerr o Jellyseerr en Ajustes › Integraciones y podrás solicitarlo desde aquí; Crucible te avisa cuando esté listo para reproducirse."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connectez Seerr, Overseerr ou Jellyseerr dans Réglages › Intégrations pour le demander d'ici."
+            "value" : "Connectez Seerr, Overseerr ou Jellyseerr dans Réglages › Intégrations, et vous pourrez le demander ici même ; Crucible vous prévient dès qu’il est prêt à regarder."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Collega Seerr, Overseerr o Jellyseerr in Impostazioni › Integrazioni per richiederlo da qui."
+            "value" : "Collega Seerr, Overseerr o Jellyseerr in Impostazioni › Integrazioni e potrai richiederlo direttamente qui; Crucible ti avvisa quando è pronto da guardare."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ここからリクエストするには、設定 › 連携でSeerr、Overseerr、Jellyseerrのいずれかを接続してください。"
+            "value" : "設定 › 連携で Seerr、Overseerr、Jellyseerr のいずれかを接続すると、ここからそのままリクエストできます。再生できる状態になったら Crucible がお知らせします。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "여기서 요청하려면 설정 › 연동에서 Seerr, Overseerr 또는 Jellyseerr를 연결해 주세요."
+            "value" : "설정 › 연동에서 Seerr, Overseerr 또는 Jellyseerr를 연결하면 여기서 바로 요청할 수 있어요. 재생할 준비가 되면 Crucible이 알려 드려요."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Połącz Seerr, Overseerr lub Jellyseerr w Ustawieniach › Integracje, aby zgłosić to stąd."
+            "value" : "Połącz Seerr, Overseerr lub Jellyseerr w Ustawieniach › Integracjach, a zgłosisz to stąd; Crucible da znać, kiedy będzie gotowe do odtworzenia."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conecte o Seerr, Overseerr ou Jellyseerr em Ajustes › Integrações para pedir por aqui."
+            "value" : "Conecte o Seerr, o Overseerr ou o Jellyseerr em Ajustes › Integrações e você pode solicitar o título aqui mesmo; o Crucible avisa quando ele estiver pronto para assistir."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在“设置 › 集成”中连接 Seerr、Overseerr 或 Jellyseerr，即可在此请求。"
+            "value" : "在“设置 › 第三方服务”中连接 Seerr、Overseerr 或 Jellyseerr，就能直接在这里请求，内容可以播放时 Crucible 会告诉你。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在「設定 › 整合」中連線 Seerr、Overseerr 或 Jellyseerr，即可在此請求。"
+            "value" : "在「設定」›「第三方服務」連接 Seerr、Overseerr 或 Jellyseerr，就能直接在這裡請求。內容準備好播放時，Crucible 會通知您。"
           }
         }
       }
@@ -36930,6 +36930,71 @@
         }
       }
     },
+    "Every episode and film you watch is checked off on Trakt by itself, downloads too once you're back online." : {
+      "comment" : "Trakt benefit detail: automatic scrobbling",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Folge und jeder Film, den du schaust, wird bei Trakt automatisch abgehakt, Downloads ebenso, sobald du wieder online bist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada episodio y película que ves se marca como visto en Trakt solo, y las descargas también en cuanto vuelves a tener conexión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque épisode et chaque film que vous regardez est marqué comme vu sur Trakt automatiquement, et les téléchargements aussi dès que vous êtes de nouveau en ligne."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni episodio e film che guardi viene segnato su Trakt in automatico, anche i download appena torni online."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "観たエピソードや映画は自動で Trakt にチェックされ、ダウンロードして観た分もオンラインに戻ると記録されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보는 모든 에피소드와 영화가 Trakt에 자동으로 체크돼요. 다운로드한 항목도 다시 온라인이 되면 체크돼요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy odcinek i film, który obejrzysz, sam trafia do Trakt jako obejrzany, a pobrane też, gdy znów będziesz online."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo episódio e filme que você assistir é marcado como visto no Trakt sozinho, e os downloads também, assim que você se reconectar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你看过的每一集和每部电影都会自动在 Trakt 上标记为已看，离线下载的内容在重新联网后也会同步。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您看過的每一集和每部電影，都會自動在 Trakt 標示為已看。離線下載的內容也會在恢復連線後補上。"
+          }
+        }
+      }
+    },
     "Every episode, in order" : {
       "comment" : "Subtitle of the All Episodes level",
       "localizations" : {
@@ -37250,6 +37315,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 中的所有設定都會恢復為 Crucible 的初始狀態。"
+          }
+        }
+      }
+    },
+    "Every show and film you watch, remembered" : {
+      "comment" : "Headline of the Trakt pitch in Settings",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles, was du schaust, festgehalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada serie y película que ves, recordada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque série et chaque film regardé, gardé en mémoire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricordiamo ogni serie e film che guardi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "観た番組と映画を、残らず記録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보는 모든 시리즈와 영화를 기억해요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy serial i film, który oglądasz, zapamiętany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo o que você assiste, sempre lembrado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你看过的剧集和电影，都替你记着"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看過的影集與電影，全都記下了"
           }
         }
       }
@@ -39314,6 +39444,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "資料夾"
+          }
+        }
+      }
+    },
+    "Follow each request from requested to approved to downloading, with how far along it is." : {
+      "comment" : "Seerr benefit detail: request progress",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfolge jede Anfrage vom Stellen über die Freigabe bis zum Download und sieh, wie weit sie ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sigue cada solicitud desde que se pide hasta que se aprueba y se descarga, con su avance en cada paso."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suivez chaque demande, de l’envoi à l’approbation puis au téléchargement, et voyez où elle en est."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segui ogni richiesta, dall'invio all'approvazione fino al download, con lo stato di avanzamento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「リクエスト済み」「承認済み」「ダウンロード中」と進んでいく流れを、どこまで進んだかとともに追えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청, 승인, 다운로드 중으로 이어지는 각 요청의 진행 상황을 따라가며 볼 수 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Śledź każdą prośbę od zgłoszenia, przez zatwierdzenie, po pobieranie, wraz z tym, na jakim etapie jest."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja cada solicitação passar de solicitada a aprovada e baixando, com o andamento de cada uma."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追踪每个请求从已请求、已批准到下载中的全过程，并显示进度。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每個請求從「已請求」、「已核准」到「下載中」，進度一目了然。"
           }
         }
       }
@@ -43852,6 +44047,71 @@
         }
       }
     },
+    "If you run the server, Crucible Pro lets you approve, decline and retry everyone's requests from your phone or the couch." : {
+      "comment" : "Seerr benefit detail: managing requests",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betreibst du den Server, kannst du mit Crucible Pro die Anfragen aller genehmigen, ablehnen und erneut versuchen, vom Handy oder vom Sofa aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si administras el servidor, Crucible Pro te permite aprobar, rechazar y reintentar las solicitudes de todos desde el móvil o desde el sofá."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si vous gérez le serveur, Crucible Pro vous permet d’approuver, de refuser et de relancer les demandes de tout le monde, depuis votre téléphone ou le canapé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se gestisci il server, Crucible Pro ti permette di approvare, rifiutare e riprovare le richieste di tutti dal telefono o dal divano."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーを運営しているなら、Crucible Pro で全員のリクエストを、スマートフォンからでもソファに座ったままでも、承認・拒否・再試行できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버를 직접 운영한다면 Crucible Pro로 모든 사람의 요청을 휴대폰에서든 소파에서든 승인, 거절, 재시도할 수 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeśli prowadzisz serwer, Crucible Pro pozwala zatwierdzać, odrzucać i ponawiać prośby wszystkich z telefonu lub z kanapy."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se você administra o servidor, o Crucible Pro permite aprovar, recusar e tentar de novo as solicitações de todo mundo pelo celular ou do sofá."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你管理服务器，Crucible Pro 让你在手机上或沙发上批准、拒绝和重试所有人的请求。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果您管理伺服器，Crucible Pro 讓您在手機或沙發上，就能核准、拒絕和重試每個人的請求。"
+          }
+        }
+      }
+    },
     "Image cache" : {
       "localizations" : {
         "de" : {
@@ -47268,6 +47528,136 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已保留"
+          }
+        }
+      }
+    },
+    "Know what's worth it" : {
+      "comment" : "Trakt benefit title: scores",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sieh, was sich lohnt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sabe qué merece la pena"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sachez ce qui en vaut la peine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sai cosa vale la pena"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "観る価値が分かる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "볼 만한지 바로 알아요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiesz, co warto obejrzeć"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saiba o que vale a pena"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "知道什么值得看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一眼看出值不值得看"
+          }
+        }
+      }
+    },
+    "Know when it lands" : {
+      "comment" : "Seerr benefit title: arrival notification",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfahre, wann es da ist"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sabe cuándo llega"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sachez quand il arrive"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sai quando arriva"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "届いたらすぐ分かる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도착하면 바로 알아요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiesz, kiedy to się pojawi"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saiba quando chega"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一上线就知道"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到貨時立即知道"
           }
         }
       }
@@ -61131,6 +61521,71 @@
         }
       }
     },
+    "Nothing to log" : {
+      "comment" : "Trakt benefit title: automatic scrobbling",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Eintragen nötig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada que registrar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien à saisir"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente da registrare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録の手間いらず"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "따로 기록할 게 없어요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie trzeba zapisywać"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada para registrar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需手动记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不必手動記錄"
+          }
+        }
+      }
+    },
     "Notifications" : {
       "comment" : "Settings category for notifications",
       "localizations" : {
@@ -62872,6 +63327,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已在伺服器上"
+          }
+        }
+      }
+    },
+    "One history for everything" : {
+      "comment" : "Trakt benefit title: one history",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Verlauf für alles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un solo historial para todo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un seul historique pour tout"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un'unica cronologia per tutto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての履歴をひとつに"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 기록을 한곳에"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedna historia dla wszystkiego"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um histórico para tudo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有观看，一份记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有內容，同一份紀錄"
           }
         }
       }
@@ -70243,6 +70763,71 @@
         }
       }
     },
+    "Pro" : {
+      "comment" : "Badge on an integration benefit that needs Crucible Pro",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        }
+      }
+    },
     "Pro week · %lld days left" : {
       "localizations" : {
         "de" : {
@@ -72757,71 +73342,6 @@
         }
       }
     },
-    "Records what you play as you play it, downloads too" : {
-      "comment" : "First line of the Trakt pitch: scrobbling",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erfasst, was du abspielst, während du schaust, auch Downloads"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra lo que reproduces mientras lo ves, también descargas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enregistre ce que vous lisez au fil de la lecture, téléchargements compris"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra ciò che riproduci mentre lo riproduci, anche i download"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "再生した作品を、ダウンロード分も含めてその場で記録します"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "재생하는 항목을 바로 기록합니다. 다운로드한 항목도 포함됩니다."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zapisuje to, co odtwarzasz, na bieżąco, także pobrane"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra o que você reproduz enquanto reproduz, inclusive downloads"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "播放时即时记录，下载内容也会记录"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "播放時即時記錄，下載內容也會記錄"
-          }
-        }
-      }
-    },
     "Refresh" : {
       "comment" : "Button that retries loading the home screen",
       "localizations" : {
@@ -75037,67 +75557,67 @@
         }
       }
     },
-    "Request a movie or show from your watchlist, or the seasons a show is missing" : {
-      "comment" : "First line of the Seerr pitch",
+    "Request it where you find it" : {
+      "comment" : "Seerr benefit title: request anywhere",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fordere einen Film oder eine Serie aus deiner Watchlist an oder die fehlenden Staffeln einer Serie."
+            "value" : "Frag an, wo du es findest"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solicita una película o serie de tu lista para ver, o las temporadas que le faltan a una serie."
+            "value" : "Solicítalo donde lo encuentres"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Demandez un film ou une série depuis votre liste de suivi, ou les saisons qui manquent à une série"
+            "value" : "Demandez-le là où vous le trouvez"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Richiedi un film o una serie dalla tua watchlist, o le stagioni mancanti di una serie"
+            "value" : "Richiedilo dove lo trovi"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ウォッチリストの映画や番組、または番組で不足しているシーズンをリクエストできます"
+            "value" : "見つけた場所でリクエスト"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "관심 목록의 영화나 시리즈, 또는 시리즈에서 없는 시즌을 요청할 수 있어요"
+            "value" : "찾은 곳에서 바로 요청하세요"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zgłoś film lub serial z listy do obejrzenia albo brakujące sezony serialu."
+            "value" : "Zgłoś to tam, gdzie to znajdziesz"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solicite um filme ou série da sua lista para assistir, ou as temporadas que faltam de uma série."
+            "value" : "Solicite onde você encontrar"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从待看列表请求电影或剧集，或请求剧集缺失的季"
+            "value" : "在找到它的地方直接请求"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "從待看清單請求電影或影集，或請求影集缺少的季"
+            "value" : "在找到它的地方直接請求"
           }
         }
       }
@@ -75490,67 +76010,67 @@
         }
       }
     },
-    "Requests join your Plex watchlist, so Watchlist Arrivals tells you when they land" : {
-      "comment" : "Third line of the Seerr pitch",
+    "Requests join your Plex watchlist, so Watchlist Arrivals tells you the moment they're ready." : {
+      "comment" : "Seerr benefit detail: arrival notification",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anfragen landen auf deiner Plex-Watchlist, daher meldet dir Neue Titel auf der Watchlist, wenn sie da sind."
+            "value" : "Anfragen landen auf deiner Plex-Watchlist, daher sagt dir Neue Titel auf der Watchlist Bescheid, sobald sie bereit sind."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las solicitudes se añaden a tu lista para ver de Plex, así Novedades en la lista para ver te avisa cuando llegan"
+            "value" : "Las solicitudes pasan a tu lista para ver de Plex, así que Novedades en la lista para ver te avisa en cuanto estén listas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les demandes rejoignent votre liste de suivi Plex, ainsi Arrivées dans la liste de suivi vous prévient quand elles arrivent"
+            "value" : "Les demandes rejoignent votre liste de suivi Plex, si bien que « Arrivées dans la liste de suivi » vous prévient dès qu’elles sont prêtes."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le richieste finiscono nella tua watchlist Plex, così Arrivi in Watchlist ti avvisa quando arrivano"
+            "value" : "Le richieste entrano nella watchlist di Plex, così Arrivi in Watchlist ti avvisa nel momento in cui sono pronte."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リクエストはPlexのウォッチリストに追加されるため、ウォッチリストの到着通知で届いたときにお知らせします"
+            "value" : "リクエストした作品は Plex のウォッチリストに加わるので、「ウォッチリストへの追加」の通知で準備ができた瞬間にお知らせします。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "요청한 항목은 Plex 관심 목록에 추가되어, 관심 목록 도착 알림으로 도착을 알려드려요"
+            "value" : "요청한 작품이 Plex 관심 목록에 올라오니, 준비되는 순간 관심 목록 도착에서 알려 드려요."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prośby trafiają na Twoją listę Plex, więc Nowości na liście do obejrzenia powiadomią Cię, gdy się pojawią."
+            "value" : "Prośby trafiają na twoją listę do obejrzenia w Plex, więc Nowości na liście do obejrzenia dadzą znać w chwili, gdy będą gotowe."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As solicitações entram na sua lista para assistir do Plex, então as Chegadas à lista para assistir avisam quando chegarem"
+            "value" : "As solicitações entram na sua lista para assistir do Plex, então Chegadas à lista para assistir avisa no instante em que estiverem prontas."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请求会加入你的 Plex 待看列表，因此“待看到货”会在内容到达时通知你"
+            "value" : "请求的内容会加入你的 Plex 待看列表，因此“待看列表内容上线”会在内容准备好的那一刻通知你。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請求會加入你的 Plex 待看清單，因此「待看到貨」會在內容到達時通知你"
+            "value" : "請求的內容會加入您的 Plex 待看清單，因此「待看清單到貨」會在內容準備好的那一刻通知您。"
           }
         }
       }
@@ -77225,6 +77745,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rotten Tomatoes"
+          }
+        }
+      }
+    },
+    "Run the requests" : {
+      "comment" : "Seerr benefit title: managing requests",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfragen bearbeiten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestiona las solicitudes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gérez les demandes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestisci le richieste"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエストを管理"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청을 직접 관리하세요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarządzaj prośbami"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerencie as solicitações"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "掌控所有请求"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理請求"
           }
         }
       }
@@ -79228,6 +79813,71 @@
         }
       }
     },
+    "Search, your Plex watchlist and a show's page offer Request for anything that isn't on the server." : {
+      "comment" : "Seerr benefit detail: request anywhere",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Suche, auf deiner Plex-Watchlist und auf der Seite einer Serie gibt es für alles, was nicht auf dem Server ist, die Schaltfläche Anfragen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar, tu lista para ver de Plex y la página de una serie muestran el botón Solicitar para cualquier título que no esté en el servidor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La recherche, votre liste de suivi Plex et la page d’une série proposent « Demander » pour tout ce qui n’est pas sur le serveur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nella scheda Cerca, nella tua watchlist di Plex e nella pagina di una serie c'è Richiedi per tutto ciò che non è sul server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索、Plex のウォッチリスト、番組のページで、サーバーにない作品には「リクエスト」が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색, Plex 관심 목록, 시리즈 페이지에서 서버에 없는 작품은 바로 요청할 수 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szukaj, lista do obejrzenia w Plex i strona serialu oferują przycisk Zgłoś przy wszystkim, czego nie ma na serwerze."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tela Buscar, sua lista para assistir do Plex e a página de uma série oferecem Solicitar para tudo o que não está no servidor."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索、你的 Plex 待看列表和剧集页面，都会为服务器上没有的内容提供“请求”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋、您的 Plex 待看清單與影集頁面，都會為伺服器上沒有的內容提供「請求」。"
+          }
+        }
+      }
+    },
     "Searches again" : {
       "localizations" : {
         "de" : {
@@ -80002,67 +80652,67 @@
         }
       }
     },
-    "See it go from requested to downloading to ready to play" : {
-      "comment" : "Second line of the Seerr pitch",
+    "See it on its way" : {
+      "comment" : "Seerr benefit title: request progress",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verfolge, wie es von angefragt über heruntergeladen bis abspielbereit wird."
+            "value" : "Behalte den Weg im Blick"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mira cómo pasa de solicitada a descargando y lista para reproducir"
+            "value" : "Mira cómo avanza"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suivez son passage de demandée à en téléchargement, puis à prête à regarder"
+            "value" : "Il est en route"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guarda il passaggio da richiesto a download in corso, fino a pronto per la riproduzione"
+            "value" : "Seguilo mentre arriva"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リクエスト済みから、ダウンロード中、再生可能になるまでを確認できます"
+            "value" : "進み具合が分かる"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "요청함에서 다운로드 중, 재생 준비 완료까지 확인할 수 있어요"
+            "value" : "어디까지 왔는지 보여요"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zobacz, jak przechodzi od zgłoszenia przez pobieranie do gotowości do odtworzenia."
+            "value" : "Śledź, jak to nadchodzi"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acompanhe da solicitação ao download, até estar pronto para assistir"
+            "value" : "Acompanhe cada passo"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "看着它从已请求、下载中，到可以播放"
+            "value" : "看着它一步步到来"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "看它從已請求、下載中，到可以播放"
+            "value" : "掌握進度"
           }
         }
       }
@@ -81233,6 +81883,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seerr 只會在家用網路上回應。若要在任何地方提出請求，請在這台裝置和 Plex 電腦上開啟 Tailscale。"
+          }
+        }
+      }
+    },
+    "Seerr runs beside your Plex server and turns “it’s not on Plex” into one tap. Request a film or a missing season in Crucible, and Seerr has it added to your server, ready to play." : {
+      "comment" : "Story under the Seerr pitch headline",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr läuft neben deinem Plex-Server und macht aus „Das ist nicht auf Plex“ einen Fingertipp. Frag in Crucible einen Film oder eine fehlende Staffel an, und Seerr fügt den Titel deinem Server hinzu, bereit zum Abspielen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr funciona junto a tu servidor de Plex y convierte «no está en Plex» en un solo toque. Solicita una película o una temporada que falte en Crucible, y Seerr la añade a tu servidor, lista para reproducirse."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr fonctionne à côté de votre serveur Plex et transforme « ce n’est pas sur Plex » en une seule touche. Demandez un film ou une saison manquante dans Crucible, et Seerr l’ajoute à votre serveur, prêt à regarder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr funziona accanto al tuo server Plex e trasforma «non è su Plex» in un solo tocco. Richiedi un film o una stagione mancante in Crucible e Seerr fa aggiungere ciò che hai richiesto al tuo server, pronto da guardare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr は Plex サーバーと並んで動き、「Plexにない」をワンタップで解決します。Crucible で映画や足りないシーズンをリクエストすると、Seerr がそれをサーバーに追加して、すぐ再生できるようにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr는 Plex 서버 곁에서 돌아가며, “Plex에 없어요”를 한 번의 탭으로 바꿔 줘요. Crucible에서 영화나 빠진 시즌을 요청하면 Seerr가 서버에 추가해 바로 재생할 수 있게 준비해 줘요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr działa obok Twojego serwera Plex i zamienia „nie ma tego w Plex” w jedno dotknięcie. Zgłoś film lub brakujący sezon w Crucible, a Seerr dodaje go do serwera, gotowy do odtworzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Seerr roda ao lado do seu servidor Plex e transforma “não está no Plex” em um único toque. Solicite um filme ou uma temporada que está faltando no Crucible, e o Seerr o coloca no seu servidor, pronto para assistir."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr 与你的 Plex 服务器并行运行，只需轻点一下，就能解决“不在 Plex 上”的问题。在 Crucible 中请求一部电影或缺少的一季，Seerr 就会把它添加到你的服务器，随时可以播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seerr 與您的 Plex 伺服器並肩運作，只要輕點一下，「Plex 上沒有」的內容就能補上。在 Crucible 中請求一部電影或缺少的一季，Seerr 會把它加入您的伺服器，準備好播放。"
           }
         }
       }
@@ -82525,71 +83240,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將 App 紀錄傳送給您選擇的對象，協助找出問題。"
-          }
-        }
-      }
-    },
-    "Sends what you mark watched, your ratings and your check-ins" : {
-      "comment" : "Second line of the Trakt pitch",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sendet, was du als gesehen markierst, deine Bewertungen und deine Check-ins"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Envía lo que marcas como visto, tus valoraciones y tus check-ins"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Envoie ce que vous marquez comme vu, vos notes et vos check-ins"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invia ciò che contrassegni come visto, le tue valutazioni e i tuoi check-in"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "視聴済みにした作品、評価、チェックインを送信します"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "시청함으로 표시한 항목, 평점, 체크인을 보냅니다"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wysyła oznaczenia obejrzanych, Twoje oceny i zameldowania"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Envia o que você marca como assistido, suas avaliações e seus check-ins"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "发送你标记的已观看状态、评分和签到"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "傳送您標示的已看狀態、評分與簽到"
           }
         }
       }
@@ -84716,71 +85366,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "影集"
-          }
-        }
-      }
-    },
-    "Shows Trakt's score next to IMDb and Rotten Tomatoes on every title" : {
-      "comment" : "Third line of the Trakt pitch",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeigt bei jedem Titel Trakts Wertung neben IMDb und Rotten Tomatoes"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Muestra la puntuación de Trakt junto a IMDb y Rotten Tomatoes en cada título"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Affiche la note de Trakt à côté d'IMDb et de Rotten Tomatoes sur chaque titre"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra il punteggio di Trakt accanto a IMDb e Rotten Tomatoes su ogni titolo"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべてのタイトルで、IMDb や Rotten Tomatoes と並べて Trakt のスコアを表示します"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "모든 제목에서 IMDb, Rotten Tomatoes 옆에 Trakt 점수를 표시합니다"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokazuje ocenę Trakt obok IMDb i Rotten Tomatoes przy każdym tytule"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra a nota do Trakt ao lado de IMDb e Rotten Tomatoes em cada título"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在每个作品上显示 Trakt 评分，并与 IMDb 和 Rotten Tomatoes 并列"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在每個作品上顯示 Trakt 評分，並與 IMDb 和 Rotten Tomatoes 並列"
           }
         }
       }
@@ -100277,6 +100862,71 @@
         }
       }
     },
+    "Trakt keeps one history of everything you watch, on Plex and everywhere else. Crucible fills it in as you watch, so you always know where you are in a show, what you've seen and what's worth watching next." : {
+      "comment" : "Story under the Trakt pitch headline",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt führt einen Verlauf von allem, was du schaust, auf Plex und überall sonst. Crucible füllt ihn beim Schauen automatisch, sodass du immer weißt, wo du in einer Serie stehst, was du schon gesehen hast und was sich als Nächstes zu schauen lohnt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt guarda un solo historial de todo lo que ves, en Plex y en cualquier otro sitio. Crucible lo va completando mientras ves, así siempre sabes por dónde vas en una serie, qué has visto y qué merece la pena ver a continuación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt garde un seul historique de tout ce que vous regardez, sur Plex comme ailleurs. Crucible le complète à mesure que vous regardez, pour que vous sachiez toujours où vous en êtes dans une série, ce que vous avez vu et ce qui vaut la peine d’être regardé ensuite."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt tiene un'unica cronologia di tutto ciò che guardi, su Plex e ovunque altro. Crucible la compila mentre guardi, così sai sempre a che punto sei in una serie, cosa hai già visto e cosa vale la pena guardare dopo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt は、Plex でも他のどこでも観た作品を、ひとつの履歴にまとめて残します。Crucible は観ながら履歴を自動で埋めていくので、番組のどこまで進んだか、何を観たか、次に観る価値のある作品は何か、いつでも分かります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt는 Plex에서든 다른 곳에서든 보는 모든 것을 하나의 기록으로 간직해요. Crucible은 보는 동안 기록을 채워 줘서, 시리즈 어디까지 봤는지, 무엇을 봤는지, 다음에 볼 만한 작품이 무엇인지 언제나 알 수 있어요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt zapisuje jedną historię wszystkiego, co oglądasz, w Plex i wszędzie indziej. Crucible uzupełnia ją na bieżąco, w miarę oglądania, dzięki czemu zawsze wiesz, w którym miejscu serialu jesteś, co już widziałeś i co warto obejrzeć dalej."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt mantém um único histórico de tudo o que você assiste, no Plex e em qualquer outro lugar. O Crucible o vai preenchendo enquanto você assiste, então você sempre sabe em que ponto está em cada série, o que já viu e o que vale a pena assistir em seguida."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 会为你在 Plex 及其他各处看过的所有内容保存同一份观看记录。Crucible 会在你观看时自动填写，让你随时知道一部剧看到哪一集了、看过什么，以及接下来值得看什么。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 為您保存一份完整的觀看紀錄，不論在 Plex 或其他地方看的都包括在內。您觀看時，Crucible 會自動記錄，讓您隨時知道影集看到哪一集、看過什麼，以及接下來值得看什麼。"
+          }
+        }
+      }
+    },
     "Trakt signed Crucible out. Connect again in Settings." : {
       "comment" : "Trakt error when the token is no longer accepted",
       "localizations" : {
@@ -100663,6 +101313,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trakt 內建的 Plex 同步已開啟。若兩者都記錄，每一集都會被計算兩次。請擇一。"
+          }
+        }
+      }
+    },
+    "Trakt's score shows beside IMDb and Rotten Tomatoes on every title." : {
+      "comment" : "Trakt benefit detail: scores",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bewertung von Trakt steht bei jedem Titel neben IMDb und Rotten Tomatoes."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La puntuación de Trakt aparece junto a la de IMDb y Rotten Tomatoes en cada título."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La note de Trakt s’affiche à côté de celles d’IMDb et de Rotten Tomatoes, sur chaque titre."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il punteggio di Trakt compare accanto a IMDb e Rotten Tomatoes su ogni titolo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt のスコアは、すべての作品で IMDb や Rotten Tomatoes と並んで表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 작품에서 Trakt 점수가 IMDb, Rotten Tomatoes 점수와 나란히 표시돼요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocena Trakt pojawia się obok ocen IMDb i Rotten Tomatoes przy każdym tytule."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A nota do Trakt aparece ao lado do IMDb e do Rotten Tomatoes em todos os títulos."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 评分会与 IMDb 和 Rotten Tomatoes 评分并排显示在每个标题旁。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每部作品都會在 IMDb 與 Rotten Tomatoes 旁顯示 Trakt 評分。"
           }
         }
       }
@@ -104402,6 +105117,71 @@
         }
       }
     },
+    "Want something? Ask for it" : {
+      "comment" : "Headline of the Seerr pitch in Settings",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Willst du etwas? Frag nach."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Quieres algo? Pídelo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envie de quelque chose ? Demandez-le"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuoi qualcosa? Richiedilo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "観たい作品はリクエスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원하는 게 있다면 요청하세요"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czegoś chcesz? Poproś o to"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quer algo? Peça."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "想看什么？提出请求吧"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "想看什麼？直接請求"
+          }
+        }
+      }
+    },
     "Watch Credits" : {
       "localizations" : {
         "de" : {
@@ -105818,6 +106598,71 @@
         }
       }
     },
+    "What you watch on Plex sits beside what you log from other apps, streaming services and the cinema." : {
+      "comment" : "Trakt benefit detail: one history",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du auf Plex schaust, steht neben dem, was du in anderen Apps, bei Streamingdiensten oder im Kino einträgst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que ves en Plex aparece junto a lo que registras en otras apps, servicios de streaming y el cine."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que vous regardez sur Plex s’ajoute à ce que vous enregistrez dans d’autres applications, sur les services de streaming et au cinéma."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quello che guardi su Plex si affianca a ciò che registri da altre app, servizi di streaming e cinema."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex で観た作品は、他のアプリや配信サービス、映画館で記録したものと並んで残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex에서 보는 작품은 다른 앱, 스트리밍 서비스, 영화관에서 기록한 것과 나란히 놓여요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To, co oglądasz w Plex, sąsiaduje z tym, co zapisujesz w innych aplikacjach, serwisach streamingowych i w kinie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que você assiste no Plex fica ao lado do que você registra em outros apps, serviços de streaming e no cinema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你在 Plex 上看的内容，会与你在其他应用、流媒体服务和影院记录的内容并列显示。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您在 Plex 上看的內容，會與您在其他 App、串流服務和電影院記錄的內容並列在一起。"
+          }
+        }
+      }
+    },
     "What your server is doing right now." : {
       "comment" : "Explanation under the server dashboard's title",
       "localizations" : {
@@ -106521,6 +107366,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "僅限 Wi-Fi"
+          }
+        }
+      }
+    },
+    "With Crucible Pro, Statistics counts everything Trakt knows you watched, not only Plex." : {
+      "comment" : "Trakt benefit detail: Everything in Statistics",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Crucible Pro zählen die Statistiken alles, was Trakt als von dir gesehen kennt, nicht nur Plex."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Crucible Pro, Estadísticas cuenta todo lo que Trakt sabe que has visto, no solo Plex."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec Crucible Pro, les Statistiques comptent tout ce que Trakt sait de ce que vous avez regardé, et pas seulement Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Crucible Pro, Statistiche conta tutto ciò che Trakt sa che hai guardato, non solo su Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro なら、統計は Plex だけでなく、Trakt に記録されたすべての視聴を数えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro를 쓰면 통계가 Plex뿐 아니라 Trakt에 있는 모든 시청 기록을 집계해요."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z Crucible Pro Statystyki liczą wszystko, co Trakt wie o Twoim oglądaniu, a nie tylko Plex."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com o Crucible Pro, as Estatísticas contam tudo o que o Trakt sabe que você assistiu, não só o Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Crucible Pro 后，“统计”会计入 Trakt 记录的全部观看内容，而不只是 Plex 上的。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Crucible Pro 時，「統計資料」會計入 Trakt 記錄到的所有觀看內容，而不只 Plex。"
           }
         }
       }
@@ -110195,6 +111105,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的伺服器沒有此影集的設定項目。"
+          }
+        }
+      }
+    },
+    "Your stats, complete" : {
+      "comment" : "Trakt benefit title: Everything in Statistics",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Statistiken, vollständig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus estadísticas, completas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos statistiques complètes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tue statistiche, complete"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "統計がすべてそろう"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통계, 빠짐없이"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pełne statystyki"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suas estatísticas, completas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "统计数据，一应俱全"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "統計資料，完整呈現"
           }
         }
       }
