@@ -210,7 +210,7 @@ final class SettingsNavigator {
         case .destination(.crucibleServer):
             return CompanionStore.current()?.name ?? CompanionCopy.notSetUp
         case .destination(.trakt):
-            return TraktAccount.shared.summary
+            return TraktAccount.shared.rowStatus
         case .destination(.seerr):
             return SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected")
         case .action(.clearImageCache):

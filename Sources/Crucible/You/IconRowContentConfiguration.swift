@@ -2,7 +2,9 @@ import CrucibleDesign
 import UIKit
 
 /// Grouped-list row: a 32pt neutral icon well, title with optional badge and subtitle, and an optional
-/// trailing value. When `menu` is set the whole row is a menu button.
+/// value. The value is never cut short: it sits at the trailing edge while it fits there beside a one-line
+/// title, and moves under the title and subtitle when it would not or the text is extra large.
+/// When `menu` is set the whole row is a menu button.
 struct IconRowContentConfiguration: UIContentConfiguration {
     struct Toggle {
         var isOn: Bool
@@ -48,7 +50,13 @@ final class IconRowContentView: UIView, UIContentView {
     private let menuChevron = UIImageView()
     private let toggleSwitch = UISwitch()
     private let rootStack = UIStackView()
+    private let textStack = UIStackView()
+    private let trailingStack = UIStackView()
     private let menuButton = UIButton(configuration: .plain())
+    private var valueStacked = false
+
+    /// The most of the row's text width a trailing value may take before it moves under the title.
+    private static let trailingShare: CGFloat = 0.42
 
     init(configuration: IconRowContentConfiguration) {
         self.configuration = configuration
@@ -124,25 +132,27 @@ final class IconRowContentView: UIView, UIContentView {
         subtitleLabel.adjustsFontForContentSizeCategory = true
         subtitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
-        let textStack = UIStackView(arrangedSubviews: [titleRow, subtitleLabel])
+        [titleRow, subtitleLabel].forEach(textStack.addArrangedSubview)
         textStack.axis = .vertical
         textStack.spacing = 2
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        textStack.setContentCompressionResistancePriority(UILayoutPriority(751), for: .horizontal)
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         valueLabel.font = Theme.Font.subheadline
         valueLabel.textColor = Theme.Color.labelSecondary
         valueLabel.textAlignment = .right
         valueLabel.numberOfLines = 1
-        valueLabel.lineBreakMode = .byTruncatingMiddle
         valueLabel.adjustsFontForContentSizeCategory = true
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
-        valueLabel.setContentCompressionResistancePriority(UILayoutPriority(749), for: .horizontal)
+        valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        valueLabel.setContentCompressionResistancePriority(.required, for: .vertical)
 
         menuChevron.image = UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
         menuChevron.tintColor = Theme.Color.labelTertiary
         menuChevron.setContentHuggingPriority(.required, for: .horizontal)
         menuChevron.setContentCompressionResistancePriority(.required, for: .horizontal)
+        menuChevron.contentMode = .center
+        menuChevron.widthAnchor.constraint(equalToConstant: menuChevron.image?.size.width ?? 12).isActive = true
 
         toggleSwitch.onTintColor = Theme.Color.accent
         toggleSwitch.setContentHuggingPriority(.required, for: .horizontal)
@@ -153,8 +163,11 @@ final class IconRowContentView: UIView, UIContentView {
             toggle.onChange(toggleSwitch.isOn)
         }, for: .valueChanged)
 
-        let trailing = UIStackView(arrangedSubviews: [valueLabel, menuChevron, toggleSwitch])
+        let trailing = trailingStack
+        [valueLabel, menuChevron, toggleSwitch].forEach(trailing.addArrangedSubview)
         trailing.axis = .horizontal
+        trailing.setContentHuggingPriority(.required, for: .horizontal)
+        trailing.setContentCompressionResistancePriority(.required, for: .horizontal)
         trailing.spacing = 4
         trailing.alignment = .center
 
@@ -172,6 +185,9 @@ final class IconRowContentView: UIView, UIContentView {
             root.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
         ])
 
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: IconRowContentView, _: UITraitCollection) in
+            view.placeValue()
+        }
         menuButton.showsMenuAsPrimaryAction = true
         menuButton.isPointerInteractionEnabled = true
         menuButton.configurationUpdateHandler = { button in
@@ -206,6 +222,8 @@ final class IconRowContentView: UIView, UIContentView {
         valueLabel.isHidden = config.value == nil
         menuChevron.isHidden = config.menu == nil
         toggleSwitch.isHidden = config.toggle == nil
+        placeValue()
+        hideEmptyTrailing()
         rootStack.isUserInteractionEnabled = config.toggle != nil
         if let toggle = config.toggle {
             toggleSwitch.setOn(toggle.isOn, animated: false)
@@ -224,6 +242,53 @@ final class IconRowContentView: UIView, UIContentView {
         accessibilityElements = config.toggle == nil ? nil : [toggleSwitch]
         accessibilityLabel = spoken
         accessibilityTraits = config.isActionable && config.menu == nil && config.toggle == nil ? .button : []
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        placeValue()
+    }
+
+    /// Puts the value beside the text or under it (`trailingShare`), and has the cell size itself again when that changes.
+    private func placeValue() {
+        let stacked = valueStacks()
+        guard stacked != valueStacked else { return }
+        valueStacked = stacked
+        valueLabel.removeFromSuperview()
+        if stacked {
+            textStack.addArrangedSubview(valueLabel)
+            valueLabel.textAlignment = .natural
+            valueLabel.numberOfLines = 0
+        } else {
+            trailingStack.insertArrangedSubview(valueLabel, at: 0)
+            valueLabel.textAlignment = .right
+            valueLabel.numberOfLines = 1
+        }
+        hideEmptyTrailing()
+        invalidateIntrinsicContentSize()
+        setNeedsLayout()
+    }
+
+    /// A trailing stack with nothing to show leaves the row, so it cannot take the text's width.
+    private func hideEmptyTrailing() {
+        trailingStack.isHidden = trailingStack.arrangedSubviews.allSatisfy(\.isHidden)
+    }
+
+    /// Whether the value would take more than its share of the room the text has, or push the title onto a second line;
+    /// both are measured on one line.
+    private func valueStacks() -> Bool {
+        guard let value = valueLabel.text, !value.isEmpty, !valueLabel.isHidden else { return false }
+        if traitCollection.preferredContentSizeCategory.isAccessibilityCategory { return true }
+        let width = bounds.width > 0 ? bounds.width : window?.bounds.width ?? 0
+        guard width > 0 else { return false }
+        var room = width - directionalLayoutMargins.leading - directionalLayoutMargins.trailing - 32 - rootStack.spacing
+        if !menuChevron.isHidden { room -= menuChevron.intrinsicContentSize.width + trailingStack.spacing }
+        if !toggleSwitch.isHidden { room -= toggleSwitch.intrinsicContentSize.width + trailingStack.spacing }
+        let valueWidth = (value as NSString).size(withAttributes: [.font: valueLabel.font as Any]).width.rounded(.up)
+        guard valueWidth <= room * Self.trailingShare else { return true }
+        var titleWidth = ((titleLabel.text ?? "") as NSString).size(withAttributes: [.font: titleLabel.font as Any]).width.rounded(.up)
+        if !badgeContainer.isHidden { titleWidth += badgeContainer.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).width + 8 }
+        return titleWidth + rootStack.spacing + valueWidth > room
     }
 }
 

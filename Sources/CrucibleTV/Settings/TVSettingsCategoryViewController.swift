@@ -109,7 +109,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         case .destination(.libraries): return LibrariesSettings.summary
         case .destination(.homeRows): return String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows")
         case .destination(.about): return AppInfo.versionSummary
-        case .destination(.trakt): return TraktAccount.shared.summary
+        case .destination(.trakt): return TraktAccount.shared.rowStatus
         case .destination(.seerr): return SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected")
         default: return nil
         }

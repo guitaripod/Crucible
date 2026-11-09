@@ -84,6 +84,15 @@ package final class TraktAccount {
     }
 
     /// A line for the Integrations category on the first Settings screen.
+    /// The status on a row already titled Trakt: the account's name, or what to do next.
+    package var rowStatus: String {
+        switch status {
+        case .connected(let profile): return profile?.username ?? String(localized: "Connected", comment: "Trakt row status while Trakt is connected")
+        case .needsReconnect: return String(localized: "Connect again", comment: "Trakt row status when Trakt signed Crucible out")
+        case .disconnected, .restricted, .unavailable: return String(localized: "Off", comment: "Integrations summary when nothing is connected")
+        }
+    }
+
     package var summary: String {
         switch status {
         case .connected(let profile): return profile.map { "Trakt · \($0.username)" } ?? String(localized: "Trakt · Connected", comment: "Integrations summary while Trakt is connected")

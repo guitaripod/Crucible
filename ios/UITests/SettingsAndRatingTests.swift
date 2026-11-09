@@ -45,6 +45,49 @@ final class SettingsAndRatingTests: XCTestCase {
         }
     }
 
+    /// Every category, at the default text size, so each row's value can be checked whole: a value sits at the row's end or
+    /// under its title, never cut short.
+    func testEveryCategoryShowsItsValuesWhole() {
+        walkCategories(prefix: "values")
+    }
+
+    /// The same walk at an accessibility text size, where every value moves under its title.
+    func testEveryCategoryShowsItsValuesWholeAtLargeText() {
+        walkCategories(prefix: "values-large", arguments: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
+    }
+
+    private func walkCategories(prefix: String, arguments: [String] = []) {
+        let app = IOSTest.launch(arguments: arguments)
+        let demo = IOSTest.element(app, "onboarding.demo")
+        XCTAssertTrue(demo.waitForExistence(timeout: 120), "Welcome never showed Try the demo")
+        demo.tap()
+        let start = IOSTest.element(app, "demo.intro.start")
+        XCTAssertTrue(start.waitForExistence(timeout: 180), "the demo intro never appeared")
+        start.tap()
+        XCTAssertTrue(IOSTest.wait(for: start, "exists == false OR hittable == false", timeout: 30), "the intro never closed")
+        IOSTest.settle(2)
+        openSettings(app)
+        let categories = ["playback", "controls", "home", "downloads", "notifications", "integrations", "appearance", "connection", "privacy", "help"]
+        for (index, category) in categories.enumerated() {
+            let row = IOSTest.element(app, "settings.category.\(category)")
+            scrollTo(row, in: app, limit: 10)
+            XCTAssertTrue(row.waitForExistence(timeout: 10), "Settings has no \(category)")
+            row.tap()
+            let list = app.collectionViews["settings.category.\(category)"]
+            XCTAssertTrue(list.waitForExistence(timeout: 10), "\(category) never opened")
+            IOSTest.settle(1.5)
+            for page in 0..<4 {
+                IOSTest.capture(String(format: "%@-%02d-%@-%d", prefix, index, category, page), in: self)
+                let before = list.cells.firstMatch.frame
+                list.swipeUp()
+                IOSTest.settle(0.8)
+                if list.cells.firstMatch.frame == before { break }
+            }
+            app.navigationBars.buttons.firstMatch.tap()
+            IOSTest.settle(1)
+        }
+    }
+
     func testSearchFindsASettingAndItsCategoryHighlightsIt() {
         let app = enterDemo()
         openSettings(app)
