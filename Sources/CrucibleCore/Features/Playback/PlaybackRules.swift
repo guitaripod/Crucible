@@ -73,8 +73,8 @@ package enum ResumeStrategy: Equatable, Sendable {
         return isDirectPlay ? .seekExact(resumePosition) : .none
     }
 
-    /// The timeline position the stream's own zero corresponds to: the URL offset of a transcode.
-    package static func streamOffset(resumePosition: Double, isDirectPlay: Bool) -> Double {
+    /// Where on the item's timeline the stream begins: the URL offset of a transcode, zero for a file.
+    package static func streamStart(resumePosition: Double, isDirectPlay: Bool) -> Double {
         isDirectPlay ? 0 : StreamPosition.transcodeStart(resumePosition)
     }
 }
@@ -101,6 +101,12 @@ package enum TranscodeSeekPolicy {
 
     package static func isJump(from previous: Double, to current: Double) -> Bool {
         abs(current - previous) > jumpThreshold
+    }
+
+    /// Whether `target` lies before where the transcode on the player started encoding, which only a new transcode
+    /// can show: a Plex playlist spans the whole item, but the server only made the segments from the start on.
+    package static func isBeforeStream(_ target: Double, streamStart: Double) -> Bool {
+        target < streamStart - 1
     }
 
     /// Whether a jump inside a transcode needs the server to encode from somewhere else. The player goes back

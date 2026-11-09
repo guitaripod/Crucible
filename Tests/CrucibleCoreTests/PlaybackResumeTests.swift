@@ -60,17 +60,108 @@ struct PlaybackResumeTests {
         #expect(keeper.position(observed: 0, isReady: false) == 120)
     }
 
-    @Test func theTrackerMapsThePlayerClockOntoTheTimelineThroughTheStreamOffset() {
+    @Test func theTrackerMapsAClockThatStartsAtTheStreamsStartThroughTheOffset() {
         let tracker = PlayheadTracker()
-        tracker.setStreamOffset(1_313)
+        tracker.beginStream(start: 1_313, isTranscode: true)
+        tracker.observe(playerSeconds: 0.4, isReady: true)
+        #expect(tracker.clock == .fromStreamStart)
         tracker.observe(playerSeconds: 20, isReady: true)
         #expect(tracker.position(playerSeconds: 25, isReady: true) == 1_338)
         #expect(tracker.position(playerSeconds: nil, isReady: true) == 1_333)
     }
 
+    /// A Plex server's playlist spans the whole item and starts the player at the offset, so the clock of a transcode
+    /// resumed at 2:31 reads 151 when it is ready. Adding the offset again reported 5:02, then 11:42 after the next resume,
+    /// and finished episodes minutes early.
+    @Test func aPlexTranscodeResumedPartWayReportsWhereTheViewerIsNotTwiceThat() {
+        let tracker = PlayheadTracker()
+        tracker.beginStream(start: 151, isTranscode: true)
+        tracker.moved(to: 151.9)
+        #expect(tracker.position(playerSeconds: 0, isReady: false) == 151.9)
+        #expect(tracker.position(playerSeconds: 151, isReady: true) == 151)
+        #expect(tracker.clock == .itemTimeline)
+        #expect(tracker.streamOffset == 0)
+        tracker.observe(playerSeconds: 160, isReady: true)
+        #expect(tracker.position(playerSeconds: 170, isReady: true) == 170)
+    }
+
+    @Test func aClockReadBeforeTheItemIsReadyTeachesNothing() {
+        let tracker = PlayheadTracker()
+        tracker.beginStream(start: 600, isTranscode: true)
+        tracker.observe(playerSeconds: 0, isReady: false)
+        #expect(tracker.position(playerSeconds: 600, isReady: true) == 600)
+        #expect(tracker.clock == .itemTimeline)
+    }
+
+    @Test func aRebuiltStreamIsReadTheWayTheServersLastStreamRead() {
+        let tracker = PlayheadTracker()
+        tracker.beginStream(start: 300, isTranscode: true)
+        tracker.observe(playerSeconds: 0.2, isReady: true)
+        tracker.beginRebuild(at: 900)
+        tracker.beginStream(start: 900, isTranscode: true)
+        #expect(tracker.streamOffset == 900)
+        #expect(tracker.position(playerSeconds: 40, isReady: true) == 900)
+        #expect(tracker.learnClock(reading: 0) == false)
+        tracker.endRebuild()
+        #expect(tracker.position(playerSeconds: 3, isReady: true) == 903)
+    }
+
+    @Test func aRebuildThatFindsTheOtherClockMovesTheMapping() {
+        let tracker = PlayheadTracker()
+        tracker.beginRebuild(at: 900)
+        tracker.beginStream(start: 900, isTranscode: true)
+        #expect(tracker.learnClock(reading: 0.1) == true)
+        tracker.endRebuild()
+        #expect(tracker.position(playerSeconds: 3, isReady: true) == 903)
+    }
+
+    @Test func aStreamFromTheBeginningCannotTellTheClocksApartAndNeedsNot() {
+        let tracker = PlayheadTracker()
+        tracker.beginStream(start: 0, isTranscode: true)
+        tracker.observe(playerSeconds: 30, isReady: true)
+        #expect(tracker.clock == .itemTimeline)
+        #expect(tracker.position(playerSeconds: 31, isReady: true) == 31)
+    }
+
+    @Test func whatOneStreamTaughtCarriesToTheNextSessionFromTheSameServer() {
+        let server = "clock-\(UUID().uuidString)"
+        let first = PlayheadTracker(server: server)
+        first.beginStream(start: 500, isTranscode: true)
+        first.observe(playerSeconds: 0, isReady: true)
+        let next = PlayheadTracker(server: server)
+        next.beginStream(start: 0, isTranscode: true)
+        next.beginRebuild(at: 700)
+        next.beginStream(start: 700, isTranscode: true)
+        #expect(next.streamOffset == 700)
+        #expect(PlayheadTracker(server: "clock-\(UUID().uuidString)").clock == .itemTimeline)
+    }
+
+    @Test func aFileIsAlwaysOnTheItemsOwnClock() {
+        let tracker = PlayheadTracker()
+        tracker.beginStream(start: 0, isTranscode: false)
+        tracker.observe(playerSeconds: 1_200, isReady: true)
+        #expect(tracker.position(playerSeconds: 1_201, isReady: true) == 1_201)
+        #expect(tracker.streamStart == 0)
+    }
+
+    @Test func theClockIsReadFromWhicheverOriginTheReadingIsNearer() {
+        #expect(TranscodeClock.read(start: 151, reading: 151) == .itemTimeline)
+        #expect(TranscodeClock.read(start: 151, reading: 150.02) == .itemTimeline)
+        #expect(TranscodeClock.read(start: 151, reading: 0) == .fromStreamStart)
+        #expect(TranscodeClock.read(start: 151, reading: 9) == .fromStreamStart)
+        #expect(TranscodeClock.read(start: 1, reading: 1) == nil)
+        #expect(TranscodeClock.read(start: 151, reading: .nan) == nil)
+    }
+
+    @Test func aTargetBeforeWhereTheTranscodeStartedNeedsANewTranscode() {
+        #expect(TranscodeSeekPolicy.isBeforeStream(100, streamStart: 900))
+        #expect(!TranscodeSeekPolicy.isBeforeStream(899.5, streamStart: 900))
+        #expect(!TranscodeSeekPolicy.isBeforeStream(950, streamStart: 900))
+    }
+
     @Test func thePositionReportedOnPauseIsTheRealOneWhenTheClockReadsTheStartOfTheStream() {
         let tracker = PlayheadTracker()
-        tracker.setStreamOffset(0)
+        tracker.beginStream(start: 0, isTranscode: false)
         tracker.observe(playerSeconds: 1_840, isReady: true)
         tracker.hold(playerSeconds: 1_840, isReady: true)
         #expect(tracker.position(playerSeconds: 0, isReady: true) == 1_840)
@@ -80,11 +171,11 @@ struct PlaybackResumeTests {
         let tracker = PlayheadTracker()
         tracker.observe(playerSeconds: 900, isReady: true)
         tracker.hold(playerSeconds: 900, isReady: true)
-        tracker.setStreamOffset(900)
+        tracker.beginStream(start: 900, isTranscode: true)
         tracker.moved(to: 900)
         tracker.release()
         #expect(tracker.position(playerSeconds: 0, isReady: false) == 900)
-        #expect(tracker.position(playerSeconds: 3, isReady: true) == 903)
+        #expect(tracker.position(playerSeconds: 903, isReady: true) == 903)
     }
 
     @Test func aTranscodeIsRebuiltAtTheTargetSoAnExpiredSessionNeverMatters() {

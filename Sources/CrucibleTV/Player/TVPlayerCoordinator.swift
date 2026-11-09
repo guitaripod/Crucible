@@ -303,6 +303,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             refreshTrackMenus()
         case .tracksChanged:
             refreshTrackMenus()
+        case .clockRemapped:
+            if let item = session?.player?.currentItem { configure(item: item) }
         }
     }
 

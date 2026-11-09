@@ -286,6 +286,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             moreButton?.refreshMenu()
         case .tracksChanged:
             moreButton?.refreshMenu()
+        case .clockRemapped:
+            break
         }
     }
 

@@ -22,4 +22,7 @@ package enum PlaybackEvent: Sendable {
     case sleepTimerFired
     /// The audio or subtitle playing changed, from the app's own menus or the system's controls and Siri.
     case tracksChanged
+    /// A transcode's clock turned out to map onto the item differently than assumed (`TranscodeClock`): whatever the
+    /// surface placed on the player's clock, such as chapters and an Up Next proposal, is placed again.
+    case clockRemapped
 }

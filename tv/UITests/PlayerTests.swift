@@ -13,6 +13,8 @@ import XCTest
 /// - a player that loses its place while the app is away: `CRUCIBLE_PLAYER_CLOCK_RESET=1` (DEBUG only) rewinds the player's clock to zero right after the app went to the background;
 /// - an Apple TV that sleeps without telling the app: `CRUCIBLE_PLAYER_SLEEP_AT=<seconds>` with `CRUCIBLE_PLAYER_SLEEP_FOR=<seconds>` (DEBUG only) pauses the player once the playhead passes SLEEP_AT, drops the
 ///   transcode session on the mock (`/mock/reap`) and jumps the session's clock ahead, with no lifecycle notification; the heartbeat has to notice;
+/// - a real server's transcode playlist: `plex_timeline=1` serves one that spans the whole item and starts the player at the offset, so the
+///   player's clock reads the item's own position (the mock's plain transcode plays its clip from zero whatever the offset);
 /// - a run of episodes nobody watched: `CRUCIBLE_PLAYER_UNATTENDED=<n>` (DEBUG only) starts the player as if `n` episodes had already played with nobody at the remote.
 @MainActor
 final class PlayerTests: TVTestCase {
@@ -24,14 +26,16 @@ final class PlayerTests: TVTestCase {
     /// Direct play (Original quality), whatever an earlier test class left in the simulator's preferences: a transcode of the mock ignores the resume offset, so an item resumed near the end would not end.
     private static let defaultQuality = "0"
 
+    /// The previous test's app is ended first: left running, it keeps reporting its playhead and overwrites the progress the next test sets.
     override func setUp() {
         continueAfterFailure = false
+        XCUIApplication().terminate()
         TVTest.configureMock()
-        setFlags("clip_markers=0&no_credits=0&fail_parts=0&fail_transcode=0&fail_metadata_once=0&latency_ms=0")
+        setFlags("clip_markers=0&no_credits=0&fail_parts=0&fail_transcode=0&fail_metadata_once=0&latency_ms=0&plex_timeline=0")
     }
 
     override func tearDown() {
-        setFlags("clip_markers=0&no_credits=0&fail_parts=0&fail_transcode=0&fail_metadata_once=0&latency_ms=0")
+        setFlags("clip_markers=0&no_credits=0&fail_parts=0&fail_transcode=0&fail_metadata_once=0&latency_ms=0&plex_timeline=0")
     }
 
     func testMoviePlaysFromPreRollToTransportBarAndBack() {
@@ -528,6 +532,36 @@ final class PlayerTests: TVTestCase {
         XCTAssertTrue(offer.buttons["Not Now"].exists)
     }
 
+    /// On a real server the transcode's playlist spans the whole item and starts the player at the resume offset, so the player's clock
+    /// already reads the item's position. Resumed at 3:20, playback reports about 3:20 on, never twice that (which marked episodes
+    /// watched minutes early and sent the next resume to the wrong place), and closing the player reports where the viewer left.
+    func testATranscodeResumedOnAPlexTimelineReportsWhereTheViewerIs() {
+        setFlags("plex_timeline=1")
+        setProgress(Self.episode, seconds: 200)
+        let mark = timelineMark()
+        let app = launch(playing: Self.episode, arguments: ["-streamingQuality", "8000"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(waitForReport(pastMs: 205_000, since: mark, timeout: 40), "playback reports past 3:25: \(timeline(since: mark).map(\.timeMs))")
+        TVTest.settle(4)
+        TVTest.capture("01-resumed-at-3-20", in: self)
+        for _ in 0..<5 where !app.tabBars.firstMatch.exists {
+            TVTest.remote.press(.menu)
+            TVTest.settle(2)
+        }
+        XCTAssertTrue(waitForReport(Self.episode, state: "stopped", since: mark, timeout: 20), "closing the player reports stopped")
+        let reports = timeline(since: mark).filter { $0.ratingKey == Self.episode }
+        XCTAssertTrue(reports.allSatisfy { (195_000...260_000).contains($0.timeMs) }, "every report is near 3:20, none twice it: \(reports.map { "\($0.state)@\($0.timeMs)" })")
+        let stopped = reports.last { $0.state == "stopped" }
+        XCTAssertTrue(stopped.map { (205_000...260_000).contains($0.timeMs) } ?? false, "the stop is where the viewer left: \(String(describing: stopped))")
+    }
+
+    /// The same real-server playlist across a trip to the Home screen with the player's clock reset to zero: the transcode is rebuilt at the
+    /// position, its clock again reads the item's own timeline, and no report goes back towards the start or ahead of the viewer.
+    func testReturningOnAPlexTimelineKeepsTheTranscodePosition() {
+        setFlags("plex_timeline=1")
+        assertReturnKeepsThePosition(quality: "8000", restartsTheStream: true, resume: 200)
+    }
+
     func testBackgroundingReportsPausedAndAPausedTranscodeRestartsOnReturn() {
         setProgress(Self.episode, seconds: 20)
         let mark = timelineMark()
@@ -555,8 +589,7 @@ final class PlayerTests: TVTestCase {
 
     /// Plays from 20 s, goes to the Home screen with the player's own clock reset to zero (`CRUCIBLE_PLAYER_CLOCK_RESET`, DEBUG only), returns and
     /// checks that no timeline report falls back towards the start, that a transcode is rebuilt at the position and that the player is still up.
-    private func assertReturnKeepsThePosition(quality: String, restartsTheStream: Bool) {
-        let resume = 20
+    private func assertReturnKeepsThePosition(quality: String, restartsTheStream: Bool, resume: Int = 20) {
         setProgress(Self.episode, seconds: resume)
         let app = launch(
             playing: Self.episode,
@@ -576,6 +609,8 @@ final class PlayerTests: TVTestCase {
         XCTAssertFalse(reports.isEmpty)
         let floor = (resume + 4) * 1000
         XCTAssertTrue(reports.allSatisfy { $0.timeMs >= floor }, "no report goes back towards the start: \(reports.map(\.timeMs))")
+        let ceiling = (resume + 60) * 1000
+        XCTAssertTrue(reports.allSatisfy { $0.timeMs <= ceiling }, "no report runs ahead of the viewer: \(reports.map(\.timeMs))")
         if restartsTheStream {
             let restarts = Mock.log("start.m3u8").dropFirst(startsBefore)
             XCTAssertTrue(restarts.contains { Self.offset(in: $0) >= resume + 4 }, "the transcode restarts at the position: \(restarts)")

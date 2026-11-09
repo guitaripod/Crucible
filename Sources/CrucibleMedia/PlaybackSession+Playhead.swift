@@ -40,7 +40,7 @@ extension PlaybackSession {
         staleClock = nil
         settlingUntil = nil
         tracker.moved(to: target)
-        guard target - offset < 0 else {
+        guard !stream.isDirectPlay, TranscodeSeekPolicy.isBeforeStream(target, streamStart: streamStart) || target - offset < 0 else {
             if !stream.isDirectPlay { lastPlayhead = target - offset }
             return target - offset
         }
@@ -52,7 +52,7 @@ extension PlaybackSession {
     func move(toAbsolute target: Double, plays: Bool, reason: String) {
         guard let stream, let player else { return }
         let playerTime = stream.isDirectPlay ? target : target - streamOffset
-        guard stream.isDirectPlay || canSeekInStream(toPlayerTime: playerTime) else {
+        guard stream.isDirectPlay || canSeekInStream(toAbsolute: target, playerTime: playerTime) else {
             restartTranscode(atAbsolute: target, resumesPlayback: plays, reason: reason)
             return
         }
@@ -63,10 +63,11 @@ extension PlaybackSession {
         }
     }
 
-    /// Whether the transcode's current stream can show `playerTime` itself: it is not before the stream's
-    /// start, and it is behind the playhead or inside what the player has loaded.
-    private func canSeekInStream(toPlayerTime playerTime: Double) -> Bool {
-        guard playerTime >= 0, let item = player?.currentItem, item.status == .readyToPlay else { return false }
+    /// Whether the transcode's current stream can show `target` itself: it is not before where the stream started
+    /// encoding, and it is behind the playhead or inside what the player has loaded.
+    private func canSeekInStream(toAbsolute target: Double, playerTime: Double) -> Bool {
+        guard playerTime >= 0, !TranscodeSeekPolicy.isBeforeStream(target, streamStart: streamStart),
+              let item = player?.currentItem, item.status == .readyToPlay else { return false }
         let now = item.currentTime().seconds
         return !TranscodeSeekPolicy.needsRestart(from: now.isFinite ? now : 0, to: playerTime, loaded: item.loadedRanges)
     }
@@ -246,16 +247,35 @@ extension PlaybackSession {
         }
     }
 
+    /// A tick of the player's clock. A transcode's clock means nothing until its item is ready (it reads zero), so those
+    /// ticks are dropped instead of placing the viewer, the skip markers and the credits at the start of the item.
     private func playheadMoved(to seconds: Double) {
         guard !isStopped, let player, !noticeAbsence(trigger: "playhead") else { return }
+        let ready = isItemReady
+        guard ready || stream?.isDirectPlay != false else { return }
+        let offset = streamOffset
+        tracker.observe(playerSeconds: seconds, isReady: ready)
+        if streamOffset != offset { clockRemapped(reading: seconds) }
         lastPlayhead = seconds
         let absolute = seconds + streamOffset
-        tracker.observe(playerSeconds: seconds, isReady: isItemReady)
         if !tracker.isHeld { wasPlayingAtLastTick = player.rate > 0 }
-        if !tracker.isHeld, isItemReady { keepPosition(absolute, force: false) }
+        if !tracker.isHeld, ready { keepPosition(absolute, force: false) }
         emit(.position(absolute: absolute, rate: Double(player.rate)))
         if upNext.creditsReached(at: absolute) { loadUpNext(reason: .credits) }
         evaluateMarkers(at: absolute)
+    }
+
+    /// Learns how a rebuilt transcode's clock reads from its reading once ready, and tells the surface when that moved it.
+    func learnClock(from reading: Double) {
+        guard tracker.learnClock(reading: reading) else { return }
+        clockRemapped(reading: reading)
+    }
+
+    /// The transcode's clock reads differently from what the session assumed: the surface places again whatever it put
+    /// on the player's clock, such as chapters and an Up Next proposal.
+    private func clockRemapped(reading: Double) {
+        MidgarLog.notice("Transcode clock ratingKey=\(request.ratingKey) reads \(tracker.clock == .itemTimeline ? "the item's timeline" : "from the stream's start"): start=\(Int(streamStart)) reading=\(Int(reading)) offset=\(Int(streamOffset))", category: .playback)
+        emit(.clockRemapped)
     }
 
     private func evaluateMarkers(at absolute: Double) {

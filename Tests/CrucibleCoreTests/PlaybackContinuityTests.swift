@@ -121,8 +121,8 @@ struct PlaybackContinuityTests {
     @Test func aTranscodeStartsOnTheWholeSecondTheServerUses() {
         #expect(StreamPosition.transcodeStart(1_251.31) == 1_251)
         #expect(StreamPosition.transcodeStart(-3) == 0)
-        #expect(ResumeStrategy.streamOffset(resumePosition: 893.519, isDirectPlay: false) == 893)
-        #expect(ResumeStrategy.streamOffset(resumePosition: 893.519, isDirectPlay: true) == 0)
+        #expect(ResumeStrategy.streamStart(resumePosition: 893.519, isDirectPlay: false) == 893)
+        #expect(ResumeStrategy.streamStart(resumePosition: 893.519, isDirectPlay: true) == 0)
     }
 
     @Test func theStillWatchingCardWordsChange() {

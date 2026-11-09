@@ -101,9 +101,10 @@ extension PlaybackSession {
         selectedAudioStreamId = resolved.chosenAudioStreamId
         stream = resolved
         rememberLanguagesForShow()
-        streamOffset = ResumeStrategy.streamOffset(resumePosition: position, isDirectPlay: resolved.isDirectPlay)
-        lastPlayhead = resolved.isDirectPlay ? position : 0
-        tracker.moved(to: resolved.isDirectPlay ? position : streamOffset)
+        let start = ResumeStrategy.streamStart(resumePosition: position, isDirectPlay: resolved.isDirectPlay)
+        tracker.beginStream(start: start, isTranscode: !resolved.isDirectPlay)
+        lastPlayhead = resolved.isDirectPlay ? position : start - streamOffset
+        tracker.moved(to: resolved.isDirectPlay ? position : start)
         isRestarting = false
         pendingRestart = nil
         restartItemObserver?.invalidate()

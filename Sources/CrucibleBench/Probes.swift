@@ -382,7 +382,7 @@ enum Probes {
         if ResumeStrategy.make(resumePosition: 600, isDirectPlay: false, isOffline: false) != .none {
             return "a transcode would seek"
         }
-        if ResumeStrategy.streamOffset(resumePosition: 600.7, isDirectPlay: false) != 600 {
+        if ResumeStrategy.streamStart(resumePosition: 600.7, isDirectPlay: false) != 600 {
             return "the transcode offset is not the whole second"
         }
         if ResumeStrategy.make(resumePosition: 600, isDirectPlay: true, isOffline: false) != .seekExact(600) {

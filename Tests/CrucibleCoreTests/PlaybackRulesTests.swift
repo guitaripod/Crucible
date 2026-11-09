@@ -52,12 +52,12 @@ struct PlaybackRulesTests {
 
     @Test func aTranscodeResumesThroughItsUrlAndIsNeverSeeked() {
         #expect(ResumeStrategy.make(resumePosition: 600, isDirectPlay: false, isOffline: false) == .none)
-        #expect(ResumeStrategy.streamOffset(resumePosition: 600, isDirectPlay: false) == 600)
+        #expect(ResumeStrategy.streamStart(resumePosition: 600, isDirectPlay: false) == 600)
     }
 
     @Test func aDirectPlayFileSeeksExactlyAndHasNoStreamOffset() {
         #expect(ResumeStrategy.make(resumePosition: 600, isDirectPlay: true, isOffline: false) == .seekExact(600))
-        #expect(ResumeStrategy.streamOffset(resumePosition: 600, isDirectPlay: true) == 0)
+        #expect(ResumeStrategy.streamStart(resumePosition: 600, isDirectPlay: true) == 0)
     }
 
     @Test func aDownloadSeeksOnceItIsReady() {

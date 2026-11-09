@@ -35,6 +35,7 @@ def initial_flags():
         "fail_metadata_once": os.environ.get("MOCK_FAIL_METADATA_ONCE", ""),
         "no_credits": os.environ.get("MOCK_NO_CREDITS") == "1",
         "early_credits": os.environ.get("MOCK_EARLY_CREDITS") == "1",
+        "plex_timeline": os.environ.get("MOCK_PLEX_TIMELINE") == "1",
     }
 
 
@@ -50,6 +51,7 @@ def apply_flags():
 apply_flags()
 REQUEST_LOG = collections.deque(maxlen=3000)
 REAPED_SESSIONS = set()
+SESSION_TIMELINES = {}
 PATH_LOG = collections.deque(maxlen=3000)
 HLS_TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4"}
 MOCK_TOKEN = "mock-token"
@@ -1062,6 +1064,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.not_found()
             if parts[2].startswith("vtt-"):
                 return self.send_subtitle_rendition(parts[2])
+            if parts[2] == "index.m3u8" and parts[1] in SESSION_TIMELINES:
+                return self.send_text(self.plex_timeline_playlist("", *SESSION_TIMELINES[parts[1]]), HLS_TYPES[".m3u8"])
             return self.send_hls_file(parts[2])
         name = rest.rsplit("/", 1)[-1]
         if name == "ping":
@@ -1071,6 +1075,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(container(size=0, error="mock transcode failure"), 500)
             REAPED_SESSIONS.discard(session)
             path = (q.get("path") or [""])[0]
+            if FLAGS["plex_timeline"]:
+                SESSION_TIMELINES[session] = (path.rsplit("/", 1)[-1], int((q.get("offset") or ["0"])[0] or 0))
+            else:
+                SESSION_TIMELINES.pop(session, None)
             subtitle = None
             if (q.get("subtitles") or ["auto"])[0] != "none":
                 with LOCK:
@@ -1140,8 +1148,44 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def plex_timeline_playlist(self, prefix, rk, offset):
+        """A media playlist shaped like a real server's (`plex_timeline=1`): it spans the whole item, the clip repeated
+        behind discontinuities until it covers the item's duration, and starts the player at the transcode's offset, so
+        the player's clock reads the item's own position rather than zero at the offset."""
+        with open(os.path.join(ASSETS, "hls", "index.m3u8"), encoding="utf-8") as playlist:
+            lines = [line.strip() for line in playlist.read().splitlines()]
+        segments, pending, init = [], None, None
+        for line in lines:
+            if line.startswith("#EXT-X-MAP:") and 'URI="' in line:
+                init = line.split('URI="', 1)[1].split('"', 1)[0]
+            elif line.startswith("#EXTINF:"):
+                pending = float(line[len("#EXTINF:"):].split(",", 1)[0])
+            elif line and not line.startswith("#") and pending is not None:
+                segments.append((pending, line))
+                pending = None
+        clip = sum(duration for duration, _ in segments) or 1
+        with LOCK:
+            item_ms = (LIB.items.get(rk) or {}).get("duration") or 2_700_000
+        repeats = max(1, int(-(-(item_ms / 1000) // clip)))
+        out = ["#EXTM3U", "#EXT-X-VERSION:7", f"#EXT-X-TARGETDURATION:{int(max(d for d, _ in segments)) + 1}",
+               "#EXT-X-MEDIA-SEQUENCE:0", "#EXT-X-PLAYLIST-TYPE:VOD"]
+        if offset > 0:
+            out.append(f"#EXT-X-START:TIME-OFFSET={offset},PRECISE=YES")
+        for index in range(repeats):
+            if index > 0:
+                out.append("#EXT-X-DISCONTINUITY")
+            if init:
+                out.append(f'#EXT-X-MAP:URI="{prefix}{init}"')
+            for duration, uri in segments:
+                out += [f"#EXTINF:{duration:.6f},", prefix + uri]
+        out.append("#EXT-X-ENDLIST")
+        return "\n".join(out) + "\n"
+
     def send_session_playlist(self, session):
         """The clip's playlist with every segment and the init section moved under session/<id>/."""
+        if session in SESSION_TIMELINES:
+            prefix = f"session/{session}/" if session else ""
+            return self.send_text(self.plex_timeline_playlist(prefix, *SESSION_TIMELINES[session]), HLS_TYPES[".m3u8"])
         path = os.path.join(ASSETS, "hls", "index.m3u8")
         if not os.path.isfile(path):
             return self.not_found()

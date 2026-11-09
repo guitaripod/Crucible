@@ -27,20 +27,21 @@ package final class PlaybackSession {
     package let events: AsyncStream<PlaybackEvent>
     package internal(set) var player: AVPlayer?
     package internal(set) var stream: ResolvedStream?
-    package internal(set) var streamOffset: Double = 0 {
-        didSet { tracker.setStreamOffset(streamOffset) }
-    }
+    /// What is added to the player's clock to place it on the item's timeline.
+    package var streamOffset: Double { tracker.streamOffset }
+    /// Where the stream on the player begins on the item's timeline: zero for a file, the offset a transcode started at.
+    var streamStart: Double { tracker.streamStart }
     package internal(set) var selectedSubtitleId: Int?
     package internal(set) var selectedAudioStreamId: Int?
 
     /// Called with every `AVPlayerItem` the session puts in the player (the first, a restarted
     /// transcode, a fallback, a re-resolved stream) so the surface can attach item-level state
-    /// such as external metadata or a content proposal. The session's `streamOffset` already
-    /// describes the item when it runs.
+    /// such as external metadata or a content proposal. The session's `streamOffset` is its best
+    /// knowledge when it runs; a transcode whose clock turns out to read otherwise sends `.clockRemapped`.
     package var configureItem: (@MainActor (AVPlayerItem) -> Void)?
 
     let api: APIClient
-    let tracker = PlayheadTracker()
+    let tracker: PlayheadTracker
     let resumeStore: PlaybackResumeStore
     let serverID: String
     let continuation: AsyncStream<PlaybackEvent>.Continuation
@@ -138,6 +139,7 @@ package final class PlaybackSession {
         self.api = api
         self.resumeStore = resumeStore
         serverID = ServerBootstrap.savedMachineIdentifier ?? "unknown"
+        tracker = PlayheadTracker(server: serverID)
         self.request = request
         self.installsRemoteCommands = installsRemoteCommands
         CellularWatch.start()
@@ -264,8 +266,10 @@ package final class PlaybackSession {
     /// the picture is there.
     package func begin(autoplay: Bool = true) -> AVPlayer? {
         guard let stream, player == nil, !isStopped else { return nil }
-        streamOffset = ResumeStrategy.streamOffset(resumePosition: request.resumePosition, isDirectPlay: stream.isDirectPlay)
+        let start = ResumeStrategy.streamStart(resumePosition: request.resumePosition, isDirectPlay: stream.isDirectPlay)
+        tracker.beginStream(start: start, isTranscode: !stream.isDirectPlay)
         tracker.moved(to: request.resumePosition)
+        if !stream.isDirectPlay { lastPlayhead = start - streamOffset }
         let player = AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
         player.appliesMediaSelectionCriteriaAutomatically = false

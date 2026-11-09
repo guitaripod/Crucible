@@ -77,17 +77,62 @@ package struct PlayheadKeeper: Sendable, Equatable {
     }
 }
 
+/// How the player's clock reads on a transcode that starts part-way into the item. A Plex server's playlist spans the
+/// whole item and starts the player at the offset, so the clock already reads the item's own position (`itemTimeline`);
+/// a server whose playlist begins at the offset reads zero there (`fromStreamStart`). Which one a server does is learned
+/// from the clock of a ready item and kept for the rest of the app's run.
+package enum TranscodeClock: Sendable, Equatable {
+    case itemTimeline
+    case fromStreamStart
+
+    /// A start at least this far into the item tells the two clocks apart; nearer the beginning they read almost the same.
+    package static let decisiveStart = 2.0
+
+    private static let memory = OSAllocatedUnfairLock(initialState: [String: TranscodeClock]())
+
+    /// What is added to the player's clock to place it on the item's timeline, for a stream that starts at `start`.
+    package func offset(start: Double) -> Double {
+        self == .itemTimeline ? 0 : start
+    }
+
+    /// The clock a stream asked to start at `start` shows when a ready item reads `reading`: whichever of the two origins
+    /// the reading is nearer. Nil when the start is too near the beginning to tell or the reading is unusable.
+    package static func read(start: Double, reading: Double) -> TranscodeClock? {
+        guard start >= decisiveStart, reading.isFinite, reading >= 0 else { return nil }
+        return abs(reading - start) < reading ? .itemTimeline : .fromStreamStart
+    }
+
+    package static func remembered(server: String) -> TranscodeClock? {
+        memory.withLock { $0[server] }
+    }
+
+    package static func remember(_ clock: TranscodeClock, server: String) {
+        memory.withLock { $0[server] = clock }
+    }
+}
+
 /// A `PlayheadKeeper` shared by the session and the timeline reporter, whose observers run off the main
-/// thread, together with the offset that maps the player's clock onto the item's timeline.
+/// thread, together with how the player's clock maps onto the item's timeline: where the stream on the
+/// player starts and what is added to its clock, which for a transcode is learned from its first reading
+/// on a ready item (`TranscodeClock`).
 package final class PlayheadTracker: Sendable {
     private struct State {
         var keeper = PlayheadKeeper()
         var streamOffset = 0.0
+        var streamStart = 0.0
+        var clock: TranscodeClock
+        var pendingStart: Double?
     }
 
-    private let state = OSAllocatedUnfairLock(initialState: State())
+    private let state: OSAllocatedUnfairLock<State>
+    private let server: String?
 
-    package init() {}
+    /// `server` keys what the tracker learns about the server's transcode clock, so the next stream from it starts out right.
+    package init(server: String? = nil) {
+        self.server = server
+        let clock = server.flatMap { TranscodeClock.remembered(server: $0) } ?? .itemTimeline
+        state = OSAllocatedUnfairLock(initialState: State(clock: clock))
+    }
 
     package var isHeld: Bool { state.withLock { $0.keeper.isHeld } }
 
@@ -96,16 +141,45 @@ package final class PlayheadTracker: Sendable {
     /// The last position seen on a ready item, or the last one the session moved to.
     package var lastGoodPosition: Double? { state.withLock { $0.keeper.lastGood } }
 
+    /// What is added to the player's clock to place it on the item's timeline.
     package var streamOffset: Double { state.withLock { $0.streamOffset } }
 
-    package func setStreamOffset(_ offset: Double) {
-        state.withLock { $0.streamOffset = offset }
+    /// Where the stream on the player begins on the item's timeline: zero for a file, the offset a transcode was asked to start at.
+    package var streamStart: Double { state.withLock { $0.streamStart } }
+
+    package var clock: TranscodeClock { state.withLock { $0.clock } }
+
+    /// A new stream is on the player. A file's clock is the item's own. A transcode asked to start at `start` is read the
+    /// way this server's transcodes were last seen to read, until its first reading on a ready item says otherwise.
+    package func beginStream(start: Double, isTranscode: Bool) {
+        state.withLock { state in
+            guard isTranscode else {
+                state.streamStart = 0
+                state.streamOffset = 0
+                state.pendingStart = nil
+                return
+            }
+            state.streamStart = start
+            state.streamOffset = state.clock.offset(start: start)
+            state.pendingStart = start >= TranscodeClock.decisiveStart ? start : nil
+        }
+    }
+
+    /// Learns how the clock of the stream that just became ready reads, from `reading`, even while the stream is still
+    /// being rebuilt. Returns true when that changed what is added to the clock.
+    @discardableResult
+    package func learnClock(reading: Double) -> Bool {
+        let learned = state.withLock { Self.learn(&$0, reading: reading) }
+        return settle(learned)
     }
 
     package func observe(playerSeconds: Double, isReady: Bool) {
-        state.withLock { state in
+        let learned = state.withLock { state in
+            let learned = Self.learnIfReady(&state, reading: playerSeconds, isReady: isReady)
             state.keeper.observe(absolute: Self.absolute(playerSeconds, state.streamOffset), isReady: isReady)
+            return learned
         }
+        settle(learned)
     }
 
     package func moved(to absolute: Double) {
@@ -122,9 +196,13 @@ package final class PlayheadTracker: Sendable {
 
     @discardableResult
     package func hold(playerSeconds: Double?, isReady: Bool) -> Double? {
-        state.withLock { state in
-            state.keeper.hold(observed: playerSeconds.flatMap { Self.absolute($0, state.streamOffset) }, isReady: isReady)
+        let (position, learned) = state.withLock { state in
+            let learned = playerSeconds.flatMap { Self.learnIfReady(&state, reading: $0, isReady: isReady) }
+            let position = state.keeper.hold(observed: playerSeconds.flatMap { Self.absolute($0, state.streamOffset) }, isReady: isReady)
+            return (position, learned)
         }
+        settle(learned)
+        return position
     }
 
     package func release() {
@@ -132,9 +210,43 @@ package final class PlayheadTracker: Sendable {
     }
 
     package func position(playerSeconds: Double?, isReady: Bool) -> Double? {
-        state.withLock { state in
-            state.keeper.position(observed: playerSeconds.flatMap { Self.absolute($0, state.streamOffset) }, isReady: isReady)
+        let (position, learned) = state.withLock { state in
+            let learned = playerSeconds.flatMap { Self.learnIfReady(&state, reading: $0, isReady: isReady) }
+            let position = state.keeper.position(observed: playerSeconds.flatMap { Self.absolute($0, state.streamOffset) }, isReady: isReady)
+            return (position, learned)
         }
+        settle(learned)
+        return position
+    }
+
+    /// Remembers what was learned for the server's next stream and says whether the mapping moved.
+    @discardableResult
+    private func settle(_ learned: Learned?) -> Bool {
+        guard let learned else { return false }
+        if let server { TranscodeClock.remember(learned.clock, server: server) }
+        return learned.moved
+    }
+
+    private struct Learned {
+        let clock: TranscodeClock
+        let moved: Bool
+    }
+
+    /// Learns the clock from a reading taken by the playhead's own observers: only on a ready item, never while the stream
+    /// is being rebuilt (the clock may still be the old item's) or while the app is away.
+    private static func learnIfReady(_ state: inout State, reading: Double, isReady: Bool) -> Learned? {
+        guard isReady, !state.keeper.isRebuilding, !state.keeper.isHeld else { return nil }
+        return learn(&state, reading: reading)
+    }
+
+    private static func learn(_ state: inout State, reading: Double) -> Learned? {
+        guard let start = state.pendingStart, let clock = TranscodeClock.read(start: start, reading: reading) else { return nil }
+        state.pendingStart = nil
+        state.clock = clock
+        let offset = clock.offset(start: start)
+        let moved = offset != state.streamOffset
+        state.streamOffset = offset
+        return Learned(clock: clock, moved: moved)
     }
 
     private static func absolute(_ playerSeconds: Double, _ streamOffset: Double) -> Double? {
