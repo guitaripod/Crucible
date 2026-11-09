@@ -14,6 +14,7 @@ final class TVTraktSettingsViewController: TVSettingsScaffold {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        collectionView.remembersLastFocusedIndexPath = false
         installHeading(heading)
         render()
         observation = TraktAccount.shared.observe { [weak self] in self?.render() }
@@ -28,8 +29,19 @@ final class TVTraktSettingsViewController: TVSettingsScaffold {
         TraktAccount.shared.isConnected ? "trakt.scrobble" : "trakt.connect"
     }
 
+    private var renderedConnected: Bool?
+
+    /// Connecting or disconnecting replaces every row, so the row focused before means nothing after: focus goes to the
+    /// screen's preferred row, Scrobble Playback once connected and Connect before.
+    private func forgetFocusWhenTheAccountChanges(connected: Bool) {
+        defer { renderedConnected = connected }
+        guard let renderedConnected, renderedConnected != connected else { return }
+        focusMemory.reset()
+    }
+
     private func render() {
         let account = TraktAccount.shared
+        forgetFocusWhenTheAccountChanges(connected: account.isConnected)
         let choices = account.choices
         var rows: [TVRowItem] = []
         var body: String
@@ -103,9 +115,13 @@ final class TVTraktLinkViewController: UIViewController {
     private lazy var retryButton = TVButton.make(.primary, title: TraktCopy.newCode, symbol: "arrow.clockwise") { [weak self] in self?.start() }
     private var session: Task<Void, Never>?
     private var failed = false
+    private let anchor = TVFocusAnchorView()
 
+    /// The code is information, not a control, so without VoiceOver nothing on the screen takes focus while it waits; the
+    /// anchor holds it, or it would fall to the tab bar, where Menu leaves the app and connecting leaves it stuck.
     override var preferredFocusEnvironments: [any UIFocusEnvironment] {
-        failed ? [retryButton] : (tiles.canBecomeFocused ? [tiles] : [])
+        if failed { return [retryButton] }
+        return tiles.canBecomeFocused ? [tiles] : [anchor]
     }
 
     override func viewDidLoad() {
@@ -166,9 +182,19 @@ final class TVTraktLinkViewController: UIViewController {
         columns.spacing = 140
         columns.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(columns)
+        anchor.isNeeded = { [weak self] in
+            guard let self else { return false }
+            return !failed && !tiles.canBecomeFocused
+        }
+        anchor.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(anchor)
         let guide = view.safeAreaLayoutGuide
         let side = Self.qrSide + 56
         NSLayoutConstraint.activate([
+            anchor.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            anchor.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            anchor.widthAnchor.constraint(equalToConstant: 2),
+            anchor.heightAnchor.constraint(equalToConstant: 2),
             left.widthAnchor.constraint(equalToConstant: TVMetrics.Column.message),
             qrCard.widthAnchor.constraint(equalToConstant: side),
             qrCard.heightAnchor.constraint(equalToConstant: side),
