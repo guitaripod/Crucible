@@ -197,10 +197,33 @@ package final class TraktAccount {
         return scrobbler || sync
     }
 
-    /// The viewer chose Crucible to record plays: Trakt's real-time Plex scrobbler is turned off, its other settings kept.
+    /// The viewer chose Crucible to record plays: Trakt's real-time Plex scrobbler is turned off, and so is the play recording
+    /// of its batch Plex sync, which would add every play a second time; its other settings are kept.
     package func letCrucibleRecordPlays(server: String) async throws {
         try await client.sendVoid(.disablePlexScrobbler)
+        let settings = try await client.perform(.plexSettings)
+        if let body = Self.syncWithoutPlays(settings) {
+            try await client.sendVoid(.updatePlexSettings(body: body))
+        }
         update { $0.anotherAppScrobbles = false; $0.askedAboutPlexLink.insert(server) }
+    }
+
+    /// The body that turns off the plays Trakt's Plex sync records: its toggles as Trakt reported them, with movies and
+    /// episodes no longer marked watched. Nil when the sync is not set up or records no plays already.
+    package nonisolated static func syncWithoutPlays(_ settings: Data) -> Data? {
+        guard let root = try? JSONSerialization.jsonObject(with: settings) as? [String: Any],
+              let sync = root["sync"] as? [String: Any], sync["configured"] as? Bool == true,
+              var toggles = sync["toggles"] as? [String: Any]
+        else { return nil }
+        var changed = false
+        for kind in ["movie", "episode"] {
+            guard var group = toggles[kind] as? [String: Any], group["watched"] as? Bool == true else { continue }
+            group["watched"] = false
+            toggles[kind] = group
+            changed = true
+        }
+        guard changed else { return nil }
+        return try? JSONSerialization.data(withJSONObject: ["sync": ["toggles": toggles]], options: [.sortedKeys])
     }
 
     /// The viewer chose Trakt's own Plex link to keep recording plays.

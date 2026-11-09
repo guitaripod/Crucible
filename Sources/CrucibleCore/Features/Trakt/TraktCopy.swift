@@ -60,7 +60,7 @@ package enum TraktCopy {
     package static let doublePlayTitle = String(localized: "Trakt already records plays from this server", comment: "Title of the double-scrobble question")
     package static let doublePlayMessage = String(localized: "Trakt's own Plex sync is on. If both record, every episode counts twice. Pick one.", comment: "Message of the double-scrobble question")
     package static let crucibleRecords = String(localized: "Crucible Records Plays", comment: "Double-scrobble choice: Crucible scrobbles and Trakt's Plex scrobbler is turned off")
-    package static let crucibleRecordsDetail = String(localized: "Live progress and plays from downloads. Trakt's Plex scrobbler is turned off; its other settings stay.", comment: "Explanation of choosing Crucible to record plays")
+    package static let crucibleRecordsDetail = String(localized: "Live progress and plays from downloads. Trakt's Plex scrobbler and its sync of plays are turned off; its other settings stay.", comment: "Explanation of choosing Crucible to record plays")
     package static let traktRecords = String(localized: "Trakt's Plex Sync Records Them", comment: "Double-scrobble choice: Trakt keeps recording, Crucible stops scrobbling")
     package static let traktRecordsDetail = String(localized: "Crucible stops scrobbling and keeps everything else.", comment: "Explanation of choosing Trakt's Plex sync to record plays")
 

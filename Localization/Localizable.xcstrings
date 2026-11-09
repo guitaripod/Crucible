@@ -49542,67 +49542,67 @@
         }
       }
     },
-    "Live progress and plays from downloads. Trakt's Plex scrobbler is turned off; its other settings stay." : {
+    "Live progress and plays from downloads. Trakt's Plex scrobbler and its sync of plays are turned off; its other settings stay." : {
       "comment" : "Explanation of choosing Crucible to record plays",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Live-Fortschritt und Wiedergaben aus Downloads. Trakts Plex-Scrobbler wird ausgeschaltet, seine übrigen Einstellungen bleiben."
+            "value" : "Live-Fortschritt und Wiedergaben aus Downloads. Trakts Plex-Scrobbler und die Synchronisierung der Wiedergaben werden ausgeschaltet, die übrigen Einstellungen bleiben."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Progreso en directo y reproducciones desde descargas. El scrobbler de Plex de Trakt se apaga; sus otros ajustes se mantienen."
+            "value" : "Progreso en directo y reproducciones desde descargas. El scrobbler de Plex de Trakt y su sincronización de reproducciones se apagan; sus otros ajustes se mantienen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Progression en direct et lectures issues des téléchargements. Le scrobbler Plex de Trakt est désactivé ; ses autres réglages restent."
+            "value" : "Progression en direct et lectures issues des téléchargements. Le scrobbler Plex de Trakt et sa synchronisation des lectures sont désactivés ; ses autres réglages restent."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avanzamento in diretta e riproduzioni dai download. Lo scrobbler Plex di Trakt viene disattivato; le altre impostazioni restano."
+            "value" : "Avanzamento in diretta e riproduzioni dai download. Lo scrobbler Plex di Trakt e la sua sincronizzazione delle riproduzioni vengono disattivati; le altre impostazioni restano."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "視聴中の進捗と、ダウンロードした作品の再生を記録します。Trakt の Plex スクロブラーはオフになります。その他の設定はそのままです。"
+            "value" : "視聴中の進捗と、ダウンロードした作品の再生を記録します。Trakt の Plex スクロブラーと再生の同期はオフになります。その他の設定はそのままです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "시청 진행률과 다운로드한 항목의 재생을 기록합니다. Trakt의 Plex 스크로블러는 꺼지며, 나머지 설정은 그대로 유지됩니다."
+            "value" : "시청 진행률과 다운로드한 항목의 재생을 기록합니다. Trakt의 Plex 스크로블러와 재생 동기화는 꺼지며, 나머지 설정은 그대로 유지됩니다."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Postęp na żywo i odtworzenia z pobranych plików. Scrobbler Plex w Trakt zostaje wyłączony, a jego pozostałe ustawienia pozostają."
+            "value" : "Postęp na żywo i odtworzenia z pobranych plików. Scrobbler Plex w Trakt i synchronizacja odtworzeń zostają wyłączone, a pozostałe ustawienia pozostają."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Progresso ao vivo e reproduções de downloads. O scrobble do Plex no Trakt fica desativado; as outras configurações continuam."
+            "value" : "Progresso ao vivo e reproduções de downloads. O scrobble do Plex no Trakt e a sincronização de reproduções ficam desativados; as outras configurações continuam."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "实时进度和下载内容的播放记录。Trakt 自带的 Plex 同步已关闭，其他设置保持不变。"
+            "value" : "实时进度和下载内容的播放记录。Trakt 自带的 Plex 同步和播放记录同步已关闭，其他设置保持不变。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "即時進度與下載內容的播放紀錄。Trakt 內建的 Plex 同步已關閉，其餘設定維持不變。"
+            "value" : "即時進度與下載內容的播放紀錄。Trakt 內建的 Plex 即時記錄與播放同步已關閉，其餘設定維持不變。"
           }
         }
       }

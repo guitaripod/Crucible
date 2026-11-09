@@ -51,6 +51,8 @@ package enum TraktEndpoint: Sendable {
     case userSettings
     case plexSettings
     case disablePlexScrobbler
+    /// Changes Trakt's own Plex link with a body built from the settings it reported, such as its sync toggles.
+    case updatePlexSettings(body: Data)
     case lookup(TraktLookupID, kind: TraktMediaKind)
     case episode(showID: Int, season: Int, number: Int)
     case scrobble(TraktScrobbleAction, kind: TraktMediaKind, ids: TraktIDs, progress: Double)
@@ -70,7 +72,7 @@ package enum TraktEndpoint: Sendable {
     package var method: String {
         switch self {
         case .userSettings, .plexSettings, .lookup, .episode, .ratings, .history: return "GET"
-        case .disablePlexScrobbler: return "PUT"
+        case .disablePlexScrobbler, .updatePlexSettings: return "PUT"
         case .cancelCheckin: return "DELETE"
         default: return "POST"
         }
@@ -100,7 +102,7 @@ package enum TraktEndpoint: Sendable {
         case .refreshToken: return "/oauth/token"
         case .revoke: return "/oauth/revoke"
         case .userSettings: return "/users/settings"
-        case .plexSettings, .disablePlexScrobbler: return "/users/settings/plex"
+        case .plexSettings, .disablePlexScrobbler, .updatePlexSettings: return "/users/settings/plex"
         case .lookup(let id, _): return "/search/\(id.pathType)/\(id.pathValue.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id.pathValue)"
         case .episode(let showID, let season, let number): return "/shows/\(showID)/seasons/\(season)/episodes/\(number)"
         case .scrobble(let action, _, _, _): return "/scrobble/\(action.rawValue)"
@@ -155,6 +157,8 @@ package enum TraktEndpoint: Sendable {
         case .disablePlexScrobbler:
             let off = ["watching": false, "watched": false]
             return try encoder.encode(["scrobbler": ["toggles": ["movie": off, "episode": off]]])
+        case .updatePlexSettings(let body):
+            return body
         case .scrobble(_, let kind, let ids, let progress):
             return try encoder.encode(ScrobbleBody(kind: kind, ids: ids, progress: progress))
         case .addHistory(let items), .removeHistory(let items), .addRatings(let items), .removeRatings(let items):

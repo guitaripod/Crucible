@@ -607,3 +607,28 @@ struct TraktScoreTests {
         #expect(token.needsRefresh(now: created.addingTimeInterval(6 * 86_400 + 1)))
     }
 }
+
+/// Choosing Crucible to record plays turns off the plays Trakt's own Plex sync records, and nothing else it syncs.
+struct TraktPlexSyncTests {
+    @Test func onlyTheSyncsPlaysAreTurnedOff() throws {
+        let settings = #"""
+        {"connection": {"connected": true}, "sync": {"configured": true,
+          "toggles": {"movie": {"watched": true, "collected": true, "rated": false}, "episode": {"watched": true, "collected": false},
+                      "show": {"rated": true}}}}
+        """#
+        let body = try #require(TraktAccount.syncWithoutPlays(Data(settings.utf8)))
+        let sent = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let toggles = try #require((sent["sync"] as? [String: Any])?["toggles"] as? [String: [String: Bool]])
+        #expect(sent.keys.sorted() == ["sync"], "only the sync is changed")
+        #expect(toggles["movie"] == ["watched": false, "collected": true, "rated": false])
+        #expect(toggles["episode"] == ["watched": false, "collected": false])
+        #expect(toggles["show"] == ["rated": true])
+    }
+
+    @Test func aSyncThatRecordsNoPlaysIsLeftAlone() {
+        let notSetUp = #"{"sync": {"configured": false, "toggles": {"movie": {"watched": true}}}}"#
+        let noPlays = #"{"sync": {"configured": true, "toggles": {"movie": {"watched": false}, "episode": {"collected": true}}}}"#
+        #expect(TraktAccount.syncWithoutPlays(Data(notSetUp.utf8)) == nil)
+        #expect(TraktAccount.syncWithoutPlays(Data(noPlays.utf8)) == nil)
+    }
+}
