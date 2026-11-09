@@ -83,15 +83,17 @@ final class TraktTests: TVTestCase {
         TVTest.remote.press(.select)
     }
 
-    func testAConnectedTitleShowsTheRatingsStripAndCheckIn() {
+    /// Trakt's score sits on the hero's meta line beside Plex's own rating instead of a strip of its own.
+    func testAConnectedTitleShowsTraktBesidePlexsRatingAndCheckIn() {
         let app = launchIntoDemo()
         connect(app)
         AppNavigation.openFromOutside("crucible://item/1001?type=movie", in: self)
         XCTAssertTrue(AppNavigation.detailPrimary(app).waitForExistence(timeout: 30), "the detail screen never appeared")
-        let strip = AppNavigation.element(app, "detail.traktScores")
-        XCTAssertTrue(strip.waitForExistence(timeout: 30), "the detail page has no ratings strip")
-        XCTAssertTrue((strip.label).contains("Trakt"), "the strip does not name Trakt")
-        TVTest.capture("04-detail-ratings-strip", in: self)
+        let hero = app.descendants(matching: .any).matching(NSPredicate(format: "label MATCHES %@", ".*Trakt [0-9]+%.*")).firstMatch
+        XCTAssertTrue(hero.waitForExistence(timeout: 30), "the hero's meta line has no Trakt score")
+        XCTAssertFalse(AppNavigation.element(app, "detail.traktScores").exists, "the separate ratings strip is gone")
+        TVTest.settle(1)
+        TVTest.capture("04-detail-inline-ratings", in: self)
         let checkIn = AppNavigation.element(app, "detail.action.checkIn")
         XCTAssertTrue(checkIn.waitForExistence(timeout: 10), "the action row has no Check In")
     }

@@ -63,10 +63,14 @@ struct DetailMovieModelTests {
         let hero = model.heroInfo
         #expect(hero.eyebrow == "MOVIE")
         #expect(hero.title == "Heat")
-        #expect(hero.meta == DetailMeta(leading: ["1995", "2 h 50 m"], star: "8.3", trailing: ["87% critics"]))
+        #expect(hero.meta.leading == ["1995", "2 h 50 m"])
+        #expect(hero.meta.ratings.map(\.text) == ["8.3", "87% critics"])
         #expect(hero.badges == ["R"])
         #expect(hero.accessibilityText.hasPrefix("Heat, movie, 1995, "))
-        #expect(hero.accessibilityText.hasSuffix("rated 8.3 out of 10, R"))
+        #expect(hero.accessibilityText.hasSuffix("rated 8.3 out of 10, 87% critics, R"))
+        let withTrakt = model.heroInfo(trakt: [TraktScore(source: .trakt, value: 8.4, votes: nil, link: nil)])
+        #expect(withTrakt.meta.ratings.map(\.text) == ["8.3", "87% critics", "84%"])
+        #expect(withTrakt.accessibilityText.contains("Trakt 84%"))
     }
 
     @Test func episodeHero() {

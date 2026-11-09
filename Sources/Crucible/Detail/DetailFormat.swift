@@ -20,24 +20,12 @@ extension DetailFormat {
         ])
     }
 
-    /// "2021 · 2 h 14 m · ★ 8.1 · 92% critics" with the star drawn as an ember SF Symbol.
-    static func metaLine(_ meta: DetailMeta) -> NSAttributedString {
+    /// "2021 · 2 h 14 m · ★ 8.1 · 92% critics", each score under its source's mark: Plex's own ratings, then Trakt's.
+    static func metaLine(_ meta: DetailMeta, traits: UITraitCollection = .current) -> NSAttributedString {
         let font = Theme.Font.subheadline
         let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Theme.Color.labelSecondary]
         var segments: [NSAttributedString] = meta.leading.map { NSAttributedString(string: $0, attributes: attributes) }
-        if let star = meta.star {
-            let segment = NSMutableAttributedString()
-            let symbol = UIImage(systemName: "star.fill", withConfiguration: UIImage.SymbolConfiguration(font: font, scale: .small))?
-                .withTintColor(Theme.Color.accent, renderingMode: .alwaysOriginal)
-            if let symbol {
-                let attachment = NSTextAttachment(image: symbol)
-                segment.append(NSAttributedString(attachment: attachment))
-                segment.append(NSAttributedString(string: "\u{2009}", attributes: attributes))
-            }
-            segment.append(NSAttributedString(string: star, attributes: attributes))
-            segments.append(segment)
-        }
-        segments.append(contentsOf: meta.trailing.map { NSAttributedString(string: $0, attributes: attributes) })
+        segments += RatingLine.segments(meta.ratings, font: font, color: Theme.Color.labelSecondary, traits: traits)
         let result = NSMutableAttributedString()
         for (index, segment) in segments.enumerated() {
             if index > 0 { result.append(NSAttributedString(string: " · ", attributes: attributes)) }

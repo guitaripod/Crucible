@@ -4,17 +4,45 @@ import Foundation
 /// drawn as "2021 · 2 h 14 m · ★ 8.1 · 92% critics".
 package struct DetailMeta: Equatable, Sendable {
     package let leading: [String]
-    package let star: String?
-    package let trailing: [String]
+    package let ratings: [DetailRating]
 
-    package init(leading: [String], star: String?, trailing: [String]) {
+    package init(leading: [String], ratings: [DetailRating]) {
         self.leading = leading
-        self.star = star
-        self.trailing = trailing
+        self.ratings = ratings
     }
 
     package var isEmpty: Bool {
-        leading.isEmpty && star == nil && trailing.isEmpty
+        leading.isEmpty && ratings.isEmpty
+    }
+}
+
+/// One score on a detail page's meta line, beside the year and the runtime: drawn with its source's own mark when the source is
+/// known (`score`), with Plex's star for a rating whose source the server does not name, or as plain words.
+package struct DetailRating: Hashable, Sendable {
+    package enum Mark: Hashable, Sendable {
+        case star
+        case score(TraktScore)
+        case none
+    }
+
+    package let mark: Mark
+    package let text: String
+    package let spoken: String
+
+    package init(mark: Mark, text: String, spoken: String) {
+        self.mark = mark
+        self.text = text
+        self.spoken = spoken
+    }
+
+    /// A score from a known source, written and spoken the way that source writes it.
+    package var scoreSource: TraktScore.Source? {
+        if case .score(let score) = mark { return score.source }
+        return nil
+    }
+
+    package init(score: TraktScore) {
+        self.init(mark: .score(score), text: TraktCopy.value(score), spoken: "\(TraktCopy.sourceName(score.source)) \(TraktCopy.value(score))")
     }
 }
 

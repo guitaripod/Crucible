@@ -39,22 +39,52 @@ struct DetailFormatTests {
         #expect(DetailFormat.episodeCode(season: nil, episode: nil) == nil)
     }
 
-    @Test func ratingPartsPreferAudienceAndAddCriticPercent() {
-        let both = DetailFormat.ratingParts(audience: 8.14, critic: 9.2)
-        #expect(both.star == "8.1")
-        #expect(both.trailing == ["92% critics"])
-        let criticOnly = DetailFormat.ratingParts(audience: 0, critic: 7.5)
-        #expect(criticOnly.star == "7.5")
-        #expect(criticOnly.trailing.isEmpty)
-        let none = DetailFormat.ratingParts(audience: nil, critic: 0)
-        #expect(none.star == nil)
-        #expect(none.trailing.isEmpty)
+    @Test func unnamedRatingsKeepTheStarAndCallTheSecondCritics() {
+        let both = DetailFormat.ratings(audience: 8.14, audienceImage: nil, critic: 9.2, criticImage: nil)
+        #expect(both.map(\.text) == ["8.1", "92% critics"])
+        #expect(both.map(\.mark) == [.star, .none])
+        #expect(both.map(\.spoken) == ["rated 8.1 out of 10", "92% critics"])
+        let criticOnly = DetailFormat.ratings(audience: 0, audienceImage: nil, critic: 7.5, criticImage: nil)
+        #expect(criticOnly.map(\.text) == ["7.5"])
+        #expect(criticOnly.first?.mark == .star)
+        #expect(DetailFormat.ratings(audience: nil, audienceImage: nil, critic: 0, criticImage: nil).isEmpty)
     }
 
-    @Test func spokenRatingFallsBackToCritic() {
-        #expect(DetailFormat.spokenRating(audience: 8.1, critic: 5) == "rated 8.1 out of 10")
-        #expect(DetailFormat.spokenRating(audience: 0, critic: 6.5) == "rated 6.5 out of 10")
-        #expect(DetailFormat.spokenRating(audience: nil, critic: nil) == nil)
+    @Test func plexRatingsShowUnderTheMarkOfTheSourceTheServerNames() {
+        let ratings = DetailFormat.ratings(
+            audience: 8.1,
+            audienceImage: "imdb://image.rating",
+            critic: 9.2,
+            criticImage: "rottentomatoes://image.rating.ripe"
+        )
+        #expect(ratings.map(\.scoreSource) == [.imdb, .rottenTomatoes])
+        #expect(ratings.map(\.text) == ["8.1", "92%"])
+        #expect(ratings.map(\.spoken) == ["IMDb 8.1", "Rotten Tomatoes 92%"])
+        let popcorn = DetailFormat.ratings(audience: 8.6, audienceImage: "rottentomatoes://image.rating.upright", critic: nil, criticImage: nil)
+        #expect(popcorn.first?.mark == .star)
+        #expect(popcorn.first?.text == "86%")
+    }
+
+    /// Trakt's scores join Plex's on the meta line: Trakt's own first, then sources Plex did not show, four scores at most.
+    @Test func traktAddsTheSourcesPlexDidNotShowUpToFourScores() {
+        let trakt = [
+            TraktScore(source: .letterboxd, value: 3.9, votes: nil, link: nil),
+            TraktScore(source: .imdb, value: 8.0, votes: 1_000, link: nil),
+            TraktScore(source: .metascore, value: 74, votes: nil, link: nil),
+            TraktScore(source: .trakt, value: 8.12, votes: 900, link: nil),
+            TraktScore(source: .rottenTomatoes, value: 90, votes: nil, link: nil),
+        ]
+        let ratings = DetailFormat.ratings(
+            audience: 8.1,
+            audienceImage: "imdb://image.rating",
+            critic: 9.2,
+            criticImage: "rottentomatoes://image.rating.ripe",
+            trakt: trakt
+        )
+        #expect(ratings.map(\.scoreSource) == [.imdb, .rottenTomatoes, .trakt, .metascore])
+        #expect(ratings.map(\.text) == ["8.1", "92%", "81%", "74"])
+        let traktOnly = DetailFormat.ratings(audience: nil, audienceImage: nil, critic: nil, criticImage: nil, trakt: trakt)
+        #expect(traktOnly.map(\.scoreSource) == [.trakt, .imdb, .rottenTomatoes, .metascore])
     }
 
     @Test func technicalBadgesListResolutionRangeAudioChannelsAndRating() {

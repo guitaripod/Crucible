@@ -134,18 +134,29 @@ package struct ShowDetailModel: Sendable {
     }
 
     package var heroInfo: DetailHeroInfo {
+        heroInfo(trakt: [])
+    }
+
+    /// The hero's text, with what Trakt scores the show beside Plex's own rating once it is known.
+    package func heroInfo(trakt: [TraktScore]) -> DetailHeroInfo {
         var leading: [String] = []
         if let year = show.year { leading.append(String(year)) }
         let seasonCount = seasons.isEmpty ? (show.childCount ?? 0) : seasons.count
         if seasonCount > 0 { leading.append(seasonCount == 1 ? String(localized: "1 Season") : String(localized: "\(seasonCount) Seasons")) }
-        let rating = DetailFormat.ratingParts(audience: show.audienceRating, critic: show.rating)
-        let meta = DetailMeta(leading: leading, star: rating.star, trailing: rating.trailing)
+        let ratings = DetailFormat.ratings(
+            audience: show.audienceRating,
+            audienceImage: show.audienceRatingImage,
+            critic: show.rating,
+            criticImage: show.ratingImage,
+            trakt: trakt
+        )
+        let meta = DetailMeta(leading: leading, ratings: ratings)
         let sample = upNext?.episode ?? episodes.first
         let badges = DetailFormat.technicalBadges(for: sample, contentRating: show.contentRating, audio: nil)
 
         var spoken = [show.title, String(localized: "TV show")]
         spoken.append(contentsOf: leading)
-        if let ratingText = DetailFormat.spokenRating(audience: show.audienceRating, critic: show.rating) { spoken.append(ratingText) }
+        spoken.append(contentsOf: ratings.map(\.spoken))
         spoken.append(contentsOf: badges)
 
         return DetailHeroInfo(

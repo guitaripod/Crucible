@@ -6,7 +6,7 @@ import MidgarCore
 
 final class MediaDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, progress, links, tracks, overview, genres, scores, extras, cast, details, related
+        case hero, actions, progress, links, tracks, overview, genres, extras, cast, details, related
     }
 
     typealias Fact = DetailFact
@@ -19,7 +19,6 @@ final class MediaDetailViewController: UICollectionViewController {
         case tracks
         case overview
         case genres
-        case score(TraktScore)
         case extra(PlexMetadata)
         case castMember(PlexRole)
         case fact(Fact)
@@ -33,7 +32,8 @@ final class MediaDetailViewController: UICollectionViewController {
     private let seasonRatingKey: String?
     private var loadTask: Task<Void, Never>?
     private var model: MovieDetailModel?
-    /// What Trakt and the sources it collects score this title, once Trakt is connected and the title matched.
+    /// What Trakt and the sources it collects score this title, once Trakt is connected and the title matched; the hero's
+    /// meta line shows them beside Plex's own rating.
     private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: ratingKey)
     private var selectedSubtitleId: Int?
     private var selectedAudioTrackId: Int?
@@ -183,7 +183,6 @@ final class MediaDetailViewController: UICollectionViewController {
             case .tracks: return DetailLayout.fullWidth(top: 16, environment: environment)
             case .overview: return DetailLayout.fullWidth(top: 20, environment: environment)
             case .genres: return DetailLayout.fullWidth(top: 16, environment: environment)
-            case .scores: return DetailLayout.scoresRail(environment)
             case .extras: return DetailLayout.landscapeRail(environment)
             case .cast: return DetailLayout.castRail(environment)
             case .details: return DetailLayout.factsGrid(environment)
@@ -238,9 +237,6 @@ final class MediaDetailViewController: UICollectionViewController {
                 placeholderIcon: "film"
             )
         }
-        let scoreReg = UICollectionView.CellRegistration<UICollectionViewCell, TraktScore> { cell, _, score in
-            cell.contentConfiguration = TraktScoreTileConfiguration(score: score)
-        }
         let castReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexRole> { cell, _, role in
             cell.contentConfiguration = CastContentConfiguration(thumbPath: role.thumb, name: role.tag ?? "", role: role.role)
         }
@@ -260,7 +256,6 @@ final class MediaDetailViewController: UICollectionViewController {
             case .tracks: return cv.dequeueConfiguredReusableCell(using: tracksReg, for: indexPath, item: item)
             case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
             case .genres: return cv.dequeueConfiguredReusableCell(using: genresReg, for: indexPath, item: item)
-            case .score(let score): return cv.dequeueConfiguredReusableCell(using: scoreReg, for: indexPath, item: score)
             case .extra(let extra): return cv.dequeueConfiguredReusableCell(using: extraReg, for: indexPath, item: extra)
             case .castMember(let role): return cv.dequeueConfiguredReusableCell(using: castReg, for: indexPath, item: role)
             case .fact(let fact): return cv.dequeueConfiguredReusableCell(using: factReg, for: indexPath, item: fact)
@@ -272,7 +267,6 @@ final class MediaDetailViewController: UICollectionViewController {
             guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else { return }
             var config = SectionHeaderConfiguration()
             switch section {
-            case .scores: config.title = TraktCopy.ratingsTitle
             case .extras: config.title = DetailExtras.title
             case .cast: config.title = String(localized: "Cast & Crew")
             case .details: config.title = String(localized: "Details")
@@ -287,11 +281,11 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func heroConfiguration(_ model: MovieDetailModel) -> DetailHeroConfiguration {
-        let info = model.heroInfo
+        let info = model.heroInfo(trakt: scores)
         return DetailHeroConfiguration(
             eyebrow: info.eyebrow,
             title: info.title,
-            meta: info.meta.isEmpty ? nil : DetailFormat.metaLine(info.meta),
+            meta: info.meta.isEmpty ? nil : DetailFormat.metaLine(info.meta, traits: traitCollection),
             badges: info.badges,
             minimumHeight: hero.minimumHeroCellHeight,
             accessibilityText: info.accessibilityText
@@ -477,7 +471,7 @@ final class MediaDetailViewController: UICollectionViewController {
         await applySnapshot()
     }
 
-    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    /// Starts fetching Trakt's scores alongside the page, when Trakt is connected and none are cached.
     private func startScores() -> Task<[TraktScore], Never>? {
         guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
         let ratingKey = ratingKey, api = api
@@ -492,13 +486,23 @@ final class MediaDetailViewController: UICollectionViewController {
         return true
     }
 
-    /// Scores that came after the page appeared ease in instead of jumping into place.
+    /// Scores that came after the page appeared fade into the hero's meta line instead of jumping into it.
     private func finishScores(_ task: Task<[TraktScore], Never>) {
         Task { [weak self] in
             let found = await task.value
             guard let self, found != scores else { return }
             scores = found
-            await applySnapshot(animated: true)
+            easeHeroMeta()
+        }
+    }
+
+    private func easeHeroMeta() {
+        guard let path = dataSource.indexPath(for: .hero), let cell = collectionView.cellForItem(at: path) else {
+            reconfigure([.hero])
+            return
+        }
+        UIView.transition(with: cell, duration: 0.3, options: [.transitionCrossDissolve, .allowUserInteraction]) {
+            self.reconfigure([.hero])
         }
     }
 
@@ -549,11 +553,6 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems([.genres], toSection: .genres)
         }
 
-        if !scores.isEmpty {
-            snapshot.appendSections([.scores])
-            snapshot.appendItems(scores.map(Item.score), toSection: .scores)
-        }
-
         let extraItems = model.extras.map { Item.extra($0) }
         if !extraItems.isEmpty {
             snapshot.appendSections([.extras])
@@ -593,7 +592,6 @@ final class MediaDetailViewController: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .related, .extra: return true
-        case .score(let score): return score.link != nil
         case .castMember(let role): return PersonFilmography.canOpen(role)
         default: return false
         }
@@ -612,8 +610,6 @@ final class MediaDetailViewController: UICollectionViewController {
             navigationController?.pushViewController(PersonScreens.filmography(api: api, person: role), animated: true)
         case .extra(let extra):
             playExtra(extra)
-        case .score(let score):
-            if let link = score.link { UIApplication.shared.open(link) }
         default:
             break
         }

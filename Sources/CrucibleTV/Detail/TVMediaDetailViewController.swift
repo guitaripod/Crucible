@@ -220,7 +220,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
         return ShowTrackMemory.languages(forShow: loaded.showKey, server: ServerBootstrap.savedMachineIdentifier)
     }
 
-    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    /// Starts fetching Trakt's scores for the meta line alongside the page, when Trakt is connected and none are cached.
     private func startScores() -> Task<[TraktScore], Never>? {
         guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
         let ratingKey = ratingKey, api = env.api
@@ -287,15 +287,14 @@ final class TVMediaDetailViewController: TVDetailViewController {
         }
         return TVDetailContent(
             artwork: model.heroArtwork,
-            header: TVDetailMapping.heroInfo(model.heroInfo, progress: model.hasProgress ? model.progress.fraction : nil),
+            header: TVDetailMapping.heroInfo(model.heroInfo(trakt: scores), progress: model.hasProgress ? model.progress.fraction : nil),
             synopsis: model.hasSummary ? item.summary : nil,
             synopsisTitle: item.title,
             actions: actions(for: model),
             extras: model.extras.map { TVCardItem(id: "extra.\($0.id)", artworkPath: $0.thumb, title: $0.title, subtitle: DetailExtras.subtitle($0), placeholderSymbol: "film") },
             cast: TVDetailMapping.people(model.castAndCrew),
             related: TVDetailMapping.related(related),
-            facts: facts,
-            scores: scores
+            facts: facts
         )
     }
 

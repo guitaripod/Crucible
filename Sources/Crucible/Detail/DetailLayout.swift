@@ -49,21 +49,6 @@ enum DetailLayout {
         return rowFrame(width: bounds.width, room: room, maxWidth: Theme.readableWidth).width - Theme.Space.m * 2
     }
 
-    /// The ratings strip: one tile per source, scrolling sideways.
-    static func scoresRail(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
-        let gutter = Theme.Room(environment).gutter
-        let tile = TraktScoreTileConfiguration.size
-        let size = NSCollectionLayoutSize(widthDimension: .absolute(tile.width), heightDimension: .absolute(tile.height))
-        let item = NSCollectionLayoutItem(layoutSize: size)
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [item])
-        let section = NSCollectionLayoutSection(group: group)
-        section.orthogonalScrollingBehavior = .continuous
-        section.interGroupSpacing = Theme.Space.xs
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: gutter, bottom: 0, trailing: gutter)
-        section.boundarySupplementaryItems = [header()]
-        return section
-    }
-
     static func castRail(_ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let gutter = Theme.Room(environment).gutter
         let size = NSCollectionLayoutSize(widthDimension: .absolute(78), heightDimension: .estimated(118))

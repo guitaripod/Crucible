@@ -34,20 +34,58 @@ package enum DetailFormat {
         }
     }
 
-    package static func ratingParts(audience: Double?, critic: Double?) -> (star: String?, trailing: [String]) {
+    /// The most scores a meta line carries, so it stays one compact line beside the year and the runtime.
+    package static let ratingLimit = 4
+
+    /// The scores for a detail page's meta line: Plex's own ratings first, under their sources' marks when the server names
+    /// them, then what Trakt adds from sources Plex did not show, Trakt's own score leading. A source shows once.
+    package static func ratings(
+        audience: Double?,
+        audienceImage: String?,
+        critic: Double?,
+        criticImage: String?,
+        trakt: [TraktScore] = []
+    ) -> [DetailRating] {
+        var ratings: [DetailRating] = []
         if let audience, audience > 0 {
-            var trailing: [String] = []
-            if let critic, critic > 0 { trailing.append(String(localized: "\(Int((critic * 10).rounded()))% critics")) }
-            return (Formatters.rating(audience), trailing)
+            ratings.append(plexRating(audience, image: audienceImage, isCritic: false, alone: true))
         }
-        if let critic, critic > 0 { return (Formatters.rating(critic), []) }
-        return (nil, [])
+        if let critic, critic > 0 {
+            ratings.append(plexRating(critic, image: criticImage, isCritic: true, alone: ratings.isEmpty))
+        }
+        var shown = Set(ratings.compactMap(\.scoreSource))
+        for score in trakt.sorted(by: { traktOrder($0.source) < traktOrder($1.source) }) where ratings.count < ratingLimit {
+            guard !shown.contains(score.source) else { continue }
+            shown.insert(score.source)
+            ratings.append(DetailRating(score: score))
+        }
+        return ratings
     }
 
-    package static func spokenRating(audience: Double?, critic: Double?) -> String? {
-        let value = (audience ?? 0) > 0 ? audience : critic
-        guard let value, value > 0, let text = Formatters.rating(value) else { return nil }
-        return String(localized: "rated \(text) out of 10")
+    /// A rating Plex holds, `value` out of 10, under the mark of the source its image names. Rotten Tomatoes' audience
+    /// score has no mark Crucible draws, so it keeps the star; an unnamed critics' score beside another rating says "critics".
+    private static func plexRating(_ value: Double, image: String?, isCritic: Bool, alone: Bool) -> DetailRating {
+        let percent = Int((value * 10).rounded())
+        switch RatingSource(plexImage: image) {
+        case .imdb:
+            return DetailRating(score: TraktScore(source: .imdb, value: value, votes: nil, link: nil))
+        case .tmdb:
+            return DetailRating(score: TraktScore(source: .tmdb, value: value, votes: nil, link: nil))
+        case .rottenTomatoesCritics:
+            return DetailRating(score: TraktScore(source: .rottenTomatoes, value: value * 10, votes: nil, link: nil))
+        case .rottenTomatoesAudience:
+            return DetailRating(mark: .star, text: "\(percent)%", spoken: String(localized: "Audience score \(percent)%", comment: "Spoken Rotten Tomatoes audience score on a detail page"))
+        case nil:
+            if isCritic, !alone {
+                return DetailRating(mark: .none, text: String(localized: "\(percent)% critics"), spoken: String(localized: "\(percent)% critics"))
+            }
+            let text = Formatters.rating(value) ?? String(format: "%.1f", value)
+            return DetailRating(mark: .star, text: text, spoken: String(localized: "rated \(text) out of 10"))
+        }
+    }
+
+    private static func traktOrder(_ source: TraktScore.Source) -> Int {
+        [.trakt, .imdb, .rottenTomatoes, .metascore, .letterboxd, .myAnimeList, .tmdb].firstIndex(of: source) ?? 99
     }
 
     package static func primaryAudioStream(_ item: PlexMetadata, selectedId: Int? = nil) -> PlexStream? {

@@ -72,21 +72,17 @@ struct TVDetailContent {
     var cast: [TVDetailPerson] = []
     var related: [TVCardItem] = []
     var facts: [DetailFact] = []
-    /// What Trakt and the sources it collects score the title, shown under the synopsis.
-    var scores: [TraktScore] = []
 }
 
 /// Maps Plex models onto the card family and the hero block.
 @MainActor
 enum TVDetailMapping {
     static func heroInfo(_ info: DetailHeroInfo, progress: Double?, synopsis: String? = nil) -> TVHeroInfo {
-        var parts = info.meta.leading
-        if let star = info.meta.star { parts.append("★ \(star)") }
-        parts.append(contentsOf: info.meta.trailing)
-        return TVHeroInfo(
+        TVHeroInfo(
             eyebrow: info.eyebrow,
             title: info.title,
-            metaParts: parts,
+            metaParts: info.meta.leading,
+            ratings: info.meta.ratings,
             badges: info.badges,
             synopsis: synopsis,
             progress: progress,

@@ -175,7 +175,7 @@ final class TVShowDetailViewController: TVDetailViewController {
 
         present(TVDetailContent(
             artwork: model.heroArtwork,
-            header: TVDetailMapping.heroInfo(model.heroInfo, progress: nil),
+            header: TVDetailMapping.heroInfo(model.heroInfo(trakt: scores), progress: nil),
             synopsis: model.hasSummary ? model.show.summary : nil,
             synopsisTitle: model.show.title,
             actions: actions(for: model),
@@ -190,8 +190,7 @@ final class TVShowDetailViewController: TVDetailViewController {
             showsEpisodes: model.selectedSeason != nil,
             episodesState: episodesState,
             cast: TVDetailMapping.people(MovieDetailModel(item: model.show).castAndCrew),
-            related: relatedCards,
-            scores: scores
+            related: relatedCards
         ))
     }
 
@@ -209,7 +208,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         }
     }
 
-    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    /// Starts fetching Trakt's scores for the meta line alongside the page, when Trakt is connected and none are cached.
     private func startScores() -> Task<[TraktScore], Never>? {
         guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
         let ratingKey = showKey, api = env.api

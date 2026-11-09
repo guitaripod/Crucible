@@ -70,7 +70,8 @@ final class TraktTests: XCTestCase {
         XCTAssertTrue(IOSTest.element(app, "trakt.connect").waitForExistence(timeout: 20), "disconnecting did not bring Connect back")
     }
 
-    func testAConnectedDetailPageShowsTheRatingsStripAndCheckIn() {
+    /// Trakt's score sits on the hero's meta line beside Plex's own rating, under its mark, instead of a strip of its own.
+    func testAConnectedDetailPageShowsTraktBesidePlexsRatingAndCheckIn() {
         let app = enterDemo()
         openTraktSettings(app)
         connect(app)
@@ -82,19 +83,11 @@ final class TraktTests: XCTestCase {
         let result = app.cells.containing(NSPredicate(format: "label CONTAINS %@", "Halcyon")).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 60), "search found no Halcyon")
         result.tap()
-        let ratings = app.staticTexts["Ratings"]
-        for _ in 0..<5 where !ratings.exists {
-            app.collectionViews.firstMatch.swipeUp()
-            IOSTest.settle(1)
-        }
-        XCTAssertTrue(ratings.waitForExistence(timeout: 30), "the detail page has no ratings strip")
-        let trakt = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Trakt, '")).firstMatch
-        XCTAssertTrue(trakt.waitForExistence(timeout: 10), "the strip has no Trakt score")
-        for _ in 0..<3 where !trakt.isHittable {
-            app.collectionViews.firstMatch.swipeUp()
-            IOSTest.settle(1)
-        }
-        IOSTest.capture("04-detail-ratings-strip", in: self)
+        let hero = app.descendants(matching: .any).matching(NSPredicate(format: "label MATCHES %@", ".*Trakt [0-9]+%.*")).firstMatch
+        XCTAssertTrue(hero.waitForExistence(timeout: 30), "the hero's meta line has no Trakt score")
+        XCTAssertFalse(app.staticTexts["Ratings"].exists, "the separate ratings strip is gone")
+        IOSTest.settle(1)
+        IOSTest.capture("04-detail-inline-ratings", in: self)
 
         let more = app.navigationBars.buttons["More"]
         XCTAssertTrue(more.waitForExistence(timeout: 10), "the detail has no More menu")

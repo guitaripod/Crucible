@@ -79,8 +79,6 @@ package enum TraktCopy {
         return String(localized: "You're already checked in to something else on Trakt until \(time).", comment: "Check-in conflict with the time it ends")
     }
 
-    package static let ratingsTitle = String(localized: "Ratings", comment: "Title of the ratings strip on a detail page")
-
     package static func sourceName(_ source: TraktScore.Source) -> String {
         switch source {
         case .trakt: return "Trakt"

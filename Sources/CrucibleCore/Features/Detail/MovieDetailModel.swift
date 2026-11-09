@@ -105,14 +105,25 @@ package struct MovieDetailModel: Sendable {
     }
 
     package var heroInfo: DetailHeroInfo {
+        heroInfo(trakt: [])
+    }
+
+    /// The hero's text, with what Trakt scores the title beside Plex's own rating once it is known.
+    package func heroInfo(trakt: [TraktScore]) -> DetailHeroInfo {
         let eyebrow = self.eyebrow
         let dateText: String? = isEpisode
             ? (Formatters.plexDate(item.originallyAvailableAt) ?? item.year.map(String.init))
             : item.year.map(String.init)
         var leading: [String] = dateText.map { [$0] } ?? []
         if let runtime = DetailFormat.runtime(item.durationSecs) { leading.append(runtime) }
-        let rating = DetailFormat.ratingParts(audience: item.audienceRating, critic: item.rating)
-        let meta = DetailMeta(leading: leading, star: rating.star, trailing: rating.trailing)
+        let ratings = DetailFormat.ratings(
+            audience: item.audienceRating,
+            audienceImage: item.audienceRatingImage,
+            critic: item.rating,
+            criticImage: item.ratingImage,
+            trakt: trakt
+        )
+        let meta = DetailMeta(leading: leading, ratings: ratings)
 
         let audio = DetailFormat.primaryAudioStream(item)
         let badges = DetailFormat.technicalBadges(for: item, contentRating: item.contentRating, audio: audio)
@@ -126,7 +137,7 @@ package struct MovieDetailModel: Sendable {
         }
         if let dateText { spoken.append(dateText) }
         if let duration = DetailFormat.spokenDuration(item.durationSecs) { spoken.append(duration) }
-        if let ratingText = DetailFormat.spokenRating(audience: item.audienceRating, critic: item.rating) { spoken.append(ratingText) }
+        spoken.append(contentsOf: ratings.map(\.spoken))
         spoken.append(contentsOf: badges)
 
         return DetailHeroInfo(

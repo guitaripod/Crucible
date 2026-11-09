@@ -18,7 +18,6 @@ class TVDetailViewController: TVScreenViewController {
     enum Section: Int, Hashable, Sendable {
         case header
         case synopsis
-        case scores
         case actions
         case seasons
         case episodes
@@ -31,7 +30,6 @@ class TVDetailViewController: TVScreenViewController {
     enum Item: Hashable, Sendable {
         case header
         case synopsis
-        case scores
         case action(TVDetailAction.Kind)
         case season(String)
         case episode(String)
@@ -181,7 +179,7 @@ class TVDetailViewController: TVScreenViewController {
         showContent()
     }
 
-    /// Runs a refresh that adds what arrived after the page appeared (scores, a button) as a short cross-fade, so nothing
+    /// Runs a refresh that adds what arrived after the page appeared (Trakt's scores on the meta line, a button) as a short cross-fade, so nothing
     /// jumps into place.
     func easeIn(_ refresh: @escaping () -> Void) {
         guard hasContent, TVMotion.animationsEnabled else { return refresh() }
@@ -205,10 +203,6 @@ class TVDetailViewController: TVScreenViewController {
         if !(content.synopsis ?? "").isEmpty {
             snapshot.appendSections([.synopsis])
             snapshot.appendItems([.synopsis], toSection: .synopsis)
-        }
-        if !content.scores.isEmpty {
-            snapshot.appendSections([.scores])
-            snapshot.appendItems([.scores], toSection: .scores)
         }
         snapshot.appendSections([.actions])
         snapshot.appendItems(content.actions.map { .action($0.kind) }, toSection: .actions)
@@ -269,7 +263,6 @@ class TVDetailViewController: TVScreenViewController {
             switch section {
             case .header: return TVShelf.hero(height: Self.heroHeight)
             case .synopsis: return Self.block(top: 0, bottom: TVMetrics.shelfTopInset)
-            case .scores: return Self.headedBlock()
             case .actions: return Self.actionRow()
             case .seasons: return TVShelf.chips()
             case .episodes, .extras: return TVShelf.episode()
@@ -338,7 +331,6 @@ class TVDetailViewController: TVScreenViewController {
         let person = TVDetailPersonCell.registration()
         let related = TVPosterCell.registration()
         let information = TVDetailInformationCell.registration { [weak self] in self?.content?.facts ?? [] }
-        let scores = TVTraktScoresCell.registration { [weak self] in self?.content?.scores ?? [] }
         let placeholder = UICollectionView.CellRegistration<TVDetailEpisodePlaceholderCell, Int> { cell, _, index in
             cell.configure(index: index)
         }
@@ -378,8 +370,6 @@ class TVDetailViewController: TVScreenViewController {
                 return Self.identified(collectionView.dequeueConfiguredReusableCell(using: related, for: indexPath, item: card), id)
             case .information:
                 return collectionView.dequeueConfiguredReusableCell(using: information, for: indexPath, item: 0)
-            case .scores:
-                return collectionView.dequeueConfiguredReusableCell(using: scores, for: indexPath, item: 0)
             case .emptyEpisodes:
                 return collectionView.dequeueConfiguredReusableCell(using: empty, for: indexPath, item: 0)
             case .episodePlaceholder(let index):
@@ -410,7 +400,6 @@ class TVDetailViewController: TVScreenViewController {
         case .cast: return TVSectionHeader(title: String(localized: "Cast & Crew"))
         case .related: return TVSectionHeader(title: String(localized: "More Like This"))
         case .information: return TVSectionHeader(title: String(localized: "Information"))
-        case .scores: return TVSectionHeader(title: TraktCopy.ratingsTitle)
         default: return nil
         }
     }

@@ -1,3 +1,4 @@
+import CrucibleCore
 import CrucibleDesign
 import UIKit
 
@@ -11,6 +12,8 @@ struct TVHeroInfo: Equatable, Sendable {
     var eyebrow: String?
     var title: String
     var metaParts: [String]
+    /// Scores drawn after the facts, each under its source's mark (`RatingLine`).
+    var ratings: [DetailRating]
     var badges: [String]
     var synopsis: String?
     var progress: Double?
@@ -23,6 +26,7 @@ struct TVHeroInfo: Equatable, Sendable {
         eyebrow: String? = nil,
         title: String,
         metaParts: [String] = [],
+        ratings: [DetailRating] = [],
         badges: [String] = [],
         synopsis: String? = nil,
         progress: Double? = nil,
@@ -32,6 +36,7 @@ struct TVHeroInfo: Equatable, Sendable {
         self.eyebrow = eyebrow
         self.title = title
         self.metaParts = metaParts
+        self.ratings = ratings
         self.badges = badges
         self.synopsis = synopsis
         self.progress = progress
@@ -41,7 +46,7 @@ struct TVHeroInfo: Equatable, Sendable {
 
     var spokenText: String {
         if let accessibilityText, !accessibilityText.isEmpty { return accessibilityText }
-        let facts = metaParts.filter { !$0.isEmpty }.joined(separator: ", ")
+        let facts = (metaParts.filter { !$0.isEmpty } + ratings.map(\.spoken)).joined(separator: ", ")
         let badgeText = badges.isEmpty ? nil : badges.joined(separator: ", ")
         return [title, eyebrow, facts, badgeText, synopsis].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
     }
@@ -136,9 +141,9 @@ final class TVHeroInfoView: UIView {
         eyebrowLabel.text = info.eyebrow?.uppercased()
         eyebrowLabel.isHidden = (info.eyebrow ?? "").isEmpty
         titleLabel.text = info.title
-        let meta = info.metaParts.filter { !$0.isEmpty }.joined(separator: "  ·  ")
-        metaLabel.text = meta
-        metaLabel.isHidden = meta.isEmpty
+        let meta = Self.metaLine(info, font: metaLabel.font, traits: traitCollection)
+        metaLabel.attributedText = meta
+        metaLabel.isHidden = meta.length == 0
         synopsisLabel.text = info.synopsis
         synopsisLabel.isHidden = (info.synopsis ?? "").isEmpty
         let showsProgress = (info.progress ?? 0) > 0 && (info.progress ?? 0) < 1
@@ -147,6 +152,19 @@ final class TVHeroInfoView: UIView {
         replaceBadges(info.badges)
         adaptedHeight = 0
         setNeedsLayout()
+    }
+
+    /// The facts, then the scores under their sources' marks, on one middle-dot line.
+    private static func metaLine(_ info: TVHeroInfo, font: UIFont, traits: UITraitCollection) -> NSAttributedString {
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Theme.Color.labelSecondary]
+        let segments = info.metaParts.filter { !$0.isEmpty }.map { NSAttributedString(string: $0, attributes: attributes) }
+            + RatingLine.segments(info.ratings, font: font, color: Theme.Color.labelSecondary, traits: traits)
+        let line = NSMutableAttributedString()
+        for (index, segment) in segments.enumerated() {
+            if index > 0 { line.append(NSAttributedString(string: "  ·  ", attributes: attributes)) }
+            line.append(segment)
+        }
+        return line
     }
 
     /// The block has a fixed height, so a long title plus a long synopsis must give way rather than

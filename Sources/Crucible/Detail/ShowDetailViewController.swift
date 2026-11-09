@@ -5,7 +5,7 @@ import MidgarCore
 
 final class ShowDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, offer, overview, scores, essentials, seasonBar, episodes, related
+        case hero, actions, offer, overview, essentials, seasonBar, episodes, related
     }
 
     enum Item: Hashable {
@@ -13,7 +13,6 @@ final class ShowDetailViewController: UICollectionViewController {
         case actions
         case offer
         case overview
-        case score(TraktScore)
         case essentials
         case seasonBar
         case episode(PlexMetadata)
@@ -225,7 +224,6 @@ final class ShowDetailViewController: UICollectionViewController {
             case .actions: return DetailLayout.fullWidth(top: 4, environment: environment)
             case .offer: return DetailLayout.fullWidth(top: 16, environment: environment, maxWidth: Self.episodeListWidth)
             case .overview: return DetailLayout.fullWidth(top: 16, environment: environment)
-            case .scores: return DetailLayout.scoresRail(environment)
             case .essentials: return DetailLayout.fullWidth(top: 20, environment: environment, maxWidth: Self.episodeListWidth)
             case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4, environment: environment, maxWidth: Self.episodeListWidth)
             case .episodes: return self.episodesSection(environment)
@@ -307,16 +305,12 @@ final class ShowDetailViewController: UICollectionViewController {
         let relatedReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
             cell.contentConfiguration = DetailLayout.posterConfiguration(for: related)
         }
-        let scoreReg = UICollectionView.CellRegistration<UICollectionViewCell, TraktScore> { cell, _, score in
-            cell.contentConfiguration = TraktScoreTileConfiguration(score: score)
-        }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
             case .hero: return cv.dequeueConfiguredReusableCell(using: heroReg, for: indexPath, item: item)
             case .actions: return cv.dequeueConfiguredReusableCell(using: actionsReg, for: indexPath, item: item)
             case .overview: return cv.dequeueConfiguredReusableCell(using: overviewReg, for: indexPath, item: item)
-            case .score(let score): return cv.dequeueConfiguredReusableCell(using: scoreReg, for: indexPath, item: score)
             case .seasonBar: return cv.dequeueConfiguredReusableCell(using: seasonBarReg, for: indexPath, item: item)
             case .essentials: return cv.dequeueConfiguredReusableCell(using: essentialsReg, for: indexPath, item: item)
             case .offer: return cv.dequeueConfiguredReusableCell(using: offerReg, for: indexPath, item: item)
@@ -327,8 +321,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             var config = SectionHeaderConfiguration()
-            let section = self?.dataSource?.sectionIdentifier(for: indexPath.section)
-            config.title = section == .scores ? TraktCopy.ratingsTitle : String(localized: "More Like This")
+            config.title = String(localized: "More Like This")
             cell.contentConfiguration = config
         }
         dataSource.supplementaryViewProvider = { cv, _, indexPath in
@@ -337,11 +330,11 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func heroConfiguration(_ model: ShowDetailModel) -> DetailHeroConfiguration {
-        let info = model.heroInfo
+        let info = model.heroInfo(trakt: scores)
         return DetailHeroConfiguration(
             eyebrow: info.eyebrow,
             title: info.title,
-            meta: info.meta.isEmpty ? nil : DetailFormat.metaLine(info.meta),
+            meta: info.meta.isEmpty ? nil : DetailFormat.metaLine(info.meta, traits: traitCollection),
             badges: info.badges,
             minimumHeight: hero.minimumHeroCellHeight,
             accessibilityText: info.accessibilityText
@@ -811,10 +804,6 @@ final class ShowDetailViewController: UICollectionViewController {
             snapshot.appendSections([.overview])
             snapshot.appendItems([.overview], toSection: .overview)
         }
-        if !scores.isEmpty {
-            snapshot.appendSections([.scores])
-            snapshot.appendItems(scores.map(Item.score), toSection: .scores)
-        }
         if !model.episodes.isEmpty || model.essentials != nil {
             snapshot.appendSections([.essentials])
             snapshot.appendItems([.essentials], toSection: .essentials)
@@ -839,7 +828,7 @@ final class ShowDetailViewController: UICollectionViewController {
         let dynamic = refreshed.itemIdentifiers.filter { item in
             switch item {
             case .hero, .actions, .offer, .overview, .essentials, .seasonBar, .episode: return true
-            case .related, .score: return false
+            case .related: return false
             }
         }
         if !dynamic.isEmpty {
@@ -887,14 +876,12 @@ final class ShowDetailViewController: UICollectionViewController {
             navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
         case .related(let related):
             openRelated(related)
-        case .score(let score):
-            if let link = score.link { UIApplication.shared.open(link) }
         default:
             break
         }
     }
 
-    /// Starts fetching the ratings strip alongside the page, when Trakt is connected and none are cached.
+    /// Starts fetching Trakt's scores alongside the page, when Trakt is connected and none are cached.
     private func startScores() -> Task<[TraktScore], Never>? {
         guard TraktAccount.shared.isConnected, scores.isEmpty else { return nil }
         let ratingKey = showRatingKey, api = api
@@ -909,13 +896,23 @@ final class ShowDetailViewController: UICollectionViewController {
         return true
     }
 
-    /// Scores that came after the page appeared ease in instead of jumping into place.
+    /// Scores that came after the page appeared fade into the hero's meta line instead of jumping into it.
     private func finishScores(_ task: Task<[TraktScore], Never>) {
         Task { [weak self] in
             let found = await task.value
             guard let self, found != scores else { return }
             scores = found
-            await applySnapshot(animated: true)
+            easeHeroMeta()
+        }
+    }
+
+    private func easeHeroMeta() {
+        guard let path = dataSource.indexPath(for: .hero), let cell = collectionView.cellForItem(at: path) else {
+            reconfigure([.hero])
+            return
+        }
+        UIView.transition(with: cell, duration: 0.3, options: [.transitionCrossDissolve, .allowUserInteraction]) {
+            self.reconfigure([.hero])
         }
     }
 
@@ -931,7 +928,6 @@ final class ShowDetailViewController: UICollectionViewController {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .episode: return true
         case .related: return !collectionView.isEditing
-        case .score(let score): return score.link != nil && !collectionView.isEditing
         default: return false
         }
     }
