@@ -105504,6 +105504,71 @@
         }
       }
     },
+    "Watched on Plex and everywhere else, via Trakt" : {
+      "comment" : "Foot of the shared statistics poster when it counts the plays Trakt recorded outside Plex too",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Plex und überall sonst gesehen, über Trakt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visto en Plex y en todas partes, vía Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vu sur Plex et partout ailleurs, via Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visto su Plex e ovunque altrove, tramite Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex とそのほかすべての場所で視聴（Trakt 経由）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex와 그 밖의 모든 곳에서 시청함(Trakt 경유)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obejrzane w Plex i wszędzie indziej, przez Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assistido no Plex e em todos os outros lugares, via Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Plex 和其他所有地方观看（经由 Trakt）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Plex 和其他所有地方看過（經由 Trakt）"
+          }
+        }
+      }
+    },
     "Watched on my own Plex server" : {
       "localizations" : {
         "de" : {

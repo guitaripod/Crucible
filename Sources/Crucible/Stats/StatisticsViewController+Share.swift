@@ -62,8 +62,17 @@ extension StatisticsViewController {
             },
             genres: facts.genres,
             heatmap: facts.heatmap,
-            summary: facts.summary
+            summary: facts.summary,
+            footer: shareFooter
         )
+    }
+
+    /// The poster's foot: only the Plex server, or with Everything chosen, the plays Trakt holds from everywhere else too.
+    private var shareFooter: String {
+        switch source {
+        case .plex: return String(localized: "Watched on my own Plex server")
+        case .everything: return String(localized: "Watched on Plex and everywhere else, via Trakt", comment: "Foot of the shared statistics poster when it counts the plays Trakt recorded outside Plex too")
+        }
     }
 
     private func loadPosters(for titles: [StatsShareFacts.Title]) async -> [Int: UIImage] {

@@ -119,7 +119,7 @@ private struct StoryComposition {
 
     private func drawFooter(top: CGFloat) {
         let font = WrappedShareCanvas.rounded(26, .semibold)
-        canvas.drawText(String(localized: "Watched on my own Plex server"), font: font, color: WrappedInk.tertiary, in: CGRect(x: margin, y: top, width: contentWidth, height: font.lineHeight), alignment: .center, kern: 1)
+        canvas.drawText(content.footer, font: font, color: WrappedInk.tertiary, in: CGRect(x: margin, y: top, width: contentWidth, height: font.lineHeight), alignment: .center, kern: 1)
     }
 
     /// Genres and the heatmap fill whatever room the titles leave, anchored above the footer.
@@ -176,7 +176,7 @@ private struct SquareComposition {
         drawGenres(left: titlesLeft, top: 168 + 3 * 196 + 8)
         drawHeatmapBand()
         let footer = WrappedShareCanvas.rounded(22, .semibold)
-        canvas.drawText(String(localized: "Watched on my own Plex server"), font: footer, color: WrappedInk.tertiary, in: CGRect(x: margin, y: canvas.size.height - 62, width: contentWidth, height: footer.lineHeight), alignment: .center, kern: 1)
+        canvas.drawText(content.footer, font: footer, color: WrappedInk.tertiary, in: CGRect(x: margin, y: canvas.size.height - 62, width: contentWidth, height: footer.lineHeight), alignment: .center, kern: 1)
     }
 
     private func drawHero(width: CGFloat) -> CGFloat {

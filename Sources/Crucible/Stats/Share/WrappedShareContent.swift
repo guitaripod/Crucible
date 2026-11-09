@@ -28,6 +28,8 @@ struct WrappedShareContent {
     let genres: [String]
     let heatmap: HeatmapModel?
     let summary: String
+    /// Where the plays were watched, along the poster's foot.
+    let footer: String
 
     var leadPoster: UIImage? { titles.first?.poster }
 }
