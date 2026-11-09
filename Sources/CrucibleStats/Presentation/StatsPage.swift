@@ -203,6 +203,9 @@ package struct StatsPage: Equatable, Sendable {
     }
 
     private static func subtitle(_ snapshot: StatsSnapshot) -> String {
+        if snapshot.traktImportPending {
+            return String(localized: "Bringing in your Trakt history…", comment: "Statistics hero subtitle while Everything still lacks part of the Trakt history")
+        }
         guard let since = snapshot.overview.memberSinceViewedAt else { return String(localized: "Your viewing, visualized") }
         let formatter = DateFormatter()
         formatter.setLocalizedDateFormatFromTemplate("yMMMM")

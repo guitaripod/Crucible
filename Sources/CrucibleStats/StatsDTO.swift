@@ -149,6 +149,8 @@ package struct StatsSnapshot: Equatable, Sendable {
     package var superlatives: [Superlative] = []
 
     package var enrichment = EnrichmentProgress()
+    /// Everything is showing while the first pass over the viewer's Trakt history is still running, so its numbers will grow.
+    package var traktImportPending = false
 
     package init() {}
 

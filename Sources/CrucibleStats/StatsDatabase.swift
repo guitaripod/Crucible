@@ -126,6 +126,75 @@ final class StatsDatabase: Sendable {
             }
         }
 
+        migrator.registerMigration("v2-trakt") { db in
+            try db.create(table: "trakt_play") { t in
+                t.primaryKey("id", .integer)
+                t.column("traktKey", .text).notNull()
+                t.column("traktShowKey", .text)
+                t.column("ratingKey", .text).notNull()
+                t.column("type", .text).notNull()
+                t.column("title", .text)
+                t.column("grandparentTitle", .text)
+                t.column("grandparentRatingKey", .text)
+                t.column("thumb", .text)
+                t.column("grandparentThumb", .text)
+                t.column("traktThumb", .text)
+                t.column("traktShowThumb", .text)
+                t.column("releaseYear", .integer)
+                t.column("imdb", .text)
+                t.column("tmdb", .integer)
+                t.column("tvdb", .integer)
+                t.column("showImdb", .text)
+                t.column("showTmdb", .integer)
+                t.column("showTvdb", .integer)
+                t.column("parentIndex", .integer)
+                t.column("idx", .integer)
+                t.column("viewedAt", .integer).notNull()
+                t.column("dayEpoch", .integer).notNull()
+                t.column("hourLocal", .integer).notNull()
+                t.column("weekday", .integer).notNull()
+                t.column("monthEpoch", .integer).notNull()
+                t.column("monthDay", .integer).notNull()
+                t.column("year", .integer).notNull()
+                t.column("librarySectionID", .integer)
+                t.column("librarySectionTitle", .text)
+                t.column("matchedPlayID", .integer)
+            }
+            try db.create(index: "idx_trakt_play_viewedAt", on: "trakt_play", columns: ["viewedAt"])
+
+            try db.create(table: "trakt_sync") { t in
+                t.primaryKey("id", .integer)
+                t.check(Column("id") == 1)
+                t.column("owner", .text)
+                t.column("newestViewedAt", .integer)
+                t.column("nextPage", .integer).notNull().defaults(to: 1)
+                t.column("complete", .boolean).notNull().defaults(to: false)
+                t.column("passStartAt", .integer)
+                t.column("lastSyncAt", .integer)
+            }
+
+            try db.create(table: "item_ids") { t in
+                t.primaryKey("ratingKey", .text)
+                t.column("imdb", .text)
+                t.column("tmdb", .integer)
+                t.column("tvdb", .integer)
+                t.column("checkedAt", .integer).notNull()
+            }
+
+            try db.execute(sql: """
+                CREATE VIEW every_play AS
+                SELECT id, ratingKey, type, title, grandparentTitle, grandparentRatingKey, grandparentThumb, thumb, parentIndex, idx,
+                       viewedAt, dayEpoch, hourLocal, weekday, monthEpoch, monthDay, year, librarySectionID, librarySectionTitle,
+                       accountID, deviceID, 'plex' AS source
+                FROM play
+                UNION ALL
+                SELECT -id, ratingKey, type, title, grandparentTitle, grandparentRatingKey, grandparentThumb, thumb, parentIndex, idx,
+                       viewedAt, dayEpoch, hourLocal, weekday, monthEpoch, monthDay, year, librarySectionID, librarySectionTitle,
+                       NULL, NULL, 'trakt' AS source
+                FROM trakt_play WHERE matchedPlayID IS NULL
+                """)
+        }
+
         return migrator
     }
 }

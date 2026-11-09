@@ -2,19 +2,22 @@ import CrucibleDesign
 import CrucibleStats
 import UIKit
 
-/// The top of the Statistics screen: the shared screen title with the "watching since" line, the
-/// Week / Month / Year / All chips and the Libraries filter menu. Selection is a press, never focus.
+/// The top of the Statistics screen: the shared screen title, the Week / Month / Year / All chips, the Plex / Everything
+/// menu while Trakt is connected and the Libraries filter menu. Selection is a press, never focus. The "watching since"
+/// line lives on the hero below, so the title keeps its room beside the controls.
 ///
 /// Statistics beyond the Week range and the Libraries filter are Crucible Pro. While `showsLocks` is on, the Month, Year and
 /// All chips and the Libraries button carry a lock and report a press through `onLocked` instead of changing anything; the
 /// screen opens the paywall and, once Pro is on, selects the range itself.
 final class TVStatsControlsView: UIView {
     var onRange: (@MainActor (StatsRange) -> Void)?
+    var onSource: (@MainActor (StatsSource) -> Void)?
     var onLocked: (@MainActor (StatsLock) -> Void)?
 
     enum StatsLock: Equatable {
         case range(StatsRange)
         case libraries
+        case everything
     }
 
     var showsLocks = false {
@@ -22,12 +25,17 @@ final class TVStatsControlsView: UIView {
             guard showsLocks != oldValue else { return }
             chipRow.setItems(chipItems())
             updateLibraries(filter)
+            updateSource(source, available: sourceAvailable)
         }
     }
 
     private let title = TVScreenTitleView(clearsTabBar: false)
     private let chipRow = TVChipRow()
     private let librariesSlot = UIView()
+    private let sourceButton = UIButton(type: .system)
+    private var sourceLockAction: UIAction?
+    private var source = StatsSource.plex
+    private var sourceAvailable = false
     private var librariesButton: UIButton?
     private var librariesLockAction: UIAction?
     private var filter = StatsLibraryFilter.current()
@@ -47,7 +55,10 @@ final class TVStatsControlsView: UIView {
             self?.choose(chosen)
         }
 
-        let controls = UIStackView(arrangedSubviews: [chipRow, librariesSlot])
+        sourceButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        sourceButton.accessibilityIdentifier = "stats.source"
+        sourceButton.isHidden = true
+        let controls = UIStackView(arrangedSubviews: [chipRow, sourceButton, librariesSlot])
         controls.axis = .horizontal
         controls.spacing = Theme.Space.m
         controls.alignment = .center
@@ -73,9 +84,8 @@ final class TVStatsControlsView: UIView {
         [chipRow.button(for: Self.chipID(range))].compactMap { $0 }
     }
 
-    func configure(range: StatsRange, since: String?, filter: StatsLibraryFilter) {
+    func configure(range: StatsRange, filter: StatsLibraryFilter) {
         self.range = range
-        title.configure(TVScreenTitleContent(title: String(localized: "Statistics"), summary: since))
         chipRow.setItems(chipItems())
         updateLibraries(filter)
     }
@@ -117,6 +127,40 @@ final class TVStatsControlsView: UIView {
         range = chosen
         chipRow.select(id: Self.chipID(chosen))
         onRange?(chosen)
+    }
+
+    /// Shows the Plex / Everything menu while Trakt is connected. Everything is Full Statistics, so without Pro the button
+    /// carries a lock and asks for the paywall instead.
+    func updateSource(_ source: StatsSource, available: Bool) {
+        self.source = source
+        sourceAvailable = available
+        sourceButton.isHidden = !available
+        guard available else { return }
+        if let lockAction = sourceLockAction {
+            sourceButton.removeAction(lockAction, for: .primaryActionTriggered)
+            sourceLockAction = nil
+        }
+        sourceButton.accessibilityValue = source.accessibilityLabel
+        guard showsLocks else {
+            let actions = StatsSource.allCases.map { candidate in
+                UIAction(title: candidate.title, subtitle: candidate.accessibilityLabel, state: candidate == source ? .on : .off) { [weak self] _ in
+                    guard let self, candidate != self.source else { return }
+                    self.updateSource(candidate, available: true)
+                    self.onSource?(candidate)
+                }
+            }
+            TVButton.configure(menu: UIMenu(children: actions), title: source.title, style: .glass, on: sourceButton)
+            sourceButton.accessibilityHint = nil
+            return
+        }
+        sourceButton.menu = nil
+        sourceButton.showsMenuAsPrimaryAction = false
+        sourceButton.configuration = TVButton.configuration(.glass, title: StatsSource.everything.title, symbol: "lock.fill")
+        sourceButton.accessibilityLabel = String(localized: "\(StatsSource.everything.title), locked")
+        sourceButton.accessibilityHint = String(localized: "Requires Crucible Pro")
+        let lockAction = UIAction { [weak self] _ in self?.onLocked?(.everything) }
+        sourceLockAction = lockAction
+        sourceButton.addAction(lockAction, for: .primaryActionTriggered)
     }
 
     /// Brings the Libraries menu up to date in place, so a menu that is open survives a toggle; the

@@ -90,47 +90,82 @@ struct StatsSyncService: Sendable {
         }
     }
 
-    /// Runs enrichment batches until nothing remains or the per-launch cap is hit.
-    func enrichLoop(perLaunchCap: Int) async {
+    /// Runs enrichment batches until nothing remains or the per-launch cap is hit. With `includeIDs` (Trakt is connected) it
+    /// also learns the outside numbers of titles enriched before, which Statistics matches Trakt's plays by. Returns how many
+    /// titles' numbers it learned.
+    @discardableResult
+    func enrichLoop(perLaunchCap: Int, includeIDs: Bool = false) async -> Int {
         var processed = 0
+        var learned = 0
         while processed < perLaunchCap {
-            let did = await enrichOnce(itemBatch: 40, showBatch: 20)
-            if did == 0 { break }
-            processed += did
+            let batch = await enrichOnce(itemBatch: 40, showBatch: 20, idBatch: includeIDs ? 40 : 0)
+            if batch.processed == 0 { break }
+            processed += batch.processed
+            learned += batch.learnedIDs
         }
         if processed > 0 {
-            MidgarLog.info("Stats enrichment processed \(processed) items", category: .stats)
+            MidgarLog.info("Stats enrichment processed \(processed) items, \(learned) with outside ids", category: .stats)
         }
+        return learned
     }
 
-    private func enrichOnce(itemBatch: Int, showBatch: Int) async -> Int {
+    private func enrichOnce(itemBatch: Int, showBatch: Int, idBatch: Int) async -> (processed: Int, learnedIDs: Int) {
         var processed = 0
+        var learned = 0
         let now = Int(Date().timeIntervalSince1970)
 
         if let items = try? await store.itemsNeedingRuntime(limit: itemBatch) {
             for item in items {
-                if Task.isCancelled { return processed }
+                if Task.isCancelled { return (processed, learned) }
                 try? await Task.sleep(for: .milliseconds(250))
                 guard let meta = await fetchMetadata(ratingKey: item.ratingKey) else { continue }
                 let isMovie = (meta.type ?? item.type) == "movie"
                 let record = ItemMeta(ratingKey: item.ratingKey, durationMs: meta.duration, year: meta.year, enrichedAt: now)
                 try? await store.saveItemMeta(record, genres: isMovie ? meta.genres : [])
+                try? await store.saveItemIDs(item.ratingKey, ids: TraktResolver.ids(of: meta))
                 processed += 1
+                learned += 1
             }
         }
 
         if let shows = try? await store.showsNeedingMeta(limit: showBatch) {
             for showKey in shows {
-                if Task.isCancelled { return processed }
+                if Task.isCancelled { return (processed, learned) }
                 try? await Task.sleep(for: .milliseconds(250))
                 guard let meta = await fetchMetadata(ratingKey: showKey) else { continue }
                 let record = ShowMeta(ratingKey: showKey, leafCount: meta.leafCount, title: meta.title, thumb: meta.thumb, enrichedAt: now)
                 try? await store.saveShowMeta(record, genres: meta.genres)
+                try? await store.saveItemIDs(showKey, ids: TraktResolver.ids(of: meta))
                 processed += 1
+                learned += 1
             }
         }
 
-        return processed
+        if idBatch > 0, let keys = try? await store.itemsNeedingIDs(limit: idBatch) {
+            for key in keys {
+                if Task.isCancelled { return (processed, learned) }
+                try? await Task.sleep(for: .milliseconds(250))
+                guard let ids = await outsideIDs(ratingKey: key) else { continue }
+                try? await store.saveItemIDs(key, ids: ids)
+                processed += 1
+                learned += 1
+            }
+        }
+
+        return (processed, learned)
+    }
+
+    /// The outside numbers Plex holds for an item, none for one the server no longer has (so it is not asked again), or nil
+    /// when the server could not be asked.
+    private func outsideIDs(ratingKey: String) async -> ExternalIDs? {
+        do {
+            let container = try await api.requestContainer(.metadata(ratingKey: ratingKey))
+            return container.Metadata?.first.map(TraktResolver.ids(of:)) ?? ExternalIDs()
+        } catch APIError.httpError(let status, _) where status == 404 {
+            return ExternalIDs()
+        } catch {
+            return nil
+        }
     }
 
     private func fetchMetadata(ratingKey: String) async -> PlexMetadata? {

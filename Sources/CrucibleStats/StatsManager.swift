@@ -14,6 +14,8 @@ package final class StatsManager {
     private var syncTask: Task<Void, Never>?
     private var enrichTask: Task<Void, Never>?
     private var generation = 0
+    private var traktObservation: UUID?
+    private var traktWasConnected = false
 
     var isAvailable: Bool { store != nil }
 
@@ -37,7 +39,29 @@ package final class StatsManager {
                 MidgarLog.error("Stats DB init failed: \(error.localizedDescription)", category: .stats)
             }
         }
+        followTrakt()
     }
+
+    /// Trakt connecting brings its history in with the next sync; disconnecting forgets it, so Everything never shows an
+    /// account that is gone.
+    private func followTrakt() {
+        guard traktObservation == nil else { return }
+        traktWasConnected = TraktAccount.shared.isConnected
+        traktObservation = TraktAccount.shared.observe { [weak self] in
+            guard let self else { return }
+            let connected = TraktAccount.shared.isConnected
+            defer { traktWasConnected = connected }
+            guard connected != traktWasConnected else { return }
+            if connected {
+                kickBackgroundSync()
+            } else if let store {
+                Task { try? await store.clearTrakt() }
+            }
+        }
+    }
+
+    /// Whether Everything has anything to add: Trakt is connected for the viewer watching now.
+    package var offersEverything: Bool { TraktAccount.shared.isConnected }
 
     /// Fire-and-forget incremental sync, followed by a bounded enrichment pass. Deliberately delayed
     /// and low-priority so it never competes with the foreground UI's network requests on launch.
@@ -64,6 +88,9 @@ package final class StatsManager {
         let task = Task(priority: .utility) { [weak self] in
             if initialDelay > .zero { try? await Task.sleep(for: initialDelay) }
             await StatsSyncService(api: api, store: store).sync()
+            if await TraktAccount.shared.isConnected {
+                await TraktStatsImport(store: store, client: .shared, owner: TraktTokenStore.currentOwner).run()
+            }
             guard let self, generation == gen else { return }
             syncTask = nil
             startEnrichment(generation: gen)
@@ -74,8 +101,10 @@ package final class StatsManager {
 
     private func startEnrichment(generation gen: Int) {
         guard enrichTask == nil, generation == gen, let api, let store else { return }
+        let traktConnected = TraktAccount.shared.isConnected
         enrichTask = Task(priority: .background) { [weak self] in
-            await StatsSyncService(api: api, store: store).enrichLoop(perLaunchCap: 400)
+            let learned = await StatsSyncService(api: api, store: store).enrichLoop(perLaunchCap: 400, includeIDs: traktConnected)
+            if learned > 0, traktConnected { try? await store.linkTraktPlays() }
             guard let self, generation == gen else { return }
             enrichTask = nil
         }

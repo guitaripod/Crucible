@@ -97,7 +97,19 @@ extension StatisticsViewController {
             chips.setLocked(lockedRanges)
             chips.onRange = { [weak self] newRange in self?.selectRange(newRange) }
             rangeChips = chips
-            host(chips, in: cell)
+            guard StatsManager.shared.offersEverything else {
+                sourceChips = nil
+                return host(chips, in: cell)
+            }
+            let sources = StatsSourceChipsView()
+            sources.select(source)
+            sources.setEverythingLocked(ProAccess.shared.showsLocks)
+            sources.onSource = { [weak self] newSource in self?.selectSource(newSource) }
+            sourceChips = sources
+            let stack = UIStackView(arrangedSubviews: [chips, sources])
+            stack.axis = .vertical
+            stack.spacing = 8
+            host(stack, in: cell)
         }
 
         let heroReg = UICollectionView.CellRegistration<UICollectionViewCell, Int> { [weak self] cell, _, _ in
@@ -419,14 +431,16 @@ extension StatisticsViewController {
         }
     }
 
+    /// Opens the title on the server; a title watched elsewhere that the server doesn't have has nowhere to go.
     func pushDestination(_ destination: StatsDestination) {
+        guard destination.isOnServer else { return }
         navigationController?.pushViewController(destination.makeViewController(api: api), animated: true)
     }
 
     func pushDayDetail(dayEpoch: Int) {
         guard let loader else { return }
         let date = statsTime.date(forDayEpoch: dayEpoch)
-        navigationController?.pushViewController(StatsDayViewController(api: api, loader: loader, dayEpoch: dayEpoch, date: date), animated: true)
+        navigationController?.pushViewController(StatsDayViewController(api: api, loader: loader, dayEpoch: dayEpoch, date: date, source: source), animated: true)
     }
 
     static func posterConfiguration(_ poster: StatsPoster) -> PosterContentConfiguration {

@@ -55,6 +55,47 @@ final class TraktTests: XCTestCase {
         IOSTest.capture("03-trakt-connected", in: self)
     }
 
+    /// With Trakt connected, Statistics counts everything Trakt knows: Everything adds the show and the two films watched on
+    /// streaming services, while the plays Crucible sent to Trakt from the server are not counted twice; Plex goes back to the
+    /// server's own history.
+    func testStatisticsBringInEverythingTraktKnows() {
+        let app = enterDemo()
+        openTraktSettings(app)
+        connect(app)
+        IOSTest.tab(app, "You").tap()
+        IOSTest.tab(app, "You").tap()
+        let statistics = IOSTest.element(app, "you.statistics")
+        for _ in 0..<6 where !statistics.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(statistics.waitForExistence(timeout: 20), "You has no Statistics row")
+        statistics.tap()
+        let everything = app.buttons["stats.source.everything"]
+        let plex = app.buttons["stats.source.plex"]
+        XCTAssertTrue(everything.waitForExistence(timeout: 30), "Statistics offers no Everything with Trakt connected")
+        plex.tap()
+        IOSTest.settle(4)
+        let plexShows = tile(app, "Shows")
+        let plexMovies = tile(app, "Movies")
+        IOSTest.capture("06-statistics-plex", in: self)
+        everything.tap()
+        XCTAssertTrue(IOSTest.wait(for: tileElement(app, "Shows"), "label CONTAINS ', \(plexShows + 1)'", timeout: 30), "Everything does not add the show watched elsewhere")
+        XCTAssertEqual(tile(app, "Shows"), plexShows + 1, "a show partly watched elsewhere is still one show")
+        XCTAssertEqual(tile(app, "Movies"), plexMovies + 2, "Everything adds the two films watched elsewhere")
+        IOSTest.settle(1)
+        IOSTest.capture("07-statistics-everything", in: self)
+    }
+
+    private func tileElement(_ app: XCUIApplication, _ title: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", title + ",")).firstMatch
+    }
+
+    /// The number a statistics tile shows, read from its VoiceOver label ("Shows, 23").
+    private func tile(_ app: XCUIApplication, _ title: String) -> Int {
+        let element = tileElement(app, title)
+        XCTAssertTrue(element.waitForExistence(timeout: 20), "Statistics shows no \(title) tile")
+        let parts = element.label.components(separatedBy: ", ")
+        return parts.count > 1 ? Int(parts[1].filter(\.isNumber)) ?? -1 : -1
+    }
+
     func testConnectingShowsTheAccountAndWhatIsSent() {
         let app = enterDemo()
         openTraktSettings(app)

@@ -27,6 +27,8 @@ final class TVStatisticsViewController: TVScreenViewController {
 
     private var page = StatsPage.empty
     private var range = StatsRange.year
+    private var source = StatsSourceChoice.initial()
+    private var traktObserver: UUID?
     private var dataVersion = 0
     private var heroShouldAnimate = true
     private var hasLoadedOnce = false
@@ -53,6 +55,9 @@ final class TVStatisticsViewController: TVScreenViewController {
         if let proObserver {
             Task { @MainActor in ProAccess.shared.stopObserving(proObserver) }
         }
+        if let traktObserver {
+            Task { @MainActor in TraktAccount.shared.stopObserving(traktObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -60,6 +65,7 @@ final class TVStatisticsViewController: TVScreenViewController {
         collectionView.accessibilityIdentifier = "stats.collection"
         setContentScrollView(collectionView, for: .top)
         controlsView.onRange = { [weak self] range in self?.selectRange(range) }
+        controlsView.onSource = { [weak self] source in self?.selectSource(source) }
         controlsView.onLocked = { [weak self] lock in self?.unlock(lock) }
         applyLocks()
         configureDataSource()
@@ -67,6 +73,7 @@ final class TVStatisticsViewController: TVScreenViewController {
             self?.librariesChanged()
         }
         proObserver = ProAccess.shared.observe { [weak self] _ in self?.proStatusChanged() }
+        traktObserver = TraktAccount.shared.observe { [weak self] in self?.traktChanged() }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -93,9 +100,10 @@ final class TVStatisticsViewController: TVScreenViewController {
             return
         }
         let range = self.range
+        let source = self.source
         loadSlot.run { [weak self] in
             do {
-                let loaded = try await loader.load(range: range)
+                let loaded = try await loader.load(range: range, source: source)
                 guard !Task.isCancelled, let self else { return }
                 apply(loaded, animateHero: animateHero)
             } catch {
@@ -122,7 +130,8 @@ final class TVStatisticsViewController: TVScreenViewController {
         showContent()
         DemoTour.shared.record(.statistics)
         dataSource.apply(makeSnapshot(), animatingDifferences: false)
-        controlsView.configure(range: range, since: loaded.hero.since, filter: StatsLibraryFilter.current())
+        controlsView.configure(range: range, filter: StatsLibraryFilter.current())
+        controlsView.updateSource(source, available: StatsManager.shared.offersEverything)
         collectionView.collectionViewLayout.invalidateLayout()
     }
 
@@ -150,21 +159,46 @@ final class TVStatisticsViewController: TVScreenViewController {
         if TVStatsControlsView.isLocked(range, showsLocks: locks) {
             range = .week
         }
+        source = locks ? .plex : StatsSourceChoice.initial()
         controlsView.select(range: range)
+        controlsView.updateSource(source, available: StatsManager.shared.offersEverything)
     }
 
     private func proStatusChanged() {
-        let previous = range
+        let previous = (range, source)
         applyLocks()
-        if previous != range { load(animateHero: true) }
+        if previous != (range, source) { load(animateHero: true) }
+    }
+
+    /// Trakt connecting shows the Plex / Everything menu and brings back the source the viewer chose; disconnecting hides it and
+    /// goes back to Plex's history without forgetting that choice.
+    private func traktChanged() {
+        source = ProAccess.shared.showsLocks ? .plex : StatsSourceChoice.initial()
+        controlsView.updateSource(source, available: StatsManager.shared.offersEverything)
+        load(animateHero: false)
+    }
+
+    private func selectSource(_ newSource: StatsSource) {
+        guard newSource != source else { return }
+        source = newSource
+        StatsSourceChoice.remember(newSource)
+        load(animateHero: true)
     }
 
     /// A press on a lock opens the paywall; once Pro is on, the range the user reached for opens.
     private func unlock(_ lock: TVStatsControlsView.StatsLock) {
         ProAccess.shared.requestUnlock(.fullStatistics) { [weak self] unlocked in
-            guard unlocked, let self, case .range(let chosen) = lock else { return }
-            controlsView.select(range: chosen)
-            selectRange(chosen)
+            guard unlocked, let self else { return }
+            switch lock {
+            case .range(let chosen):
+                controlsView.select(range: chosen)
+                selectRange(chosen)
+            case .everything:
+                controlsView.updateSource(.everything, available: true)
+                selectSource(.everything)
+            case .libraries:
+                break
+            }
         }
     }
 
@@ -333,6 +367,7 @@ final class TVStatisticsViewController: TVScreenViewController {
     }
 
     private func push(_ destination: StatsDestination) {
+        guard destination.isOnServer else { return }
         let ratingKey: String
         let mediaType: String
         switch destination {

@@ -18261,6 +18261,71 @@
         }
       }
     },
+    "Bringing in your Trakt history…" : {
+      "comment" : "Statistics hero subtitle while Everything still lacks part of the Trakt history",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Trakt-Verlauf wird übernommen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trayendo tu historial de Trakt…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import de votre historique Trakt…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importazione della cronologia Trakt…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt の履歴を取り込んでいます…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt 기록을 가져오는 중…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieranie historii z Trakt…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trazendo seu histórico do Trakt…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在导入你的 Trakt 记录…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在匯入您的 Trakt 紀錄…"
+          }
+        }
+      }
+    },
     "Browse" : {
       "comment" : "Navigation title of the folder browser when no folder name is known",
       "localizations" : {
@@ -36994,66 +37059,67 @@
         }
       }
     },
-    "Every range, the library filter, patterns, binges and taste, built from your own Plex history." : {
+    "Every range, the library filter, patterns, binges and taste, built from your own Plex history and, with Trakt connected, everything you watch elsewhere." : {
+      "comment" : "Pro feature summary for Full Statistics",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jeder Zeitraum, der Mediathekfilter, Muster, Binges und dein Geschmack, aus deinem eigenen Plex-Verlauf berechnet."
+            "value" : "Jeder Zeitraum, der Mediathekfilter, Muster, Binges und dein Geschmack, aus deinem eigenen Plex-Verlauf berechnet und, mit verbundenem Trakt, aus allem, was du anderswo schaust."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos los rangos, el filtro de biblioteca, los patrones, los maratones y tus gustos, creados a partir de tu propio historial de Plex."
+            "value" : "Todos los rangos, el filtro de biblioteca, los patrones, los maratones y tus gustos, creados a partir de tu propio historial de Plex y, con Trakt conectado, de todo lo que ves en otros sitios."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toutes les périodes, le filtre de bibliothèque, les habitudes, les marathons et vos goûts, calculés à partir de votre historique Plex."
+            "value" : "Toutes les périodes, le filtre de bibliothèque, les habitudes, les marathons et vos goûts, calculés à partir de votre historique Plex et, avec Trakt connecté, de tout ce que vous regardez ailleurs."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni intervallo, il filtro delle librerie, gli schemi, le maratone e i gusti, creati dalla tua cronologia Plex."
+            "value" : "Ogni intervallo, il filtro delle librerie, gli schemi, le maratone e i gusti, creati dalla tua cronologia Plex e, con Trakt collegato, da tutto ciò che guardi altrove."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "期間、ライブラリの絞り込み、パターン、一気見、お好みのすべてを、お使いの Plex の視聴履歴から集計します。"
+            "value" : "期間、ライブラリの絞り込み、パターン、一気見、お好みのすべてを、お使いの Plex の視聴履歴から集計します。Trakt を接続すると、ほかの場所で観た作品も含まれます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 기간, 보관함 필터, 패턴, 몰아보기, 취향을 내 Plex 기록으로 만들어 보여줘요."
+            "value" : "모든 기간, 보관함 필터, 패턴, 몰아보기, 취향을 내 Plex 기록으로 만들어 보여줘요. Trakt를 연결하면 다른 곳에서 본 것까지 모두 담아요."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wszystkie zakresy, filtr bibliotek, wzorce, maratony i upodobania, zbudowane z Twojej historii Plex."
+            "value" : "Wszystkie zakresy, filtr bibliotek, wzorce, maratony i upodobania, zbudowane z Twojej historii Plex, a po połączeniu z Trakt także ze wszystkiego, co oglądasz gdzie indziej."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos os períodos, o filtro de bibliotecas, padrões, maratonas e gostos, montados com o seu próprio histórico do Plex."
+            "value" : "Todos os períodos, o filtro de bibliotecas, padrões, maratonas e gostos, montados com o seu próprio histórico do Plex e, com o Trakt conectado, com tudo o que você assiste em outros lugares."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "基于你自己的 Plex 记录生成的全部时间范围、资料库筛选、规律、连播与口味。"
+            "value" : "基于你自己的 Plex 记录生成的全部时间范围、资料库筛选、规律、连播与口味；连接 Trakt 后，还包括你在其他地方看过的一切。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "涵蓋所有時間範圍、媒體庫篩選、觀看模式、連看與喜好，全部根據您自己的 Plex 紀錄產生。"
+            "value" : "涵蓋所有時間範圍、媒體庫篩選、觀看模式、連看與喜好，全部根據您自己的 Plex 紀錄產生；連結 Trakt 後，也包含您在其他地方看過的一切。"
           }
         }
       }
@@ -37318,6 +37384,71 @@
         }
       }
     },
+    "Everything" : {
+      "comment" : "Statistics history source: Plex plays together with what Trakt recorded elsewhere",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
+        }
+      }
+    },
     "Everything here is fictional. All of Crucible is unlocked while the demo runs." : {
       "localizations" : {
         "de" : {
@@ -37506,6 +37637,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pro 的全部功能在 %@ 前開放。不收取任何費用，也不會自動續訂；下載的影片會保留在這部 iPhone 上。"
+          }
+        }
+      }
+    },
+    "Everything you watched, from Trakt" : {
+      "comment" : "Statistics history source description for Everything",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles, was du gesehen hast, von Trakt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo que has visto, desde Trakt"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout ce que vous avez regardé, depuis Trakt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto ciò che hai guardato, da Trakt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に記録された、観たものすべて"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt에 기록된, 내가 본 모든 것"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko obejrzane, z Trakt"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo o que você assistiu, do Trakt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你在 Trakt 上记录的全部观看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您在 Trakt 上記錄的所有觀看"
           }
         }
       }
@@ -42362,6 +42558,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "精彩集數"
+          }
+        }
+      }
+    },
+    "History source" : {
+      "comment" : "Accessibility label of the Statistics Plex / Everything switch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlaufsquelle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origen del historial"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source de l'historique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origine della cronologia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴のソース"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록 출처"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Źródło historii"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origem do histórico"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录来源"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紀錄來源"
           }
         }
       }
@@ -69010,6 +69271,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚未在 Tailscale 上找到 Plex 電腦"
+          }
+        }
+      }
+    },
+    "Plex history only" : {
+      "comment" : "Statistics history source description for Plex",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur Plex-Verlauf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo el historial de Plex"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Historique Plex uniquement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo cronologia Plex"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex の履歴のみ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 기록만"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko historia Plex"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Somente o histórico do Plex"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅 Plex 记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅限 Plex 紀錄"
           }
         }
       }

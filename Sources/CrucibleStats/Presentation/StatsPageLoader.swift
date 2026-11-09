@@ -9,14 +9,14 @@ package struct StatsPageLoader: Sendable {
         self.store = store
     }
 
-    package func load(range: StatsRange, now: Date = Date()) async throws -> StatsPage {
-        let snapshot = try await store.snapshot(range: range)
+    package func load(range: StatsRange, source: StatsSource = .plex, now: Date = Date()) async throws -> StatsPage {
+        let snapshot = try await store.snapshot(range: range, source: source)
         return StatsPage(snapshot: snapshot, range: range, now: now)
     }
 
     /// Titles watched on one local day, for the heatmap drill-down, one tile per title.
-    package func playedOnDay(_ dayEpoch: Int) async throws -> [StatsPoster] {
-        let rows = try await store.plays(onDayEpoch: dayEpoch)
+    package func playedOnDay(_ dayEpoch: Int, source: StatsSource = .plex) async throws -> [StatsPoster] {
+        let rows = try await store.plays(onDayEpoch: dayEpoch, source: source)
         var seen = Set<String>()
         return rows.filter { seen.insert($0.ratingKey).inserted }.map { StatsPoster(playedOnDay: $0) }
     }

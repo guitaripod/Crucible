@@ -8,10 +8,12 @@ final class StatsDayViewController: UICollectionViewController {
     private let api: APIClient
     private let loader: StatsPageLoader
     private let dayEpoch: Int
+    private let source: StatsSource
     private var dataSource: UICollectionViewDiffableDataSource<Int, StatsPoster>!
     private var loadTask: Task<Void, Never>?
 
-    init(api: APIClient, loader: StatsPageLoader, dayEpoch: Int, date: Date) {
+    init(api: APIClient, loader: StatsPageLoader, dayEpoch: Int, date: Date, source: StatsSource = .plex) {
+        self.source = source
         self.api = api
         self.loader = loader
         self.dayEpoch = dayEpoch
@@ -49,7 +51,7 @@ final class StatsDayViewController: UICollectionViewController {
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let posters = try await loader.playedOnDay(dayEpoch)
+                let posters = try await loader.playedOnDay(dayEpoch, source: source)
                 guard !Task.isCancelled else { return }
                 var snapshot = NSDiffableDataSourceSnapshot<Int, StatsPoster>()
                 snapshot.appendSections([0])
@@ -66,7 +68,7 @@ final class StatsDayViewController: UICollectionViewController {
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard let poster = dataSource.itemIdentifier(for: indexPath) else { return }
+        guard let poster = dataSource.itemIdentifier(for: indexPath), poster.destination.isOnServer else { return }
         navigationController?.pushViewController(poster.destination.makeViewController(api: api), animated: true)
     }
 }

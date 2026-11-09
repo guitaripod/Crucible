@@ -136,8 +136,25 @@ package actor TraktClient {
         _ = try await perform(endpoint)
     }
 
+    /// Sends a paged `endpoint` and returns its decoded page with the number of pages Trakt says there are.
+    package func page<T: Decodable & Sendable>(_ endpoint: TraktEndpoint, as type: T.Type = T.self) async throws -> (items: T, pageCount: Int?) {
+        let (data, response) = try await performResponse(endpoint)
+        do {
+            let items = try JSONDecoder().decode(T.self, from: data)
+            return (items, response.value(forHTTPHeaderField: "X-Pagination-Page-Count").flatMap(Int.init))
+        } catch {
+            MidgarLog.error("Trakt \(endpoint.path) answered in a shape Crucible can't read: \(error)", category: .trakt)
+            throw TraktError.decoding
+        }
+    }
+
     /// Sends `endpoint` and returns the body of a successful answer.
     package func perform(_ endpoint: TraktEndpoint) async throws -> Data {
+        try await performResponse(endpoint).0
+    }
+
+    /// Sends `endpoint` and returns the body and the response of a successful answer.
+    private func performResponse(_ endpoint: TraktEndpoint) async throws -> (Data, HTTPURLResponse) {
         guard let clientID = clientID() else { throw TraktError.notAvailable }
         var token: String?
         if endpoint.requiresToken {
@@ -159,7 +176,7 @@ package actor TraktClient {
                 if Task.isCancelled { throw CancellationError() }
                 throw (error as? URLError)?.isOffline == true ? TraktError.offline : TraktError.unavailable
             }
-            guard let failure = TraktError.status(response.statusCode, data: data, upgradeURL: response.value(forHTTPHeaderField: "X-Upgrade-URL")) else { return data }
+            guard let failure = TraktError.status(response.statusCode, data: data, upgradeURL: response.value(forHTTPHeaderField: "X-Upgrade-URL")) else { return (data, response) }
             switch failure {
             case .unauthorized where endpoint.requiresToken && !refreshedAfterRefusal:
                 refreshedAfterRefusal = true

@@ -7,6 +7,13 @@ package enum StatsDestination: Hashable, Sendable {
     case episode(ratingKey: String, showRatingKey: String?)
     case show(ratingKey: String)
 
+    /// Whether the title is on the server; a title only Trakt knows, watched elsewhere, keeps Trakt's key and opens nothing.
+    package var isOnServer: Bool {
+        switch self {
+        case .movie(let key), .show(let key), .episode(let key, _): return !key.hasPrefix("trakt:")
+        }
+    }
+
     package init(_ item: OnThisDayItem) {
         switch item.type {
         case "episode": self = .episode(ratingKey: item.ratingKey, showRatingKey: item.grandparentRatingKey)

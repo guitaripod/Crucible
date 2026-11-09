@@ -6,7 +6,7 @@ Crucible plays what is on the server. Integrations connect it to everything arou
 
 | Plugin | Role | Access and cost | Paid-app terms | Order |
 | --- | --- | --- | --- | --- |
-| Trakt | Tracking, discovery, social | Free Standard API; Premium $149/month only for higher limits, Limited Access endpoints and the per-user app cap | Paid apps allowed, no approval, no revenue share | Built (slices 1-2) |
+| Trakt | Tracking, discovery, social | Free Standard API; Premium $149/month only for higher limits, Limited Access endpoints and the per-user app cap | Paid apps allowed, no approval, no revenue share | Built (slices 1-2, Statistics source switch) |
 | Seerr (Overseerr and Jellyseerr, merged) | Ask for a title that is not on the server, see its request state | Self-hosted, free; Plex sign-in (`POST /api/v1/auth/plex` with the token Crucible already holds) or API key | MIT | Built (2.9.0) |
 | Sonarr and Radarr | What is coming and downloading: calendar, queue, history | Self-hosted, free; API key | GPL-3.0 servers, called over HTTP | Next |
 | Tautulli | Every play on the server from every app, home stats | Self-hosted, free; API key | GPL-3.0 server | After Sonarr/Radarr |

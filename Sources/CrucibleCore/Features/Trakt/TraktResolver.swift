@@ -159,7 +159,7 @@ package final class TraktResolver {
     }
 
     /// The outside ids of `item`: the agent ids Plex lists, else the ones a legacy agent's guid spells out.
-    static func ids(of item: PlexMetadata) -> ExternalIDs {
+    package nonisolated static func ids(of item: PlexMetadata) -> ExternalIDs {
         var ids = item.externalIDs
         guard ids.isEmpty, let guid = item.guid else { return ids }
         let legacy = LegacyGuid(guid)

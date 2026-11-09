@@ -45,6 +45,8 @@ extension DemoRouter {
             let progress = body?.double("progress") ?? 0
             let action = path[1] == "stop" && progress >= 80 ? "scrobble" : path[1]
             return .json(["id": 1, "action": action, "progress": progress] as DemoJSON, status: 201)
+        case ("GET", ["sync", "history"]):
+            return request.first("page").flatMap(Int.init).map { $0 > 1 } == true ? .json([] as [Any]) : await library.traktHistory()
         case ("POST", ["sync", "history"]), ("POST", ["sync", "ratings"]):
             return .json(["added": ["movies": 1, "episodes": 0] as DemoJSON, "not_found": [:] as DemoJSON] as DemoJSON, status: 201)
         case ("POST", ["sync", "history", "remove"]), ("POST", ["sync", "ratings", "remove"]):

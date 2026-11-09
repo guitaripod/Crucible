@@ -32,6 +32,9 @@ final class StatisticsViewController: UICollectionViewController {
 
     var page = StatsPage.empty
     var range: StatsRange = .year
+    var source: StatsSource = .plex
+    var traktObservation: UUID?
+    weak var sourceChips: StatsSourceChipsView?
     var dataVersion = 0
     private var syncedAtLeastOnce = false
     private var loadTask: Task<Void, Never>?
@@ -51,6 +54,7 @@ final class StatisticsViewController: UICollectionViewController {
         self.api = api
         self.loader = StatsManager.shared.pageLoader
         self.range = ProAccess.shared.hasFullAccess ? .year : .week
+        self.source = StatsSourceChoice.initial()
         super.init(collectionViewLayout: UICollectionViewLayout())
     }
 
@@ -60,6 +64,9 @@ final class StatisticsViewController: UICollectionViewController {
     deinit {
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
+        }
+        if let traktObservation {
+            Task { @MainActor in TraktAccount.shared.stopObserving(traktObservation) }
         }
     }
 
@@ -79,6 +86,7 @@ final class StatisticsViewController: UICollectionViewController {
         collectionView.refreshControl = refresh
         configureLibrariesItem()
         proObservation = ProObservation { [weak self] in self?.proChanged() }
+        traktObservation = TraktAccount.shared.observe { [weak self] in self?.traktChanged() }
     }
 
     override func viewIsAppearing(_ animated: Bool) {
@@ -123,6 +131,50 @@ final class StatisticsViewController: UICollectionViewController {
         applyRange(newRange)
     }
 
+    /// Switches between Plex's history and everything Trakt knows. Everything is part of Full Statistics, so a free install
+    /// goes to the paywall first.
+    func selectSource(_ newSource: StatsSource) {
+        guard newSource != source else { return }
+        guard newSource == .plex || ProAccess.shared.hasFullAccess else {
+            ProAccess.shared.requestUnlock(.fullStatistics) { [weak self] unlocked in
+                guard unlocked else { return }
+                self?.applySource(newSource)
+            }
+            return
+        }
+        applySource(newSource)
+    }
+
+    private func applySource(_ newSource: StatsSource) {
+        StatsSourceChoice.remember(newSource)
+        show(newSource)
+    }
+
+    /// Shows `newSource` without remembering it: going back to Plex because Trakt or Pro went away keeps the viewer's choice
+    /// for when they return.
+    private func show(_ newSource: StatsSource) {
+        guard newSource != source else { return }
+        source = newSource
+        sourceChips?.select(newSource)
+        load(animateHero: true)
+    }
+
+    /// Trakt connecting adds the switch and brings back the source the viewer chose; disconnecting takes it away and goes back
+    /// to Plex's history.
+    private func traktChanged() {
+        source = StatsSourceChoice.initial()
+        reloadRangeRow()
+        load(animateHero: false)
+    }
+
+    private func reloadRangeRow() {
+        var snapshot = dataSource.snapshot()
+        let rows = snapshot.itemIdentifiers.filter { if case .range = $0 { return true } else { return false } }
+        guard !rows.isEmpty else { return }
+        snapshot.reconfigureItems(rows)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
     private func applyRange(_ newRange: StatsRange) {
         range = newRange
         rangeChips?.select(newRange)
@@ -134,8 +186,10 @@ final class StatisticsViewController: UICollectionViewController {
     private func proChanged() {
         updateLibrariesMenu()
         rangeChips?.setLocked(lockedRanges)
+        sourceChips?.setEverythingLocked(ProAccess.shared.showsLocks)
         reconfigureProRows()
         if !ProAccess.shared.hasFullAccess, range != .week { applyRange(.week) }
+        show(StatsSourceChoice.initial())
     }
 
     var lockedRanges: Set<StatsRange> {
@@ -161,10 +215,11 @@ final class StatisticsViewController: UICollectionViewController {
         }
         loadTask?.cancel()
         let range = self.range
+        let source = self.source
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let loaded = try await loader.load(range: range)
+                let loaded = try await loader.load(range: range, source: source)
                 guard !Task.isCancelled else { return }
                 page = loaded
                 dataVersion += 1

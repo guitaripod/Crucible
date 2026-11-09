@@ -61,13 +61,15 @@ package enum TraktEndpoint: Sendable {
     case checkin(kind: TraktMediaKind, ids: TraktIDs)
     case cancelCheckin
     case ratings(kind: TraktMediaKind, ids: TraktIDs, season: Int?, number: Int?, showID: Int?)
+    /// One page of everything the viewer watched, newest first, with runtimes, genres and posters; from `startAt` on when given.
+    case history(page: Int, limit: Int, startAt: Date?)
 
     /// The redirect URI device-code tokens are refreshed with: they were issued without a browser redirect.
     static let deviceRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
     package var method: String {
         switch self {
-        case .userSettings, .plexSettings, .lookup, .episode, .ratings: return "GET"
+        case .userSettings, .plexSettings, .lookup, .episode, .ratings, .history: return "GET"
         case .disablePlexScrobbler: return "PUT"
         case .cancelCheckin: return "DELETE"
         default: return "POST"
@@ -107,6 +109,7 @@ package enum TraktEndpoint: Sendable {
         case .addRatings: return "/sync/ratings"
         case .removeRatings: return "/sync/ratings/remove"
         case .checkin, .cancelCheckin: return "/checkin"
+        case .history: return "/sync/history"
         case .ratings(let kind, let ids, let season, let number, let showID):
             switch kind {
             case .movie: return "/movies/\(ids.trakt.map(String.init) ?? ids.slug ?? "")/ratings"
@@ -120,6 +123,14 @@ package enum TraktEndpoint: Sendable {
         switch self {
         case .lookup(_, let kind): return [URLQueryItem(name: "type", value: kind.rawValue)]
         case .ratings: return [URLQueryItem(name: "extended", value: "all")]
+        case .history(let page, let limit, let startAt):
+            var items = [
+                URLQueryItem(name: "page", value: String(page)),
+                URLQueryItem(name: "limit", value: String(limit)),
+                URLQueryItem(name: "extended", value: "full,images"),
+            ]
+            if let startAt { items.append(URLQueryItem(name: "start_at", value: ISO8601DateFormatter().string(from: startAt))) }
+            return items
         default: return []
         }
     }
@@ -150,7 +161,7 @@ package enum TraktEndpoint: Sendable {
             return try encoder.encode(items)
         case .checkin(let kind, let ids):
             return try encoder.encode(ScrobbleBody(kind: kind, ids: ids, progress: nil))
-        case .userSettings, .plexSettings, .lookup, .episode, .cancelCheckin, .ratings:
+        case .userSettings, .plexSettings, .lookup, .episode, .cancelCheckin, .ratings, .history:
             return nil
         }
     }

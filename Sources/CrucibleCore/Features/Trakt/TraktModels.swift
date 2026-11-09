@@ -297,3 +297,69 @@ package enum TraktDate {
         return formatter.string(from: date)
     }
 }
+
+/// One entry of the viewer's Trakt history (`GET /sync/history?extended=full,images`): a movie or an episode with its show,
+/// and when it was watched.
+package struct TraktHistoryEntry: Decodable, Sendable {
+    package struct Images: Decodable, Sendable {
+        package let poster: [String]?
+        package let thumb: [String]?
+        package let screenshot: [String]?
+
+        /// The first poster as a loadable URL; Trakt sends them without a scheme.
+        package var posterURL: String? { Self.url(poster?.first) }
+        /// An episode's still, else its thumb.
+        package var stillURL: String? { Self.url(screenshot?.first ?? thumb?.first) }
+
+        private static func url(_ raw: String?) -> String? {
+            guard let raw, !raw.isEmpty else { return nil }
+            return raw.hasPrefix("http") ? raw : "https://" + raw
+        }
+    }
+
+    package struct Movie: Decodable, Sendable {
+        package let title: String?
+        package let year: Int?
+        package let ids: TraktIDs
+        package let runtime: Int?
+        package let genres: [String]?
+        package let images: Images?
+    }
+
+    package struct Show: Decodable, Sendable {
+        package let title: String?
+        package let year: Int?
+        package let ids: TraktIDs
+        package let genres: [String]?
+        package let images: Images?
+    }
+
+    package struct Episode: Decodable, Sendable {
+        package let season: Int?
+        package let number: Int?
+        package let title: String?
+        package let ids: TraktIDs
+        package let runtime: Int?
+        package let images: Images?
+    }
+
+    package let id: Int64
+    package let watchedAt: String
+    package let type: String
+    package let movie: Movie?
+    package let show: Show?
+    package let episode: Episode?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, type, movie, show, episode
+        case watchedAt = "watched_at"
+    }
+
+    /// When it was watched, as Unix seconds; nil when Trakt sent a date Crucible can't read.
+    package var watchedAtSeconds: Int? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        return (fractional.date(from: watchedAt) ?? plain.date(from: watchedAt)).map { Int($0.timeIntervalSince1970) }
+    }
+}

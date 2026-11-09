@@ -22,7 +22,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
     package var summary: String {
         switch self {
         case .unlimitedDownloads: return String(localized: "Download whole seasons, queue as many titles as you like and keep the next episodes ready.")
-        case .fullStatistics: return String(localized: "Every range, the library filter, patterns, binges and taste, built from your own Plex history.")
+        case .fullStatistics: return String(localized: "Every range, the library filter, patterns, binges and taste, built from your own Plex history and, with Trakt connected, everything you watch elsewhere.", comment: "Pro feature summary for Full Statistics")
         case .yearInReviewPoster: return String(localized: "Preview and share your year as a Story or Square poster.")
         case .topShelf: return String(localized: "Continue Watching and Up Next on the Apple TV Home screen.")
         case .manageRequests: return String(localized: "Approve, decline and retry everyone's Seerr requests from the couch.", comment: "Pro feature summary for managing Seerr requests")

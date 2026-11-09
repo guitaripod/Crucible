@@ -6,7 +6,7 @@ import GRDB
 /// queue (off the main thread) via the async read/write APIs.
 package struct StatsStore: Sendable {
     let database: StatsDatabase
-    private var dbQueue: DatabaseQueue { database.dbQueue }
+    var dbQueue: DatabaseQueue { database.dbQueue }
 
     private static let bingeGapSeconds = 5400
     private static let bingeMinEpisodes = 3
@@ -68,6 +68,14 @@ package struct StatsStore: Sendable {
                     WHERE id = ?
                     """, arguments: [c.dayEpoch, c.hourLocal, c.weekday, c.monthEpoch, c.monthDay, c.year, id])
             }
+            for row in try Row.fetchAll(db, sql: "SELECT id, viewedAt FROM trakt_play") {
+                let id: Int64 = row["id"]
+                let c = time.components(forViewedAt: row["viewedAt"])
+                try db.execute(sql: """
+                    UPDATE trakt_play SET dayEpoch = ?, hourLocal = ?, weekday = ?, monthEpoch = ?, monthDay = ?, year = ?
+                    WHERE id = ?
+                    """, arguments: [c.dayEpoch, c.hourLocal, c.weekday, c.monthEpoch, c.monthDay, c.year, id])
+            }
         }
     }
 
@@ -126,7 +134,8 @@ package struct StatsStore: Sendable {
 
     // MARK: - Snapshot
 
-    package func snapshot(range: StatsRange) async throws -> StatsSnapshot {
+    /// Every aggregate for `range`, from the Plex mirror alone or, for `.everything`, together with Trakt's own plays.
+    package func snapshot(range: StatsRange, source: StatsSource = .plex) async throws -> StatsSnapshot {
         let time = StatsTime()
         let lowerBound = range.lowerViewedAt() ?? 0
         let today = time.todayDayEpoch()
@@ -134,7 +143,8 @@ package struct StatsStore: Sendable {
         let todayMonthDay = time.components(forViewedAt: Int(Date().timeIntervalSince1970)).monthDay
 
         return try await dbQueue.read { db in
-            let scope = try Self.scope(db)
+            var scope = try Self.scope(db)
+            scope.includesTrakt = source == .everything
             var snap = StatsSnapshot()
             snap.overview = try Self.overview(db, lowerBound: lowerBound, today: today, scope: scope)
             snap.weeklySparkline = try Self.weeklySparkline(db, today: today, scope: scope)
@@ -149,6 +159,7 @@ package struct StatsStore: Sendable {
             snap.genres = try Self.genres(db, lowerBound: lowerBound, scope: scope)
             snap.onThisDay = try Self.onThisDay(db, monthDay: todayMonthDay, currentYear: currentYear, scope: scope)
             snap.enrichment = try Self.enrichment(db, lowerBound: lowerBound, scope: scope)
+            snap.traktImportPending = scope.includesTrakt ? try Self.traktImportPending(db) : false
             snap.superlatives = try Self.superlatives(
                 db, lowerBound: lowerBound, time: time, scope: scope,
                 hourHistogram: snap.hourHistogram, longestStreak: snap.overview.longestStreak,
@@ -173,12 +184,14 @@ package struct StatsStore: Sendable {
     }
 
     /// Titles watched on a specific local day, for the heatmap drill-down.
-    package func plays(onDayEpoch dayEpoch: Int) async throws -> [OnThisDayItem] {
+    package func plays(onDayEpoch dayEpoch: Int, source: StatsSource = .plex) async throws -> [OnThisDayItem] {
         try await dbQueue.read { db in
-            let acct = try Self.scope(db).clause()
+            var scope = try Self.scope(db)
+            scope.includesTrakt = source == .everything
+            let acct = scope.clause()
             let rows = try Row.fetchAll(db, sql: """
                 SELECT ratingKey, type, title, grandparentTitle, grandparentRatingKey, thumb, grandparentThumb, year
-                FROM play WHERE dayEpoch = ?\(acct) ORDER BY viewedAt DESC
+                FROM \(scope.table) WHERE dayEpoch = ?\(acct) ORDER BY viewedAt DESC
                 """, arguments: [dayEpoch])
             return rows.map { row in
                 OnThisDayItem(
@@ -201,30 +214,30 @@ package struct StatsStore: Sendable {
         let acct = scope.clause()
         let acctP = scope.clause(column: "p.accountID")
         var o = StatsOverview()
-        o.totalPlays = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM play WHERE viewedAt >= ?\(acct)", arguments: [lowerBound]) ?? 0
+        o.totalPlays = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(scope.table) WHERE viewedAt >= ?\(acct)", arguments: [lowerBound]) ?? 0
         guard o.totalPlays > 0 else { return o }
 
-        o.episodes = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM play WHERE viewedAt >= ? AND type = 'episode'\(acct)", arguments: [lowerBound]) ?? 0
-        o.moviesWatched = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT ratingKey) FROM play WHERE viewedAt >= ? AND type = 'movie'\(acct)", arguments: [lowerBound]) ?? 0
-        o.showsWatched = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT grandparentRatingKey) FROM play WHERE viewedAt >= ? AND type = 'episode' AND grandparentRatingKey IS NOT NULL\(acct)", arguments: [lowerBound]) ?? 0
-        o.daysActive = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT dayEpoch) FROM play WHERE viewedAt >= ?\(acct)", arguments: [lowerBound]) ?? 0
+        o.episodes = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(scope.table) WHERE viewedAt >= ? AND type = 'episode'\(acct)", arguments: [lowerBound]) ?? 0
+        o.moviesWatched = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT ratingKey) FROM \(scope.table) WHERE viewedAt >= ? AND type = 'movie'\(acct)", arguments: [lowerBound]) ?? 0
+        o.showsWatched = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT grandparentRatingKey) FROM \(scope.table) WHERE viewedAt >= ? AND type = 'episode' AND grandparentRatingKey IS NOT NULL\(acct)", arguments: [lowerBound]) ?? 0
+        o.daysActive = try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT dayEpoch) FROM \(scope.table) WHERE viewedAt >= ?\(acct)", arguments: [lowerBound]) ?? 0
 
-        let days = try Int.fetchAll(db, sql: "SELECT DISTINCT dayEpoch FROM play WHERE viewedAt >= ?\(acct) ORDER BY dayEpoch", arguments: [lowerBound])
+        let days = try Int.fetchAll(db, sql: "SELECT DISTINCT dayEpoch FROM \(scope.table) WHERE viewedAt >= ?\(acct) ORDER BY dayEpoch", arguments: [lowerBound])
         o.currentStreak = currentStreak(days: days, today: today)
         o.longestStreak = longestStreak(days: days)
 
-        if let row = try Row.fetchOne(db, sql: "SELECT viewedAt, title, grandparentTitle FROM play WHERE 1=1\(acct) ORDER BY viewedAt ASC LIMIT 1") {
+        if let row = try Row.fetchOne(db, sql: "SELECT viewedAt, title, grandparentTitle FROM \(scope.table) WHERE 1=1\(acct) ORDER BY viewedAt ASC LIMIT 1") {
             o.memberSinceViewedAt = row["viewedAt"]
             o.firstTitle = row["grandparentTitle"] ?? row["title"]
         }
 
         let knownMs = try Int.fetchOne(db, sql: """
-            SELECT COALESCE(SUM(im.durationMs), 0) FROM play p
+            SELECT COALESCE(SUM(im.durationMs), 0) FROM \(scope.table) p
             JOIN item_meta im ON im.ratingKey = p.ratingKey
             WHERE p.viewedAt >= ? AND im.durationMs IS NOT NULL\(acctP)
             """, arguments: [lowerBound]) ?? 0
         let coveredPlays = try Int.fetchOne(db, sql: """
-            SELECT COUNT(*) FROM play p
+            SELECT COUNT(*) FROM \(scope.table) p
             JOIN item_meta im ON im.ratingKey = p.ratingKey
             WHERE p.viewedAt >= ? AND im.durationMs IS NOT NULL\(acctP)
             """, arguments: [lowerBound]) ?? 0
@@ -266,7 +279,7 @@ package struct StatsStore: Sendable {
         let firstWeek = (today - (sparklineWeeks - 1) * 7) / 7
         let sinceDay = firstWeek * 7
         let rows = try Row.fetchAll(db, sql: """
-            SELECT dayEpoch / 7 AS wk, COUNT(*) AS c FROM play
+            SELECT dayEpoch / 7 AS wk, COUNT(*) AS c FROM \(scope.table)
             WHERE dayEpoch >= ?\(scope.clause()) GROUP BY wk
             """, arguments: [sinceDay])
         var buckets = [Int: Int]()
@@ -277,14 +290,14 @@ package struct StatsStore: Sendable {
 
     private static func heatmap(_ db: Database, sinceDay: Int, scope: StatsScope) throws -> [DayCount] {
         let rows = try Row.fetchAll(db, sql: """
-            SELECT dayEpoch, COUNT(*) AS c FROM play WHERE dayEpoch >= ?\(scope.clause()) GROUP BY dayEpoch
+            SELECT dayEpoch, COUNT(*) AS c FROM \(scope.table) WHERE dayEpoch >= ?\(scope.clause()) GROUP BY dayEpoch
             """, arguments: [sinceDay])
         return rows.map { DayCount(dayEpoch: $0["dayEpoch"], count: $0["c"]) }
     }
 
     private static func hourHistogram(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> [Int] {
         var hours = Array(repeating: 0, count: 24)
-        let rows = try Row.fetchAll(db, sql: "SELECT hourLocal, COUNT(*) AS c FROM play WHERE viewedAt >= ?\(scope.clause()) GROUP BY hourLocal", arguments: [lowerBound])
+        let rows = try Row.fetchAll(db, sql: "SELECT hourLocal, COUNT(*) AS c FROM \(scope.table) WHERE viewedAt >= ?\(scope.clause()) GROUP BY hourLocal", arguments: [lowerBound])
         for row in rows {
             let h: Int = row["hourLocal"]
             if (0..<24).contains(h) { hours[h] = row["c"] }
@@ -294,7 +307,7 @@ package struct StatsStore: Sendable {
 
     private static func weekdayHistogram(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> [Int] {
         var days = Array(repeating: 0, count: 7)
-        let rows = try Row.fetchAll(db, sql: "SELECT weekday, COUNT(*) AS c FROM play WHERE viewedAt >= ?\(scope.clause()) GROUP BY weekday", arguments: [lowerBound])
+        let rows = try Row.fetchAll(db, sql: "SELECT weekday, COUNT(*) AS c FROM \(scope.table) WHERE viewedAt >= ?\(scope.clause()) GROUP BY weekday", arguments: [lowerBound])
         for row in rows {
             let w: Int = row["weekday"]
             if (1...7).contains(w) { days[w - 1] = row["c"] }
@@ -303,7 +316,7 @@ package struct StatsStore: Sendable {
     }
 
     private static func monthly(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> [MonthCount] {
-        let rows = try Row.fetchAll(db, sql: "SELECT monthEpoch, COUNT(*) AS c FROM play WHERE viewedAt >= ?\(scope.clause()) GROUP BY monthEpoch ORDER BY monthEpoch", arguments: [lowerBound])
+        let rows = try Row.fetchAll(db, sql: "SELECT monthEpoch, COUNT(*) AS c FROM \(scope.table) WHERE viewedAt >= ?\(scope.clause()) GROUP BY monthEpoch ORDER BY monthEpoch", arguments: [lowerBound])
         guard let start: Int = rows.first?["monthEpoch"], let end: Int = rows.last?["monthEpoch"], end >= start else {
             return rows.map { MonthCount(monthEpoch: $0["monthEpoch"], count: $0["c"]) }
         }
@@ -320,7 +333,7 @@ package struct StatsStore: Sendable {
                    COUNT(*) AS plays,
                    COUNT(DISTINCT p.ratingKey) AS eps,
                    sm.leafCount AS leaf
-            FROM play p
+            FROM \(scope.table) p
             LEFT JOIN show_meta sm ON sm.ratingKey = p.grandparentRatingKey
             WHERE p.type = 'episode' AND p.grandparentRatingKey IS NOT NULL AND p.viewedAt >= ?\(scope.clause(column: "p.accountID"))
             GROUP BY p.grandparentRatingKey
@@ -343,7 +356,7 @@ package struct StatsStore: Sendable {
         let rows = try Row.fetchAll(db, sql: """
             SELECT ratingKey AS k, MAX(title) AS title, MAX(thumb) AS thumb,
                    COUNT(*) AS plays, MAX(viewedAt) AS last
-            FROM play
+            FROM \(scope.table)
             WHERE type = 'movie' AND viewedAt >= ?\(scope.clause())
             GROUP BY ratingKey
             ORDER BY plays DESC, last DESC
@@ -356,7 +369,7 @@ package struct StatsStore: Sendable {
 
     private static func libraries(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> [LibrarySlice] {
         let rows = try Row.fetchAll(db, sql: """
-            SELECT librarySectionTitle AS t, COUNT(*) AS c FROM play
+            SELECT librarySectionTitle AS t, COUNT(*) AS c FROM \(scope.table)
             WHERE viewedAt >= ? AND librarySectionTitle IS NOT NULL AND librarySectionTitle <> ''\(scope.clause())
             GROUP BY librarySectionTitle ORDER BY c DESC
             """, arguments: [lowerBound])
@@ -366,7 +379,7 @@ package struct StatsStore: Sendable {
     private static func genres(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> [GenreStat] {
         let rows = try Row.fetchAll(db, sql: """
             SELECT gl.genre AS g, COUNT(*) AS c
-            FROM play p
+            FROM \(scope.table) p
             JOIN genre_link gl ON gl.ownerKey = COALESCE(p.grandparentRatingKey, p.ratingKey)
             WHERE p.viewedAt >= ?\(scope.clause(column: "p.accountID"))
             GROUP BY gl.genre ORDER BY c DESC LIMIT 8
@@ -377,7 +390,7 @@ package struct StatsStore: Sendable {
     private static func binges(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> [BingeSession] {
         let rows = try Row.fetchAll(db, sql: """
             SELECT grandparentRatingKey AS k, grandparentTitle AS title, viewedAt
-            FROM play
+            FROM \(scope.table)
             WHERE type = 'episode' AND viewedAt >= ?\(scope.clause())
             ORDER BY viewedAt ASC
             """, arguments: [lowerBound])
@@ -426,7 +439,7 @@ package struct StatsStore: Sendable {
     private static func onThisDay(_ db: Database, monthDay: Int, currentYear: Int, scope: StatsScope) throws -> [OnThisDayItem] {
         let rows = try Row.fetchAll(db, sql: """
             SELECT ratingKey, type, title, grandparentTitle, grandparentRatingKey, thumb, grandparentThumb, year
-            FROM play
+            FROM \(scope.table)
             WHERE monthDay = ? AND year < ?\(scope.clause())
             ORDER BY viewedAt DESC
             LIMIT 40
@@ -454,14 +467,14 @@ package struct StatsStore: Sendable {
 
     private static func enrichment(_ db: Database, lowerBound: Int, scope: StatsScope) throws -> EnrichmentProgress {
         var progress = EnrichmentProgress()
-        let total = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM play WHERE viewedAt >= ?\(scope.clause())", arguments: [lowerBound]) ?? 0
+        let total = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(scope.table) WHERE viewedAt >= ?\(scope.clause())", arguments: [lowerBound]) ?? 0
         guard total > 0 else { return progress }
         let runtimeCovered = try Int.fetchOne(db, sql: """
-            SELECT COUNT(*) FROM play p JOIN item_meta im ON im.ratingKey = p.ratingKey
+            SELECT COUNT(*) FROM \(scope.table) p JOIN item_meta im ON im.ratingKey = p.ratingKey
             WHERE p.viewedAt >= ? AND im.durationMs IS NOT NULL\(scope.clause(column: "p.accountID"))
             """, arguments: [lowerBound]) ?? 0
         let genreCovered = try Int.fetchOne(db, sql: """
-            SELECT COUNT(*) FROM play p
+            SELECT COUNT(*) FROM \(scope.table) p
             WHERE p.viewedAt >= ?\(scope.clause(column: "p.accountID")) AND EXISTS (
                 SELECT 1 FROM genre_link gl WHERE gl.ownerKey = COALESCE(p.grandparentRatingKey, p.ratingKey)
             )
@@ -480,7 +493,7 @@ package struct StatsStore: Sendable {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
 
-        if let row = try Row.fetchOne(db, sql: "SELECT dayEpoch, COUNT(*) AS c FROM play WHERE viewedAt >= ?\(acct) GROUP BY dayEpoch ORDER BY c DESC LIMIT 1", arguments: [lowerBound]) {
+        if let row = try Row.fetchOne(db, sql: "SELECT dayEpoch, COUNT(*) AS c FROM \(scope.table) WHERE viewedAt >= ?\(acct) GROUP BY dayEpoch ORDER BY c DESC LIMIT 1", arguments: [lowerBound]) {
             let dayEpoch: Int = row["dayEpoch"]
             let count: Int = row["c"]
             let date = time.date(forDayEpoch: dayEpoch)
@@ -506,7 +519,7 @@ package struct StatsStore: Sendable {
             }
         }
 
-        if let row = try Row.fetchOne(db, sql: "SELECT viewedAt, title, grandparentTitle FROM play WHERE 1=1\(acct) ORDER BY viewedAt ASC LIMIT 1") {
+        if let row = try Row.fetchOne(db, sql: "SELECT viewedAt, title, grandparentTitle FROM \(scope.table) WHERE 1=1\(acct) ORDER BY viewedAt ASC LIMIT 1") {
             let viewedAt: Int = row["viewedAt"]
             let date = Date(timeIntervalSince1970: TimeInterval(viewedAt))
             let title: String = row["grandparentTitle"] ?? row["title"] ?? ""
