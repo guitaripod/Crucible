@@ -77,7 +77,7 @@ package enum SeerrGuide {
         switch step {
         case .install: return String(localized: "Install Seerr", comment: "Seerr guide step title")
         case .setUp: return String(localized: "Finish Seerr's Setup", comment: "Seerr guide step title")
-        case .downloads: return String(localized: "Download With Radarr and Sonarr", comment: "Seerr guide step title")
+        case .downloads: return String(localized: "Hand Requests to Radarr and Sonarr", comment: "Seerr guide step title")
         case .people: return String(localized: "Let Your Plex Users In", comment: "Seerr guide step title")
         case .away: return String(localized: "Request Away From Home", comment: "Seerr guide step title")
         }
@@ -183,7 +183,7 @@ package enum SeerrGuide {
     private static func downloads(home: String?) -> [SeerrGuideLine] {
         let example = home.flatMap { $0 == "localhost" || $0.hasPrefix("127.") ? nil : $0 } ?? "192.168.1.20"
         return [
-            .text(String(localized: "Seerr keeps track of requests; Radarr (movies) and Sonarr (shows) find and download them. Without them requests still wait in Seerr for you to add the titles yourself.", comment: "Seerr guide: what Radarr and Sonarr do")),
+            .text(String(localized: "Seerr keeps track of requests; Radarr (movies) and Sonarr (shows) take the approved ones and add the titles to your library. Without them requests still wait in Seerr for you to add the titles yourself.", comment: "Seerr guide: what Radarr and Sonarr do")),
             .text(String(localized: "In Seerr open Settings, then Services, and choose Add Radarr Server and Add Sonarr Server. For each, enter the computer it runs on by its network address, such as \(example), never localhost (Seerr runs in its own container), its port (7878 for Radarr, 8989 for Sonarr unless you changed them) and its API key, which Radarr and Sonarr show under Settings, General, Security.", comment: "Seerr guide: adding Radarr and Sonarr, with an example address")),
             .text(String(localized: "Turn on Default Server for each, or requests have nowhere to go.", comment: "Seerr guide: default server")),
         ]

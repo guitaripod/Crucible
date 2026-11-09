@@ -1,7 +1,7 @@
 # Marketing 2.9.0
 
 The release that makes Crucible the hub of a Plex setup: Trakt records and scores what you watch, and Seerr (with
-Overseerr and Jellyseerr) asks for what your server does not have, then shows it downloading and ready to play. Both
+Overseerr and Jellyseerr) asks for what your server does not have, then shows it on its way and ready to play. Both
 are opt-in under Settings › Integrations and send nothing until connected. The story for the listing: "Everything
 about your server in one place".
 
@@ -33,14 +33,14 @@ about your server in one place".
 
 - Description: a new section, "YOUR WHOLE PLEX SETUP", after "PICK UP WHERE YOU LEFT OFF": "Connect Trakt to scrobble
   what you watch and see its score beside IMDb and Rotten Tomatoes on every title. Connect Seerr, Overseerr or
-  Jellyseerr and request what your server doesn't have, watch it download, then play it. Both stay off until you
+  Jellyseerr and request what your server doesn't have, watch it arrive, then play it. Both stay off until you
   connect them." Then the attribution line "Crucible uses Trakt but is not endorsed or certified by Trakt."
 - Third-party names stay out of the name, subtitle and keywords (App Review 5.2.5); they appear in the description,
   What's New and captions.
 - What's New (en-US draft): "Trakt and Seerr, built in and off until you connect them. Trakt: scrobble what you
   play, send what you mark watched, your ratings and check-ins, and see Trakt's score beside IMDb, Rotten Tomatoes
   and Letterboxd on every title. Seerr, Overseerr and Jellyseerr: Crucible finds your Seerr and signs in with Plex;
-  request a watchlist title your server lacks or a show's missing seasons, watch it download, then play it. With
+  request a watchlist title your server lacks or a show's missing seasons, watch it arrive, then play it. With
   Crucible Pro, approve and decline your household's requests from the couch." Translate into all seventeen
   listing languages when the version is created.
 - Screenshots: two new iPhone and iPad panels (the Request sheet downloading, the ratings strip) and one Apple TV

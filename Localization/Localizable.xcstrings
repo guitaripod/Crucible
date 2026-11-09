@@ -33198,71 +33198,6 @@
         }
       }
     },
-    "Download With Radarr and Sonarr" : {
-      "comment" : "Seerr guide step title",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mit Radarr und Sonarr herunterladen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Descargar con Radarr y Sonarr"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Télécharger avec Radarr et Sonarr"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scarica con Radarr e Sonarr"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Radarr と Sonarr でダウンロードする"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Radarr와 Sonarr로 다운로드"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pobierz z Radarr i Sonarr"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Baixar com o Radarr e o Sonarr"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 Radarr 和 Sonarr 下载"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 Radarr 和 Sonarr 下載"
-          }
-        }
-      }
-    },
     "Download an episode" : {
       "localizations" : {
         "de" : {
@@ -42236,6 +42171,71 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HTTP %lld：%@"
+          }
+        }
+      }
+    },
+    "Hand Requests to Radarr and Sonarr" : {
+      "comment" : "Seerr guide step title",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfragen an Radarr und Sonarr übergeben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasar las solicitudes a Radarr y Sonarr"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confier les demandes à Radarr et Sonarr"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affida le richieste a Radarr e Sonarr"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエストを Radarr と Sonarr に渡す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청을 Radarr와 Sonarr로 넘기기"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przekaż prośby do Radarr i Sonarr"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passar os pedidos ao Radarr e ao Sonarr"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将请求交给 Radarr 和 Sonarr"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將請求交給 Radarr 和 Sonarr"
           }
         }
       }
@@ -81757,67 +81757,67 @@
         }
       }
     },
-    "Seerr keeps track of requests; Radarr (movies) and Sonarr (shows) find and download them. Without them requests still wait in Seerr for you to add the titles yourself." : {
+    "Seerr keeps track of requests; Radarr (movies) and Sonarr (shows) take the approved ones and add the titles to your library. Without them requests still wait in Seerr for you to add the titles yourself." : {
       "comment" : "Seerr guide: what Radarr and Sonarr do",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr verfolgt Anfragen. Radarr (Filme) und Sonarr (Serien) finden und laden sie herunter. Ohne sie warten Anfragen in Seerr, bis du die Titel selbst hinzufügst."
+            "value" : "Seerr verfolgt Anfragen. Radarr (Filme) und Sonarr (Serien) übernehmen die genehmigten und fügen die Titel deiner Mediathek hinzu. Ohne sie warten Anfragen in Seerr, bis du die Titel selbst hinzufügst."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr lleva el registro de las solicitudes; Radarr (películas) y Sonarr (series) las buscan y las descargan. Sin ellos, las solicitudes siguen en Seerr hasta que añadas los títulos tú mismo."
+            "value" : "Seerr lleva el registro de las solicitudes; Radarr (películas) y Sonarr (series) toman las aprobadas y añaden los títulos a tu biblioteca. Sin ellos, las solicitudes siguen en Seerr hasta que añadas los títulos tú mismo."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr suit les demandes ; Radarr (films) et Sonarr (séries) les trouvent et les téléchargent. Sans eux, les demandes restent dans Seerr jusqu’à ce que vous ajoutiez vous-même les titres."
+            "value" : "Seerr suit les demandes ; Radarr (films) et Sonarr (séries) prennent en charge celles qui sont approuvées et ajoutent les titres à votre bibliothèque. Sans eux, les demandes restent dans Seerr jusqu’à ce que vous ajoutiez vous-même les titres."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr tiene traccia delle richieste; Radarr (film) e Sonarr (serie) le trovano e le scaricano. Senza di loro le richieste restano in Seerr e dovrai aggiungere tu i titoli."
+            "value" : "Seerr tiene traccia delle richieste; Radarr (film) e Sonarr (serie) prendono quelle approvate e aggiungono i titoli alla tua libreria. Senza di loro le richieste restano in Seerr e dovrai aggiungere tu i titoli."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr はリクエストを管理します。Radarr（映画）と Sonarr（番組）が作品を探してダウンロードします。これらがなくても、リクエストは Seerr で待機し、作品はご自身で追加する必要があります。"
+            "value" : "Seerr はリクエストを管理します。Radarr（映画）と Sonarr（番組）が承認されたリクエストを引き受け、作品をライブラリに追加します。これらがなくても、リクエストは Seerr で待機し、作品はご自身で追加する必要があります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr는 요청을 관리하고, Radarr는 영화를, Sonarr는 TV 프로그램을 찾아 다운로드해요. 둘 다 없으면 요청은 Seerr에 남아 있고 제목을 직접 추가해야 해요."
+            "value" : "Seerr는 요청을 관리하고, Radarr는 영화를, Sonarr는 TV 프로그램을 승인된 요청대로 보관함에 추가해요. 둘 다 없으면 요청은 Seerr에 남아 있고 제목을 직접 추가해야 해요."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr zapisuje prośby, a Radarr (filmy) i Sonarr (seriale) wyszukują je i pobierają. Bez nich prośby czekają w Seerr, a tytuły musisz dodać sam."
+            "value" : "Seerr zapisuje prośby, a Radarr (filmy) i Sonarr (seriale) przejmują zatwierdzone i dodają tytuły do biblioteki. Bez nich prośby czekają w Seerr, a tytuły musisz dodać sam."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Seerr controla os pedidos; o Radarr (filmes) e o Sonarr (séries) encontram e baixam o conteúdo. Sem eles, os pedidos continuam no Seerr esperando que você adicione os títulos manualmente."
+            "value" : "O Seerr controla os pedidos; o Radarr (filmes) e o Sonarr (séries) assumem os aprovados e adicionam os títulos à sua biblioteca. Sem eles, os pedidos continuam no Seerr esperando que você adicione os títulos manualmente."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr 负责跟踪请求；Radarr（电影）和 Sonarr（剧集）负责查找并下载。没有它们，请求仍会留在 Seerr 中，等你自己添加影片。"
+            "value" : "Seerr 负责跟踪请求；Radarr（电影）和 Sonarr（剧集）接手已批准的请求，并把影片添加到你的资料库。没有它们，请求仍会留在 Seerr 中，等你自己添加影片。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seerr 負責追蹤請求；Radarr（電影）和 Sonarr（影集）負責搜尋並下載。沒有它們的話，請求仍會留在 Seerr 中，等你自己把片名加進去。"
+            "value" : "Seerr 負責追蹤請求；Radarr（電影）和 Sonarr（影集）接手已核准的請求，並把片名加入你的媒體庫。沒有它們的話，請求仍會留在 Seerr 中，等你自己把片名加進去。"
           }
         }
       }
