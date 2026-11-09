@@ -8,13 +8,14 @@ final class SeerrTests: TVTestCase {
         continueAfterFailure = false
     }
 
-    private func launchIntoDemo() -> XCUIApplication {
+    private func launchIntoDemo(_ environment: [String: String] = [:]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CRUCIBLE_UITEST"] = "1"
         for (key, value) in ProcessInfo.processInfo.environment where key.hasPrefix("CRUCIBLE_") && key != "CRUCIBLE_MOCK" && key != "CRUCIBLE_DEMO_URL" {
             app.launchEnvironment[key] = value
         }
         app.launchEnvironment["CRUCIBLE_FRESH"] = "1"
+        app.launchEnvironment.merge(environment) { _, new in new }
         app.launch()
         XCTAssertTrue(AppNavigation.element(app, "onboarding.signIn").waitForExistence(timeout: 30), "Welcome never appeared")
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "onboarding.signIn"))
@@ -56,6 +57,35 @@ final class SeerrTests: TVTestCase {
         XCTAssertTrue(YouNavigation.row(app, "seerr.requests").exists, "a connected Seerr offers no Requests")
         TVTest.settle(1)
         TVTest.capture("02-seerr-connected", in: self)
+    }
+
+    /// A Seerr whose own setup nobody finished: the Seerr screen leads to the guide, which shows its codes and steps, sees Seerr
+    /// running, offers Connect once the setup is done, and Connect signs in.
+    func testTheSetupGuideFollowsSeerrUntilItConnects() {
+        let app = launchIntoDemo(["CRUCIBLE_DEMO_SEERR_UNFINISHED": "3"])
+        openYou(app)
+        YouNavigation.moveFocus(app, to: "you.seerr", limit: 30)
+        TVTest.remote.press(.select)
+        let guideRow = YouNavigation.row(app, "seerr.guide")
+        XCTAssertTrue(guideRow.waitForExistence(timeout: 30), "the Seerr screen offers no setup guide")
+        XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "seerr.guide"), "focus should rest on the guide")
+        TVTest.settle(1)
+        TVTest.capture("10-seerr-unfinished", in: self)
+        TVTest.remote.press(.select)
+        let install = YouNavigation.row(app, "seerrGuide.step.0")
+        XCTAssertTrue(install.waitForExistence(timeout: 30), "the guide shows no steps")
+        XCTAssertTrue(AppNavigation.element(app, "seerrGuide.qr.guide").exists, "the guide shows no code for its web version")
+        TVTest.settle(2)
+        TVTest.capture("11-guide", in: self)
+        let connect = YouNavigation.row(app, "seerrGuide.connect")
+        XCTAssertTrue(connect.waitForExistence(timeout: 60), "the guide never offered Connect once Seerr's setup finished")
+        TVTest.settle(1)
+        if !connect.hasFocus { YouNavigation.moveFocusUp(app, to: "seerrGuide.connect", limit: 6) }
+        TVTest.capture("12-guide-ready", in: self)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(YouNavigation.row(app, "seerr.user").waitForExistence(timeout: 30), "Connect in the guide did not connect")
+        TVTest.settle(1)
+        TVTest.capture("13-connected-from-guide", in: self)
     }
 
     func testRequestingAWatchlistTitleFromTheCouch() {

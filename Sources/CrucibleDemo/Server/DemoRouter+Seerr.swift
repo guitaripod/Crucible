@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 extension DemoRouter {
     /// The stand-in Seerr, which the demo serves under `/seerr` of the library's own address, as a Seerr behind a reverse
@@ -14,7 +15,7 @@ extension DemoRouter {
             return .json(["version": "3.5.1", "commitTag": "demo"] as DemoJSON)
         case ("GET", ["settings", "public"]):
             return .json([
-                "initialized": true, "applicationTitle": "\(serverName) Requests", "mediaServerType": 1, "mediaServerLogin": true, "partialRequestsEnabled": true,
+                "initialized": DemoSeerrSetup.isFinished(), "applicationTitle": "\(serverName) Requests", "mediaServerType": 1, "mediaServerLogin": true, "partialRequestsEnabled": true,
             ] as DemoJSON)
         case ("POST", ["auth", "plex"]):
             return await library.seerrSignIn()
@@ -39,5 +40,23 @@ extension DemoRouter {
         default:
             return .notFound()
         }
+    }
+}
+
+/// Whether the stand-in Seerr's own setup is finished. `CRUCIBLE_DEMO_SEERR_UNFINISHED=<n>` (DEBUG only) has it answer as a
+/// fresh Seerr whose setup nobody finished for its first `n` looks, so a test can follow the setup guide until it is ready.
+enum DemoSeerrSetup {
+    private static let looks = OSAllocatedUnfairLock(initialState: 0)
+
+    static func isFinished() -> Bool {
+        #if DEBUG
+        guard let unfinished = ProcessInfo.processInfo.environment["CRUCIBLE_DEMO_SEERR_UNFINISHED"].flatMap(Int.init) else { return true }
+        return looks.withLock { count in
+            count += 1
+            return count > unfinished
+        }
+        #else
+        return true
+        #endif
     }
 }

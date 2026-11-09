@@ -5,6 +5,8 @@ import MidgarCore
 package enum SeerrError: Error, Equatable, LocalizedError, Sendable {
     case notConnected
     case unreachable
+    /// Seerr answers only on the home network and this device is away from it without Tailscale.
+    case awayFromHome
     case notSeerr
     /// Seerr is set up for Jellyfin or Emby and cannot take a Plex sign-in.
     case notPlex
@@ -27,6 +29,7 @@ package enum SeerrError: Error, Equatable, LocalizedError, Sendable {
         switch self {
         case .notConnected: return String(localized: "Connect Seerr in Settings › Integrations first.", comment: "Seerr error when nothing is connected")
         case .unreachable: return String(localized: "Seerr isn't answering at that address.", comment: "Seerr error when the address does not answer")
+        case .awayFromHome: return String(localized: "Seerr only answers on your home network. Turn on Tailscale on this device and on your Plex computer to request from anywhere.", comment: "Seerr error away from home without Tailscale")
         case .notSeerr: return String(localized: "Something answered at that address, but it isn't Seerr, Overseerr or Jellyseerr.", comment: "Seerr error when another service answers")
         case .notPlex: return String(localized: "This Seerr is set up for Jellyfin or Emby, not Plex.", comment: "Seerr error for a Jellyfin or Emby setup")
         case .plexSignInOff: return String(localized: "Plex sign-in is turned off in this Seerr. Turn it on in Seerr, or connect with its API key.", comment: "Seerr error when Plex sign-in is disabled")
@@ -161,7 +164,8 @@ package struct SeerrTarget: Sendable, Equatable {
 }
 
 /// Talks to the viewer's Seerr: keeps its cookies per viewer, answers a cross-site token check when Seerr asks for one,
-/// and signs in again with the Plex token once when the session has run out.
+/// signs in again with the Plex token once when the session has run out, and moves to another address Seerr answers at
+/// when the one in use stops answering (the home network left behind, Tailscale switched on), keeping the session.
 package actor SeerrClient {
     package static let shared = SeerrClient()
 
@@ -169,8 +173,12 @@ package actor SeerrClient {
     private let vault: SeerrVault
     private let plexToken: @Sendable () -> String?
     private var target: SeerrTarget?
+    private var alternates: [URL] = []
     private var jar: [String: String] = [:]
     private var signingIn: Task<SeerrUser, Error>?
+    private var failingOver: Task<URL?, Never>?
+    private var onMove: (@Sendable (URL) -> Void)?
+    private let isAwayFromHome: @Sendable () -> Bool
 
     static let sessionCookie = "connect.sid"
     static let csrfCookie = "XSRF-TOKEN"
@@ -179,20 +187,39 @@ package actor SeerrClient {
     package init(
         transport: SeerrTransport = .live,
         vault: SeerrVault = .live,
-        plexToken: @escaping @Sendable () -> String? = { ServerBootstrap.plexTVToken }
+        plexToken: @escaping @Sendable () -> String? = { ServerBootstrap.plexTVToken },
+        isAwayFromHome: @escaping @Sendable () -> Bool = { SeerrClient.awayFromHomeWithoutTailnet() }
     ) {
         self.transport = transport
         self.vault = vault
         self.plexToken = plexToken
+        self.isAwayFromHome = isAwayFromHome
     }
 
-    /// Points the client at `target`, or at nothing; the saved session of that viewer comes back with it.
-    package func use(_ target: SeerrTarget?) {
+    /// Points the client at `target`, or at nothing; the saved session of that viewer comes back with it. `alternates` are the
+    /// other addresses the same Seerr answers at, best first, tried when the one in use stops answering.
+    package func use(_ target: SeerrTarget?, alternates: [URL] = []) {
+        self.alternates = alternates
         guard target != self.target else { return }
+        let sameViewer = target != nil && target?.secretKey == self.target?.secretKey && target?.auth == self.target?.auth
         self.target = target
+        failingOver = nil
+        guard !sameViewer else { return }
         signingIn = nil
         jar = [:]
         if let target, let session = vault.load(target.sessionKey) { jar[Self.sessionCookie] = session }
+    }
+
+    /// Called with the address the client moved to after the one in use stopped answering.
+    package func onAddressMove(_ handler: (@Sendable (URL) -> Void)?) {
+        onMove = handler
+    }
+
+    /// Plex is reached over the internet or a relay and Tailscale is off: a Seerr on the home network cannot answer.
+    package nonisolated static func awayFromHomeWithoutTailnet() -> Bool {
+        guard !TailnetPresence.isConnected, let route = ServerBootstrap.connection()?.serverURI else { return false }
+        let kind = ConnectionRoute.kind(of: route)
+        return kind == .remote || kind == .relay
     }
 
     package var current: SeerrTarget? { target }
@@ -219,7 +246,7 @@ package actor SeerrClient {
         let (settingsData, settingsResponse) = try await transport.send(URLRequest(url: settingsURL, timeoutInterval: Self.probeTimeout))
         guard (200..<300).contains(settingsResponse.statusCode) else { return SeerrPublicSettings() }
         let settings = (try? JSONDecoder().decode(SeerrPublicSettings.self, from: settingsData)) ?? SeerrPublicSettings()
-        guard settings.servesPlex else { throw SeerrError.notPlex }
+        guard settings.initialized == false || settings.servesPlex else { throw SeerrError.notPlex }
         return settings
     }
 
@@ -270,14 +297,25 @@ package actor SeerrClient {
         }
     }
 
-    private func perform(_ endpoint: SeerrEndpoint, allowReauth: Bool, answeredCSRF: Bool = false) async throws -> (Data, Int) {
+    private func perform(_ endpoint: SeerrEndpoint, allowReauth: Bool, answeredCSRF: Bool = false, mayMove: Bool = true) async throws -> (Data, Int) {
         guard let target, let url = endpoint.url(base: target.address) else { throw SeerrError.notConnected }
-        let (data, response) = try await transport.send(request(for: endpoint, url: url, target: target))
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.send(request(for: endpoint, url: url, target: target))
+        } catch SeerrError.unreachable where mayMove {
+            guard await move(from: target) else {
+                let homeOnly = SeerrDiscovery.reachableHost(of: target.address) != nil
+                throw homeOnly && isAwayFromHome() ? SeerrError.awayFromHome : SeerrError.unreachable
+            }
+            return try await perform(endpoint, allowReauth: allowReauth, answeredCSRF: answeredCSRF, mayMove: false)
+        }
+        guard isSameViewer(target) else { throw SeerrError.notConnected }
         absorbCookies(from: response, url: url)
         let code = response.statusCode
         if code == 403, !answeredCSRF, Self.isCSRFRefusal(data) {
             try await fetchCSRFToken(target: target)
-            return try await perform(endpoint, allowReauth: allowReauth, answeredCSRF: true)
+            return try await perform(endpoint, allowReauth: allowReauth, answeredCSRF: true, mayMove: mayMove)
         }
         if (code == 401 || code == 403), allowReauth, !endpoint.isPublic, target.auth == .plex {
             MidgarLog.notice("Seerr refused \(endpoint.path) (\(code)); signing in again", category: .seerr)
@@ -286,7 +324,7 @@ package actor SeerrClient {
             } catch SeerrError.accessDenied, SeerrError.signedOut {
                 throw SeerrError.signedOut
             }
-            return try await perform(endpoint, allowReauth: false, answeredCSRF: answeredCSRF)
+            return try await perform(endpoint, allowReauth: false, answeredCSRF: answeredCSRF, mayMove: mayMove)
         }
         if let error = SeerrError.status(code, data: data, endpoint: endpoint) {
             if target.auth == .apiKey, code == 401 || (code == 403 && endpoint == .me) { throw SeerrError.invalidAPIKey }
@@ -294,6 +332,52 @@ package actor SeerrClient {
             throw error
         }
         return (data, code)
+    }
+
+    /// Moves to the first other address that answers as Seerr, keeping the session, after `failed` stopped answering.
+    /// Requests that fail together wait for one move. Returns whether the same viewer's Seerr now sits at another
+    /// address, so a request is never retried for someone else after a Home profile switch.
+    private func move(from failed: SeerrTarget) async -> Bool {
+        if let failingOver {
+            _ = await failingOver.value
+            return isSameViewer(failed) && target?.address != failed.address
+        }
+        guard target == failed else { return isSameViewer(failed) && target?.address != failed.address }
+        let others = alternates.filter { $0 != failed.address }
+        guard !others.isEmpty else { return false }
+        let transport = transport
+        let task = Task<URL?, Never> { await Self.firstAnswering(others, transport: transport) }
+        failingOver = task
+        let found = await task.value
+        failingOver = nil
+        guard let found, target == failed else { return isSameViewer(failed) && target?.address != failed.address }
+        target = SeerrTarget(address: found, auth: failed.auth, secretKey: failed.secretKey)
+        alternates = [found] + alternates.filter { $0 != found }
+        MidgarLog.notice("Seerr moved to another address after \(SeerrDiscovery.displayAddress(failed.address)) stopped answering", category: .seerr)
+        onMove?(found)
+        return true
+    }
+
+    private func isSameViewer(_ other: SeerrTarget) -> Bool {
+        target?.secretKey == other.secretKey && target?.auth == other.auth
+    }
+
+    /// The first of `addresses`, in their order, whose status answers as Seerr; all are asked at once.
+    private static func firstAnswering(_ addresses: [URL], transport: SeerrTransport) async -> URL? {
+        await withTaskGroup(of: (Int, Bool).self) { group in
+            for (index, address) in addresses.enumerated() {
+                group.addTask {
+                    guard let url = SeerrEndpoint.status.url(base: address) else { return (index, false) }
+                    var request = URLRequest(url: url, timeoutInterval: probeTimeout)
+                    request.setValue("application/json", forHTTPHeaderField: "Accept")
+                    guard let (data, response) = try? await transport.send(request), (200..<300).contains(response.statusCode) else { return (index, false) }
+                    return (index, (try? JSONDecoder().decode(SeerrServerStatus.self, from: data)) != nil)
+                }
+            }
+            var answered: [Int] = []
+            for await (index, ok) in group where ok { answered.append(index) }
+            return answered.min().map { addresses[$0] }
+        }
     }
 
     private func request(for endpoint: SeerrEndpoint, url: URL, target: SeerrTarget) -> URLRequest {

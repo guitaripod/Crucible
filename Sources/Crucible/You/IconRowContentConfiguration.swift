@@ -13,6 +13,8 @@ struct IconRowContentConfiguration: UIContentConfiguration {
     }
 
     var symbol: String
+    /// The symbol's colour, when it carries meaning such as a step that is done.
+    var symbolColor: UIColor?
     /// A service's official mark in place of the symbol, filling the icon well.
     var brand: BrandMark?
     var title: String
@@ -208,6 +210,7 @@ final class IconRowContentView: UIView, UIContentView {
     private func apply() {
         guard let config = configuration as? IconRowContentConfiguration else { return }
         wellImage.image = config.brand == nil ? UIImage(systemName: config.symbol) : nil
+        wellImage.tintColor = config.symbolColor ?? Theme.Color.labelSecondary
         brandView.image = config.brand?.image
         brandView.isHidden = config.brand == nil
         wellView.backgroundColor = config.brand == nil ? Theme.Color.surfaceRaised : .clear

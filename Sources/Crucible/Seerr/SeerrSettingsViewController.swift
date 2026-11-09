@@ -17,6 +17,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
         case searching
         case found
         case connect
+        case guide
         case enterAddress
         case apiKey
         case connecting
@@ -79,7 +80,19 @@ final class SeerrSettingsViewController: UICollectionViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        lookAgainIfNothingUsable()
         applySnapshot()
+    }
+
+    /// Coming back from the guide or another app, a Seerr that was missing or unfinished may be ready now.
+    private func lookAgainIfNothingUsable() {
+        switch discovery {
+        case .notFound: break
+        case .found(_, let settings) where settings.initialized == false: break
+        default: return
+        }
+        discovery = .idle
+        discoverIfNeeded()
     }
 
     private var account: SeerrAccount { .shared }
@@ -110,9 +123,10 @@ final class SeerrSettingsViewController: UICollectionViewController {
     private var connectRows: [Row] {
         if isConnecting { return [.connecting] }
         switch discovery {
-        case .idle, .searching: return [.searching, .enterAddress]
+        case .idle, .searching: return [.searching, .guide, .enterAddress]
+        case .found(_, let settings) where settings.initialized == false: return [.message(SeerrGuide.needsSetup), .guide, .enterAddress]
         case .found: return [.found, .connect, .enterAddress, .apiKey]
-        case .notFound: return [.message(SeerrCopy.notFound), .enterAddress, .apiKey]
+        case .notFound: return [.message(SeerrCopy.notFound), .guide, .enterAddress, .apiKey]
         }
     }
 
@@ -168,6 +182,10 @@ final class SeerrSettingsViewController: UICollectionViewController {
             cell.contentConfiguration = IconRowContentConfiguration(symbol: "checkmark.circle.fill", title: SeerrCopy.found, subtitle: name)
         case .connect:
             cell.contentConfiguration = Self.button(account.status == .disconnected ? SeerrCopy.connect : SeerrCopy.reconnect, color: Theme.Color.accentText, bold: true)
+            cell.accessibilityTraits = .button
+        case .guide:
+            cell.contentConfiguration = IconRowContentConfiguration(symbol: "list.number", title: SeerrGuide.title, subtitle: SeerrCopy.guideSubtitle)
+            cell.accessories = [.disclosureIndicator()]
             cell.accessibilityTraits = .button
         case .enterAddress:
             cell.contentConfiguration = IconRowContentConfiguration(symbol: "keyboard", title: SeerrCopy.enterAddress)
@@ -228,7 +246,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
-        case .connect, .enterAddress, .apiKey, .requests, .disconnect: return true
+        case .connect, .guide, .enterAddress, .apiKey, .requests, .disconnect: return true
         default: return false
         }
     }
@@ -237,6 +255,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         switch dataSource.itemIdentifier(for: indexPath) {
         case .connect: connectToFoundOrSaved()
+        case .guide: openGuide()
         case .enterAddress: askForAddress(thenAPIKey: false)
         case .apiKey: askForAPIKey()
         case .requests: navigationController?.pushViewController(SeerrRequestsViewController(api: api), animated: true)
@@ -258,6 +277,17 @@ final class SeerrSettingsViewController: UICollectionViewController {
             discovery = found.map { .found($0.0, $0.1) } ?? .notFound
             applySnapshot()
         }
+    }
+
+    /// The setup guide; once Seerr is ready there, the guide closes and connecting starts here.
+    private func openGuide() {
+        let guide = SeerrGuideViewController(api: api) { [weak self] address, settings in
+            guard let self else { return }
+            navigationController?.popToViewController(self, animated: true)
+            discovery = .found(address, settings)
+            connect(address: address, settings: settings, apiKey: nil)
+        }
+        navigationController?.pushViewController(guide, animated: true)
     }
 
     private func connectToFoundOrSaved() {

@@ -51,7 +51,7 @@ enum SeerrFixtures {
     }
 
     static func client(_ script: SeerrScript, vault: SeerrVault = .memory(), token: String? = "plex-token") -> SeerrClient {
-        SeerrClient(transport: script.transport, vault: vault, plexToken: { token })
+        SeerrClient(transport: script.transport, vault: vault, plexToken: { token }, isAwayFromHome: { false })
     }
 
     static func details(_ json: String) -> SeerrTitleDetails {

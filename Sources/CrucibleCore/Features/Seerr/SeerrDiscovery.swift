@@ -30,34 +30,33 @@ package enum SeerrDiscovery {
         secure.scheme = "https"
         secure.port = nil
         guard let secureURL = secure.url else { return [withPort, asWritten] }
-        return localHost(of: asWritten) != nil ? [withPort, asWritten, secureURL] : [secureURL, withPort, asWritten]
+        return reachableHost(of: asWritten) != nil ? [withPort, asWritten, secureURL] : [secureURL, withPort, asWritten]
     }
 
-    /// Where Seerr may run next to the Plex server: Seerr's port on each host the server answers at on the home network.
+    /// Where Seerr may run next to the Plex server: Seerr's port on each host the server answers at on the home network or
+    /// the tailnet, in the order of the routes (the one in use first).
     package static func candidates(serverRoutes: [URL]) -> [URL] {
-        var seen = Set<String>()
-        var result: [URL] = []
-        for route in serverRoutes {
-            guard let host = localHost(of: route), seen.insert(host).inserted else { continue }
+        SeerrRoutes.hosts(of: serverRoutes).compactMap { host in
             var components = URLComponents()
             components.scheme = "http"
             components.host = host
             components.port = defaultPort
-            if let url = components.url { result.append(url) }
+            return components.url
         }
-        return result
     }
 
-    /// The host of a route on the home network: a private address as is, or the address a `plex.direct` name spells out.
-    /// Relay and public routes are left out, since nothing on them would answer for Seerr.
-    static func localHost(of route: URL) -> String? {
+    /// The host of a route on the home network or the tailnet: a private or tailnet address as is, a MagicDNS or local name,
+    /// or the address a `plex.direct` name spells out. Relay and public routes are left out, since Seerr's port is rarely
+    /// open to the internet and its session should not cross it in plain HTTP.
+    package static func reachableHost(of route: URL) -> String? {
         guard let host = route.host?.lowercased() else { return nil }
         if host.hasSuffix(".plex.direct") {
             let label = host.split(separator: ".").first.map(String.init) ?? ""
             let address = label.replacingOccurrences(of: "-", with: ".")
             return isPrivate(address) ? address : nil
         }
-        if isPrivate(host) || host == "localhost" || host.hasSuffix(".local") || host.hasSuffix(".lan") || host.hasSuffix(".home.arpa") { return host }
+        let names = [".local", ".lan", ".home.arpa", ".ts.net"]
+        if isPrivate(host) || host == "localhost" || names.contains(where: host.hasSuffix) { return host }
         return nil
     }
 
@@ -88,6 +87,45 @@ package enum SeerrDiscovery {
         }
         if let found { MidgarLog.notice("Seerr found at candidate \(found.0 + 1) of \(addresses.count)", category: .seerr) }
         return found.map { ($0.1, $0.2) }
+    }
+
+    /// What answers among `addresses`, all asked at once: a Seerr set up for Plex first, then one whose setup is not finished,
+    /// then one set up for Jellyfin or Emby, each the earliest of its kind in `addresses`.
+    package static func survey(_ addresses: [URL], client: SeerrClient = .shared) async -> SeerrSetupWatcher.Seerr {
+        guard !addresses.isEmpty else { return .notFound }
+        let outcomes = await withTaskGroup(of: (Int, Result<SeerrPublicSettings, SeerrError>).self) { group in
+            for (index, address) in addresses.enumerated() {
+                group.addTask {
+                    do {
+                        return (index, .success(try await client.probe(address)))
+                    } catch let error as SeerrError {
+                        return (index, .failure(error))
+                    } catch {
+                        return (index, .failure(.unreachable))
+                    }
+                }
+            }
+            var outcomes: [Int: Result<SeerrPublicSettings, SeerrError>] = [:]
+            for await pair in group { outcomes[pair.0] = pair.1 }
+            return outcomes
+        }
+        var unfinished: URL?
+        var jellyfin: URL?
+        for (index, address) in addresses.enumerated() {
+            switch outcomes[index] {
+            case .success(let settings) where settings.initialized == false:
+                if unfinished == nil { unfinished = address }
+            case .success(let settings):
+                return .ready(address, settings)
+            case .failure(.notPlex):
+                if jellyfin == nil { jellyfin = address }
+            default:
+                break
+            }
+        }
+        if let unfinished { return .needsSetup(unfinished) }
+        if let jellyfin { return .notPlex(jellyfin) }
+        return .notFound
     }
 
     /// The most likely address `typed` could mean that answers, or the reason none did. Every reading is tried at once,

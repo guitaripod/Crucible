@@ -967,6 +967,16 @@ package struct PlexPin: Decodable, Sendable {
     package let expiresIn: Int?
 }
 
+/// The server's root (`/`): its name and the operating system it runs on.
+package struct PlexServerRoot: Decodable, Sendable {
+    package let MediaContainer: Container
+
+    package struct Container: Decodable, Sendable {
+        package let friendlyName: String?
+        package let platform: String?
+    }
+}
+
 package struct PlexIdentity: Decodable, Sendable {
     package let MediaContainer: PlexIdentityContainer
 

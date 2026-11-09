@@ -8,8 +8,8 @@ final class SeerrTests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func enterDemo() -> XCUIApplication {
-        let app = IOSTest.launch()
+    private func enterDemo(_ environment: [String: String] = [:]) -> XCUIApplication {
+        let app = IOSTest.launch(extraEnvironment: environment)
         let demo = IOSTest.element(app, "onboarding.demo")
         XCTAssertTrue(demo.waitForExistence(timeout: 60), "Welcome never showed Try the demo")
         demo.tap()
@@ -57,6 +57,44 @@ final class SeerrTests: XCTestCase {
         XCTAssertTrue(named.waitForExistence(timeout: 10), "the Seerr account is not named")
         XCTAssertTrue(IOSTest.element(app, "seerr.requests").exists, "a connected Seerr offers no Requests")
         IOSTest.capture("02-seerr-connected", in: self)
+    }
+
+    /// A Seerr whose own setup nobody finished (`CRUCIBLE_DEMO_SEERR_UNFINISHED`): Settings offers the guide instead of Connect,
+    /// the guide sees Seerr running and its setup unfinished, notices when the setup is done, and its Connect signs in.
+    func testTheSetupGuideFollowsSeerrUntilItConnects() {
+        let app = enterDemo(["CRUCIBLE_DEMO_SEERR_UNFINISHED": "3"])
+        IOSTest.tab(app, "You").tap()
+        let settings = IOSTest.element(app, "you.settings")
+        scrollTo(settings, in: app)
+        XCTAssertTrue(settings.waitForExistence(timeout: 20), "You has no Settings row")
+        settings.tap()
+        let category = IOSTest.element(app, "settings.category.integrations")
+        scrollTo(category, in: app, attempts: 4)
+        category.tap()
+        let seerr = IOSTest.element(app, "settings.dest.seerr")
+        XCTAssertTrue(seerr.waitForExistence(timeout: 20), "Integrations has no Seerr row")
+        seerr.tap()
+        let guideRow = IOSTest.element(app, "seerr.guide")
+        XCTAssertTrue(guideRow.waitForExistence(timeout: 30), "Seerr settings offer no setup guide")
+        XCTAssertFalse(IOSTest.element(app, "seerr.connect").exists, "an unfinished Seerr offers Connect")
+        IOSTest.settle(1)
+        IOSTest.capture("11-settings-unfinished-seerr", in: self)
+        guideRow.tap()
+        let running = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Seerr is running at'")).firstMatch
+        XCTAssertTrue(running.waitForExistence(timeout: 30), "the guide does not see Seerr running")
+        IOSTest.capture("12-guide-seerr-running", in: self)
+        for name in ["13-guide-setup", "14-guide-downloads", "15-guide-away"] {
+            app.collectionViews["seerrGuide"].swipeUp()
+            IOSTest.settle(0.8)
+            IOSTest.capture(name, in: self)
+        }
+        let connect = IOSTest.element(app, "seerrGuide.connect")
+        XCTAssertTrue(IOSTest.wait(for: connect, "exists == true AND hittable == true", timeout: 60), "the guide never brought Connect into view once Seerr's setup finished")
+        IOSTest.settle(1)
+        IOSTest.capture("16-guide-ready", in: self)
+        connect.tap()
+        XCTAssertTrue(IOSTest.element(app, "seerr.user").waitForExistence(timeout: 30), "Connect in the guide did not connect")
+        IOSTest.capture("17-connected-from-guide", in: self)
     }
 
     func testRequestingAWatchlistTitleTheServerLacks() {

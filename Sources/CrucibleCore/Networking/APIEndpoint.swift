@@ -6,6 +6,8 @@ package enum PlexEndpoint: Sendable {
     case resources
 
     case identity
+    /// The server's root, which says what operating system it runs on.
+    case serverRoot
     case sections
     case sectionItems(sectionId: String, sort: String? = nil, genre: String? = nil, start: Int = 0, size: Int = 50, unwatched: Bool = false, inProgress: Bool = false, actor: String? = nil, filters: [String: String] = [:])
     case sectionGenres(sectionId: String)
@@ -140,6 +142,8 @@ package enum PlexEndpoint: Sendable {
             return "/api/v2/resources"
         case .identity:
             return "/identity"
+        case .serverRoot:
+            return "/"
         case .sections:
             return "/library/sections"
         case .sectionFolder(let sectionId):

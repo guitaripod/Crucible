@@ -16,6 +16,7 @@ package enum SeerrCopy {
     package static let notFound = String(localized: "Crucible didn't find Seerr next to your Plex server. Enter its address.", comment: "Status when discovery found nothing")
     package static let connect = String(localized: "Connect with Plex", comment: "Button that signs in to Seerr with the viewer's Plex account")
     package static let enterAddress = String(localized: "Enter Address", comment: "Button that lets the viewer type the Seerr address")
+    package static let guideSubtitle = String(localized: "Step by step, with the commands for your server", comment: "Subtitle of the row that opens the Seerr setup guide")
     package static let addressTitle = String(localized: "Seerr Address", comment: "Title of the prompt for the Seerr address")
     package static let addressMessage = String(localized: "The address you open Seerr at, such as 192.168.1.20:5055 or requests.example.com.", comment: "Message of the prompt for the Seerr address")
     package static let addressPlaceholder = String(localized: "Address", comment: "Placeholder of the Seerr address field")

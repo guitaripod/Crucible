@@ -10,6 +10,12 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
         case searching
         case found(URL, SeerrPublicSettings)
         case notFound
+
+        /// Seerr answered and its setup is finished, so Connect can sign in.
+        var isConnectable: Bool {
+            if case .found(_, let settings) = self { return settings.initialized != false }
+            return false
+        }
     }
 
     private let env: TVAppEnvironment
@@ -45,6 +51,10 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        if !discovery.isConnectable, discovery != .idle, discovery != .searching {
+            discovery = .idle
+            discoverIfNeeded()
+        }
         render()
     }
 
@@ -52,7 +62,7 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
         switch SeerrAccount.shared.status {
         case .connected: return "seerr.requests"
         case .needsReconnect: return "seerr.connect"
-        default: return discovery == .notFound ? "seerr.enterAddress" : "seerr.connect"
+        default: return discovery.isConnectable ? "seerr.connect" : "seerr.guide"
         }
     }
 
@@ -70,11 +80,16 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
                 switch discovery {
                 case .idle, .searching:
                     rows.append(TVRowItem(id: "seerr.searching", title: SeerrCopy.searching, symbol: "dot.radiowaves.left.and.right", isStatic: true))
+                case .found(_, let settings) where settings.initialized == false:
+                    rows.append(TVRowItem(id: "seerr.needsSetup", title: SeerrGuide.needsSetup, symbol: "info.circle", isStatic: true))
                 case .found(let address, let settings):
                     let name = SeerrConnection(address: address, auth: .plex, title: settings.applicationTitle).displayName
                     rows.append(TVRowItem(id: "seerr.connect", title: SeerrCopy.connect, subtitle: SeerrCopy.found + " · " + name, symbol: "link", accessory: .chevron))
                 case .notFound:
                     rows.append(TVRowItem(id: "seerr.notFound", title: SeerrCopy.notFound, symbol: "info.circle", isStatic: true))
+                }
+                if !discovery.isConnectable {
+                    rows.append(TVRowItem(id: "seerr.guide", title: SeerrGuide.title, subtitle: SeerrCopy.guideSubtitle, symbol: "list.number", accessory: .chevron))
                 }
                 rows.append(TVRowItem(id: "seerr.enterAddress", title: SeerrCopy.enterAddress, symbol: "keyboard"))
                 if discovery != .idle, discovery != .searching {
@@ -108,6 +123,7 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         switch id {
         case "seerr.connect": connectToFoundOrSaved()
+        case "seerr.guide": openGuide()
         case "seerr.enterAddress": askForAddress(thenAPIKey: false)
         case "seerr.apiKey": askForAPIKey()
         case "seerr.requests": TVNavigation.push(TVSeerrRequestsViewController(env: env), from: self)
@@ -121,6 +137,17 @@ final class TVSeerrSettingsViewController: TVSettingsScaffold {
             }
         default: break
         }
+    }
+
+    /// The setup guide; once Seerr is ready there, the guide closes and connecting starts here.
+    private func openGuide() {
+        let guide = TVSeerrGuideViewController(env: env) { [weak self] address, settings in
+            guard let self else { return }
+            navigationController?.popToViewController(self, animated: true)
+            discovery = .found(address, settings)
+            connect(address: address, settings: settings, apiKey: nil)
+        }
+        TVNavigation.push(guide, from: self)
     }
 
     private func discoverIfNeeded() {
