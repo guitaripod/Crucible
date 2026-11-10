@@ -283,6 +283,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             offerWhatsNext(after: finish)
         case .sleepTimerFired:
             Haptics.soft()
+            upNextOverlay?.setCountdownHeld(true)
+            pendingUpNext = pendingUpNext?.withoutAutoplay()
             moreButton?.refreshMenu()
         case .tracksChanged:
             moreButton?.refreshMenu()
@@ -301,11 +303,16 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         moreButton = button
     }
 
+    private func setSleepTimer(_ choice: SleepTimerChoice?) {
+        session.setSleepTimer(choice)
+        upNextOverlay?.setCountdownHeld(session.stopsAtEndOfItem)
+        moreButton?.refreshMenu()
+    }
+
     private func playerMenu() -> UIMenu {
         var children: [UIMenuElement] = trackMenus() + [
             PlayerSleepMenu.menu(timer: session.sleepTimer, isEpisode: request.isEpisode) { [weak self] choice in
-                self?.session.setSleepTimer(choice)
-                self?.moreButton?.refreshMenu()
+                self?.setSleepTimer(choice)
             },
         ]
         if let chapters = session.stream?.chapters, !chapters.isEmpty {

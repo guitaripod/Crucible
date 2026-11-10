@@ -328,7 +328,7 @@ extension PlaybackSession {
         guard upNext.canOfferNext else {
             if reason == .playbackEnded {
                 emit(.finished(.standalone))
-                if sleepTimer?.stopsAtEndOfItem == true { sleepTimer = nil }
+                if stopsAtEndOfItem { fallAsleep() }
             }
             return
         }
@@ -343,14 +343,14 @@ extension PlaybackSession {
             switch lookup {
             case .offer(let offer):
                 upNextOutcome = .offer(offer)
-                emit(.upNext(sleepTimer?.stopsAtEndOfItem == true ? offer.withoutAutoplay() : offer))
+                emit(.upNext(stopsAtEndOfItem ? offer.withoutAutoplay() : offer))
             case .nothingNext:
                 upNextOutcome = .nothingNext
                 if reason == .playbackEnded { emit(.finished(.noNextEpisode)) }
             case .failed:
                 if reason == .playbackEnded { emit(.finished(.noNextEpisode)) }
             }
-            if reason == .playbackEnded, sleepTimer?.stopsAtEndOfItem == true { fallAsleep() }
+            if reason == .playbackEnded, stopsAtEndOfItem { fallAsleep() }
         }
     }
 

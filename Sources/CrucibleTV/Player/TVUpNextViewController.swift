@@ -9,13 +9,15 @@ import UIKit
 /// so the credits keep playing, and Menu does the same; without credits it is Close, which rejects
 /// the proposal and ends the player. With autoplay on and VoiceOver off the card counts down and
 /// plays on its own, unless a run of episodes has played with nobody at the remote: then it asks
-/// "Still watching?" and waits for an answer. It always renders dark, like the rest of a video
-/// overlay, so its white text stays legible over the picture in either system appearance.
+/// "Still watching?" and waits for an answer. A sleep timer set to stop at the end of this episode
+/// keeps it from counting at all. It always renders dark, like the rest of a video overlay, so its
+/// white text stays legible over the picture in either system appearance.
 @MainActor
 final class TVUpNextViewController: AVContentProposalViewController {
     var onDeferred: (() -> Void)?
     var isAtEndOfItem: (() -> Bool)?
     var asksStillWatching: (() -> Bool)?
+    var stopsAfterThisItem: (() -> Bool)?
 
     /// Whether the viewer pressed the main button, as opposed to the countdown accepting on its own.
     private(set) var acceptedByViewer = false
@@ -26,6 +28,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
     private let countdownLabel = UILabel()
     private let eyebrow = UILabel()
     private var stillWatching = false
+    private var stopsAfterItem = false
     private let thumb = UIImageView()
     private var countdownTask: Task<Void, Never>?
     private var remaining = UpNextOffer.countdownSeconds
@@ -42,9 +45,9 @@ final class TVUpNextViewController: AVContentProposalViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Counts down only when autoplay is on, VoiceOver is off and nobody needs asking: a countdown the
-    /// viewer cannot see must not start the next episode under them, and neither may one nobody is awake for.
-    private var isCounting: Bool { autoplays && !stillWatching && !UIAccessibility.isVoiceOverRunning }
+    /// Counts down only when autoplay is on, VoiceOver is off, nobody needs asking and no sleep timer stops playback here: a
+    /// countdown the viewer cannot see must not start the next episode under them, and neither may one nobody is awake for.
+    private var isCounting: Bool { autoplays && !stopsAfterItem && !stillWatching && !UIAccessibility.isVoiceOverRunning }
 
     private var animatesDismissal: Bool { !UIAccessibility.isReduceMotionEnabled }
 
@@ -63,7 +66,9 @@ final class TVUpNextViewController: AVContentProposalViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         stillWatching = asksStillWatching?() ?? false
+        stopsAfterItem = stopsAfterThisItem?() ?? false
         eyebrow.text = UpNextText.eyebrow(asksStillWatching: stillWatching)
+        updateSecondaryText()
         playButton?.configuration?.title = UpNextText.playTitle(asksStillWatching: stillWatching)
         playButton?.accessibilityLabel = UpNextText.playTitle(asksStillWatching: stillWatching)
         refreshLeaveButton()

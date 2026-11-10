@@ -77,9 +77,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var unattendedEpisodes = 0
     /// A timed sleep timer that outlives one session, so it keeps counting into the next episode.
     var carriedSleepTimer: SleepTimer?
+    /// The sleep timer ended this playback, so nobody is in front of the screen it closes to.
+    var endedBySleepTimer = false
     var viewerActedThisEpisode = true
     #if DEBUG
     var didSimulateSleep = false
+    var didPresetSleepTimer = false
     #endif
     var pendingFailure: (message: String, retry: @MainActor () -> Void)?
     var postPlayTask: Task<Void, Never>?
@@ -132,6 +135,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         let session = PlaybackSession(api: api, request: request, installsRemoteCommands: false)
         session.configureItem = { [weak self] item in self?.configure(item: item) }
         session.adoptSleepTimer(carriedSleepTimer)
+        #if DEBUG
+        presetSleepTimerForUITests(on: session)
+        #endif
         self.session = session
         if preroll?.presentingViewController == nil { showPreroll() }
         loadInfo()
@@ -300,7 +306,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             offerWhatsNext()
         case .sleepTimerFired:
             carriedSleepTimer = nil
-            refreshTrackMenus()
+            closeForSleep()
         case .tracksChanged:
             refreshTrackMenus()
         case .clockRemapped:
@@ -393,7 +399,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// the run of episodes nobody has touched the remote in, which is what "Still watching?" counts. The
     /// subtitle and audio chosen on the episode before carry over.
     func advance(to offer: UpNextOffer, byViewer: Bool = false) {
-        guard !isAdvancing, !isFinishing else { return }
+        guard !isAdvancing, !isFinishing, !endedBySleepTimer else { return }
         unattendedEpisodes = byViewer ? 0 : (viewerActedThisEpisode ? 0 : unattendedEpisodes) + 1
         viewerActedThisEpisode = byViewer
         finishedAnItem = true
@@ -450,12 +456,23 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             let finishedAnItem = finishedAnItem
             let after = afterDismiss
             afterDismiss = nil
+            let endedBySleepTimer = endedBySleepTimer
             dismissEverything(animated: animated) {
                 after?()
+                guard !endedBySleepTimer else { return }
                 Self.onEnded?(finishedAnItem)
             }
         }
         TVTopShelfRefresher.refresh()
+    }
+
+    /// Closes the player once the sleep timer has paused it, so the stream and the server's transcode stop and the Apple TV is
+    /// left idle for its own Sleep After setting: tvOS lets only Apple's software put it to sleep. Nothing speaks up on the
+    /// screen underneath, since nobody is watching it.
+    private func closeForSleep() {
+        endedBySleepTimer = true
+        MidgarLog.notice("Sleep timer closing the player ratingKey=\(request.ratingKey)", category: .playback)
+        Task { await finish(animated: true) }
     }
 
     private func waitForStop(_ stop: Task<Void, Never>) async {
@@ -559,6 +576,21 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         guard let count = ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_UNATTENDED"].flatMap(Int.init) else { return }
         unattendedEpisodes = count
         viewerActedThisEpisode = false
+    }
+
+    /// `CRUCIBLE_PLAYER_SLEEP_TIMER=<seconds>` starts the first item with a timed sleep timer that runs out that many seconds later, and
+    /// `CRUCIBLE_PLAYER_SLEEP_TIMER=end` with one that stops at the end of the item, so a test reaches the end of a timer without the
+    /// transport bar's menu or a quarter of an hour of video.
+    private func presetSleepTimerForUITests(on session: PlaybackSession) {
+        guard !didPresetSleepTimer, let value = ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_SLEEP_TIMER"] else { return }
+        didPresetSleepTimer = true
+        if value == "end" {
+            session.setSleepTimer(.endOfItem)
+        } else if let seconds = Double(value) {
+            let minutes = 15
+            session.adoptSleepTimer(SleepTimer(choice: .minutes(minutes), now: Date().addingTimeInterval(seconds - Double(minutes * 60))))
+        }
+        carriedSleepTimer = session.sleepTimer
     }
 
     /// `CRUCIBLE_PLAYER_SLEEP_AT=<seconds>` with `CRUCIBLE_PLAYER_SLEEP_FOR=<seconds>` acts out an Apple TV that falls asleep without

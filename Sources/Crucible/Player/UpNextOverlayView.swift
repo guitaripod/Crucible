@@ -61,6 +61,7 @@ final class UpNextOverlayView: UIView {
     private var countdownTask: Task<Void, Never>?
     private var thumbTask: Task<Void, Never>?
     private var didFinish = false
+    private var isHeld = false
     private var remaining: Int
     private var landscapeConstraints: [NSLayoutConstraint] = []
     private var portraitConstraints: [NSLayoutConstraint] = []
@@ -108,11 +109,27 @@ final class UpNextOverlayView: UIView {
         updateLeaveButton()
     }
 
+    /// Holds the countdown while the sleep timer has paused playback or will stop it at the end of this item, leaving the card
+    /// waiting for the viewer: the next episode must not start under someone asleep. Letting go starts the countdown again from
+    /// the top.
+    func setCountdownHeld(_ held: Bool) {
+        guard held != isHeld, !didFinish else { return }
+        isHeld = held
+        countdownTask?.cancel()
+        countdownTask = nil
+        remaining = countdownSeconds
+        updateSecondaryText()
+        playButton.sweep.isHidden = !isCounting
+        playButton.sweepFraction = Self.maxSweepFraction
+        if isCounting { begin() }
+    }
+
     /// Whether the second button ends playback: the item has ended or there were no credits to watch.
     private var endsPlayback: Bool { hasEnded || !content.hasCredits }
 
-    /// Whether the card counts down and plays on its own: autoplay is on and nobody needs asking first.
-    private var isCounting: Bool { content.autoplays && !content.asksStillWatching }
+    /// Whether the card counts down and plays on its own: autoplay is on, nobody needs asking first and no sleep timer has
+    /// stopped playback.
+    private var isCounting: Bool { content.autoplays && !content.asksStillWatching && !isHeld }
 
     /// The episode as VoiceOver hears it when the card asks "Still watching?".
     private var questionText: String {

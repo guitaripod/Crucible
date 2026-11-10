@@ -29,6 +29,7 @@ extension TVPlayerCoordinator {
         card.onDeferred = { [weak self] in self?.upNextCardWasDeferred() }
         card.isAtEndOfItem = { [weak self] in self?.isItemNearEnd ?? false }
         card.asksStillWatching = { [weak self] in self?.asksStillWatching ?? false }
+        card.stopsAfterThisItem = { [weak session] in session?.stopsAtEndOfItem ?? false }
         upNextCard = card
         playerVC.contentProposalViewController = card
         session.player?.currentItem?.nextContentProposal = makeProposal()

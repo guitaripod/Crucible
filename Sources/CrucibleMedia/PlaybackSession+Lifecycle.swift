@@ -166,6 +166,11 @@ extension PlaybackSession {
         MidgarLog.notice("Sleep timer \(choice.map { "\($0)" } ?? "off") ratingKey=\(request.ratingKey)", category: .playback)
     }
 
+    /// Whether the viewer asked playback to stop when this item ends, so no countdown may start the next one on its own.
+    package var stopsAtEndOfItem: Bool {
+        sleepTimer?.stopsAtEndOfItem == true
+    }
+
     /// Carries a timed sleep timer over to the next episode's session; one that stops at the end of an episode ends with it.
     package func continueSleepTimer(from previous: PlaybackSession) {
         adoptSleepTimer(previous.sleepTimer)
@@ -176,12 +181,14 @@ extension PlaybackSession {
         sleepTimer = timer
     }
 
+    /// Ends playback once the timer is due, whether or not anything is playing: the deadline passes just the same over a pause,
+    /// the Up Next card at the end of an item or the titles after a movie. Only sound that is playing fades.
     private func checkSleepTimer() {
-        guard let timer = sleepTimer, let player, player.rate > 0 else { return }
+        guard let timer = sleepTimer else { return }
         let now = wallClock()
         if timer.isDue(now: now) {
             fallAsleep()
-        } else if timer.startsFading(now: now), let remaining = timer.remaining(now: now) {
+        } else if let player, player.rate > 0, timer.startsFading(now: now), let remaining = timer.remaining(now: now) {
             if volumeBeforeFade == nil { volumeBeforeFade = player.volume }
             player.volume = (volumeBeforeFade ?? 1) * Float(remaining / SleepTimer.fadeSeconds)
         }
