@@ -118,6 +118,7 @@ final class EssentialsOfferContentView: UIView, UIContentView {
     private let messageLabel = UILabel()
     private let accept = UIButton()
     private let decline = UIButton()
+    private let buttons = UIStackView()
 
     init(configuration: EssentialsOfferConfiguration) {
         self.configuration = configuration
@@ -145,6 +146,7 @@ final class EssentialsOfferContentView: UIView, UIContentView {
         acceptConfig.baseBackgroundColor = Theme.Color.accent
         acceptConfig.baseForegroundColor = Theme.Color.onAccent
         acceptConfig.cornerStyle = .capsule
+        acceptConfig.titleLineBreakMode = .byTruncatingTail
         accept.configuration = acceptConfig
         accept.addAction(UIAction { [weak self] _ in
             Haptics.success()
@@ -154,6 +156,7 @@ final class EssentialsOfferContentView: UIView, UIContentView {
         var declineConfig = UIButton.Configuration.plain()
         declineConfig.title = EssentialsCopy.offerDecline
         declineConfig.baseForegroundColor = Theme.Color.labelSecondary
+        declineConfig.titleLineBreakMode = .byTruncatingTail
         decline.configuration = declineConfig
         decline.addAction(UIAction { [weak self] _ in
             Haptics.light()
@@ -167,7 +170,8 @@ final class EssentialsOfferContentView: UIView, UIContentView {
         header.axis = .horizontal
         header.alignment = .top
         header.spacing = Theme.Space.s
-        let buttons = UIStackView(arrangedSubviews: [accept, decline])
+        buttons.addArrangedSubview(accept)
+        buttons.addArrangedSubview(decline)
         buttons.axis = .horizontal
         buttons.spacing = Theme.Space.s
         buttons.alignment = .center
@@ -193,6 +197,24 @@ final class EssentialsOfferContentView: UIView, UIContentView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Puts Watch Everything under Skip Them when the two do not fit side by side, so neither title wraps.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let room = card.bounds.width - 2 * Theme.Space.m
+        guard room > 0 else { return }
+        let fits = singleLineWidth(accept) + Theme.Space.s + singleLineWidth(decline) <= room
+        let axis: NSLayoutConstraint.Axis = fits ? .horizontal : .vertical
+        guard buttons.axis != axis else { return }
+        buttons.axis = axis
+        buttons.alignment = fits ? .center : .leading
+        invalidateIntrinsicContentSize()
+    }
+
+    /// A button's width with its title on one line, whatever an earlier, narrower layout pass wrapped it to.
+    private func singleLineWidth(_ button: UIButton) -> CGFloat {
+        button.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)).width
+    }
 
     private func apply() {
         guard let config = configuration as? EssentialsOfferConfiguration else { return }
