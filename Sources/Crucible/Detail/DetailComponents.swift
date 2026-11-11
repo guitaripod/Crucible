@@ -42,7 +42,7 @@ final class DetailActionsContentView: UIView, UIContentView {
     private let downloadRing = DownloadRingButton()
     private let watchedButton = ThemeButton.icon(symbol: "checkmark.circle", label: String(localized: "Mark Watched"), size: Theme.Size.primaryButtonHeight)
     private let rateButton = ThemeButton.icon(symbol: "star", label: UserRatingCopy.rate, size: Theme.Size.primaryButtonHeight)
-    private var appliedPrimary: (String, String)?
+    private var appliedPrimary: (String, String, Bool)?
 
     init(configuration: DetailActionsConfiguration) {
         self.configuration = configuration
@@ -112,12 +112,35 @@ final class DetailActionsContentView: UIView, UIContentView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard let config = configuration as? DetailActionsConfiguration, appliedPrimary?.2 != isTight(for: config.primaryTitle) else { return }
+        apply()
+    }
+
+    /// Whether the primary button's title would be cut short with its usual padding and symbol beside the three round
+    /// buttons, as on the narrowest iPhones and the folded iPhone Duo; the padding and the symbol then give way before
+    /// the title does.
+    private func isTight(for title: String) -> Bool {
+        guard bounds.width > 0 else { return false }
+        let side = Theme.Size.primaryButtonHeight
+        let room = bounds.width - 2 * Theme.Space.m - 3 * (side + 10)
+        let needed = (title as NSString).size(withAttributes: [.font: Theme.Font.buttonLabel]).width + 16 + 8 + 48
+        return room < needed
+    }
+
     private func apply() {
         guard let config = configuration as? DetailActionsConfiguration else { return }
-        if appliedPrimary?.0 != config.primaryTitle || appliedPrimary?.1 != config.primarySymbol {
-            appliedPrimary = (config.primaryTitle, config.primarySymbol)
+        let tight = isTight(for: config.primaryTitle)
+        if appliedPrimary?.0 != config.primaryTitle || appliedPrimary?.1 != config.primarySymbol || appliedPrimary?.2 != tight {
+            appliedPrimary = (config.primaryTitle, config.primarySymbol, tight)
             var primary = ThemeButton.primaryConfiguration(title: config.primaryTitle, symbol: config.primarySymbol)
             primary.titleLineBreakMode = .byTruncatingTail
+            if tight {
+                primary.contentInsets.leading = Theme.Space.s
+                primary.contentInsets.trailing = Theme.Space.s
+                primary.image = nil
+            }
             primaryButton.configuration = primary
         }
         primaryButton.isEnabled = config.isPrimaryEnabled
