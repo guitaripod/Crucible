@@ -130,9 +130,11 @@ final class StorageSummaryView: UIView, UIContentView {
             label.numberOfLines = 0
         }
         freeLabel.setContentHuggingPriority(.required, for: .horizontal)
+        freeLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         usedLabel.setContentHuggingPriority(.required, for: .horizontal)
         usedLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         usedLabel.numberOfLines = 1
+        captionLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         valueStack.addArrangedSubview(usedLabel)
         valueStack.addArrangedSubview(captionLabel)
@@ -190,6 +192,7 @@ final class StorageSummaryView: UIView, UIContentView {
         valueStack.axis = large ? .vertical : .horizontal
         actionRow.axis = large ? .vertical : .horizontal
         headlineRow.alignment = large ? .leading : .firstBaseline
+        captionLabel.numberOfLines = large ? 0 : 1
         actionRow.alignment = large ? .leading : .center
         freeLabel.textAlignment = large ? .left : .right
     }
