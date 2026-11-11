@@ -28,6 +28,7 @@ class LibraryGridViewController: UIViewController {
     private let api: APIClient
     private let model: LibraryGridModel
     private let scrubber = AlphabetScrubberView()
+    private var showsIndex = false
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
 
     private var downloadObserver: UUID?
@@ -200,9 +201,17 @@ class LibraryGridViewController: UIViewController {
             case .recentlyWatched:
                 return Self.recentSection(environment: environment, aspect: artworkAspect)
             case .grid:
-                return Theme.gridLayout(environment: environment, aspect: artworkAspect)
+                return clearingIndex(Theme.gridLayout(environment: environment, aspect: artworkAspect), environment)
             }
         }
+    }
+
+    /// Ends the grid's posters short of the A–Z index wherever the library offers it, so it never sits on the last column.
+    private func clearingIndex(_ section: NSCollectionLayoutSection, _ environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        guard showsIndex else { return section }
+        let reach = AlphabetScrubberView.width + Theme.Space.xs
+        section.contentInsets.trailing = max(section.contentInsets.trailing, reach)
+        return section
     }
 
     /// The chips and banner inset themselves by 16 points; on a large screen the section adds the rest of the gutter.
@@ -577,14 +586,29 @@ class LibraryGridViewController: UIViewController {
     }
 
 
+    /// Whether Recently Watched is in view: its row runs to the trailing edge, so the A–Z index waits until the grid
+    /// it jumps through fills the screen.
+    private var railIsOnScreen: Bool {
+        guard let section = dataSource.snapshot().sectionIdentifiers.firstIndex(of: .recentlyWatched),
+              collectionView.numberOfSections > section, collectionView.numberOfItems(inSection: section) > 0,
+              let first = collectionView.layoutAttributesForItem(at: IndexPath(item: 0, section: section)) else { return false }
+        let visible = collectionView.bounds.inset(by: collectionView.adjustedContentInset)
+        return first.frame.maxY > visible.minY && first.frame.minY < visible.maxY
+    }
+
     private func updateScrubberVisibility() {
         guard isViewLoaded else { return }
         let available = view.safeAreaLayoutGuide.layoutFrame.height - Theme.Space.m
         let needed = scrubber.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
-        let visible = model.offersAlphabetJump
+        let offered = model.offersAlphabetJump
             && contentUnavailableConfiguration == nil
             && needed <= available
+        let visible = offered && !railIsOnScreen
         collectionView.showsVerticalScrollIndicator = !visible
+        if offered != showsIndex {
+            showsIndex = offered
+            collectionView.collectionViewLayout.invalidateLayout()
+        }
         guard visible == scrubber.isHidden else { return }
         if visible { scrubber.isHidden = false }
         let animations = { self.scrubber.alpha = visible ? 1 : 0 }
@@ -795,6 +819,8 @@ extension LibraryGridViewController: UICollectionViewDelegate {
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         updateCurrentLetter()
+        guard showsIndex, railIsOnScreen != scrubber.isHidden else { return }
+        updateScrubberVisibility()
     }
 }
 

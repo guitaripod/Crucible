@@ -6,6 +6,7 @@ import UIKit
 /// alphabet so in-between letters are reachable too.
 final class AlphabetScrubberView: UIControl {
     static let displayedLetters = ["A", "C", "E", "G", "I", "K", "M", "O", "Q", "S", "U", "W", "#"]
+    static let width: CGFloat = 28
 
     var onLetter: ((String) -> Void)?
 
@@ -37,7 +38,7 @@ final class AlphabetScrubberView: UIControl {
             stack.topAnchor.constraint(equalTo: topAnchor, constant: Theme.Space.xs),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Theme.Space.xs),
             stack.centerXAnchor.constraint(equalTo: centerXAnchor),
-            widthAnchor.constraint(equalToConstant: 28),
+            widthAnchor.constraint(equalToConstant: Self.width),
         ])
 
         isAccessibilityElement = true
