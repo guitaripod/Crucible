@@ -134,6 +134,9 @@ final class TabBarController: UITabBarController {
         if #available(iOS 26.0, *) {
             tabBarMinimizeBehavior = .onScrollDown
         }
+        if #available(iOS 27.0, *) {
+            sidebar.preferredPlacement = .sidebar
+        }
     }
 
     private static func libraryIdentifier(_ sectionID: String) -> String {
