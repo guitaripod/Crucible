@@ -139,14 +139,15 @@ final class DownloadOptionsSheetViewController: UIViewController {
         view.addSubview(footer)
 
         let inset = Theme.Space.m + Theme.Space.xxs
+        let guide = view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
             header.topAnchor.constraint(equalTo: view.topAnchor, constant: 24),
-            header.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: inset),
-            header.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -inset),
+            header.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: inset),
+            header.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -inset),
 
             scroll.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 8),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.leadingAnchor.constraint(equalTo: guide.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: guide.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: footer.topAnchor, constant: -8),
 
             content.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
@@ -155,8 +156,8 @@ final class DownloadOptionsSheetViewController: UIViewController {
             content.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -inset),
             content.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -inset * 2),
 
-            footer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: inset),
-            footer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -inset),
+            footer.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: inset),
+            footer.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -inset),
             footer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -Theme.Space.s),
         ])
     }

@@ -174,16 +174,16 @@ final class ServerAddressSheetViewController: UIViewController {
         view.addSubview(actionStack)
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: view.topAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: actionStack.topAnchor, constant: -8),
             stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 28),
             stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -8),
             stack.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor, constant: 24),
             stack.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -24),
             field.heightAnchor.constraint(greaterThanOrEqualToConstant: 52),
-            actionStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            actionStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            actionStack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            actionStack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
             actionStack.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -16),
             connectButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 56),
         ])

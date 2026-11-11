@@ -27,7 +27,7 @@ final class DemoCoordinator {
         guard keyboardObservers.isEmpty else { return }
         let center = NotificationCenter.default
         keyboardObservers = [
-            center.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] _ in
+            center.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { [weak self] _ in // duo-audit:ignore only notes that a keyboard is up, never lays anything out
                 MainActor.assumeIsolated { self?.keyboardIsUp = true }
             },
             center.addObserver(forName: UIResponder.keyboardDidHideNotification, object: nil, queue: .main) { [weak self] _ in

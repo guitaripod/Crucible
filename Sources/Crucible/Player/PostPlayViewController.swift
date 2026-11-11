@@ -148,7 +148,7 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
         rail.backgroundColor = .clear
         rail.showsHorizontalScrollIndicator = false
         rail.alwaysBounceVertical = false
-        rail.contentInsetAdjustmentBehavior = .never
+        rail.contentInsetAdjustmentBehavior = .never // duo-audit:ignore the rail's stack is pinned to the safe area guide
         rail.accessibilityIdentifier = "postPlay.rail"
         rail.heightAnchor.constraint(equalToConstant: height).isActive = true
         rail.delegate = self

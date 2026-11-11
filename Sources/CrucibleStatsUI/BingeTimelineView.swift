@@ -13,7 +13,7 @@ package final class BingeTimelineView: UIView {
         let view = UIScrollView()
         view.showsHorizontalScrollIndicator = false
         view.showsVerticalScrollIndicator = false
-        view.contentInsetAdjustmentBehavior = .never
+        view.contentInsetAdjustmentBehavior = .never // duo-audit:ignore scrolls inside a Statistics card, whose container keeps the safe area
         view.alwaysBounceHorizontal = true
         view.clipsToBounds = true
         view.backgroundColor = .clear

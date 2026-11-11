@@ -95,7 +95,7 @@ final class SeerrGuideViewController: UICollectionViewController {
     }
 
     private var deviceName: String {
-        traitCollection.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        traitCollection.userInterfaceIdiom == .pad ? "iPad" : "iPhone" // duo-audit:ignore names the device in copy, lays nothing out
     }
 
     private func applySnapshot() {

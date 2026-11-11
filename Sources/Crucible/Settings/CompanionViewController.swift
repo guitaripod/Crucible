@@ -188,7 +188,7 @@ enum CompanionPairingFlow {
         Task { @MainActor in
             let message: String
             do throws(CompanionError) {
-                let server = try await PreviouslyOnRequest.pair(invite, deviceName: UIDevice.current.name, platform: UIDevice.current.userInterfaceIdiom == .pad ? "ipados" : "ios")
+                let server = try await PreviouslyOnRequest.pair(invite, deviceName: UIDevice.current.name, platform: UIDevice.current.userInterfaceIdiom == .pad ? "ipados" : "ios") // duo-audit:ignore the platform Crucible Server lists, not layout
                 Haptics.success()
                 message = CompanionCopy.paired(server.name)
             } catch {

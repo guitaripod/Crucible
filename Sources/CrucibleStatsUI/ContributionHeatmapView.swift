@@ -34,7 +34,7 @@ package final class ContributionHeatmapView: UIView {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
-        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.contentInsetAdjustmentBehavior = .never // duo-audit:ignore scrolls inside a Statistics card, whose container keeps the safe area
         scrollView.delaysContentTouches = false
         scrollView.backgroundColor = .clear
         addSubview(scrollView)
