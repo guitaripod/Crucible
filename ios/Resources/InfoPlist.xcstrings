@@ -18,6 +18,12 @@
       "comment" : "Privacy - Local Network Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible forbinder sig til din Plex Media Server på dit hjemmenetværk for at gennemse og afspille dit bibliotek."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36,10 +42,22 @@
             "value" : "Crucible se conecta a tu servidor de Plex Media Server en tu red doméstica para explorar y reproducir tu biblioteca."
           }
         },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible yhdistää kotiverkossasi Plex Media Serveriin, jotta voit selata ja toistaa kirjastoasi."
+          }
+        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crucible se connecte à votre serveur Plex Media Server sur votre réseau domestique pour parcourir et lire votre bibliothèque."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible tengist Plex-þjóninum þínum á heimanetinu þínu til að skoða safnið þitt og spila efni úr því."
           }
         },
         "it" : {
@@ -60,6 +78,12 @@
             "value" : "Crucible은 홈 네트워크의 Plex Media Server에 연결해 보관함을 둘러보고 재생해요."
           }
         },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible kobler seg til Plex Media Server på hjemmenettverket ditt for å bla gjennom og spille av biblioteket ditt."
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -70,6 +94,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Crucible se conecta ao seu Plex Media Server na sua rede doméstica para navegar e reproduzir sua biblioteca."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible ansluter till din Plex Media Server på ditt hemnätverk för att bläddra i och spela upp ditt bibliotek."
           }
         },
         "zh-Hans" : {

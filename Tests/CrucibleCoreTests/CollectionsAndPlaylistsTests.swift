@@ -405,6 +405,10 @@ struct SubtitleSearchTests {
         #expect(SubtitleLanguages.defaultCode(preferred: ["fi-FI", "en-US"]) == "fi")
         #expect(SubtitleLanguages.defaultCode(preferred: ["xx-XX", "de-DE"]) == "de")
         #expect(SubtitleLanguages.defaultCode(preferred: ["xx"]) == "en")
+        #expect(SubtitleLanguages.defaultCode(preferred: ["nb-NO", "en-US"]) == "no")
+        #expect(SubtitleLanguages.defaultCode(preferred: ["is-IS"]) == "is")
+        #expect(SubtitleLanguages.defaultCode(preferred: ["sv-SE"]) == "sv")
+        #expect(SubtitleLanguages.defaultCode(preferred: ["da-DK"]) == "da")
         #expect(SubtitleLanguages.defaultCode(preferred: []) == "en")
     }
 }

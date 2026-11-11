@@ -4,6 +4,9 @@
     {
       "referenceName": "Crucible Pro",
       "localizations": {
+        "da": {
+          "name": "Crucible Pro"
+        },
         "de-DE": {
           "name": "Crucible Pro"
         },
@@ -11,6 +14,9 @@
           "name": "Crucible Pro"
         },
         "es-ES": {
+          "name": "Crucible Pro"
+        },
+        "fi": {
           "name": "Crucible Pro"
         },
         "fr-FR": {
@@ -25,10 +31,16 @@
         "ko": {
           "name": "Crucible Pro"
         },
+        "no": {
+          "name": "Crucible Pro"
+        },
         "pl": {
           "name": "Crucible Pro"
         },
         "pt-BR": {
+          "name": "Crucible Pro"
+        },
+        "sv": {
           "name": "Crucible Pro"
         },
         "zh-Hans": {
@@ -51,6 +63,10 @@
           },
           "introductoryOffers": [],
           "localizations": {
+            "da": {
+              "name": "Crucible Pro årlig",
+              "description": "Overførsler, fuld statistik og Top Shelf."
+            },
             "de-DE": {
               "name": "Crucible Pro Jährlich",
               "description": "Downloads, volle Statistiken und Top Shelf."
@@ -62,6 +78,10 @@
             "es-ES": {
               "name": "Crucible Pro Anual",
               "description": "Descargas, estadísticas completas y Top Shelf."
+            },
+            "fi": {
+              "name": "Crucible Pro vuosittain",
+              "description": "Lataukset, täydet tilastot ja Top Shelf."
             },
             "fr-FR": {
               "name": "Crucible Pro Annuel",
@@ -79,6 +99,10 @@
               "name": "Crucible Pro 연간",
               "description": "다운로드, 전체 통계, 탑 셸프."
             },
+            "no": {
+              "name": "Crucible Pro årlig",
+              "description": "Nedlastinger, full statistikk og Top Shelf."
+            },
             "pl": {
               "name": "Crucible Pro Rocznie",
               "description": "Pobieranie, pełne statystyki i Top Shelf."
@@ -86,6 +110,10 @@
             "pt-BR": {
               "name": "Crucible Pro Anual",
               "description": "Downloads, estatísticas completas e Top Shelf."
+            },
+            "sv": {
+              "name": "Crucible Pro årsvis",
+              "description": "Hämtningar, fullständig statistik och Top Shelf."
             },
             "zh-Hans": {
               "name": "Crucible Pro 年度",
@@ -112,6 +140,10 @@
         "amount": "17.99"
       },
       "localizations": {
+        "da": {
+          "name": "Crucible Pro Livstid",
+          "description": "Betal én gang. Alle opdateringer, på alle enheder."
+        },
         "de-DE": {
           "name": "Crucible Pro Lebenslang",
           "description": "Einmal zahlen. Jedes Update, auf jedem Gerät."
@@ -123,6 +155,10 @@
         "es-ES": {
           "name": "Crucible Pro de por vida",
           "description": "Paga una vez. Cada actualización, en cada dispositivo."
+        },
+        "fi": {
+          "name": "Crucible Pro Elinikäinen",
+          "description": "Maksa kerran. Kaikki päivitykset kaikilla laitteilla."
         },
         "fr-FR": {
           "name": "Crucible Pro à vie",
@@ -140,6 +176,10 @@
           "name": "Crucible Pro 평생",
           "description": "한 번 결제로 모든 기기에서 모든 업데이트."
         },
+        "no": {
+          "name": "Crucible Pro Livstid",
+          "description": "Betal én gang. Alle oppdateringer, på alle enheter."
+        },
         "pl": {
           "name": "Crucible Pro dożywotnio",
           "description": "Płacisz raz. Każda aktualizacja, na każdym urządzeniu."
@@ -147,6 +187,10 @@
         "pt-BR": {
           "name": "Crucible Pro vitalício",
           "description": "Pague uma vez. Todas as atualizações, todo aparelho."
+        },
+        "sv": {
+          "name": "Crucible Pro Livstid",
+          "description": "Betala en gång. Alla uppdateringar, på alla enheter."
         },
         "zh-Hans": {
           "name": "Crucible Pro 终身版",

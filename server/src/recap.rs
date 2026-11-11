@@ -116,6 +116,11 @@ fn iso639_2(language: &str) -> &'static str {
         "pl" => "pol",
         "pt" => "por",
         "zh" => "chi",
+        "sv" => "swe",
+        "da" => "dan",
+        "nb" | "nn" | "no" => "nor",
+        "fi" => "fin",
+        "is" => "ice",
         _ => "eng",
     }
 }
@@ -132,6 +137,11 @@ fn language_name(language: &str) -> Option<&'static str> {
         "pt-BR" | "pt" => Some("Brazilian Portuguese"),
         "zh-Hans" | "zh-CN" => Some("Simplified Chinese"),
         "zh-Hant" | "zh-TW" => Some("Traditional Chinese"),
+        "sv" | "sv-SE" | "sv-FI" => Some("Swedish"),
+        "da" | "da-DK" => Some("Danish"),
+        "nb" | "nb-NO" | "no" | "nn" => Some("Norwegian Bokmål"),
+        "fi" | "fi-FI" => Some("Finnish"),
+        "is" | "is-IS" => Some("Icelandic"),
         _ => None,
     }
 }
@@ -395,5 +405,19 @@ mod tests {
         assert_eq!(language_name("ja"), Some("Japanese"));
         assert_eq!(language_name("zh-Hant"), Some("Traditional Chinese"));
         assert_eq!(language_name("en"), None);
+        assert_eq!(language_name("fi"), Some("Finnish"));
+        assert_eq!(language_name("nb"), Some("Norwegian Bokmål"));
+        assert_eq!(language_name("sv"), Some("Swedish"));
+        assert_eq!(language_name("da"), Some("Danish"));
+        assert_eq!(language_name("is"), Some("Icelandic"));
+    }
+
+    #[test]
+    fn a_nordic_viewer_gets_the_track_in_their_language() {
+        let item = item_with(vec![subtitle(1, "srt", "eng"), subtitle(2, "srt", "fin"), subtitle(3, "srt", "nor"), subtitle(4, "srt", "swe")]);
+        assert_eq!(pick_stream(&item, "fi").map(|s| s.id), Some(2));
+        assert_eq!(pick_stream(&item, "nb").map(|s| s.id), Some(3));
+        assert_eq!(pick_stream(&item, "sv-SE").map(|s| s.id), Some(4));
+        assert_eq!(pick_stream(&item, "da").map(|s| s.id), Some(1));
     }
 }

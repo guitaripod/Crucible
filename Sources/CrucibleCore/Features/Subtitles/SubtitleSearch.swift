@@ -131,14 +131,15 @@ package enum SubtitleSearch {
 /// The languages offered for an online subtitle search.
 package enum SubtitleLanguages {
     package static let codes = [
-        "en", "fi", "sv", "no", "da", "de", "fr", "es", "pt", "it", "nl", "pl", "cs", "hu", "ro", "el", "tr", "ru", "uk",
+        "en", "fi", "sv", "no", "da", "is", "de", "fr", "es", "pt", "it", "nl", "pl", "cs", "hu", "ro", "el", "tr", "ru", "uk",
         "ar", "he", "hi", "th", "vi", "id", "ja", "ko", "zh",
     ]
 
     /// The viewer's first preferred language when it is on the list, else English.
     package static func defaultCode(preferred: [String] = Locale.preferredLanguages) -> String {
         for identifier in preferred {
-            let code = String(identifier.prefix { $0 != "-" && $0 != "_" }).lowercased()
+            let raw = String(identifier.prefix { $0 != "-" && $0 != "_" }).lowercased()
+            let code = raw == "nb" || raw == "nn" ? "no" : raw
             if codes.contains(code) { return code }
         }
         return "en"

@@ -85,6 +85,20 @@ struct StreamResolverTests {
         #expect(StreamResolver.captionSubtitle(in: "ja-JP", among: streams) == nil)
     }
 
+    @Test func norwegianAndIcelandicViewersFindTheirTracks() {
+        let streams = [
+            subtitle(1, codec: "srt", language: "eng"),
+            subtitle(2, codec: "srt", language: "nor"),
+            subtitle(3, codec: "srt", language: "ice"),
+            subtitle(4, codec: "srt", language: "swe"),
+        ]
+        #expect(StreamResolver.captionSubtitle(in: "nb-NO", among: streams)?.id == 2)
+        #expect(StreamResolver.captionSubtitle(in: "no", among: streams)?.id == 2)
+        #expect(StreamResolver.captionSubtitle(in: "is-IS", among: streams)?.id == 3)
+        #expect(StreamResolver.captionSubtitle(in: "sv-SE", among: streams)?.id == 4)
+        #expect(StreamResolver.captionSubtitle(in: "da-DK", among: streams) == nil)
+    }
+
     private func subtitle(_ id: Int, codec: String, key: String? = nil, language: String = "eng", forced: Bool = false) -> PlexStream {
         var fields: [String: Any] = ["id": id, "streamType": 3, "codec": codec, "languageCode": language, "forced": forced]
         if let key { fields["key"] = key }

@@ -237,10 +237,17 @@ package enum StreamResolver {
         }
     }
 
-    /// The ISO 639 alpha-3 code of a language however it is written ("en", "en-US", "eng").
+    /// The ISO 639 alpha-3 code of a language however it is written ("en", "en-US", "eng"). Norwegian Bokmål, Nynorsk
+    /// and the macrolanguage all read as "nor", and Icelandic's bibliographic "ice" as "isl", so a viewer in nb-NO
+    /// finds the tracks Plex tags "nor".
     package static func alpha3(_ language: String) -> String {
         let code = Locale.Language(identifier: language).languageCode
-        return code?.identifier(.alpha3) ?? code?.identifier ?? language.lowercased()
+        let found = code?.identifier(.alpha3) ?? code?.identifier ?? language.lowercased()
+        switch found {
+        case "nob", "nno", "nb", "nn", "no": return "nor"
+        case "ice": return "isl"
+        default: return found
+        }
     }
 
     /// Whether `subtitle` is a track of the file the player can show when the file plays directly; any other subtitle needs the

@@ -31,6 +31,7 @@ PLURAL_CATEGORIES = {
     "de": ["one", "other"], "es": ["one", "many", "other"], "fr": ["one", "many", "other"],
     "it": ["one", "many", "other"], "ja": ["other"], "ko": ["other"], "pl": ["one", "few", "many", "other"],
     "pt-BR": ["one", "many", "other"], "zh-Hans": ["other"], "zh-Hant": ["other"],
+    "sv": ["one", "other"], "da": ["one", "other"], "nb": ["one", "other"], "fi": ["one", "other"], "is": ["one", "other"],
 }
 SKIP_DIRS = {".build", "node_modules", "DerivedData", "Legacy", ".git", "dd", "build"}
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?(?:lld|ld|d|u|@|f|\.\d+f|s|c)|\{[A-Za-z_][A-Za-z0-9_]*\}")

@@ -14,11 +14,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_LOCALES = ["de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "zh-Hans", "zh-Hant"]
+DEFAULT_LOCALES = ["de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "zh-Hans", "zh-Hant", "sv", "da", "nb", "fi", "is"]
 PLURAL_CATEGORIES = {
     "de": {"one", "other"}, "es": {"one", "many", "other"}, "fr": {"one", "many", "other"}, "it": {"one", "many", "other"},
     "ja": {"other"}, "ko": {"other"}, "pl": {"one", "few", "many", "other"}, "pt-BR": {"one", "many", "other"},
     "zh-Hans": {"other"}, "zh-Hant": {"other"},
+    "sv": {"one", "other"}, "da": {"one", "other"}, "nb": {"one", "other"}, "fi": {"one", "other"}, "is": {"one", "other"},
 }
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?(?:lld|ld|d|u|@|f|\.\d+f|s|c)|\{[A-Za-z_][A-Za-z0-9_]*\}")
 SKIP_DIRS = {".build", "node_modules", "DerivedData", "Legacy", ".git", "dd", "build"}
