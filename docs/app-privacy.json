@@ -27,6 +27,24 @@
       "dataProtections": [
         "DATA_LINKED_TO_YOU"
       ]
+    },
+    {
+      "category": "PRODUCT_INTERACTION",
+      "purposes": [
+        "APP_FUNCTIONALITY"
+      ],
+      "dataProtections": [
+        "DATA_LINKED_TO_YOU"
+      ]
+    },
+    {
+      "category": "OTHER_USER_CONTENT",
+      "purposes": [
+        "APP_FUNCTIONALITY"
+      ],
+      "dataProtections": [
+        "DATA_LINKED_TO_YOU"
+      ]
     }
   ]
 }
