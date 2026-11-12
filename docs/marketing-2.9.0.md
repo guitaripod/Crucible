@@ -68,6 +68,11 @@ about your server in one place".
   Place them with `scripts/asc-creative.py` (Asset Library creative assets, placed on the version's localizations).
 - Known: in Japanese the Essentials offer's title is cut short on the folded Duo's narrow display; the store
   images avoid that screen.
+- Ready for the release after 2.9.0 (2.9.0 went to review before these were done): the code is on master and in
+  TestFlight build 202611122344; `store/whats-new-next-ios.json` holds the iPhone and iPad What's New paragraph in all
+  seventeen listing languages, to put into that version's notes (or `midgar ship crucible --notes-file
+  store/whats-new-next-ios.json`). Once the version exists and `docs/asc-metadata.json` names it:
+  `python3 scripts/asc-screenshots.py --only=duo --locales=all` and `python3 scripts/asc-creative.py`.
 
 ## Privacy
 
