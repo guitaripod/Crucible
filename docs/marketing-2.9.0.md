@@ -52,6 +52,23 @@ about your server in one place".
   `SHOT_SCRIPT=integrations` retakes only these screens in every language), `IPadStoreShots` connects them in the
   demo, the Apple TV panels come from `tv/UITests/TraktTests` at 4K; compose with `marketing/store/compose.py`.
 
+## iPhone Duo, Header and Search Results
+
+- Crucible adapts to iPhone Duo from 2.9.0: builds link the iOS 27.1 SDK (the buildvm guest runs Xcode 27.1), the inner
+  display shows the iPad sidebar, the narrow outer display keeps every title whole, and the Duo audit
+  (`iphone-duo` skill, `audit.sh --ios-only`) reports no defects.
+- Duo screenshots: the ten iPhone stories set across the four Duo displays (Home, Skip the filler, Everything about a
+  title and Know your viewing on the inner display in landscape; the library and Watch History in portrait; Search,
+  Downloads and the Year in Review on the outer display; Skip the recap in its landscape), in the eleven app
+  languages, captured with the shot harness on the Duo simulator (`marketing/shots/out/duo/<state>-<language>`) and
+  composed by `marketing/store/compose_duo.py duo`. Upload: `scripts/asc-screenshots.py --only=duo --locales=all`.
+- Header and Search Results: one 5244 by 2950 image each per listing language (`compose_duo.py header`): the icon,
+  the name and the subtitle over Home on the inner display and a title on the outer one, and the subtitle over the
+  Essentials offer beside Home for Search; Arabic and Thai carry the English text, which this pipeline cannot shape.
+  Place them with `scripts/asc-creative.py` (Asset Library creative assets, placed on the version's localizations).
+- Known: in Japanese the Essentials offer's title is cut short on the folded Duo's narrow display; the store
+  images avoid that screen.
+
 ## Privacy
 
 - Seerr runs on the viewer's own server, like Plex; Crucible sends it the viewer's plex.tv token at sign-in and the

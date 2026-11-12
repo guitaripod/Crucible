@@ -14,6 +14,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(ROOT, "marketing/appstore/header")
@@ -34,11 +35,31 @@ def option(name, default=None):
 
 
 def upload(path, uploaded):
-    """The Asset Library image for `path`, uploaded once per file per run."""
+    """The Asset Library image for `path`, uploaded once per file per run and waited on until Apple has processed it;
+    asc gives up waiting long before Apple does, so a timed-out upload is polled here instead of uploaded again."""
     if path not in uploaded:
-        image = asc("asset-library", "images", "upload", "--library-id", SPEC["appId"], "--file", path, "--category", "CREATIVE_ASSETS")
-        uploaded[path] = image["data"]["id"]
+        result = subprocess.run(["asc", "asset-library", "images", "upload", "--library-id", SPEC["appId"], "--file", path,
+                                 "--category", "CREATIVE_ASSETS", "--output", "json"], capture_output=True, text=True)
+        body = result.stdout[result.stdout.find("{"):result.stdout.find("}") + 1] if "{" in result.stdout else ""
+        image_id = json.loads(body).get("imageId") if body else None
+        if result.returncode == 0:
+            image_id = json.loads(result.stdout[result.stdout.find("{"):]).get("data", {}).get("id", image_id)
+        if not image_id:
+            sys.exit(f"upload of {path} failed:\n{result.stdout[-1500:]}\n{result.stderr[-1500:]}")
+        uploaded[path] = processed(image_id)
     return uploaded[path]
+
+
+def processed(image_id, attempts=60):
+    """Waits until the image has left UPLOAD_COMPLETE, up to `attempts` checks ten seconds apart."""
+    for _ in range(attempts):
+        state = asc("asset-library", "images", "view", "--id", image_id)["data"]["attributes"]["state"]
+        if state not in ("UPLOAD_COMPLETE", "AWAITING_UPLOAD"):
+            if state == "FAILED":
+                sys.exit(f"image {image_id} failed processing")
+            return image_id
+        time.sleep(10)
+    sys.exit(f"image {image_id} still processing after {attempts * 10} seconds")
 
 
 def place(localization, placement_type, image_id):
