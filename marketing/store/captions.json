@@ -11,6 +11,18 @@
     {"screen": "07c-share-preview", "headline": "Your year in one poster", "subhead": "A Year in Review to share as a Story or a Square"},
     {"screen": "10-history", "headline": "Every play, day by day", "subhead": "Watch History with posters, grouped by day"}
   ],
+  "duo": [
+    {"screen": "01-home", "state": "inner-landscape"},
+    {"screen": "04c-essentials-offer", "state": "inner-landscape"},
+    {"screen": "09b-skip-recap", "state": "outer-landscape", "from": "outer-portrait"},
+    {"screen": "02b-library-settled", "state": "inner-portrait"},
+    {"screen": "03-detail", "state": "inner-landscape"},
+    {"screen": "05b-search-request", "state": "outer-portrait"},
+    {"screen": "06-downloads", "state": "outer-portrait"},
+    {"screen": "07-stats", "state": "inner-landscape"},
+    {"screen": "07c-share-preview", "state": "outer-portrait"},
+    {"screen": "10-history", "state": "inner-portrait"}
+  ],
   "ipad": [
     {"screen": "01-home", "headline": "Made for iPad", "subhead": "A sidebar for every library and a Home built for the big screen"},
     {"screen": "04c-essentials", "headline": "Skip the filler", "subhead": "Essentials hides the anime-only episodes of long shows"},
