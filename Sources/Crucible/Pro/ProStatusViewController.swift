@@ -2,21 +2,23 @@ import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// What a Pro install sees under Settings > Crucible Pro: the plan and when it renews or ends, the way to manage a subscription,
-/// restoring purchases and the legal pages. It follows `ProAccess` live and steps back when Pro ends.
+/// What a Pro install sees under Settings > Crucible Pro: the plan and when it renews or ends, what Pro gives them, told with
+/// their own numbers where the app has enough of them, the way to manage a subscription, restoring purchases and the legal
+/// pages. It follows `ProAccess` live and steps back when Pro ends.
 final class ProStatusViewController: UICollectionViewController {
     enum Section: Hashable {
-        case plan, manage, legal
+        case plan, included, manage, legal
     }
 
     enum Item: Hashable {
-        case plan, manageSubscription, restore, terms, privacy
+        case plan, feature(ProFeature), manageSubscription, restore, terms, privacy
     }
 
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var observation: ProObservation?
     private var restoreModel: PaywallModel?
     private var isRestoring = false
+    private var details: [ProFeature: String] = [:]
 
     init() {
         super.init(collectionViewLayout: UICollectionViewLayout())
@@ -32,11 +34,8 @@ final class ProStatusViewController: UICollectionViewController {
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.allowsKeyboardFocus()
         collectionView.showsVerticalScrollIndicator = false
-        collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { [weak self] index, environment in
-            var config = UICollectionLayoutListConfiguration.wellRows()
-            let section = self?.dataSource?.sectionIdentifier(for: index)
-            config.footerMode = section == .plan ? .supplementary : .none
-            let listSection = NSCollectionLayoutSection.list(using: config, layoutEnvironment: environment)
+        collectionView.collectionViewLayout = UICollectionViewCompositionalLayout { _, environment in
+            let listSection = NSCollectionLayoutSection.list(using: UICollectionLayoutListConfiguration.wellRows(), layoutEnvironment: environment)
             Theme.centerReadable(listSection, environment)
             return listSection
         }
@@ -56,9 +55,12 @@ final class ProStatusViewController: UICollectionViewController {
     }
 
     private func applySnapshot() {
+        details = ProPersonalDetails.make(.live)
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.plan])
         snapshot.appendItems([.plan], toSection: .plan)
+        snapshot.appendSections([.included])
+        snapshot.appendItems(ProFeature.listed(isTV: false, includingRequests: SeerrAccount.shared.managesRequests).map(Item.feature), toSection: .included)
         snapshot.appendSections([.manage])
         var manage: [Item] = []
         if entitlement?.kind == .subscription { manage.append(.manageSubscription) }
@@ -80,6 +82,11 @@ final class ProStatusViewController: UICollectionViewController {
                 cell.contentConfiguration = IconRowContentConfiguration(
                     symbol: "sparkles", title: productName, subtitle: self?.entitlement?.summary(), value: String(localized: "Active")
                 )
+            case .feature(let feature):
+                cell.contentConfiguration = IconRowContentConfiguration(
+                    symbol: feature.symbol, title: feature.title, subtitle: feature.summary(in: self?.details ?? [:])
+                )
+                cell.accessories = [.checkmark()]
             case .manageSubscription:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "creditcard", title: String(localized: "Manage Subscription"))
             case .restore:
@@ -98,29 +105,22 @@ final class ProStatusViewController: UICollectionViewController {
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: item)
         }
-
-        let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
-            content.text = String(localized: "Thank you for supporting Crucible. Unlimited downloads, full Statistics and the Year in Review poster are unlocked.")
-            content.textProperties.font = Theme.Font.caption1Regular
-            content.textProperties.color = Theme.Color.labelSecondary
-            cell.contentConfiguration = content
-        }
-        dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
-            collectionView.dequeueConfiguredReusableSupplementary(using: footer, for: indexPath)
-        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return false }
-        return item != .plan && !(item == .restore && isRestoring)
+        switch item {
+        case .plan, .feature: return false
+        case .restore: return !isRestoring
+        case .manageSubscription, .terms, .privacy: return true
+        }
     }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         switch item {
-        case .plan: break
+        case .plan, .feature: break
         case .manageSubscription: UIApplication.shared.open(ProLinks.manageSubscriptions)
         case .restore: restorePurchases()
         case .terms: UIApplication.shared.open(ProLinks.termsOfUse)

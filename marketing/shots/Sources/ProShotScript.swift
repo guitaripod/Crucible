@@ -41,6 +41,12 @@ enum ProShotScript {
         }
         if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "buyer" {
             await buyerLines(tabBar: tabBar)
+            await ownerStatus(you: you)
+            await ShotHarness.capture("done")
+            return
+        }
+        if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "owner" {
+            await ownerStatus(you: you)
             await ShotHarness.capture("done")
             return
         }
@@ -263,6 +269,22 @@ enum ProShotScript {
         await ShotHarness.settle(2.5)
         await ShotHarness.capture("b06-live-from-the-mirror")
         await dismissSheet(tabBar)
+    }
+
+    /// What an owner sees under Settings > Crucible Pro: what Pro gives them, with whatever the app knows about them (the mirror of the
+    /// mock server, or the viewer `CRUCIBLE_PRO_FACTS` stages), at the default and the largest text size.
+    private static func ownerStatus(you: UINavigationController?) async {
+        await install(scripted(lifetime))
+        let status = ProStatusViewController()
+        you?.pushViewController(status, animated: false)
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("b07-owner-status")
+        status.view.window?.traitOverrides.preferredContentSizeCategory = .accessibilityExtraLarge
+        await ShotHarness.settle(1.2)
+        await ShotHarness.capture("b07b-owner-status-accessibility-xl")
+        status.view.window?.traitOverrides.preferredContentSizeCategory = .large
+        you?.popToRootViewController(animated: false)
+        await ShotHarness.settle(0.5)
     }
 
     private static func showSheet(_ request: PaywallRequest, facts: ProViewerFacts, tabBar: TabBarController) async {

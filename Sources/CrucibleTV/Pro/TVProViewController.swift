@@ -3,8 +3,8 @@ import CrucibleDesign
 import UIKit
 
 /// The Crucible Pro screen of a Pro user: the plan on the left with how to manage or cancel a subscription (Apple TV cannot
-/// open the subscriptions page) and the legal pages as text, what Pro unlocks and Restore Purchases on the right. Free users
-/// never see it: their row in You opens the paywall.
+/// open the subscriptions page) and the legal pages as text, what Pro gives them, told with their own numbers where the app
+/// has enough of them, and Restore Purchases on the right. Free users never see it: their row in You opens the paywall.
 final class TVProViewController: TVSettingsScaffold {
     private enum RowID {
         static let restore = "pro.restore"
@@ -58,8 +58,9 @@ final class TVProViewController: TVSettingsScaffold {
         let entitlement = ProAccess.shared.status.entitlement
         heading.setBody(entitlement?.summary())
         managePanel.isHidden = entitlement?.kind != .subscription
+        let details = ProPersonalDetails.make(.live)
         var rows = ProFeature.listed(isTV: true, includingRequests: SeerrAccount.shared.managesRequests).map { feature in
-            TVRowItem(id: RowID.feature(feature), title: feature.title, subtitle: feature.summary, symbol: feature.symbol, accessory: .checkmark)
+            TVRowItem(id: RowID.feature(feature), title: feature.title, subtitle: feature.summary(in: details), symbol: feature.symbol, accessory: .checkmark)
         }
         rows.insert(
             TVRowItem(id: RowID.restore, title: String(localized: "Restore Purchases"), value: isRestoring ? String(localized: "Restoring\u{2026}") : nil, symbol: "arrow.clockwise"),

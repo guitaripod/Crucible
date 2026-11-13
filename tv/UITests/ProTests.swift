@@ -467,6 +467,20 @@ final class ProTests: TVTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "pro.restore"))
     }
 
+    func testTheProScreenTellsAnOwnerWhatTheyHaveInTheirOwnNumbers() {
+        let app = launchYou(["CRUCIBLE_PRO": "lifetime", "CRUCIBLE_PRO_FACTS": "staged"])
+        YouNavigation.openRow(app, "you.pro")
+        XCTAssertTrue(YouNavigation.row(app, "pro.restore").waitForExistence(timeout: 15))
+        TVTest.capture("01-pro-screen-personal", in: self)
+
+        let statistics = YouNavigation.row(app, "pro.feature.fullStatistics").label
+        XCTAssertTrue(statistics.contains("plays since 2019"), statistics)
+        let poster = YouNavigation.row(app, "pro.feature.yearInReviewPoster").label
+        XCTAssertTrue(poster.contains("14 movies · 212 episodes"), poster)
+        let topShelf = YouNavigation.row(app, "pro.feature.topShelf").label
+        XCTAssertTrue(topShelf.contains("4 titles in progress on this Apple TV"), topShelf)
+    }
+
     func testLifetimeProScreenHasNoSubscriptionHelp() {
         let app = launchYou(["CRUCIBLE_PRO": "lifetime"])
         XCTAssertEqual(YouNavigation.row(app, "you.pro").label, "Crucible Pro, Lifetime")
