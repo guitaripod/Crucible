@@ -76,6 +76,29 @@ package enum CompanionCopy {
         String(localized: "\(model) isn't answering. Check the model server on the computer with Plex.", comment: "Crucible Server status when its model does not answer")
     }
 
+    package static func ready(model: String, at host: String) -> String {
+        String(localized: "Ready · \(model) at \(host)", comment: "Crucible Server status when its owner chose a model at a hosted service, e.g. Ready · gemini-flash at openrouter.ai")
+    }
+
+    package static func modelSilent(_ model: String, at host: String) -> String {
+        String(
+            localized: "\(model) at \(host) isn't answering. Run crucible-server doctor on the computer with Plex.",
+            comment: "Crucible Server status when its model at a hosted service does not answer, e.g. gemini-flash at openrouter.ai isn't answering. crucible-server doctor is a command and stays as written."
+        )
+    }
+
+    /// The status line for what the server said about its model, naming the host when the model is outside the
+    /// owner's network so everyone who uses the server can see where recaps are written.
+    package static func status(_ brain: CompanionBrain) -> String {
+        switch (brain.model, brain.reachable, brain.outside) {
+        case (nil, _, _): ready(model: nil)
+        case (let model?, true, nil): ready(model: model)
+        case (let model?, true, let host?): ready(model: model, at: host)
+        case (let model?, false, nil): modelSilent(model)
+        case (let model?, false, let host?): modelSilent(model, at: host)
+        }
+    }
+
     package static func previouslyOnTitle(_ show: String) -> String {
         String(localized: "Previously on \(show)", comment: "Title of a recap, e.g. Previously on Dragon Ball Super")
     }

@@ -42,6 +42,25 @@ struct CompanionTests {
         #expect(CompanionInvite(url: URL(string: "crucible://pair?v=1&hosts=evil.example:32500&secret=AEAQCAIBAEAQCAIBAEAQCAIBAE")!) == nil)
     }
 
+    @Test func theStatusNamesTheHostOfAModelOutsideTheOwnersNetwork() throws {
+        let decoder = JSONDecoder()
+        let before = try decoder.decode(CompanionBrain.self, from: Data(#"{"model":"gemma4-26b","reachable":true}"#.utf8))
+        #expect(before == CompanionBrain(model: "gemma4-26b", reachable: true))
+        let own = try decoder.decode(CompanionBrain.self, from: Data(#"{"model":"gemma4-26b","reachable":false,"outside":null}"#.utf8))
+        #expect(own == CompanionBrain(model: "gemma4-26b", reachable: false))
+        let hosted = try decoder.decode(CompanionBrain.self, from: Data(#"{"model":"gemini-flash","reachable":true,"outside":"openrouter.ai"}"#.utf8))
+        #expect(hosted == CompanionBrain(model: "gemini-flash", reachable: true, outside: "openrouter.ai"))
+        let none = try decoder.decode(CompanionBrain.self, from: Data(#"{"model":null,"reachable":false,"outside":null}"#.utf8))
+
+        #expect(CompanionCopy.status(before) == CompanionCopy.ready(model: "gemma4-26b"))
+        #expect(CompanionCopy.status(own) == CompanionCopy.modelSilent("gemma4-26b"))
+        #expect(CompanionCopy.status(none) == CompanionCopy.ready(model: nil))
+        #expect(CompanionCopy.status(hosted).contains("gemini-flash") && CompanionCopy.status(hosted).contains("openrouter.ai"))
+        let silent = CompanionCopy.status(CompanionBrain(model: "gemini-flash", reachable: false, outside: "openrouter.ai"))
+        #expect(silent.contains("openrouter.ai") && silent.contains("crucible-server doctor"))
+        #expect(silent != CompanionCopy.status(hosted))
+    }
+
     @Test func aTypedCodeIgnoresDashesAndCase() throws {
         let invite = try #require(CompanionInvite(code: "aeaq-caib-aeaq-caib-aeaq-caib-ae", hosts: ["arch:32500"]))
         #expect(invite.secret == Self.secret)

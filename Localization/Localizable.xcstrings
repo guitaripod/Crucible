@@ -1224,6 +1224,101 @@
         }
       }
     },
+    "%@ at %@ isn't answering. Run crucible-server doctor on the computer with Plex." : {
+      "comment" : "Crucible Server status when its model at a hosted service does not answer, e.g. gemini-flash at openrouter.ai isn't answering. crucible-server doctor is a command and stays as written.",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hos %2$@ svarer ikke. Kør crucible-server doctor på computeren med Plex."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ bei %2$@ antwortet nicht. Führe auf dem Computer mit Plex crucible-server doctor aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ en %2$@ no responde. Ejecuta crucible-server doctor en el ordenador con Plex."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ palvelussa %2$@ ei vastaa. Suorita Plexin tietokoneella komento crucible-server doctor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ chez %2$@ ne répond pas. Lancez crucible-server doctor sur l’ordinateur avec Plex."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hjá %2$@ svarar ekki. Keyrðu crucible-server doctor á tölvunni með Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ su %2$@ non risponde. Esegui crucible-server doctor sul computer con Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ の %1$@ が応答しません。Plex のあるコンピューターで crucible-server doctor を実行してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@의 %1$@이(가) 응답하지 않아요. Plex가 있는 컴퓨터에서 crucible-server doctor를 실행하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hos %2$@ svarer ikke. Kjør crucible-server doctor på datamaskinen med Plex."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ w %2$@ nie odpowiada. Uruchom crucible-server doctor na komputerze z Plexem."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ em %2$@ não está respondendo. Execute crucible-server doctor no computador com o Plex."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hos %2$@ svarar inte. Kör crucible-server doctor på datorn med Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ 上的 %1$@ 没有响应。请在装有 Plex 的电脑上运行 crucible-server doctor。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ 上的 %1$@ 沒有回應。請在裝有 Plex 的電腦上執行 crucible-server doctor。"
+          }
+        }
+      }
+    },
     "%@ connection" : {
       "localizations" : {
         "da" : {
@@ -108113,6 +108208,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "就緒 · %@"
+          }
+        }
+      }
+    },
+    "Ready · %@ at %@" : {
+      "comment" : "Crucible Server status when its owner chose a model at a hosted service, e.g. Ready · gemini-flash at openrouter.ai",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klar · %1$@ hos %2$@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereit · %1$@ bei %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo · %1$@ en %2$@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis · %1$@ palvelussa %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prêt · %1$@ chez %2$@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilbúið · %1$@ hjá %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto · %1$@ su %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了 · %2$@ の %1$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "준비됨 · %2$@의 %1$@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klar · %1$@ hos %2$@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe · %1$@ w %2$@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto · %1$@ em %2$@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redo · %1$@ hos %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就绪 · %2$@ 上的 %1$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就緒 · %2$@ 上的 %1$@"
           }
         }
       }

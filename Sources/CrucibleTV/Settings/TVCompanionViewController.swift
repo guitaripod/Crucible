@@ -85,10 +85,7 @@ final class TVCompanionViewController: UIViewController {
             let text: String
             do throws(CompanionError) {
                 let brain = try await CompanionClient(server: server, plexToken: token).brain()
-                switch (brain.model, brain.reachable) {
-                case (let model?, false): text = CompanionCopy.modelSilent(model)
-                case (let model, _): text = CompanionCopy.ready(model: model)
-                }
+                text = CompanionCopy.status(brain)
             } catch {
                 text = error.message
             }

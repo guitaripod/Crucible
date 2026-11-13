@@ -13,6 +13,20 @@ package struct CompanionServer: Codable, Equatable, Sendable {
     package var plexMachineIdentifier: String?
 }
 
+/// What a Crucible Server says about its model: its name, whether it answers right now, and the host it is at when
+/// the owner chose a hosted service outside their own network. A server from before hosted models says no host.
+package struct CompanionBrain: Decodable, Equatable, Sendable {
+    package var model: String?
+    package var reachable: Bool
+    package var outside: String?
+
+    package init(model: String?, reachable: Bool, outside: String? = nil) {
+        self.model = model
+        self.reachable = reachable
+        self.outside = outside
+    }
+}
+
 /// Where the pairing is kept, one per device, tied to the Plex server it was made for.
 package enum CompanionStore {
     private static let key = "crucible_server"
@@ -376,17 +390,11 @@ package struct CompanionClient: Sendable {
         throw failure
     }
 
-    private struct BrainAnswer: Decodable, Sendable {
-        let model: String?
-        let reachable: Bool
-    }
-
-    /// The model the server writes with, and whether it answers right now.
-    package func brain() async throws(CompanionError) -> (model: String?, reachable: Bool) {
-        let answer: BrainAnswer = try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
+    /// The model the server writes with, whether it answers right now, and where it is.
+    package func brain() async throws(CompanionError) -> CompanionBrain {
+        try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
             try await connection.send("GET", "brain", body: Nothing?.none, headers: headers)
         }
-        return (answer.model, answer.reachable)
     }
 
     private struct HandedCode: Encodable {
