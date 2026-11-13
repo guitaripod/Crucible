@@ -23,6 +23,10 @@ const RECAP_EPISODES: usize = 3;
 const ANSWER_EPISODES: usize = 5;
 /// Dialogue lines read per episode, enough for a long episode.
 const MAX_LINES: usize = 1200;
+/// Tokens an answer may take.
+const ANSWER_TOKENS: u32 = 300;
+/// Characters of a question that are read.
+const QUESTION_CHARS: usize = 500;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WriteError {
@@ -344,19 +348,20 @@ impl Writer {
             Some(key) => self.plex.item(key, token).await.ok(),
             None => None,
         };
+        let about_the_show = show.and_then(|show| show.summary).unwrap_or_default();
+        let room = self.brain.dialogue_budget(ANSWER_TOKENS).saturating_sub(earlier.len() + about_the_show.len() + QUESTION_CHARS);
         let context = format!(
-            "Show: {} ({})\nEarlier episodes:\n{earlier}\nNow watching {} \"{}\", paused at {}. Its dialogue so far:\n{}",
+            "Show: {} ({about_the_show})\nEarlier episodes:\n{earlier}\nNow watching {} \"{}\", paused at {}. Its dialogue so far:\n{}",
             item.grandparent_title.clone().unwrap_or_default(),
-            show.and_then(|show| show.summary).unwrap_or_default(),
             item.label(),
             item.title,
             dialogue::timestamp(playhead_ms),
-            dialogue::transcript(&lines)
+            dialogue::transcript(&dialogue::fit_toward_the_end(lines, room))
         );
-        let question: String = question.chars().take(500).collect();
+        let question: String = question.chars().take(QUESTION_CHARS).collect();
         let mut feedback = String::new();
         for _ in 0..2 {
-            let reply = self.brain.ask_json(ANSWER_SYSTEM, &format!("{context}\n\nQuestion: {question}{feedback}"), 300).await?;
+            let reply = self.brain.ask_json(ANSWER_SYSTEM, &format!("{context}\n\nQuestion: {question}{feedback}"), ANSWER_TOKENS).await?;
             let Some(text) = reply["text"].as_str().map(str::trim).filter(|text| !text.is_empty()) else { continue };
             let names = ungrounded_names(text, &format!("{context}\n{question}"));
             if names.is_empty() {

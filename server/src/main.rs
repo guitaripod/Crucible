@@ -41,8 +41,8 @@ enum Command {
         /// The model's name as its server lists it. Needed for a hosted service; otherwise setup offers the best it finds.
         #[arg(long)]
         model: Option<String>,
-        /// A file holding the key the model service asks for (a Docker secret). It is kept beside the config,
-        /// readable only by this user.
+        /// A file holding the key the service at --model-url asks for (a Docker secret). It is kept beside the
+        /// config, readable only by this user.
         #[arg(long, env = "CRUCIBLE_MODEL_KEY_FILE")]
         model_key_file: Option<PathBuf>,
         /// The model's context window in tokens, when the service does not state it.
@@ -75,7 +75,7 @@ enum Command {
         #[arg(long)]
         name: Option<String>,
         /// A file holding the key the service asks for. It is kept beside the config, readable only by this user.
-        #[arg(long, env = "CRUCIBLE_MODEL_KEY_FILE")]
+        #[arg(long)]
         key_file: Option<PathBuf>,
         /// The model's context window in tokens, when the service does not state it.
         #[arg(long)]
@@ -109,7 +109,7 @@ enum Command {
         #[arg(long)]
         model: Option<String>,
         /// A file holding the key the model service asks for; without it, the key kept for that address is used.
-        #[arg(long, env = "CRUCIBLE_MODEL_KEY_FILE")]
+        #[arg(long)]
         model_key_file: Option<PathBuf>,
         /// Agree to sending the episode to a model outside your network without being asked.
         #[arg(long, short)]

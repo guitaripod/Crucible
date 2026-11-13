@@ -91,17 +91,39 @@ pub fn story(lines: Vec<Line>, segments: &[Segment]) -> Vec<Line> {
 /// The lines, cut to fit `max_chars` of transcript: one-word interjections go first, then every other line evenly
 /// across the episode, so the end of the story is never what is lost.
 pub fn fit(lines: Vec<Line>, max_chars: usize) -> Vec<Line> {
-    let size = |lines: &[Line]| lines.iter().map(|line| line.text.len() + 9).sum::<usize>();
-    if size(&lines) <= max_chars {
+    if weight(&lines) <= max_chars {
         return lines;
     }
     let mut kept: Vec<Line> = lines.into_iter().filter(|line| line.text.split_whitespace().count() > 2).collect();
-    while size(&kept) > max_chars && kept.len() > 1 {
-        let ratio = max_chars as f64 / size(&kept) as f64;
+    while weight(&kept) > max_chars && kept.len() > 1 {
+        let ratio = max_chars as f64 / weight(&kept) as f64;
         let target = ((kept.len() as f64 * ratio).floor() as usize).clamp(1, kept.len() - 1);
         let step = kept.len() as f64 / target as f64;
         kept = (0..target).map(|index| kept[((index as f64 * step) as usize).min(kept.len() - 1)].clone()).collect();
     }
+    kept
+}
+
+/// The characters a transcript of `lines` takes: each line's text and its timestamp.
+fn weight(lines: &[Line]) -> usize {
+    lines.iter().map(|line| line.text.len() + 9).sum()
+}
+
+/// The lines that fit `max_chars` for a question asked where they end: the most recent ones whole, in half the
+/// room, and an even sample of what came before in the rest, since a question is mostly about what just happened.
+pub fn fit_toward_the_end(mut lines: Vec<Line>, max_chars: usize) -> Vec<Line> {
+    if weight(&lines) <= max_chars {
+        return lines;
+    }
+    let mut recent_from = lines.len();
+    let mut recent_weight = 0;
+    while recent_from > 0 && recent_weight + weight(&lines[recent_from - 1..recent_from]) <= max_chars / 2 {
+        recent_from -= 1;
+        recent_weight += weight(&lines[recent_from..=recent_from]);
+    }
+    let recent = lines.split_off(recent_from);
+    let mut kept = fit(lines, max_chars - recent_weight);
+    kept.extend(recent);
     kept
 }
 
@@ -258,6 +280,19 @@ mod tests {
         assert!(fitted.iter().map(|l| l.text.len() + 9).sum::<usize>() <= 4000);
         assert!(fitted.first().unwrap().start_ms < 10_000);
         assert!(fitted.last().unwrap().start_ms > 950_000);
+    }
+
+    #[test]
+    fn fitting_for_a_question_keeps_the_latest_lines_whole_and_samples_the_rest() {
+        let lines: Vec<Line> = (0..1000).map(|n| Line { start_ms: n * 1000, text: format!("line number {n} is here") }).collect();
+        assert_eq!(fit_toward_the_end(lines[..10].to_vec(), 4000).len(), 10);
+        let fitted = fit_toward_the_end(lines, 4000);
+        assert!(weight(&fitted) <= 4000);
+        assert!(fitted.first().unwrap().start_ms < 20_000);
+        let latest: Vec<u64> = fitted.iter().rev().take(40).map(|line| line.start_ms).collect();
+        assert_eq!(latest, (960..1000).rev().map(|n| n * 1000).collect::<Vec<u64>>());
+        assert!(fitted.windows(2).all(|pair| pair[0].start_ms < pair[1].start_ms));
+        assert_eq!(fit_toward_the_end(vec![Line { start_ms: 0, text: "one long line ".repeat(40) }], 10).len(), 1);
     }
 
     #[test]

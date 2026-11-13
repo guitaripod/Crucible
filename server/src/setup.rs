@@ -193,6 +193,9 @@ async fn pick_at(host: &ModelHost, key: Option<&str>, asked_for: Option<&str>, b
     println!("Found {} at {} with {} models.", host.label, host.url, models.len());
     let outside = matches!(model_place(&host.url), ModelPlace::Outside(_));
     let still_listed = before.filter(|model| listed_as(&models, &model.name).is_some()).map(|model| model.name.as_str());
+    if let (Some(gone), None, None) = (before, still_listed, asked_for) {
+        println!("{} no longer lists {}.", host.label, gone.name);
+    }
     let wanted = asked_for.or(still_listed);
     let offered = match wanted {
         Some(wanted) => vec![named(&models, wanted)],
@@ -226,16 +229,17 @@ async fn pick_at(host: &ModelHost, key: Option<&str>, asked_for: Option<&str>, b
 /// Chooses the model and files its key. A key travels only to the address it was given for: the one in the file the
 /// owner named goes to the address they pointed at or the one set before, never to an address setup merely tries,
 /// and otherwise only the key kept for that same address is used. A model outside the owner's networks is used only
-/// when the owner agrees to what it is sent, and a refusal of the one set before ends its use. An address the owner
-/// pointed at that fails is an error and changes nothing; with no address given, a model set before is kept when
-/// nothing answers.
-async fn settle_model(paths: &Paths, previous: Option<&Model>, options: &ModelOptions) -> Result<Option<Model>, String> {
+/// when the owner agrees to what it is sent: they are asked once per host, so the one set before is not asked about
+/// again when `agreed` names its host, and a refusal of one set before ends its use. An address the owner pointed at
+/// that fails is an error and changes nothing; with no address given, a model set before is kept when nothing
+/// answers.
+async fn settle_model(paths: &Paths, previous: Option<&Model>, agreed: Option<&str>, options: &ModelOptions) -> Result<Option<Model>, String> {
     let named_key = match &options.key_file {
         Some(file) => Some(read_key(file)?),
         None => None,
     };
     if named_key.is_some() && options.url.is_none() && previous.is_none() {
-        return Err("A key was given without the address it is for: say where the model is with --model-url (setup) or --url (model).".into());
+        println!("The key that was given is not used, because no address says which model service it is for: add --model-url (setup) or --url (model).");
     }
     let mut refused_the_one_before = false;
     for host in model_hosts(previous, options.url.as_deref()) {
@@ -248,10 +252,12 @@ async fn settle_model(paths: &Paths, previous: Option<&Model>, options: &ModelOp
             return Err(format!("A key would cross the internet unprotected to {}: use its https:// address.", host.url));
         }
         if let ModelPlace::Outside(outside) = model_place(&host.url) {
-            println!("{}", outside_notice(&outside, &host.url));
-            if !(options.assume_yes || confirm("Use it?", false)) {
-                refused_the_one_before |= before.is_some();
-                continue;
+            if must_ask(before, agreed, &outside) {
+                println!("{}", outside_notice(&outside, &host.url));
+                if !(options.assume_yes || confirm("Use it?", false)) {
+                    refused_the_one_before |= before.is_some();
+                    continue;
+                }
             }
         }
         if let Some(model) = pick_at(&host, key.as_deref(), options.name.as_deref(), before, options).await {
@@ -260,6 +266,12 @@ async fn settle_model(paths: &Paths, previous: Option<&Model>, options: &ModelOp
         }
     }
     left_with(paths, options.url.as_deref(), previous, refused_the_one_before)
+}
+
+/// Whether the owner must be asked before the model at this outside host is used: always, unless it is the one set
+/// before and they already agreed to that host.
+fn must_ask(before: Option<&Model>, agreed: Option<&str>, host: &str) -> bool {
+    !(before.is_some() && agreed == Some(host))
 }
 
 /// The key to use at one address: the one in the file the owner named, only at an address they pointed at or the one
@@ -280,7 +292,7 @@ fn left_with(paths: &Paths, pointed_at: Option<&str>, previous: Option<&Model>, 
         }
         (Some(url), _) => Err(format!("No model was set from {}; nothing changed.", tidy(url))),
         (None, Some(model)) => {
-            println!("Kept {} at {}, which did not answer just now.", model.name, model.url);
+            println!("Kept {} at {}, which could not be confirmed just now; crucible-server doctor says more.", model.name, model.url);
             Ok(Some(model.clone()))
         }
         (None, None) => Ok(None),
@@ -369,7 +381,7 @@ pub async fn model(paths: &Paths, options: ModelOptions, off: bool) -> Result<()
     if pointed.url.is_none() {
         return Err("No model is set yet: say where one is with --url, such as http://127.0.0.1:11434/v1 for Ollama.".into());
     }
-    let settled = settle_model(paths, previous.as_ref(), &pointed).await?;
+    let settled = settle_model(paths, previous.as_ref(), config.model_agreed.as_deref(), &pointed).await?;
     match &settled {
         Some(model) => println!("Model: {}.", described(model, paths.model_key_for(&model.url).is_some())),
         None => println!("Model: none. Skips still work; recaps and answers are off."),
@@ -459,7 +471,7 @@ Turn it off in Plex: Settings, Network, \"List of IP addresses and networks that
     };
 
     let model_options = ModelOptions { assume_yes: options.assume_yes || options.model.assume_yes, ..options.model.clone() };
-    match settle_model(paths, config.model.as_ref(), &model_options).await {
+    match settle_model(paths, config.model.as_ref(), config.model_agreed.as_deref(), &model_options).await {
         Ok(model) => config.use_model(model),
         Err(reason) => println!("{reason}"),
     }
@@ -534,17 +546,17 @@ mod tests {
         std::fs::write(&key_file, "sk-first\n").unwrap();
 
         let with_file = ModelOptions { key_file: Some(key_file), ..pointed(&format!("{}/", first.url), "writer") };
-        let set = settle_model(&paths, None, &with_file).await.unwrap().unwrap();
+        let set = settle_model(&paths, None, None, &with_file).await.unwrap().unwrap();
         assert_eq!(set, Model { url: first.url.clone(), name: "writer".into(), context: 131_072 });
         assert_eq!(paths.model_key_for(&first.url).as_deref(), Some("sk-first"));
         assert_eq!(paths.model_key_for(&second.url), None);
         assert!(keys_received(&first).iter().all(|key| key.as_deref() == Some("sk-first")));
 
-        let again = settle_model(&paths, Some(&set), &ModelOptions::default()).await.unwrap().unwrap();
+        let again = settle_model(&paths, Some(&set), None, &ModelOptions::default()).await.unwrap().unwrap();
         assert_eq!(again, set);
         assert!(keys_received(&first).iter().all(|key| key.as_deref() == Some("sk-first")));
 
-        let moved = settle_model(&paths, Some(&set), &pointed(&second.url, "writer")).await.unwrap().unwrap();
+        let moved = settle_model(&paths, Some(&set), None, &pointed(&second.url, "writer")).await.unwrap().unwrap();
         assert_eq!(moved.url, second.url);
         assert!(!keys_received(&second).is_empty() && keys_received(&second).iter().all(Option::is_none));
         assert_eq!(paths.model_key_for(&first.url), None);
@@ -570,21 +582,21 @@ mod tests {
         let previous = Model { url: "http://127.0.0.1:9/v1".into(), name: "writer".into(), context: 8192 };
         paths.keep_model_key(&previous.url, Some("sk-kept")).unwrap();
 
-        let unreachable = settle_model(&paths, Some(&previous), &pointed("http://127.0.0.1:9/v1", "writer")).await;
+        let unreachable = settle_model(&paths, Some(&previous), None, &pointed("http://127.0.0.1:9/v1", "writer")).await;
         assert!(unreachable.unwrap_err().contains("nothing changed"));
         assert_eq!(paths.model_key_for(&previous.url).as_deref(), Some("sk-kept"));
 
         let key_file = dir.path().join("given-key");
         std::fs::write(&key_file, "sk-new").unwrap();
         let in_the_clear = ModelOptions { key_file: Some(key_file.clone()), ..pointed("http://models.example.com/v1", "writer") };
-        assert!(settle_model(&paths, None, &in_the_clear).await.unwrap_err().contains("https://"));
+        assert!(settle_model(&paths, None, None, &in_the_clear).await.unwrap_err().contains("https://"));
 
-        let not_an_address = settle_model(&paths, None, &pointed("models.example.com/v1", "writer")).await;
+        let not_an_address = settle_model(&paths, None, None, &pointed("models.example.com/v1", "writer")).await;
         assert!(not_an_address.unwrap_err().contains("not an address"));
 
         std::fs::write(&key_file, " \n").unwrap();
         let empty = ModelOptions { key_file: Some(key_file), ..pointed("https://models.example.com/v1", "writer") };
-        assert!(settle_model(&paths, None, &empty).await.unwrap_err().contains("is empty"));
+        assert!(settle_model(&paths, None, None, &empty).await.unwrap_err().contains("is empty"));
         assert_eq!(paths.model_key_for(&previous.url).as_deref(), Some("sk-kept"));
     }
 
@@ -601,11 +613,11 @@ mod tests {
 
         let silent_about_windows = testing::start_listing(serde_json::json!({"data": [{"id": "writer"}]})).await;
         let stated = ModelOptions { context: Some(200_000), ..pointed(&silent_about_windows.url, "writer") };
-        let set = settle_model(&paths, None, &stated).await.unwrap().unwrap();
+        let set = settle_model(&paths, None, None, &stated).await.unwrap().unwrap();
         assert_eq!(set.context, 200_000);
         let key_only = ModelOptions { url: Some(set.url.clone()), ..ModelOptions::default() };
-        assert_eq!(settle_model(&paths, Some(&set), &key_only).await.unwrap().unwrap().context, 200_000);
-        let other_model = settle_model(&paths, Some(&set), &pointed(&set.url, "another")).await.unwrap().unwrap();
+        assert_eq!(settle_model(&paths, Some(&set), None, &key_only).await.unwrap().unwrap().context, 200_000);
+        let other_model = settle_model(&paths, Some(&set), None, &pointed(&set.url, "another")).await.unwrap().unwrap();
         assert_eq!(other_model.context, DEFAULT_CONTEXT);
     }
 
@@ -650,6 +662,16 @@ mod tests {
     }
 
     #[test]
+    fn the_owner_is_asked_once_for_each_outside_host() {
+        let set = Model { url: "https://openrouter.ai/api/v1".into(), name: "writer".into(), context: 8192 };
+        assert!(must_ask(None, None, "openrouter.ai"));
+        assert!(must_ask(None, Some("openrouter.ai"), "openrouter.ai"));
+        assert!(must_ask(Some(&set), None, "openrouter.ai"));
+        assert!(must_ask(Some(&set), Some("other.example"), "openrouter.ai"));
+        assert!(!must_ask(Some(&set), Some("openrouter.ai"), "openrouter.ai"));
+    }
+
+    #[test]
     fn refusing_the_outside_model_set_before_ends_its_use_and_forgets_its_key() {
         let dir = tempfile::tempdir().unwrap();
         let paths = Paths::at(dir.path());
@@ -681,7 +703,6 @@ mod tests {
         std::fs::write(&key_file, "sk-given").unwrap();
 
         let no_address = ModelOptions { key_file: Some(key_file.clone()), ..ModelOptions::default() };
-        assert!(settle_model(&paths, None, &no_address).await.unwrap_err().contains("without the address it is for"));
 
         let host = |pointed_at: bool| ModelHost { label: "a model server".into(), url: "http://127.0.0.1:9/v1".into(), pointed_at };
         assert_eq!(key_at(&host(false), Some("sk-given"), &paths), None);
@@ -693,7 +714,7 @@ mod tests {
 
         let before = testing::open(&["writer"]).await;
         let previous = Model { url: before.url.clone(), name: "writer".into(), context: 131_072 };
-        let rekeyed = settle_model(&paths, Some(&previous), &no_address).await.unwrap().unwrap();
+        let rekeyed = settle_model(&paths, Some(&previous), None, &no_address).await.unwrap().unwrap();
         assert_eq!(rekeyed, previous);
         assert!(keys_received(&before).iter().all(|key| key.as_deref() == Some("sk-given")));
         assert_eq!(paths.model_key_for(&before.url).as_deref(), Some("sk-given"));
@@ -706,7 +727,7 @@ mod tests {
         let server = testing::open(&["qwen3-30b-a3b"]).await;
         let removed = Model { url: server.url.clone(), name: "gemma4-26b-a4b-gguf".into(), context: 8192 };
         let agreeing = ModelOptions { url: Some(server.url.clone()), assume_yes: true, ..ModelOptions::default() };
-        let chosen = settle_model(&paths, Some(&removed), &agreeing).await.unwrap().unwrap();
+        let chosen = settle_model(&paths, Some(&removed), None, &agreeing).await.unwrap().unwrap();
         assert_eq!(chosen.name, "qwen3-30b-a3b");
 
         let both = vec![Listed { id: "vendor/writer".into(), context: Some(8_192) }, Listed { id: "writer".into(), context: Some(131_072) }];

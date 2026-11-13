@@ -66,18 +66,19 @@ crucible-server model --key-file new-key.txt                                    
 crucible-server model --off                                                               # skips only
 ```
 
-A model with a 32K window or more reads a whole episode's dialogue; a smaller one reads an even sample of it. When a
-service does not state the window, 8K is assumed: say it with `--context` (`--model-context` in `setup`).
+The more of an episode's dialogue fits the model's window, the better: about 32K holds a long episode whole, and with
+less a summary reads an even sample of it and an answer reads the latest lines whole and a sample of the earlier
+ones. When a service does not state the window, 8K is assumed: say it with `--context` (`--model-context` in `setup`).
 
 **A hosted model.** Any service that speaks the OpenAI API works by its address, such as OpenRouter
 (`https://openrouter.ai/api/v1`) or OpenAI (`https://api.openai.com/v1`), with the model's name as that service
 lists it and the key it gave you in a file. Before using one, Crucible Server says what it will send there and asks
 (with `--yes` it says it and goes on): the subtitles of episodes people here have finished and of the one they are
 watching up to where they paused, the names of shows and episodes, Plex's synopses and cast lists, and the questions
-they ask. No Plex account, token or file is sent, and nothing goes to Crucible's developer. Say no to a hosted model
-set earlier and it is no longer used and its key is forgotten. The agreement is recorded with the host it was given
-for: a hosted model written into `config.toml` by hand, or copied in from another machine, is not used until it is
-set through `crucible-server model`. You pay the service for what is asked of it, which is
+they ask. No Plex account, token or file is sent, and nothing goes to Crucible's developer. You are asked once
+for each host, and the agreement is recorded with it: a hosted model written into `config.toml` by hand, or copied
+in from another machine, is not used until you agree to it in `setup` or `crucible-server model`, and saying no
+there ends its use and forgets its key. `crucible-server model --off` does the same for one you agreed to. You pay the service for what is asked of it, which is
 little: nothing is written until someone asks, a Previously On reads at most three finished episodes' subtitles, an
 answer reads the episode being watched and up to five summaries, and each episode's summary is kept and not written
 again while its subtitles, the model and the prompt stay the same.
@@ -87,7 +88,8 @@ the address it was given for, and it is sent nowhere else: point the server at a
 editing the config, and that address gets no key, and a key file given to `setup` is never tried on the model
 servers setup looks for by itself. It leaves your own network only over HTTPS; a model server on this machine, your
 home network or your tailnet that asks for a key gets it over plain HTTP, directly and never through a proxy.
-Redirects are never followed. In Docker, mount the key as a secret and name it in `CRUCIBLE_MODEL_KEY_FILE`.
+Redirects are never followed. In Docker, mount the key as a secret and give its path to `setup` with
+`--model-key-file`, or in `CRUCIBLE_MODEL_KEY_FILE`, beside `--model-url`.
 
 ## How it keeps you safe
 
@@ -101,7 +103,8 @@ Redirects are never followed. In Docker, mount the key as a secret and name it i
   follows pairing links only to addresses on the home network or the tailnet.
 - Every request carries the person's own Plex token for this server, and Plex is asked as that person, so a
   restricted profile sees only what Plex already shows it. The owner chooses who may use the server: only them,
-  their Plex Home (the members plex.tv lists with access to this server, asked again at most every ten minutes), or
+  their Plex Home (the members plex.tv lists with access to this server, asked again at most every ten minutes, or
+  once a minute while someone it does not list keeps asking), or
   everyone the server is shared with. `crucible-server doctor` says how many people that is.
 - A model outside your network is used only after you agree to what it is sent, with a key that never leaves your
   network over plain HTTP. `crucible-server doctor` says where the model is, and so does Crucible's own status line.
