@@ -1,6 +1,6 @@
 import XCTest
 
-/// What to Watch and a described Previously On on iPhone, against the mock Plex server named in `CRUCIBLE_PHONE_MOCK`
+/// What to Watch and a described Previously On on iPhone and iPad, against the mock Plex server named in `CRUCIBLE_PHONE_MOCK`
 /// (`tv.sh mock-up` prints it). With `CRUCIBLE_BRAIN=ok` the hosted model is scripted and the run is the same every
 /// time; without it the App Store build's own model answers over the network, which is the end-to-end check.
 @MainActor
@@ -14,7 +14,8 @@ final class WhatToWatchTests: XCTestCase {
             throw XCTSkip("Needs the mock server named in CRUCIBLE_PHONE_MOCK")
         }
         let app = IOSTest.launch(extraEnvironment: ["CRUCIBLE_PHONE_MOCK": mock, "CRUCIBLE_PLEXTV": mock, "CRUCIBLE_PRO": pro])
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60), "the app never reached its tabs")
+        if !IOSTest.element(app, "home.whatToWatch").waitForExistence(timeout: 90) { IOSTest.capture("launch", in: self) }
+        XCTAssertTrue(IOSTest.element(app, "home.whatToWatch").exists, "Home never showed its What to Watch button")
         return app
     }
 
