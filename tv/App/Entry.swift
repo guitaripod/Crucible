@@ -37,6 +37,7 @@ enum Entry {
     /// Offers the demo on the Welcome screen: the fictional library served from inside the app. A debug build that names a running
     /// mock server in `CRUCIBLE_DEMO_URL` signs in to that server instead, so the demo screens can be built without the library.
     private static func installDemo() {
+        HostedBrain.installDemo(DemoBrain())
         MainActor.assumeIsolated {
             #if DEBUG
             if let mock = DemoMockProvider() {

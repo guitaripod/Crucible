@@ -101,6 +101,8 @@ final class TVDemoTourViewController: TVSettingsScaffold {
             env.router.show(.search)
         case .statistics:
             TVNavigation.push(TVScreens.statistics(env), from: self)
+        case .whatToWatch:
+            TVNavigation.push(TVScreens.whatToWatchAsk(env), from: self)
         case .play:
             playResumeItem()
         case .poster, .download:

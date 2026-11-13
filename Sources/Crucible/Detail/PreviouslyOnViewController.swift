@@ -101,7 +101,7 @@ final class PreviouslyOnViewController: UIViewController {
     /// recap where this build has Crucible's AI, what pressing it sends, and what Crucible Server would add.
     private func buildDescriptions() {
         let isDescribed = offer != .server
-        let canWrite = isDescribed && HostedBrain.isAvailable
+        let canWrite = isDescribed && DescribedRecap.canWrite(show: model.show.title, episodes: episodes)
         [episodeList, serverLabel].forEach { $0.isHidden = !isDescribed }
         [writeButton, sendsLabel].forEach { $0.isHidden = !canWrite }
         guard isDescribed else { return }

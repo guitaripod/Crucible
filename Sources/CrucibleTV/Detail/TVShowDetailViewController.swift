@@ -250,7 +250,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         }
         let episodes = DescribedRecap.episodes(of: model)
         let title = CompanionCopy.previouslyOnTitle(model.show.title)
-        guard HostedBrain.isAvailable else {
+        guard DescribedRecap.canWrite(show: model.show.title, episodes: episodes) else {
             present(TVSynopsisViewController(title: title, text: Self.descriptions(episodes)), animated: TVMotion.animationsEnabled)
             return
         }

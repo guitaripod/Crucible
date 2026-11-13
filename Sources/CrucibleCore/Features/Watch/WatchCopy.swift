@@ -9,8 +9,14 @@ package enum WatchCopy {
     package static let typeYourOwn = String(localized: "Say or Type Your Own", comment: "Apple TV button that opens a text field for a What to Watch request")
     package static let tileSubtitle = String(localized: "Picks from your library", comment: "Subtitle of the What to Watch tile on Apple TV Home")
 
-    /// What a person is told before they ask: what is chosen, and what leaves the device to choose it.
-    package static let explanation = String(localized: "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device.", comment: "What to Watch: what is sent to the hosted model")
+    /// What a person is told before they ask: what is chosen, and what leaves the device to choose it. In the demo
+    /// nothing leaves it, and the line says which requests the demo answers.
+    package static var explanation: String {
+        guard HostedBrain.takesAnyRequest else {
+            return String(localized: "The demo answers these four requests with picks prepared ahead, and nothing leaves this device. With your own library you can ask for anything.", comment: "What to Watch in the demo, under its four example requests")
+        }
+        return String(localized: "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device.", comment: "What to Watch: what is sent to the hosted model")
+    }
 
     /// Requests a person can pick to see what to ask for.
     package static let examples = [

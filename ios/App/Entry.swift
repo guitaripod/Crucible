@@ -13,6 +13,7 @@ enum Entry {
             MidgarProAccess.installPlaybackOffer(firstOfferAfter: 3, laterOfferEvery: 5)
         }
         DemoMode.shared.install(demoProvider())
+        HostedBrain.installDemo(DemoBrain())
         _ = UIApplicationMain(
             CommandLine.argc,
             CommandLine.unsafeArgv,

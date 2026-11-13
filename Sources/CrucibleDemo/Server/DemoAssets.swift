@@ -12,6 +12,7 @@ struct DemoAssets: Sendable {
     }
 
     var catalogue: URL { root.appendingPathComponent("library.json") }
+    var answers: URL { root.appendingPathComponent("answers.json") }
     var clip: URL { root.appendingPathComponent("video/clip.mp4") }
 
     func image(_ name: String) -> URL {

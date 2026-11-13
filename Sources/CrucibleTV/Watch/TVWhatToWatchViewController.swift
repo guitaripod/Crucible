@@ -77,6 +77,7 @@ final class TVWhatToWatchViewController: TVScreenViewController {
 
     private func display(_ answer: WatchAnswer) {
         self.answer = answer
+        DemoTour.shared.record(.whatToWatch)
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(answer.picks.map(\.id), toSection: 0)
@@ -142,9 +143,11 @@ final class TVWhatToWatchAskViewController: UIViewController {
             button.accessibilityIdentifier = "watch.example.\(place)"
             return button
         }
-        let own = TVButton.make(.glass, title: WatchCopy.typeYourOwn, symbol: "mic") { [weak self] in self?.presentField() }
-        own.accessibilityIdentifier = "watch.own"
-        buttons.append(own)
+        if HostedBrain.takesAnyRequest {
+            let own = TVButton.make(.glass, title: WatchCopy.typeYourOwn, symbol: "mic") { [weak self] in self?.presentField() }
+            own.accessibilityIdentifier = "watch.own"
+            buttons.append(own)
+        }
         let choices = UIStackView(arrangedSubviews: buttons)
         choices.axis = .vertical
         choices.alignment = .leading

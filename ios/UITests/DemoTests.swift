@@ -156,4 +156,60 @@ final class DemoTests: XCTestCase {
         XCTAssertGreaterThan(app.collectionViews.firstMatch.cells.count, 0, "the results disappeared with the finale")
         IOSTest.capture("04-after-keep-exploring", in: self)
     }
+
+    func testWhatToWatchAnswersItsExamplesFromPreparedPicks() {
+        let app = enterDemo()
+        let entry = element(app, "home.whatToWatch")
+        XCTAssertTrue(entry.waitForExistence(timeout: 30), "Home has no What to Watch button in the demo")
+        entry.tap()
+        let light = element(app, "watch.example.1")
+        XCTAssertTrue(light.waitForExistence(timeout: 10), "What to Watch never opened")
+        XCTAssertFalse(element(app, "watch.field").exists, "the demo shows a field for a request it cannot answer")
+        IOSTest.settle(1)
+        IOSTest.capture("watch-asking", in: self)
+        light.tap()
+        let picks = app.cells.matching(NSPredicate(format: "identifier BEGINSWITH 'watch.pick.'"))
+        XCTAssertTrue(picks.firstMatch.waitForExistence(timeout: 30), "the demo gave no picks: \(element(app, "watch.failure").label)")
+        IOSTest.settle(1.5)
+        XCTAssertGreaterThanOrEqual(picks.count, 3)
+        XCTAssertTrue(light.isSelected, "the request that was asked is not marked")
+        IOSTest.capture("watch-picks", in: self)
+        element(app, "watch.example.0").tap()
+        XCTAssertTrue(IOSTest.wait(for: element(app, "watch.example.0"), "selected == true", timeout: 30), "a second request was not answered")
+        IOSTest.settle(1.5)
+        XCTAssertGreaterThanOrEqual(picks.count, 3)
+        IOSTest.capture("watch-film-picks", in: self)
+        picks.firstMatch.tap()
+        XCTAssertTrue(light.waitForNonExistence(timeout: 15), "the pick's page never opened")
+        assertRunning(app, "opening a pick")
+    }
+
+    func testAShowStartedInTheDemoWritesItsPreparedRecap() {
+        let app = enterDemo()
+        app.tabBars.buttons["Search"].tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 30), "the search field never appeared")
+        search.tap()
+        search.typeText("Paper Lanterns")
+        let result = app.collectionViews.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Paper Lanterns'")).firstMatch
+        XCTAssertTrue(result.waitForExistence(timeout: 30), "search never found Paper Lanterns")
+        result.tap()
+        let more = app.buttons["More"]
+        XCTAssertTrue(more.waitForExistence(timeout: 30), "the show page never opened")
+        more.tap()
+        let entry = app.buttons["Previously On"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10), "the show's menu has no Previously On")
+        entry.tap()
+        let write = element(app, "previouslyOn.write")
+        XCTAssertTrue(write.waitForExistence(timeout: 15), "the demo offers no recap of the episodes it starts with")
+        IOSTest.settle(1)
+        IOSTest.capture("recap-offer", in: self)
+        write.tap()
+        let text = element(app, "previouslyOn.text")
+        XCTAssertTrue(text.waitForExistence(timeout: 10))
+        XCTAssertTrue(write.waitForNonExistence(timeout: 30), "no recap came back: \(text.label)")
+        IOSTest.settle(1)
+        IOSTest.capture("recap", in: self)
+        XCTAssertGreaterThan(text.label.count, 40)
+    }
 }

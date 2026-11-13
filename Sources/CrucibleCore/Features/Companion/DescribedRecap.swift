@@ -58,6 +58,12 @@ package enum DescribedRecap {
         return text
     }
 
+    /// Whether a recap of these episodes can be asked for: wherever Crucible's AI answers, and in the demo only for
+    /// the episodes it holds a prepared recap of.
+    package static func canWrite(show: String, episodes: [DescribedEpisode]) -> Bool {
+        !episodes.isEmpty && HostedBrain.canAnswer(alias: alias, input: input(show: show, episodes: episodes))
+    }
+
     /// The recap of these episodes, written by the hosted model.
     package static func write(show: String, episodes: [DescribedEpisode]) async throws(HostedBrainError) -> String {
         let reply = try await HostedBrain.ask(alias: alias, input: input(show: show, episodes: episodes))
@@ -78,7 +84,13 @@ package enum DescribedRecapCopy {
     package static let write = String(localized: "Write a Recap", comment: "Button that asks for episode descriptions to be written into one recap")
     package static let readDescriptions = String(localized: "Read the Descriptions", comment: "Apple TV button that shows the last episodes' descriptions")
     package static let writing = String(localized: "Writing the recap…", comment: "Shown while a recap is being written")
-    package static let sends = String(localized: "Writing a recap sends the name of the series and these descriptions to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends to the hosted model")
+    /// What writing a recap sends, or in the demo that it sends nothing.
+    package static var sends: String {
+        guard HostedBrain.takesAnyRequest else {
+            return String(localized: "In the demo this recap was prepared ahead, and nothing leaves this device.", comment: "Shown in the demo in place of what a recap sends")
+        }
+        return String(localized: "Writing a recap sends the name of the series and these descriptions to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends to the hosted model")
+    }
     package static let withServer = String(localized: "With Crucible Server on the computer with Plex, it is written from what was said in the episodes.", comment: "Hint under a Previously On made from descriptions")
 
     package static func failure(_ error: HostedBrainError) -> String {

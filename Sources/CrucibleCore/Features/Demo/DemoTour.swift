@@ -5,6 +5,7 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
     case play
     case browse
     case search
+    case whatToWatch
     case statistics
     case poster
     case download
@@ -14,6 +15,7 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
         case .play: return String(localized: "Play something")
         case .browse: return String(localized: "Browse a library")
         case .search: return String(localized: "Search the library")
+        case .whatToWatch: return WatchCopy.title
         case .statistics: return String(localized: "Open Statistics")
         case .poster: return String(localized: "Preview your Year in Review")
         case .download: return String(localized: "Download an episode")
@@ -25,6 +27,7 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
         case .play: return String(localized: "Resume the highlighted title and try Skip Intro.")
         case .browse: return String(localized: "Filter by genre and watch state, sort, and jump with the A–Z index.")
         case .search: return String(localized: "Results group by type, with a top result.")
+        case .whatToWatch: return ProFeature.whatToWatch.summary
         case .statistics: return String(localized: "Your viewing, drawn from your Plex history.")
         case .poster: return String(localized: "A poster of your year, ready to share.")
         case .download: return String(localized: "Save it to watch offline, with progress on the Lock Screen.")
@@ -36,15 +39,23 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
         case .play: return "play.circle"
         case .browse: return "square.grid.2x2"
         case .search: return "magnifyingglass"
+        case .whatToWatch: return ProFeature.whatToWatch.symbol
         case .statistics: return "chart.bar.xaxis"
         case .poster: return "sparkles.rectangle.stack"
         case .download: return "arrow.down.circle"
         }
     }
 
-    /// The steps that exist on the current platform: downloads and the poster are iPhone features.
-    package static func listed(isTV: Bool = AppPlatform.isTV) -> [DemoTourStep] {
-        allCases.filter { isTV ? $0 != .download && $0 != .poster : true }
+    /// The steps that exist on the current platform: downloads and the poster are iPhone features, and What to Watch
+    /// is there where the demo has its prepared answers.
+    package static func listed(isTV: Bool = AppPlatform.isTV, includingHosted: Bool = HostedBrain.isAvailable) -> [DemoTourStep] {
+        allCases.filter { step in
+            switch step {
+            case .download, .poster: return !isTV
+            case .whatToWatch: return includingHosted
+            case .play, .browse, .search, .statistics: return true
+            }
+        }
     }
 }
 

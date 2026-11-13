@@ -13,6 +13,9 @@ struct DemoTourTests {
         #expect(!DemoTourStep.listed(isTV: true).contains(.download))
         #expect(!DemoTourStep.listed(isTV: true).contains(.poster))
         #expect(DemoTourStep.listed(isTV: true) == [.play, .browse, .search, .statistics])
+        #expect(DemoTourStep.listed(isTV: true, includingHosted: true) == [.play, .browse, .search, .whatToWatch, .statistics])
+        #expect(DemoTourStep.listed(isTV: false, includingHosted: true).contains(.whatToWatch))
+        #expect(!DemoTourStep.listed(isTV: false, includingHosted: false).contains(.whatToWatch))
     }
 
     @Test func stepsOnlyCountInsideTheDemo() {

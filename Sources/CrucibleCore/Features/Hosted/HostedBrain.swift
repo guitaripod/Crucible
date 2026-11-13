@@ -4,7 +4,7 @@ import os
 
 /// Why Crucible's hosted model gave no answer, each with its own next step for the person.
 package enum HostedBrainError: Error, Equatable, Sendable {
-    /// This build or session has no hosted model: a source build, or the demo, which uses no network.
+    /// This build or session has no answer to give: a source build, or a request the demo holds no prepared answer for.
     case unavailable
     case offline
     /// The service answers only for Crucible Pro and this person's allowance without it is used.
@@ -23,23 +23,50 @@ package protocol HostedBrainProviding: Sendable {
     /// Sends `input` to the named alias, which holds the instructions and the shape of the reply on the service, and
     /// returns the reply's text. `language` is the English name of the language to answer in.
     func ask(alias: String, input: String, language: String) async throws(HostedBrainError) -> String
+
+    /// Whether this model has an answer for `input`. The hosted one always tries; the demo's holds only the answers
+    /// prepared for it.
+    func answers(alias: String, input: String, language: String) -> Bool
+}
+
+extension HostedBrainProviding {
+    package func answers(alias: String, input: String, language: String) -> Bool { true }
 }
 
 /// The one hosted model of the process, installed at launch. Nothing reaches it unless a person asks for an answer.
+/// The demo uses no network, so while it runs the answers come from the ones prepared for its library instead.
 package enum HostedBrain {
     private static let provider = OSAllocatedUnfairLock<(any HostedBrainProviding)?>(initialState: nil)
+    private static let demoProvider = OSAllocatedUnfairLock<(any HostedBrainProviding)?>(initialState: nil)
 
     package static func install(_ brain: any HostedBrainProviding) {
         provider.withLock { $0 = brain }
     }
 
-    /// Whether a hosted answer can be asked for at all. The demo never has one: it uses no network.
-    package static var isAvailable: Bool {
-        provider.withLock { $0 != nil } && !UserDefaults.standard.bool(forKey: DemoMode.activeKey)
+    /// Installs the answers the demo gives. Called once by an app entry point that links `CrucibleDemo`.
+    package static func installDemo(_ brain: any HostedBrainProviding) {
+        demoProvider.withLock { $0 = brain }
+    }
+
+    private static var isDemo: Bool { UserDefaults.standard.bool(forKey: DemoMode.activeKey) }
+
+    private static var current: (any HostedBrainProviding)? {
+        (isDemo ? demoProvider : provider).withLock { $0 }
+    }
+
+    /// Whether an answer can be asked for at all: the hosted model with a server, the prepared answers in the demo.
+    package static var isAvailable: Bool { current != nil }
+
+    /// Whether a person's own words are answered. The demo answers only the requests it was prepared for.
+    package static var takesAnyRequest: Bool { !isDemo }
+
+    /// Whether `input` would get an answer, which in the demo is true only for what was prepared.
+    package static func canAnswer(alias: String, input: String) -> Bool {
+        current?.answers(alias: alias, input: input, language: language) ?? false
     }
 
     package static func ask(alias: String, input: String) async throws(HostedBrainError) -> String {
-        guard isAvailable, let brain = provider.withLock({ $0 }) else { throw .unavailable }
+        guard let brain = current else { throw .unavailable }
         return try await brain.ask(alias: alias, input: input, language: language)
     }
 

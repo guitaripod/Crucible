@@ -70734,6 +70734,101 @@
         }
       }
     },
+    "In the demo this recap was prepared ahead, and nothing leaves this device." : {
+      "comment" : "Shown in the demo in place of what a recap sends",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I demoen er dette resumé forberedt på forhånd, og intet forlader denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Demo wurde dieses „Was bisher geschah“ vorab verfasst, und nichts verlässt dieses Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la demo, este «Anteriormente» se escribió de antemano, y nada sale de este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demossa tämä Aiemmin-yhteenveto laadittiin valmiiksi, eikä mitään lähde tältä laitteelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans la démo, ce « Précédemment » a été rédigé à l’avance, et rien ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Í kynningunni var þetta „Það sem gerðist áður“ skrifað fyrirfram og ekkert fer úr þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nella demo, questo «Nelle puntate precedenti» è stato preparato in anticipo, e nulla lascia questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモでは、この「前回までのあらすじ」はあらかじめ作成されたもので、データがこの端末の外に送信されることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "데모에서는 이 지난 이야기를 미리 작성해 두었으며, 이 기기 밖으로는 아무것도 전송되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I demoen er dette «Tidligere i serien» laget på forhånd, og ingenting forlater denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W wersji demonstracyjnej ten tekst „W poprzednich odcinkach” został przygotowany wcześniej, a nic nie opuszcza tego urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na demonstração, este “Anteriormente” foi preparado com antecedência, e nada sai deste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I demon är den här ”Tidigare i”-texten förberedd i förväg, och inget lämnar den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在演示中，这份前情提要是预先写好的，不会有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在示範中，這份前情提要是預先撰寫的，不會有任何資料離開這台裝置。"
+          }
+        }
+      }
+    },
     "In use · %@" : {
       "localizations" : {
         "da" : {
@@ -144502,6 +144597,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連線中斷。請再試一次。"
+          }
+        }
+      }
+    },
+    "The demo answers these four requests with picks prepared ahead, and nothing leaves this device. With your own library you can ask for anything." : {
+      "comment" : "What to Watch in the demo, under its four example requests",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demoen besvarer disse fire ønsker med forslag, der er forberedt på forhånd, og intet forlader denne enhed. Med dit eget bibliotek kan du bede om hvad som helst."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Demo funktionieren nur diese vier Anfragen mit vorab erstellten Auswahlen, und nichts verlässt dieses Gerät. Mit deiner eigenen Mediathek kannst du jede beliebige Anfrage stellen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la demo solo funcionan estas cuatro peticiones, con selecciones preparadas de antemano, y nada sale de este dispositivo. Con tu propia biblioteca puedes pedir lo que quieras."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demo vastaa vain näihin neljään esimerkkipyyntöön valmiiksi laadituilla valinnoilla, eikä mitään lähde tältä laitteelta. Omasta kirjastostasi voit pyytää mitä tahansa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans la démo, seules ces quatre demandes fonctionnent, avec des sélections préparées à l’avance, et rien ne quitte cet appareil. Avec votre propre bibliothèque, vous pouvez demander n’importe quoi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kynningin svarar þessum fjórum beiðnum með fyrirfram útbúnum tillögum og ekkert fer úr þessu tæki. Með þínu eigin safni geturðu beðið um hvað sem er."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La demo risponde a queste quattro richieste con scelte preparate in anticipo, e nulla lascia questo dispositivo. Con la tua libreria puoi chiedere qualsiasi cosa."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモでは、決まった4つのリクエストにだけ、あらかじめ選んでおいたおすすめで答えます。データがこの端末の外に送られることはありません。ご自身のライブラリがあれば、どんなリクエストでも入力できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "데모에서는 미리 준비해 둔 추천으로 이 네 가지 예시 요청에만 답하며, 이 기기 밖으로는 아무것도 전송되지 않습니다. 나만의 보관함이 있다면 무엇이든 요청할 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demoen svarer på disse fire forespørslene med forhåndsvalgte forslag, og ingenting forlater denne enheten. Med ditt eget bibliotek kan du spørre om hva som helst."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W wersji demonstracyjnej na te cztery prośby odpowiadają wcześniej przygotowane wybory, a nic nie opuszcza tego urządzenia. Z własną biblioteką możesz poprosić o cokolwiek."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A demonstração responde a estes quatro pedidos com escolhas preparadas com antecedência, e nada sai deste dispositivo. Com a sua própria biblioteca, você pode pedir qualquer coisa."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demon svarar på de här fyra önskemålen med val som förberetts i förväg, och inget lämnar den här enheten. Med ditt eget bibliotek kan du be om vad som helst."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演示用预先准备好的推荐回应这四个请求，不会有任何数据离开此设备。使用你自己的资料库时，可以输入任何请求。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "示範以預先準備好的推薦回應這四個請求，不會有任何資料離開這台裝置。使用你自己的媒體庫時，可以輸入任何請求。"
           }
         }
       }

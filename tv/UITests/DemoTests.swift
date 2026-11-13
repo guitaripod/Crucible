@@ -9,7 +9,7 @@ import XCTest
 @MainActor
 final class DemoTests: TVTestCase {
     private static let searchQuery = "the"
-    private static let stepIDs = ["play", "browse", "search", "statistics"]
+    private static let stepIDs = ["play", "browse", "search", "whatToWatch", "statistics"]
 
     override func setUp() {
         continueAfterFailure = false
@@ -90,7 +90,7 @@ final class DemoTests: TVTestCase {
         TVTest.settle()
     }
 
-    private static let tourOrder = ["demo.step.play", "demo.step.browse", "demo.step.search", "demo.step.statistics", "demo.connect", "demo.pro", "demo.leave"]
+    private static let tourOrder = ["demo.step.play", "demo.step.browse", "demo.step.search", "demo.step.whatToWatch", "demo.step.statistics", "demo.connect", "demo.pro", "demo.leave"]
 
     /// Walks Up or Down the tour list to `identifier`, from wherever focus came back to.
     private func focusTourRow(_ app: XCUIApplication, _ identifier: String) {
@@ -218,7 +218,7 @@ final class DemoTests: TVTestCase {
         openYou(app)
         TVTest.capture("05-you", in: self)
         XCTAssertTrue(element(app, "you.demo").label.hasPrefix("Demo library, "))
-        YouNavigation.moveFocus(app, to: "you.leaveDemo")
+        YouNavigation.moveFocus(app, to: "you.leaveDemo", limit: 30)
         XCTAssertFalse(element(app, "you.signOut").exists, "Sign Out is replaced by Leave the Demo")
         XCTAssertFalse(element(app, "you.server").exists, "Server & Connection is hidden while the demo runs")
         YouNavigation.moveFocusUp(app, to: "you.demo")
@@ -439,7 +439,7 @@ final class DemoTests: TVTestCase {
     func testLeavingAsksFirstAndReturnsToWelcome() {
         let app = launchIntoHome()
         openYou(app)
-        YouNavigation.moveFocus(app, to: "you.leaveDemo")
+        YouNavigation.moveFocus(app, to: "you.leaveDemo", limit: 30)
         TVTest.remote.press(.select)
         let alert = app.alerts["Leave the Demo?"]
         XCTAssertTrue(alert.waitForExistence(timeout: 10))
@@ -504,7 +504,7 @@ final class DemoTests: TVTestCase {
     func testLeavingForgetsTheDemoForGood() {
         let app = launchIntoHome()
         openYou(app)
-        YouNavigation.moveFocus(app, to: "you.leaveDemo")
+        YouNavigation.moveFocus(app, to: "you.leaveDemo", limit: 30)
         TVTest.remote.press(.select)
         press(button: "Leave the Demo", in: app.alerts["Leave the Demo?"])
         waitForWelcome(app)
@@ -604,5 +604,60 @@ final class DemoTests: TVTestCase {
         XCTAssertEqual(episodes.label, "Episodes: Skip Anime-Only")
         TVTest.settle(1.5)
         TVTest.capture("18-essentials-on", in: self)
+    }
+
+    private func focused(_ app: XCUIApplication) -> String {
+        app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).firstMatch.identifier
+    }
+
+    /// Presses `button` until focus rests on `identifier`, at most six times; returns whether it got there.
+    private func reach(_ identifier: String, in app: XCUIApplication, pressing button: XCUIRemote.Button) -> Bool {
+        for _ in 0..<6 where focused(app) != identifier {
+            TVTest.remote.press(button)
+            TVTest.settle(0.6)
+        }
+        return focused(app) == identifier
+    }
+
+    func testWhatToWatchAnswersItsExamplesFromPreparedPicks() {
+        let app = launch(extraEnvironment: ["CRUCIBLE_OPEN": "whattowatch"])
+        startDemo(app)
+        waitForIntro(app)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(element(app, "watch.example.0").waitForExistence(timeout: 90), "What to Watch never opened in the demo")
+        TVTest.settle(2)
+        XCTAssertFalse(element(app, "watch.own").exists, "the demo offers a request it cannot answer")
+        TVTest.capture("watch-ask", in: self)
+        XCTAssertTrue(reach("watch.example.1", in: app, pressing: .down), "focus never reached the second example, it is on \(focused(app))")
+        TVTest.remote.press(.select)
+        let picks = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'watch.pick.'"))
+        XCTAssertTrue(picks.firstMatch.waitForExistence(timeout: 30), "the demo gave no picks")
+        TVTest.settle(1.5)
+        XCTAssertGreaterThanOrEqual(picks.count, 3)
+        TVTest.capture("watch-picks", in: self)
+    }
+
+    func testAShowStartedInTheDemoWritesItsPreparedRecap() {
+        let app = launch(extraEnvironment: ["CRUCIBLE_OPEN_LINK": "crucible://item/2005?type=show"])
+        startDemo(app)
+        waitForIntro(app)
+        TVTest.remote.press(.select)
+        XCTAssertTrue(element(app, "detail.action.primary").waitForExistence(timeout: 90), "the show page never opened in the demo")
+        TVTest.settle(2)
+        XCTAssertTrue(reach("detail.action.primary", in: app, pressing: .down), "focus never reached the show's buttons, it is on \(focused(app))")
+        let reached = reach("detail.action.previouslyOn", in: app, pressing: .right)
+        TVTest.capture("recap-page", in: self)
+        XCTAssertTrue(reached, "the show has no Previously On in the demo, focus is on \(focused(app))")
+        TVTest.remote.press(.select)
+        let choice = app.alerts.firstMatch
+        XCTAssertTrue(choice.waitForExistence(timeout: 5), "the demo offers no recap of the episodes it starts with")
+        TVTest.settle(1)
+        TVTest.capture("recap-choice", in: self)
+        TVTest.remote.press(.select)
+        let text = element(app, "detail.synopsis.text")
+        XCTAssertTrue(text.waitForExistence(timeout: 30), "no recap came back")
+        TVTest.settle(1)
+        TVTest.capture("recap", in: self)
+        XCTAssertGreaterThan(text.label.count, 40)
     }
 }

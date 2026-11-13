@@ -1,0 +1,2339 @@
+{
+ "version": 1,
+ "watch": [
+  {
+   "plan": "{\"count\":null,\"family\":false,\"from_year\":null,\"kind\":\"movie\",\"max_minutes\":120,\"min_minutes\":null,\"to_year\":null,\"watched\":\"unseen\"}",
+   "answers": {
+    "English": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "A highly rated animated film with a warm, inventive feel and strong reputation."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "A well-regarded documentary with an engaging, carefully made look at its subject."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "A well-reviewed documentary with a quiet, observational style suitable for all ages."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "An adventure-mystery with a strong rating, offering puzzles and a sense of journey."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "A playful comedy-thriller with a well-liked reputation and an easygoing, tense energy."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "A well-rated documentary with a short, focused runtime and a reflective tone."
+      }
+     ],
+     "note": ""
+    },
+    "German": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Eine gut bewertete Animation, die sich für einen ruhigen, besonderen Filmabend eignet."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Ein hoch bewerteter Dokumentarfilm, der Neugier weckt und sich gut anschauen lässt."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Eine ruhige Dokumentation mit guter Bewertung, passend für einen entspannten Abend."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Ein Abenteuer mit Rätselcharakter, das Spannung und Entdeckungslust verbindet."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Eine Mischung aus Komödie und Spannung, die mit viel Tempo unterhält."
+      }
+     ],
+     "note": ""
+    },
+    "French": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Une animation poétique et soignée, idéale si vous voulez un film visuellement riche et apaisant."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Une aventure teintée de mystère, avec une intrigue qui invite à suivre chaque indice."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Une comédie-thriller nerveuse et drôle, qui joue habilement sur la tension et l'humour."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Une comédie de science-fiction légère et originale, facile à suivre et plaisante."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Une comédie décalée au ton chaleureux, parfaite pour un moment détendu sans prise de tête."
+      }
+     ],
+     "note": ""
+    },
+    "Spanish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animación de alta valoración, ideal si buscas una historia visualmente cuidada y emotiva."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Documental muy bien valorado que atrapa con imágenes y un ritmo pausado."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Aventura con misterio, perfecta si quieres una trama de exploración y enigmas."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documental sereno y bien valorado, para una tarde tranquila sin complicaciones."
+      }
+     ],
+     "note": ""
+    },
+    "Italian": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Un'animazione dal tono delicato e poetico, adatta a chi cerca una visione intensa."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Un documentario ben valutato, capace di coinvolgere anche chi non ama il genere."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Un'avventura con mistero, ritmo sostenuto e atmosfera da caccia al tesoro."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documentario tranquillo e contemplativo, dal ritmo pacato e riflessivo."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Commedia e thriller con tensione e umorismo, per una serata leggera ma intrigante."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Documentario essenziale e riflessivo sulla città, adatto a una visione attenta."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Commedia brillante e leggera, per staccare la spina con un sorriso."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Commedia fantascientifica dal tono giocoso, per una serata di svago."
+      }
+     ],
+     "note": ""
+    },
+    "Portuguese (Brazil)": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animação elogiada e com ritmo leve, ideal para quem quer uma história envolvente e bonita."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Documentário muito bem avaliado, com temas instigantes e narrativa clara do início ao fim."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Aventura com mistério e ritmo de investigação, para quem gosta de histórias cheias de pistas."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Mistura de comédia e suspense com tom divertido e enredo de estratégia cheio de reviravoltas leves."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documentário bem avaliado e contemplativo, para uma sessão tranquila e informativa."
+      }
+     ],
+     "note": ""
+    },
+    "Polish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animowana opowieść o cichej przyjaźni, pełna delikatnych i poruszających obrazów."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Dokument o naturze, wysoko oceniany, spokojny i angażujący od pierwszych minut."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Spokojny dokument o sadach i pracy ludzi, z wysoką oceną widzów."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Przygodowa zagadka z tajemnicą, dobra na wieczór pełen wciągającej intrygi."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Komedia z dreszczykiem, lekka zabawa z napięciem i sprytnymi zwrotami akcji."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Uważny dokument o przestrzeniach miejskich, przystępny i dobrze oceniany."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Lekka komedia o nietypowej przygodzie, dobra na spokojny wieczór."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Lekka komedia science fiction o kosmicznym hotelu, zabawna i przyjemna."
+      }
+     ],
+     "note": ""
+    },
+    "Swedish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Högt betygsatt animerad film med varm ton, passar den som vill ha något annorlunda."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Välbetygsatt dokumentär om ett märkligt ämne, lugn i tempot och stadigt berättad."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Äventyr och mysterium med en klassisk känsla, spännande utan att vara skrämmande."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Eftertänksam dokumentär med högt betyg, lätt att se för alla åldrar."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Komisk thriller med ett vasst och lekfullt upplägg, snabb och underhållande."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Kort och personlig dokumentär med gott rykte, passar en lugn kväll."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Mörk humoristisk film med lätt tempo, passar dig som gillar udda komedier."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Science fiction-komedi med en lekfull idé, underhållande och lättsam att följa."
+      }
+     ],
+     "note": ""
+    },
+    "Danish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "En højt vurderet animationsfilm, der er god at starte med, når du vil have noget nyt."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "En velanmeldt dokumentar i en rolig form, som er let at give sig hen til."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "En stille dokumentar med god vurdering, velegnet til en rolig aften."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Et eventyr med mysterium og høj vurdering, der passer til en spændende filmaften."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "En dokumentar med god vurdering og en kort, overskuelig spilletid."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "En komedie med thrillerelementer og en god vurdering, der giver underholdning uden store forudsætninger."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "En komedie med god vurdering, som er let at se fra start til slut."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "En sci-fi-komedie med en lettere tone, der passer til en uforpligtende aften."
+      }
+     ],
+     "note": ""
+    },
+    "Norwegian Bokmål": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "En velspilt animasjonsfilm med ro, varme og visuell poesi for hele familien."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "En dokumentar med høy score som gir et engasjerende innblikk i sitt tema."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "En rolig dokumentar med stillferdig tone, egnet for en rolig kveld."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Eventyrlig mysterium med spenning og oppdagelser, passer for den som vil ha noe fengslende."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "En smart blanding av komedie og thriller med lekne vendinger og godt tempo."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "En dokumentar om urbane landskap med eftertenksom og rolig fortelling."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "En munter komedie med lun tone og lett stemning for en avslappende kveld."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "En lett science fiction-komedie med eksentrisk humor og fargerik fantasi."
+      }
+     ],
+     "note": ""
+    },
+    "Finnish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Kaunis animaatio, joka sopii rauhalliseen iltaan ja lempeään tunnelmaan."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Dokumentti, jonka arvioitu sävy on tarkkaileva ja korkealaatuinen."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Seikkailu ja arvoitus, jossa edetään vaiheittain kohti selvää ratkaisua."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Rauhallinen dokumentti luonnosta, sopii hyvin kevyeen katseluun."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Komedia ja trilleri yhdistettynä, hyvä valinta vauhdikkaaseen iltaan."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Dokumentti kaupunkiympäristöstä, sopii kiinnostuneelle ja rauhalliselle katsojalle."
+      },
+      {
+       "title": "Halcyon Bay",
+       "year": 2018,
+       "why": "Hiljainen draama, jossa tunnelma ja henkilöt ovat keskiössä."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Kevyt komedia, joka sopii rentoon iltaan ja hyvään seuraan."
+      }
+     ],
+     "note": ""
+    },
+    "Icelandic": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Teiknimynd með háa einkunn, hentar vel ef þú vilt eitthvað öðruvísi."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Heimildarmynd með háa einkunn, áhugaverð og vel gerð frá upphafi."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Heimildarmynd með góða einkunn, rólegt og íhugult efni."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Ævintýri með leyndardómi, spennandi og vel metið val fyrir kvöldið."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Gamanspennumynd með góða einkunn, léttari en hún virðist við fyrstu sýn."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Heimildarmynd með góða einkunn, stutt og fróðleg áhorfs."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Gamanmynd með ágæta einkunn, létt og skemmtileg kvöldmynd."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Gamanmynd með vísindaskáldskap, létt og fjörug og auðvelt að njóta."
+      }
+     ],
+     "note": ""
+    },
+    "Korean": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "높은 평점의 애니메이션으로, 가볍게 즐기기 좋은 작품입니다."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "높은 평점의 다큐멘터리로, 실제 이야기에 빠져들기 좋습니다."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "모험과 미스터리가 어우러진 흥미진진한 이야기를 원하실 때 맞습니다."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "차분한 분위기의 다큐멘터리로, 잔잔하게 몰입하고 싶을 때 적합합니다."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "코미디와 스릴러가 섞인 긴장감 있는 작품으로 재미있게 볼 수 있습니다."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "현실을 깊이 들여다보는 다큐멘터리로, 생각할 거리를 줍니다."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "유쾌한 코미디로, 부담 없이 가볍게 웃고 싶을 때 좋습니다."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "유머와 공상과학이 결합된 가벼운 작품으로 기분 전환에 좋습니다."
+      }
+     ],
+     "note": ""
+    },
+    "Japanese": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "評価の高いアニメーションで、静かで詩的な雰囲気を楽しみたい気分に合います。"
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "高評価のドキュメンタリーで、現実の題材にじっくり向き合いたい気分に合います。"
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "落ち着いた語り口のドキュメンタリーで、穏やかに観始めたい方に向いています。"
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "冒険と謎解きが組み合わさり、物語に引き込まれたい気分に合う作品です。"
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "コメディとスリラーが混ざり合い、軽快な緊張感を味わいたい方に向きます。"
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "都市の風景を見つめるドキュメンタリーで、静かな発見を求める気分に合います。"
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "ユーモアのある作品で、気軽に笑って過ごしたい気分に合います。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "SFとコメディが融合した作品で、奇妙で楽しい世界を覗きたい方に向きます。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Simplified": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "动画片，评分很高，画风温和，适合想看一部没看过的电影。"
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "纪录片，评分较高，主题清晰，适合安静地看完一部作品。"
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "纪录片，口碑不错，节奏平稳，适合想慢慢看的时候。"
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "冒险与悬疑结合，评分不错，情节有吸引力，适合想找故事性强的电影。"
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "喜剧与惊悚混合，评分较好，节奏轻快，适合想放松又有悬念的时候。"
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "纪录片，评分较高，题材独特，适合想看现实题材的你。"
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "喜剧风格，评分尚可，轻松有趣，适合想随意看点轻松内容的时候。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "科幻与喜剧结合，设定新颖，适合想尝试新鲜题材的你。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Traditional": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "動畫電影，口碑出色，節奏溫和，適合想找一部輕鬆又耐看的作品。"
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "紀錄片題材新穎，片長適中，能讓人安靜地沉浸其中。"
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "冒險與懸疑交織，故事展開有層次，適合想要一段完整觀影旅程的人。"
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "喜劇與驚悚混合，節奏明快，適合想輕鬆又有懸念的夜晚。"
+      }
+     ],
+     "note": ""
+    }
+   }
+  },
+  {
+   "plan": "{\"count\":null,\"family\":false,\"from_year\":null,\"kind\":\"any\",\"max_minutes\":null,\"min_minutes\":null,\"to_year\":null,\"watched\":\"any\"}",
+   "answers": {
+    "English": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "A gentle, warmly animated story that suits a relaxed evening with no real tension."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "A bright, short animated adventure with an easy, cheerful tone for winding down."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "A playful sci-fi comedy with a light touch and an easygoing, breezy pace."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "An amiable, low-stakes comedy that's easy to settle into after a long day."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "A brief, laid-back comedy episode that's gentle and easy to start tonight."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "A short, charming comedy with a relaxed rhythm and no heavy themes."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "A witty comedy with a mild thriller edge, fun without being too intense."
+      }
+     ],
+     "note": ""
+    },
+    "German": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Eine warmherzige Animation mit viel Charme, ideal zum entspannten Abschalten."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Eine verspielte Sci-Fi-Komödie mit leichtem Ton und viel Humor."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Eine unbeschwerte Komödie, die locker unterhält und sich einfach genießen lässt."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Eine verspielte Komödie mit einem leichten Krimi-Touch, nicht zu schwer."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Eine kurze, pointierte Comedy-Serie, perfekt für einen gemütlichen Abend."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Eine entspannte, kurze Comedy-Serie mit warmem Humor für zwischendurch."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Eine liebevoll gezeichnete, kurze Animationsserie mit sanftem Abenteuergeist."
+      }
+     ],
+     "note": ""
+    },
+    "French": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animation douce et chaleureuse, parfaite pour se détendre sans effort ce soir."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Une comédie légère et décalée, facile à suivre en fin de journée."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Une comédie spatiale pleine d'humour, sans prise de tête, idéale pour ce soir."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animation joyeuse et courte, pour un moment détendu et souriant."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Comédie courte et enlevée, des épisodes faciles à enchaîner sans effort."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Comédie tendre et détendue, des épisodes courts pour une soirée légère."
+      }
+     ],
+     "note": ""
+    },
+    "Spanish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animación amable y luminosa, perfecta para relajarse sin esfuerzo esta noche."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Comedia ligera de ciencia ficción con un tono divertido y despreocupado."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Comedia sencilla y entretenida, pensada para pasar un buen rato."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Comedia con un toque de intriga, ágil y fácil de seguir."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animación encantadora y breve, ideal para un ambiente tranquilo y alegre."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Comedia corta y amable que se puede ver sin compromiso."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Comedia relajada de episodios breves, con un tono cálido y cercano."
+      }
+     ],
+     "note": ""
+    },
+    "Italian": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animazione delicata e colorata, perfetta per un'serata rilassata e senza pensieri."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Commedia fantascientifica briosa e leggera, con toni spiritosi e ritmo scorrevole."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Commedia brillante e frizzante, ideale per staccare la spina con un sorriso."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Comedia breve e disinvolta, facile da seguire e piacevole da guardare stasera."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Commedia tranquilla e simpatica, con episodi brevi e un'atmosfera molto rilassata."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animazione avventurosa e gentile, con un tono caldo e rassicurante."
+      }
+     ],
+     "note": ""
+    },
+    "Portuguese (Brazil)": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animação leve e acolhedora, ótima para relaxar e desligar a cabeça hoje à noite."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Comédia curta e descontraída, dá para assistir sem compromisso."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Comédia leve de episódios curtos, boa para uma noite tranquila."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Comédia despretensiosa com clima gostoso, sem exigir muita atenção."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Comédia de ficção científica bem-humorada, leve e divertida de acompanhar."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animação suave e encantadora, com tom delicado e muito acolhedor."
+      }
+     ],
+     "note": ""
+    },
+    "Polish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animowana opowieść o ciepłym, łagodnym tonie, idealna na spokojny wieczór."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Pogodna animacja przygodowa, lekka i przyjemna, odpowiednia na dziś wieczorem."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Lekka komedia science fiction z humorem, bez ciężkiego nastroju."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Zabawna komedia o niedużej skali, łatwa do obejrzenia po całym dniu."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Krótkie, lekkie odcinki komedii, które dobrze sprawdzą się na jeden wieczór."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Ciepła, spokojna komedia w krótkich odcinkach, bez napięcia i dramatyzmu."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Komedia z lekkim przymrużeniem oka i odrobiną napięcia dla rozrywki."
+      }
+     ],
+     "note": ""
+    },
+    "Swedish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animerad film med högt betyg, mjuk ton som passar en lugn kväll."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Kort, varm animerad serie med äventyr, lätt att titta på ikväll."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Kort komedi-serie med avsnitt som går snabbt och lättsamt."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Lättsam komedi-serie i korta avsnitt, bra för en avslappnad kväll."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Lättsam sci-fi-komedi med tempo, som inte kräver mycket uppmärksamhet."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Ren komedi som ger en bekväm och underhållande kväll."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Komedi med lite spänning, lätt att följa och road hela vägen."
+      }
+     ],
+     "note": ""
+    },
+    "Danish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "En smuk, blid animationsfilm, der passer godt til en rolig aften."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "En venlig, farverig animationsserie med et lunt og let tonefald."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Korte, lette komedieafsnit, som er nemme at se ét af gangen."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "En afslappet komedieserie med korte afsnit og en mild humor."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "En munter sci-fi-komedie med et skævt og underholdende udgangspunkt."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "En lun komedie, der er let at følge og giver god stemning."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "En let komedie med et lille snert af spænding, uden tung stemning."
+      }
+     ],
+     "note": ""
+    },
+    "Norwegian Bokmål": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "En varm og lett animasjonsfilm som passer godt til en rolig kveld."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Lett komedie med sci-fi-humor, god underholdning uten store krav."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "En rolig komedie som er enkel å følge og lett å le av."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "En kort, lun komedieserie der du lett ser én episode til."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Korte komedieepisoder med mild humor, passer fint til en avslappet kveld."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Mild animert serie med korte episoder, varm og enkel å se på."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Lett komedie med et lite spenningsglimt, uten tung stemning."
+      }
+     ],
+     "note": ""
+    },
+    "Finnish": {
+     "picks": [
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Kevyt scifi-komedia, jossa absurdi hotelliarki tuo hymyn huulille."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Lämmin ja hauska komedia, joka sopii rentoon iltaan."
+      },
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Rauhallinen animaatio, jonka tunnelma on lempeä ja helppo seurata."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Kevyt ja iloinen animaatioseikkailu, lyhyt ja helppo katsoa."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Lyhyt, kevyt komediasarja, joka etenee rennosti ilman raskautta."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Rento ja lempeä komediasarja, josta on helppo nauttia illalla."
+      }
+     ],
+     "note": ""
+    },
+    "Icelandic": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Falleg teiknimynd sem er hlý, róleg og auðvelt að njóta á kvöldin."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "Létt gamanmynd með hlýlegum húmor sem hentar vel eftir langan dag."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Léttur gamanmynd í geimnum, fyndin og leikandi án mikillar spennu."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Stutt og létt gamanþáttaröð, fullkomin fyrir eitt kvöldhlé."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Létt og róleg gamanþáttaröð með þægilegum, vinalegum húmor."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Litrík teiknuð ævintýri, létt og notaleg fyrir alla fjölskylduna."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "Skemmtileg gamanmynd með smá spennu, létt og kærulaus í tóni."
+      }
+     ],
+     "note": ""
+    },
+    "Korean": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "따뜻하고 부드러운 애니메이션이라 부담 없이 편하게 보기 좋습니다."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "짧은 에피소드로 가볍게 웃을 수 있는 유쾌한 코미디 시리즈입니다."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "잔잔하고 편안한 분위기의 짧은 코미디라 가볍게 즐기기 좋습니다."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "아이처럼 마음 편히 볼 수 있는 밝고 따뜻한 애니메이션 시리즈입니다."
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "무겁지 않은 소동과 유머가 이어져 가볍게 웃으며 볼 수 있습니다."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "기발한 설정과 유쾌한 농담이 많아 긴장 없이 즐기기 좋습니다."
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "코믹한 전개에 가벼운 긴장감이 더해져 부담 없이 빠져들 수 있습니다."
+      }
+     ],
+     "note": ""
+    },
+    "Japanese": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "やさしい雰囲気のアニメーションで、力を抜いて見られる作品です。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "短いエピソードで気軽に見られる、温かみのあるアニメーション作品です。"
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "一話が短く、肩の力を抜いて笑えるコメディーです。"
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "短時間で見られる、ゆるやかで軽快なコメディーです。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "宇宙を舞台にした軽いSFコメディーで、気楽に楽しめます。"
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "ユーモアが中心の作品で、今夜の気分転換にちょうどよいです。"
+      },
+      {
+       "title": "Hal's Gambit",
+       "year": 2015,
+       "why": "コメディーの軽さにほどよいスリルが混ざった、気楽な一本です。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Simplified": {
+     "picks": [
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "轻松幽默的短篇喜剧，每集不长，适合放松时随手看。"
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "节奏舒缓的喜剧，单集时长短，轻松无负担，适合今晚消遣。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "温暖的动画冒险，画面柔和，气氛轻快，适合放松心情。"
+      },
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "口碑很好的动画电影，风格温和治愈，适合安静放松地观看。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "轻松的科幻喜剧，设定有趣，节奏明快，不费脑子。"
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "轻松的喜剧电影，氛围温和，适合晚上舒适地放松观看。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Traditional": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "溫柔動畫，色彩柔和，節奏舒緩，適合今晚放鬆心情。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "荒誕有趣的輕科幻喜劇，不需費神便能輕鬆追看。"
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "幽默喜劇，氣氛輕快，適合今晚放空、好好休息。"
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "短篇輕喜劇，每集片長簡短，笑點直接，好消化。"
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "節奏明快的輕喜劇，適合睡前放鬆觀看。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "溫馨的動畫冒險，畫面柔美，適合想要舒心的夜晚。"
+      }
+     ],
+     "note": ""
+    }
+   }
+  },
+  {
+   "plan": "{\"count\":null,\"family\":false,\"from_year\":null,\"kind\":\"show\",\"max_minutes\":null,\"min_minutes\":null,\"to_year\":null,\"watched\":\"any\"}",
+   "answers": {
+    "English": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "A mysterious sci-fi series with an adult tone, fresh to begin this weekend."
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "A gripping, slow-burning mystery drama that rewards a weekend of binge-watching."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "A thoughtful sci-fi drama with strong reviews, well suited to a weekend binge."
+      }
+     ],
+     "note": ""
+    },
+    "German": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Ein dichter Mystery-Thriller mit Sog, perfekt für ein langes Wochenende am Stück."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Kluge Science-Fiction mit ernsten Figuren, die einen über viele Folgen fesselt."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Actionreiches Drama mit viel Tempo, das sich gut am Wochenende verschlingen lässt."
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "Abenteuerliches Drama mit weiter Landschaft, packend und trotzdem entspannt zum Dranbleiben."
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "Leichte Comedy mit kurzen Folgen, angenehm zum Abschalten an freien Tagen."
+      }
+     ],
+     "note": ""
+    },
+    "French": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Un thriller dramatique aux mystères captivants, idéal pour enchaîner les épisodes ce week-end."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Une science-fiction dramatique prenante, parfaite pour se plonger dans une série ce week-end."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Une série d'action et de drame au rythme soutenu, facile à enchaîner."
+      }
+     ],
+     "note": ""
+    },
+    "Spanish": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Misterio y ciencia ficción intrigante, perfecta para empezar una serie nueva este fin de semana."
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Drama y suspense con misterio envolvente, muy valorado para enganchar desde el primer episodio."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Ciencia ficción dramática y reflexiva, bien valorada, para un fin de semana tranquilo."
+      }
+     ],
+     "note": ""
+    },
+    "Italian": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Un thriller misterioso e intenso, ideale per una maratona di fine settimana."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Dramma di fantascienza avvincente, con episodi che invitano a guardarne molti di seguito."
+      },
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Mistero di fantascienza cupo e non ancora visto, perfetto per iniziare subito."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Dramma d'azione teso e coinvolgente, adatto a serate lunghe di visione."
+      }
+     ],
+     "note": ""
+    },
+    "Portuguese (Brazil)": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Mistério sombrio e tenso, com ritmo envolvente para maratonar no fim de semana."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Ficção científica reflexiva com drama humano forte, ótima para começar agora."
+      },
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Mistério de ficção científica inédito, ideal para estrear neste fim de semana."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Ação e drama intensos, com enredo forte para quem quer algo envolvente."
+      }
+     ],
+     "note": ""
+    },
+    "Polish": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Tajemniczy science fiction z napięciem, idealny na pierwszy odcinek weekendu."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Ciepła animowana przygoda o dużej wrażliwości, dobra dla całej rodziny."
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Mroczny, wciągający kryminał z tajemnicą, który szybko przyciąga uwagę."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Refleksyjna opowieść science fiction o wyborach i ich konsekwencjach, z dobrym tempem."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Dynamiczny dramat akcji o rodzinnych konfliktach i mocnych, zapadających scenach."
+      }
+     ],
+     "note": ""
+    },
+    "Swedish": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Spännande mysterium med mörk stämning, perfekt för en helg där man vill fastna."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Välskriven science fiction med starkt drama, som bjuder in till att titta vidare."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Vacker animerad äventyrsserie med hög kvalitet, lätt att njuta av tillsammans."
+      },
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Ny mysteriserie med sci-fi-inslag, du har inte påbörjat den än."
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "Naturnära äventyrsdrama med god takt, bra för att komma igång snabbt."
+      }
+     ],
+     "note": ""
+    },
+    "Danish": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Et uhåndteret mysterie med sci-fi-præg, der passer til en ny serie i weekenden."
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Spændende mysterie-thriller med tæt stemning, der er nem at blive hooked af."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Sci-fi-drama med eftertænksomt tempo, godt til lange sammenhængende weekendtimer."
+      }
+     ],
+     "note": ""
+    },
+    "Norwegian Bokmål": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Ny mysteriøs sci-fi-serie med spenning og stemning, ideell for en fersk start."
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Tett spenningsdrama med mysterium som holder deg fast fra første episode."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Sci-fi-drama med god fart og dype spørsmål, passer fint til en rolig helg."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Vakker animert eventyrserie som er lett å sette i gang med."
+      }
+     ],
+     "note": ""
+    },
+    "Finnish": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "Mysteerinen tieteissarja, joka vetää mukaansa heti ja sopii hyvin viikonlopun katseluun."
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Tiivis mysteeridraama, jossa jännite kasvaa jaksoittain ja pitää otteessaan."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Älykäs tieteisdraama, jonka hidas tunnelma palkitsee rauhallisen katselijan."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Tiukka toimintadraama, jonka tahti pitää kiinni alusta alkaen."
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "Seikkailudraama, jossa matka ja tunnelma vievät eteenpäin jaksosta toiseen."
+      }
+     ],
+     "note": ""
+    },
+    "Icelandic": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "Spennandi leyndardómur sem heldur þér við efnið frá fyrsta þætti."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "Vísindaskáldskapur með dramatískri dýpt, tilvalinn til að sökkva sér niður í."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "Hraður spennuþáttur með átökum og dramatík, góður til að byrja strax."
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "Ævintýraleg drama á ferðalagi, hentar vel í rólega helgarsetu."
+      }
+     ],
+     "note": ""
+    },
+    "Korean": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "긴장감 있는 미스터리가 이어져 첫 회부터 다음 화가 궁금해지는 드라마예요."
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "SF 설정 속에서 인물의 선택을 따라가는 몰입감 높은 드라마예요."
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "액션과 드라마가 균형 잡혀 주말 밤에 빠져들기 좋은 작품이에요."
+      }
+     ],
+     "note": ""
+    },
+    "Japanese": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "謎と SF が絡み合う、先の読めない不思議な物語で、新しく始めるのにぴったりです。"
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "じわじわ迫る緊張感の中で謎が解けていく、重厚なミステリードラマです。"
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "近未来を舞台にした人間ドラマで、思索的な SF が好きな方に合います。"
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "旅と冒険を描く骨太なドラマで、週末に一気に引き込まれそうです。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Simplified": {
+     "picks": [
+      {
+       "title": "Static Bloom",
+       "year": 2026,
+       "why": "悬疑与科幻交织，节奏紧凑，适合周末一口气追进去。"
+      },
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "悬疑剧情层层推进，氛围阴郁，适合整个周末沉浸式追看。"
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "科幻与剧情结合，人物命运牵引力强，适合连续观看。"
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "动作与剧情并重，节奏明快，适合周末放松又刺激地追剧。"
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "冒险与人物成长兼顾，画面开阔，适合周末慢慢追完。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "动画冒险风格温暖精致，单集时长短，适合轻松周末追看。"
+      },
+      {
+       "title": "Kestrel Row",
+       "year": 2023,
+       "why": "轻松喜剧，单集短小，适合周末放松时连续观看。"
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "喜剧风格轻快，单集节奏明快，适合周末轻松追剧。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Traditional": {
+     "picks": [
+      {
+       "title": "The Salt Road",
+       "year": 2019,
+       "why": "懸疑與緊張交織的劇情，很適合一口氣追到週末的深夜。"
+      },
+      {
+       "title": "Meridian",
+       "year": 2020,
+       "why": "科幻與人性拉扯並重，層層鋪陳，適合沉浸式連續觀看。"
+      },
+      {
+       "title": "Ironwood",
+       "year": 2021,
+       "why": "節奏緊湊的動作與人物戲，週末追劇張力十足。"
+      },
+      {
+       "title": "Northbound",
+       "year": 2025,
+       "why": "公路冒險氛圍濃厚，節奏從容，適合慢慢陪伴的追劇。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "單集短、畫面精美的動畫冒險，適合輕鬆放鬆的週末。"
+      }
+     ],
+     "note": ""
+    }
+   }
+  },
+  {
+   "plan": "{\"count\":null,\"family\":true,\"from_year\":null,\"kind\":\"any\",\"max_minutes\":null,\"min_minutes\":null,\"to_year\":null,\"watched\":\"any\"}",
+   "answers": {
+    "English": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "A gentle, beautifully animated film with wide appeal for children and parents alike."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "A gentle animated adventure rated for young children, with a warm, playful tone."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "A calm, gentle nature documentary rated TV-G, suitable for the whole family."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "A family-friendly nature documentary that children can enjoy and learn from."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "A light, good-humoured comedy series with a mild tone suited to family viewing."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "A playful sci-fi comedy with a lighthearted tone that suits family evenings."
+      },
+      {
+       "title": "Deep Field",
+       "year": 2026,
+       "why": "An adventurous sci-fi journey with a sense of wonder that older children will enjoy."
+      }
+     ],
+     "note": ""
+    },
+    "German": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Liebevoll gezeichneter Animationsfilm mit warmer Geschichte, der Groß und Klein gleichermaßen begeistert."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Familienfreundliche Animationsserie voller Abenteuer, passend für jüngere Kinder und die ganze Familie."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Dokumentarfilm mit eindrucksvollen Bildern, der auch jüngere Zuschauer fasziniert."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Ruhiger Dokumentarfilm mit kindgerechter Freigabe, den Kinder und Erwachsene gemeinsam sehen können."
+      }
+     ],
+     "note": ""
+    },
+    "French": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Film d'animation doux et poétique, idéal pour toute la famille."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Série animée d'aventure très douce, adaptée aux plus jeunes spectateurs."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documentaire tout public sur la nature, calme et adapté aux enfants."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Aventure et mystère familiaux, avec une intrigue captivante pour les enfants."
+      }
+     ],
+     "note": ""
+    },
+    "Spanish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animación de alta calidad, con tono cálido y pensada para toda la familia."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animación de aventuras apta para niños pequeños, con una historia amable y entretenida."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documental de tono suave y calificación TV-G, ideal para ver en familia."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Documental apto para todas las edades, con temas de ciencia y descubrimiento."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Documental accesible y tranquilo, pensado para compartir con los niños."
+      }
+     ],
+     "note": ""
+    },
+    "Italian": {
+     "picks": [
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animazione avventurosa in episodi brevi, con toni giocosi e luminosi per i più piccoli."
+      },
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animazione delicata e luminosa, con una storia toccante adatta a tutta la famiglia."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documentario naturalistico rassicurante, con immagini affascinanti da guardare insieme ai bambini."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Avventura e mistero coinvolgenti, con una giovane protagonista curiosa e intelligente."
+      }
+     ],
+     "note": ""
+    },
+    "Portuguese (Brazil)": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Animação encantadora e visualmente bonita, com tom gentil para toda a família."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animação em episódios curtos e leves, ideal para crianças pequenas."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Documentário tranquilo, com classificação livre, bom para assistir juntos em casa."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Documentário acessível, com classificação TV-PG, para assistir juntos em casa."
+      }
+     ],
+     "note": ""
+    },
+    "Polish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Urzekająca animacja o odwadze i przyjaźni, odpowiednia dla najmłodszych widzów."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Animowana przygoda w pięknym świecie, łagodna i pełna wyobraźni dla dzieci."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Lekka komedia z ciepłym humorem, bez brutalności, dobra dla całej rodziny."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Spokojny film dokumentalny o przyrodzie, przystępny i bezpieczny dla dzieci."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Dokument o odkrywaniu natury, pełen ciekawych obrazów, odpowiedni dla młodszych widzów."
+      }
+     ],
+     "note": ""
+    },
+    "Swedish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Vacker animerad berättelse som passar hela familjen och alla åldrar."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Mjuk animerad äventyrsserie med lugnt tempo, lagom spännande för yngre barn."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Lugn naturdokumentär i lågmäld ton, lämplig för små barn."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Spännande naturdokumentär som kan ses tillsammans med hela familjen."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Vacker dokumentär om växtlivet, lugn och lärorik för barn."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Mysig komedi med varm humor, lätt att följa tillsammans."
+      }
+     ],
+     "note": ""
+    },
+    "Danish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "En smuk animationsfilm med varme og humor, god for hele familien."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "En venlig animeret serie om eventyr, passende for de mindste børn."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Et spændende eventyr med en gådefuld historie, der passer til hele familien."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "En naturdokumentar med fine billeder, der også fanger yngre seere."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "En let komisk sci-fi-historie med humor, som hele familien kan more sig over."
+      }
+     ],
+     "note": ""
+    },
+    "Norwegian Bokmål": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Vakker animasjon med varme, og en historie hele familien kan følge sammen."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Kort, fargerik animasjonsserie med eventyr som passer for yngre barn."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Naturdokumentar med tydelig forklaring, egnet for hele familien å se sammen."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Lett romkomedie med humor som både barn og voksne kan more seg med."
+      }
+     ],
+     "note": ""
+    },
+    "Finnish": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Kaunis animaatioelokuva lapsille, lempeä tunnelma ja vahva arvostus koko perheelle."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Lempeä animaatiosarja seikkailuineen, sopii pienille katsojille ja koko perheelle."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Rauhallinen luontodokumentti, sopii kaikenikäisille ja kiinnostaa uteliaita lapsia."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Tiededokumentti, joka tuo lapsille kiinnostavia ilmiöitä helposti ymmärrettävästi."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Luontodokumentti kaupunkiympäristön kasvillisuudesta, sopii perheen yhteiseen katseluun."
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "Kevyt, lämmin komediasarja, jonka huumori sopii koko perheelle."
+      }
+     ],
+     "note": ""
+    },
+    "Icelandic": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "Fallega teiknuð teiknimynd sem hentar allri fjölskyldunni vel."
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "Mild og ævintýraleg teiknuð þáttaröð sem hentar yngri áhorfendum vel."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "Róleg náttúrumynd sem hentar börnum og fjölskyldunni saman."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "Heillandi heimildarmynd um náttúruna sem allir í fjölskyldunni geta notið."
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "Auðskiljanleg heimildarmynd um græn svæði í borgum, hentug fyrir börn."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "Spennandi ævintýri og ráðgáta sem fjölskyldan getur horft á saman."
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "Létt og skemmtileg gamanmynd í geimnum fyrir alla fjölskylduna."
+      }
+     ],
+     "note": ""
+    },
+    "Korean": {
+     "picks": [
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "아이들도 즐길 수 있는 따뜻한 애니메이션 모험물로 온 가족이 함께 보기 좋습니다."
+      },
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "부드러운 색감과 감성적인 이야기로 아이부터 어른까지 두루 어울리는 애니메이션입니다."
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "전 연령이 볼 수 있는 차분한 자연 다큐멘터리로 아이들의 호기심을 채워줍니다."
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "탐험과 수수께끼가 어우러진 모험 이야기로 온 가족이 함께 몰입하기 좋습니다."
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "아이들에게 세상을 알려주는 흥미로운 다큐멘터리로 가족이 함께 보기 적합합니다."
+      }
+     ],
+     "note": ""
+    },
+    "Japanese": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "やさしいアニメーションで、家族みんなが心温まる時間を過ごせる作品です。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "冒険とアニメーションで、子どもも大人も一緒に楽しめるシリーズです。"
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "穏やかな自然を描くドキュメンタリーで、家族で静かに見入れる作品です。"
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "野生の世界を映すドキュメンタリーで、家族の会話が広がりそうな作品です。"
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "地図を手がかりに進む冒険とミステリーで、家族で謎解きを楽しめます。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "宇宙のホテルを舞台にした軽快なコメディで、家族みんなで笑えます。"
+      },
+      {
+       "title": "Northern Lights Out",
+       "year": 2024,
+       "why": "ユーモラスな笑いが中心で、年齢を問わず一緒に楽しめる作品です。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Simplified": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "温暖的动画电影，画面柔和，适合全家老少一起观看。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "节奏轻快的动画冒险，内容温和，适合年幼孩子观看。"
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "纪录片风格舒缓自然，画面优美，老少都能安心观看。"
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "纪录片题材新颖有趣，讲解清晰，适合家人一起增长见识。"
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "轻松幽默的喜剧，笑点温和，适合全家一起放松观看。"
+      }
+     ],
+     "note": ""
+    },
+    "Chinese, Traditional": {
+     "picks": [
+      {
+       "title": "Halfmoon",
+       "year": 2023,
+       "why": "溫暖的動畫風格，節奏輕柔，適合全家一起欣賞。"
+      },
+      {
+       "title": "Paper Lanterns",
+       "year": 2025,
+       "why": "色彩繽紛的動畫冒險，內容單純友善，適合小朋友觀看。"
+      },
+      {
+       "title": "Silent Orchards",
+       "year": 2015,
+       "why": "自然紀錄片畫面溫和，適合年幼觀眾認識大自然。"
+      },
+      {
+       "title": "Wild Signal",
+       "year": 2023,
+       "why": "紀錄片題材多元有趣，適合親子一起增廣見聞。"
+      },
+      {
+       "title": "The Cartographer's Daughter",
+       "year": 2021,
+       "why": "冒險與謎題交織，節奏明快，適合全家共同追看。"
+      },
+      {
+       "title": "Concrete Gardens",
+       "year": 2018,
+       "why": "紀錄片內容平和，適合親子在輕鬆氣氛中一起觀看。"
+      },
+      {
+       "title": "Halftide",
+       "year": 2024,
+       "why": "輕鬆幽默的喜劇，適合全家一起歡笑放鬆。"
+      },
+      {
+       "title": "Orbit Hotel",
+       "year": 2025,
+       "why": "輕鬆有趣的科幻喜劇，情節活潑，適合家人同樂。"
+      }
+     ],
+     "note": ""
+    }
+   }
+  }
+ ],
+ "recaps": [
+  {
+   "input": "Series: The Salt Road\nEpisodes they finished, oldest first:\n1. The crew returns to Gannet Point after a long winter and finds the harbour lights burning in a boat that has been dry-docked for years.\n2. A tide table that does not match the almanac sends Mara to the one man who keeps the real one. His price is a favour she cannot repay.\n3. A knotted rope found on the seabed leads the crew to an old rigging loft. Inside, someone has been cataloguing every wreck on the coast.",
+   "answers": {
+    "English": "The crew returned to Gannet Point after a long winter and found the harbour lights burning on a boat that had been dry-docked for years. A tide table that did not match the almanac sent Mara to the one man who keeps the real one, and his price was a favour she cannot repay. A knotted rope on the seabed then led the crew to an old rigging loft, where someone had been cataloguing every wreck on the coast.",
+    "German": "Die Besatzung kehrte nach einem langen Winter nach Gannet Point zurück und entdeckte Hafenlichter, die in einem seit Jahren aufgebockten Boot brannten. Eine Gezeitentabelle, die nicht zum Almanach passte, führte Mara zu dem einzigen Mann, der die echte Tabelle führt; sein Preis war ein Gefallen, den sie nicht zurückzahlen kann. Ein geknotetes Seil am Meeresgrund brachte die Crew schließlich zu einer alten Takelkammer, in der jemand jedes Wrack an der Küste verzeichnet hatte.",
+    "French": "Après un long hiver, l'équipage revient à Gannet Point et découvre les lumières de la barre allumées sur un bateau resté à sec depuis des années. Un tableau des marées ne correspondant pas à l'almanach conduit Mara auprès de l'homme qui détient le véritable, et son prix est une faveur qu'elle ne peut pas rembourser. Une corde nouée, retrouvée au fond de la mer, mène ensuite l'équipage à une ancienne voilerie, où quelqu'un avait répertorié chaque épave de la côte.",
+    "Spanish": "El equipo regresa a Gannet Point tras un largo invierno y descubre las luces del puerto encendidas en un barco que llevaba años varado en seco. Una tabla de mareas que no coincide con el almanaque lleva a Mara hasta el único hombre que conserva la correcta, y su precio es un favor que ella no puede devolver. Después, una cuerda con nudos hallada en el fondo del mar conduce al grupo a un viejo pañol de aparejos, donde alguien había catalogado cada naufragio de la costa.",
+    "Italian": "Il equipaggio è tornato a Gannet Point dopo un lungo inverno e ha trovato le luci del porto accese su una barca in secca da anni. Una tabella delle maree che non corrisponde all'almanacco ha spinto Mara da l'unico uomo che conserva quella vera, e il suo prezzo è un favore che lei non può ricambiare. Poi una corda annodata, ritrovata sul fondale, ha condotto la squadra a un vecchio loft di attrezzatura navale, dove qualcuno aveva catalogato ogni relitto della costa.",
+    "Portuguese (Brazil)": "A tripulação voltou a Gannet Point depois de um longo inverno e encontrou as luzes do porto acesas em um barco que estava em seco havia anos. Uma tábua de marés que não batia com o almanaque levou Mara até o único homem que guarda a tabela verdadeira, e o preço dele foi um favor que ela não tem como pagar. Em seguida, uma corda com nós, achada no fundo do mar, conduziu o grupo a um antigo galpão de cordame, onde alguém vinha catalogando todos os naufrágios da costa.",
+    "Polish": "Załoga wróciła do Gannet Point po długiej zimie i zobaczyła, jak światła portu palą się na łodzi od lat stojącej w suchym doku. Tablica pływów, która nie zgadzała się z almanachem, zaprowadziła Marę do człowieka, który prowadzi prawdziwą; jego cena była przysługą, której nie mogła odwdzięczyć. Później na dnie morza znaleziono splątaną linę, która doprowadziła ekipę do dawnej szopy takielunku, gdzie ktoś spisywał każdy wrak na wybrzeżu.",
+    "Swedish": "Efter en lång vinter återvände besättningen till Gannet Point och upptäckte att lamporna brann i en båt som legat upplagd i flera år. En tidtabell för tidvattnet stämde inte med almanackan, vilket förde Mara till mannen som förvarar den riktiga. Hans pris var en tjänst hon inte kunde betala tillbaka. Därefter ledde ett knutet rep från havsbotten besättningen till ett gammalt riggloft, där någon hade fört förteckning över varje vrak längs kusten.",
+    "Danish": "Besætningen vendte tilbage til Gannet Point efter en lang vinter og fandt lysene brændende i en båd, som havde ligget på tørt land i årevis. En tidevandstabel, der ikke stemte med almanakken, førte Mara til den mand, der stadig har den rigtige, men hans pris var en tjeneste, hun ikke kan betale tilbage. Et knudret reb på havbunden ledte derefter besætningen til et gammelt rigningsloft, hvor nogen havde registreret hvert eneste vrag langs kysten.",
+    "Norwegian Bokmål": "Mannskapet kom tilbake til Gannet Point etter en lang vinter og oppdaget at lysene brant i en båt som hadde stått på tørrdokk i flere år. En tidevannstabell som ikke stemte med almanakken førte Mara til mannen som fortsatt har den riktige, men prisen hans var en tjeneste hun ikke kan betale tilbake. Et knutet tau på havbunnen ledet så mannskapet til et gammelt riggeloft, der noen hadde katalogisert hvert eneste skipsvrak langs kysten.",
+    "Finnish": "Kun miehistö palasi Gannet Pointiin pitkän talven jälkeen, satamavalot paloivat veneessä, joka oli ollut kuivatelakalla vuosia. Mara meni merkkien perässä miehen luo, joka säilyttää todellisen vuorovesitaulukon, ja hänen hintansa oli palvelus, jota Mara ei pystyisi koskaan maksamaan takaisin. Merenpohjasta löydetty solmittu köysi johti miehistön vanhaan takilaloftiin, jonka sisällä joku oli luetteloinut kaikki rannikon haaksirikot.",
+    "Icelandic": "Áhöfnin sneri aftur til Gannet Point eftir langan vetur og fann ljósin logandi í báti sem hafði verið þurrsettur í mörg ár. Mara leitaði þá uppi mann sem geymir hina réttu flóðatöflu, sem stangaðist á við almanakið, en hann setti það skilyrði að hún skuldaði honum greiða sem hún gæti ekki endurgoldið. Síðan fann áhöfnin hnýttan kaðal á hafsbotni, sem leiddi þau í gamalt reiðaloft, þar sem einhver hafði skráð öll skipsflök við ströndina.",
+    "Korean": "겨울이 끝나고 선원들이 거닛 포인트로 돌아왔고, 오래전에 뭍으로 끌어올려 놓은 배의 항구 등불이 켜져 있는 것을 발견했다. 연감과 맞지 않는 조수표 때문에 마라는 진짜 조수표를 지키는 한 남자를 찾아갔는데, 그가 요구한 대가는 그녀가 갚을 수 없는 호의였다. 바다 밑에서 찾은 매듭 밧줄을 따라 선원들은 오래된 장비 창고에 이르렀고, 그곳에는 해안의 모든 난파선을 누군가 목록으로 정리해 두고 있었다.",
+    "Japanese": "冬を越えたクルーがゲイネット岬に戻ると、何年も陸に上げられたままの船で港の灯りがともっていた。合わないタide表をきっかけにマラは、本物の潮見表を持つ男を訪ね、その代償として返せそうにない借りを背負うことになった。海底で見つかった結び目のあるロープが一行を古い艤装の小屋へ導き、そこでは沿岸のあらゆる難破船を記録し続けている人物の痕跡が見つかった。",
+    "Chinese, Simplified": "在经历漫长的冬天之后，船队回到了鹈鹕角，却发现一艘多年前就已干坞的船上亮着港灯。Mara发现一份与历书不符的潮汐表，于是找到唯一保存着真实版本的人，而他开出的代价是她无力偿还的人情。随后，海底一根打结的绳索把众人引向一间旧索具仓库，里面有人一直在为海岸上的每一处沉船编目。",
+    "Chinese, Traditional": "冬季過後，船隊回到鷗角港，發現一艘多年未下水的船上，港燈竟然亮著。瑪拉因為一份與曆書不符的潮汐表，前去找唯一保有真正版本的男人，他開出的代價是她無法償還的人情。之後，一條在海床上找到的打結繩索把船員引到一座舊索具閣樓，裡面有人一直在為海岸上的每一艘沉船編目。"
+   }
+  },
+  {
+   "input": "Series: Northbound\nEpisodes they finished, oldest first:\n1. Someone on the inside has been keeping a record. Nothing is lost, but nothing is the same afterwards.\n2. A routine job exposes something that was buried on purpose. A debt is called in, and the price is higher than anyone guessed.\n3. Two allies find themselves on opposite sides of a quiet decision. By nightfall, one choice changes how the rest of the season will be told.",
+   "answers": {
+    "English": "Someone on the inside had been keeping a record, and though nothing was lost, nothing stayed the same afterwards. A routine job then exposed something that had been buried on purpose, and a debt was called in at a price higher than anyone had guessed. Two allies ended up on opposite sides of a quiet decision, and by nightfall one of their choices had changed the way the rest of the season would unfold.",
+    "German": "Jemand im Inneren führte heimlich Buch, und obwohl nichts verloren ging, blieb danach nichts mehr, wie es war. Ein routinemäßiger Auftrag brachte etwas ans Licht, das absichtlich vergraben worden war, und eine fällige Schuld wurde eingefordert, deren Preis weit höher ausfiel, als jemand vermutet hatte. Zwei Verbündete standen sich schließlich bei einer stillen Entscheidung gegenüber, und bis zum Abend veränderte eine einzige Wahl, wie die weitere Staffel erzählt werden wird.",
+    "French": "Une personne placée à l'intérieur tenait un registre de tout ce qui se passait, et rien n'a été perdu, mais plus rien ne fut jamais pareil par la suite. Un travail de routine a fait remonter à la surface une vérité enterrée volontairement, puis une dette a été réclamée, dont le prix s'est révélé bien plus élevé que quiconque l'avait imaginé. Deux alliés se sont retrouvés dans des camps opposés face à une décision discrète, et à la tombée de la nuit, le choix de l'un d'eux a changé la manière dont la suite de la saison allait se dérouler.",
+    "Spanish": "Alguien de dentro llevaba un registro de todo, y aunque nada se perdió, nada volvió a ser igual. Un trabajo rutinario sacó a la luz algo que alguien había enterrado a propósito, y una deuda fue reclamada con un precio mucho más alto del que nadie imaginaba. Dos aliados terminaron en bandos opuestos ante una decisión silenciosa, y al caer la noche una sola elección cambió el rumbo de lo que vendría.",
+    "Italian": "Qualcuno all'interno aveva tenuto un registro di ogni cosa, e nulla andò perduto, ma nulla tornò più come prima. Un incarico di routine portò alla luce qualcosa che era stato sepolto di proposito, e un debito fu richiesto, con un prezzo ben più alto di quanto chiunque avesse immaginato. Poi due alleati si ritrovarono su fronti opposti di una decisione silenziosa, e una sola scelta, presa al calar della notte, cambiò il modo in cui il resto della stagione sarebbe stato raccontato.",
+    "Portuguese (Brazil)": "Alguém de dentro vinha mantendo um registro em segredo; nada se perdeu, mas nada ficou igual depois. Um trabalho de rotina trouxe à tona algo que havia sido enterrado de propósito, e uma dívida foi cobrada, com um preço bem maior do que alguém imaginara. Em seguida, dois aliados se viram em lados opostos de uma decisão silenciosa, e, ao cair da noite, uma escolha mudou o rumo da temporada.",
+    "Polish": "Ktoś z wewnątrz prowadził tajny zapis, a choć nic nie zginęło, nic nie wróciło do dawnego stanu. Rutynowe zlecenie odsłoniło coś, co celowo zakopano, a upomnienie długu okazało się znacznie droższe, niż ktokolwiek przypuszczał. Dwaj sojusznicy stanęli po przeciwnych stronach cichej decyzji, a jeden wybór z nocą zmienił sposób, w jaki opowiedziana zostanie reszta sezonu.",
+    "Swedish": "En person innanför har i hemlighet ffört bok över allt som hänt, och inget gick förlorat, men ingenting blev sig likt efteråt. Ett vanligt uppdrag avslöjade något som medvetet hade begravts, och en skuld krävdes in till ett pris som ingen hade väntat sig. Till sist hamnade två allierade på motsatta sidor i ett tyst beslut, och ett val fick konsekvenser för resten av säsongen.",
+    "Danish": "En person indefra har ført en optegnelse, og intet gik tabt, men intet blev det samme bagefter. Et rutinejob blottede noget, der bevidst var begravet, og da en gæld blev krævet ind, viste prisen sig at være højere, end nogen havde regnet med. To allierede stod derefter på hver sin side af en stille beslutning, og før natten faldt, ændrede ét valg den måde, resten af sæsonen vil blive fortalt på.",
+    "Norwegian Bokmål": "En person på innsiden har ført en slags logg, og ingenting gikk tapt, men ingenting ble det samme etterpå. Et vanlig oppdrag avdekket noe som var gravd ned med vilje, og en gjeld ble krevd inn, til en pris som var høyere enn noen hadde regnet med. Så havnet to allierte på hver sin side av en stille avgjørelse, og da mørket falt, hadde ett valg endret hvordan resten av sesongen ville bli fortalt.",
+    "Finnish": "Sisäpiiristä joku piti kirjaa, eikä mitään menetetty, mutta mikään ei jäänyt ennalleen. Tavallinen tehtävä paljasti jotain, mikä oli haudattu tarkoituksella, ja velka perittiin, vaikka hinta osoittautui kalliimmaksi kuin kukaan arvasi. Kaksi liittolaista joutui vastakkaisille puolille hiljaisessa päätöksessä, ja yksi valinta muutti sitä, miten koko kausi tullaan kertomaan.",
+    "Icelandic": "Einhver innan úr hópnum hafði haldið skrá yfir allt, og ekkert tapaðist, en ekkert varð samt eins á eftir. Í rútínuverkefni kom upp á yfirborðið eitthvað sem hafði verið grafið vísvitandi. Skuld var innheimt og verðið reyndist mun hærra en nokkur hafði giskað á. Tveir bandamenn lentu síðan hvor sínum megin við þegjandi ákvörðun, og fyrir nóttina breytti eitt val því hvernig allt annað tímabilið yrði sagt.",
+    "Korean": "내부의 누군가가 기록을 남기고 있었고, 그 과정에서 잃어버린 것은 없었지만 이후로 모든 것이 예전과 같지 않게 되었다. 평범해 보이던 임무가 일부러 묻어 둔 무언가를 드러냈고, 빚 독촉이 들어오면서 치러야 할 대가가 누구도 짐작하지 못할 만큼 컸다. 가장 가까운 동맹이던 두 사람은 조용한 결정을 두고 서로 반대편에 섰고, 밤이 되자 한 사람의 선택이 남은 시즌을 이야기하는 방식을 바꿔 놓았다.",
+    "Japanese": "内部の誰かがひそかに記録を取り続けていたことが明らかになり、失われたものはないものの、すべてが以前と同じではなくなった。続いて、ありふれた仕事から意図的に埋められていた秘密が表に出て、負債の取り立てがなされたが、その代償は誰の予想より高くついた。そして、かつての味方同士が静かな決断をめぐって対立する立場に立たされ、夜になる頃、一つの選択が残りのシーズンの語られ方を変えてしまった。",
+    "Chinese, Simplified": "内部有人一直在暗中记录一切，虽然没有东西丢失，但之后一切都不再一样。一次看似寻常的任务揭开了被刻意掩埋的真相，一笔债务被讨回，代价远超所有人的预料。两位盟友在一个悄无声息的决定上站到了对立面，到夜幕降临时，其中一人的选择改变了整季故事的走向。",
+    "Chinese, Traditional": "內部有人一直在暗中留下紀錄，東西沒有遺失，但一切從此不再相同。一次看似例行的任務揭開了被刻意掩埋的真相，一筆欠債被討回，代價遠高於所有人的預期。兩位原本的盟友在一個悄然的決定上站到了對立面，入夜時，其中一人的選擇徹底改變了之後的走向。"
+   }
+  },
+  {
+   "input": "Series: Ironwood\nEpisodes they finished, oldest first:\n1. A new lead pulls the team in a direction nobody expected. A small mistake grows into a very large problem.\n2. An old promise comes due at the worst possible moment. Hope arrives from the least likely direction.\n3. The weather turns and plans fall apart. Nothing is lost, but nothing is the same afterwards.",
+   "answers": {
+    "English": "A new lead pulled the team in a direction nobody expected, and a small mistake grew into a very large problem. An old promise then came due at the worst possible moment, while hope arrived from the least likely direction. Finally the weather turned and plans fell apart; nothing was lost, but nothing was the same afterwards.",
+    "German": "Eine neue Spur führte das Team in eine Richtung, mit der niemand gerechnet hatte, und ein kleiner Fehler wuchs sich zu einem sehr großen Problem aus. Ein altes Versprechen wurde im denkbar ungünstigsten Moment fällig, und Hoffnung kam aus der unwahrscheinlichsten Richtung. Dann schlug das Wetter um, die Pläne zerfielen, und zwar ohne dass etwas verloren ging, doch danach war nichts mehr so wie zuvor.",
+    "French": "Une nouvelle piste a entraîné l'équipe dans une direction que personne n'attendait, et une petite erreur est devenue un problème considérable. Une vieille promesse est arrivée à échéance au pire moment, tandis que l'espoir est venu de la source la moins probable. Puis le temps a tourné et les plans se sont effondrés : rien n'a été perdu, mais plus rien n'a été pareil ensuite.",
+    "Spanish": "Una nueva pista llevó al equipo en una dirección que nadie esperaba, y un pequeño error se convirtió en un problema enorme. Después, una antigua promesa llegó a cobrarse en el peor momento, mientras la esperanza apareció por el lugar menos probable. Más tarde el clima cambió y los planes se vinieron abajo; nada se perdió, pero todo quedó distinto.",
+    "Italian": "Una nuova pista ha spinto la squadra in una direzione che nessuno si aspettava, e un piccolo errore è cresciuto fino a diventare un problema enorme. Poi una vecchia promessa è arrivata a scadenza nel momento peggiore, mentre la speranza è spuntata da dove meno ci si aspettava. Infine il tempo è cambiato e i piani sono crollati: nulla è andato perduto, ma da allora niente è più come prima.",
+    "Portuguese (Brazil)": "Na primeira parte, uma nova pista levou a equipe numa direção que ninguém esperava, e um pequeno erro cresceu até virar um problema enorme. Depois, uma velha promessa chegou ao pior momento possível, e a esperança surgiu de onde menos se imaginava. Por fim, o tempo mudou e os planos desmoronaram; nada se perdeu, mas nada ficou como antes.",
+    "Polish": "Nowa poszlaka zaprowadziła zespół w kierunku, którego nikt się nie spodziewał, a drobny błąd urósł do ogromnego problemu. Stara obietnica upomniała się o swoje w najgorszym możliwym momencie, a nadzieja nadeszła z najmniej prawdopodobnej strony. Potem pogoda się zmieniła, plany legły w gruzach i choć nic nie przepadło, nic już nie było takie samo.",
+    "Swedish": "Ett nytt spår drog teamet åt ett håll ingen väntat sig, och ett litet misstag växte till ett mycket stort problem. Sedan kom ett gammalt löfte due i det sämsta möjliga ögonblick, och hopp dök upp från den minst troliga riktningen. Till sist vände vädret och planerna föll samman; inget gick förlorat, men ingenting blev sig likt efteråt.",
+    "Danish": "Et nyt spor førte holdet i en retning, ingen havde forventet, og en lille fejl voksede til et meget stort problem. Et gammelt løfte kom til forfald på det værst tænkelige tidspunkt, mens håbet dukkede op fra den mindst sandsynlige kant. Så skiftede vejret, planerne faldt fra hinanden, og selvom intet gik tabt, var intet bagefter det samme.",
+    "Norwegian Bokmål": "Et nytt spor førte teamet i en retning ingen hadde ventet, og en liten feil vokste seg til et svært stort problem. Et gammelt løfte kom til å forfalle i det verst tenkelige øyeblikket, men håp dukket opp fra den minst sannsynlige kanten. Så snudde været, planene falt fra hverandre, og selv om ingenting gikk tapt, var ingenting lenger som før.",
+    "Finnish": "Tiimi sai uuden johtolangan, joka vei heidät odottamattomaan suuntaan, ja pieni virhe kasvoi valtavaksi ongelmaksi. Vanha lupaus erääntyi pahimpaan mahdolliseen hetkeen, kun taas toivoa tuli yllättävästi juuri sieltä, mistä sitä vähiten odotettiin. Sitten sää kääntyi, suunnitelmat hajosivat, eikä mitään menetetty, mutta kaikki muuttui.",
+    "Icelandic": "Nýr vísbending dró hópinn í átt sem enginn hafði búist við, og lítil mistök uxu í mjög stórt vandamál. Gamalt loforð kom á gjalddaga á versta mögulega augnabliki, og von birtist úr óvæntustu átt. Veðrið snerist, áætlanir fóru út um þúfur, og ekkert tapaðist, en ekkert varð samt eins á eftir.",
+    "Korean": "새로운 단서가 팀을 아무도 예상하지 못한 방향으로 이끌었고, 작은 실수 하나가 아주 큰 문제로 커졌습니다. 오래된 약속이 가장 나쁜 순간에 돌아왔고, 뜻밖의 곳에서 희망이 찾아왔습니다. 이어 날씨가 変わ며 계획이 모두 무너졌고, 잃은 것은 없었지만 이후 모든 것이 예전과 같지 않게 되었습니다.",
+    "Japanese": "新しい手がかりが、チームを誰も予想しなかった方向へ引き寄せました。小さなミスが非常に大きな問題へと膨らみました。古い約束が最悪のタイミングで果たすべき時を迎え、思いがけない方向から希望が訪れました。天候が急変して計画は崩れ、何も失われなかったものの、その後はすべてが以前と同じではなくなりました。",
+    "Chinese, Simplified": "一条新线索把团队引向了完全出乎意料的方向，一个小失误很快演变成了巨大的麻烦。随后，一个旧日的承诺在最糟糕的时刻到期，希望却从最不可能的方向出现。最后天气突然转变，原本的计划全部落空，虽然没有失去任何东西，但之后一切都已不再一样。",
+    "Chinese, Traditional": "剛開始時，一條新線索把團隊帶往意料之外的方向，一個小失誤很快演變成極大的麻煩。接著，一個舊日的承諾在最糟的時刻到期，希望卻從最不可能的方向出現。最後天氣驟變，計畫全數瓦解，雖然沒有失去任何東西，但一切都已不再相同。"
+   }
+  },
+  {
+   "input": "Series: Meridian\nEpisodes they finished, oldest first:\n1. The weather turns and plans fall apart. By nightfall, one choice changes how the rest of the season will be told.\n2. A stranger arrives with a story that does not add up. The truth comes out, and not everyone is ready for it.\n3. A routine job exposes something that was buried on purpose. Hope arrives from the least likely direction.",
+   "answers": {
+    "English": "The weather turned and plans fell apart, and by nightfall a single choice changed how the rest of the season would unfold. A stranger then arrived with a story that did not add up, and when the truth came out, not everyone was ready to face it. A routine job later exposed something that had been buried on purpose, and hope arrived from the least likely direction.",
+    "German": "Ein plötzlicher Wetterumschwung bringt alle Pläne ins Wanken, und noch vor Einbruch der Nacht fällt eine Entscheidung, die den weiteren Verlauf der Staffel prägt. Danach taucht ein Fremder mit einer Geschichte auf, die nicht stimmt; die Wahrheit kommt ans Licht, doch nicht alle sind bereit, sie zu akzeptieren. Bei einem Routineauftrag wird schließlich etwas aufgedeckt, das absichtlich verborgen worden war, und aus der unerwartetsten Richtung kommt Hoffnung.",
+    "French": "Un changement soudain de temps fait tomber les projets, et au coucher du soleil, un choix bouleverse la suite de la saison. Un inconnu arrive avec un récit qui ne tient pas debout ; la vérité finit par éclater, et tout le monde n'est pas prêt à l'entendre. Un travail de routine met au jour un secret soigneusement enfoui, et l'espoir surgit d'où l'on s'y attendait le moins.",
+    "Spanish": "Una tormenta trastocó los planes de todos y, al caer la noche, una sola decisión cambió el rumbo de lo que vendría. Llegó un desconocido con una historia que no cuadraba, y finalmente salió a la luz la verdad, aunque no todos estaban preparados para escucharla. Un trabajo rutinario sacó a la superficie algo que alguien había enterrado a propósito, y la esperanza apareció por el lado menos esperado.",
+    "Italian": "Il tempo cambia all'improvviso e i piani vanno in frantumi, finché una scelta fatta al calare della notte cambia il modo in cui il resto della stagione verrà raccontato. Poi arriva uno straniero con una storia che non torna; la verità emerge, ma non tutti sono pronti ad accoglierla. Durante un incarico di routine viene alla luce qualcosa che era stato sepolto di proposito, e a sorpresa la speranza arriva dalla direzione meno attesa.",
+    "Portuguese (Brazil)": "O tempo virou e os planos desmoronaram, e ao cair da noite uma escolha mudou o rumo de toda a temporada. Depois chegou um estranho com uma história que não fazia sentido, e a verdade veio à tona, embora nem todos estivessem prontos para ela. Um trabalho de rotina revelou algo que havia sido enterrado de propósito, e a esperança surgiu da direção menos provável.",
+    "Polish": "Pogoda się załamała i plany wzięły w łeb, a jeden wybór pod wieczór zmienił sposób, w jaki opowiedziana zostanie reszta sezonu. Pojawił się obcy z historią, która nie trzymała się kupy; prawda wyszła na jaw, lecz nie wszyscy byli na nią gotowi. Rutynowe zlecenie odsłoniło coś, co celowo zakopano, a nadzieja nadeszła z najmniej spodziewanej strony.",
+    "Swedish": "Vädret vände och planerna föll samman, och innan natten var över hade ett enda val förändrat hur resten av säsongen skulle berättas. En främling dök upp med en historia som inte stämde, och sanningen kom fram, men inte alla var redo för den. Ett vanligt uppdrag avslöjade något som medvetet hade begravts, och hopp kom från den minst väntade riktningen.",
+    "Danish": "Vejret vendte, og planerne faldt fra hinanden. Ved nattens frembrud havde ét valg ændret, hvordan resten af sæsonen kom til at blive fortalt. En fremmed dukkede op med en historie, der ikke stemte, og sandheden kom frem, selv om ikke alle var klar til den. Et almindeligt job afslørede noget, der bevidst var begravet, og håbet kom fra den mest usandsynlige retning.",
+    "Norwegian Bokmål": "Været snudde og planene falt fra hverandre, og før natten var over endret ett valg hvordan resten av sesongen kommer til å bli fortalt. En fremmed dukket opp med en historie som ikke stemte, og sannheten kom frem, men ikke alle var klare for den. En vanlig oppgave avslørte noe som var gravd ned med vilje, og håp kom fra den minst sannsynlige retningen.",
+    "Finnish": "Sää kääntyi, ja suunnitelmat menivät myttyyn. Yhden illan valinta muutti tavan, jolla kausi kerrotaan. Outo vieras saapui kertomuksella, joka ei täsmännyt, ja lopulta totuus tuli ilmi, vaikka kaikki eivät olleet siihen valmiita. Tavallinen työtehtävä paljasti jotain tarkoituksella haudattua, ja toivo löytyi odottamattomasta suunnasta.",
+    "Icelandic": "Veðrið snerist og áætlanir fóru úrskeiðis. Undir kvöld breytti eitt val því hvernig restin af tímabilinu verður sögð. Ókunnugur maður kom með sögu sem gekk ekki upp, og sannleikurinn kom í ljós, þótt ekki allir væru tilbúnir að takast á við hann. Venjulegt verk afhjúpaði eitthvað sem hafði verið grafið viljandi, og von kom úr þeirri átt sem síst var búist við.",
+    "Korean": "날씨가 돌변하면서 계획들이 모두 무너졌고, 밤이 되자 한 번의 선택이 남은 시즌의 전개 방식을 바꿔 놓았다. 수상한 이야기를 들고 낯선 사람이 나타났고, 그 말이 앞뒤가 맞지 않는 가운데 진실이 드러났지만 모두가 그것을 받아들일 준비가 된 것은 아니었다. 평범한 일이 의도적으로 묻혀 있던 무언가를 드러냈고, 뜻밖의 방향에서 희망이 찾아왔다.",
+    "Japanese": "天候が崩れて計画は総崩れとなり、夜になるころ、ひとつの選択が今シーズンの物語の語られ方を変えた。見知らぬ来訪者が辻褄の合わない話を持ち込み、やがて真実が明らかになったが、誰もがそれを受け入れられたわけではなかった。いつもの仕事の最中に、意図的に葬られていた事実が表に出た。そして思いがけない方向から希望が差し込んだ。",
+    "Chinese, Simplified": "天气骤变，原本的计划接连落空，入夜时一个抉择改变了整季故事的走向。一名陌生人带来一套说不通的说辞，真相随后浮出水面，并非每个人都做好了接受的准备。一次例行任务揭开了一段被刻意掩埋的往事，而希望竟从最意想不到的方向出现。",
+    "Chinese, Traditional": "天氣驟變，計畫全數落空，入夜時一個抉擇改變了整季故事的走向。隨後一名陌生人帶來說法對不上的故事，真相終於浮現，但並非每個人都準備好面對。最後一樁例行差事揭開了被刻意掩埋的事，而希望竟從最意想不到的方向出現。"
+   }
+  },
+  {
+   "input": "Series: Paper Lanterns\nEpisodes they finished, oldest first:\n1. The weather turns and plans fall apart. A small mistake grows into a very large problem.\n2. A stranger arrives with a story that does not add up. Hope arrives from the least likely direction.",
+   "answers": {
+    "English": "The weather turned and plans began to fall apart, as a small mistake grew into a very large problem. Then a stranger arrived with a story that did not add up, and hope came from the least likely direction.",
+    "German": "Das Wetter schlägt um, und Pläne zerfallen, als sich ein kleiner Fehler zu einem sehr großen Problem auswächst. Danach taucht ein Fremder mit einer Geschichte auf, die nicht aufgeht, und Hoffnung kommt aus der unerwartetsten Richtung.",
+    "French": "Le temps tourne et les projets s'effondrent, car une petite erreur se transforme en un problème considérable. Puis un inconnu arrive avec une histoire qui ne tient pas debout, et l'espoir surgit d'où l'on s'y attendait le moins.",
+    "Spanish": "Un clima repentino hizo que los planes se vinieran abajo, y un pequeño error se convirtió en un problema enorme. Después llegó un desconocido con una historia que no cuadraba, y la esperanza apareció por el lugar menos esperado.",
+    "Italian": "Il tempo cambia all'improvviso e i piani di tutti vanno in pezzi, mentre un piccolo errore cresce fino a diventare un problema enorme. Poi arriva uno sconosciuto con una storia che non torna, e da dove meno te lo aspetti nasce una speranza.",
+    "Portuguese (Brazil)": "O tempo muda e os planos desmoronam, quando um pequeno erro se transforma em um problema enorme. Depois chega um estranho com uma história que não faz sentido, e a esperança surge da direção menos provável.",
+    "Polish": "Pogoda się załamała i plany zaczęły się sypać, a drobna pomyłka urosła do ogromnego problemu. Potem pojawił się nieznajomy z historią, która nie trzymała się kupy, a nadzieja nadeszła z najmniej spodziewanego kierunku.",
+    "Swedish": "Vädret slog om och planerna gick i kras, och ett litet misstag växte snabbt till ett mycket stort problem. Därefter anlände en främling med en berättelse som inte stämde, och hopp kom från den minst väntade riktningen.",
+    "Danish": "Vejret vendte, og planerne faldt fra hinanden, da en lille fejl voksede sig til et meget stort problem. Derefter kom en fremmed med en historie, der ikke stemte, og håbet dukkede op fra den mindst sandsynlige retning.",
+    "Norwegian Bokmål": "Været snudde og planene falt fra hverandre, og en liten feil vokste seg til et stort problem. Deretter kom en fremmed med en historie som ikke stemte, og håp dukket opp fra den minst sannsynlige retningen.",
+    "Finnish": "Sää kääntyy ja suunnitelmat hajoavat, kun pieni virhe kasvaa suureksi ongelmaksi. Myöhemmin paikalle saapuu outo vieras, jonka kertomus ei täsmää, ja toivoa tulee odottamattomasta suunnasta.",
+    "Icelandic": "Veðrið snerist og áætlanir fóru úr skorðum, því lítil mistök uxu í mjög stórt vandamál. Síðan kom ókunnugur maður með sögu sem gekk ekki upp, og vonin kom úr þeirri átt sem enginn átti von á.",
+    "Korean": "날씨가 갑자기 변하면서 계획들이 모두 무너졌고, 사소한 실수 하나가 감당하기 어려운 큰 문제로 커졌습니다. 이어서 앞뒤가 맞지 않는 이야기를 든 낯선 이방인이 나타났고, 전혀 뜻밖의 방향에서 희망이 찾아왔습니다.",
+    "Japanese": "天候が急変し、計画は次々と崩れていった。ささいなミスが大きな問題へと膨らんでいった。やがて素性のはっきりしない見知らぬ人物が現れ、その話には辻褄の合わない点があった。思いがけない方向から希望の光が差し込んだ。",
+    "Chinese, Simplified": "天气骤变，原本的计划接连落空，一个小失误逐渐演变成棘手的大麻烦。随后一位来历不明的陌生人出现，他讲述的故事处处存疑。就在局面最为艰难时，希望竟从最意想不到的方向出现。",
+    "Chinese, Traditional": "天氣驟變，原本的計畫全數瓦解，一個小小的失誤逐漸演變成極為嚴重的麻煩。隨後一名陌生人帶來一個說法對不上的故事，而希望竟從最意想不到的方向出現。"
+   }
+  },
+  {
+   "input": "Series: Kestrel Row\nEpisodes they finished, oldest first:\n1. An old promise comes due at the worst possible moment. What looks like an ending turns out to be a door.\n2. A stranger arrives with a story that does not add up. A debt is called in, and the price is higher than anyone guessed.\n3. Someone on the inside has been keeping a record. By nightfall, one choice changes how the rest of the season will be told.",
+   "answers": {
+    "English": "An old promise came due at the worst possible moment, and what seemed like an ending opened up as a door. A stranger then arrived with a story that did not add up, and a debt was called in at a price higher than anyone had guessed. Afterward, it emerged that someone on the inside had been keeping a record, and by nightfall a single choice changed how the rest of the season would be told.",
+    "German": "Ein alter Versprechen kam zur unpassendsten Zeit wieder ans Licht, und was wie ein Ende aussah, erwies sich als Tür. Ein Fremder tauchte mit einer Geschichte auf, die nicht stimmte, eine Schuld wurde eingefordert, und der Preis fiel weit höher aus, als jemand vermutet hatte. Danach zeigte sich, dass jemand aus dem Innern Buch geführt hatte, und bis zum Einbruch der Nacht veränderte eine einzige Entscheidung, wie die restliche Staffel erzählt werden wird.",
+    "French": "Une vieille promesse est venue réclamer son dû au pire moment, et ce qui semblait être une fin s'est révélé être une porte. Un étranger est arrivé avec un récit qui ne tenait pas debout, une dette a été exigée, et son prix s'est avéré bien plus élevé que quiconque l'imaginait. Quelqu'un de l'intérieur tenait en secret un registre, et à la nuit tombée, un seul choix a changé la façon dont la suite de la saison sera racontée.",
+    "Spanish": "Una antigua promesa llegó a su momento más inoportuno, y lo que parecía un final resultó ser una puerta. Después apareció un desconocido con una historia que no cuadraba, se reclamó una deuda y el precio terminó siendo mucho más alto de lo que nadie imaginaba. Más tarde se supo que alguien del círculo interno llevaba un registro de todo, y al caer la noche una sola decisión cambió la forma en que se contaría el resto de la temporada.",
+    "Italian": "Una vecchia promessa torna a farsi sentire nel momento peggiore, e quella che sembrava una fine si rivela invece una porta. Poi arriva uno straniero con una storia che non torna: viene reclamato un debito, e il prezzo si rivela più alto di quanto chiunque avesse immaginato. Infine qualcuno dall'interno aveva tenuto un registro segreto, e al calare della notte una scelta ha cambiato il modo in cui il resto della stagione verrà raccontato.",
+    "Portuguese (Brazil)": "Uma promessa antiga cobrou seu preço no pior momento possível, e um desfecho que parecia definitivo revelou-se uma porta. Em seguida, um desconhecido chegou com uma história que não fechava, uma dívida foi cobrada e o custo acabou sendo bem maior do que alguém imaginava. Por fim, alguém de dentro vinha guardando um registro, e uma escolha feita ao anoitecer mudou o rumo de tudo o que viria.",
+    "Polish": "Stara obietnica upomniała się o swoje w najgorszym możliwym momencie i to, co wyglądało na zakończenie, okazało się drzwiami. Nieznajomy przybył z historią, która nie trzymała się kupy, a zaciągnięty dług został odzyskany po cenie wyższej, niż ktokolwiek się spodziewał. Ktoś z wewnątrz prowadził tajne notatki, a jeden wybór przed zapadnięciem nocy zmienił sposób, w jaki opowiedziana zostanie reszta sezonu.",
+    "Swedish": "En gammal utfästelse kom tillbaka vid fel tillfälle, och det som verkade vara ett slut visade sig vara en dörr. Sedan anlände en främling med en berättelse som inte stämde, och en skuld krävdes in till ett pris som ingen hade väntat sig. Till sist framkom att någon inifrån hade fört anteckningar, och en enda handling under natten skulle förändra hur resten av säsongen berättas.",
+    "Danish": "Et gammelt løfte kom til modtagelse i detværst tænkelige øjeblik, og det, der så ud til at være en afslutning, viste sig at være en dør. En fremmed dukkede op med en historie, der ikke stemte, og en gæld blev krævet ind, hvor prisen blev langt højere, end nogen havde regnet med. Så kom det frem, at nogen indefra havde ført optegnelser, og før natten faldt på, ændrede ét valg den måde, sæsonen fra nu af vil blive fortalt på.",
+    "Norwegian Bokmål": "En gammel løfte kom tilbake til å hjemsøke alle i det verste øyeblikket, og det som så ut som en slutt viste seg å være en dør. Deretter dukket en fremmed opp med en historie som ikke stemte, en gammel gjeld ble krevd inn, og prisen ble høyere enn noen hadde regnet med. Til slutt viste det seg at noen innenfor hadde ført en oversikt, og et valg de tok ved nattetid skulle endre hvordan resten av sesongen ble fortalt.",
+    "Finnish": "Vanha lupaus erääntyi pahimmalla mahdollisella hetkellä, ja se, mikä näytti lopulta, osoittautui oveksi. Outo vieras saapui kertomuksella, joka ei täsmännyt, ja velka perittiin, mutta hinta oli odotettua korkeampi. Joku sisäpiiristä oli pitänyt kirjaa, ja yhden illan valinta muutti tavan, jolla kausi tullaan kertomaan.",
+    "Icelandic": "Gamall loforð féll á gjalddaga á versta mögulega tíma og það sem virtist vera endir reyndist vera dyr. Ókunnugur maður kom fram með sögu sem gekk ekki upp og skuld var innheimt, en verðið reyndist hærra en nokkur hafði giskað á. Einhver innan hópsins hafði haldið skrá, og um kvöldið breytti eitt val því hvernig restin af tímabilinu verður sögð.",
+    "Korean": "오래된 약속이 가장 나쁜 순간에 되돌아와 모든 것이 끝나는 듯 보였지만, 그것은 새로운 문이었다. 이어서 정체를 알 수 없는 낯선 이가 앞뒤가 맞지 않는 이야기를 들고 나타났고, 그가 요구한 빚의 대가는 누구의 짐작보다도 컸다. 내부의 누군가가 몰래 기록을 남겨 왔다는 사실이 드러났으며, 해가 지기 전 한 번의 선택이 남은 시즌을 어떻게 기억할지를 바꾸어 놓았다.",
+    "Japanese": "古い約束の期限が最悪のタイミングで訪れ、終わりに見えた出来事は実は新たな扉だと分かった。見知らぬ来訪者が辻褄の合わない話を持ち込み、借りの取り立てが行われたが、その代償は誰の予想よりも大きかった。さらに内部の誰かがひそかに記録を取り続けていたことが明らかになり、夜までに下された一つの選択が、残りのシーズンの語られ方を変えることになった。",
+    "Chinese, Simplified": "一个旧日的承诺在最糟糕的时刻到期，看似的结局其实打开了一扇门。随后，一个带着说不通故事的陌生人出现，一笔债被催讨，代价远超所有人的预料。最后，有人在内部一直暗中记录，入夜时分的一个抉择改变了之后整季的讲述方式。",
+    "Chinese, Traditional": "一個塵封已久的承諾在最糟的時刻到期，原以為的結局其實是一扇新門。隨後一名陌生人帶著說不通的來歷出現，一筆舊債被追討，代價遠超所有人的預期。最後有人暗中留下了記錄，入夜時一個抉擇改變了整季故事的走向。"
+   }
+  },
+  {
+   "input": "Series: Halftide\nEpisodes they finished, oldest first:\n1. A message arrives that was meant for someone else. The truth comes out, and not everyone is ready for it.\n2. A new lead pulls the team in a direction nobody expected. The cost of staying silent finally becomes clear.\n3. An old promise comes due at the worst possible moment. What looks like an ending turns out to be a door.",
+   "answers": {
+    "English": "A message arrived that was meant for someone else, and when its truth came out, not everyone was ready to face it. A new lead then pulled the team in a direction nobody expected, and the cost of staying silent became clear. An old promise came due at the worst possible moment, and what seemed like an ending turned out to be a door.",
+    "German": "Eine Nachricht erreichte eine Person, die nicht die Adressatin war, und mit ihr kam die Wahrheit ans Licht, auf die nicht alle vorbereitet waren. Danach zog eine neue Spur das Team in eine völlig unerwartete Richtung, und es wurde deutlich, welchen Preis das lange Schweigen gekostet hatte. Zuletzt wurde ein alter Versprechen zum denkbar ungünstigsten Zeitpunkt fällig, und was wie ein Ende aussah, erwies sich als Tür.",
+    "French": "Un message destiné à quelqu'un d'autre est arrivé, et la vérité a fini par éclater, sans que tout le monde soit prêt à l'entendre. Une nouvelle piste a ensuite entraîné l'équipe dans une direction que personne n'attendait, et le prix du silence est devenu clair. Enfin, une ancienne promesse est venue à échéance au pire moment, et ce qui ressemblait à une fin s'est révélé être une porte.",
+    "Spanish": "Un mensaje llegó por error, destinado a otra persona, y la verdad salió a la luz, aunque no todos estaban preparados para enfrentarla. Después, una nueva pista llevó al equipo en una dirección que nadie esperaba, y el precio de guardar silencio quedó por fin al descubierto. Por último, una antigua promesa venció en el peor momento posible, y lo que parecía un final resultó ser una puerta.",
+    "Italian": "Un messaggio destinato a un'altra persona arriva e fa emergere la verità, che non tutti sono pronti ad accettare. Una nuova pista spinge la squadra in una direzione che nessuno si aspettava, e il prezzo del silenzio diventa finalmente chiaro. Una vecchia promessa scade nel momento peggiore, e quella che sembrava una fine si rivela una porta.",
+    "Portuguese (Brazil)": "Uma mensagem chegou por engano, destinada a outra pessoa, e revelou uma verdade que nem todos estavam prontos para ouvir. Em seguida, uma nova pista levou a equipe numa direção que ninguém esperava, e o preço do silêncio tornou-se finalmente claro. Por fim, uma promessa antiga cobrou seu preço no pior momento possível, e o que parecia um fim acabou revelando-se uma porta.",
+    "Polish": "Na początku wiadomość, która miała trafić do kogoś innego, ujawniła prawdę, a nie wszyscy byli na nią gotowi. Potem nowy trop poprowadził zespół w zupełnie nieoczekiwanym kierunku, a koszt milczenia stał się w końcu jasny. W trzecim odcinku dawna obietnica upomniała się o swoje w najmniej dogodnym momencie, a to, co wyglądało na koniec, okazało się drzwiami.",
+    "Swedish": "Ett meddelande som var avsett för någon annan nådde fram, och sanningen kom fram i ljuset, trots att alla inte var redo för den. Därefter tog en ny ledtråd teamet i en riktning ingen hade väntat sig, och kostnaden för att ha tigit blev till slut tydlig. Ett gammalt löfte kom sedan på sin plats vid en högst olämplig tidpunkt, och det som såg ut som ett slut visade sig vara en dörr.",
+    "Danish": "Et budskab, der var beregnet til en anden, kom frem, og sandheden blev afsløret, selv om ikke alle var parate til at høre den. Et nyt spor førte holdet i en retning, ingen havde ventet, og prisen for at tie blev tydelig. Et gammelt løfte skulle indfries i et yderst uheldigt øjeblik, og det, der så ud som en afslutning, viste sig at være en dør.",
+    "Norwegian Bokmål": "En melding kom frem som egentlig var ment for en annen, og sannheten ble avslørt, selv om ikke alle var klare for den. Et nytt spor førte teamet i en retning ingen hadde ventet, og prisen for å tie ble endelig tydelig. Et gammelt løfte forfalt i et svært ufordelaktig øyeblikk, og det som så ut som en slutt viste seg å være en dør.",
+    "Finnish": "Viestikin saapui väärälle henkilölle, ja sen myötä totuus tuli ilmi, vaikka kaikki eivät olleet valmiita kuulemaan sitä. Uusi johtolanka vei tiimin odottamattomaan suuntaan, ja vaikeneminen alkoi lopulta maksaa kalliisti. Vanha lupaus erääntyi pahimmalla mahdollisella hetkellä, ja se, mikä näytti lopulta, osoittautui ovena.",
+    "Icelandic": "Í fyrsta þætti barst skilaboð sem átti í raun að fara til einhvers annars, og sannleikurinn kom í ljós þó ekki væru allir tilbúnir að heyra hann. Í öðrum þætti tók ný vísbending hópinn í átt sem enginn hafði búist við, og þá varð loks ljóst hvað þögnin hafði kostað. Í þriðja þætti var gamalt loforð innt af hendi á versta mögulega augnabliki, og það sem virtist vera endir reyndist vera ný leið.",
+    "Korean": "첫 회에서는 원래 다른 사람에게 가야 했던 메시지가 도착했고, 그 안의 진실이 드러나면서 모두가 받아들일 준비가 된 것은 아니었습니다. 이어서 새로운 단서가 팀을 아무도 예상하지 못한 방향으로 이끌었고, 침묵이 치러야 했던 대가가 마침내 분명해졌습니다. 마지막으로 오래된 약속이 가장 나쁜 순간에 돌아왔고, 끝처럼 보였던 일은 새로운 문이 되었습니다.",
+    "Japanese": "前回は、本来別の人に宛てられたメッセージが届き、隠されていた真実が明らかになったものの、すべての人がそれを受け入れる準備ができていたわけではありませんでした。続いて新たな手がかりがチームを思いがけない方向へ導き、沈黙を守ってきたことの代償がはっきりと見えてきました。そして古い約束の履行が最悪のタイミングで迫り、終わりに見えた出来事が、実は次への扉だったことが分かりました。",
+    "Chinese, Simplified": "一条本应送给别人的消息意外抵达，真相随之浮出水面，但并非每个人都做好了接受的准备。随后一条新线索把团队引向了无人预料的方向，人们终于看清了沉默所付出的代价。再后来，一个旧日的承诺在最糟糕的时刻到期，看似结局的时刻却原来是一扇新门。",
+    "Chinese, Traditional": "一則本不是寫給他的訊息送到了眼前，真相隨之浮出水面，但並非每個人都準備好面對。接著一條新線索把團隊帶往誰都想不到的方向，沉默的代價也終於變得清楚。最後，一個舊日的承諾在最糟的時刻到期，看似結局的事情，卻原來是一扇門。"
+   }
+  }
+ ]
+}

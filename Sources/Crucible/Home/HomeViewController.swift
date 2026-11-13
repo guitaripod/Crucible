@@ -28,7 +28,7 @@ final class HomeViewController: UICollectionViewController {
     private lazy var whatToWatchItem: UIBarButtonItem = {
         let item = UIBarButtonItem(image: UIImage(systemName: "wand.and.stars"), primaryAction: UIAction { [weak self] _ in
             guard let self else { return }
-            self.navigationController?.pushViewController(WhatToWatchViewController(api: self.api), animated: true)
+            self.openWhatToWatch()
         })
         item.accessibilityLabel = WatchCopy.title
         item.accessibilityIdentifier = "home.whatToWatch"
@@ -679,6 +679,12 @@ final class HomeViewController: UICollectionViewController {
     }
 
     /// The title the Home hero offers to resume or start, for the demo tour's "Show me".
+    /// Opens What to Watch on top of Home, as its bar button does.
+    func openWhatToWatch() {
+        guard !(navigationController?.topViewController is WhatToWatchViewController) else { return }
+        navigationController?.pushViewController(WhatToWatchViewController(api: api), animated: true)
+    }
+
     func playHighlightedTitle() {
         guard let media = feed.arrangement.hero ?? feed.arrangement.continueRail.first else { return }
         play(id: media.id)

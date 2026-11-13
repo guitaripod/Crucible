@@ -54,6 +54,7 @@ final class DemoCoordinator {
         case .play: playHighlightedTitle(in: tabBar)
         case .browse: tabBar.open(.library)
         case .search: searchForSample(in: tabBar)
+        case .whatToWatch: openWhatToWatch(in: tabBar)
         case .statistics: openStatistics(in: tabBar, showingPoster: false)
         case .poster: openStatistics(in: tabBar, showingPoster: true)
         case .download: downloadSuggestedTitle(in: tabBar)
@@ -70,6 +71,11 @@ final class DemoCoordinator {
         guard let query = DemoPhoneSearchSample.query(fromTitles: tabBar.homeScreen?.sampleTitles ?? []),
               let search = navigation?.topViewController as? SearchViewController else { return }
         search.run(sample: query)
+    }
+
+    private func openWhatToWatch(in tabBar: TabBarController) {
+        tabBar.open(.home)
+        tabBar.homeScreen?.openWhatToWatch()
     }
 
     private func openStatistics(in tabBar: TabBarController, showingPoster: Bool) {

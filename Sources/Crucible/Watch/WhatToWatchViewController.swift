@@ -4,7 +4,8 @@ import MidgarCore
 import UIKit
 
 /// What to Watch on iPhone and iPad: a sentence about what the person feels like, then picks from their own library,
-/// each with a reason. It says what is sent before anything is, and nothing is sent until they ask.
+/// each with a reason. It says what is sent before anything is, and nothing is sent until they ask. In the demo
+/// there is no field: its example requests are the ones that have an answer, and the one asked stays marked.
 final class WhatToWatchViewController: UIViewController, UICollectionViewDelegate, UITextFieldDelegate {
     private enum Phase {
         case asking
@@ -19,6 +20,8 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
 
     private let api: APIClient
     private let session: WatchSession
+    private let answersExamplesOnly = !HostedBrain.takesAnyRequest
+    private var exampleButtons: [UIButton] = []
     private let field = UITextField()
     private let examples = UIStackView()
     private let explanationLabel = UILabel()
@@ -58,7 +61,7 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if case .asking = phase, request.isEmpty { field.becomeFirstResponder() }
+        if case .asking = phase, request.isEmpty, !answersExamplesOnly { field.becomeFirstResponder() }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -95,17 +98,25 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         ask.axis = .horizontal
         ask.spacing = Theme.Space.xs
         ask.alignment = .center
+        ask.isHidden = answersExamplesOnly
 
         examples.axis = .vertical
         examples.spacing = Theme.Space.xs
         examples.alignment = .leading
-        for example in WatchCopy.examples {
-            examples.addArrangedSubview(Self.button(example, filled: false) { [weak self] in
+        exampleButtons = WatchCopy.examples.enumerated().map { place, example in
+            let button = Self.button(example, filled: false) { [weak self] in
                 self?.field.text = example
                 self?.updateSuggestButton()
                 self?.suggest()
-            })
+            }
+            button.accessibilityIdentifier = "watch.example.\(place)"
+            button.configurationUpdateHandler = { button in
+                button.configuration?.baseBackgroundColor = button.isSelected ? Theme.Color.accent : nil
+                button.configuration?.baseForegroundColor = button.isSelected ? .black : Theme.Color.label
+            }
+            return button
         }
+        exampleButtons.forEach(examples.addArrangedSubview)
 
         Self.style(explanationLabel, font: Theme.Font.footnote, color: Theme.Color.labelSecondary)
         explanationLabel.text = WatchCopy.explanation
@@ -192,7 +203,10 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         failureLabel.isHidden = failure == nil
         failureLabel.text = failure.map(WatchCopy.failure)
         retryButton.superview?.isHidden = !(failure.map(WatchCopy.canRetry) ?? false)
-        examples.isHidden = !(isAsking || failure != nil)
+        examples.isHidden = !(answersExamplesOnly || isAsking || failure != nil)
+        for (button, example) in zip(exampleButtons, WatchCopy.examples) {
+            button.isSelected = answersExamplesOnly && !isAsking && WatchPicker.cleaned(example) == request
+        }
         explanationLabel.isHidden = answer != nil || step != nil
         noteLabel.isHidden = answer?.note.isEmpty ?? true
         noteLabel.text = answer?.note
@@ -246,6 +260,7 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
             case .success(let answer):
                 Haptics.success()
                 self.phase = .answered(answer)
+                DemoTour.shared.record(.whatToWatch)
             case .failure(let failure):
                 Haptics.error()
                 self.phase = .failed(failure)
