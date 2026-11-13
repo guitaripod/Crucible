@@ -554,7 +554,7 @@ final class ShowDetailViewController: UICollectionViewController {
                 if let share = WatchCardScreens.action(origin, api: api, host: self) {
                     elements.append(UIMenu(options: .displayInline, children: [share]))
                 }
-                if let model = self.model, PreviouslyOnRequest.isAvailable(model) {
+                if let model = self.model, PreviouslyOnRequest.offer(model) != .none {
                     elements.append(UIAction(title: CompanionCopy.previouslyOn, image: UIImage(systemName: "text.quote")) { [weak self] _ in
                         guard let self, let model = self.model else { return }
                         PreviouslyOnViewController.present(for: model, from: self)

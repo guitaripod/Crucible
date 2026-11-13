@@ -25,6 +25,15 @@ final class HomeViewController: UICollectionViewController {
     private var surpriseTask: Task<Void, Never>?
     private let surpriseMenuItem = UIBarButtonItem()
     private let serverMenuItem = UIBarButtonItem()
+    private lazy var whatToWatchItem: UIBarButtonItem = {
+        let item = UIBarButtonItem(image: UIImage(systemName: "wand.and.stars"), primaryAction: UIAction { [weak self] _ in
+            guard let self else { return }
+            self.navigationController?.pushViewController(WhatToWatchViewController(api: self.api), animated: true)
+        })
+        item.accessibilityLabel = WatchCopy.title
+        item.accessibilityIdentifier = "home.whatToWatch"
+        return item
+    }()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var preloaded: PlexMediaContainer?
     private var visibilityObserver: UUID?
@@ -394,7 +403,7 @@ final class HomeViewController: UICollectionViewController {
         })
 
         serverMenuItem.image = UIImage(systemName: "server.rack")
-        navigationItem.rightBarButtonItems = [serverMenuItem, surpriseMenuItem]
+        navigationItem.rightBarButtonItems = HostedBrain.isAvailable ? [serverMenuItem, surpriseMenuItem, whatToWatchItem] : [serverMenuItem, surpriseMenuItem]
         updateServerMenu()
     }
 

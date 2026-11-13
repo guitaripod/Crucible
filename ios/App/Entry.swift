@@ -9,7 +9,7 @@ enum Entry {
     static func main() {
         CrucibleLog.configure()
         if MidgarProAccess.reachesMidgarServices {
-            ProAccess.shared.install(MidgarProAccess.live())
+            MidgarServices.live().install()
             MidgarProAccess.installPlaybackOffer(firstOfferAfter: 3, laterOfferEvery: 5)
         }
         DemoMode.shared.install(demoProvider())

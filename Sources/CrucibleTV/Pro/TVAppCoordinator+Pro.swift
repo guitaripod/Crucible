@@ -6,6 +6,7 @@ extension TVAppCoordinator {
     /// covers whatever is on screen, the tab bar included; playback never asks for it.
     func installPro() {
         ProAccess.shared.configureForLaunch(store: nil)
+        HostedBrain.configureForLaunch()
         ProAccess.shared.paywallPresenter = { [weak self] request, completion in
             guard let self else {
                 completion(false)

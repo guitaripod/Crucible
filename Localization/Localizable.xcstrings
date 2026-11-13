@@ -18709,6 +18709,101 @@
         }
       }
     },
+    "A film I haven't seen, under two hours" : {
+      "comment" : "Example What to Watch request",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En film jeg ikke har set, under to timer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Film, den ich noch nicht gesehen habe, unter zwei Stunden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una película que no he visto, de menos de dos horas"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elokuva, jota en ole vielä nähnyt, alle kaksi tuntia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un film que je n’ai pas vu, de moins de deux heures"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mynd sem ég hef ekki séð, undir tveimur klukkustundum"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un film che non ho visto, meno di due ore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ観ていない2時間以内の映画"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 보지 않은 영화, 2시간 이내"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En film jeg ikke har sett, under to timer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieobejrzany film, poniżej dwóch godzin"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um filme que eu não vi, com menos de duas horas"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En film jag inte har sett, under två timmar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一部我没看过、两小时以内的电影"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一部我沒看過、兩小時內的電影"
+          }
+        }
+      }
+    },
     "A hostname or IP such as 100.x.x.x for Tailscale. Crucible tries HTTPS first." : {
       "localizations" : {
         "da" : {
@@ -18893,6 +18988,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一張可以分享的年度海報。"
+          }
+        }
+      }
+    },
+    "A recap of your last episodes, written before you press play." : {
+      "comment" : "Pro feature summary for Previously On",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Et resumé af dine seneste afsnit, skrevet før du trykker på Afspil."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein „Was bisher geschah“ zu deinen letzten Folgen, geschrieben, bevor du die Wiedergabe startest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un Anteriormente de tus últimos episodios, escrito antes de pulsar Reproducir."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenveto viimeisistä jaksoistasi, kirjoitettuna ennen kuin käynnistät toiston."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un « Précédemment » de vos derniers épisodes, rédigé avant de lancer la lecture."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Það sem gerðist áður“ úr síðustu þáttunum þínum, skrifað áður en þú ýtir á spilun."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un riassunto «Nelle puntate precedenti» degli ultimi episodi, scritto prima di premere Riproduci."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生する前に、直近に観たエピソードの前回までのあらすじを作成します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생하기 전에 마지막으로 본 에피소드들의 지난 이야기를 작성합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Et sammendrag av dine siste episoder, skrevet før du trykker på Spill av."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streszczenie ostatnich odcinków w formie „W poprzednich odcinkach”, napisane zanim naciśniesz Odtwórz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um resumo “Anteriormente” dos seus últimos episódios, escrito antes de você tocar em Reproduzir."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En sammanfattning av dina senaste avsnitt, skriven innan du trycker på Spela upp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你按下播放前，写好最近几集的前情提要。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你按下播放前，先寫好你最近幾集的前情提要。"
+          }
+        }
+      }
+    },
+    "A series to start this weekend" : {
+      "comment" : "Example What to Watch request",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En serie at begynde på i weekenden"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Serie, mit der du am Wochenende anfängst"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una serie para empezar este fin de semana"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sarja, jonka aloitat tänä viikonloppuna"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une série à commencer ce week-end"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þáttaröð til að byrja á um helgina"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una serie da iniziare questo fine settimana"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今週末に観始めるシリーズ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이번 주말에 시작할 시리즈"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En serie å starte med i helgen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serial do rozpoczęcia w ten weekend"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma série para começar neste fim de semana"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En serie att börja med i helgen"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个周末开始追的剧集"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個週末開始追的影集"
           }
         }
       }
@@ -32361,6 +32646,101 @@
         }
       }
     },
+    "Choosing…" : {
+      "comment" : "What to Watch progress",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælger…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird ausgewählt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eligiendo…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valitaan…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choix en cours…"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velur…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scelta in corso…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んでいます…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "고르는 중…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velger…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybieranie…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolhendo…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Väljer…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在选择…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在選擇…"
+          }
+        }
+      }
+    },
     "Clear" : {
       "comment" : "Confirms clearing the image cache",
       "localizations" : {
@@ -38121,6 +38501,571 @@
         }
       }
     },
+    "Couldn't choose because Crucible's AI couldn't be reached. Check your connection and try again." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi Crucibles AI ikke kunne nås. Tjek din forbindelse, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil Crucibles KI nicht erreicht werden konnte. Prüfe deine Verbindung und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque no hay contacto con la IA de Crucible. Revisa tu conexión y prueba de nuevo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valintaa ei voitu tehdä, koska Crucible-tekoälyyn ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir : l’IA de Crucible est injoignable. Vérifiez votre connexion et réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því ekki náðist samband við gervigreind Crucible. Athugaðu tenginguna og reyndu aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere: l’IA di Crucible non è raggiungibile. Controlla la connessione e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible の AI に接続できないため選べませんでした。接続を確認して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible AI에 연결할 수 없어 고르지 못했습니다. 연결을 확인한 후 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi Crucibles KI ikke kunne nås. Sjekk tilkoblingen og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać: nie można połączyć się z AI Crucible. Sprawdź połączenie z internetem i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher: a IA do Crucible está inacessível. Verifique sua conexão e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte välja eftersom Crucibles AI inte gick att nå. Kontrollera anslutningen och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为 Crucible 的 AI 无法连接。请检查网络连接，然后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為 Crucible 的 AI 無法連線。請檢查網路連線後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't choose because Crucible's AI is busy. Try again in a minute." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi Crucibles AI er optaget. Prøv igen om et minut."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil Crucibles KI gerade ausgelastet ist. Versuche es in einer Minute erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque la IA de Crucible está ocupada. Prueba de nuevo dentro de un minuto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valintaa ei voitu tehdä, koska Crucible-tekoäly on ruuhkautunut. Yritä uudelleen minuutin kuluttua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir : l’IA de Crucible est occupée. Réessayez dans une minute."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því gervigreind Crucible er upptekin. Reyndu aftur eftir eina mínútu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere: l’IA di Crucible è occupata. Riprova tra un minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible の AI が混み合っているため選べませんでした。1分ほどしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible AI가 사용 중이라 고르지 못했습니다. 1분 후에 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi Crucibles KI er opptatt. Prøv igjen om et minutt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać: AI Crucible jest zajęte. Spróbuj ponownie za minutę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher: a IA do Crucible está ocupada. Tente novamente em um minuto."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte välja eftersom Crucibles AI är upptagen. Försök igen om en minut."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为 Crucible 的 AI 正忙。请一分钟后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為 Crucible 的 AI 忙碌中。請稍等一分鐘後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't choose because Crucible's AI is unavailable right now. Try again in a few minutes." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi Crucibles AI ikke er tilgængelig lige nu. Prøv igen om nogle minutter."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil Crucibles KI gerade nicht verfügbar ist. Versuche es in ein paar Minuten erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque la IA de Crucible no está disponible en este momento. Prueba de nuevo en unos minutos."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valintaa ei voitu tehdä, koska Crucible-tekoäly ei ole juuri nyt käytettävissä. Yritä uudelleen muutaman minuutin kuluttua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir : l’IA de Crucible est indisponible pour le moment. Réessayez dans quelques minutes."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því gervigreind Crucible er ekki tiltæk eins og er. Reyndu aftur eftir nokkrar mínútur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere: l’IA di Crucible non è disponibile al momento. Riprova tra qualche minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible の AI が現在利用できないため選べませんでした。数分ほどしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible AI를 지금 사용할 수 없어 고르지 못했습니다. 몇 분 후에 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi Crucibles KI ikke er tilgjengelig akkurat nå. Prøv igjen om noen minutter."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać: AI Crucible jest teraz niedostępne. Spróbuj ponownie za kilka minut."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher: a IA do Crucible não está disponível no momento. Tente novamente em alguns minutos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte välja eftersom Crucibles AI inte är tillgänglig just nu. Försök igen om några minuter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为 Crucible 的 AI 目前不可用。请几分钟后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為 Crucible 的 AI 目前無法使用。請稍等幾分鐘後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't choose because What to Watch comes with Crucible Pro." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi Titelforslag følger med i Crucible Pro."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil „Was schauen?“ zu Crucible Pro gehört."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque «Qué ver» está incluido en Crucible Pro."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valintaa ei voitu tehdä, koska ”Mitä katsoa” kuuluu Crucible Prohon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir : « Quoi regarder ? » fait partie de Crucible Pro."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því „Hvað á að horfa á“ fylgir Crucible Pro."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere: Cosa guardare è incluso in Crucible Pro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「何を観る？」は Crucible Pro に含まれるため選べませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "볼거리 추천은 Crucible Pro에 포함되어 있어 고르지 못했습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi Titeltips følger med i Crucible Pro."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać: Co obejrzeć jest częścią Crucible Pro."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher: O que assistir faz parte do Crucible Pro."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte välja eftersom Titeltips ingår i Crucible Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为“看什么”功能需要 Crucible Pro。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為「看什麼」需要 Crucible Pro。"
+          }
+        }
+      }
+    },
+    "Couldn't choose because today's AI allowance is used up. It comes back at %@." : {
+      "comment" : "The placeholder is a time of day, e.g. 2:00",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi dagens AI-kvote er brugt op. Den nulstilles kl. %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil das heutige KI-Kontingent aufgebraucht ist. Es steht ab %@ wieder zur Verfügung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque se ha agotado el cupo de IA de hoy. Se restablecerá a las %@."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valintaa ei voitu tehdä, koska tämän päivän tekoälykiintiö on käytetty loppuun. Se palautuu kello %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir : le quota d’IA du jour est épuisé. Il sera rétabli à %@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því gervigreindarkvóti dagsins er búinn. Hann endurnýjast klukkan %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere: il limite di utilizzo dell’IA per oggi è esaurito. Torna disponibile alle %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本日の AI 利用枠を使い切ったため選べませんでした。%@ に利用枠が戻ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘의 AI 사용량을 모두 써서 고르지 못했습니다. %@에 다시 사용할 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi dagens KI-kvote er brukt opp. Den fornyes kl. %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać: dzienny limit AI został wyczerpany. Wróci o %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher: o limite de uso da IA de hoje foi atingido. Ele volta às %@."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte välja eftersom dagens AI-kvot är slut. Den återställs kl. %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为今天的 AI 额度已用完。将于 %@ 恢复。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為今天的 AI 額度已用完。將於 %@ 恢復。"
+          }
+        }
+      }
+    },
+    "Couldn't choose from that. Describe what you want to watch." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge ud fra det. Beskriv, hvad du har lyst til at se."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Damit lässt sich nichts auswählen. Beschreibe, was du sehen möchtest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir con eso. Describe qué quieres ver."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valinta ei onnistunut tuon perusteella. Kuvaile, mitä haluaisit katsoa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir à partir de cette demande. Décrivez ce que vous voulez regarder."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja út frá því. Lýstu því sem þú vilt horfa á."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere in base a questo. Descrivi cosa vuoi guardare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その内容からは選べませんでした。観たいものを説明してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 내용으로는 고르지 못했습니다. 보고 싶은 것을 설명해 주세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge ut fra det. Beskriv hva du har lyst til å se."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać na podstawie tego. Opisz, co chcesz obejrzeć."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher com base nisso. Descreva o que você quer assistir."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte välja utifrån det. Beskriv vad du vill se."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法根据这些内容做出选择。请描述你想看的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法根據這段內容做出選擇。請描述你想看的內容。"
+          }
+        }
+      }
+    },
     "Couldn't find a Plex server at %@. Check the address and that the server is online." : {
       "localizations" : {
         "da" : {
@@ -38685,6 +39630,100 @@
         }
       }
     },
+    "Couldn't read your library because your Plex server isn't answering. Check that it is on, then try again." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke læse dit bibliotek, fordi din Plex-server ikke svarer. Tjek, at den er tændt, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mediathek kann nicht gelesen werden, weil dein Plex-Server nicht antwortet. Prüfe, ob er eingeschaltet ist, und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo leer tu biblioteca porque tu servidor de Plex no responde. Comprueba que esté encendido y prueba de nuevo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjastoasi ei voitu lukea, koska Plex-palvelin ei vastaa. Tarkista, että se on päällä, ja yritä sitten uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de lire votre bibliothèque : votre serveur Plex ne répond pas. Vérifiez qu’il est allumé, puis réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að lesa safnið þitt því Plex-þjónninn svarar ekki. Athugaðu hvort hann sé í gangi og reyndu síðan aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere la libreria perché il server Plex non risponde. Controlla che sia acceso, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex サーバーが応答しないため、ライブラリを読み込めませんでした。サーバーの電源が入っているか確認して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 서버가 응답하지 않아 보관함을 읽지 못했습니다. 서버가 켜져 있는지 확인한 후 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke lese biblioteket ditt fordi Plex-serveren ikke svarer. Sjekk at den er på, og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odczytać biblioteki, bo serwer Plex nie odpowiada. Sprawdź, czy jest włączony, i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível ler sua biblioteca porque o servidor Plex não está respondendo. Verifique se ele está ligado e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte läsa ditt bibliotek eftersom din Plex-server inte svarar. Kontrollera att den är på och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取你的资料库，因为 Plex 服务器没有响应。请确认它已开机，然后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取你的媒體庫，因為 Plex 伺服器沒有回應。請確認它已開機，然後再試一次。"
+          }
+        }
+      }
+    },
     "Couldn't start the demo" : {
       "localizations" : {
         "da" : {
@@ -38775,6 +39814,477 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法啟動示範"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because Crucible's AI couldn't be reached. Check your connection and try again." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi Crucibles AI ikke kunne nås. Tjek din forbindelse, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil Crucibles KI nicht erreicht werden konnte. Prüfe deine Verbindung und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque no hay contacto con la IA de Crucible. Revisa tu conexión y prueba de nuevo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska Crucible-tekoälyyn ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment » : l’IA de Crucible est injoignable. Vérifiez votre connexion et réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því ekki náðist samband við gervigreind Crucible. Athugaðu tenginguna og reyndu aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti»: l’IA di Crucible non è raggiungibile. Controlla la connessione e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible の AI に接続できないため、前回までのあらすじを作成できませんでした。接続を確認して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible AI에 연결할 수 없어 지난 이야기를 작성하지 못했습니다. 연결을 확인한 후 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi Crucibles KI ikke kunne nås. Sjekk tilkoblingen og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”: nie można połączyć się z AI Crucible. Sprawdź połączenie z internetem i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente”: a IA do Crucible está inacessível. Verifique sua conexão e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte skriva ”Tidigare i” eftersom Crucibles AI inte gick att nå. Kontrollera anslutningen och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为 Crucible 的 AI 无法连接。请检查网络连接，然后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為 Crucible 的 AI 無法連線。請檢查網路連線後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because Crucible's AI is busy. Try again in a minute." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi Crucibles AI er optaget. Prøv igen om et minut."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil Crucibles KI gerade ausgelastet ist. Versuche es in einer Minute erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque la IA de Crucible está ocupada. Prueba de nuevo dentro de un minuto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska Crucible-tekoäly on ruuhkautunut. Yritä uudelleen minuutin kuluttua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment » : l’IA de Crucible est occupée. Réessayez dans une minute."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því gervigreind Crucible er upptekin. Reyndu aftur eftir eina mínútu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti»: l’IA di Crucible è occupata. Riprova tra un minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible の AI が混み合っているため、前回までのあらすじを作成できませんでした。1分ほどしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible AI가 사용 중이라 지난 이야기를 작성하지 못했습니다. 1분 후에 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi Crucibles KI er opptatt. Prøv igjen om et minutt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”: AI Crucible jest zajęte. Spróbuj ponownie za minutę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente”: a IA do Crucible está ocupada. Tente novamente em um minuto."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte skriva ”Tidigare i” eftersom Crucibles AI är upptagen. Försök igen om en minut."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为 Crucible 的 AI 正忙。请一分钟后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為 Crucible 的 AI 忙碌中。請稍等一分鐘後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because Crucible's AI is unavailable right now. Try again in a few minutes." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi Crucibles AI ikke er tilgængelig lige nu. Prøv igen om nogle minutter."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil Crucibles KI gerade nicht verfügbar ist. Versuche es in ein paar Minuten erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque la IA de Crucible no está disponible en este momento. Prueba de nuevo en unos minutos."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska Crucible-tekoäly ei ole juuri nyt käytettävissä. Yritä uudelleen muutaman minuutin kuluttua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment » : l’IA de Crucible est indisponible pour le moment. Réessayez dans quelques minutes."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því gervigreind Crucible er ekki tiltæk eins og er. Reyndu aftur eftir nokkrar mínútur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti»: l’IA di Crucible non è disponibile al momento. Riprova tra qualche minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible の AI が現在利用できないため、前回までのあらすじを作成できませんでした。数分ほどしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible AI를 지금 사용할 수 없어 지난 이야기를 작성하지 못했습니다. 몇 분 후에 다시 시도하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi Crucibles KI ikke er tilgjengelig akkurat nå. Prøv igjen om noen minutter."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”: AI Crucible jest teraz niedostępne. Spróbuj ponownie za kilka minut."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente”: a IA do Crucible não está disponível no momento. Tente novamente em alguns minutos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte skriva ”Tidigare i” eftersom Crucibles AI inte är tillgänglig just nu. Försök igen om några minuter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为 Crucible 的 AI 目前不可用。请几分钟后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為 Crucible 的 AI 目前無法使用。請稍等幾分鐘後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because that comes with Crucible Pro." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi det følger med i Crucible Pro."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil das zu Crucible Pro gehört."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque eso está incluido en Crucible Pro."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska se kuuluu Crucible Prohon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment » : cela fait partie de Crucible Pro."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því það fylgir Crucible Pro."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti»: questa funzione è inclusa in Crucible Pro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじは Crucible Pro に含まれるため、作成できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기는 Crucible Pro에 포함되어 있어 작성하지 못했습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi det følger med i Crucible Pro."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”: ta funkcja jest częścią Crucible Pro."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente”: isso faz parte do Crucible Pro."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte skriva ”Tidigare i” eftersom det ingår i Crucible Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为该功能需要 Crucible Pro。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為這項功能需要 Crucible Pro。"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because today's AI allowance is used up. It comes back at %@." : {
+      "comment" : "The placeholder is a time of day, e.g. 2:00",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi dagens AI-kvote er brugt op. Den nulstilles kl. %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil das heutige KI-Kontingent aufgebraucht ist. Es steht ab %@ wieder zur Verfügung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque se ha agotado el cupo de IA de hoy. Se restablecerá a las %@."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska tämän päivän tekoälykiintiö on käytetty loppuun. Se palautuu kello %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment » : le quota d’IA du jour est épuisé. Il sera rétabli à %@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því gervigreindarkvóti dagsins er búinn. Hann endurnýjast klukkan %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti»: il limite di utilizzo dell’IA per oggi è esaurito. Torna disponibile alle %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本日の AI 利用枠を使い切ったため、前回までのあらすじを作成できませんでした。%@ に利用枠が戻ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘의 AI 사용량을 모두 써서 지난 이야기를 작성하지 못했습니다. %@에 다시 사용할 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi dagens KI-kvote er brukt opp. Den fornyes kl. %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”: dzienny limit AI został wyczerpany. Wróci o %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente”: o limite de uso da IA de hoje foi atingido. Ele volta às %@."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte skriva ”Tidigare i” eftersom dagens AI-kvot är slut. Den återställs kl. %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为今天的 AI 额度已用完。将于 %@ 恢复。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為今天的 AI 額度已用完。將於 %@ 恢復。"
           }
         }
       }
@@ -60483,6 +61993,101 @@
         }
       }
     },
+    "For the whole family" : {
+      "comment" : "Example What to Watch request",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Til hele familien"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für die ganze Familie"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para toda la familia"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koko perheelle"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour toute la famille"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fyrir alla fjölskylduna"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per tutta la famiglia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "家族みんなで観る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가족 모두를 위해"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For hele familien"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dla całej rodziny"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para toda a família"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "För hela familjen"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适合全家一起看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "適合全家人一起看"
+          }
+        }
+      }
+    },
     "Forced" : {
       "comment" : "Subtitle track flagged as forced",
       "localizations" : {
@@ -62485,6 +64090,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "來自您的伺服器"
+          }
+        }
+      }
+    },
+    "From the description of %@" : {
+      "comment" : "What a recap draws on, e.g. From the description of S1 · E5",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ud fra beskrivelsen af %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus der Beschreibung von %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Según la descripción de %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jakson %@ kuvauksesta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D’après la description de %@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Úr lýsingu á %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalla descrizione di %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の説明から"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 설명에서"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fra beskrivelsen av %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z opisu %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da descrição de %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Från beskrivningen av %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根据 %@ 的描述"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根據 %@ 的描述"
+          }
+        }
+      }
+    },
+    "From the descriptions of %@ to %@" : {
+      "comment" : "What a recap draws on, e.g. From the descriptions of S1 · E3 to S1 · E5",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ud fra beskrivelserne af %@ til %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus den Beschreibungen von %@ bis %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Según las descripciones de %@ a %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaksojen %@–%@ kuvauksista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D’après les descriptions de %@ à %@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Úr lýsingum á %@ til %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalle descrizioni da %@ a %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ から %@ までの説明をもとに"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@부터 %@까지 설명에서"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fra beskrivelsene av %@ til %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z opisów %@ do %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das descrições de %@ a %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Från beskrivningarna av %@ till %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根据 %@ 至 %@ 的描述"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根據 %@ 到 %@ 的描述"
           }
         }
       }
@@ -92649,6 +94444,100 @@
         }
       }
     },
+    "Nothing in your library fits that. Try saying it another way." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intet i dit bibliotek passer til det. Prøv at sige det på en anden måde."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts in deiner Mediathek passt dazu. Versuche, es anders zu formulieren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay nada en tu biblioteca que encaje con eso. Prueba a decirlo de otra forma."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjastostasi ei löydy tuohon sopivaa. Kokeile muotoilla toivomuksesi toisin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien dans votre bibliothèque ne correspond. Essayez de formuler autrement."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekkert í safninu þínu passar við það. Reyndu að orða það öðruvísi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nella tua libreria non c’è nulla di adatto. Prova a dirlo in un altro modo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリにそれに合うものはありません。別の言い方で試してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보관함에 그에 맞는 작품이 없습니다. 다르게 표현해 보십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingenting i biblioteket ditt passer til det. Prøv å si det på en annen måte."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic w Twojej bibliotece do tego nie pasuje. Spróbuj powiedzieć to inaczej."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada na sua biblioteca combina com isso. Tente dizer de outro jeito."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inget i ditt bibliotek passar in på det. Försök att säga det på ett annat sätt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的资料库里没有符合的内容。请换个说法再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的媒體庫裡沒有符合的內容。請換個說法再試一次。"
+          }
+        }
+      }
+    },
     "Nothing is stored in this folder." : {
       "localizations" : {
         "da" : {
@@ -101252,6 +103141,101 @@
         }
       }
     },
+    "Picks from your library" : {
+      "comment" : "Subtitle of the What to Watch tile on Apple TV Home",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forslag fra dit bibliotek"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl aus deiner Mediathek"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selección de tu biblioteca"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valintoja kirjastostasi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggestions de votre bibliothèque"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tillögur úr safninu þínu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consigli dalla tua libreria"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリからのおすすめ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보관함에서 고른 작품"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forslag fra biblioteket ditt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propozycje z Twojej biblioteki"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugestões da sua biblioteca"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tips från ditt bibliotek"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自你资料库的推荐"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來自你媒體庫的推薦"
+          }
+        }
+      }
+    },
     "Picks something to watch" : {
       "localizations" : {
         "da" : {
@@ -109769,6 +111753,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可連線"
+          }
+        }
+      }
+    },
+    "Read the Descriptions" : {
+      "comment" : "Apple TV button that shows the last episodes' descriptions",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Læs beskrivelserne"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreibungen lesen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer las descripciones"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lue kuvaukset"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire les descriptions"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesa lýsingarnar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leggi le descrizioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明を読む"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설명 읽기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les beskrivelsene"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czytaj opisy"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ler as descrições"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läs beskrivningarna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读描述"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀描述"
+          }
+        }
+      }
+    },
+    "Reading your library…" : {
+      "comment" : "What to Watch progress",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Læser dit bibliotek…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mediathek wird gelesen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyendo tu biblioteca…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luetaan kirjastoasi…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture de votre bibliothèque…"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les safnið þitt…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura della libreria…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリを読み込んでいます…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보관함을 읽는 중…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leser biblioteket ditt…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czytanie biblioteki…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lendo sua biblioteca…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läser ditt bibliotek…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在读取你的资料库…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在讀取你的媒體庫…"
           }
         }
       }
@@ -118767,6 +120941,291 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已儲存至照片"
+          }
+        }
+      }
+    },
+    "Say or Type Your Own" : {
+      "comment" : "Apple TV button that opens a text field for a What to Watch request",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sig eller skriv din egen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigenen Wunsch sagen oder tippen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di o escribe lo tuyo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sano tai kirjoita oma toive"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dire ou saisir le vôtre"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segðu eða skrifaðu þína eigin ósk"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dillo o scrivi la tua"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話すか入力する"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "말하거나 직접 입력"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si eller skriv din egen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiedz lub wpisz swoje"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga ou digite a sua"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säg eller skriv en egen"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说出或输入你的需求"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說出或輸入你的需求"
+          }
+        }
+      }
+    },
+    "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device." : {
+      "comment" : "What to Watch: what is sent to the hosted model",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sig, hvad du har lyst til, så vælger Crucible titler fra dit eget bibliotek. Dine ord og titlernes, årstallenes, genrernes, spilletidernes, bedømmelsernes og set-statussen for dine film og serier sendes til Crucibles AI, der vælger. Intet andet forlader denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag, worauf du Lust hast, und Crucible wählt aus deiner eigenen Mediathek. Deine Worte sowie Titel, Jahre, Genres, Laufzeiten, Bewertungen und Gesehen-Status deiner Filme und Serien werden an Crucibles KI gesendet, die die Auswahl trifft. Sonst verlässt nichts dieses Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di lo que te apetece y Crucible elige de tu propia biblioteca. Tus palabras, así como los títulos, años, géneros, duraciones, valoraciones y estado de visionado de tus películas y series, se envían a la IA de Crucible para hacer la selección. Nada más sale de este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kerro, mitä mieli tekee, ja Crucible valitsee sopivat elokuvat ja sarjat omasta kirjastostasi. Sanasi sekä elokuviesi ja sarjojesi nimet, vuosiluvut, lajityypit, kestot, arviot ja katselutila lähetetään Crucible-tekoälylle valintaa varten. Tältä laitteelta ei lähde mitään muuta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites ce que vous avez envie de voir : Crucible choisit dans votre propre bibliothèque. Vos mots, ainsi que les titres, années, genres, durées, notes et état de visionnage de vos films et séries, sont envoyés à l’IA de Crucible qui fait la sélection. Rien d’autre ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segðu hvað þig langar í og Crucible velur úr þínu eigin safni. Orðin þín ásamt titlum, útgáfuárum, tegundum, lengdum, einkunnum og áhorfsstöðu kvikmynda og þátta þinna eru send til gervigreindar Crucible svo hún geti valið. Ekkert annað fer úr þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di’ cosa ti va e Crucible sceglie dalla tua libreria. Le tue parole e i titoli, gli anni, i generi, le durate, le valutazioni e lo stato di visione di film e serie vengono inviati all’IA di Crucible per la scelta. Nient’altro lascia questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今の気分を話すか入力すると、Crucible がご自身のライブラリから選びます。選ぶために、入力した言葉と、映画やシリーズのタイトル、公開年、ジャンル、長さ、評価、視聴状況が Crucible の AI に送信されます。それ以外のデータがこの端末から送信されることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원하는 것을 말하면 Crucible이 보관함의 작품 중에서 골라 드립니다. 입력한 말과 영화 및 시리즈의 제목, 연도, 장르, 길이, 평점, 시청 여부가 고르기 위해 Crucible AI로 전송됩니다. 이 기기 밖으로는 다른 정보가 전송되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si hva du har lyst til, så velger Crucible titler fra ditt eget bibliotek. Ordene dine og titlenes, årstallenes, sjangrenes, lengdenes, vurderingenes og sett-statusen for filmene og seriene dine sendes til Crucibles KI for å velge. Ingenting annet forlater denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiedz, na co masz ochotę, a Crucible wybierze coś z Twojej biblioteki. Twoje słowa oraz tytuły, lata, gatunki, długości, oceny i stan oglądania Twoich filmów i seriali są wysyłane do AI Crucible w celu wyboru. Nic więcej nie opuszcza tego urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga o que você quer assistir e o Crucible escolhe na sua própria biblioteca. As suas palavras e os títulos, anos, gêneros, durações, classificações e o que já foi assistido dos seus filmes e séries são enviados à IA do Crucible para escolher. Nada mais sai deste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säg vad du är sugen på, så väljer Crucible titlar i ditt eget bibliotek. Dina ord och titlarnas, årtalens, genrernas, längdernas, betygens och visningsstatusen för dina filmer och serier skickas till Crucibles AI för att välja. Inget annat lämnar den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说说你现在想看什么，Crucible 会从你自己的资料库中挑选。你说的话，以及电影和剧集的片名、年份、类型、时长、评分和观看状态，会发送到 Crucible 的 AI 进行挑选。除此之外，不会有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說說你現在想看什麼，Crucible 會從你自己的媒體庫中挑選。你說的話，以及電影和影集的片名、年份、類型、片長、評分和觀看狀態，會傳送到 Crucible 的 AI 進行挑選。除此之外，不會有其他資料離開這台裝置。"
+          }
+        }
+      }
+    },
+    "Say what you feel like and get picks from your own library, with a reason for each." : {
+      "comment" : "Pro feature summary for What to Watch",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sig, hvad du har lyst til, og få forslag fra dit eget bibliotek med en begrundelse for hvert."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag, worauf du Lust hast, und erhalte Vorschläge aus deiner eigenen Mediathek, jeweils mit einem Grund."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di lo que te apetece y recibe selecciones de tu propia biblioteca, con un motivo para cada una."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kerro, mitä mieli tekee, ja saat omasta kirjastostasi valintoja, joista jokaisella on perustelu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites ce que vous avez envie de voir et obtenez des suggestions de votre bibliothèque, avec une raison pour chacune."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segðu hvað þig langar í og fáðu tillögur úr þínu eigin safni, með rökstuðningi fyrir hverri."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di’ cosa ti va e ricevi consigli dalla tua libreria, con un motivo per ciascuno."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今の気分を話すか入力すると、ご自身のライブラリから理由付きでおすすめを提案します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원하는 것을 말하면 보관함의 작품 중에서 각각 이유와 함께 추천을 받을 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si hva du har lyst til, og få forslag fra ditt eget bibliotek, med en begrunnelse for hver."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiedz, na co masz ochotę, i otrzymaj propozycje z Twojej biblioteki, z uzasadnieniem dla każdej."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga o que você quer assistir e receba sugestões da sua biblioteca, com um motivo para cada uma."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säg vad du är sugen på och få tips från ditt eget bibliotek, med en motivering för varje."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说说你现在想看什么，即可从你自己的资料库中获得推荐，每部作品都附上推荐理由。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說說你現在想看什麼，就能從你自己的媒體庫中獲得推薦，每部都附上推薦理由。"
           }
         }
       }
@@ -133547,6 +136006,196 @@
         }
       }
     },
+    "Something funny, under two hours" : {
+      "comment" : "Example request shown in the What to Watch field",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noget sjovt, under to timer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwas Lustiges, unter zwei Stunden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo divertido, de menos de dos horas"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jotain hauskaa, alle kaksi tuntia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelque chose de drôle, de moins de deux heures"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eitthvað fyndið, undir tveimur klukkustundum"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualcosa di divertente, meno di due ore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面白い作品、2時間以内"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재미있는 것, 2시간 이내"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noe morsomt, under to timer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coś zabawnego, poniżej dwóch godzin"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo engraçado, com menos de duas horas"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Något roligt, under två timmar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好笑的作品，两小时以内"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好笑的作品，兩小時內"
+          }
+        }
+      }
+    },
+    "Something light for tonight" : {
+      "comment" : "Example What to Watch request",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noget let til i aften"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwas Leichtes für heute Abend"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo ligero para esta noche"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jotain kevyttä tänä iltana"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelque chose de léger pour ce soir"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eitthvað létt fyrir kvöldið"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualcosa di leggero per stasera"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今夜に軽く楽しめるもの"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘 밤 가볍게 볼 것"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noe lett til i kveld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coś lekkiego na dziś wieczór"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo leve para hoje à noite"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Något lätt för ikväll"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今晚轻松看点什么"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今晚想看點輕鬆的"
+          }
+        }
+      }
+    },
     "Sort" : {
       "comment" : "Button that opens the sort menu, not the verb",
       "localizations" : {
@@ -134958,6 +137607,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開始這一週"
+          }
+        }
+      }
+    },
+    "Started" : {
+      "comment" : "A series the person has watched some episodes of",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Påbegyndt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angefangen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezada"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kesken"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commencée"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Í áhorfi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In corso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청 중"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Påbegynt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozpoczęte"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Em andamento"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Påbörjad"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "觀看中"
           }
         }
       }
@@ -136941,6 +139685,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字幕：%@"
+          }
+        }
+      }
+    },
+    "Suggest" : {
+      "comment" : "Button that asks What to Watch for picks",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foreslå"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschlagen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugerir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ehdota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggérer"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stinga upp á"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggerisci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提案する"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "추천받기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foreslå"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugeruj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sugerir"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Föreslå"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推荐"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推薦"
           }
         }
       }
@@ -144778,6 +147617,100 @@
         }
       }
     },
+    "There is nothing to choose from yet. Add films or series to your Plex library, then ask again." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der er endnu intet at vælge imellem. Tilføj film eller serier til dit Plex-bibliotek, og spørg igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es gibt noch nichts zur Auswahl. Füge Filme oder Serien zu deiner Plex-Mediathek hinzu und frag dann noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no hay nada que elegir. Añade películas o series a tu biblioteca de Plex y vuelve a preguntar."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valittavaa ei ole vielä mitään. Lisää elokuvia tai sarjoja Plex-kirjastoosi ja kysy sitten uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il n’y a encore rien à choisir. Ajoutez des films ou des séries à votre bibliothèque Plex, puis redemandez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Það er ekkert til að velja úr ennþá. Bættu kvikmyndum eða þáttum í Plex-safnið þitt og spurðu síðan aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non c’è ancora nulla da scegliere. Aggiungi film o serie alla tua libreria Plex, poi chiedi di nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ選べる作品がありません。Plex のライブラリに映画やシリーズを追加してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 고를 작품이 없습니다. Plex 보관함에 영화나 시리즈를 추가한 후 다시 요청하십시오."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det er ingenting å velge mellom ennå. Legg til filmer eller serier i Plex-biblioteket ditt, og spør igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie ma jeszcze nic do wyboru. Dodaj filmy lub seriale do biblioteki Plex i zapytaj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não há nada para escolher. Adicione filmes ou séries à sua biblioteca Plex e pergunte de novo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det finns inget att välja mellan än. Lägg till filmer eller serier i ditt Plex-bibliotek och fråga igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前还没有可供挑选的内容。请先将电影或剧集添加到你的 Plex 资料库，然后再试一次。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前還沒有可以挑選的內容。請先把電影或影集加入你的 Plex 媒體庫，然後再試一次。"
+          }
+        }
+      }
+    },
     "These settings live on your server, so they apply to everyone who watches this show." : {
       "comment" : "Note on the Show Settings screen",
       "localizations" : {
@@ -145817,6 +148750,100 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此版本的 Crucible 無法連線至 Trakt。"
+          }
+        }
+      }
+    },
+    "This build of Crucible can't write a recap." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne version af Crucible kan ikke skrive resuméet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Version von Crucible kann kein „Was bisher geschah“ schreiben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versión de Crucible no puede escribir un Anteriormente."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tämä Crucible-versio ei voi kirjoittaa Aiemmin-yhteenvetoa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de Crucible ne peut pas rédiger de « Précédemment »."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þessi útgáfa af Crucible getur ekki skrifað „Það sem gerðist áður“."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa versione di Crucible non può scrivere «Nelle puntate precedenti»."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このバージョンの Crucible では前回までのあらすじを作成できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 버전의 Crucible에서는 지난 이야기를 작성할 수 없습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne versjonen av Crucible kan ikke skrive «Tidligere i serien»."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja Crucible nie może napisać „W poprzednich odcinkach”."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versão do Crucible não consegue escrever o “Anteriormente”."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den här versionen av Crucible kan inte skriva ”Tidigare i”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 无法撰写前情提要。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個版本的 Crucible 無法撰寫前情提要。"
           }
         }
       }
@@ -160204,6 +163231,195 @@
         }
       }
     },
+    "What to Watch" : {
+      "comment" : "Name of the feature that picks films and series from a sentence",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelforslag"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was schauen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qué ver"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitä katsoa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quoi regarder ?"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hvað á að horfa á"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa guardare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "何を観る？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "볼거리 추천"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titeltips"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co obejrzeć"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que assistir"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titeltips"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看什么"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看什麼"
+          }
+        }
+      }
+    },
+    "What to Watch isn't part of this build of Crucible." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelforslag er ikke en del af denne version af Crucible."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was schauen?“ ist in dieser Version von Crucible nicht enthalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Qué ver» no forma parte de esta versión de Crucible."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "”Mitä katsoa” ei sisälly tähän Crucible-versioon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Quoi regarder ? » ne fait pas partie de cette version de Crucible."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hvað á að horfa á er ekki hluti af þessari útgáfu af Crucible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa guardare non fa parte di questa versione di Crucible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「何を観る？」はこのバージョンの Crucible には含まれていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "볼거리 추천은 이 버전의 Crucible에 포함되어 있지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titeltips er ikke en del av denne versjonen av Crucible."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co obejrzeć nie jest częścią tej wersji Crucible."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que assistir não faz parte desta versão do Crucible."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titeltips ingår inte i den här versionen av Crucible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 不包含“看什么”功能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個版本的 Crucible 不包含「看什麼」功能。"
+          }
+        }
+      }
+    },
     "What you mark watched, your ratings and check-ins." : {
       "comment" : "Explanation of the Send Changes setting",
       "localizations" : {
@@ -161716,6 +164932,101 @@
         }
       }
     },
+    "With Crucible Server on the computer with Plex, it is written from what was said in the episodes." : {
+      "comment" : "Hint under a Previously On made from descriptions",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Med Crucible Server på computeren med Plex skrives det ud fra det, der bliver sagt i afsnittene."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Crucible Server auf dem Computer mit Plex wird es aus den Dialogen der Folgen geschrieben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Crucible Server en el ordenador con Plex, se escribe a partir de lo que se dice en los episodios."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun Plex-koneella on Crucible Server, Aiemmin-yhteenveto kirjoitetaan jaksoissa sanotun perusteella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec Crucible Server sur l’ordinateur qui héberge Plex, il est rédigé à partir de ce qui est dit dans les épisodes."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Með Crucible Server á tölvunni með Plex er það skrifað út frá því sem sagt var í þáttunum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Crucible Server sul computer con Plex, viene scritto in base a ciò che viene detto negli episodi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex のあるコンピューターの Crucible Server を使うと、エピソードのセリフをもとに前回までのあらすじが作成されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex가 있는 컴퓨터에 Crucible Server가 있으면 에피소드에서 나온 대사를 바탕으로 작성됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Med Crucible Server på datamaskinen med Plex skrives den ut fra det som sies i episodene."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z Crucible Server na komputerze z Plex powstaje na podstawie tego, co powiedziano w odcinkach."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com o Crucible Server no computador com o Plex, ele é escrito com base no que foi dito nos episódios."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Med Crucible Server på datorn med Plex skrivs den utifrån det som sägs i avsnitten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与 Plex 在同一台电脑上运行 Crucible Server 时，前情提要会根据剧集中的台词撰写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搭配在 Plex 所在電腦上執行的 Crucible Server 時，前情提要會根據影集中的台詞撰寫。"
+          }
+        }
+      }
+    },
     "Withdraw Request" : {
       "comment" : "Button that withdraws the viewer's pending request",
       "localizations" : {
@@ -161807,6 +165118,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "撤回請求"
+          }
+        }
+      }
+    },
+    "Working out what you mean…" : {
+      "comment" : "What to Watch progress",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finder ud af, hvad du mener…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Wunsch wird verstanden…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entendiendo lo que quieres…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selvitetään, mitä tarkoitat…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyse de votre demande…"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reikna út hvað þú átt við…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interpretazione della richiesta…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "意図を読み取っています…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "의도를 파악하는 중…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finner ut hva du mener…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustalanie, co masz na myśli…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entendendo o que você quer dizer…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Försöker förstå vad du menar…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在理解你的意思…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在理解你的意思…"
           }
         }
       }
@@ -162094,6 +165500,101 @@
         }
       }
     },
+    "Write a Recap" : {
+      "comment" : "Button that asks for episode descriptions to be written into one recap",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv resumé"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ schreiben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir un Anteriormente"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjoita Aiemmin-yhteenveto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédiger un « Précédemment »"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrifa „Það sem gerðist áður“"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivi «Nelle puntate precedenti»"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじを作成"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기 작성"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv «Tidligere i serien»"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisz „W poprzednich odcinkach”"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrever o “Anteriormente”"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv ”Tidigare i”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰写前情提要"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰寫前情提要"
+          }
+        }
+      }
+    },
     "Writer" : {
       "comment" : "Crew role label for a writer",
       "localizations" : {
@@ -162279,6 +165780,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "編劇"
+          }
+        }
+      }
+    },
+    "Writing a recap sends the name of the series and these descriptions to Crucible's AI. Nothing else leaves this device." : {
+      "comment" : "What a described Previously On sends to the hosted model",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når resuméet skrives, sendes seriens navn og disse beskrivelser til Crucibles AI. Intet andet forlader denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Schreiben von „Was bisher geschah“ werden der Name der Serie und diese Beschreibungen an Crucibles KI gesendet. Sonst verlässt nichts dieses Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir un Anteriormente envía el nombre de la serie y estas descripciones a la IA de Crucible. Nada más sale de este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvedon kirjoittaminen lähettää sarjan nimen ja nämä kuvaukset Crucible-tekoälylle. Mitään muuta ei poistu tältä laitteelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédiger un « Précédemment » envoie le nom de la série et ces descriptions à l’IA de Crucible. Rien d’autre ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Með því að skrifa „Það sem gerðist áður“ eru nafn þáttaraðarinnar og þessar lýsingar sendar til gervigreindar Crucible. Ekkert annað fer úr þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivere «Nelle puntate precedenti» invia il nome della serie e queste descrizioni all’IA di Crucible. Nient’altro lascia questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじを作成すると、シリーズ名とこれらの説明が Crucible の AI に送信されます。それ以外のデータがこの端末から送信されることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기를 작성하면 시리즈 이름과 이 설명들이 Crucible AI로 전송됩니다. 이 기기 밖으로는 다른 정보가 전송되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når «Tidligere i serien» skrives, sendes navnet på serien og disse beskrivelsene til Crucibles KI. Ingenting annet forlater denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisanie „W poprzednich odcinkach” wysyła nazwę serialu i te opisy do AI Crucible. Nic więcej nie opuszcza tego urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrever o “Anteriormente” envia o nome da série e estas descrições para a IA do Crucible. Nada mais sai deste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "När ”Tidigare i” skrivs skickas seriens namn och dessa beskrivningar till Crucibles AI. Inget annat lämnar den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰写前情提要时，剧集名称和这些描述会发送给 Crucible 的 AI。除此之外，不会有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰寫前情提要時，影集名稱和這些描述會傳送到 Crucible 的 AI。除此之外，不會有其他資料離開這台裝置。"
+          }
+        }
+      }
+    },
+    "Writing the recap…" : {
+      "comment" : "Shown while a recap is being written",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriver resuméet…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein „Was bisher geschah“ wird geschrieben…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribiendo tu Anteriormente…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjoitetaan Aiemmin-yhteenvetoa…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédaction de votre « Précédemment »…"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrifa „Það sem gerðist áður“…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrittura del riassunto…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじを作成中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기를 작성하는 중…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriver «Tidligere i serien»…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pisanie „W poprzednich odcinkach”…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrevendo o “Anteriormente”…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriver ”Tidigare i”…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在撰写前情提要…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在撰寫前情提要…"
           }
         }
       }

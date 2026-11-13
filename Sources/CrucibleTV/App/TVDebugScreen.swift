@@ -18,6 +18,8 @@ enum TVDebugScreen {
             tabBar.showHome().pushViewController(TVScreens.statistics(environment), animated: false)
         case "pro":
             openPro(on: tabBar)
+        case "whattowatch":
+            tabBar.showHome().pushViewController(TVScreens.whatToWatchAsk(environment), animated: false)
         default:
             break
         }

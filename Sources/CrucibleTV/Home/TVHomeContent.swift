@@ -24,6 +24,7 @@ enum TVHomeItem: Hashable {
     case card(String, HomeBucket)
     case rate(String)
     case week
+    case whatToWatch
     case surprise
 }
 

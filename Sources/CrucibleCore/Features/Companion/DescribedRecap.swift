@@ -83,6 +83,20 @@ package enum DescribedRecapCopy {
     package static let withServer = String(localized: "With Crucible Server on the computer with Plex, it is written from what was said in the episodes.", comment: "Hint under a Previously On made from descriptions")
 
     package static func failure(_ error: HostedBrainError) -> String {
-        HostedCopy.failure(error, doing: String(localized: "Couldn't write the recap", comment: "Start of a sentence: Couldn't write the recap because …"))
+        switch error {
+        case .unavailable:
+            return String(localized: "This build of Crucible can't write a recap.")
+        case .offline:
+            return String(localized: "Couldn't write the recap because Crucible's AI couldn't be reached. Check your connection and try again.")
+        case .needsPro:
+            return String(localized: "Couldn't write the recap because that comes with Crucible Pro.")
+        case .allowanceUsed(let resetsAt):
+            let time = resetsAt.formatted(date: .omitted, time: .shortened)
+            return String(localized: "Couldn't write the recap because today's AI allowance is used up. It comes back at \(time).", comment: "The placeholder is a time of day, e.g. 2:00")
+        case .busy:
+            return String(localized: "Couldn't write the recap because Crucible's AI is busy. Try again in a minute.")
+        case .declined, .failed:
+            return String(localized: "Couldn't write the recap because Crucible's AI is unavailable right now. Try again in a few minutes.")
+        }
     }
 }

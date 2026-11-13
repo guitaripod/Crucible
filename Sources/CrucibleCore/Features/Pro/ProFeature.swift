@@ -37,7 +37,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
 
     package var symbol: String {
         switch self {
-        case .whatToWatch: return "sparkles"
+        case .whatToWatch: return "wand.and.stars"
         case .previouslyOn: return "text.quote"
         case .unlimitedDownloads: return "arrow.down.circle"
         case .fullStatistics: return "chart.bar.xaxis"

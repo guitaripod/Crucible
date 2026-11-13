@@ -2,10 +2,28 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// The Previously On a paired Crucible Server writes for a show: a short read of the episodes watched so far, what it
-/// draws on, and the computer that wrote it.
+/// A show's Previously On. With a paired Crucible Server it is a short read of the episodes watched so far, written
+/// from what was said, with what it draws on and the computer that wrote it. Without one it is the last finished
+/// episodes' own descriptions, which Crucible's AI writes into one recap when the person asks for that.
 final class PreviouslyOnViewController: UIViewController {
     private let model: ShowDetailModel
+    private let offer: PreviouslyOnOffer
+    private let episodes: [DescribedEpisode]
+    private let episodeList = UIStackView()
+    private let sendsLabel = UILabel()
+    private let serverLabel = UILabel()
+    private lazy var writeButton: UIButton = {
+        var configuration = UIButton.Configuration.filled()
+        configuration.cornerStyle = .capsule
+        configuration.title = DescribedRecapCopy.write
+        configuration.image = UIImage(systemName: "sparkles")
+        configuration.imagePadding = 6
+        configuration.baseBackgroundColor = Theme.Color.accent
+        configuration.baseForegroundColor = .black
+        let button = UIButton(configuration: configuration, primaryAction: UIAction { [weak self] _ in self?.writeRecap() })
+        button.accessibilityIdentifier = "previouslyOn.write"
+        return button
+    }()
     private let titleLabel = UILabel()
     private let bodyLabel = UILabel()
     private let basisLabel = UILabel()
@@ -14,6 +32,8 @@ final class PreviouslyOnViewController: UIViewController {
 
     init(model: ShowDetailModel) {
         self.model = model
+        self.offer = PreviouslyOnRequest.offer(model)
+        self.episodes = DescribedRecap.episodes(of: model)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -52,10 +72,11 @@ final class PreviouslyOnViewController: UIViewController {
         basisLabel.adjustsFontForContentSizeCategory = true
         spinner.startAnimating()
 
-        let stack = UIStackView(arrangedSubviews: [titleLabel, spinner, bodyLabel, basisLabel])
+        let stack = UIStackView(arrangedSubviews: [titleLabel, spinner, bodyLabel, basisLabel, writeButton, sendsLabel, episodeList, serverLabel])
         stack.axis = .vertical
         stack.alignment = .leading
         stack.spacing = Theme.Space.m
+        buildDescriptions()
         let scroll = UIScrollView()
         scroll.alwaysBounceVertical = true
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -73,7 +94,87 @@ final class PreviouslyOnViewController: UIViewController {
             stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -Theme.Space.l),
             stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -2 * Theme.Space.l),
         ])
-        load()
+        if offer == .server { load() }
+    }
+
+    /// Lays out the described form: the episodes as Plex describes them, the button that has them written into one
+    /// recap where this build has Crucible's AI, what pressing it sends, and what Crucible Server would add.
+    private func buildDescriptions() {
+        let isDescribed = offer != .server
+        let canWrite = isDescribed && HostedBrain.isAvailable
+        [episodeList, serverLabel].forEach { $0.isHidden = !isDescribed }
+        [writeButton, sendsLabel].forEach { $0.isHidden = !canWrite }
+        guard isDescribed else { return }
+        spinner.stopAnimating()
+        spinner.isHidden = true
+        bodyLabel.isHidden = true
+        basisLabel.isHidden = true
+        for label in [sendsLabel, serverLabel] {
+            label.font = Theme.Font.footnote
+            label.textColor = Theme.Color.labelSecondary
+            label.numberOfLines = 0
+            label.adjustsFontForContentSizeCategory = true
+        }
+        sendsLabel.text = DescribedRecapCopy.sends
+        serverLabel.text = DescribedRecapCopy.withServer
+        episodeList.axis = .vertical
+        episodeList.spacing = Theme.Space.m
+        episodeList.accessibilityIdentifier = "previouslyOn.episodes"
+        for episode in episodes {
+            let heading = UILabel()
+            heading.font = Theme.Font.subheadlineSemibold
+            heading.textColor = Theme.Color.label
+            heading.numberOfLines = 0
+            heading.adjustsFontForContentSizeCategory = true
+            heading.text = episode.code == episode.title ? episode.title : "\(episode.code) · \(episode.title)"
+            let description = UILabel()
+            description.font = Theme.Font.subheadline
+            description.textColor = Theme.Color.labelSecondary
+            description.numberOfLines = 0
+            description.adjustsFontForContentSizeCategory = true
+            description.text = episode.description
+            let block = UIStackView(arrangedSubviews: [heading, description])
+            block.axis = .vertical
+            block.spacing = 2
+            episodeList.addArrangedSubview(block)
+        }
+    }
+
+    /// Has the descriptions written into one recap, once the person may: it is part of Crucible Pro and of a Pro Week.
+    private func writeRecap() {
+        guard task == nil else { return }
+        ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] unlocked in
+            guard unlocked, let self else { return }
+            self.startWriting()
+        }
+    }
+
+    private func startWriting() {
+        Haptics.selection()
+        writeButton.isEnabled = false
+        spinner.isHidden = false
+        spinner.startAnimating()
+        bodyLabel.isHidden = false
+        bodyLabel.text = DescribedRecapCopy.writing
+        task = Task { [weak self] in
+            guard let self else { return }
+            do throws(HostedBrainError) {
+                bodyLabel.text = try await DescribedRecap.write(show: model.show.title, about: model.show.summary, episodes: episodes)
+                basisLabel.text = DescribedRecap.basis(episodes)
+                basisLabel.isHidden = false
+                writeButton.isHidden = true
+                sendsLabel.isHidden = true
+                Haptics.success()
+            } catch {
+                bodyLabel.text = DescribedRecapCopy.failure(error)
+                writeButton.isEnabled = true
+                Haptics.error()
+            }
+            spinner.stopAnimating()
+            spinner.isHidden = true
+            task = nil
+            UIAccessibility.post(notification: .layoutChanged, argument: bodyLabel)
+        }
     }
 
     override func viewDidDisappear(_ animated: Bool) {

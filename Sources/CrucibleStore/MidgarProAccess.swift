@@ -33,7 +33,11 @@ package final class MidgarProAccess: ProAccessProviding {
     /// launch, before the first screen; the Midgar ID is minted or attached in the background.
     package static func live() -> MidgarProAccess {
         let configuration = MidgarHTTPConfiguration(appID: appID)
-        let identity = MidgarIdentity(httpConfiguration: configuration, bundleID: bundleID)
+        return live(configuration: configuration, identity: MidgarIdentity(httpConfiguration: configuration, bundleID: bundleID))
+    }
+
+    /// The store on an identity made by the caller, which the hosted model shares (`MidgarServices`).
+    package static func live(configuration: MidgarHTTPConfiguration, identity: MidgarIdentity) -> MidgarProAccess {
         let store = MidgarStore(
             configuration: storeConfiguration(),
             identity: identity,

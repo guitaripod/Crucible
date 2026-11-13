@@ -114,12 +114,25 @@ final class TVHomeWeekSurface: TVFocusableSurface {
     }
 }
 
-/// The last tile of Recently Added: Select offers a random movie, show or either.
+/// A tile at the end of Recently Added that does something instead of opening a title. As it stands it is Surprise
+/// Me, where Select offers a random movie, show or either; What to Watch gives it its own symbol and words.
 final class TVHomeSurpriseSurface: TVFocusableSurface {
-    init() {
+    private let symbolName: String
+    private let titleText: String
+    private let subtitleText: String
+
+    init(
+        symbol: String = "sparkles",
+        title: String = String(localized: "Surprise Me"),
+        subtitle: String = String(localized: "Random pick"),
+        hint: String = String(localized: "Picks something to watch")
+    ) {
+        symbolName = symbol
+        titleText = title
+        subtitleText = subtitle
         super.init(cornerRadius: TVMetrics.Card.cornerRadius)
-        accessibilityLabel = String(localized: "Surprise Me")
-        accessibilityHint = String(localized: "Picks something to watch")
+        accessibilityLabel = title
+        accessibilityHint = hint
         buildHierarchy()
     }
 
@@ -127,20 +140,20 @@ final class TVHomeSurpriseSurface: TVFocusableSurface {
     required init?(coder: NSCoder) { fatalError() }
 
     private func buildHierarchy() {
-        let symbol = UIImageView(image: UIImage(systemName: "sparkles"))
+        let symbol = UIImageView(image: UIImage(systemName: symbolName))
         symbol.tintColor = Theme.Color.accent
         symbol.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 72, weight: .light)
         symbol.contentMode = .scaleAspectFit
 
         let title = UILabel()
-        title.text = String(localized: "Surprise Me")
+        title.text = titleText
         title.font = Theme.Font.headline
         title.textColor = Theme.Color.label
         title.textAlignment = .center
         title.numberOfLines = 2
 
         let subtitle = UILabel()
-        subtitle.text = String(localized: "Random pick")
+        subtitle.text = subtitleText
         subtitle.font = Theme.Font.subheadline
         subtitle.textColor = Theme.Color.labelSecondary
         subtitle.textAlignment = .center

@@ -5,7 +5,6 @@ package enum WatchCopy {
     package static let title = String(localized: "What to Watch", comment: "Name of the feature that picks films and series from a sentence")
     package static let placeholder = String(localized: "Something funny, under two hours", comment: "Example request shown in the What to Watch field")
     package static let suggest = String(localized: "Suggest", comment: "Button that asks What to Watch for picks")
-    package static let askAgain = String(localized: "Ask Again", comment: "Button that returns to the What to Watch field")
     package static let tryAgain = String(localized: "Try Again")
     package static let typeYourOwn = String(localized: "Say or Type Your Own", comment: "Apple TV button that opens a text field for a What to Watch request")
     package static let tileSubtitle = String(localized: "Picks from your library", comment: "Subtitle of the What to Watch tile on Apple TV Home")
@@ -52,7 +51,28 @@ package enum WatchCopy {
         case .nothingFits(let note):
             return note.isEmpty ? String(localized: "Nothing in your library fits that. Try saying it another way.") : note
         case .brain(let error):
-            return HostedCopy.failure(error, doing: String(localized: "Couldn't choose", comment: "Start of a sentence: Couldn't choose because …"))
+            return refusal(error)
+        }
+    }
+
+    /// What the person is told when Crucible's AI gave no answer.
+    private static func refusal(_ error: HostedBrainError) -> String {
+        switch error {
+        case .unavailable:
+            return String(localized: "What to Watch isn't part of this build of Crucible.")
+        case .offline:
+            return String(localized: "Couldn't choose because Crucible's AI couldn't be reached. Check your connection and try again.")
+        case .needsPro:
+            return String(localized: "Couldn't choose because What to Watch comes with Crucible Pro.")
+        case .allowanceUsed(let resetsAt):
+            let time = resetsAt.formatted(date: .omitted, time: .shortened)
+            return String(localized: "Couldn't choose because today's AI allowance is used up. It comes back at \(time).", comment: "The placeholder is a time of day, e.g. 2:00")
+        case .busy:
+            return String(localized: "Couldn't choose because Crucible's AI is busy. Try again in a minute.")
+        case .declined:
+            return String(localized: "Couldn't choose from that. Describe what you want to watch.")
+        case .failed:
+            return String(localized: "Couldn't choose because Crucible's AI is unavailable right now. Try again in a few minutes.")
         }
     }
 
@@ -61,30 +81,6 @@ package enum WatchCopy {
         switch failure {
         case .libraryUnreachable, .brain(.offline), .brain(.busy), .brain(.failed): return true
         case .emptyLibrary, .nothingFits, .brain(.unavailable), .brain(.needsPro), .brain(.allowanceUsed), .brain(.declined): return false
-        }
-    }
-}
-
-/// The words for an answer the hosted model did not give, shared by the features that ask it.
-package enum HostedCopy {
-    /// `doing` begins the sentence with what could not be done, as "Couldn't choose" or "Couldn't write the recap".
-    package static func failure(_ error: HostedBrainError, doing: String) -> String {
-        switch error {
-        case .unavailable:
-            return String(localized: "\(doing) because this build of Crucible has no AI of its own.", comment: "e.g. Couldn't choose because this build of Crucible has no AI of its own.")
-        case .offline:
-            return String(localized: "\(doing) because Crucible's AI couldn't be reached. Check your connection and try again.", comment: "e.g. Couldn't choose because Crucible's AI couldn't be reached.")
-        case .needsPro:
-            return String(localized: "\(doing) because Crucible's AI comes with Crucible Pro.", comment: "e.g. Couldn't choose because Crucible's AI comes with Crucible Pro.")
-        case .allowanceUsed(let resetsAt):
-            let time = resetsAt.formatted(date: .omitted, time: .shortened)
-            return String(localized: "\(doing) because today's AI allowance is used up. It comes back at \(time).", comment: "e.g. Couldn't choose because today's AI allowance is used up. It comes back at 2:00.")
-        case .busy:
-            return String(localized: "\(doing) because Crucible's AI is busy. Try again in a minute.", comment: "e.g. Couldn't choose because Crucible's AI is busy.")
-        case .declined:
-            return String(localized: "\(doing) because the AI would not work with that. Say it another way.", comment: "e.g. Couldn't choose because the AI would not work with that.")
-        case .failed:
-            return String(localized: "\(doing) because Crucible's AI is unavailable right now. Try again in a few minutes.", comment: "e.g. Couldn't choose because Crucible's AI is unavailable right now.")
         }
     }
 }

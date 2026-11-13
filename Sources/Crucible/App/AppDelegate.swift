@@ -18,6 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         PhoneDebugSession.bootstrapIfRequested()
         #endif
         ProAccess.shared.configureForLaunch(store: nil)
+        HostedBrain.configureForLaunch()
         PaywallPresenter.install()
         DemoCoordinator.shared.install()
         DownloadManager.shared.bootstrap()

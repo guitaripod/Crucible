@@ -23,11 +23,12 @@ enum Entry {
     private static func installStore() {
         #if DEBUG
         installScriptedOfferPolicy()
+        installLiveModelIfRequested()
         #endif
         guard sellsThroughAppStore, MidgarProAccess.reachesMidgarServices else { return }
         CrucibleLog.configure()
         MainActor.assumeIsolated {
-            ProAccess.shared.install(MidgarProAccess.live())
+            MidgarServices.live().install()
             MidgarProAccess.installPlaybackOffer(
                 firstOfferAfter: 1, laterOfferEvery: 5, alreadyOffered: ProMomentLedger().hasShown(.firstFinish))
         }
@@ -57,6 +58,15 @@ enum Entry {
             if environment["CRUCIBLE_FRESH"] == "1" { MidgarProAccess.forgetPlaybackOfferForTesting() }
             MidgarProAccess.installPlaybackOffer(firstOfferAfter: 1, laterOfferEvery: 5)
         }
+    }
+    #endif
+
+    #if DEBUG
+    /// With `CRUCIBLE_BRAIN=live` a debug session that has no store, as against the mock server, still gets
+    /// Crucible's real hosted model, so What to Watch and a described Previously On can be checked end to end.
+    private static func installLiveModelIfRequested() {
+        guard ProcessInfo.processInfo.environment["CRUCIBLE_BRAIN"] == "live", MidgarProAccess.reachesMidgarServices else { return }
+        HostedBrain.install(MidgarHostedBrain.live())
     }
     #endif
 

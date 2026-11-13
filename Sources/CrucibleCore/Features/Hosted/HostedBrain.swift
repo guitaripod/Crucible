@@ -69,14 +69,15 @@ package enum HostedBrain {
 /// A hosted model that answers from the environment, for UI tests and captures: no network, the same shapes.
 ///
 /// - `CRUCIBLE_BRAIN`: `ok` answers every alias, `offline`, `limit`, `pro`, `busy` or `fail` refuse the way the
-///   service would.
+///   service would. `live` is not scripted: it asks an app entry point to install the real model in a session that
+///   would otherwise have none (the Apple TV app against the mock server).
 /// - `CRUCIBLE_BRAIN_DELAY_MS`: how long an answer takes, 600 by default.
 package struct ScriptedHostedBrain: HostedBrainProviding {
     private let behavior: String
     private let delay: Duration
 
     package init?(environment: [String: String]) {
-        guard let behavior = environment["CRUCIBLE_BRAIN"], !behavior.isEmpty else { return nil }
+        guard let behavior = environment["CRUCIBLE_BRAIN"], !behavior.isEmpty, behavior != "live" else { return nil }
         self.behavior = behavior
         self.delay = .milliseconds(environment["CRUCIBLE_BRAIN_DELAY_MS"].flatMap(Int.init) ?? 600)
     }

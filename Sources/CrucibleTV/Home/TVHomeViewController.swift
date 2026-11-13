@@ -196,6 +196,9 @@ final class TVHomeViewController: TVScreenViewController {
         let surpriseTile = TVHostCell.registration { [weak self] (_: TVHomeItem) -> UIView in
             self?.makeSurpriseTile() ?? UIView()
         }
+        let whatToWatchTile = TVHostCell.registration { [weak self] (_: TVHomeItem) -> UIView in
+            self?.makeWhatToWatchTile() ?? UIView()
+        }
         let header = TVSectionHeaderView.registration { [weak self] indexPath in
             self?.sectionHeader(at: indexPath)
         }
@@ -220,6 +223,8 @@ final class TVHomeViewController: TVScreenViewController {
                 cell.accessibilityIdentifier = "home.rate.\(id)"
             case .week:
                 cell = collectionView.dequeueConfiguredReusableCell(using: weekTile, for: indexPath, item: item)
+            case .whatToWatch:
+                cell = collectionView.dequeueConfiguredReusableCell(using: whatToWatchTile, for: indexPath, item: item)
             case .surprise:
                 cell = collectionView.dequeueConfiguredReusableCell(using: surpriseTile, for: indexPath, item: item)
             }
@@ -247,6 +252,21 @@ final class TVHomeViewController: TVScreenViewController {
         let tile = TVHomeSurpriseSurface()
         tile.accessibilityIdentifier = "home.surprise"
         tile.addAction(UIAction { [weak self] _ in self?.presentSurpriseMenu() }, for: .primaryActionTriggered)
+        return atPosterHeight(tile)
+    }
+
+    /// The What to Watch tile beside it: Select asks what the person feels like and picks from their library.
+    private func makeWhatToWatchTile() -> UIView {
+        let tile = TVHomeSurpriseSurface(symbol: "wand.and.stars", title: WatchCopy.title, subtitle: WatchCopy.tileSubtitle, hint: WatchCopy.tileSubtitle)
+        tile.accessibilityIdentifier = "home.whatToWatch"
+        tile.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            TVNavigation.push(TVScreens.whatToWatchAsk(env), from: self)
+        }, for: .primaryActionTriggered)
+        return atPosterHeight(tile)
+    }
+
+    private func atPosterHeight(_ tile: UIView) -> UIView {
         let captionHeight = TVCardStyle.poster.itemSize.height - TVMetrics.Card.posterSize.height
         let host = UIView()
         host.addSubview(tile)
@@ -290,7 +310,7 @@ final class TVHomeViewController: TVScreenViewController {
                 snapshot.appendItems([.week], toSection: .week)
             case .recentlyAdded where !arrangement.recent.isEmpty:
                 snapshot.appendSections([.recentlyAdded])
-                snapshot.appendItems(arrangement.recent.map { .card($0.id, .recentlyAdded) } + [.surprise], toSection: .recentlyAdded)
+                snapshot.appendItems(arrangement.recent.map { .card($0.id, .recentlyAdded) } + (HostedBrain.isAvailable ? [.whatToWatch, .surprise] : [.surprise]), toSection: .recentlyAdded)
             case .rateWatched where !arrangement.isEmpty && !visibleAsks.isEmpty:
                 snapshot.appendSections([.rateWatched])
                 snapshot.appendItems(visibleAsks.map { .rate($0.id) }, toSection: .rateWatched)

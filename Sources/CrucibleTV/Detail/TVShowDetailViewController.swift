@@ -240,9 +240,67 @@ final class TVShowDetailViewController: TVDetailViewController {
         }
     }
 
-    /// Asks the paired Crucible Server for a Previously On, saying it is being written meanwhile.
+    /// Shows the show's Previously On: the paired Crucible Server's, or without one the last finished episodes'
+    /// descriptions, read as they are or written into one recap by Crucible's AI after saying what that sends.
     private func showPreviouslyOn() {
         guard let model, presentedViewController == nil else { return }
+        guard PreviouslyOnRequest.offer(model) == .descriptions else {
+            showServerPreviouslyOn(model)
+            return
+        }
+        let episodes = DescribedRecap.episodes(of: model)
+        let title = CompanionCopy.previouslyOnTitle(model.show.title)
+        guard HostedBrain.isAvailable else {
+            present(TVSynopsisViewController(title: title, text: Self.descriptions(episodes)), animated: TVMotion.animationsEnabled)
+            return
+        }
+        let choice = UIAlertController(title: title, message: DescribedRecapCopy.sends, preferredStyle: .alert)
+        choice.addAction(UIAlertAction(title: DescribedRecapCopy.write, style: .default) { [weak self] _ in
+            ProAccess.shared.requestUnlock(.previouslyOn) { unlocked in
+                guard unlocked else { return }
+                self?.writeRecap(model, episodes: episodes)
+            }
+        })
+        choice.addAction(UIAlertAction(title: DescribedRecapCopy.readDescriptions, style: .default) { [weak self] _ in
+            self?.present(TVSynopsisViewController(title: title, text: Self.descriptions(episodes)), animated: TVMotion.animationsEnabled)
+        })
+        choice.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        present(choice, animated: TVMotion.animationsEnabled)
+    }
+
+    /// The finished episodes as Plex describes them, with what Crucible Server would add.
+    private static func descriptions(_ episodes: [DescribedEpisode]) -> String {
+        let blocks = episodes.map { episode in
+            (episode.code == episode.title ? episode.title : "\(episode.code) · \(episode.title)") + "\n" + episode.description
+        }
+        return (blocks + [DescribedRecapCopy.withServer]).joined(separator: "\n\n")
+    }
+
+    /// Has Crucible's AI write the descriptions into one recap, saying so meanwhile.
+    private func writeRecap(_ model: ShowDetailModel, episodes: [DescribedEpisode]) {
+        guard presentedViewController == nil else { return }
+        let title = CompanionCopy.previouslyOnTitle(model.show.title)
+        let waiting = UIAlertController(title: title, message: DescribedRecapCopy.writing, preferredStyle: .alert)
+        let task = Task { [weak self, weak waiting] in
+            let text: String
+            do throws(HostedBrainError) {
+                let recap = try await DescribedRecap.write(show: model.show.title, about: model.show.summary, episodes: episodes)
+                text = "\(recap)\n\n\(DescribedRecap.basis(episodes))"
+            } catch {
+                text = "\(DescribedRecapCopy.failure(error))\n\n\(Self.descriptions(episodes))"
+            }
+            guard !Task.isCancelled, let waiting else { return }
+            waiting.dismiss(animated: TVMotion.animationsEnabled) {
+                self?.present(TVSynopsisViewController(title: title, text: text), animated: TVMotion.animationsEnabled)
+            }
+        }
+        waiting.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in task.cancel() })
+        present(waiting, animated: TVMotion.animationsEnabled)
+    }
+
+    /// Asks the paired Crucible Server for a Previously On, saying it is being written meanwhile.
+    private func showServerPreviouslyOn(_ model: ShowDetailModel) {
+        guard presentedViewController == nil else { return }
         let waiting = UIAlertController(title: CompanionCopy.previouslyOnTitle(model.show.title), message: CompanionCopy.writing, preferredStyle: .alert)
         let task = Task { [weak self, weak waiting] in
             let text: String
@@ -273,7 +331,7 @@ final class TVShowDetailViewController: TVDetailViewController {
                 handler: { [weak self] in self?.playUpNext() }
             ),
         ]
-        if PreviouslyOnRequest.isAvailable(model) {
+        if PreviouslyOnRequest.offer(model) != .none {
             actions.append(TVDetailAction(kind: .previouslyOn, title: CompanionCopy.previouslyOn, symbol: "text.quote", handler: { [weak self] in self?.showPreviouslyOn() }))
         }
         if let plan = model.essentials, EssentialsCopy.shouldOffer(plan) {
