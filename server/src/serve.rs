@@ -10,6 +10,7 @@ use crate::api::{router, AppState};
 use crate::brain::Brain;
 use crate::config::Config;
 use crate::home::Home;
+use crate::net::model_place;
 use crate::pairing::Pairings;
 use crate::paths::Paths;
 use crate::plex::Plex;
@@ -26,8 +27,13 @@ pub async fn run(paths: &Paths) -> Result<(), String> {
     let identity = tls::load_or_create(paths, &config.name).map_err(|error| error.to_string())?;
     let client = setup::client_id(paths).map_err(|error| error.to_string())?;
     let plex = Plex::new(&config.plex_url, &client);
-    let writer =
-        config.model.clone().map(|model| Arc::new(Writer { plex: plex.clone(), brain: Brain::new(model), store: store.clone(), config: config.clone() }));
+    let model = config.usable_model().unwrap_or_else(|unused| {
+        tracing::warn!("recaps and answers are off: {unused}");
+        None
+    });
+    let writer = model
+        .cloned()
+        .map(|model| Arc::new(Writer { plex: plex.clone(), brain: Brain::with_stored_key(model, paths), store: store.clone(), config: config.clone() }));
     let state = Arc::new(AppState::new(
         config.clone(),
         store.clone(),
@@ -45,7 +51,13 @@ pub async fn run(paths: &Paths) -> Result<(), String> {
         let _ = tokio::signal::ctrl_c().await;
         stopping.graceful_shutdown(Some(std::time::Duration::from_secs(5)));
     });
-    tracing::info!(%address, fingerprint = %identity.fingerprint, model = config.model.as_ref().map_or("none", |m| m.name.as_str()), "Crucible Server listening");
+    tracing::info!(
+        %address,
+        fingerprint = %identity.fingerprint,
+        model = model.map_or("none", |m| m.name.as_str()),
+        model_place = ?model.map(|m| model_place(&m.url)),
+        "Crucible Server listening"
+    );
     axum_server::bind_rustls(address, tls)
         .handle(handle)
         .serve(router(state).into_make_service_with_connect_info::<SocketAddr>())

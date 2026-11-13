@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 use crate::config::{Config, Policy};
 use crate::home::Home;
 use crate::jobs::{Jobs, State as JobState};
-use crate::net::{classify, Peer};
+use crate::net::{classify, ModelPlace, Peer};
 use crate::pairing::{new_device_token, Pairings, Refused};
 use crate::plex::{sanitize_key, Plex, PlexError};
 use crate::recap::Writer;
@@ -323,9 +323,13 @@ async fn remove_device(State(state): State<Shared>, headers: HeaderMap, Path(id)
 
 async fn brain(State(state): State<Shared>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
     caller(&state, &headers).await?;
-    let Some(writer) = &state.writer else { return Ok(Json(json!({"model": null, "reachable": false}))) };
-    let reachable = writer.brain.models().await.map(|models| models.contains(&writer.brain.model.name)).unwrap_or(false);
-    Ok(Json(json!({"model": writer.brain.model.name, "reachable": reachable})))
+    let Some(writer) = &state.writer else { return Ok(Json(json!({"model": null, "reachable": false, "outside": null}))) };
+    let reachable = writer.brain.has_model().await.unwrap_or(false);
+    let outside = match writer.brain.place() {
+        ModelPlace::Own => None,
+        ModelPlace::Outside(host) => Some(host),
+    };
+    Ok(Json(json!({"model": writer.brain.model.name, "reachable": reachable, "outside": outside})))
 }
 
 async fn segments_for(State(state): State<Shared>, headers: HeaderMap, Path(rating_key): Path<String>) -> Result<Json<Value>, ApiError> {

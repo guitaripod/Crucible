@@ -68,7 +68,7 @@ packages() {
     local base="https://github.com/$REPO/releases/download/$TAG"
     cat > "$OUT/crucible-server.rb" << EOF
 class CrucibleServer < Formula
-  desc "Companion to Plex for Crucible: skips, Previously On and answers from a local model"
+  desc "Companion to Plex for Crucible: skips, Previously On and answers from a model you choose"
   homepage "https://github.com/$REPO/tree/master/server"
   license "GPL-3.0-only"
   version "$VERSION"
@@ -101,6 +101,7 @@ class CrucibleServer < Formula
     <<~EOS
       Run \`crucible-server setup\` once, on the Mac that runs Plex.
       It signs you in with Plex, finds a local model, keeps the server running and shows the QR code that pairs Crucible.
+      No local model? Use a hosted one with your own key: crucible-server model --url ADDRESS --name NAME --key-file FILE
     EOS
   end
 
@@ -114,7 +115,7 @@ EOF
 pkgname=crucible-server-bin
 pkgver=$VERSION
 pkgrel=1
-pkgdesc="Companion to Plex for Crucible: skips, Previously On and answers from a local model"
+pkgdesc="Companion to Plex for Crucible: skips, Previously On and answers from a model you choose"
 arch=('x86_64' 'aarch64')
 url="https://github.com/$REPO/tree/master/server"
 license=('GPL-3.0-only')

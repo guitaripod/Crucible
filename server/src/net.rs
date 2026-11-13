@@ -45,6 +45,40 @@ fn classify_v6(ip: Ipv6Addr) -> Peer {
     }
 }
 
+/// Where a model server is, judged from its address alone: on this machine or one of the owner's networks, or
+/// outside them at the named host.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ModelPlace {
+    Own,
+    Outside(String),
+}
+
+/// Endings of names that never leave a home network or a tailnet: mDNS, a router's own domain and MagicDNS.
+const OWN_SUFFIXES: &[&str] = &[".local", ".localhost", ".lan", ".home", ".internal", ".home.arpa", ".ts.net"];
+
+/// Where the model server at `url` is. An address is read as what it is; a name counts as the owner's when it has
+/// no dot or ends in a suffix only a private network resolves, and anything unreadable counts as outside.
+pub fn model_place(url: &str) -> ModelPlace {
+    let Some(host) = reqwest::Url::parse(url).ok().and_then(|parsed| parsed.host_str().map(str::to_lowercase)) else {
+        return ModelPlace::Outside(url.to_string());
+    };
+    let bare = host.trim_start_matches('[').trim_end_matches(']');
+    let own = match bare.parse::<IpAddr>() {
+        Ok(ip) => classify(ip) != Peer::Outside,
+        Err(_) => bare == "localhost" || !bare.contains('.') || OWN_SUFFIXES.iter().any(|suffix| bare.ends_with(suffix)),
+    };
+    if own {
+        ModelPlace::Own
+    } else {
+        ModelPlace::Outside(bare.to_string())
+    }
+}
+
+/// Whether a key may travel to `url`: over HTTPS anywhere, over plain HTTP only inside the owner's own networks.
+pub fn carries_a_key(url: &str) -> bool {
+    url.trim_start().to_lowercase().starts_with("https://") || model_place(url) == ModelPlace::Own
+}
+
 /// Addresses the QR code carries at most, so it stays small enough to scan from across a room.
 const QR_ADDRESSES: usize = 4;
 
@@ -123,6 +157,36 @@ mod tests {
         ]);
         assert_eq!(chosen, vec!["192.168.1.58".parse::<IpAddr>().unwrap(), "100.127.250.64".parse().unwrap()]);
         assert_eq!(choose_addresses(&[interface("en0", "fd5b:8e52::1")]), vec!["fd5b:8e52::1".parse::<IpAddr>().unwrap()]);
+    }
+
+    #[test]
+    fn tells_a_model_on_the_owners_networks_from_one_outside() {
+        for own in [
+            "http://127.0.0.1:8081/v1",
+            "http://localhost:11434/v1",
+            "http://[::1]:1234/v1",
+            "http://192.168.1.40:8081/v1",
+            "http://100.101.102.103:8081/v1",
+            "http://gamingpc:8081/v1",
+            "http://nas.local:11434/v1",
+            "https://arch.tail1234.ts.net/v1",
+        ] {
+            assert_eq!(model_place(own), ModelPlace::Own, "{own}");
+        }
+        assert_eq!(model_place("https://openrouter.ai/api/v1"), ModelPlace::Outside("openrouter.ai".into()));
+        assert_eq!(model_place("https://API.OpenAI.com/v1"), ModelPlace::Outside("api.openai.com".into()));
+        assert_eq!(model_place("http://8.8.8.8/v1"), ModelPlace::Outside("8.8.8.8".into()));
+        assert_eq!(model_place("http://[2001:db8::1]/v1"), ModelPlace::Outside("2001:db8::1".into()));
+        assert_eq!(model_place("not a url"), ModelPlace::Outside("not a url".into()));
+    }
+
+    #[test]
+    fn a_key_leaves_the_owners_networks_only_over_https() {
+        assert!(carries_a_key("https://openrouter.ai/api/v1"));
+        assert!(carries_a_key("http://127.0.0.1:8081/v1"));
+        assert!(carries_a_key("http://100.101.102.103:8081/v1"));
+        assert!(!carries_a_key("http://openrouter.ai/api/v1"));
+        assert!(!carries_a_key("http://8.8.8.8/v1"));
     }
 
     #[test]

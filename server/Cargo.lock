@@ -306,7 +306,7 @@ dependencies = [
 
 [[package]]
 name = "crucible-server"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "axum",
  "axum-server",
@@ -317,6 +317,7 @@ dependencies = [
  "hex",
  "hmac",
  "http-body-util",
+ "httpdate",
  "if-addrs",
  "qrcode",
  "quick-xml",

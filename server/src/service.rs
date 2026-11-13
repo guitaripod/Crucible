@@ -71,6 +71,27 @@ pub fn install(home: &Path, log: &Path) -> io::Result<PathBuf> {
     }
 }
 
+/// Restarts the service this user installed so it reads a changed config; false when this user runs none.
+pub fn restart() -> io::Result<bool> {
+    match std::env::consts::OS {
+        "linux" => {
+            let installed = dirs::config_dir().is_some_and(|folder| folder.join("systemd/user").join(UNIT).exists());
+            if installed {
+                run("systemctl", &["--user", "restart", UNIT])?;
+            }
+            Ok(installed)
+        }
+        "macos" => {
+            let installed = dirs::home_dir().is_some_and(|home| home.join("Library/LaunchAgents").join(format!("{LABEL}.plist")).exists());
+            if installed {
+                run("launchctl", &["kickstart", "-k", &format!("gui/{}/{LABEL}", uid())])?;
+            }
+            Ok(installed)
+        }
+        _ => Ok(false),
+    }
+}
+
 /// Stops and removes the service.
 pub fn uninstall() -> io::Result<()> {
     match std::env::consts::OS {

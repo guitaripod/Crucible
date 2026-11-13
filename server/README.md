@@ -5,11 +5,13 @@ TV pairs with it once and then gets:
 
 - **Skips from the file itself**: intro, recap, preview, ending and credits from Plex's markers and the file's
   named chapters (`GET /crucible/v1/segments/{ratingKey}`).
-- **Previously On**: a short recap of the last episodes you finished, written by a model on your own hardware
-  from Plex's synopsis and the episodes' own subtitles, and checked before you see it.
+- **Previously On**: a short recap of the last episodes you finished, written by a model you choose from Plex's
+  synopsis and the episodes' own subtitles, and checked before you see it.
 - **Ask**: pause and ask about what you're watching; the answer uses only what you've already seen.
 
-Nothing leaves your network. The model runs on this machine or on a computer on your own tailnet.
+With a model on this machine or on a computer on your own tailnet, nothing leaves your network. No such computer?
+Point it at a hosted model with your own key instead ([The model](#the-model)); it says what would be sent before
+it uses one.
 
 ## Install
 
@@ -44,12 +46,48 @@ iPhone and tap Allow on it; or Show Code for iPhone and scan the TV's code with 
 crucible-server pair        # a new pairing code for another device
 crucible-server devices     # what is paired
 crucible-server unpair ID
+crucible-server model       # which model writes and where it is, then asks it a tiny question
 crucible-server doctor      # Plex, the model, ffmpeg, the certificate and the service, checked
 crucible-server summarize EPISODE.mkv --show "Dragon Ball Super"   # judge a model on a real file
 ```
 
-Needs ffmpeg for subtitles. Any OpenAI-compatible endpoint works; a model with a 32K window or more reads a whole
-episode's dialogue, a smaller one reads an even sample of it.
+Needs ffmpeg for subtitles.
+
+## The model
+
+Recaps and answers come from any OpenAI-compatible endpoint. `setup` looks for llama-swap, Ollama and LM Studio on
+this machine; `crucible-server model` changes the choice later without signing in to Plex again, asks the model a
+tiny question to see that it answers, and restarts the service this user installed (restart a container yourself).
+
+```sh
+crucible-server model --url http://gamingpc:8081/v1 --name NAME                           # a model server on your tailnet
+crucible-server model --url https://openrouter.ai/api/v1 --name NAME --key-file key.txt   # a hosted service, your key
+crucible-server model --key-file new-key.txt                                              # a new key for the same service
+crucible-server model --off                                                               # skips only
+```
+
+A model with a 32K window or more reads a whole episode's dialogue; a smaller one reads an even sample of it. When a
+service does not state the window, 8K is assumed: say it with `--context` (`--model-context` in `setup`).
+
+**A hosted model.** Any service that speaks the OpenAI API works by its address, such as OpenRouter
+(`https://openrouter.ai/api/v1`) or OpenAI (`https://api.openai.com/v1`), with the model's name as that service
+lists it and the key it gave you in a file. Before using one, Crucible Server says what it will send there and asks
+(with `--yes` it says it and goes on): the subtitles of episodes people here have finished and of the one they are
+watching up to where they paused, the names of shows and episodes, Plex's synopses and cast lists, and the questions
+they ask. No Plex account, token or file is sent, and nothing goes to Crucible's developer. Say no to a hosted model
+set earlier and it is no longer used and its key is forgotten. The agreement is recorded with the host it was given
+for: a hosted model written into `config.toml` by hand, or copied in from another machine, is not used until it is
+set through `crucible-server model`. You pay the service for what is asked of it, which is
+little: nothing is written until someone asks, a Previously On reads at most three finished episodes' subtitles, an
+answer reads the episode being watched and up to five summaries, and each episode's summary is kept and not written
+again while its subtitles, the model and the prompt stay the same.
+
+The key is kept in `model-key` beside the config, readable only by your user, never in `config.toml` or a log, with
+the address it was given for, and it is sent nowhere else: point the server at another address, by a command or by
+editing the config, and that address gets no key, and a key file given to `setup` is never tried on the model
+servers setup looks for by itself. It leaves your own network only over HTTPS; a model server on this machine, your
+home network or your tailnet that asks for a key gets it over plain HTTP, directly and never through a proxy.
+Redirects are never followed. In Docker, mount the key as a secret and name it in `CRUCIBLE_MODEL_KEY_FILE`.
 
 ## How it keeps you safe
 
@@ -65,6 +103,8 @@ episode's dialogue, a smaller one reads an even sample of it.
   restricted profile sees only what Plex already shows it. The owner chooses who may use the server: only them,
   their Plex Home (the members plex.tv lists with access to this server, asked again at most every ten minutes), or
   everyone the server is shared with. `crucible-server doctor` says how many people that is.
+- A model outside your network is used only after you agree to what it is sent, with a key that never leaves your
+  network over plain HTTP. `crucible-server doctor` says where the model is, and so does Crucible's own status line.
 - Summaries use names only from the episode's dialogue, synopsis and cast; a summary that invents one, or a sentence
   the sources don't support, is rewritten or dropped.
 

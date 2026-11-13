@@ -5,6 +5,7 @@ use std::time::Duration;
 use crate::brain::Brain;
 use crate::config::{Config, Policy};
 use crate::home::Home;
+use crate::net::{carries_a_key, ModelPlace};
 use crate::paths::Paths;
 use crate::plex::Plex;
 use crate::plextv::PlexTv;
@@ -34,6 +35,33 @@ async fn who_may_use_it(paths: &Paths, config: &Config, client: &str) -> Check {
                 Err(error) => check("Who may use it", false, format!("{error}: only you until plex.tv lists your Plex Home")),
             }
         }
+    }
+}
+
+/// Whether the model is there, where it is, and whether its key can reach it.
+async fn model_check(paths: &Paths, config: &Config) -> Check {
+    let model = match config.usable_model() {
+        Ok(Some(model)) => model,
+        Ok(None) => return check("Model", false, "none set: recaps and answers are off (crucible-server model --url)"),
+        Err(unused) => return check("Model", false, format!("not used: {unused}")),
+    };
+    let brain = Brain::with_stored_key(model.clone(), paths);
+    let place = match brain.place() {
+        ModelPlace::Own => String::new(),
+        ModelPlace::Outside(host) => format!(" (outside your network, at {host}{})", if brain.sends_key() { ", with your key" } else { "" }),
+    };
+    if paths.model_key_for(&model.url).is_some() && !carries_a_key(&model.url) {
+        return check(
+            "Model",
+            false,
+            format!("the key is not sent to {} over plain HTTP: set its https:// address with crucible-server model --url", model.url),
+        );
+    }
+    match tokio::time::timeout(Duration::from_secs(15), brain.has_model()).await {
+        Ok(Ok(true)) => check("Model", true, format!("{} is offered at {}{place}", model.name, model.url)),
+        Ok(Ok(false)) => check("Model", false, format!("{} no longer lists {}", model.url, model.name)),
+        Ok(Err(error)) => check("Model", false, error.to_string()),
+        Err(_) => check("Model", false, format!("{} did not answer in 15 seconds", model.url)),
     }
 }
 
@@ -77,15 +105,7 @@ pub async fn run(paths: &Paths) -> Vec<Check> {
         }
         _ => checks.push(check("ffmpeg", false, "not found: install ffmpeg so recaps can read subtitles")),
     }
-    match &config.model {
-        Some(model) => match tokio::time::timeout(Duration::from_secs(15), Brain::new(model.clone()).models()).await {
-            Ok(Ok(models)) if models.contains(&model.name) => checks.push(check("Model", true, format!("{} at {}", model.name, model.url))),
-            Ok(Ok(_)) => checks.push(check("Model", false, format!("{} no longer lists {}", model.url, model.name))),
-            Ok(Err(error)) => checks.push(check("Model", false, error.to_string())),
-            Err(_) => checks.push(check("Model", false, format!("{} did not answer in 15 seconds", model.url))),
-        },
-        None => checks.push(check("Model", false, "none set: recaps and answers are off (setup --model-url)")),
-    }
+    checks.push(model_check(paths, &config).await);
     match tls::load_or_create(paths, &config.name) {
         Ok(identity) => checks.push(check("Certificate", true, format!("fingerprint {}…", &identity.fingerprint[..16]))),
         Err(error) => checks.push(check("Certificate", false, error.to_string())),

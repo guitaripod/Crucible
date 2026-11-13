@@ -19,7 +19,8 @@ pub enum Policy {
     Everyone,
 }
 
-/// The model that writes recaps and answers: any OpenAI-compatible endpoint on this machine or the owner's tailnet.
+/// The model that writes recaps and answers: any OpenAI-compatible endpoint, on this machine or the owner's tailnet,
+/// or a hosted service the owner chose.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub url: String,
@@ -55,6 +56,10 @@ pub struct Config {
     pub path_map: Vec<PathMap>,
     #[serde(default)]
     pub model: Option<Model>,
+    /// The host outside the owner's networks they agreed to send to, when the model is at one. A model outside that
+    /// was put in the config any other way than through that agreement is not used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_agreed: Option<String>,
 }
 
 /// Where a folder Plex reports lives on this machine, when the two differ (Plex in Docker, or on Windows).
@@ -85,12 +90,45 @@ impl Config {
             libraries: Vec::new(),
             path_map: Vec::new(),
             model: None,
+            model_agreed: None,
         }
     }
 
     pub fn load(path: &Path) -> io::Result<Self> {
         let text = fs::read_to_string(path)?;
         toml::from_str(&text).map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
+    }
+
+    /// The config of a server that was set up, or a sentence saying to set it up, for commands that need one.
+    pub fn load_set_up(path: &Path) -> Result<Self, String> {
+        match Config::load(path) {
+            Ok(config) => Ok(config),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Err("Crucible Server is not set up yet. Run crucible-server setup first.".into()),
+            Err(error) => Err(format!("{} cannot be read: {error}. Run crucible-server setup again.", path.display())),
+        }
+    }
+
+    /// Sets the model and records the agreement that goes with it: the host for a model outside the owner's networks,
+    /// nothing for one inside them. Called only once the owner has agreed, or chose a model of their own.
+    pub fn use_model(&mut self, model: Option<Model>) {
+        self.model_agreed = model.as_ref().and_then(|model| match crate::net::model_place(&model.url) {
+            crate::net::ModelPlace::Outside(host) => Some(host),
+            crate::net::ModelPlace::Own => None,
+        });
+        self.model = model;
+    }
+
+    /// The model to write with: the one set, unless it is outside the owner's networks and they never agreed to its
+    /// host, as when a config was edited by hand or copied from another machine.
+    pub fn usable_model(&self) -> Result<Option<&Model>, String> {
+        let Some(model) = &self.model else { return Ok(None) };
+        match crate::net::model_place(&model.url) {
+            crate::net::ModelPlace::Outside(host) if self.model_agreed.as_deref() != Some(host.as_str()) => Err(format!(
+                "the model at {host} is outside your network and was never agreed to: set it with crucible-server model --url {} --name {}",
+                model.url, model.name
+            )),
+            _ => Ok(Some(model)),
+        }
     }
 
     /// Writes the config readable only by this user, since it names the owner and the model host.
@@ -123,6 +161,31 @@ mod tests {
         config.model = Some(Model { url: "http://127.0.0.1:8081/v1".into(), name: "gemma4-26b-a4b-gguf".into(), context: 8192 });
         config.save(&path).unwrap();
         assert_eq!(Config::load(&path).unwrap(), config);
+    }
+
+    #[test]
+    fn a_model_outside_is_used_only_with_the_agreement_recorded_for_its_host() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let outside = Model { url: "https://openrouter.ai/api/v1".into(), name: "writer".into(), context: 8192 };
+        let mut config = Config::new("nas");
+        config.use_model(Some(outside.clone()));
+        assert_eq!(config.model_agreed.as_deref(), Some("openrouter.ai"));
+        assert_eq!(config.usable_model().unwrap(), Some(&outside));
+        config.save(&path).unwrap();
+        assert_eq!(Config::load(&path).unwrap(), config);
+
+        config.model = Some(Model { url: "https://other.example/v1".into(), ..outside.clone() });
+        assert!(config.usable_model().unwrap_err().contains("other.example is outside your network"));
+        config.model_agreed = None;
+        config.model = Some(outside);
+        assert!(config.usable_model().is_err());
+
+        let own = Model { url: "http://127.0.0.1:8081/v1".into(), name: "writer".into(), context: 8192 };
+        config.use_model(Some(own.clone()));
+        assert_eq!((config.model_agreed.clone(), config.usable_model().unwrap()), (None, Some(&own)));
+        config.use_model(None);
+        assert_eq!(config.usable_model().unwrap(), None);
     }
 
     #[test]
