@@ -16,8 +16,8 @@ enum DownloadResolverError: Error, LocalizedError {
 
 /// Plans an offline download. Plex's universal transcoder only produces HLS (single-file `.mp4`
 /// transcode returns HTTP 400), so every download is an HLS stream fetched with `AVAssetDownloadTask`
-/// into a local `.movpkg`. Quality is controlled by `maxVideoBitrate`; Original keeps source codecs
-/// via direct-stream remuxing.
+/// into a local `.movpkg`. Quality is controlled by `maxVideoBitrate`; Original keeps source codecs,
+/// HDR and surround sound via direct-stream remuxing, under the same client profile as streaming.
 enum DownloadResolver {
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "downloads")
 
@@ -125,6 +125,7 @@ enum DownloadResolver {
             + "&session=\(sessionID)"
             + "&subtitleSize=100&audioBoost=100&subtitles=none"
             + "&location=lan&autoAdjustQuality=0"
+            + "&X-Plex-Client-Profile-Extra=\(StreamProfile.queryValue(for: .current))"
             + "&X-Plex-Token=\(token)"
             + "&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"
             + "&X-Plex-Platform=iOS"

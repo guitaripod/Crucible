@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 import os
 
 /// How the stream carries the subtitle it was resolved with.
@@ -104,10 +105,6 @@ package enum StreamResolver {
     private static let directPlayVideoCodecs: Set<String> = ["h264", "hevc"]
     private static let directPlayAudioCodecs: Set<String> = ["aac", "ac3", "eac3", "mp3", "alac", "flac"]
 
-    /// Asks the transcoder for a text subtitle as a WebVTT rendition of the HLS stream instead of burning it into the picture, so
-    /// the player shows it as a real subtitle track: the system controls, Siri and the viewer's caption style all reach it.
-    static let webVTTSubtitleProfile = "add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt)"
-
     /// Subtitle codecs a file carries that the player shows from the file itself when it plays directly.
     private static let fileTrackSubtitleCodecs: Set<String> = ["mov_text", "tx3g"]
 
@@ -168,11 +165,13 @@ package enum StreamResolver {
             subtitleStreamId: selectedSubtitleId
         )
 
+        let capabilities = PlaybackCapabilities.current
         if !forceTranscode,
            QualityPolicy.current(for: baseURL) == .original,
            subtitleIsInFile,
            !wantsNonDefaultAudio,
-           isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec),
+           !DynamicRange(part.Stream?.first { $0.streamType == 1 }).isDualLayerDolbyVision,
+           isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec, capabilities: capabilities),
            let directURL = directPlayURL(baseURL: baseURL, partKey: part.key, token: token) {
             return ResolvedStream(
                 url: directURL,
@@ -197,7 +196,8 @@ package enum StreamResolver {
             ratingKey: ratingKey,
             session: sessionId,
             startSecs: startSecs,
-            subtitlesMode: delivery.transcodeParameter
+            subtitlesMode: delivery.transcodeParameter,
+            capabilities: capabilities
         ) else {
             throw StreamResolverError.noConnectionURL
         }
@@ -210,6 +210,7 @@ package enum StreamResolver {
         if delivery == .track, decision?.subtitleDecision == "burn" {
             delivery = .burned
         }
+        logDecision(decision, ratingKey: ratingKey, capabilities: capabilities)
 
         return ResolvedStream(
             url: url,
@@ -256,6 +257,16 @@ package enum StreamResolver {
         subtitle.key == nil && fileTrackSubtitleCodecs.contains(subtitle.codec?.lowercased() ?? "")
     }
 
+    /// What the server makes of the stream next to what the device asked for, the first thing to read when a picture arrives
+    /// converted or in SDR.
+    private static func logDecision(_ decision: PlaybackDecision?, ratingKey: String, capabilities: PlaybackCapabilities) {
+        MidgarLog.notice(
+            "Transcode ratingKey=\(ratingKey) video=\(decision?.videoDecision ?? "unknown") transfer=\(decision?.videoTransfer ?? "none") "
+                + "audio=\(decision?.audioDecision ?? "unknown") hevc=\(capabilities.decodesHEVC) av1=\(capabilities.decodesAV1) hdr=\(capabilities.showsHDR)",
+            category: .playback
+        )
+    }
+
     /// Asks the server what it would do with the stream about to start, with the very query the stream uses. A server that
     /// does not answer is not a refusal: the stream starts as it always did.
     private static func fetchDecision(startURL: URL, token: String) async -> PlaybackDecision? {
@@ -296,9 +307,16 @@ package enum StreamResolver {
         )
     }
 
-    static func isDirectPlayable(container: String?, videoCodec: String?, audioCodec: String?) -> Bool {
+    /// Whether the system player plays the file as it is: MP4 or QuickTime with H.264 or HEVC, or AV1 where the chip decodes it.
+    static func isDirectPlayable(
+        container: String?,
+        videoCodec: String?,
+        audioCodec: String?,
+        capabilities: PlaybackCapabilities = .current
+    ) -> Bool {
         guard let container, directPlayContainers.contains(container) else { return false }
-        guard let videoCodec = videoCodec?.lowercased(), directPlayVideoCodecs.contains(videoCodec) else { return false }
+        guard let videoCodec = videoCodec?.lowercased(),
+              directPlayVideoCodecs.contains(videoCodec) || (videoCodec == "av1" && capabilities.decodesAV1) else { return false }
         guard let audioCodec = audioCodec?.lowercased(), directPlayAudioCodecs.contains(audioCodec) else { return false }
         return true
     }
@@ -345,7 +363,8 @@ package enum StreamResolver {
         ratingKey: String,
         session: String,
         startSecs: Double?,
-        subtitlesMode: String
+        subtitlesMode: String,
+        capabilities: PlaybackCapabilities = .current
     ) -> URL? {
         var query = "path=/library/metadata/\(ratingKey)"
             + "&mediaIndex=0&partIndex=0&protocol=hls"
@@ -353,7 +372,7 @@ package enum StreamResolver {
             + "&session=\(session)"
             + "&subtitleSize=\(Preferences.subtitleSize.rawValue)&audioBoost=100&subtitles=\(subtitlesMode)"
             + "&location=lan&autoAdjustQuality=0"
-            + "&X-Plex-Client-Profile-Extra=\(profileExtra)"
+            + "&X-Plex-Client-Profile-Extra=\(StreamProfile.queryValue(for: capabilities))"
             + "&X-Plex-Token=\(token)"
             + "&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"
             + "&X-Plex-Platform=\(AppPlatform.plexName)"
@@ -366,10 +385,6 @@ package enum StreamResolver {
             query += "&maxVideoBitrate=\(quality.rawValue)&videoQuality=100"
         }
         return plexURL(base: baseURL, path: "/video/:/transcode/universal/start.m3u8", query: query)
-    }
-
-    private static var profileExtra: String {
-        webVTTSubtitleProfile.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
     }
 
     private static func plexURL(base: URL, path: String, query: String) -> URL? {

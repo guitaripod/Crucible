@@ -56,7 +56,25 @@ struct StreamResolverTests {
         let url = withQuality(.original) { transcode(subtitles: "none") }
         #expect(url.contains("&subtitles=none"))
         let extra = try #require(URLComponents(string: url)?.queryItems?.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value)
-        #expect(extra == "add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt)")
+        #expect(extra.split(separator: "+").contains("add-transcode-target(type=subtitleProfile&context=streaming&protocol=hls&container=webvtt&subtitleCodec=webvtt)"))
+    }
+
+    @Test func transcodeURLCarriesTheDevicesWholeProfile() throws {
+        let capabilities = PlaybackCapabilities(decodesHEVC: true, decodesAV1: false, showsHDR: true)
+        let url = try #require(StreamResolver.transcodeURL(
+            baseURL: base, token: "tok", ratingKey: "42", session: "sess", startSecs: nil, subtitlesMode: "auto", capabilities: capabilities
+        ))
+        let extra = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "X-Plex-Client-Profile-Extra" }?.value)
+        #expect(extra == StreamProfile.extra(for: capabilities))
+        #expect(!url.absoluteString.contains("+add-"))
+    }
+
+    @Test func av1PlaysDirectlyOnlyWhereTheChipDecodesIt() {
+        let withAV1 = PlaybackCapabilities(decodesHEVC: true, decodesAV1: true, showsHDR: true)
+        let withoutAV1 = PlaybackCapabilities(decodesHEVC: true, decodesAV1: false, showsHDR: true)
+        #expect(StreamResolver.isDirectPlayable(container: "mp4", videoCodec: "av1", audioCodec: "eac3", capabilities: withAV1))
+        #expect(!StreamResolver.isDirectPlayable(container: "mp4", videoCodec: "av1", audioCodec: "eac3", capabilities: withoutAV1))
+        #expect(!StreamResolver.isDirectPlayable(container: "mkv", videoCodec: "av1", audioCodec: "eac3", capabilities: withAV1))
     }
 
     @Test func eachSubtitleDeliveryAsksTheTranscoderForItsOwnMode() {
