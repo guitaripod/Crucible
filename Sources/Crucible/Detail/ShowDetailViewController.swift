@@ -550,6 +550,10 @@ final class ShowDetailViewController: UICollectionViewController {
             }
             Task { @MainActor in
                 var elements: [UIMenuElement] = []
+                let origin = WatchCardOrigin(show: show, selectedSeason: self.model?.selectedSeason)
+                if let share = WatchCardScreens.action(origin, api: api, host: self) {
+                    elements.append(UIMenu(options: .displayInline, children: [share]))
+                }
                 if let model = self.model, PreviouslyOnRequest.isAvailable(model) {
                     elements.append(UIAction(title: CompanionCopy.previouslyOn, image: UIImage(systemName: "text.quote")) { [weak self] _ in
                         guard let self, let model = self.model else { return }
@@ -877,6 +881,9 @@ final class ShowDetailViewController: UICollectionViewController {
                     Haptics.light()
                     self?.playFromBeginning(episode)
                 }, at: 1)
+            }
+            if episode.isWatched, let self, let share = WatchCardScreens.action(WatchCardOrigin(item: episode), api: api, host: self) {
+                children.append(share)
             }
             if let plan = self?.model?.essentials, plan.wouldHide(episode.id) {
                 let kept = !plan.hides(episode.id)

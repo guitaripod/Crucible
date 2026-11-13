@@ -644,10 +644,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         removeUpNextOverlay()
         removeSkipButton()
         removeSkipToast(animated: false)
+        let origin = WatchCardOrigin(finished: ended)
         let screen = PostPlayViewController(
             heading: PostPlay.heading(for: ended),
             items: suggestions,
             onPick: { [weak self] item in self?.playSuggestion(item) },
+            onShare: origin.map { origin in { [weak self] in self?.shareCard(origin) } },
             onClose: { [weak self] in self?.close() }
         )
         playerVC.present(screen, animated: !UIAccessibility.isReduceMotionEnabled)
@@ -675,6 +677,21 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             Self.offlineSource(from: $0, resumeSecs: DownloadManager.shared.item(for: item.id)?.resumeSecs ?? 0)
         }
         advance(to: PlaybackRequest(item: item, offline: offline), announcing: item.title)
+    }
+
+    /// Closes the player and, once it has gone, opens the card for what just ended over the screen it was opened from.
+    private func shareCard(_ origin: WatchCardOrigin) {
+        viewerActed()
+        let host = presentingVC
+        Task { [api] in
+            await dismissPlayer()
+            guard let host else { return }
+            for _ in 0..<40 where host.presentedViewController != nil {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            guard host.presentedViewController == nil, host.view.window != nil else { return }
+            WatchCardScreens.present(origin, api: api, from: host)
+        }
     }
 
     /// The stack the player was opened from, where a title picked at the end of playback is pushed.

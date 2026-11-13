@@ -87,9 +87,12 @@ final class RateWatchedViewController: UICollectionViewController {
     private func configureDataSource() {
         let cellReg = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, _, id in
             guard let self, let ask = asks.first(where: { $0.id == id }) else { return }
-            cell.contentConfiguration = RateAskRowConfiguration(ask: ask, rating: ratings[id]) { [weak self] rating in
-                self?.rate(ask, rating)
-            }
+            cell.contentConfiguration = RateAskRowConfiguration(
+                ask: ask,
+                rating: ratings[id],
+                onRate: { [weak self] rating in self?.rate(ask, rating) },
+                onShare: { [weak self] in self?.shareCard(ask) }
+            )
             cell.accessories = [.disclosureIndicator(options: .init(tintColor: Theme.Color.labelTertiary))]
             cell.accessibilityIdentifier = "rateWatched.row.\(id)"
             cell.configurationUpdateHandler = { cell, state in
@@ -191,6 +194,17 @@ final class RateWatchedViewController: UICollectionViewController {
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 
+    /// The card of a title on this list, opening on what the viewer rated here (the show, for a season they closed) with
+    /// the stars they gave, which the server may still be saving.
+    private func shareCard(_ ask: RatingAsk) {
+        let origin = WatchCardOrigin(ask: ask)
+        guard let rating = ratings[ask.id] else {
+            WatchCardScreens.present(origin, api: api, from: self)
+            return
+        }
+        WatchCardScreens.present(origin.starting(at: ask.isShow ? .show : .movie), api: api, from: self, rated: (ask.ratingKey, rating))
+    }
+
     private func notNow(_ ask: RatingAsk) {
         Haptics.light()
         FinishedTitlesLedger.shared.dismiss(ask.ratingKey)
@@ -233,7 +247,10 @@ final class RateWatchedViewController: UICollectionViewController {
             let notNow = UIAction(title: RatingAskCopy.notNow, image: UIImage(systemName: "xmark.circle")) { [weak self] _ in
                 self?.notNow(ask)
             }
-            return UIMenu(children: isRated ? [details] : [details, notNow])
+            let share = UIAction(title: WatchCardScreens.title, image: UIImage(systemName: WatchCardScreens.symbol)) { [weak self] _ in
+                self?.shareCard(ask)
+            }
+            return UIMenu(children: isRated ? [details, share] : [details, share, notNow])
         })
     }
 }

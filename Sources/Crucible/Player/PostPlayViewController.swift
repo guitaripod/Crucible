@@ -3,8 +3,9 @@ import CrucibleDesign
 @preconcurrency import UIKit
 
 /// What covers the last frame once a movie, or the last episode of a show, has ended and nothing plays next: titles like it
-/// in a row of posters and a button that closes the player. It is presented over the player rather than drawn inside it, so
-/// every tap reaches it instead of the player's own controls. Nothing plays on its own; picking a poster hands the title back.
+/// in a row of posters, a button that makes a card of what just ended to share, and a button that closes the player. It is
+/// presented over the player rather than drawn inside it, so every tap reaches it instead of the player's own controls.
+/// Nothing plays on its own; picking a poster hands the title back.
 @MainActor
 final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
     private static let posterWidth: CGFloat = 120
@@ -12,14 +13,16 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
     private let heading: String
     private let items: [PlexMetadata]
     private let onPick: (PlexMetadata) -> Void
+    private let onShare: (() -> Void)?
     private let onClose: () -> Void
     private var dataSource: UICollectionViewDiffableDataSource<Int, PlexMetadata>?
     private var hasAnswered = false
 
-    init(heading: String, items: [PlexMetadata], onPick: @escaping (PlexMetadata) -> Void, onClose: @escaping () -> Void) {
+    init(heading: String, items: [PlexMetadata], onPick: @escaping (PlexMetadata) -> Void, onShare: (() -> Void)? = nil, onClose: @escaping () -> Void) {
         self.heading = heading
         self.items = items
         self.onPick = onPick
+        self.onShare = onShare
         self.onClose = onClose
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .overFullScreen
@@ -50,7 +53,8 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
         title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let close = makeCloseButton()
-        let header = UIStackView(arrangedSubviews: [title, close])
+        let share = makeShareButton()
+        let header = UIStackView(arrangedSubviews: [title] + [share].compactMap { $0 } + [close])
         header.axis = .horizontal
         header.alignment = .center
         header.spacing = Theme.Space.m
@@ -78,7 +82,7 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
             stack.bottomAnchor.constraint(lessThanOrEqualTo: guide.bottomAnchor, constant: -Theme.Space.m),
             centered,
         ])
-        view.accessibilityElements = [title, rail, close]
+        view.accessibilityElements = [title, rail] + [share].compactMap { $0 } + [close]
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -126,6 +130,18 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
         button.addAction(UIAction { [weak self] _ in
             guard let self else { return }
             answer(onClose)
+        }, for: .primaryActionTriggered)
+        return button
+    }
+
+    /// A glass circle that makes a card of what just ended, when there is something to make one of.
+    private func makeShareButton() -> UIButton? {
+        guard let onShare else { return nil }
+        let button = ThemeButton.icon(symbol: WatchCardScreens.symbol, label: WatchCardScreens.title)
+        button.accessibilityIdentifier = "postPlay.share"
+        button.addAction(UIAction { [weak self] _ in
+            Haptics.light()
+            self?.answer(onShare)
         }, for: .primaryActionTriggered)
         return button
     }

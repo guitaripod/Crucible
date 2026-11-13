@@ -737,7 +737,11 @@ final class MediaDetailViewController: UICollectionViewController {
                 return
             }
             Task { @MainActor in
-                var elements: [UIMenuElement] = [PlaylistMenu.addMenu(for: [item], api: api, host: self)]
+                var elements: [UIMenuElement] = []
+                if let share = WatchCardScreens.action(WatchCardOrigin(item: item), api: api, host: self) {
+                    elements.append(UIMenu(options: .displayInline, children: [share]))
+                }
+                elements.append(PlaylistMenu.addMenu(for: [item], api: api, host: self))
                 if let watchlist = await WatchlistScreen.toggleAction(for: item, api: api, host: self) { elements.append(watchlist) }
                 if let checkIn = TraktPhoneActions.checkInAction(ratingKey: ratingKey, mediaType: mediaType, durationSecs: item.durationSecs, api: api, host: self) {
                     elements.append(checkIn)

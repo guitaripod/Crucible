@@ -66,6 +66,8 @@ enum ShotHarness {
                         await ShotScript.runIntegrations()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "companion" {
                         await ShotScript.runCompanion()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "watchcard" {
+                        await WatchCardShotScript.run()
                     } else {
                         await ShotScript.run()
                     }

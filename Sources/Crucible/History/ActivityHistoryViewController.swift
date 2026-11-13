@@ -305,6 +305,16 @@ final class ActivityHistoryViewController: UICollectionViewController {
         }
     }
 
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let indexPath = indexPaths.first, case .item(let entry) = dataSource.itemIdentifier(for: indexPath),
+              let share = WatchCardScreens.action(WatchCardOrigin(history: entry.destination), api: api, host: self) else { return nil }
+        return UIContextMenuConfiguration(actionProvider: { _ in UIMenu(children: [share]) })
+    }
+
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         if case .item = dataSource.itemIdentifier(for: indexPath) { return true }
         return false

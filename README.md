@@ -96,6 +96,7 @@ A proper download engine — not the afterthought the official app ships.
 - **Search** on the system search tab: recents, genre tiles, and results grouped by type with a **Top Result**
 - **You** tab: profile and live server status, a **Year in Review** card, **Watch History** grouped by day with posters, **Statistics**, Settings and **Server & Connection**
 - **Statistics** — a Year-in-Review dashboard: watch time, streaks, activity heatmap and top shows built from your Plex history, with a **Story or Square share poster** you preview before sending
+- **Share Card** — turn a movie, an episode, a whole season or a whole show into an image to post: the poster, the facts, when you watched it (and how fast for a season), your star rating (saved to Plex as you set it) and a few words of your own, as a 4:5 card, a 9:16 story or a square in four looks (colours from the artwork, Ember, Paper, Noir); from a title's menu, an episode's long press, Rate What You Watched, Watch History and the end of a movie or series
 - **Choose your libraries** — Settings › Libraries, or the filter in Statistics, picks which libraries appear on Home and count toward your statistics; libraries Plex hides from Home start switched off
 - **Handoff & Spotlight** — hand a title between devices, find recently-viewed media in iOS search
 - **Surprise Me** random picker

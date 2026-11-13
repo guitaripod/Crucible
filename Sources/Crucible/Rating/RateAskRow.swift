@@ -2,11 +2,13 @@ import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// One title in Rate What You Watched: its poster, why it is asked about, and five stars that rate it in place.
+/// One title in Rate What You Watched: its poster, why it is asked about, and five stars that rate it in place; once
+/// rated, a button that makes a card of it to share.
 struct RateAskRowConfiguration: UIContentConfiguration {
     var ask: RatingAsk
     var rating: UserRating?
     var onRate: (UserRating) -> Void
+    var onShare: () -> Void = {}
 
     func makeContentView() -> UIView & UIContentView { RateAskRowContentView(configuration: self) }
     func updated(for state: UIConfigurationState) -> RateAskRowConfiguration { self }
@@ -22,7 +24,9 @@ final class RateAskRowContentView: UIView, UIContentView {
     private let captionLabel = UILabel()
     private let stars = StarRatingControl(starSize: 30, starSpacing: 6)
     private let ratedMark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
+    private let shareButton = UIButton(configuration: .plain())
     private var onRate: (UserRating) -> Void = { _ in }
+    private var onShare: () -> Void = {}
     private var imageTask: Task<Void, Never>?
     private var loadedPoster: String?
 
@@ -62,7 +66,17 @@ final class RateAskRowContentView: UIView, UIContentView {
         ratedMark.setContentHuggingPriority(.required, for: .horizontal)
         ratedMark.isAccessibilityElement = false
 
-        let starRow = UIStackView(arrangedSubviews: [stars, ratedMark, UIView()])
+        var share = UIButton.Configuration.plain()
+        share.image = UIImage(systemName: WatchCardScreens.symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+        share.baseForegroundColor = Theme.Color.accentText
+        share.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
+        shareButton.configuration = share
+        shareButton.isPointerInteractionEnabled = true
+        shareButton.accessibilityLabel = WatchCardScreens.title
+        shareButton.setContentHuggingPriority(.required, for: .horizontal)
+        shareButton.addAction(UIAction { [weak self] _ in self?.onShare() }, for: .primaryActionTriggered)
+
+        let starRow = UIStackView(arrangedSubviews: [stars, ratedMark, UIView(), shareButton])
         starRow.spacing = Theme.Space.s
         starRow.alignment = .center
 
@@ -76,7 +90,7 @@ final class RateAskRowContentView: UIView, UIContentView {
         root.alignment = .center
         root.pin(to: self, insets: NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 12))
 
-        accessibilityElements = [titleLabel, captionLabel, stars]
+        accessibilityElements = [titleLabel, captionLabel, stars, shareButton]
         apply()
     }
 
@@ -90,16 +104,20 @@ final class RateAskRowContentView: UIView, UIContentView {
         titleLabel.text = config.ask.title
         captionLabel.text = config.ask.caption(now: Date())
         onRate = config.onRate
+        onShare = config.onShare
         stars.setRating(config.rating, animated: window != nil)
         stars.accessibilityLabel = RatingAskCopy.question(for: config.ask)
         stars.accessibilityIdentifier = "rateWatched.stars.\(config.ask.ratingKey)"
         ratedMark.isHidden = config.rating == nil
+        shareButton.isHidden = config.rating == nil
+        shareButton.accessibilityIdentifier = "rateWatched.share.\(config.ask.ratingKey)"
         loadPoster(path: config.ask.posterPath, isShow: config.ask.isShow)
     }
 
     private func commit() {
         guard let rating = stars.rating else { return }
         ratedMark.isHidden = false
+        shareButton.isHidden = false
         onRate(rating)
     }
 

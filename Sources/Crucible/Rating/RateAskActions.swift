@@ -47,6 +47,10 @@ enum RateAskActions {
             UIAction(title: String(localized: "View Details"), image: UIImage(systemName: "info.circle")) { _ in
                 openDetail(ask, api: api, from: navigation())
             },
+            UIAction(title: WatchCardScreens.title, image: UIImage(systemName: WatchCardScreens.symbol)) { _ in
+                guard let host = navigation() else { return }
+                WatchCardScreens.present(WatchCardOrigin(ask: ask), api: api, from: host)
+            },
             UIAction(title: RatingAskCopy.notNow, image: UIImage(systemName: "xmark.circle")) { _ in
                 Haptics.light()
                 FinishedTitlesLedger.shared.dismiss(ask.ratingKey)
