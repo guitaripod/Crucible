@@ -149,7 +149,7 @@ final class WrappedSharePreviewViewController: UIViewController {
 
     private func share() {
         Haptics.light()
-        let item = WrappedShareItem(image: poster(for: format), title: content.shareTitle)
+        let item = ImageShareItem(image: poster(for: format), title: content.shareTitle)
         let activity = UIActivityViewController(activityItems: [item], applicationActivities: nil)
         activity.popoverPresentationController?.sourceView = shareButton
         present(activity, animated: true)

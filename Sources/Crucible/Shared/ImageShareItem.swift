@@ -1,9 +1,9 @@
 @preconcurrency import UIKit
 import LinkPresentation
 
-/// The poster as a share-sheet item: the image itself for the destination, plus a title and a
-/// thumbnail so the sheet's header shows what is about to be sent.
-final class WrappedShareItem: NSObject, UIActivityItemSource {
+/// An image as a share-sheet item: the image itself for the destination, plus a title and a thumbnail so the sheet's
+/// header shows what is about to be sent.
+final class ImageShareItem: NSObject, UIActivityItemSource {
     private let image: UIImage
     private let title: String
 
