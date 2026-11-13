@@ -79,6 +79,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         LSRequiresIPhoneOS: true
         NSLocalNetworkUsageDescription: Crucible connects to your Plex Media Server on your home network to browse and play your library.
+        NSPhotoLibraryAddUsageDescription: Crucible saves the cards you make of what you watched to your photo library.
         NSApplicationServices:
           Advertises:
             - NSApplicationServiceIdentifier: crucible-pair

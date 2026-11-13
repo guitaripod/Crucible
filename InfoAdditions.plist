@@ -18,6 +18,8 @@
 		<string>com.guitaripod.crucible.download.continued</string>
 		<string>com.guitaripod.crucible.refresh</string>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Crucible saves the cards you make of what you watched to your photo library.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSUserActivityTypes</key>

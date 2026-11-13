@@ -115,6 +115,108 @@
           }
         }
       }
+    },
+    "NSPhotoLibraryAddUsageDescription" : {
+      "comment" : "Privacy - Photo Library Additions Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible gemmer de kort, du laver over det, du har set, i dit fotobibliotek."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible speichert die Karten, die du von dem erstellst, was du gesehen hast, in deiner Fotomediathek."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Crucible saves the cards you make of what you watched to your photo library."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible guarda en tu biblioteca de fotos las tarjetas que creas con lo que has visto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible tallentaa tekemäsi kortit katsomistasi elokuvista ja sarjoista kuvakirjastoosi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible enregistre dans votre photothèque les cartes que vous créez à partir de ce que vous avez regardé."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible vistar spjöldin sem þú býrð til um það sem þú hefur séð í myndasafnið þitt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible salva nella tua libreria foto le schede che crei su ciò che hai visto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は、視聴した作品で作成したカードを写真ライブラリに保存します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible은 시청한 작품으로 만든 카드를 사진 보관함에 저장해요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible lagrer kortene du lager av det du har sett, i bildebiblioteket ditt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible zapisuje w Twojej bibliotece zdjęć karty, które tworzysz z tego, co obejrzałeś."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible salva na sua biblioteca de fotos os cartões que você cria com o que assistiu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible sparar de kort du skapar av det du har sett till ditt fotobibliotek."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 会将你为观看过的作品制作的卡片保存到照片图库。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 會把您製作的觀影卡片儲存到您的照片圖庫。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
