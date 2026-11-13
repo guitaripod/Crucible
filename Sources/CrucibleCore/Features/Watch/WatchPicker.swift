@@ -34,13 +34,13 @@ package struct WatchTitle: Equatable, Sendable, Identifiable {
         self.addedAt = addedAt
     }
 
-    /// A film or series from Plex, or nil for anything else. A series counts as seen once every episode is, and as
-    /// started when some are; its length is one episode's.
+    /// A film or series from Plex, or nil for anything else. A film left partway counts as started. A series counts
+    /// as seen once every episode is, and as started when some are; its length is one episode's.
     package init?(_ item: PlexMetadata) {
         guard let kind = Kind(rawValue: item.mediaType), !item.id.isEmpty else { return nil }
         let seen: Seen
         switch kind {
-        case .movie: seen = item.isWatched ? .seen : .unseen
+        case .movie: seen = item.isWatched ? .seen : ((item.viewOffset ?? 0) > 0 ? .started : .unseen)
         case .show:
             let watched = item.viewedLeafCount ?? 0
             seen = watched == 0 ? .unseen : (watched >= (item.leafCount ?? Int.max) ? .seen : .started)
@@ -170,18 +170,30 @@ package enum WatchPicker {
         return adultRatings.contains(bare.trimmingCharacters(in: .whitespaces).uppercased())
     }
 
-    /// The message the pick alias reads: the request, the ceiling, and one numbered line per candidate, as many as
-    /// fit the budget. A candidate's number is its place in `candidates`, counted from one.
+    /// The candidates the model is told of: as many, from the first, as fit the message's budget. Only these may be
+    /// picked.
+    package static func offered(_ request: String, plan: WatchPlan, candidates: [WatchTitle]) -> [WatchTitle] {
+        var length = pickOpening(request, plan: plan).count
+        var kept = 0
+        for (place, title) in candidates.enumerated() {
+            length += digestLine(title, number: place + 1).count + 1
+            guard length <= inputBudget else { break }
+            kept += 1
+        }
+        return Array(candidates.prefix(kept))
+    }
+
+    /// The message the pick alias reads: the request, the ceiling, and one numbered line per offered candidate. A
+    /// candidate's number is its place in `candidates`, counted from one.
     package static func pickInput(_ request: String, plan: WatchPlan, candidates: [WatchTitle]) -> String {
+        let lines = offered(request, plan: plan, candidates: candidates).enumerated().map { "\n" + digestLine($1, number: $0 + 1) }
+        return pickOpening(request, plan: plan) + lines.joined()
+    }
+
+    private static func pickOpening(_ request: String, plan: WatchPlan) -> String {
         var message = "They asked: \(cleaned(request))\n"
         if plan.family { message += "Children will be watching.\n" }
-        message += "Choose up to \(plan.count).\nTitles:"
-        for (place, title) in candidates.enumerated() {
-            let line = "\n" + digestLine(title, number: place + 1)
-            guard message.count + line.count <= inputBudget else { break }
-            message += line
-        }
-        return message
+        return message + "Choose up to \(plan.count).\nTitles:"
     }
 
     /// `number|title|year|kind|genres|minutes|rating|rated|seen`, with nothing in a field that could pose as another.
@@ -195,14 +207,17 @@ package enum WatchPicker {
         ].joined(separator: "|")
     }
 
-    /// The picks of a reply as titles, or nil when the reply is not one. A number that was not sent, a title chosen
-    /// twice and anything past the plan's count are dropped; a reason is one line of bounded length.
+    /// The picks of a reply as titles, or nil when the reply is not one. `candidates` are the ones that were offered.
+    /// A number that was not sent, a title chosen twice and anything past the plan's count are dropped; a reason is
+    /// one line of bounded length.
     package static func picks(from reply: String, candidates: [WatchTitle], plan: WatchPlan) -> (picks: [WatchPick], note: String)? {
         guard let data = reply.data(using: .utf8), let wire = try? JSONDecoder().decode(PickWire.self, from: data) else { return nil }
-        var chosen = Set<Int>()
+        var chosen = Set<String>()
         let picks = wire.picks.compactMap { pick -> WatchPick? in
-            guard candidates.indices.contains(pick.id - 1), chosen.insert(pick.id).inserted else { return nil }
-            return WatchPick(title: candidates[pick.id - 1], why: oneLine(pick.why, limit: longestReason))
+            guard pick.id >= 1, pick.id <= candidates.count else { return nil }
+            let title = candidates[pick.id - 1]
+            guard chosen.insert(title.id).inserted else { return nil }
+            return WatchPick(title: title, why: oneLine(pick.why, limit: longestReason))
         }
         return (Array(picks.prefix(plan.count)), oneLine(wire.note ?? "", limit: longestNote))
     }

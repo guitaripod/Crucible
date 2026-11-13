@@ -159,7 +159,7 @@ final class PreviouslyOnViewController: UIViewController {
         task = Task { [weak self] in
             guard let self else { return }
             do throws(HostedBrainError) {
-                bodyLabel.text = try await DescribedRecap.write(show: model.show.title, about: model.show.summary, episodes: episodes)
+                bodyLabel.text = try await DescribedRecap.write(show: model.show.title, episodes: episodes)
                 basisLabel.text = DescribedRecap.basis(episodes)
                 basisLabel.isHidden = false
                 writeButton.isHidden = true

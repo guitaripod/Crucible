@@ -1,6 +1,6 @@
 import Foundation
 
-/// One finished episode as a described Previously On shows it and sends it.
+/// One finished episode as a described Previously On shows it. Only its description is sent.
 package struct DescribedEpisode: Equatable, Sendable, Identifiable {
     package let id: String
     /// "S2 · E4", or the episode's title when it has no number.
@@ -11,20 +11,20 @@ package struct DescribedEpisode: Equatable, Sendable, Identifiable {
 
 /// A Previously On without Crucible Server: the last finished episodes' own descriptions from Plex, shown as they
 /// are, and written into one recap by Crucible's hosted model when the person asks for that. Only the name of the
-/// series, a line about it and those descriptions are sent. With Crucible Server the recap comes from what was said.
+/// series and those descriptions are sent. With Crucible Server the recap comes from what was said.
 package enum DescribedRecap {
     package static let alias = "recap.describe.v1"
     package static let episodeCount = 3
     private static let longestDescription = 900
-    private static let longestAbout = 500
     private static let longestRecap = 1_200
 
-    /// The last finished episodes before the next one that have a description, oldest first.
+    /// The last finished episodes before the next one that have a description, oldest first. Specials are left out:
+    /// they sit before the first season whenever they were watched, and seldom carry the story.
     package static func episodes(of model: ShowDetailModel) -> [DescribedEpisode] {
         let all = model.allEpisodes.isEmpty ? model.episodes : model.allEpisodes
         let finished = Set(PreviouslyOn.finished(in: all, before: model.upNext?.episode))
         return EpisodeOrder.sorted(all)
-            .filter { finished.contains($0.id) }
+            .filter { finished.contains($0.id) && $0.parentIndex != 0 }
             .compactMap { episode -> DescribedEpisode? in
                 guard let summary = episode.summary?.trimmingCharacters(in: .whitespacesAndNewlines), !summary.isEmpty else { return nil }
                 let code = DetailFormat.episodeCode(season: episode.parentIndex, episode: episode.index) ?? episode.title
@@ -34,16 +34,15 @@ package enum DescribedRecap {
             .map { $0 }
     }
 
-    /// The message the recap alias reads.
-    package static func input(show: String, about: String?, episodes: [DescribedEpisode]) -> String {
+    /// The message the recap alias reads: the name of the series and each episode's description, numbered in order.
+    package static func input(show: String, episodes: [DescribedEpisode]) -> String {
         let oneLine: (String, Int) -> String = { text, limit in
             String(text.components(separatedBy: .newlines).joined(separator: " ").trimmingCharacters(in: .whitespaces).prefix(limit))
         }
         var message = "Series: \(oneLine(show, 160))\n"
-        if let about, !about.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { message += "About it: \(oneLine(about, longestAbout))\n" }
         message += "Episodes they finished, oldest first:"
-        for episode in episodes {
-            message += "\n\(oneLine(episode.code, 20)) \"\(oneLine(episode.title, 120))\": \(oneLine(episode.description, longestDescription))"
+        for (place, episode) in episodes.enumerated() {
+            message += "\n\(place + 1). \(oneLine(episode.description, longestDescription))"
         }
         return message
     }
@@ -60,8 +59,8 @@ package enum DescribedRecap {
     }
 
     /// The recap of these episodes, written by the hosted model.
-    package static func write(show: String, about: String?, episodes: [DescribedEpisode]) async throws(HostedBrainError) -> String {
-        let reply = try await HostedBrain.ask(alias: alias, input: input(show: show, about: about, episodes: episodes))
+    package static func write(show: String, episodes: [DescribedEpisode]) async throws(HostedBrainError) -> String {
+        let reply = try await HostedBrain.ask(alias: alias, input: input(show: show, episodes: episodes))
         guard let recap = recap(from: reply) else { throw .failed }
         return recap
     }

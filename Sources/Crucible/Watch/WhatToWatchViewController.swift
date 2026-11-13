@@ -102,6 +102,7 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         for example in WatchCopy.examples {
             examples.addArrangedSubview(Self.button(example, filled: false) { [weak self] in
                 self?.field.text = example
+                self?.updateSuggestButton()
                 self?.suggest()
             })
         }

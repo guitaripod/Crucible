@@ -38,26 +38,30 @@ package actor WatchSession {
         package var ask: @Sendable (_ alias: String, _ input: String) async throws(HostedBrainError) -> String
         package var year: @Sendable () -> Int
         package var now: @Sendable () -> Date
+        /// The libraries the person has hidden, read at each request so a copy read before one was hidden is not used.
+        package var hiddenLibraries: @Sendable () -> Set<Int>
 
         package init(
             loadLibrary: @escaping @Sendable () async throws -> [PlexMetadata],
             ask: @escaping @Sendable (_ alias: String, _ input: String) async throws(HostedBrainError) -> String,
             year: @escaping @Sendable () -> Int = { Calendar(identifier: .gregorian).component(.year, from: Date()) },
-            now: @escaping @Sendable () -> Date = { Date() }
+            now: @escaping @Sendable () -> Date = { Date() },
+            hiddenLibraries: @escaping @Sendable () -> Set<Int> = { LibraryVisibility.excluded }
         ) {
             self.loadLibrary = loadLibrary
             self.ask = ask
             self.year = year
             self.now = now
+            self.hiddenLibraries = hiddenLibraries
         }
     }
 
     private static let pageSize = 200
-    private static let sectionCeiling = 6_000
+    private static let sectionCeiling = 12_000
     private static let libraryLifetime: TimeInterval = 600
 
     private let environment: Environment
-    private var library: (items: [PlexMetadata], loadedAt: Date)?
+    private var library: (items: [PlexMetadata], loadedAt: Date, hidden: Set<Int>)?
 
     package init(environment: Environment) {
         self.environment = environment
@@ -92,7 +96,7 @@ package actor WatchSession {
         } catch {
             return .failure(.brain(error))
         }
-        let candidates = WatchPicker.candidates(for: plan, in: titles)
+        let candidates = WatchPicker.offered(request, plan: plan, candidates: WatchPicker.candidates(for: plan, in: titles))
         guard !candidates.isEmpty else { return .failure(.nothingFits(note: "")) }
 
         progress(.choosing)
@@ -108,28 +112,36 @@ package actor WatchSession {
         }
     }
 
-    /// The library, read again when the copy held is older than ten minutes.
+    /// The library, read again when the copy held is older than ten minutes or was read under another choice of
+    /// hidden libraries.
     private func currentLibrary() async throws -> [PlexMetadata] {
-        if let library, environment.now().timeIntervalSince(library.loadedAt) < Self.libraryLifetime { return library.items }
+        let hidden = environment.hiddenLibraries()
+        if let library, library.hidden == hidden, environment.now().timeIntervalSince(library.loadedAt) < Self.libraryLifetime { return library.items }
         let items = try await environment.loadLibrary()
-        library = (items, environment.now())
+        library = (items, environment.now(), hidden)
         return items
     }
 
-    /// Every film and series of the libraries the person has not hidden, a page at a time.
+    /// Every film and series of the libraries the person has not hidden, a page at a time and each title once. A
+    /// library is read newest addition first, so one past the ceiling leaves out what was added longest ago.
     package static func library(api: APIClient) async throws -> [PlexMetadata] {
         let sections = try await LibrarySection.load(api: api)
         let included = await MainActor.run { sections.filter { section in Int(section.id).map(LibraryVisibility.isIncluded) ?? true } }
         var all: [PlexMetadata] = []
+        var held = Set<String>()
         for section in included {
             var start = 0
-            while start < sectionCeiling {
+            var reachedEnd = false
+            while start < sectionCeiling, !reachedEnd {
                 try Task.checkCancellation()
-                let container = try await api.requestContainer(.sectionItems(sectionId: section.id, sort: "titleSort:asc", start: start, size: pageSize))
+                let container = try await api.requestContainer(.sectionItems(sectionId: section.id, sort: "addedAt:desc", start: start, size: pageSize))
                 let page = container.Metadata ?? []
-                all.append(contentsOf: page)
+                all.append(contentsOf: page.filter { held.insert($0.id).inserted })
                 start += pageSize
-                if page.count < pageSize || (container.totalSize.map { start >= $0 } ?? false) { break }
+                reachedEnd = page.count < pageSize || (container.totalSize.map { start >= $0 } ?? false)
+            }
+            if !reachedEnd {
+                MidgarLog.notice("What to Watch read the newest \(sectionCeiling) titles of library \(section.id) and left out the rest", category: .networking)
             }
         }
         return all

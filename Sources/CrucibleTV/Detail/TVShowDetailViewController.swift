@@ -284,7 +284,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         let task = Task { [weak self, weak waiting] in
             let text: String
             do throws(HostedBrainError) {
-                let recap = try await DescribedRecap.write(show: model.show.title, about: model.show.summary, episodes: episodes)
+                let recap = try await DescribedRecap.write(show: model.show.title, episodes: episodes)
                 text = "\(recap)\n\n\(DescribedRecap.basis(episodes))"
             } catch {
                 text = "\(DescribedRecapCopy.failure(error))\n\n\(Self.descriptions(episodes))"

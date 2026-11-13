@@ -103,6 +103,39 @@ struct WatchPickerTests {
         #expect(try #require(WatchPicker.picks(from: #"{"picks":[],"note":"Nothing fits."}"#, candidates: candidates, plan: WatchPlan())).picks.isEmpty)
         #expect(WatchPicker.picks(from: "I would suggest Heat.", candidates: candidates, plan: WatchPlan()) == nil)
     }
+
+    @Test func aNumberNoListCouldHoldIsDroppedAndATitleListedTwiceIsPickedOnce() throws {
+        let twice = [Self.heat, Self.heat, Self.totoro]
+        let reply = #"{"picks":[{"id":-9223372036854775808,"why":"Lowest"},{"id":9223372036854775807,"why":"Highest"},{"id":-1,"why":"Negative"},{"id":1,"why":"Tense."},{"id":2,"why":"The same film."},{"id":3,"why":"Gentle."}],"note":""}"#
+        let chosen = try #require(WatchPicker.picks(from: reply, candidates: twice, plan: WatchPlan()))
+        #expect(chosen.picks.map(\.title.id) == ["1", "2"])
+        #expect(chosen.picks.map(\.why) == ["Tense.", "Gentle."])
+    }
+
+    @Test func onlyTheCandidatesThatFitTheMessageAreOffered() {
+        let many = (1...3_000).map { WatchTitle(id: "\($0)", kind: .movie, title: String(repeating: "Long Title ", count: 8) + "\($0)", year: 2000, genres: ["Drama", "Mystery"], minutes: 120, rating: 7.0) }
+        let offered = WatchPicker.offered("anything", plan: WatchPlan(), candidates: many)
+        #expect(offered.count < many.count)
+        #expect(offered.map(\.id) == many.prefix(offered.count).map(\.id))
+        let message = WatchPicker.pickInput("anything", plan: WatchPlan(), candidates: many)
+        #expect(message == WatchPicker.pickInput("anything", plan: WatchPlan(), candidates: offered))
+        #expect(message.components(separatedBy: "\n").count == 3 + offered.count)
+        #expect(message.hasSuffix("\n\(WatchPicker.digestLine(many[offered.count - 1], number: offered.count))"))
+        #expect(WatchPicker.offered("anything", plan: WatchPlan(), candidates: [Self.heat, Self.totoro]).map(\.id) == ["1", "2"])
+        let past = #"{"picks":[{"id":\#(offered.count + 1),"why":"Never sent."},{"id":\#(offered.count),"why":"The last one sent."}],"note":""}"#
+        #expect(WatchPicker.picks(from: past, candidates: offered, plan: WatchPlan())?.picks.map(\.title.id) == ["\(offered.count)"])
+    }
+
+    @Test func aFilmLeftPartwayIsStartedAndNotNewToThePerson() throws {
+        let partway = try #require(WatchTitle(DetailFixtures.item(["ratingKey": "20", "type": "movie", "title": "Heat", "duration": 10_200_000, "viewOffset": 3_600_000])))
+        let finished = try #require(WatchTitle(DetailFixtures.item(["ratingKey": "21", "type": "movie", "title": "Moon", "viewCount": 2, "viewOffset": 60_000])))
+        let untouched = try #require(WatchTitle(DetailFixtures.item(["ratingKey": "22", "type": "movie", "title": "Alien"])))
+        #expect(partway.seen == .started)
+        #expect(finished.seen == .seen)
+        #expect(untouched.seen == .unseen)
+        #expect(WatchPicker.candidates(for: WatchPlan(watched: .unseen), in: [partway, finished, untouched]).map(\.id) == ["22"])
+        #expect(WatchPicker.digestLine(partway, number: 1).hasSuffix("|started"))
+    }
 }
 
 struct WatchSessionTests {
@@ -126,6 +159,7 @@ struct WatchSessionTests {
 
     private static func session(
         _ calls: Calls, items: [PlexMetadata] = items, loadFails: Bool = false, now: @escaping @Sendable () -> Date = { Date(timeIntervalSince1970: 0) },
+        hidden: @escaping @Sendable () -> Set<Int> = { [] },
         answer: @escaping @Sendable (String, String) throws(HostedBrainError) -> String
     ) -> WatchSession {
         WatchSession(environment: WatchSession.Environment(
@@ -138,7 +172,7 @@ struct WatchSessionTests {
                 calls.note(alias, input)
                 return try answer(alias, input)
             },
-            year: { 2026 }, now: now))
+            year: { 2026 }, now: now, hiddenLibraries: hidden))
     }
 
     private static let anyPlan = #"{"kind":"any","watched":"any","max_minutes":null,"min_minutes":null,"from_year":null,"to_year":null,"family":false,"count":null}"#
@@ -209,6 +243,22 @@ struct WatchSessionTests {
         _ = await session.answer("three") { _ in }
         #expect(calls.loadCount == 2)
     }
+
+    @Test func theLibraryIsReadAgainOnceALibraryIsHiddenOrShown() async {
+        let calls = Calls()
+        let choices = Calls()
+        let session = Self.session(calls, hidden: { choices.loadCount == 0 ? [] : [7] }) { alias, _ throws(HostedBrainError) in
+            alias == WatchPicker.planAlias ? Self.anyPlan : #"{"picks":[{"id":1,"why":"Good."}],"note":""}"#
+        }
+        _ = await session.answer("one") { _ in }
+        _ = await session.answer("two") { _ in }
+        #expect(calls.loadCount == 1)
+        choices.noteLoad()
+        _ = await session.answer("three") { _ in }
+        #expect(calls.loadCount == 2)
+        _ = await session.answer("four") { _ in }
+        #expect(calls.loadCount == 2)
+    }
 }
 
 struct DescribedRecapTests {
@@ -238,6 +288,15 @@ struct DescribedRecapTests {
         #expect(DescribedRecap.episodes(of: Self.model([Self.episode(1, watched: true, summary: nil)])).isEmpty)
     }
 
+    @Test func specialsAreLeftOutOfTheEpisodesARecapDrawsOn() {
+        let model = Self.model([
+            Self.episode(1, season: 0, watched: true, summary: "A special."), Self.episode(1, watched: true, summary: "One."),
+            Self.episode(2, watched: true, summary: "Two."), Self.episode(3, watched: false, summary: "Three."),
+        ])
+        #expect(DescribedRecap.episodes(of: model).map(\.code) == ["S1 · E1", "S1 · E2"])
+        #expect(DescribedRecap.episodes(of: Self.model([Self.episode(1, season: 0, watched: true, summary: "A special."), Self.episode(1, watched: false, summary: "One.")])).isEmpty)
+    }
+
     @Test func aShowOffersItsServerThenItsDescriptionsThenNothing() {
         CompanionStore.forget()
         #expect(PreviouslyOnRequest.offer(Self.model([Self.episode(1, watched: true, summary: "One."), Self.episode(2, watched: false, summary: "Two.")])) == .descriptions)
@@ -250,15 +309,14 @@ struct DescribedRecapTests {
             DescribedEpisode(id: "a", code: "S1 · E1", title: "Pilot", description: "They meet.\nThey plan."),
             DescribedEpisode(id: "b", code: "S1 · E2", title: "The \"Job\"", description: String(repeating: "x", count: 2_000)),
         ]
-        let message = DescribedRecap.input(show: "The Crew", about: "Four thieves\nand one last job.", episodes: episodes)
+        let message = DescribedRecap.input(show: "The\nCrew", episodes: episodes)
         let lines = message.components(separatedBy: "\n")
-        #expect(lines.count == 5)
+        #expect(lines.count == 4)
         #expect(lines[0] == "Series: The Crew")
-        #expect(lines[1] == "About it: Four thieves and one last job.")
-        #expect(lines[2] == "Episodes they finished, oldest first:")
-        #expect(lines[3] == "S1 · E1 \"Pilot\": They meet. They plan.")
-        #expect(lines[4].count == "S1 · E2 \"The \"Job\"\": ".count + 900)
-        #expect(!DescribedRecap.input(show: "The Crew", about: " ", episodes: episodes).contains("About it"))
+        #expect(lines[1] == "Episodes they finished, oldest first:")
+        #expect(lines[2] == "1. They meet. They plan.")
+        #expect(lines[3].count == "2. ".count + 900)
+        #expect(!message.contains("Pilot") && !message.contains("S1"))
     }
 
     @Test func aRecapIsTakenOnlyWhenItIsOneWorthShowing() {
