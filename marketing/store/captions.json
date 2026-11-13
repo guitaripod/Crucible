@@ -164,6 +164,54 @@
       "07-stats": {"headline": "掌握你的觀影習慣", "subhead": "連續觀看、熱力圖與一口氣追劇，來自 Plex 與 Trakt"},
       "07c-share-preview": {"headline": "你的年度觀影海報", "subhead": "可分享到限時動態或方形圖的年度回顧"},
       "10-history": {"headline": "每次播放，逐日回顧", "subhead": "附海報的觀看紀錄，依日期分組顯示"}
+    },
+    "sv": {
+      "01-home": {"headline": "Fortsätt där du slutade", "subhead": "Startsidan med Återuppta först för hela ditt Plex-bibliotek"},
+      "04c-essentials-offer": {"headline": "Hoppa över fillers", "subhead": "Essentials döljer de enbart anime-avsnitten i långa serier"},
+      "09b-skip-recap": {"headline": "Hoppa över sammanfattningen", "subhead": "Hoppa över intro, sammanfattning och förhandsvisning med hjälp av filernas egna kapitel"},
+      "02b-library-settled": {"headline": "Alla bibliotek inom räckhåll", "subhead": "Filter, sortering, A–Z-index och nyligen sedda"},
+      "03-detail": {"headline": "Allt om en titel", "subhead": "Trakt- och IMDb-betyg, ljud och undertexter, medverkande"},
+      "05b-search-request": {"headline": "Hitta allt, även det som saknas", "subhead": "Inte på din server? Begär det via Seerr"},
+      "06-downloads": {"headline": "Ta med dig offline", "subhead": "Filmer, säsonger eller avsnitt i den kvalitet du väljer"},
+      "07-stats": {"headline": "Koll på din tittning", "subhead": "Dagar i rad, aktivitetskartor och binges från Plex och Trakt"},
+      "07c-share-preview": {"headline": "Ditt år på en affisch", "subhead": "En årssammanfattning att dela som story eller kvadratisk affisch"},
+      "10-history": {"headline": "Varje visning, dag för dag", "subhead": "Visningshistorik med affischer, grupperad per dag"}
+    },
+    "da": {
+      "01-home": {"headline": "Fortsæt, hvor du slap", "subhead": "Startsiden med Genoptag først for hele dit Plex-bibliotek"},
+      "04c-essentials-offer": {"headline": "Spring fillers over", "subhead": "Essentials skjuler de kun anime-afsnit i lange serier"},
+      "09b-skip-recap": {"headline": "Spring resuméet over", "subhead": "Spring intro, resumé og forhåndsvisning over ved hjælp af filernes egne kapitler"},
+      "02b-library-settled": {"headline": "Alle biblioteker lige ved hånden", "subhead": "Filtre, sortering, A–Z-indeks og senest set"},
+      "03-detail": {"headline": "Alt om en titel", "subhead": "Trakt- og IMDb-bedømmelser, lyd og undertekster, medvirkende"},
+      "05b-search-request": {"headline": "Find alt, også det der mangler", "subhead": "Ikke på din server? Anmod om det via Seerr"},
+      "06-downloads": {"headline": "Tag det offline", "subhead": "Film, sæsoner eller afsnit i den kvalitet, du vælger"},
+      "07-stats": {"headline": "Kend din visning", "subhead": "Dage i træk, aktivitetsoversigter og binges fra Plex og Trakt"},
+      "07c-share-preview": {"headline": "Dit år på ét plakat", "subhead": "En årsoversigt til deling som story eller kvadratisk plakat"},
+      "10-history": {"headline": "Hver afspilning, dag for dag", "subhead": "Seerhistorik med plakater, grupperet pr. dag"}
+    },
+    "no": {
+      "01-home": {"headline": "Fortsett der du slapp", "subhead": "Startsiden med Fortsett først for hele Plex-biblioteket ditt"},
+      "04c-essentials-offer": {"headline": "Hopp over filler", "subhead": "Essentials skjuler de bare anime-episodene i lange serier"},
+      "09b-skip-recap": {"headline": "Hopp over oppsummeringen", "subhead": "Hopp over intro, oppsummering og forhåndsvisning ved hjelp av filenes egne kapitler"},
+      "02b-library-settled": {"headline": "Alle bibliotekene rett ved hånden", "subhead": "Filtre, sortering, A–Z-indeks og nylig sett"},
+      "03-detail": {"headline": "Alt om en tittel", "subhead": "Trakt- og IMDb-vurderinger, lyd og undertekster, medvirkende"},
+      "05b-search-request": {"headline": "Finn alt, også det som mangler", "subhead": "Ikke på serveren din? Be om det via Seerr"},
+      "06-downloads": {"headline": "Ta det med offline", "subhead": "Filmer, sesonger eller episoder i kvaliteten du velger"},
+      "07-stats": {"headline": "Kjenn dine seervaner", "subhead": "Dager på rad, aktivitetskart og binge fra Plex og Trakt"},
+      "07c-share-preview": {"headline": "Året ditt på ett plakat", "subhead": "En årsoppsummering å dele som story eller kvadratisk plakat"},
+      "10-history": {"headline": "Hver avspilling, dag for dag", "subhead": "Visningslogg med plakater, gruppert etter dag"}
+    },
+    "fi": {
+      "01-home": {"headline": "Jatka siitä, mihin jäit", "subhead": "Koti, jossa Jatka on ensin, koko Plex-kirjastollesi"},
+      "04c-essentials-offer": {"headline": "Ohita täytejaksot", "subhead": "Essentials piilottaa pitkien sarjojen vain animessa olevat jaksot"},
+      "09b-skip-recap": {"headline": "Ohita kertaus", "subhead": "Ohita intro, kertaus ja ennakko tiedostojesi omien lukujen avulla"},
+      "02b-library-settled": {"headline": "Kaikki kirjastosi käden ulottuvilla", "subhead": "Suodattimet, lajittelu, A–Z-hakemisto ja viimeksi katsotut"},
+      "03-detail": {"headline": "Kaikki tästä nimikkeestä", "subhead": "Trakt- ja IMDb-pisteet, ääni ja tekstitykset, näyttelijät ja tekijät"},
+      "05b-search-request": {"headline": "Etsi kaikki, myös puuttuva", "subhead": "Ei palvelimellasi? Pyydä se Seerrin kautta"},
+      "06-downloads": {"headline": "Lataa offline-katseluun", "subhead": "Elokuvat, kaudet tai jaksot valitsemallasi laadulla"},
+      "07-stats": {"headline": "Tunne katselusi", "subhead": "Putket, toimintakartat ja maratonit Plexistä ja Traktista"},
+      "07c-share-preview": {"headline": "Vuotesi yhdessä julisteessa", "subhead": "Vuosikatsaus jaettavaksi Story- tai neliöjulisteena"},
+      "10-history": {"headline": "Jokainen toisto, päivä kerrallaan", "subhead": "Katseluhistoria julisteineen, ryhmiteltynä päivittäin"}
     }
   }
 }
