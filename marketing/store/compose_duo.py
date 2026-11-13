@@ -26,7 +26,7 @@ import compose
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-STORE_LOCALES = ["en-US", "ar-SA", "de-DE", "es-ES", "fr-FR", "id", "it", "ja", "ko", "pl", "pt-BR", "ru", "th", "tr", "vi", "zh-Hans", "zh-Hant"]
+STORE_LOCALES = ["en-US", "ar-SA", "de-DE", "es-ES", "fr-FR", "id", "it", "ja", "ko", "pl", "pt-BR", "ru", "th", "tr", "vi", "zh-Hans", "zh-Hant", "sv", "da", "no", "fi"]
 UNSHAPED = {"ar-SA", "th"}
 
 SIZES = {
