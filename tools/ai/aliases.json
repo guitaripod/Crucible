@@ -1,0 +1,143 @@
+{
+  "app_id": "crucible",
+  "model": "claude-haiku-5-5",
+  "aliases": [
+    {
+      "alias": "watch.plan.v1",
+      "version": 1,
+      "max_tokens": 300,
+      "flat_credits": 1,
+      "weekly_free": 12,
+      "premium_bypass": true,
+      "daily_limit": 40,
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "movie",
+              "show",
+              "any"
+            ]
+          },
+          "watched": {
+            "type": "string",
+            "enum": [
+              "unseen",
+              "seen",
+              "any"
+            ]
+          },
+          "max_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "from_year": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "to_year": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "family": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "watched",
+          "max_minutes",
+          "min_minutes",
+          "from_year",
+          "to_year",
+          "family",
+          "count"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "alias": "watch.pick.v1",
+      "version": 1,
+      "max_tokens": 4000,
+      "flat_credits": 1,
+      "weekly_free": 12,
+      "premium_bypass": true,
+      "daily_limit": 40,
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "picks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "why": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "why"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "picks",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "reasoning": "medium"
+    },
+    {
+      "alias": "recap.describe.v1",
+      "version": 1,
+      "max_tokens": 500,
+      "flat_credits": 1,
+      "weekly_free": 12,
+      "premium_bypass": true,
+      "daily_limit": 40,
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "recap": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "recap"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

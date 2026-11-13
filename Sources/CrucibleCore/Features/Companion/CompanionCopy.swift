@@ -111,11 +111,24 @@ package enum CompanionCopy {
     }
 }
 
-/// Asking the paired server for a Previously On of a show, from what this person has watched.
+/// Where a show's Previously On would come from.
+package enum PreviouslyOnOffer: Equatable, Sendable {
+    /// Nothing before the next episode was watched, or nothing is known about what was.
+    case none
+    /// The paired Crucible Server writes it from what was said.
+    case server
+    /// No server is paired: the finished episodes' descriptions, which Crucible's AI can write into one recap.
+    case descriptions
+}
+
+/// Asking for a Previously On of a show, from what this person has watched.
 package enum PreviouslyOnRequest {
-    /// Whether the show page should offer it: a server is paired and something before the next episode was watched.
-    package static func isAvailable(_ model: ShowDetailModel) -> Bool {
-        CompanionStore.current() != nil && !finished(model).isEmpty
+    /// What the show page offers: the paired server's recap, the episode descriptions without one, or nothing when
+    /// no episode before the next one was watched.
+    package static func offer(_ model: ShowDetailModel) -> PreviouslyOnOffer {
+        guard !finished(model).isEmpty else { return .none }
+        if CompanionStore.current() != nil { return .server }
+        return DescribedRecap.episodes(of: model).isEmpty ? .none : .descriptions
     }
 
     private static func finished(_ model: ShowDetailModel) -> [String] {

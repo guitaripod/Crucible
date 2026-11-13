@@ -44,7 +44,7 @@ package enum ProTVPresentation {
         guard let feature else { return nil }
         switch feature {
         case .fullStatistics: return String(localized: "Month, Year, All and the library filter are part of Crucible Pro.")
-        case .unlimitedDownloads, .yearInReviewPoster, .topShelf, .manageRequests: return String(localized: "\(feature.title) is part of Crucible Pro.")
+        case .whatToWatch, .previouslyOn, .unlimitedDownloads, .yearInReviewPoster, .topShelf, .manageRequests: return String(localized: "\(feature.title) is part of Crucible Pro.")
         }
     }
 
