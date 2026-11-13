@@ -11,6 +11,8 @@ package struct PlaybackDecision: Sendable, Equatable {
     package let videoDecision: String?
     package let audioDecision: String?
     package let subtitleDecision: String?
+    /// The transfer function of the picture the stream will carry, "smpte2084" or "arib-std-b67" when it stays HDR.
+    package let videoTransfer: String?
 
     package init(
         generalCode: Int?,
@@ -19,7 +21,8 @@ package struct PlaybackDecision: Sendable, Equatable {
         transcodeText: String? = nil,
         videoDecision: String? = nil,
         audioDecision: String? = nil,
-        subtitleDecision: String? = nil
+        subtitleDecision: String? = nil,
+        videoTransfer: String? = nil
     ) {
         self.generalCode = generalCode
         self.generalText = generalText
@@ -28,6 +31,7 @@ package struct PlaybackDecision: Sendable, Equatable {
         self.videoDecision = videoDecision
         self.audioDecision = audioDecision
         self.subtitleDecision = subtitleDecision
+        self.videoTransfer = videoTransfer
     }
 
     package var isRefusal: Bool { (generalCode ?? 0) >= 2000 }
@@ -48,7 +52,8 @@ package struct PlaybackDecision: Sendable, Equatable {
             transcodeText: container["transcodeDecisionText"] as? String,
             videoDecision: decision(for: 1),
             audioDecision: decision(for: 2),
-            subtitleDecision: decision(for: 3)
+            subtitleDecision: decision(for: 3),
+            videoTransfer: streams.first { int($0["streamType"]) == 1 }?["colorTrc"] as? String
         )
     }
 
@@ -100,9 +105,19 @@ package enum StreamInfo {
             lines.append(StreamInfoLine(label: String(localized: "Quality", comment: "Stream Info label"), value: quality.title))
         }
         if let media = stream.media {
-            let video = [media.videoCodec?.uppercased(), Formatters.resolution(media.width, media.height), media.videoProfile?.uppercased()]
+            let videoStream = media.Part?.first?.Stream?.first { $0.streamType == 1 }
+            let video = [
+                media.videoCodec?.uppercased(),
+                Formatters.resolution(media.width, media.height),
+                media.videoProfile?.uppercased(),
+                videoStream?.frameRate.flatMap(frameRate),
+            ]
                 .compactMap { $0 }.joined(separator: " · ")
             if !video.isEmpty { lines.append(StreamInfoLine(label: String(localized: "Video", comment: "Stream Info label"), value: video)) }
+            lines.append(StreamInfoLine(
+                label: String(localized: "Dynamic Range", comment: "Stream Info label for HDR10, Dolby Vision, HLG or SDR"),
+                value: dynamicRange(DynamicRange(videoStream), stream: stream)
+            ))
             if let container = media.container?.uppercased() {
                 lines.append(StreamInfoLine(label: String(localized: "File", comment: "Stream Info label for the file's container"), value: container))
             }
@@ -121,6 +136,25 @@ package enum StreamInfo {
             lines.append(StreamInfoLine(label: String(localized: "Server", comment: "Stream Info label for the server's own explanation"), value: reason))
         }
         return lines
+    }
+
+    /// The file's range when the picture reaches the screen as it is; when the server converts it, what the conversion keeps.
+    static func dynamicRange(_ source: DynamicRange, stream: ResolvedStream) -> String {
+        guard !stream.isDirectPlay, let decision = stream.decision, decision.videoDecision == "transcode" else { return source.name }
+        switch decision.videoTransfer?.lowercased() {
+        case "smpte2084": return DynamicRange.hdr10.name
+        case "arib-std-b67": return DynamicRange.hlg.name
+        default:
+            guard source.isHDR else { return DynamicRange.sdr.name }
+            return String(localized: "SDR, converted from \(source.name)", comment: "Stream Info: the server turns an HDR picture into SDR, as in \"SDR, converted from Dolby Vision 7\"")
+        }
+    }
+
+    /// "23.976 fps", "24 fps" or "59.94 fps".
+    static func frameRate(_ rate: Double) -> String? {
+        guard rate.isFinite, rate > 0 else { return nil }
+        let number = rate.formatted(.number.precision(.fractionLength(0...3)).locale(Formatters.interfaceLocale))
+        return String(localized: "\(number) fps", comment: "Stream Info: video frames per second, as in \"23.976 fps\"")
     }
 
     private static func method(_ stream: ResolvedStream) -> String {
