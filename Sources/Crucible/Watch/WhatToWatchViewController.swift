@@ -111,8 +111,7 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
             }
             button.accessibilityIdentifier = "watch.example.\(place)"
             button.configurationUpdateHandler = { button in
-                button.configuration?.baseBackgroundColor = button.isSelected ? Theme.Color.accent : nil
-                button.configuration?.baseForegroundColor = button.isSelected ? .black : Theme.Color.label
+                button.configuration = Self.capsule(example, filled: button.isSelected)
             }
             return button
         }
@@ -283,7 +282,8 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         }
     }
 
-    private static func button(_ title: String, filled: Bool, action: @escaping () -> Void) -> UIButton {
+    /// The look of this screen's buttons: the accent colour for the one that acts or is chosen, grey for the rest.
+    private static func capsule(_ title: String, filled: Bool) -> UIButton.Configuration {
         var configuration = filled ? UIButton.Configuration.filled() : UIButton.Configuration.gray()
         configuration.cornerStyle = .capsule
         configuration.title = title
@@ -293,7 +293,11 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         } else {
             configuration.baseForegroundColor = Theme.Color.label
         }
-        let button = UIButton(configuration: configuration, primaryAction: UIAction { _ in action() })
+        return configuration
+    }
+
+    private static func button(_ title: String, filled: Bool, action: @escaping () -> Void) -> UIButton {
+        let button = UIButton(configuration: capsule(title, filled: filled), primaryAction: UIAction { _ in action() })
         button.titleLabel?.adjustsFontForContentSizeCategory = true
         return button
     }
