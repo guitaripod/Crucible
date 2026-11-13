@@ -114,11 +114,12 @@ final class WhatToWatchTests: TVTestCase {
         TVTest.capture("06-typing", in: self)
         press(.down, times: 3, settle: 0.3)
         press(.select, settle: 1.5)
-        let suggest = app.alerts.firstMatch.buttons["Suggest"].firstMatch
-        XCTAssertTrue(suggest.waitForExistence(timeout: 10), "the keyboard's Done does not return to the request")
-        for _ in 0..<6 where !suggest.hasFocus {
-            press(.down, settle: 0.3)
-        }
+        XCTAssertTrue(labelled("Suggest").waitForExistence(timeout: 10), "the keyboard's Done does not return to the request")
+        let suggestHasFocus = { self.app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true AND label == 'Suggest'")).firstMatch.exists }
+        if !suggestHasFocus() { press(.down, settle: 0.4) }
+        if !suggestHasFocus() { press(.right, settle: 0.4) }
+        TVTest.capture("06b-request-entered", in: self)
+        XCTAssertTrue(suggestHasFocus(), "focus never reached Suggest, it is on \(focusedIdentifier)")
         press(.select)
         XCTAssertTrue(firstPick.waitForExistence(timeout: 120), "no pick came back for a typed request")
         TVTest.settle(1.5)

@@ -178,11 +178,13 @@ final class TVWhatToWatchAskViewController: UIViewController {
             field.returnKeyType = .done
             field.accessibilityIdentifier = "watch.field"
         }
-        entry.addAction(UIAlertAction(title: WatchCopy.suggest, style: .default) { [weak self, weak entry] _ in
+        let suggest = UIAlertAction(title: WatchCopy.suggest, style: .default) { [weak self, weak entry] _ in
             guard let request = entry?.textFields?.first?.text, !WatchPicker.cleaned(request).isEmpty else { return }
             self?.askOnceUncovered(request)
-        })
+        }
+        entry.addAction(suggest)
         entry.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        entry.preferredAction = suggest
         present(entry, animated: TVMotion.animationsEnabled)
     }
 
