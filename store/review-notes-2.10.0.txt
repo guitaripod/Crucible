@@ -1,0 +1,23 @@
+WHAT'S NEW IN 2.10.0 (iPhone, iPad and Apple TV; both features work in the demo)
+- What to Watch: the person says what they feel like and Crucible picks from their own library, with a reason for each pick. To see it: start the demo. On iPhone and iPad tap the wand button at the top of Home; on Apple TV open the What to Watch tile at the end of Recently Added on Home. Choose one of the four example requests, for example "Something light for tonight": the picks appear, and a pick opens its title. The demo uses no network, so it answers these four requests from picks prepared in advance and says so on the screen; with a real Plex server there is also a text field (iPhone, iPad) or "Say or Type Your Own" (Apple TV) for any request.
+- Previously On for every show: in the demo open TV Shows, then Paper Lanterns. On iPhone and iPad choose the "…" button, then Previously On; on Apple TV choose the Previously On button on the show page. The sheet lists the descriptions of the last episodes watched and offers Write a Recap, which turns them into one short recap. In the demo that recap was also prepared in advance.
+- What these send, and when: only when the person asks, and never in the demo. What to Watch sends the sentence and, for the films and series in their Plex libraries, the title, year, genres, length, ratings and watched state. Write a Recap sends the name of the series and the episode descriptions shown on the sheet. The request goes to my own service at api.midgarcorp.cc with the anonymous Midgar ID the app already uses for purchases, and is answered by Claude, a model run by Anthropic, which does not train on it. Each screen says this before the person asks; the privacy policy and the App Privacy answers (Search History, Product Interaction) are updated to match.
+- Both are part of Crucible Pro. To see the lock: turn on You > Preview Free Version in the demo, then ask What to Watch; the paywall opens and names it.
+- The companion program Crucible Server (optional, free, open source) still writes Previously On from what was said in the episodes on the user's own computer, with nothing sent to me.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex requires a paid Plex Pass or Remote Watch Pass to stream a server's video away from home (https://support.plex.tv/articles/requirements-for-remote-playback-of-personal-media/), so I cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app instead (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+On the Welcome screen choose "Try the demo", then "Start exploring". The account types and settings below are under the You tab.
+
+ACCOUNT TYPES IN THE DEMO
+1. Server owner (the demo starts as "Demo"): every feature unlocked, plus the owner's tools: Manage in a title's long-press menu and on a library's header (Fix Match, Edit Details, poster and background, scans), Stop Stream in Server Activity, Server Dashboard under You.
+2. Plex Home member with a PIN: You > Switch Profile > Sam, PIN 1234. Sam has a watch history of their own and no owner tools.
+3. Managed (restricted) profile: You > Switch Profile > Kids, no PIN. Only family titles appear. Switch Profile > Demo returns to the owner.
+4. Free install and Crucible Pro: the demo starts unlocked. Turn on You > Preview Free Version to see a free install: What to Watch, Write a Recap, Statistics ranges past Week, the Statistics library filter, the Year in Review poster and Top Shelf are locked, and the locks open the paywall. A purchase there (sandbox) unlocks them for real; Restore Purchases is on the paywall.
+
+CRUCIBLE PRO (in-app purchases, StoreKit with Midgar's own engine, MidgarKit)
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $39.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year (rises to $14.99 for new subscribers on December 7, 2026), no free trial. Both approved; Apple TV shares them with iPhone and iPad through universal purchase. Playback is never gated. Paywall: You > Crucible Pro, the end of the demo tour, or any lock in the free preview.
+
+OTHER NOTES
+Sign in with Plex shows a code to enter at plex.tv/link; an account with no server is pointed to the demo. Local network access is requested to reach servers on the user's home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK. The data is an anonymous Midgar ID (iCloud Keychain) for Crucible Pro purchases and, only when the person asks Crucible's AI, what is listed above, as the privacy policy and App Privacy answers describe.
