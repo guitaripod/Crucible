@@ -24,7 +24,7 @@ final class ProWeekStartViewController: DemoSheetViewController {
             body: String(localized: "Everything in Pro is open until \(date). Nothing is charged and nothing renews; titles you download stay on this iPhone.")
         )
 
-        let features = UIStackView(arrangedSubviews: ProFeature.listed(isTV: false).map { PaywallFeatureRowView(feature: $0, isHighlighted: false) })
+        let features = UIStackView(arrangedSubviews: ProFeature.listed(isTV: false).map { PaywallFeatureRowView(feature: $0, summary: $0.summary, isHighlighted: false) })
         features.axis = .vertical
         features.spacing = 2
         contentStack.addArrangedSubview(features)

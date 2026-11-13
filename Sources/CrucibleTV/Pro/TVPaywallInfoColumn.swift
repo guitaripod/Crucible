@@ -3,18 +3,20 @@ import CrucibleDesign
 import UIKit
 
 /// The left side of the paywall: the name, why the screen opened, what Pro includes on Apple TV and the legal pages as plain
-/// text. Nothing in it is focusable; each block is a `TVReadOnlyPanel`, so VoiceOver reaches it as one stop.
+/// text. `facts` is what it may say about the viewer, read once as the paywall opens: their year under the name when nothing
+/// else explains the screen, and their own numbers in the lines of what Pro includes. Nothing in it is focusable; each block is
+/// a `TVReadOnlyPanel`, so VoiceOver reaches it as one stop.
 final class TVPaywallInfoColumn: UIStackView {
     private static let wellSide: CGFloat = TVMetrics.Row.iconWell
 
-    init(request: PaywallRequest, features: [ProFeature]? = nil) {
+    init(request: PaywallRequest, features: [ProFeature]? = nil, facts: ProViewerFacts) {
         let features = features ?? ProFeature.listed(isTV: true, includingRequests: SeerrAccount.shared.managesRequests || request.feature == .manageRequests)
         super.init(frame: .zero)
         axis = .vertical
         alignment = .fill
         spacing = Theme.Space.l
-        addArrangedSubview(Self.headerPanel(reason: ProTVPresentation.reasonLine(for: request, proWeekEndsAt: ProAccess.shared.proWeekEndsAt)))
-        addArrangedSubview(Self.featuresPanel(features))
+        addArrangedSubview(Self.headerPanel(reason: ProTVPresentation.reasonLine(for: request, proWeekEndsAt: ProAccess.shared.proWeekEndsAt, facts: facts)))
+        addArrangedSubview(Self.featuresPanel(features, details: ProPersonalDetails.make(facts)))
         addArrangedSubview(Self.legalPanel())
     }
 
@@ -48,18 +50,18 @@ final class TVPaywallInfoColumn: UIStackView {
         return panel
     }
 
-    private static func featuresPanel(_ features: [ProFeature]) -> UIView {
-        let stack = UIStackView(arrangedSubviews: features.map(featureRow))
+    private static func featuresPanel(_ features: [ProFeature], details: [ProFeature: String]) -> UIView {
+        let stack = UIStackView(arrangedSubviews: features.map { featureRow($0, summary: $0.summary(in: details)) })
         stack.axis = .vertical
         stack.spacing = Theme.Space.m
         let panel = TVReadOnlyPanel(wrapping: stack) {
-            String(localized: "Includes.") + " " + features.map { String(localized: "\($0.title). \($0.summary)") }.joined(separator: " ")
+            String(localized: "Includes.") + " " + features.map { String(localized: "\($0.title). \($0.summary(in: details))") }.joined(separator: " ")
         }
         panel.accessibilityIdentifier = "paywall.features"
         return panel
     }
 
-    private static func featureRow(_ feature: ProFeature) -> UIView {
+    private static func featureRow(_ feature: ProFeature, summary line: String) -> UIView {
         let icon = UIImageView(image: UIImage(systemName: feature.symbol))
         icon.contentMode = .center
         icon.tintColor = Theme.Color.accentText
@@ -76,7 +78,7 @@ final class TVPaywallInfoColumn: UIStackView {
         title.font = TVFont.cardTitle
         title.textColor = Theme.Color.label
         let summary = UILabel()
-        summary.text = feature.summary
+        summary.text = line
         summary.font = TVFont.cardSubtitle
         summary.textColor = Theme.Color.labelSecondary
         summary.numberOfLines = 0

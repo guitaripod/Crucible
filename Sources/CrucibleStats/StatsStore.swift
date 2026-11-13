@@ -210,7 +210,7 @@ package struct StatsStore: Sendable {
 
     // MARK: - Individual queries
 
-    private static func overview(_ db: Database, lowerBound: Int, today: Int, scope: StatsScope) throws -> StatsOverview {
+    static func overview(_ db: Database, lowerBound: Int, today: Int, scope: StatsScope) throws -> StatsOverview {
         let acct = scope.clause()
         let acctP = scope.clause(column: "p.accountID")
         var o = StatsOverview()

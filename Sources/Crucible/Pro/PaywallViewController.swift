@@ -6,11 +6,12 @@ import CrucibleDesign
 /// and a finished model either dismisses the sheet with the pending action unlocked or leaves it as it was.
 final class PaywallViewController: UIViewController, UISheetPresentationControllerDelegate {
     static func present(_ request: PaywallRequest, from presenter: UIViewController, completion: @escaping @MainActor (Bool) -> Void) {
-        let controller = PaywallViewController(model: PaywallModel(request: request), completion: completion)
+        let controller = PaywallViewController(model: PaywallModel(request: request), facts: .live, completion: completion)
         presenter.present(controller, animated: true)
     }
 
     private let model: PaywallModel
+    private let facts: ProViewerFacts
     private let completion: @MainActor (Bool) -> Void
     private var didComplete = false
     private var dismissedBySystem = false
@@ -37,8 +38,10 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
     private let termsButton = UIButton(configuration: .plain())
     private let privacyButton = UIButton(configuration: .plain())
 
-    init(model: PaywallModel, completion: @escaping @MainActor (Bool) -> Void) {
+    /// `facts` is what the sheet may say about the viewer; it is read once, as the sheet opens, so no line changes under the eye.
+    init(model: PaywallModel, facts: ProViewerFacts, completion: @escaping @MainActor (Bool) -> Void) {
         self.model = model
+        self.facts = facts
         self.completion = completion
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .formSheet
@@ -188,7 +191,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         title.adjustsFontForContentSizeCategory = true
         title.accessibilityTraits = .header
 
-        subtitleLabel.text = Self.subtitle(for: model.request)
+        subtitleLabel.text = Self.subtitle(for: model.request, facts: facts)
         subtitleLabel.font = Theme.Font.callout
         subtitleLabel.textColor = Theme.Color.labelSecondary
         subtitleLabel.textAlignment = .center
@@ -202,18 +205,22 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
         return header
     }
 
-    /// The Pro Week comes first, while it runs or just after it ends; then the feature the user reached for, or what Pro unlocks.
-    private static func subtitle(for request: PaywallRequest) -> String {
+    /// The Pro Week comes first, while it runs or just after it ends; then the feature the user reached for. With neither, the
+    /// viewer's own year so far when there is enough of it, or what Pro unlocks.
+    private static func subtitle(for request: PaywallRequest, facts: ProViewerFacts) -> String {
         if let line = ProWeek.paywallLine(followsProWeek: request.followsProWeek, endsAt: ProAccess.shared.proWeekEndsAt, isTV: false) {
             return line
         }
-        guard let feature = request.feature else { return String(localized: "Unlock downloads, full Statistics and the poster") }
+        guard let feature = request.feature else {
+            return ProPersonalDetails.headline(facts) ?? String(localized: "Unlock downloads, full Statistics and the poster")
+        }
         return String(localized: "\(feature.title) is part of Crucible Pro")
     }
 
     private func makeFeatures() -> UIView {
+        let details = ProPersonalDetails.make(facts)
         let stack = UIStackView(arrangedSubviews: ProFeature.listed(isTV: false, includingRequests: SeerrAccount.shared.managesRequests || model.request.feature == .manageRequests).map {
-            PaywallFeatureRowView(feature: $0, isHighlighted: $0 == model.request.feature)
+            PaywallFeatureRowView(feature: $0, summary: $0.summary(in: details), isHighlighted: $0 == model.request.feature)
         })
         stack.axis = .vertical
         stack.spacing = 2

@@ -25,9 +25,18 @@ package enum ProTVPresentation {
         return ProWeek.daysLeftText(until: proWeekEndsAt, now: now)
     }
 
-    /// Why the paywall opened: the Pro Week around it, or the feature the user reached for.
-    package static func reasonLine(for request: PaywallRequest, proWeekEndsAt: Date?) -> String? {
-        ProWeek.paywallLine(followsProWeek: request.followsProWeek, endsAt: proWeekEndsAt, isTV: true) ?? reasonLine(for: request.feature)
+    /// Why the paywall opened: the Pro Week around it, or the feature the user reached for. With neither, the viewer's own year
+    /// so far when `facts` holds enough of it.
+    package static func reasonLine(
+        for request: PaywallRequest,
+        proWeekEndsAt: Date?,
+        facts: ProViewerFacts = ProViewerFacts(),
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String? {
+        ProWeek.paywallLine(followsProWeek: request.followsProWeek, endsAt: proWeekEndsAt, isTV: true)
+            ?? reasonLine(for: request.feature)
+            ?? ProPersonalDetails.headline(facts, now: now, calendar: calendar)
     }
 
     /// Why the paywall opened, when the user reached for a feature.

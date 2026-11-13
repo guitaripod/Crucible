@@ -39,6 +39,11 @@ enum ProShotScript {
             await ShotHarness.capture("done")
             return
         }
+        if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "buyer" {
+            await buyerLines(tabBar: tabBar)
+            await ShotHarness.capture("done")
+            return
+        }
         await paywallStates(tabBar: tabBar)
         if ProcessInfo.processInfo.environment["CRUCIBLE_SHOT_PART"] == "paywall" {
             await ShotHarness.capture("done")
@@ -210,6 +215,65 @@ enum ProShotScript {
         await ShotHarness.settle(1.8)
         await ShotHarness.capture("p07b-unavailable-region")
         await closePaywall(tabBar)
+    }
+
+    /// The Pro sheet with nothing known about the viewer, then with a staged year, history and downloads: as the offer itself, from a
+    /// locked Statistics range, from the poster and at the largest text size, and last with whatever the mirror of the mock server holds,
+    /// so every personal line is seen beside its general one.
+    private static func buyerLines(tabBar: TabBarController) async {
+        await install(scripted(trial: false))
+        let year = Calendar.current.component(.year, from: Date())
+        let staged = ProViewerFacts.staged(["CRUCIBLE_PRO_FACTS": "staged"]) ?? ProViewerFacts()
+
+        await showSheet(PaywallRequest(), facts: ProViewerFacts(), tabBar: tabBar)
+        await ShotHarness.capture("b01-general")
+        await dismissSheet(tabBar)
+
+        await showSheet(PaywallRequest(), facts: staged, tabBar: tabBar)
+        await ShotHarness.capture("b02-personal")
+        if let paywall = paywall(tabBar) {
+            scrollToBottom(paywall)
+            await ShotHarness.settle(0.8)
+            await ShotHarness.capture("b02b-personal-bottom")
+            paywall.view.window?.traitOverrides.preferredContentSizeCategory = .accessibilityExtraLarge
+            await ShotHarness.settle(1.2)
+            await ShotHarness.capture("b02c-personal-accessibility-xl")
+            paywall.view.window?.traitOverrides.preferredContentSizeCategory = .large
+            await ShotHarness.settle(0.8)
+        }
+        await dismissSheet(tabBar)
+
+        await showSheet(PaywallRequest(feature: .fullStatistics), facts: staged, tabBar: tabBar)
+        await ShotHarness.capture("b03-personal-from-statistics")
+        await dismissSheet(tabBar)
+
+        await showSheet(PaywallRequest(feature: .yearInReviewPoster), facts: staged, tabBar: tabBar)
+        await ShotHarness.capture("b04-personal-from-poster")
+        await dismissSheet(tabBar)
+
+        await showSheet(PaywallRequest(feature: .unlimitedDownloads), facts: ProViewerFacts(history: ProViewerFacts.History(year: year, playsThisYear: 4, moviesThisYear: 1, episodesThisYear: 3), downloadedTitles: 1), tabBar: tabBar)
+        await ShotHarness.capture("b05-below-every-threshold")
+        await dismissSheet(tabBar)
+
+        await StatsManager.shared.refreshNow()
+        await ShotHarness.settle(2)
+        let live = ProViewerFacts.live
+        try? "\(live)".write(toFile: "\(ShotHarness.signalDirectory)/b06-live-facts.txt", atomically: true, encoding: .utf8)
+        PaywallPresenter.showOffer(from: tabBar)
+        await ShotHarness.settle(2.5)
+        await ShotHarness.capture("b06-live-from-the-mirror")
+        await dismissSheet(tabBar)
+    }
+
+    private static func showSheet(_ request: PaywallRequest, facts: ProViewerFacts, tabBar: TabBarController) async {
+        tabBar.present(PaywallViewController(model: PaywallModel(request: request), facts: facts) { _ in }, animated: false)
+        await ShotHarness.settle(2.5)
+    }
+
+    /// Closes the sheet without its Close button, which `closePaywall` finds by its English label, so the run works in every language.
+    private static func dismissSheet(_ tabBar: TabBarController) async {
+        tabBar.dismiss(animated: false)
+        await ShotHarness.settle(1.2)
     }
 
     private static func settingsAndStatus(you: UINavigationController?, api: APIClient) async {

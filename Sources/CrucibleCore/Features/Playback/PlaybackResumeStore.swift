@@ -84,6 +84,7 @@ package struct ResumePoint: Codable, Sendable, Equatable {
 package struct PlaybackResumeStore: Sendable {
     private static let key = "playbackResumePoints"
     private static let capacity = 20
+    private static let startedAfterSecs = 60.0
     private static let lock = NSLock()
 
     nonisolated(unsafe) private let defaults: UserDefaults
@@ -141,6 +142,15 @@ package struct PlaybackResumeStore: Sendable {
         load().values
             .filter { $0.server == server && $0.needsReport && now.timeIntervalSince($0.savedAt) <= ResumePoint.lifetime }
             .sorted { $0.savedAt > $1.savedAt }
+    }
+
+    /// How many titles the viewer stopped partway through on this device and could still pick up: at least a minute in, not
+    /// finished, and saved within the time a position stays worth restoring.
+    package func inProgressCount(now: Date = Date()) -> Int {
+        load().values.filter { point in
+            !point.finished && !point.isWatched && point.positionSecs >= Self.startedAfterSecs
+                && now.timeIntervalSince(point.savedAt) <= ResumePoint.lifetime
+        }.count
     }
 
     private func load() -> [String: ResumePoint] {

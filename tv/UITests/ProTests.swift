@@ -168,6 +168,44 @@ final class ProTests: TVTestCase {
         XCTAssertTrue(TVTest.waitForFocus(on: app, identifier: "you.pro"), "focus must return to the row that opened the paywall")
     }
 
+    func testThePaywallSpeaksOfTheViewerWhenItKnowsEnough() {
+        let app = launchYou(["CRUCIBLE_PRO_FACTS": "staged"])
+        YouNavigation.openRow(app, "you.pro")
+        waitForPaywall(app)
+        TVTest.capture("01-personal-lines", in: self)
+
+        let header = element(app, "paywall.header").label
+        XCTAssertTrue(header.contains("187 hours watched in"), header)
+        let features = element(app, "paywall.features").label
+        XCTAssertTrue(features.contains("plays since 2019"), features)
+        XCTAssertTrue(features.contains("14 movies · 212 episodes"), features)
+        XCTAssertTrue(features.contains("4 titles in progress on this Apple TV"), features)
+        XCTAssertFalse(features.contains("downloads"), "downloads are iPhone only")
+    }
+
+    func testThePaywallKeepsItsGeneralLinesWhenItKnowsNothingAboutTheViewer() {
+        let app = launchYou(["CRUCIBLE_PRO_FACTS": "none"])
+        YouNavigation.openRow(app, "you.pro")
+        waitForPaywall(app)
+        TVTest.capture("01-general-lines", in: self)
+
+        XCTAssertEqual(element(app, "paywall.header").label, "Crucible Pro")
+        let features = element(app, "paywall.features").label
+        XCTAssertTrue(features.contains("built from your own Plex history"), features)
+        XCTAssertTrue(features.contains("Preview and share your year as a Story or Square poster."), features)
+        XCTAssertTrue(features.contains("Continue Watching and Up Next on the Apple TV Home screen."), features)
+    }
+
+    func testAFeatureTheViewerReachedForKeepsItsReasonBesideTheirNumbers() {
+        let app = launchStatistics(["CRUCIBLE_PRO_FACTS": "staged"])
+        openPaywallFromMonth(app)
+        TVTest.capture("01-personal-lines-from-month", in: self)
+
+        XCTAssertTrue(element(app, "paywall.header").label.contains("Month, Year, All"), element(app, "paywall.header").label)
+        XCTAssertFalse(element(app, "paywall.header").label.contains("hours watched"), "the reason the paywall opened comes before the viewer's year")
+        XCTAssertTrue(element(app, "paywall.features").label.contains("plays since 2019"), element(app, "paywall.features").label)
+    }
+
     func testPaywallReadyStateWithoutTheFreeTrial() {
         let app = launchYou(["CRUCIBLE_PRO_TRIAL": "0"])
         YouNavigation.openRow(app, "you.pro")

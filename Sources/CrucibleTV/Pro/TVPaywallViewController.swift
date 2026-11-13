@@ -20,6 +20,7 @@ final class TVPaywallViewController: UIViewController {
     }
 
     private let model: PaywallModel
+    private let facts: ProViewerFacts
     private let completion: @MainActor (Bool) -> Void
     private let backdrop = TVGradientView()
     private let scrollView = UIScrollView()
@@ -37,8 +38,10 @@ final class TVPaywallViewController: UIViewController {
     private var hasStarted = false
     private var renderedPhase: PaywallModel.Phase?
 
-    private init(request: PaywallRequest, completion: @escaping @MainActor (Bool) -> Void) {
+    /// `facts` is what the paywall may say about the viewer; it is read once, as the paywall opens, so no line changes under the eye.
+    private init(request: PaywallRequest, facts: ProViewerFacts, completion: @escaping @MainActor (Bool) -> Void) {
         model = PaywallModel(request: request)
+        self.facts = facts
         self.completion = completion
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .fullScreen
@@ -50,7 +53,7 @@ final class TVPaywallViewController: UIViewController {
 
     /// Presents the paywall over `presenter`, whatever is on screen, and reports whether the user ended up with Pro once it is gone.
     static func present(_ request: PaywallRequest, from presenter: UIViewController, completion: @escaping @MainActor (Bool) -> Void) {
-        let paywall = TVPaywallViewController(request: request, completion: completion)
+        let paywall = TVPaywallViewController(request: request, facts: .live, completion: completion)
         presenter.present(paywall, animated: TVMotion.animationsEnabled)
     }
 
@@ -250,7 +253,7 @@ final class TVPaywallViewController: UIViewController {
     }
 
     private func installColumns() {
-        let info = TVPaywallInfoColumn(request: model.request)
+        let info = TVPaywallInfoColumn(request: model.request, facts: facts)
         let purchase = makePurchaseColumn()
         columns.axis = .horizontal
         columns.alignment = .top

@@ -9686,6 +9686,311 @@
         }
       }
     },
+    "%lld hours watched in %@ so far" : {
+      "comment" : "Subtitle of the Crucible Pro sheet: the viewer's own hours, then the current year",
+      "localizations" : {
+        "da" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld time set i %@ hidtil"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld timer set i %@ hidtil"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Bisher %lld Stunde in %@ geschaut"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Bisher %lld Stunden in %@ geschaut"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hour watched in %@ so far"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hours watched in %@ so far"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hora vista en %@ hasta ahora"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld horas vistas en %@ hasta ahora"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld horas vistas en %@ hasta ahora"
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tunti katsottu vuonna %@ tähän mennessä"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tuntia katsottu vuonna %@ tähän mennessä"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld heure regardée en %@ jusqu’à présent"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld heures regardées en %@ jusqu’à présent"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld heures regardées en %@ jusqu’à présent"
+                }
+              }
+            }
+          }
+        },
+        "is" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Þú hefur horft í %lld klukkustund árið %@ hingað til"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Þú hefur horft í %lld klukkustundir árið %@ hingað til"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ora guardata nel %@ finora"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ore guardate nel %@ finora"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ore guardate nel %@ finora"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@年はこれまでに %1$lld 時間視聴"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@년 지금까지 %1$lld시간 시청"
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld time sett i %@ hittil"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld timer sett i %@ hittil"
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld godzina oglądania w %@ roku do tej pory"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld godziny oglądania w %@ roku do tej pory"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld godzin oglądania w %@ roku do tej pory"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld godziny oglądania w %@ roku do tej pory"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hora assistida em %@ até agora"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld horas assistidas em %@ até agora"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld horas assistidas em %@ até agora"
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld timme sedd under %@ hittills"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld timmar sedda under %@ hittills"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@ 年至今已观看 %1$lld 小时"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@ 年至今已觀看 %1$lld 小時"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld items · %@" : {
       "localizations" : {
         "da" : {
@@ -13431,6 +13736,616 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld 部作品"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld titles are on this iPhone. Download whole seasons, queue as many as you like and keep the next episodes ready." : {
+      "comment" : "Pro feature summary for Unlimited downloads, starting with how many titles the viewer has downloaded",
+      "localizations" : {
+        "da" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titel ligger på denne iPhone. Hent hele sæsoner, sæt så mange i kø, du vil, og hold de næste afsnit klar."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titler ligger på denne iPhone. Hent hele sæsoner, sæt så mange i kø, du vil, og hold de næste afsnit klar."
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Titel ist auf diesem iPhone. Lade ganze Staffeln herunter, reihe beliebig viele ein und halte die nächsten Folgen bereit."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Titel sind auf diesem iPhone. Lade ganze Staffeln herunter, reihe beliebig viele ein und halte die nächsten Folgen bereit."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld title is on this iPhone. Download whole seasons, queue as many as you like and keep the next episodes ready."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titles are on this iPhone. Download whole seasons, queue as many as you like and keep the next episodes ready."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld título está en este iPhone. Descarga temporadas completas, pon en cola todos los que quieras y ten listos los próximos episodios."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos están en este iPhone. Descarga temporadas completas, pon en cola todos los que quieras y ten listos los próximos episodios."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos están en este iPhone. Descarga temporadas completas, pon en cola todos los que quieras y ten listos los próximos episodios."
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nimike on tällä iPhonella. Lataa kokonaisia kausia, jonota niin monta kuin haluat ja pidä seuraavat jaksot valmiina."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nimikettä on tällä iPhonella. Lataa kokonaisia kausia, jonota niin monta kuin haluat ja pidä seuraavat jaksot valmiina."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titre est sur cet iPhone. Téléchargez des saisons entières, ajoutez-en autant que vous voulez à la file et gardez les épisodes suivants prêts."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titres sont sur cet iPhone. Téléchargez des saisons entières, ajoutez-en autant que vous voulez à la file et gardez les épisodes suivants prêts."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titres sont sur cet iPhone. Téléchargez des saisons entières, ajoutez-en autant que vous voulez à la file et gardez les épisodes suivants prêts."
+                }
+              }
+            }
+          }
+        },
+        "is" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titill er á þessum iPhone. Sæktu heilar þáttaraðir, settu eins marga í röð og þú vilt og hafðu næstu þætti tilbúna."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titlar eru á þessum iPhone. Sæktu heilar þáttaraðir, settu eins marga í röð og þú vilt og hafðu næstu þætti tilbúna."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titolo è su questo iPhone. Scarica intere stagioni, mettine in coda quanti vuoi e tieni pronti i prossimi episodi."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titoli sono su questo iPhone. Scarica intere stagioni, mettine in coda quanti vuoi e tieni pronti i prossimi episodi."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titoli sono su questo iPhone. Scarica intere stagioni, mettine in coda quanti vuoi e tieni pronti i prossimi episodi."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "この iPhone には %lld タイトルがあります。シーズン全体をダウンロードしたり、好きなだけキューに入れたり、次のエピソードを準備しておいたりできます。"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "이 iPhone에 제목 %lld개가 있어요. 시즌 전체를 다운로드하고, 원하는 만큼 대기열에 넣고, 다음 에피소드를 미리 준비해 두세요."
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tittel ligger på denne iPhonen. Last ned hele sesonger, legg så mange du vil i køen og hold de neste episodene klare."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titler ligger på denne iPhonen. Last ned hele sesonger, legg så mange du vil i køen og hold de neste episodene klare."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytuł jest na tym iPhonie. Pobieraj całe sezony, układaj w kolejce dowolną ich liczbę i miej gotowe kolejne odcinki."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytuły są na tym iPhonie. Pobieraj całe sezony, układaj w kolejce dowolną ich liczbę i miej gotowe kolejne odcinki."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytułów jest na tym iPhonie. Pobieraj całe sezony, układaj w kolejce dowolną ich liczbę i miej gotowe kolejne odcinki."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytułu jest na tym iPhonie. Pobieraj całe sezony, układaj w kolejce dowolną ich liczbę i miej gotowe kolejne odcinki."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld título está neste iPhone. Baixe temporadas inteiras, coloque quantos quiser na fila e mantenha os próximos episódios prontos."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos estão neste iPhone. Baixe temporadas inteiras, coloque quantos quiser na fila e mantenha os próximos episódios prontos."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos estão neste iPhone. Baixe temporadas inteiras, coloque quantos quiser na fila e mantenha os próximos episódios prontos."
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titel finns på iPhone. Hämta hela säsonger, köa så många du vill och håll nästa avsnitt redo."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titlar finns på iPhone. Hämta hela säsonger, köa så många du vill och håll nästa avsnitt redo."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "这台 iPhone 上有 %lld 个标题。下载整季，将任意数量的标题加入队列，并保留接下来的几集随时可看。"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "這部 iPhone 上有 %lld 部作品。下載整季內容，可排入任意數量的作品，並預先準備接下來的集數。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld titles in progress on this Apple TV. Top Shelf puts Continue Watching and Up Next on the Home screen." : {
+      "comment" : "Pro feature summary for Top Shelf, starting with how many titles the viewer stopped partway through",
+      "localizations" : {
+        "da" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titel er påbegyndt på denne Apple TV. Top Shelf viser Fortsæt med at se og Næste på hjemmeskærmen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titler er påbegyndt på denne Apple TV. Top Shelf viser Fortsæt med at se og Næste på hjemmeskærmen."
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Du hast auf dieser Apple TV %lld Titel angefangen. Top Shelf zeigt Weiterschauen und Als Nächstes auf dem Home-Bildschirm."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Du hast auf dieser Apple TV %lld Titel angefangen. Top Shelf zeigt Weiterschauen und Als Nächstes auf dem Home-Bildschirm."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld title in progress on this Apple TV. Top Shelf puts Continue Watching and Up Next on the Home screen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titles in progress on this Apple TV. Top Shelf puts Continue Watching and Up Next on the Home screen."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld título en curso en este Apple TV. Estantería superior pone Seguir viendo y A continuación en la pantalla de inicio."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos en curso en este Apple TV. Estantería superior pone Seguir viendo y A continuación en la pantalla de inicio."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos en curso en este Apple TV. Estantería superior pone Seguir viendo y A continuación en la pantalla de inicio."
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nimike on kesken tällä Apple TV:llä. Top Shelf tuo ”Jatka katselua”- ja ”Seuraavana”-rivit Koti-valikkoon."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld nimikettä on kesken tällä Apple TV:llä. Top Shelf tuo ”Jatka katselua”- ja ”Seuraavana”-rivit Koti-valikkoon."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titre en cours sur cette Apple TV. Le Top Shelf affiche Reprendre la lecture et À suivre sur l’écran d’accueil."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titres en cours sur cette Apple TV. Le Top Shelf affiche Reprendre la lecture et À suivre sur l’écran d’accueil."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titres en cours sur cette Apple TV. Le Top Shelf affiche Reprendre la lecture et À suivre sur l’écran d’accueil."
+                }
+              }
+            }
+          }
+        },
+        "is" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titill er í gangi á þessu Apple TV. Top Shelf setur Haltu áfram að horfa og „Næst“ á heimaskjáinn."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titlar eru í gangi á þessu Apple TV. Top Shelf setur Haltu áfram að horfa og „Næst“ á heimaskjáinn."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titolo in corso su questa Apple TV. Top Shelf mette Continua a guardare e Prossimo nella schermata Home."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titoli in corso su questa Apple TV. Top Shelf mette Continua a guardare e Prossimo nella schermata Home."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titoli in corso su questa Apple TV. Top Shelf mette Continua a guardare e Prossimo nella schermata Home."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "この Apple TV で視聴途中のタイトルが %lld 本あります。トップシェルフは「続きを見る」と「次に見る」をホーム画面に表示します。"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "이 Apple TV에서 보던 제목이 %lld개 있어요. Apple TV 상단 선반은 이어보기와 다음 재생을 홈 화면에 표시해요."
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tittel er påbegynt på denne Apple TV-en. Top Shelf legger Fortsett å se og Neste på hjem-skjermen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titler er påbegynt på denne Apple TV-en. Top Shelf legger Fortsett å se og Neste på hjem-skjermen."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytuł w trakcie na tym Apple TV. Top Shelf umieszcza Kontynuuj oglądanie i Następne na ekranie głównym."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytuły w trakcie na tym Apple TV. Top Shelf umieszcza Kontynuuj oglądanie i Następne na ekranie głównym."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytułów w trakcie na tym Apple TV. Top Shelf umieszcza Kontynuuj oglądanie i Następne na ekranie głównym."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tytułu w trakcie na tym Apple TV. Top Shelf umieszcza Kontynuuj oglądanie i Następne na ekranie głównym."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld título em andamento nesta Apple TV. A Prateleira superior coloca Continuar assistindo e A seguir na tela de Início."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos em andamento nesta Apple TV. A Prateleira superior coloca Continuar assistindo e A seguir na tela de Início."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld títulos em andamento nesta Apple TV. A Prateleira superior coloca Continuar assistindo e A seguir na tela de Início."
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titel är påbörjad på den här Apple TV:n. Top Shelf lägger Fortsätt titta och Nästa på hemskärmen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld titlar är påbörjade på den här Apple TV:n. Top Shelf lägger Fortsätt titta och Nästa på hemskärmen."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "此 Apple TV 上有 %lld 个标题尚未看完。顶部展示会在主屏幕显示“继续观看”和“接下来播放”。"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "此 Apple TV 上有 %lld 部作品尚未看完。Top Shelf 會在主畫面顯示「繼續觀看」和「接著播放」。"
                 }
               }
             }
@@ -54125,6 +55040,311 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每個媒體庫都會顯示在分頁列中。"
+          }
+        }
+      }
+    },
+    "Every range, the library filter, patterns, binges and taste across your %lld plays since %@." : {
+      "comment" : "Pro feature summary for Full Statistics: the viewer's own play count, then the year of their oldest play",
+      "localizations" : {
+        "da" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Alle perioder, biblioteksfilteret, mønstre, binges og smag på tværs af din %lld afspilning siden %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Alle perioder, biblioteksfilteret, mønstre, binges og smag på tværs af dine %lld afspilninger siden %@."
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jeder Zeitraum, der Mediathekfilter, Muster, Binges und dein Geschmack aus deiner %lld Wiedergabe seit %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Jeder Zeitraum, der Mediathekfilter, Muster, Binges und dein Geschmack aus deinen %lld Wiedergaben seit %@."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every range, the library filter, patterns, binges and taste across your %lld play since %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every range, the library filter, patterns, binges and taste across your %lld plays since %@."
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Todos los rangos, el filtro de biblioteca, los patrones, los maratones y tus gustos, a partir de tu %lld reproducción desde %@."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Todos los rangos, el filtro de biblioteca, los patrones, los maratones y tus gustos, a partir de tus %lld reproducciones desde %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Todos los rangos, el filtro de biblioteca, los patrones, los maratones y tus gustos, a partir de tus %lld reproducciones desde %@."
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Kaikki aikavälit, kirjastosuodatin, kaavat, maratonit ja makusi %lld toistostasi vuodesta %@ alkaen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Kaikki aikavälit, kirjastosuodatin, kaavat, maratonit ja makusi %lld toistostasi vuodesta %@ alkaen."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Toutes les périodes, le filtre de bibliothèque, les habitudes, les marathons et vos goûts, à partir de votre %lld lecture depuis %@."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Toutes les périodes, le filtre de bibliothèque, les habitudes, les marathons et vos goûts, à partir de vos %lld lectures depuis %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Toutes les périodes, le filtre de bibliothèque, les habitudes, les marathons et vos goûts, à partir de vos %lld lectures depuis %@."
+                }
+              }
+            }
+          }
+        },
+        "is" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Öll tímabil, síun safns, mynstur, maraþon og smekkur, byggt á %lld spilun þinni frá %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Öll tímabil, síun safns, mynstur, maraþon og smekkur, byggt á %lld spilunum þínum frá %@."
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ogni intervallo, il filtro delle librerie, gli schemi, le maratone e i gusti, dalla tua %lld riproduzione dal %@."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ogni intervallo, il filtro delle librerie, gli schemi, le maratone e i gusti, dalle tue %lld riproduzioni dal %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ogni intervallo, il filtro delle librerie, gli schemi, le maratone e i gusti, dalle tue %lld riproduzioni dal %@."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@年からの %1$lld 回の再生をもとに、すべての期間、ライブラリの絞り込み、パターン、一気見、お好みを表示します。"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%2$@년부터의 재생 %1$lld회를 바탕으로 모든 기간, 보관함 필터, 패턴, 몰아보기, 취향을 보여줘요."
+                }
+              }
+            }
+          }
+        },
+        "nb" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Alle tidsperioder, biblioteksfilteret, mønstre, binger og smak på tvers av din %lld avspilling siden %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Alle tidsperioder, biblioteksfilteret, mønstre, binger og smak på tvers av dine %lld avspillinger siden %@."
+                }
+              }
+            }
+          }
+        },
+        "pl" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wszystkie zakresy, filtr bibliotek, wzorce, maratony i upodobania na podstawie Twojego %lld odtworzenia od %@ roku."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wszystkie zakresy, filtr bibliotek, wzorce, maratony i upodobania na podstawie Twoich %lld odtworzeń od %@ roku."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wszystkie zakresy, filtr bibliotek, wzorce, maratony i upodobania na podstawie Twoich %lld odtworzeń od %@ roku."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Wszystkie zakresy, filtr bibliotek, wzorce, maratony i upodobania na podstawie Twojego %lld odtworzenia od %@ roku."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Todos os períodos, o filtro de bibliotecas, padrões, maratonas e gostos, com base na sua %lld reprodução desde %@."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Todos os períodos, o filtro de bibliotecas, padrões, maratonas e gostos, com base nas suas %lld reproduções desde %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Todos os períodos, o filtro de bibliotecas, padrões, maratonas e gostos, com base nas suas %lld reproduções desde %@."
+                }
+              }
+            }
+          }
+        },
+        "sv" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Varje period, biblioteksfiltret, mönster, binges och smak utifrån din %lld visning sedan %@."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Varje period, biblioteksfiltret, mönster, binges och smak utifrån dina %lld visningar sedan %@."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "基于你自 %2$@ 年以来的 %1$lld 次播放，呈现全部时间范围、资料库筛选、规律、连播与口味。"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "根據您自 %2$@ 年以來的 %1$lld 次播放，涵蓋所有時間範圍、媒體庫篩選、觀看模式、連看與喜好。"
+                }
+              }
+            }
           }
         }
       }
@@ -159850,6 +161070,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的 %@ 年度回顧"
+          }
+        }
+      }
+    },
+    "Your %@ so far: %@. Preview and share it as a Story or Square poster." : {
+      "comment" : "Pro feature summary for the Year in Review poster: the year, then what the viewer watched in it, such as '14 movies · 212 episodes'",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit %@ hidtil: %@. Forhåndsvis og del det som Story eller kvadratisk plakat."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein %@ bisher: %@. Sieh dir die Vorschau an und teile es als Story oder quadratisches Poster."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu %@ hasta ahora: %@. Previsualízalo y compártelo como póster de Historias o cuadrado."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuotesi %@ tähän mennessä: %@. Esikatsele se ja jaa se Story- tai neliöjulisteena."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre année %@ jusqu’à présent : %@. Prévisualisez-la et partagez-la sous forme de story ou d’affiche carrée."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Árið þitt %@ hingað til: %@. Skoðaðu það og deildu því sem Story eða ferhyrndu veggspjaldi."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo %@ finora: %@. Visualizzalo in anteprima e condividilo come Storia o poster quadrato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これまでの %@年：%@。ストーリー用またはスクエアのポスターとしてプレビューして共有できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금까지의 %@년: %@. 스토리 또는 정사각형 포스터로 미리 보고 공유하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditt %@ hittil: %@. Forhåndsvis og del det som en story eller kvadratisk plakat."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój rok %@ do tej pory: %@. Zobacz podgląd i udostępnij go jako plakat Story lub kwadratowy."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu %@ até agora: %@. Veja uma prévia e compartilhe como pôster de Story ou Quadrado."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditt %@ hittills: %@. Förhandsgranska och dela det som en Story- eller Square-affisch."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 %@ 年至今：%@。预览并以“故事”或方形海报的形式分享。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您的 %@ 年至今：%@。預覽並以限時動態或方形海報分享。"
           }
         }
       }

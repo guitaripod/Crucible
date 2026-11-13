@@ -2,10 +2,11 @@ import CrucibleCore
 import CrucibleDesign
 import UIKit
 
-/// One line of "what Pro unlocks": a symbol well, the feature's name and what it does. The row for the feature that opened the
-/// paywall is tinted so the reason for the sheet is visible at a glance.
+/// One line of "what Pro unlocks": a symbol well, the feature's name and `summary`, which is what it does, told with the viewer's
+/// own numbers when the sheet has them. The row for the feature that opened the paywall is tinted so the reason for the sheet is
+/// visible at a glance.
 final class PaywallFeatureRowView: UIView {
-    init(feature: ProFeature, isHighlighted: Bool) {
+    init(feature: ProFeature, summary line: String, isHighlighted: Bool) {
         super.init(frame: .zero)
 
         let well = UIView()
@@ -31,7 +32,7 @@ final class PaywallFeatureRowView: UIView {
         title.font = Theme.Font.headline
         title.textColor = Theme.Color.label
         let summary = UILabel()
-        summary.text = feature.summary
+        summary.text = line
         summary.font = Theme.Font.subheadline
         summary.textColor = Theme.Color.labelSecondary
         for label in [title, summary] {
@@ -62,7 +63,7 @@ final class PaywallFeatureRowView: UIView {
 
         isAccessibilityElement = true
         accessibilityLabel = feature.title
-        accessibilityValue = feature.summary
+        accessibilityValue = line
     }
 
     @available(*, unavailable)

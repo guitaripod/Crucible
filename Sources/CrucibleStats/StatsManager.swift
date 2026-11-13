@@ -10,6 +10,9 @@ package final class StatsManager {
     package static let shared = StatsManager()
 
     package private(set) var store: StatsStore?
+    /// The viewer's year and history for the Pro sheet, read from the mirror when the store opens and after every sync and
+    /// enrichment pass, so the sheet never waits on the database. Nil until the mirror reaches back to the start of the year.
+    package private(set) var viewerHistory: ProViewerFacts.History?
     private var api: APIClient?
     private var syncTask: Task<Void, Never>?
     private var enrichTask: Task<Void, Never>?
@@ -39,7 +42,21 @@ package final class StatsManager {
                 MidgarLog.error("Stats DB init failed: \(error.localizedDescription)", category: .stats)
             }
         }
+        refreshViewerHistory()
         followTrakt()
+    }
+
+    /// Reads `viewerHistory` again off the main thread. A read that finishes after a sign-out or for an older store is dropped.
+    private func refreshViewerHistory() {
+        guard let store else {
+            viewerHistory = nil
+            return
+        }
+        Task(priority: .utility) { [weak self] in
+            let history = await store.viewerHistoryOrNil()
+            guard let self, self.store?.database === store.database else { return }
+            viewerHistory = history
+        }
     }
 
     /// Trakt connecting brings its history in with the next sync; disconnecting forgets it, so Everything never shows an
@@ -93,6 +110,7 @@ package final class StatsManager {
             }
             guard let self, generation == gen else { return }
             syncTask = nil
+            refreshViewerHistory()
             startEnrichment(generation: gen)
         }
         syncTask = task
@@ -107,6 +125,7 @@ package final class StatsManager {
             if learned > 0, traktConnected { try? await store.linkTraktPlays() }
             guard let self, generation == gen else { return }
             enrichTask = nil
+            refreshViewerHistory()
         }
     }
 
@@ -123,6 +142,7 @@ package final class StatsManager {
     package func handleSignOut() {
         invalidateRunningTasks()
         store = nil
+        viewerHistory = nil
         api = nil
         StatsDatabase.destroy()
     }

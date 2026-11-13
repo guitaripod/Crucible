@@ -329,4 +329,16 @@ struct PlaybackResumeTests {
 
         #expect(server.requests.isEmpty)
     }
+
+    @Test func onlyTitlesStoppedPartwayThroughRecentlyCountAsInProgress() {
+        let store = PlaybackResumeStore(defaults: defaults())
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        store.save(server: "s", ratingKey: "midway", positionSecs: 900, durationSecs: 3_000, now: now)
+        store.save(server: "t", ratingKey: "other-server-midway", positionSecs: 400, durationSecs: 3_000, now: now)
+        store.save(server: "s", ratingKey: "barely-started", positionSecs: 20, durationSecs: 3_000, now: now)
+        store.save(server: "s", ratingKey: "finished", positionSecs: 2_990, durationSecs: 3_000, finished: true, now: now)
+        store.save(server: "s", ratingKey: "watched-by-percentage", positionSecs: 2_900, durationSecs: 3_000, now: now)
+        #expect(store.inProgressCount(now: now) == 2)
+        #expect(store.inProgressCount(now: now.addingTimeInterval(ResumePoint.lifetime + 1)) == 0)
+    }
 }
