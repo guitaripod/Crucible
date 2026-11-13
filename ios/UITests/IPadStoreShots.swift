@@ -160,5 +160,30 @@ final class IPadStoreShots: XCTestCase {
 
         press(app, "y", settle: 5)
         IOSTest.capture("08-history", in: self)
+
+        captureWhatToWatch(app)
+    }
+
+    /// Only What to Watch, for adding its screen to a set without the whole tour.
+    func testCapturesWhatToWatch() {
+        let app = IPadDemo.enter(extraEnvironment: ["CRUCIBLE_PRO": "lifetime"])
+        XCUIDevice.shared.orientation = .landscapeLeft
+        IOSTest.settle(4)
+        captureWhatToWatch(app)
+    }
+
+    /// Asks the demo's second example on Home's What to Watch and captures its picks.
+    private func captureWhatToWatch(_ app: XCUIApplication) {
+        press(app, "1", settle: 4)
+        let entry = IOSTest.element(app, "home.whatToWatch")
+        XCTAssertTrue(entry.waitForExistence(timeout: 30), "Home has no What to Watch button")
+        entry.tap()
+        let request = IOSTest.element(app, "watch.example.1")
+        XCTAssertTrue(request.waitForExistence(timeout: 15), "What to Watch never opened")
+        request.tap()
+        let pick = app.cells.matching(NSPredicate(format: "identifier BEGINSWITH 'watch.pick.'")).firstMatch
+        XCTAssertTrue(pick.waitForExistence(timeout: 30), "the demo gave no picks")
+        IOSTest.settle(3)
+        IOSTest.capture("09-what-to-watch", in: self)
     }
 }

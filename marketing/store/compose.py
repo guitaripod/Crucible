@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 """Compose Crucible's App Store screenshots from raw simulator captures.
 
-Usage: marketing/store/compose.py [iphone|ipad ...] [--locale LOCALE]   (defaults to both, en-US)
+Usage: marketing/store/compose.py [iphone|ipad ...] [--locale LOCALE] [--only SCREEN]   (defaults to both, en-US)
+
+With --only (a capture name such as 15-what-to-watch), that one screenshot is composed and the others in the folder are
+left as they are; its captions sit where the whole set's do, so it lines up with screenshots composed earlier.
 
 With --locale (an App Store locale such as de-DE), the iPhone set is composed from marketing/shots/out/raw-dark-<language>
 (marketing/shots/run.sh with APP_LANGUAGE) with the captions under captions.json's "l10n", into
@@ -268,6 +271,11 @@ def localized(captions, locale):
 def main():
     args = sys.argv[1:]
     captions = json.load(open(os.path.join(HERE, "captions.json")))
+    only = None
+    if "--only" in args:
+        at = args.index("--only")
+        only = args[at + 1]
+        del args[at:at + 2]
     if "--locale" in args:
         at = args.index("--locale")
         captions = localized(captions, args[at + 1])
@@ -277,11 +285,13 @@ def main():
     for kind in kinds:
         out = DEVICES[kind]["out"]
         os.makedirs(out, exist_ok=True)
-        for name in os.listdir(out):
+        for name in os.listdir(out) if only is None else []:
             if name.endswith(".png"):
                 os.remove(os.path.join(out, name))
         device_top = max(caption_bottom(kind, entry) for entry in captions[kind]) + DEVICES[kind]["device_gap"]
         for index, entry in enumerate(captions[kind], start=1):
+            if only is not None and entry["screen"] != only:
+                continue
             target = os.path.join(out, f"{index:02d}-{entry['screen']}.png")
             compose(kind, entry, device_top).save(target, optimize=True)
             print(target, flush=True)

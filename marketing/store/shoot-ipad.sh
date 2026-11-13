@@ -37,7 +37,7 @@ xcrun simctl status_bar "$udid" override --time "2022-01-09T09:41:00.000+02:00" 
 
 rm -rf "$CAPTURES"
 CRUCIBLE_STORE_SHOTS=1 IPAD_SIM_NAME=$SIM_NAME "$ROOT/ios/scripts/ipad-uitest.sh" -only IPadStoreShots
-[[ -f $CAPTURES/08-history.png ]] || { echo "the store test stopped before its last screen; see ios/out/ui-ipad" >&2; exit 1; }
+[[ -f $CAPTURES/09-what-to-watch.png ]] || { echo "the store test stopped before its last screen; see ios/out/ui-ipad" >&2; exit 1; }
 
 rm -rf "$OUT"
 mkdir -p "$OUT"
