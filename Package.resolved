@@ -1,5 +1,5 @@
 {
-  "originHash" : "3251dbddfd3f18c5d06faaa5385ed1e1da7fefd3aabec6c9c47cc24d3272d15e",
+  "originHash" : "2a87ca1966308d675a2c7bd7ae4e327ea300b310e8a0d6fa11a2f256151850ed",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/guitaripod/MidgarKit.git",
       "state" : {
-        "revision" : "6db0cdac10054849443f362c4fadde159f989d19",
-        "version" : "4.5.0"
+        "revision" : "619b94cc2165e54d8d3671d0ffe66b655e734e69",
+        "version" : "4.7.0"
       }
     }
   ],

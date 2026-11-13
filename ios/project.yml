@@ -22,7 +22,7 @@ packages:
     from: 7.0.0
   MidgarKit:
     url: https://github.com/guitaripod/MidgarKit.git
-    exactVersion: 4.5.0
+    exactVersion: 4.7.0
 targets:
   CrucibleApp:
     type: application
