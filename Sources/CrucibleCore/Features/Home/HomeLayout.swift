@@ -6,6 +6,7 @@ package enum HomeRow: String, CaseIterable, Codable, Sendable {
     case upNext
     case thisWeek
     case recentlyAdded
+    case watchlistReleases
     case rateWatched
 
     package var title: String {
@@ -14,6 +15,7 @@ package enum HomeRow: String, CaseIterable, Codable, Sendable {
         case .upNext: return String(localized: "Up Next")
         case .thisWeek: return String(localized: "This Week", comment: "Name of the Home row that shows this week's watch time")
         case .recentlyAdded: return String(localized: "Recently Added")
+        case .watchlistReleases: return WatchlistReleaseCopy.rowTitle
         case .rateWatched: return RatingAskCopy.rowTitle
         }
     }
@@ -24,6 +26,7 @@ package enum HomeRow: String, CaseIterable, Codable, Sendable {
         case .upNext: return "forward.end"
         case .thisWeek: return "chart.bar"
         case .recentlyAdded: return "sparkles.tv"
+        case .watchlistReleases: return "bookmark"
         case .rateWatched: return "star"
         }
     }
@@ -34,6 +37,7 @@ package enum HomeRow: String, CaseIterable, Codable, Sendable {
         case .upNext: return String(localized: "The next episode of each show you are watching.")
         case .thisWeek: return String(localized: "This week's watch time, with a link to Statistics.")
         case .recentlyAdded: return String(localized: "What arrived on your server most recently.")
+        case .watchlistReleases: return WatchlistReleaseCopy.rowExplanation
         case .rateWatched: return String(localized: "Movies and shows you just finished and have not rated yet.")
         }
     }

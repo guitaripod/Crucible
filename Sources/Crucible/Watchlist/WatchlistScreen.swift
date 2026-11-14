@@ -15,13 +15,20 @@ enum WatchlistScreen {
         ) {
             try await WatchlistService.items(token: token)
         }
+        let releases = WatchlistReleaseWatcher()
+        releases.changed = { [weak grid] ids in grid?.reconfigure(ids) }
         grid.configuration = { item in
             var config = DetailLayout.posterConfiguration(for: item)
-            config.subtitle = book.cardSubtitle(for: item, fallback: config.subtitle)
+            let card = releases.card(
+                for: item, seerr: book.states[item.entryID], seerrLabel: book.cardSubtitle(for: item, fallback: nil), fallback: config.subtitle
+            )
+            config.subtitle = card.subtitle
+            config.badgeText = card.badge
             return config
         }
         grid.onLoaded = { [weak grid] items in
             book.load(items) { ids in grid?.reconfigure(ids) }
+            releases.loaded(items, api: api)
         }
         grid.onSelect = { [weak grid] entry in
             open(entry, api: api, from: grid)

@@ -79,6 +79,7 @@ package enum AccountSessionReset {
         YouConnectionStatus.shared.reset()
         FinishedTitlesLedger.shared.reset()
         NotificationLedger.shared.reset()
+        WatchlistReleases.shared.reset()
         ShowTrackMemory.forgetAll()
         TopShelfUpdater.clear(notify: collaborators.topShelfDidChange)
     }

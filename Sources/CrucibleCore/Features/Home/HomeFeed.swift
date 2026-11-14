@@ -63,6 +63,9 @@ package final class HomeFeed {
 
     package var isEmpty: Bool { arrangement.isEmpty }
 
+    /// Every title the last load listed, in rows the viewer hides too.
+    package var fetchedItems: [PlexMetadata] { fetched.continueWatching + fetched.onDeck + fetched.recent }
+
     package func item(id: String) -> PlexMetadata? {
         mediaByID[id]
     }

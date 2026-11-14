@@ -28,6 +28,7 @@ package enum PlexEndpoint: Sendable {
     case serverSessions
     case watchlist(start: Int = 0, size: Int = 100)
     case catalogMetadata(key: String)
+    case catalogChildren(key: String, start: Int = 0)
     case addToWatchlist(guid: String)
     case removeFromWatchlist(guid: String)
     case searchSubtitles(ratingKey: String, language: String, hearingImpaired: Bool, forced: Bool)
@@ -81,18 +82,21 @@ package enum PlexEndpoint: Sendable {
 
     var isPlexTV: Bool {
         switch self {
-        case .requestPin, .checkPin, .resources, .watchlist, .catalogMetadata, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account: return true
+        case .requestPin, .checkPin, .resources, .watchlist, .catalogMetadata, .catalogChildren, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account: return true
         default: return false
         }
     }
 
     static var plexTVBaseURL: URL { PlexTVHost.clients }
 
+    /// The most children Plex's catalogue lists in one page; it takes the page only as headers and pages of 20 otherwise.
+    static let catalogPageSize = 300
+
     /// The plex.tv host an account-level endpoint lives on.
     var plexTVHost: URL {
         switch self {
         case .watchlist, .catalogMetadata: return PlexTVHost.discover
-        case .addToWatchlist, .removeFromWatchlist: return PlexTVHost.metadata
+        case .addToWatchlist, .removeFromWatchlist, .catalogChildren: return PlexTVHost.metadata
         case .account: return PlexTVHost.account
         default: return Self.plexTVBaseURL
         }
@@ -180,6 +184,8 @@ package enum PlexEndpoint: Sendable {
             return "/library/sections/watchlist/all"
         case .catalogMetadata(let key):
             return "/library/metadata/\(key)"
+        case .catalogChildren(let key, _):
+            return "/library/metadata/\(key)/children"
         case .addToWatchlist:
             return "/actions/addToWatchlist"
         case .removeFromWatchlist:
@@ -456,6 +462,10 @@ package enum PlexEndpoint: Sendable {
         if case .requestPin(let strong) = self {
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
             request.httpBody = Self.pinFormBody(strong: strong).data(using: .utf8)
+        }
+        if case .catalogChildren(_, let start) = self {
+            request.setValue(String(start), forHTTPHeaderField: "X-Plex-Container-Start")
+            request.setValue(String(Self.catalogPageSize), forHTTPHeaderField: "X-Plex-Container-Size")
         }
         if case .switchHomeUser(_, let pin) = self {
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")

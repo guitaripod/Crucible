@@ -7,12 +7,13 @@ import os
 
 final class HomeViewController: UICollectionViewController {
     enum Section: Hashable {
-        case skeleton, hero, continueWatching, upNext, week, recentlyAdded, rateWatched
+        case skeleton, hero, continueWatching, upNext, week, recentlyAdded, watchlistReleases, rateWatched
     }
 
     enum Item: Hashable {
         case media(String, HomeBucket)
         case rate(String)
+        case release(String)
         case week
         case skeleton
     }
@@ -50,6 +51,9 @@ final class HomeViewController: UICollectionViewController {
     private var asksTask: Task<Void, Never>?
     private var ledgerObserver: UUID?
     private var layoutObserver: UUID?
+    private var releases: [WatchlistRelease] = []
+    private var releasesObserver: UUID?
+    private var releasesTask: Task<Void, Never>?
 
     init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
@@ -71,7 +75,11 @@ final class HomeViewController: UICollectionViewController {
         if let layoutObserver {
             Task { @MainActor in HomeLayout.removeObserver(layoutObserver) }
         }
+        if let releasesObserver {
+            Task { @MainActor in WatchlistReleases.shared.removeObserver(releasesObserver) }
+        }
         asksTask?.cancel()
+        releasesTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -92,6 +100,7 @@ final class HomeViewController: UICollectionViewController {
         refresh.addAction(UIAction { [weak self] _ in
             self?.loadData()
             self?.loadWeek()
+            self?.loadReleases(force: true)
         }, for: .valueChanged)
         collectionView.refreshControl = refresh
         visibilityObserver = LibraryVisibility.addObserver { [weak self] in
@@ -99,7 +108,12 @@ final class HomeViewController: UICollectionViewController {
         }
         layoutObserver = HomeLayout.addObserver { [weak self] in
             self?.libraryVisibilityChanged()
+            self?.loadReleases(force: false)
         }
+        releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in
+            self?.releasesChanged()
+        }
+        releases = WatchlistReleases.shared.releases()
         ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in
             self?.asksChanged()
         }
@@ -119,6 +133,7 @@ final class HomeViewController: UICollectionViewController {
         updateServerMenu()
         loadWeek()
         loadAsks()
+        loadReleases(force: false)
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
@@ -213,6 +228,9 @@ final class HomeViewController: UICollectionViewController {
             case .recentlyAdded where !layout.recent.isEmpty:
                 snapshot.appendSections([.recentlyAdded])
                 snapshot.appendItems(layout.recent.map { .media($0.id, .recentlyAdded) }, toSection: .recentlyAdded)
+            case .watchlistReleases where !layout.isEmpty && !releases.isEmpty:
+                snapshot.appendSections([.watchlistReleases])
+                snapshot.appendItems(releases.map { .release($0.id) }, toSection: .watchlistReleases)
             case .rateWatched where !layout.isEmpty && !visibleAsks.isEmpty:
                 snapshot.appendSections([.rateWatched])
                 snapshot.appendItems(visibleAsks.map { .rate($0.id) }, toSection: .rateWatched)
@@ -273,7 +291,7 @@ final class HomeViewController: UICollectionViewController {
                     columns: hugeType ? 1 : nil,
                     gutter: room.gutter
                 )
-            case .upNext, .recentlyAdded, .rateWatched:
+            case .upNext, .recentlyAdded, .watchlistReleases, .rateWatched:
                 let width = room.posterRailWidth
                 return Theme.railSection(
                     width: width,
@@ -316,6 +334,12 @@ final class HomeViewController: UICollectionViewController {
             cell.accessibilityIdentifier = "home.rate.\(id)"
         }
 
+        let releaseReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
+            guard let release = self?.releases.first(where: { $0.id == id }) else { return }
+            cell.contentConfiguration = WatchlistReleaseActions.posterConfiguration(for: release)
+            cell.accessibilityIdentifier = "home.release.\(release.discoverKey)"
+        }
+
         let weekReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
             cell.contentConfiguration = HomeWeekConfiguration(model: self?.weekSummary?.cardModel)
         }
@@ -334,6 +358,8 @@ final class HomeViewController: UICollectionViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: posterReg, for: indexPath, item: item)
             case .rate(let id):
                 return collectionView.dequeueConfiguredReusableCell(using: rateReg, for: indexPath, item: id)
+            case .release(let id):
+                return collectionView.dequeueConfiguredReusableCell(using: releaseReg, for: indexPath, item: id)
             case .week:
                 return collectionView.dequeueConfiguredReusableCell(using: weekReg, for: indexPath, item: item)
             case .skeleton:
@@ -355,6 +381,8 @@ final class HomeViewController: UICollectionViewController {
                 config.title = feed.arrangement.title(for: .recentlyAdded)
                 config.actionTitle = String(localized: "See All")
                 config.onAction = { [weak self] in self?.showAll(.recentlyAdded) }
+            case .watchlistReleases:
+                config.title = WatchlistReleaseCopy.rowTitle
             case .rateWatched:
                 config.title = RatingAskCopy.rowTitle
                 config.actionTitle = String(localized: "See All")
@@ -491,6 +519,7 @@ final class HomeViewController: UICollectionViewController {
             guard let self else { return }
             do {
                 try await feed.refresh()
+                WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
                 presentLoadedContent(animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
             } catch {
                 guard !Task.isCancelled else { return }
@@ -576,6 +605,9 @@ final class HomeViewController: UICollectionViewController {
         case .rate(let id):
             guard let ask = asks.first(where: { $0.id == id }) else { return }
             rate(ask, source: collectionView.cellForItem(at: indexPath) ?? collectionView)
+        case .release(let id):
+            guard let release = releases.first(where: { $0.id == id }) else { return }
+            WatchlistReleaseActions.open(release, api: api, from: self)
         case .week:
             navigationController?.pushViewController(StatisticsViewController(api: api), animated: true)
         case .skeleton:
@@ -601,6 +633,12 @@ final class HomeViewController: UICollectionViewController {
                         rate(ask, source: collectionView.cellForItem(at: indexPath) ?? collectionView)
                     }
                 )
+            })
+        }
+        if case .release(let id) = item, let release = releases.first(where: { $0.id == id }) {
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                guard let self else { return nil }
+                return WatchlistReleaseActions.menu(for: release, api: api, host: self)
             })
         }
         guard case .media(let id, let bucket) = item, let media = feed.item(id: id) else { return nil }
@@ -655,6 +693,26 @@ final class HomeViewController: UICollectionViewController {
             if picked { pendingRated.insert(ask.id) } else { pendingRated.remove(ask.id) }
             if !isShowingSkeleton { rebuildSnapshot(animated: true) }
         }
+    }
+
+    // MARK: - Out Now on Your Watchlist
+
+    /// Looks for new seasons and episodes of watchlisted shows while their row is on Home; a fresh look is reused unless the
+    /// viewer pulled to refresh.
+    private func loadReleases(force: Bool) {
+        guard HomeLayout.isOn(.watchlistReleases), releasesTask == nil || force else { return }
+        releasesTask?.cancel()
+        releasesTask = Task { [weak self, api] in
+            await WatchlistReleases.shared.refresh(api: api, force: force)
+            self?.releasesTask = nil
+        }
+    }
+
+    private func releasesChanged() {
+        let current = WatchlistReleases.shared.releases()
+        guard current != releases else { return }
+        releases = current
+        if !isShowingSkeleton { rebuildSnapshot(animated: true) }
     }
 
     private func showAllAsks() {

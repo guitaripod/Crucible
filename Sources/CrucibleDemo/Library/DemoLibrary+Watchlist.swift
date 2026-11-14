@@ -32,4 +32,48 @@ extension DemoLibrary {
         if adding { watchlistGuids.insert(guid, at: 0) }
         return .empty()
     }
+
+    private static let catalogShow = (key: "demo-glass-orchard", title: "Glass Orchard", seasons: 3, episodes: 8)
+
+    /// Plex's catalogue of Glass Orchard, the watchlisted show this server does not have: its seasons, and each season's
+    /// episodes with their air dates, so Home has a season out now to show.
+    func catalogChildren(_ key: String) -> DemoResponse? {
+        let show = Self.catalogShow
+        let metadata: [DemoJSON]
+        if key == show.key {
+            metadata = (1...show.seasons).map { season in
+                [
+                    "ratingKey": "\(show.key)-s\(season)", "key": "/library/metadata/\(show.key)-s\(season)/children", "type": "season",
+                    "title": "Season \(season)", "index": season, "parentTitle": show.title, "leafCount": show.episodes,
+                ]
+            }
+        } else if key.hasPrefix("\(show.key)-s"), let season = Int(key.dropFirst(show.key.count + 2)), (1...show.seasons).contains(season) {
+            metadata = (1...show.episodes).map { episode in
+                [
+                    "ratingKey": "\(show.key)-s\(season)e\(episode)", "type": "episode", "title": "Episode \(episode)",
+                    "index": episode, "parentIndex": season, "grandparentTitle": show.title,
+                    "originallyAvailableAt": Self.catalogAirDate(season: season, episode: episode, now: Date(timeIntervalSince1970: TimeInterval(now))),
+                ]
+            }
+        } else {
+            return nil
+        }
+        return .container(["size": metadata.count, "totalSize": metadata.count, "offset": 0, "Metadata": metadata])
+    }
+
+    /// The earlier seasons ran weekly from March of 2023 and 2024; the last one opened four days ago with two episodes and
+    /// goes on weekly. Dates are Gregorian days where the viewer is, as Plex's catalogue gives them.
+    static func catalogAirDate(season: Int, episode: Int, now: Date, timeZone: TimeZone = .current) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let date: Date
+        if season == catalogShow.seasons {
+            date = calendar.date(byAdding: .day, value: -4 + max(0, episode - 2) * 7, to: now) ?? now
+        } else {
+            let premiere = calendar.date(from: DateComponents(year: 2022 + season, month: 3, day: 14)) ?? now
+            date = calendar.date(byAdding: .day, value: (episode - 1) * 7, to: premiere) ?? premiere
+        }
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
+    }
 }

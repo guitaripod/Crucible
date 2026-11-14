@@ -18,6 +18,7 @@ final class YouViewController: UICollectionViewController {
     private var historySubtitle: String?
     private var yearSummary: YouYearSummary?
     private var demoObservation: DemoObservation?
+    private var releasesObserver: UUID?
 
     init(api: APIClient) {
         self.api = api
@@ -29,6 +30,9 @@ final class YouViewController: UICollectionViewController {
 
     deinit {
         refreshTask?.cancel()
+        if let releasesObserver {
+            Task { @MainActor in WatchlistReleases.shared.removeObserver(releasesObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -50,6 +54,9 @@ final class YouViewController: UICollectionViewController {
         }
         demoObservation = DemoObservation { [weak self] in
             self?.applySnapshot()
+        }
+        releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in
+            self?.reconfigure(.watchlist)
         }
     }
 
@@ -151,7 +158,10 @@ final class YouViewController: UICollectionViewController {
                 cell.accessories = [.disclosureIndicator()]
                 cell.accessibilityIdentifier = "you.playlists"
             case .watchlist:
-                cell.contentConfiguration = IconRowContentConfiguration(symbol: "bookmark", title: WatchlistService.title)
+                let newShows = WatchlistReleases.shared.releases().count
+                var content = IconRowContentConfiguration(symbol: "bookmark", title: WatchlistService.title)
+                content.badge = newShows > 0 ? WatchlistReleaseCopy.newCount(newShows) : nil
+                cell.contentConfiguration = content
                 cell.accessories = [.disclosureIndicator()]
                 cell.accessibilityIdentifier = "you.watchlist"
             case .requests:
@@ -244,6 +254,13 @@ final class YouViewController: UICollectionViewController {
         snapshot.appendItems(isInDemo ? [.settings] : [.settings, .server], toSection: .app)
         snapshot.appendItems([.about], toSection: .about)
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    private func reconfigure(_ item: Item) {
+        var snapshot = dataSource.snapshot()
+        guard snapshot.indexOfItem(item) != nil else { return }
+        snapshot.reconfigureItems([item])
         dataSource.apply(snapshot, animatingDifferences: false)
     }
 

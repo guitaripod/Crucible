@@ -246,7 +246,7 @@ struct HomeLayoutTests {
         HomeLayout.setOn(.recentlyAdded, false, in: store)
         #expect(!HomeLayout.isOn(.recentlyAdded, in: store))
         #expect(!HomeLayout.visibleRows(in: store).contains(.recentlyAdded))
-        HomeLayout.move(from: 4, to: 0, in: store)
+        HomeLayout.move(from: 5, to: 0, in: store)
         #expect(HomeLayout.entries(in: store).first?.row == .rateWatched)
         HomeLayout.reset(in: store)
         #expect(HomeLayout.entries(in: store) == HomeLayout.defaultEntries)

@@ -38,6 +38,9 @@ final class TVHomeViewController: TVScreenViewController {
     private lazy var asksSlot = makeTaskSlot()
     private var asks: [RatingAsk] = []
     private var pendingRated = Set<String>()
+    private var releases: [WatchlistRelease] = []
+    private var releasesObserver: UUID?
+    private lazy var releasesSlot = makeTaskSlot()
     private var skipNextAppearanceLoad = true
     private var hasAwaitedFirstSync = false
     private weak var seeAll: TVHomeSeeAllViewController?
@@ -67,6 +70,9 @@ final class TVHomeViewController: TVScreenViewController {
         if let ledgerObserver {
             Task { @MainActor in FinishedTitlesLedger.shared.removeObserver(ledgerObserver) }
         }
+        if let releasesObserver {
+            Task { @MainActor in WatchlistReleases.shared.removeObserver(releasesObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -84,6 +90,10 @@ final class TVHomeViewController: TVScreenViewController {
             adoptAsks(rateFeed.current())
         }
         asks = rateFeed.current()
+        releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in
+            self?.releasesChanged()
+        }
+        releases = WatchlistReleases.shared.releases()
         render(animated: false)
     }
 
@@ -114,6 +124,7 @@ final class TVHomeViewController: TVScreenViewController {
         super.viewIsAppearing(animated)
         loadWeek()
         loadAsks()
+        loadReleases()
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
@@ -129,7 +140,7 @@ final class TVHomeViewController: TVScreenViewController {
 
     override func initialFocusIndexPath() -> IndexPath? {
         let snapshot = dataSource.snapshot()
-        for section in [TVHomeSection.continueWatching, .upNext, .recentlyAdded, .rateWatched] {
+        for section in [TVHomeSection.continueWatching, .upNext, .recentlyAdded, .watchlistReleases, .rateWatched] {
             guard let sectionIndex = snapshot.indexOfSection(section),
                   !snapshot.itemIdentifiers(inSection: section).isEmpty else { continue }
             return IndexPath(item: 0, section: sectionIndex)
@@ -162,7 +173,7 @@ final class TVHomeViewController: TVScreenViewController {
                 return TVShelf.landscape()
             case .week:
                 return Self.weekSection()
-            case .recentlyAdded, .rateWatched:
+            case .recentlyAdded, .watchlistReleases, .rateWatched:
                 return TVShelf.poster()
             }
         }
@@ -221,6 +232,11 @@ final class TVHomeViewController: TVScreenViewController {
                 let data = self?.asks.first { $0.id == id }.map { TVHomeContent.card(for: $0) } ?? TVCardItem(id: id, title: "")
                 cell = collectionView.dequeueConfiguredReusableCell(using: poster, for: indexPath, item: data)
                 cell.accessibilityIdentifier = "home.rate.\(id)"
+            case .release(let id):
+                let release = self?.releases.first { $0.id == id }
+                let data = release.map { TVHomeContent.card(for: $0) } ?? TVCardItem(id: id, title: "")
+                cell = collectionView.dequeueConfiguredReusableCell(using: poster, for: indexPath, item: data)
+                cell.accessibilityIdentifier = "home.release.\(release?.discoverKey ?? id)"
             case .week:
                 cell = collectionView.dequeueConfiguredReusableCell(using: weekTile, for: indexPath, item: item)
             case .whatToWatch:
@@ -283,6 +299,7 @@ final class TVHomeViewController: TVScreenViewController {
     private func sectionHeader(at indexPath: IndexPath) -> TVSectionHeader? {
         guard let section = dataSource.snapshot().sectionIdentifiers[safe: indexPath.section] else { return nil }
         if section == .rateWatched { return TVSectionHeader(title: RatingAskCopy.rowTitle) }
+        if section == .watchlistReleases { return TVSectionHeader(title: WatchlistReleaseCopy.rowTitle) }
         guard let bucket = section.bucket else { return nil }
         let title = feed.arrangement.title(for: bucket)
         guard bucket != .continueWatching else { return TVSectionHeader(title: title) }
@@ -311,6 +328,9 @@ final class TVHomeViewController: TVScreenViewController {
             case .recentlyAdded where !arrangement.recent.isEmpty:
                 snapshot.appendSections([.recentlyAdded])
                 snapshot.appendItems(arrangement.recent.map { .card($0.id, .recentlyAdded) } + (HostedBrain.isAvailable ? [.whatToWatch, .surprise] : [.surprise]), toSection: .recentlyAdded)
+            case .watchlistReleases where !arrangement.isEmpty && !releases.isEmpty:
+                snapshot.appendSections([.watchlistReleases])
+                snapshot.appendItems(releases.map { .release($0.id) }, toSection: .watchlistReleases)
             case .rateWatched where !arrangement.isEmpty && !visibleAsks.isEmpty:
                 snapshot.appendSections([.rateWatched])
                 snapshot.appendItems(visibleAsks.map { .rate($0.id) }, toSection: .rateWatched)
@@ -417,6 +437,7 @@ final class TVHomeViewController: TVScreenViewController {
             guard let self else { return }
             do {
                 try await feed.refresh()
+                WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
                 render(animated: true)
             } catch {
                 guard !Task.isCancelled else { return }
@@ -458,6 +479,7 @@ final class TVHomeViewController: TVScreenViewController {
         asks = rateFeed.current()
         render(animated: true)
         loadWeek()
+        loadReleases()
     }
 
     private func presentSurpriseMenu() {
@@ -505,8 +527,57 @@ final class TVHomeViewController: TVScreenViewController {
             actions.rate(ask, from: self) { [weak self] picked in self?.markPicked(ask, picked) }
             return
         }
+        if let release = release(at: indexPath) {
+            TVSeerrRequestViewController.open(release.asMetadata, env: env, isOnServer: false, from: self)
+            return
+        }
         guard let target = cardTarget(at: indexPath) else { return }
         actions.select(target.media, in: target.bucket, from: self)
+    }
+
+    // MARK: - Out Now on Your Watchlist
+
+    private func release(at indexPath: IndexPath) -> WatchlistRelease? {
+        guard case .release(let id)? = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return releases.first { $0.id == id }
+    }
+
+    /// Looks for new seasons and episodes of watchlisted shows while their row is on Home; a look under six hours old stands.
+    private func loadReleases() {
+        guard HomeLayout.isOn(.watchlistReleases) else { return }
+        let api = env.api
+        releasesSlot.run {
+            await WatchlistReleases.shared.refresh(api: api)
+        }
+    }
+
+    private func releasesChanged() {
+        let current = WatchlistReleases.shared.releases()
+        guard current != releases else { return }
+        releases = current
+        if !collectionView.isHidden { applySnapshot(animated: true) }
+    }
+
+    private func releaseMenu(for release: WatchlistRelease) -> UIMenu {
+        let entry = release.asMetadata
+        let token = env.api.token
+        var children: [UIMenuElement] = []
+        if SeerrAccount.shared.isConnected {
+            children.append(UIAction(title: SeerrCopy.request, image: UIImage(systemName: "plus.circle")) { [weak self] _ in
+                guard let self else { return }
+                TVSeerrRequestViewController.open(entry, env: env, isOnServer: false, from: self)
+            })
+        }
+        children.append(UIAction(title: WatchlistService.remove, image: UIImage(systemName: "bookmark.slash"), attributes: .destructive) { [weak self] _ in
+            Task { @MainActor in
+                do {
+                    try await WatchlistService.remove(guid: release.guid, token: token)
+                } catch {
+                    self?.presentAlert(title: String(localized: "Couldn\u{2019}t Update"), message: error.localizedDescription)
+                }
+            }
+        })
+        return UIMenu(title: release.title, children: children)
     }
 
     // MARK: - Rate What You Watched
@@ -570,6 +641,9 @@ final class TVHomeViewController: TVScreenViewController {
         guard let indexPath = indexPaths.first else { return nil }
         if let ask = ask(at: indexPath) {
             return TVContextMenu.configuration(menu: actions.menu(for: ask, from: self) { [weak self] picked in self?.markPicked(ask, picked) })
+        }
+        if let release = release(at: indexPath) {
+            return TVContextMenu.configuration(menu: releaseMenu(for: release))
         }
         guard let target = cardTarget(at: indexPath) else { return nil }
         return TVContextMenu.configuration(menu: actions.menu(for: target.media, in: target.bucket, from: self))

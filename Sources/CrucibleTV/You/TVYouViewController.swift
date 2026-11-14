@@ -44,6 +44,7 @@ final class TVYouViewController: TVSettingsScaffold {
     private var libraryObserver: UUID?
     private var proObserver: UUID?
     private var tourObserver: UUID?
+    private var releasesObserver: UUID?
 
     init(env: TVAppEnvironment) {
         self.env = env
@@ -61,6 +62,9 @@ final class TVYouViewController: TVSettingsScaffold {
         if let proObserver {
             Task { @MainActor in ProAccess.shared.stopObserving(proObserver) }
         }
+        if let releasesObserver {
+            Task { @MainActor in WatchlistReleases.shared.removeObserver(releasesObserver) }
+        }
         if let tourObserver {
             Task { @MainActor in DemoTour.shared.stopObserving(tourObserver) }
         }
@@ -73,6 +77,7 @@ final class TVYouViewController: TVSettingsScaffold {
         libraryObserver = LibraryVisibility.addObserver { [weak self] in self?.refreshRows() }
         proObserver = ProAccess.shared.observe { [weak self] _ in self?.refreshRows() }
         tourObserver = DemoTour.shared.observe { [weak self] in self?.refreshRows() }
+        releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in self?.refreshRows() }
         refreshProfile()
         refreshRows()
     }
@@ -202,6 +207,12 @@ final class TVYouViewController: TVSettingsScaffold {
         refreshRows()
     }
 
+    /// How many shows on the watchlist have something new out, when any do.
+    private var watchlistNews: String? {
+        let count = WatchlistReleases.shared.releases().count
+        return count > 0 ? WatchlistReleaseCopy.newCount(count) : nil
+    }
+
     private func refreshRows() {
         let state = YouConnectionStatus.shared.state
         let inDemo = DemoMode.shared.isActive
@@ -209,7 +220,7 @@ final class TVYouViewController: TVSettingsScaffold {
             TVRowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
             TVRowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
             TVRowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
-            TVRowItem(id: RowID.watchlist, title: WatchlistService.title, symbol: "bookmark", accessory: .chevron),
+            TVRowItem(id: RowID.watchlist, title: WatchlistService.title, value: watchlistNews, symbol: "bookmark", accessory: .chevron),
             TVRowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
             TVRowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .tv), value: SettingsCatalog.summary(of: .playback, on: .tv), symbol: SettingsCategory.playback.symbol, accessory: .chevron),
             TVRowItem(id: RowID.remote, title: SettingsCategory.controls.title(on: .tv), symbol: "appletvremote.gen4", accessory: .chevron),

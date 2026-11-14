@@ -199,6 +199,9 @@ struct DemoRouter: Sendable {
         if parts.count == 3, request.method == "DELETE" {
             return await library.deleteItem(parts[2])
         }
+        if parts.count == 4, parts[3] == "children", let children = await library.catalogChildren(parts[2]) {
+            return children
+        }
         if parts.count == 4 {
             switch parts[3] {
             case "refresh", "analyze", "unmatch":

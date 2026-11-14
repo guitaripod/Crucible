@@ -179,6 +179,24 @@ struct DemoWatchlistTests {
         }
     }
 
+    @Test func glassOrchardsNewSeasonIsOutOnTheWatchlist() async throws {
+        try await withDemo { demo in
+            let api = demo.api
+            let check = WatchlistReleaseCheck(
+                fetchChildren: { try await api.requestContainer(.folderPath("/library/metadata/\($0)/children")).Metadata ?? [] },
+                isOnServer: { try await WatchlistService.localMatch(for: $0, api: api) != nil }
+            )
+            let watchlist = try await api.requestContainer(.folderPath("/library/sections/watchlist/all")).Metadata ?? []
+            let found = await check.run(watchlist: watchlist, now: Date())
+            #expect(found.map(\.title) == ["Glass Orchard"])
+            let release = try #require(found.first)
+            #expect(release.season == 3)
+            #expect(release.premiered)
+            #expect(release.episodeCount == 2)
+            #expect(release.posterPath == DemoLibrary.remotePoster(980_002))
+        }
+    }
+
     @Test func addingAndRemovingChangeTheList() async throws {
         try await withDemo { demo in
             let (_, removed) = try await demo.get("/actions/removeFromWatchlist?ratingKey=1001", method: "PUT")

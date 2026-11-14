@@ -23,11 +23,22 @@ package enum WatchlistService {
 
     package static func add(guid: String, token: String) async throws {
         try await change(.addToWatchlist(guid: guid), token: token)
+        await announceChange(guid: guid, added: true)
     }
 
     package static func remove(guid: String, token: String) async throws {
         try await change(.removeFromWatchlist(guid: guid), token: token)
+        await announceChange(guid: guid, added: false)
     }
+
+    /// Tells the screens that show what the watchlist holds, on the main thread, which title went on or came off it.
+    @MainActor
+    private static func announceChange(guid: String, added: Bool) {
+        NotificationCenter.default.post(name: .watchlistChanged, object: nil, userInfo: [changedGuidKey: guid, changedAddedKey: added])
+    }
+
+    package static let changedGuidKey = "guid"
+    package static let changedAddedKey = "added"
 
     /// The watchlist belongs to whoever is watching: a Home profile's lives behind its own plex.tv token, not the server token
     /// screens hold.
@@ -81,4 +92,9 @@ package enum WatchlistService {
     package static let remove = String(localized: "Remove from Watchlist", comment: "Menu item that takes a title off the Plex watchlist")
     package static let notInLibraryTitle = String(localized: "Not in Your Library", comment: "Title of the message shown when a watchlist title is not on the viewer's server")
     package static let notInLibraryText = String(localized: "This title is on your watchlist, but your server does not have it.", comment: "Message shown when a watchlist title is not on the viewer's server")
+}
+
+extension Notification.Name {
+    /// Posted on the main thread when the viewer put a title on their watchlist or took one off it.
+    package static let watchlistChanged = Notification.Name("crucible.watchlistChanged")
 }

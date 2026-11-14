@@ -6,18 +6,25 @@ extension TVScreens {
     static func watchlist(_ env: TVAppEnvironment) -> UIViewController {
         let token = env.api.token
         let book = SeerrStateBook()
+        let releases = WatchlistReleaseWatcher()
         let grid = TVMediaGridViewController(
             title: WatchlistService.title,
             empty: .init(symbol: "bookmark", title: WatchlistService.emptyTitle, message: WatchlistService.emptyText),
             card: { item in
                 var card = titleCard(item)
-                card.subtitle = book.cardSubtitle(for: item, fallback: card.subtitle)
+                let news = releases.card(
+                    for: item, seerr: book.states[item.entryID], seerrLabel: book.cardSubtitle(for: item, fallback: nil), fallback: card.subtitle
+                )
+                card.subtitle = news.subtitle
+                card.badgeText = news.badge?.localizedUppercase
                 return card
             },
             load: { try await WatchlistService.items(token: token) }
         )
+        releases.changed = { [weak grid] ids in grid?.reconfigure(ids) }
         grid.onLoaded = { [weak grid] items in
             book.load(items) { ids in grid?.reconfigure(ids) }
+            releases.loaded(items, api: env.api)
         }
         grid.onSelect = { [weak grid] entry in
             guard let grid else { return }
