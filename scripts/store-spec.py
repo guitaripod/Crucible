@@ -4,9 +4,11 @@
 buildvm stages a whole checkout, runs `xcodegen generate` on a project.yml at its root and archives a scheme. The iPhone and
 Apple TV specs live in ios/ and tv/ and use paths relative to those folders, so this rebases every path to the checkout root,
 drops the UI test target, writes the bundle's distribution signing onto each app and extension target (Release, scoped to the
-device SDK, so the Swift packages are never asked to use a profile) and fills in the SwiftPM package name.
+device SDK, so the Swift packages are never asked to use a profile) and fills in the SwiftPM package name. `midgar ship` runs it
+before every xcodegen run (the registry's `[release] spec`), naming the Apple TV platform `tvos`, so a reused ship worktree never
+archives a spec derived from an older ios/project.yml or tv/project.yml.
 
-Usage: store-spec.py ios|tv --package-name NAME [--output project.yml]
+Usage: store-spec.py ios|tv|tvos --package-name NAME [--output project.yml]
 """
 
 import argparse
@@ -90,12 +92,16 @@ def derive(source, platform, package_name):
     return spec
 
 
+ALIASES = {"tvos": "tv"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("platform", choices=PLATFORMS)
+    parser.add_argument("platform", choices=[*PLATFORMS, *ALIASES])
     parser.add_argument("--package-name", required=True)
     parser.add_argument("--output", default="project.yml")
     arguments = parser.parse_args()
+    arguments.platform = ALIASES.get(arguments.platform, arguments.platform)
     folder = PLATFORMS[arguments.platform]["folder"]
     with open(posixpath.join(folder, "project.yml")) as handle:
         spec = derive(handle.read(), arguments.platform, arguments.package_name)
