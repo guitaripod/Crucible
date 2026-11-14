@@ -96,6 +96,8 @@ package final class StatTileView: UIView {
         suffixLabel.adjustsFontForContentSizeCategory = true
         suffixLabel.textColor = Theme.Color.labelSecondary
         suffixLabel.numberOfLines = 1
+        suffixLabel.adjustsFontSizeToFitWidth = true
+        suffixLabel.minimumScaleFactor = 0.6
         suffixLabel.isHidden = true
 
         symbolImageView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: metrics.symbolPointSize, weight: .semibold)
