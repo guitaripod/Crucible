@@ -82,11 +82,12 @@ private struct StoryComposition {
         let count = CGFloat(max(content.figures.count, 1))
         let columnWidth = contentWidth / count
         let valueFont = WrappedShareCanvas.rounded(60, .heavy)
-        let labelFont = WrappedShareCanvas.rounded(22, .bold)
+        let labelHeight = WrappedShareCanvas.rounded(22, .bold).lineHeight
+        let labelFont = WrappedShareCanvas.fitted(WrappedShareCanvas.rounded(22, .bold), to: content.figures.map { $0.label.uppercased() }, kern: 2.5, width: columnWidth - 12)
         for (index, figure) in content.figures.enumerated() {
             let x = margin + columnWidth * CGFloat(index)
             canvas.drawText(figure.value, font: valueFont, color: WrappedInk.label, in: CGRect(x: x, y: top + 20, width: columnWidth, height: valueFont.lineHeight), alignment: .center, kern: -1)
-            canvas.drawText(figure.label.uppercased(), font: labelFont, color: WrappedInk.tertiary, in: CGRect(x: x, y: top + 20 + valueFont.lineHeight - 2, width: columnWidth, height: labelFont.lineHeight), alignment: .center, kern: 2.5)
+            canvas.drawText(figure.label.uppercased(), font: labelFont, color: WrappedInk.tertiary, in: CGRect(x: x, y: top + 20 + valueFont.lineHeight - 2 + (labelHeight - labelFont.lineHeight) / 2, width: columnWidth, height: labelFont.lineHeight), alignment: .center, kern: 2.5)
             if index > 0 {
                 canvas.drawHairline(from: CGPoint(x: x, y: top + 28), to: CGPoint(x: x, y: top + height - 28))
             }
@@ -194,7 +195,7 @@ private struct SquareComposition {
         let cellWidth = width / CGFloat(columns)
         let cellHeight: CGFloat = 112
         let valueFont = WrappedShareCanvas.rounded(50, .heavy)
-        let labelFont = WrappedShareCanvas.rounded(20, .bold)
+        let labelFont = WrappedShareCanvas.fitted(WrappedShareCanvas.rounded(20, .bold), to: content.figures.prefix(4).map { $0.label.uppercased() }, kern: 2, width: cellWidth - 12)
         for (index, figure) in content.figures.prefix(4).enumerated() {
             let x = margin + CGFloat(index % columns) * cellWidth
             let y = top + CGFloat(index / columns) * cellHeight

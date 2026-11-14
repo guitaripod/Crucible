@@ -60,6 +60,21 @@ struct WrappedShareCanvas {
         context.restoreGState()
     }
 
+    /// `base` at the largest size where the widest of `strings` fits `width`, down to two thirds of its size, so a
+    /// row of labels with a long word in it ("Reproducciones", "Plus longue session") gets a little smaller as a
+    /// whole instead of ending in an ellipsis on a poster people share.
+    static func fitted(_ base: UIFont, to strings: [String], kern: CGFloat, width: CGFloat) -> UIFont {
+        let smallest = (base.pointSize * 2 / 3).rounded(.up)
+        var size = base.pointSize
+        while size > smallest {
+            let font = base.withSize(size)
+            let widest = strings.map { ($0 as NSString).size(withAttributes: [.font: font, .kern: kern]).width }.max() ?? 0
+            if widest <= width { return font }
+            size -= 1
+        }
+        return base.withSize(smallest)
+    }
+
     func drawGlow(center: CGPoint, radius: CGFloat, alpha: CGFloat) {
         let colors = [
             WrappedInk.accent.withAlphaComponent(alpha).cgColor,
