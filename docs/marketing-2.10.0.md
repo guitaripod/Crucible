@@ -52,12 +52,15 @@ Duo paragraph are part of 2.10.0's What's New.
 - What's New: What to Watch and Previously On, then 2.9.1's notes, then on iPhone and iPad the iPhone Duo paragraph.
 - App Review notes: `store/review-notes-2.10.0.txt` (where both features are in the demo, what they send).
 - Screens, staged 2026-11-14 in `marketing/appstore` (not in git):
-  - iPhone 6.9-inch, in English and fourteen locales: Ask what to watch is second, after Home, and Every play, day
-    by day leaves the set, which stays at ten. Each locale's panel shows the answer the live model wrote in that
-    language for "Something light for tonight". Captured with `SHOT_SCRIPT=watch` (`WatchShotScript`, answers from
-    `DemoBrain`, no call to the service) and composed with `marketing/store/compose.py --only 15-what-to-watch`;
-    the other nine panels of each locale are the ones in App Store Connect (`asc screenshots download`) or, for the
-    four Nordic locales, the local set.
+  - iPhone 6.9-inch, in English and fourteen locales (2026-11-14): the set opens with Ask what to watch, Skip the
+    filler and Skip the recap, then Home, the library, a title, search, Downloads, Statistics and the Year in
+    Review poster; Every play, day by day leaves the set, which stays at ten. Each locale's first panel shows the
+    answer the live model wrote in that language for "Something light for tonight" (`DemoBrain`, no call to the
+    service). All ten panels of every locale are shot from this release's build with `SHOT_SCRIPT=store` on
+    `marketing/shots/mac-run.sh` and composed with `marketing/store/compose.py iphone --locale LOCALE`.
+  - Before composing, look at every language's raw captures side by side. A run on a loaded Mac reports success
+    and the right number of shots while one of them shows the screen before it, plays instead of hours, or a
+    sheet that had not opened yet; several languages were shot again for that on 2026-11-14.
   - iPad 13-inch, English: the same panel second (ten in the set), from `IPadStoreShots.testCapturesWhatToWatch` in
     the demo, composed with `--only 09-what-to-watch`.
   - Apple TV, English: the picks at 4K second (ten in the set), from `DemoTests` on the 4K simulator.
@@ -75,8 +78,8 @@ Duo paragraph are part of 2.10.0's What's New.
     --guides` draws. The 2.9.0 images had their words above that box, where a crop removes them. Arabic and Thai
     carry the English words; Indonesian, Russian, Turkish and Vietnamese carry their own words over the English app.
 - Upload once the 2.10.0 version exists and `docs/asc-metadata.json` names it: `python3 scripts/asc-screenshots.py
-  --locales=all` (iPhone, iPad, Duo and Apple TV), then `python3 scripts/asc-creative.py` for the Header and Search
-  Results images. Look at both placements in App Store Connect's preview before the version is submitted: Apple
+  --locales=all` (iPhone, iPad, Duo and Apple TV; `--locales=de-DE,fr-FR` uploads named locales alone), then
+  `python3 scripts/asc-creative.py` for the Header and Search Results images. Look at both placements in App Store Connect's preview before the version is submitted: Apple
   publishes the safe areas, not how each device crops around them.
 
 ## Privacy
