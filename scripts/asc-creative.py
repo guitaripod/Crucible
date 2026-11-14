@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Place Crucible's product page Header and Search Results images on an App Store version.
 
-Sources: marketing/appstore/header/<locale>/header.png and search.png (5244x2950, no alpha), composed by
-marketing/store/compose_duo.py header. Each is uploaded to the app's Asset Library as a creative asset and placed on
+Sources: marketing/appstore/header/<locale>/header.png (3840x1646) and search.png (3840x2560), both without alpha,
+composed by marketing/store/compose_duo.py header. Each is uploaded to the app's Asset Library as a creative asset and placed on
 the version's localization of that locale, replacing the placement already there; a locale without its own images gets
 the en-US ones. Placements are read back afterwards. Nothing is submitted: the images go to App Review with the
 version, or on their own once a version is approved (`asc review items add --item-type appAssetLibraryImages`).
