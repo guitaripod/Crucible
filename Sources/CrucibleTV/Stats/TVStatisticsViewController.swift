@@ -63,7 +63,6 @@ final class TVStatisticsViewController: TVScreenViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.accessibilityIdentifier = "stats.collection"
-        setContentScrollView(collectionView, for: .top)
         controlsView.onRange = { [weak self] range in self?.selectRange(range) }
         controlsView.onSource = { [weak self] source in self?.selectSource(source) }
         controlsView.onLocked = { [weak self] lock in self?.unlock(lock) }

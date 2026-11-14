@@ -33,6 +33,8 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         collectionView.collectionViewLayout = makeLayout()
     }
 
+    override var hidesBarsWhileScrolling: Bool { false }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear

@@ -51,7 +51,6 @@ final class HistoryViewController: TVScreenViewController {
         super.viewDidLoad()
         configureDataSource()
         collectionView.collectionViewLayout = makeLayout()
-        setContentScrollView(collectionView, for: .top)
         feed.onEvent = { [weak self] event in self?.handle(event) }
         render()
     }

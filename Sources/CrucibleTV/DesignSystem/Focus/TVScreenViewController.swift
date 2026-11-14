@@ -49,7 +49,12 @@ class TVScreenViewController: UIViewController, UICollectionViewDelegate {
         collectionView.playPauseHandler = { [weak self] indexPath in self?.playFocused(at: indexPath) ?? false }
         installViews()
         stateView.isHidden = true
+        if hidesBarsWhileScrolling { setContentScrollView(collectionView, for: .top) }
     }
+
+    /// Whether the tab bar slides away as the collection scrolls, the way every tvOS app's content pushes the bar off the top
+    /// of the screen. Search answers no: the search controller collapses its own field over its results.
+    var hidesBarsWhileScrolling: Bool { true }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)

@@ -62,6 +62,30 @@ final class TourTests: TVTestCase {
         }
     }
 
+    /// The tab bar slides off the top as a tab's content scrolls, the way the system apps push it away, instead of covering the
+    /// posters that pass under it; moving back up to the top row brings it back.
+    func testTheTabBarSlidesAwayAsTheContentScrolls() {
+        let app = AppNavigation.launchHome()
+        AppNavigation.selectTab("Movies", in: app)
+        XCTAssertTrue(AppNavigation.element(app, "tv.chip.all").waitForExistence(timeout: 30))
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.isHittable, "the tab bar shows while the library's header is on screen")
+
+        XCTAssertTrue(AppNavigation.move(app, .down, untilFocusHasPrefix: "tv.library.media."), "focus never reached the grid")
+        for _ in 0..<2 {
+            TVTest.remote.press(.down)
+            TVTest.settle(0.6)
+        }
+        TVTest.settle(1.0)
+        TVTest.capture("01-grid-scrolled-tab-bar-away", in: self)
+        XCTAssertTrue(!tabBar.exists || !tabBar.isHittable || tabBar.frame.maxY <= 0, "the tab bar should have slid away, frame \(tabBar.frame)")
+
+        XCTAssertTrue(AppNavigation.move(app, .up, untilFocusHasPrefix: "tv.chip.", limit: 10), "focus never returned to the header")
+        TVTest.settle(1.0)
+        TVTest.capture("02-back-at-the-top-tab-bar-shown", in: self)
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 5) && tabBar.isHittable && tabBar.frame.minY >= 0, "the tab bar comes back at the top, frame \(tabBar.frame)")
+    }
+
     func testUnreachableServerOffersTryAgainAndSwitchServer() {
         let mock = ProcessInfo.processInfo.environment["CRUCIBLE_MOCK"] ?? ""
         Self.configurePlexTV(mock, query: "servers=none&reject_token=0")
