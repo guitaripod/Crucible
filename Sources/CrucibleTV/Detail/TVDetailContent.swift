@@ -116,8 +116,24 @@ enum TVDetailMapping {
         switch marker {
         case .inProgress: String(localized: "Continue", comment: "Action title that resumes a partly watched item")
         case .upNext: String(localized: "Up Next")
+        case .missing: ShowGapsCopy.notOnServer
         default: nil
         }
+    }
+
+    /// An episode that aired and the server lacks: dimmed, with when it aired, and a press asks Seerr for it.
+    static func missingEpisode(_ missing: MissingEpisode, shielded: Bool = false) -> TVCardItem {
+        let status = EpisodeStatus(missing: missing, shielded: shielded)
+        return TVCardItem(
+            id: missing.id,
+            artworkPath: shielded ? nil : missing.thumb,
+            title: shielded ? status.title : "\(missing.episode)  ·  " + status.title,
+            subtitle: status.metaText.isEmpty ? nil : status.metaText,
+            eyebrow: eyebrow(for: status.marker),
+            isDimmed: true,
+            placeholderSymbol: "tv",
+            accessibilityHint: SeerrAccount.shared.isConnected ? SeerrCopy.request : nil
+        )
     }
 
     static func episode(_ episode: PlexMetadata, status: EpisodeStatus, shielded: Bool = false) -> TVCardItem {

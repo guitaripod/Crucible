@@ -197,6 +197,26 @@ struct DemoWatchlistTests {
         }
     }
 
+    @Test func theCatalogueListsTheSeasonsLibraryShowsLackBehindThePlexTVPrefix() async throws {
+        try await withDemo { demo in
+            let api = demo.api
+            let prefix = "/\(DemoRouter.plexTVPrefix)"
+            let check = ShowGapsCheck(fetchChildren: { try await api.requestContainer(.folderPath("\(prefix)/library/metadata/\($0)/children")).Metadata ?? [] })
+            let show = try await demo.metadata("2003")
+            let leaves = try await api.requestContainer(.folderPath("/library/metadata/2003/allLeaves")).Metadata ?? []
+            let gaps = try await check.run(show: show, serverEpisodes: leaves, now: Date())
+            #expect(gaps.seasons.map(\.index) == [5])
+            let season = try #require(gaps.seasons.first)
+            #expect(try await check.episodes(of: season, now: Date()).map(\.episode) == Array(1...8))
+            let server = try await api.requestContainer(.folderPath("/library/metadata/2003/children")).Metadata ?? []
+            #expect(!server.contains { $0.index == 5 }, "the server itself still answers without the catalogue's season")
+            let complete = try await check.run(show: try await demo.metadata("2001"), serverEpisodes: try await api.requestContainer(.folderPath("/library/metadata/2001/allLeaves")).Metadata ?? [], now: Date())
+            #expect(complete.isEmpty)
+            let (_, watchlist) = try await demo.get("\(prefix)/library/sections/watchlist/all")
+            #expect(watchlist.statusCode == 200, "every other plex.tv route answers behind the prefix as before")
+        }
+    }
+
     @Test func addingAndRemovingChangeTheList() async throws {
         try await withDemo { demo in
             let (_, removed) = try await demo.get("/actions/removeFromWatchlist?ratingKey=1001", method: "PUT")

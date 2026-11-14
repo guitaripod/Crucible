@@ -20,6 +20,22 @@ package struct ShowDetailModel: Sendable {
         package let title: String
         package let watchedText: String?
         package let isSelected: Bool
+        /// A season that has aired and that the server has none of, shown dimmed.
+        package let isMissing: Bool
+
+        package init(id: String, title: String, watchedText: String?, isSelected: Bool, isMissing: Bool = false) {
+            self.id = id
+            self.title = title
+            self.watchedText = watchedText
+            self.isSelected = isSelected
+            self.isMissing = isMissing
+        }
+    }
+
+    /// One row of the episode list: an episode on the server, or one that has aired and the server lacks.
+    package enum EpisodeRow: Hashable, Sendable {
+        case episode(PlexMetadata)
+        case missing(MissingEpisode)
     }
 
     /// One "Mark ... Watched" or "Mark ... Unwatched" choice and the item it applies to.
@@ -44,6 +60,8 @@ package struct ShowDetailModel: Sendable {
     package let upNext: UpNext?
     /// The show's Crucible Guides plan, when a guide covers it: which episodes the person's choices hide.
     package let essentials: EssentialsPlan?
+    /// What has aired that the server lacks, as Plex's catalogue lists it; none until the catalogue answers.
+    package let gaps: ShowGaps
 
     package var userRating: UserRating? {
         UserRating(plexValue: show.userRating)
@@ -56,7 +74,8 @@ package struct ShowDetailModel: Sendable {
         episodes: [PlexMetadata] = [],
         allEpisodes: [PlexMetadata] = [],
         episodesFailed: Bool = false,
-        essentials: EssentialsPlan? = nil
+        essentials: EssentialsPlan? = nil,
+        gaps: ShowGaps = .none
     ) {
         self.show = show
         self.seasons = seasons
@@ -65,39 +84,90 @@ package struct ShowDetailModel: Sendable {
         self.allEpisodes = allEpisodes
         self.episodesFailed = episodesFailed
         self.essentials = essentials
+        self.gaps = gaps
         self.upNext = Self.computeUpNext(in: allEpisodes.isEmpty ? episodes : allEpisodes, hidden: essentials?.hiddenKeys ?? [])
     }
 
     package func replacingShow(_ show: PlexMetadata) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials, gaps: gaps)
     }
 
     package func selectingSeason(_ key: String) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: episodes, allEpisodes: allEpisodes, essentials: essentials)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: episodes, allEpisodes: allEpisodes, essentials: essentials, gaps: gaps)
     }
 
     package func replacingEpisodes(_ episodes: [PlexMetadata]) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, essentials: essentials)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, essentials: essentials, gaps: gaps)
     }
 
     /// The same screen under a new Essentials plan, after the person changes their choice.
     package func replacingEssentials(_ essentials: EssentialsPlan?) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials, gaps: gaps)
+    }
+
+    /// The same screen once the catalogue has said what the server lacks.
+    package func replacingGaps(_ gaps: ShowGaps) -> ShowDetailModel {
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: episodes, allEpisodes: allEpisodes, episodesFailed: episodesFailed, essentials: essentials, gaps: gaps)
     }
 
     /// Selects `key` and clears the episode list, for screens that show a loading state until the
     /// new season's episodes arrive instead of the previous season's.
     package func loadingSeason(_ key: String) -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: [], allEpisodes: allEpisodes, essentials: essentials)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: key, episodes: [], allEpisodes: allEpisodes, essentials: essentials, gaps: gaps)
     }
 
     /// The selected season's episodes could not be fetched: no episodes, flagged so a screen can offer Retry instead of "empty".
     package func failingEpisodes() -> ShowDetailModel {
-        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: [], allEpisodes: allEpisodes, episodesFailed: true, essentials: essentials)
+        ShowDetailModel(show: show, seasons: seasons, selectedSeasonKey: selectedSeasonKey, episodes: [], allEpisodes: allEpisodes, episodesFailed: true, essentials: essentials, gaps: gaps)
     }
 
     package var selectedSeason: PlexMetadata? {
         seasons.first { $0.id == selectedSeasonKey }
+    }
+
+    /// The selected season when it is one the server has none of.
+    package var selectedMissingSeason: MissingSeason? {
+        gaps.season(id: selectedSeasonKey)
+    }
+
+    /// The server's own season with the number of the missing one that is selected, once the server has it.
+    package var arrivedSeason: PlexMetadata? {
+        guard let index = MissingSeason.index(ofID: selectedSeasonKey) else { return nil }
+        return seasons.first { $0.index == index }
+    }
+
+    /// The selected season is a missing one that is not missing any more, by the server's seasons or the catalogue's answer.
+    package var leftMissingSeason: Bool {
+        MissingSeason.isMissing(selectedSeasonKey) && (selectedMissingSeason == nil || arrivedSeason != nil)
+    }
+
+    /// The selected season is one the server lacks and its aired episodes have not been fetched yet.
+    package var needsMissingEpisodes: Bool {
+        guard let missing = selectedMissingSeason, arrivedSeason == nil else { return false }
+        return gaps.episodes[missing.index] == nil
+    }
+
+    /// The selected season's episode list: what the server has, with what has aired and it lacks in between by number.
+    /// A season the server has none of lists only what has aired; the highlights filter lists only what can be played.
+    package func episodeRows(showingSkipped: Bool, highlights: Set<String>? = nil) -> [EpisodeRow] {
+        if let missing = selectedMissingSeason {
+            return gaps.missing(inSeason: missing.index).map(EpisodeRow.missing)
+        }
+        let owned = visibleEpisodes(showingSkipped: showingSkipped, highlights: highlights).map(EpisodeRow.episode)
+        let have = Set(episodes.compactMap(\.index))
+        let lacking = highlights == nil ? gaps.missing(inSeason: selectedSeason?.index).filter { !have.contains($0.episode) } : []
+        guard !lacking.isEmpty else { return owned }
+        return (owned + lacking.map(EpisodeRow.missing)).enumerated().sorted { left, right in
+            let (a, b) = (Self.number(of: left.element), Self.number(of: right.element))
+            return a != b ? a < b : left.offset < right.offset
+        }.map(\.element)
+    }
+
+    private static func number(of row: EpisodeRow) -> Int {
+        switch row {
+        case .episode(let episode): episode.index ?? .max
+        case .missing(let missing): missing.episode
+        }
     }
 
     package static func seasonTitle(_ season: PlexMetadata) -> String {
@@ -119,18 +189,27 @@ package struct ShowDetailModel: Sendable {
         isWatched ? String(localized: "Watched. Mark unwatched") : String(localized: "Mark watched")
     }
 
+    /// The server's seasons, with the seasons it lacks dimmed among them in their place by number.
     package var seasonChips: [SeasonChip] {
-        seasons.map {
-            SeasonChip(id: $0.id, title: Self.seasonTitle($0), watchedText: Self.watchedText($0), isSelected: $0.id == selectedSeasonKey)
+        let owned = seasons.map {
+            (index: $0.index ?? 0, chip: SeasonChip(id: $0.id, title: Self.seasonTitle($0), watchedText: Self.watchedText($0), isSelected: $0.id == selectedSeasonKey))
         }
+        let have = Set(seasons.compactMap(\.index))
+        let lacking = gaps.seasons.filter { !have.contains($0.index) }.map {
+            (index: $0.index, chip: SeasonChip(id: $0.id, title: $0.title, watchedText: ShowGapsCopy.notOnServer, isSelected: $0.id == selectedSeasonKey, isMissing: true))
+        }
+        guard !lacking.isEmpty else { return owned.map(\.chip) }
+        return (owned + lacking).enumerated().sorted { left, right in
+            left.element.index != right.element.index ? left.element.index < right.element.index : left.offset < right.offset
+        }.map(\.element.chip)
     }
 
     package var selectedSeasonTitle: String {
-        selectedSeason.map(Self.seasonTitle) ?? String(localized: "Season", comment: "A season of a TV show")
+        selectedSeason.map(Self.seasonTitle) ?? selectedMissingSeason?.title ?? String(localized: "Season", comment: "A season of a TV show")
     }
 
     package var selectedSeasonWatchedText: String? {
-        selectedSeason.flatMap(Self.watchedText)
+        selectedMissingSeason != nil ? ShowGapsCopy.notOnServer : selectedSeason.flatMap(Self.watchedText)
     }
 
     package var heroInfo: DetailHeroInfo {

@@ -76,4 +76,58 @@ extension DemoLibrary {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
     }
+
+    /// Seasons Plex's catalogue lists for library shows that the demo server lacks: Dry Season, watched to the end, has a
+    /// second season airing weekly since nine days ago, and Meridian a fifth that finished airing.
+    private static let catalogueAdditions: [String: (season: Int, episodes: Int, firstAiredDaysAgo: Int)] = [
+        "2006": (2, 6, 9),
+        "2003": (5, 8, 70),
+    ]
+
+    /// The stand-in catalogue's answer for a library show or one of its seasons: what the server has, with the seasons it
+    /// lacks after it. Nil for anything else.
+    func libraryCatalogueChildren(_ key: String) -> DemoResponse? {
+        let metadata: [DemoJSON]
+        if let show = items[key], show.kind == .show {
+            var seasons = show.children.compactMap { items[$0] }.filter { $0.kind == .season }.map { season -> DemoJSON in
+                ["ratingKey": season.ratingKey, "type": "season", "title": season.title, "index": season.fields.int("index") ?? 0, "leafCount": season.children.count]
+            }
+            if let added = Self.catalogueAdditions[key] {
+                seasons.append([
+                    "ratingKey": Self.addedSeasonKey(key, added.season), "type": "season", "title": "Season \(added.season)",
+                    "index": added.season, "leafCount": added.episodes,
+                    "originallyAvailableAt": Self.day(daysAgo: added.firstAiredDaysAgo, now: Date(timeIntervalSince1970: TimeInterval(now))),
+                ])
+            }
+            metadata = seasons
+        } else if let season = items[key], season.kind == .season {
+            metadata = season.children.compactMap { items[$0] }.map { episode in
+                ["ratingKey": episode.ratingKey, "type": "episode", "title": episode.title, "index": episode.fields.int("index") ?? 0, "parentIndex": episode.fields.int("parentIndex") ?? 0]
+            }
+        } else if let (show, added) = Self.catalogueAdditions.first(where: { Self.addedSeasonKey($0.key, $0.value.season) == key }).map({ ($0.key, $0.value) }) {
+            let today = Date(timeIntervalSince1970: TimeInterval(now))
+            metadata = (1...added.episodes).map { episode in
+                [
+                    "ratingKey": "\(Self.addedSeasonKey(show, added.season))e\(episode)", "type": "episode", "title": "Episode \(episode)",
+                    "index": episode, "parentIndex": added.season,
+                    "originallyAvailableAt": Self.day(daysAgo: added.firstAiredDaysAgo - (episode - 1) * 7, now: today),
+                    "summary": "An episode the demo server does not have yet.",
+                ]
+            }
+        } else {
+            return nil
+        }
+        return .container(["size": metadata.count, "totalSize": metadata.count, "offset": 0, "Metadata": metadata])
+    }
+
+    private static func addedSeasonKey(_ show: String, _ season: Int) -> String { "\(show)-catalogue-s\(season)" }
+
+    /// The Gregorian day `daysAgo` before `now` where the viewer is, as Plex's catalogue writes air dates.
+    private static func day(daysAgo: Int, now: Date, timeZone: TimeZone = .current) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) ?? now
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
 }

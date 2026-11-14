@@ -11,6 +11,8 @@ package struct EpisodeStatus: Equatable, Sendable {
         case downloading
         case upNext
         case plain
+        /// Aired, but the server does not have it.
+        case missing
 
         /// Whether the eyebrow is drawn in the accent colour rather than the tertiary label colour.
         package var isEmphasised: Bool {
@@ -28,6 +30,8 @@ package struct EpisodeStatus: Equatable, Sendable {
     package var metaParts: [String]
     /// Hidden by the person's Essentials choice and listed only because they asked to see skipped episodes.
     package var isSkipped = false
+    /// Aired, as Plex's catalogue lists it, but not on the server: listed dimmed, with nothing to play.
+    package private(set) var isMissing = false
     package let spokenText: String
     package let download: DownloadBadge
     package let playTitle: String
@@ -83,13 +87,34 @@ package struct EpisodeStatus: Equatable, Sendable {
         self.watchedToggleTitle = WatchedService.title(isWatched: isWatched)
     }
 
+    /// An episode the server lacks: its number and title (only its number behind Spoiler Shield), when it aired, and that
+    /// it is not on the server.
+    package init(missing: MissingEpisode, shielded: Bool = false) {
+        let aired = ShowGapsCopy.aired(missing.airDate)
+        episodeNumber = missing.episode
+        title = shielded ? String(localized: "Episode \(missing.episode)", comment: "A shielded episode's title, e.g. Episode 77") : missing.title
+        isWatched = false
+        isInProgress = false
+        progress = nil
+        marker = .missing
+        eyebrow = ShowGapsCopy.eyebrow(episode: missing.episode)
+        metaParts = [aired].compactMap { $0 }
+        spokenText = [String(localized: "Episode \(missing.episode)"), missing.title, ShowGapsCopy.notOnServer, aired].compactMap { $0 }.joined(separator: ", ")
+        download = .idle
+        playTitle = String(localized: "Play", comment: "Button or menu label that starts playback")
+        canPlayFromBeginning = false
+        watchedToggleTitle = WatchedService.title(isWatched: false)
+        isMissing = true
+    }
+
     package var metaText: String {
         metaParts.joined(separator: " · ")
     }
 
     /// Watched rows are dimmed so the unwatched ones stand out.
     package var contentAlpha: Double {
-        isSkipped ? 0.45 : (isWatched ? 0.55 : 1)
+        if isMissing { return 0.38 }
+        return isSkipped ? 0.45 : (isWatched ? 0.55 : 1)
     }
 
     private static func spokenDescription(episode: PlexMetadata, inProgress: Bool, download: DownloadBadge) -> String {

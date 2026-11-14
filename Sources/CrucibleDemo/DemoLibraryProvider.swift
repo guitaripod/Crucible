@@ -75,7 +75,7 @@ package actor DemoLibraryProvider: DemoProviding {
         guard let url = URL(string: "http://127.0.0.1:\(port)") else { throw DemoServerError.notReady }
         let endpoint = DemoEndpoint(
             serverURL: url,
-            plexTVURL: url,
+            plexTVURL: url.appendingPathComponent(DemoRouter.plexTVPrefix),
             token: DemoPlexTV.token,
             machineIdentifier: library.machineIdentifier,
             serverName: Self.serverName,

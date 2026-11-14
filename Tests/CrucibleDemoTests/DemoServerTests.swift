@@ -12,7 +12,7 @@ struct DemoServerTests {
         #expect(elapsed < .seconds(1))
         #expect(harness.endpoint.serverURL.host == "127.0.0.1")
         #expect(harness.endpoint.serverURL.port != nil)
-        #expect(harness.endpoint.serverURL == harness.endpoint.plexTVURL)
+        #expect(harness.endpoint.plexTVURL == harness.endpoint.serverURL.appendingPathComponent(DemoRouter.plexTVPrefix), "plex.tv shares the server, behind a prefix of its own")
         #expect(harness.endpoint.token == "demo-token")
         #expect(harness.endpoint.serverName == "Crucible Demo")
         #expect(harness.endpoint.accountName == "Demo")

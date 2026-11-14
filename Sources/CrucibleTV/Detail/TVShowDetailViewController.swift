@@ -18,6 +18,12 @@ final class TVShowDetailViewController: TVDetailViewController {
     private lazy var requestSlot = makeTaskSlot()
     private var loadingSeasonKey: String?
     private var episodesByID: [String: PlexMetadata] = [:]
+    private var missingByID: [String: MissingEpisode] = [:]
+    private lazy var gapsSlot = makeTaskSlot()
+    /// Whether the season the screen was opened on, when it is one the server lacks, has been shown once the catalogue answered.
+    private var openedInitialMissingSeason = false
+    /// The viewer chose a season themselves, which a late catalogue answer never overrides.
+    private var viewerPickedSeason = false
     private var showsSkipped = false
     private var highlightsOnly = false
     private var relatedByID: [String: PlexMetadata] = [:]
@@ -65,9 +71,12 @@ final class TVShowDetailViewController: TVDetailViewController {
             let (scoresIn, requestIn) = await (settledScores, settledRequest)
             if let scoresIn { scores = scoresIn }
             if let requestIn { offersRequest = requestIn }
-            model = loaded
+            let (kept, follow) = Self.keepingGaps(of: model, in: loaded)
+            model = kept
             rating.loaded()
             rebuild()
+            if let follow { loadSeason(follow) }
+            loadGaps()
             if scoresIn == nil, let scoresTask { finish(scoresTask) { $0.scores = $1 } }
             if requestIn == nil, let requestTask { finish(requestTask) { $0.offersRequest = $1 } }
             if !isFirst { loadRequestState() }
@@ -81,9 +90,11 @@ final class TVShowDetailViewController: TVDetailViewController {
     override func didSelect(_ item: Item) {
         switch item {
         case .season(let id):
+            viewerPickedSeason = true
             selectSeason(id)
         case .episode(let id):
             if let episode = episodesByID[id] { play(TVPlaybackRequest(item: episode)) }
+            if missingByID[id] != nil { requestMissing() }
         case .related(let id):
             if let related = relatedByID[id] { push(.related(related)) }
         case .person(let id):
@@ -110,6 +121,7 @@ final class TVShowDetailViewController: TVDetailViewController {
             play(TVPlaybackRequest(item: episode))
             return true
         }
+        if case .episode(let id)? = itemIdentifier(at: indexPath), missingByID[id] != nil { return true }
         guard model?.upNext != nil else { return false }
         playUpNext()
         return true
@@ -162,12 +174,23 @@ final class TVShowDetailViewController: TVDetailViewController {
         guard let model else { return }
         let shield = SpoilerShield.isOn(showKey)
         let highlightKeys = model.highlightKeys
-        let episodes = model.visibleEpisodes(showingSkipped: showsSkipped, highlights: highlightsOnly && model.essentials == nil ? highlightKeys : nil)
-        let episodeCards = episodes.map { episode in
-            let shielded = shield && !episode.isWatched
-            return TVDetailMapping.episode(episode, status: model.status(for: episode, shielded: shielded, highlights: highlightKeys), shielded: shielded)
+        let rows = model.episodeRows(showingSkipped: showsSkipped, highlights: highlightsOnly && model.essentials == nil ? highlightKeys : nil)
+        var episodeCards: [TVCardItem] = []
+        episodesByID = [:]
+        missingByID = [:]
+        for row in rows {
+            switch row {
+            case .episode(let episode):
+                let shielded = shield && !episode.isWatched
+                let card = TVDetailMapping.episode(episode, status: model.status(for: episode, shielded: shielded, highlights: highlightKeys), shielded: shielded)
+                episodesByID[card.id] = episode
+                episodeCards.append(card)
+            case .missing(let missing):
+                let card = TVDetailMapping.missingEpisode(missing, shielded: shield)
+                missingByID[card.id] = missing
+                episodeCards.append(card)
+            }
         }
-        episodesByID = Dictionary(zip(episodeCards.map(\.id), episodes), uniquingKeysWith: { first, _ in first })
         let related = model.related
         let relatedCards = TVDetailMapping.related(related)
         relatedByID = Dictionary(zip(relatedCards.map(\.id), related), uniquingKeysWith: { first, _ in first })
@@ -180,18 +203,88 @@ final class TVShowDetailViewController: TVDetailViewController {
             synopsisTitle: model.show.title,
             actions: actions(for: model),
             seasons: model.seasonChips.map {
-                TVChipItem(id: $0.id, title: [$0.title, $0.watchedText].compactMap { $0 }.joined(separator: "  ·  "), isSelected: $0.isSelected)
+                TVChipItem(id: $0.id, title: [$0.title, $0.watchedText].compactMap { $0 }.joined(separator: "  ·  "), isSelected: $0.isSelected, isDimmed: $0.isMissing)
             },
             episodesHeader: TVSectionHeader(
                 title: model.selectedSeasonTitle,
-                secondaryText: episodesState == .loaded ? (model.essentials.flatMap { EssentialsCopy.seasonDetail($0, season: model.episodes) } ?? Self.episodeCount(episodes.count)) : nil
+                secondaryText: episodesState == .loaded ? Self.episodesDetail(model, count: Self.countedEpisodes(model, rows: rows)) : nil
             ),
             episodes: episodeCards,
-            showsEpisodes: model.selectedSeason != nil,
+            showsEpisodes: model.selectedSeason != nil || model.selectedMissingSeason != nil,
             episodesState: episodesState,
             cast: TVDetailMapping.people(MovieDetailModel(item: model.show).castAndCrew),
             related: relatedCards
         ))
+    }
+
+    /// The line beside the season's name: what Essentials hides, else how many episodes are listed, and for a season the
+    /// server lacks, that it is not there.
+    private static func episodesDetail(_ model: ShowDetailModel, count: Int) -> String {
+        if model.selectedMissingSeason != nil { return [ShowGapsCopy.notOnServer, episodeCount(count)].joined(separator: "  ·  ") }
+        return model.essentials.flatMap { EssentialsCopy.seasonDetail($0, season: model.episodes) } ?? episodeCount(count)
+    }
+
+    /// The episodes the header counts: what the season lists, but for a season the server has, only the episodes on it.
+    private static func countedEpisodes(_ model: ShowDetailModel, rows: [ShowDetailModel.EpisodeRow]) -> Int {
+        guard model.selectedMissingSeason == nil else { return rows.count }
+        return rows.filter { if case .episode = $0 { true } else { false } }.count
+    }
+
+    /// A reload keeps what the catalogue said, and a season the server lacks stays open, until the next look answers; once the
+    /// server has that season, the screen moves to it (`follow`).
+    private static func keepingGaps(of previous: ShowDetailModel?, in loaded: ShowDetailModel) -> (model: ShowDetailModel, follow: String?) {
+        guard let previous, !previous.gaps.isEmpty else { return (loaded, nil) }
+        let kept = loaded.replacingGaps(previous.gaps)
+        guard let open = previous.selectedMissingSeason else { return (kept, nil) }
+        if let arrived = loaded.seasons.first(where: { $0.index == open.index }) {
+            return (kept, arrived.id == loaded.selectedSeasonKey ? nil : arrived.id)
+        }
+        return (kept.selectingSeason(open.id).replacingEpisodes([]), nil)
+    }
+
+    /// Asks Plex's catalogue what has aired that the server lacks, once every episode on the server is known; the page
+    /// never waits for it.
+    private func loadGaps() {
+        guard let loaded = model, !loaded.allEpisodes.isEmpty || loaded.seasons.isEmpty else { return }
+        let show = loaded.show, episodes = loaded.allEpisodes, check = ShowGapsCheck.live(api: env.api)
+        gapsSlot.run { [weak self] in
+            guard let gaps = await ShowGapsCenter.shared.gaps(show: show, serverEpisodes: episodes, check: check),
+                  !Task.isCancelled, let self, let current = self.model else { return }
+            adoptGaps(gaps.keepingOpened(from: current.gaps), in: current)
+        }
+    }
+
+    /// Puts a look's answer on screen: opens the missing season the screen was opened on, once and only while the viewer has
+    /// not picked a season; leaves a missing season that is no longer missing; and lists an open missing season whose episodes
+    /// the answer does not carry yet.
+    private func adoptGaps(_ gaps: ShowGaps, in current: ShowDetailModel) {
+        let updated = current.replacingGaps(gaps)
+        let initial = openedInitialMissingSeason ? nil : gaps.season(id: initialSeasonKey)
+        openedInitialMissingSeason = true
+        if let initial, !viewerPickedSeason, !updated.seasons.contains(where: { $0.index == initial.index }) {
+            model = updated
+            loadSeason(initial.id)
+            return
+        }
+        if updated.leftMissingSeason, let target = updated.arrivedSeason ?? updated.seasons.first {
+            model = updated
+            loadSeason(target.id)
+            return
+        }
+        if updated.needsMissingEpisodes, let missing = updated.selectedMissingSeason, loadingSeasonKey != missing.id {
+            model = updated
+            loadSeason(missing.id)
+            return
+        }
+        guard updated.gaps != current.gaps else { return }
+        model = updated
+        easeIn { self.rebuild() }
+    }
+
+    /// Asks Seerr for what the server lacks of the show, or says how to connect Seerr when it is not.
+    private func requestMissing() {
+        guard let show = model?.show else { return }
+        TVSeerrRequestViewController.open(show, env: env, isOnServer: true, from: self)
     }
 
     /// Asks Seerr whether the show is missing seasons nobody asked for, which adds Request More Seasons; the page never waits.
@@ -484,7 +577,7 @@ final class TVShowDetailViewController: TVDetailViewController {
     /// Selecting the season already shown does nothing unless its fetch failed, in which case it is the retry.
     private func selectSeason(_ key: String) {
         guard let current = model else { return }
-        guard current.selectedSeasonKey != key || current.episodesFailed else { return }
+        guard current.selectedSeasonKey != key || current.episodesFailed || current.needsMissingEpisodes else { return }
         loadSeason(key)
     }
 
@@ -495,6 +588,10 @@ final class TVShowDetailViewController: TVDetailViewController {
         model = current.loadingSeason(key)
         loadingSeasonKey = key
         rebuild()
+        if let missing = current.gaps.season(id: key) {
+            openMissingSeason(missing, key: key)
+            return
+        }
         seasonSlot.run { [weak self] in
             guard let self else { return }
             let result = await ShowDetailLoader.loadSeason(key, api: env.api)
@@ -503,6 +600,24 @@ final class TVShowDetailViewController: TVDetailViewController {
             case .loaded(let episodes): model = model?.replacingEpisodes(episodes)
             case .failed: model = model?.failingEpisodes()
             case .cancelled: return
+            }
+            loadingSeasonKey = nil
+            rebuild()
+        }
+    }
+
+    /// Lists the aired episodes of a season the server has none of, asking the catalogue for them the first time.
+    private func openMissingSeason(_ missing: MissingSeason, key: String) {
+        guard let current = model else { return }
+        let show = current.show, gaps = current.gaps, check = ShowGapsCheck.live(api: env.api)
+        seasonSlot.run { [weak self] in
+            guard let self else { return }
+            let filled = await ShowGapsCenter.shared.opening(missing, of: show, in: gaps, check: check)
+            guard !Task.isCancelled, model?.selectedSeasonKey == key, loadingSeasonKey == key else { return }
+            if let filled {
+                model = model?.replacingGaps(filled)
+            } else {
+                model = model?.failingEpisodes()
             }
             loadingSeasonKey = nil
             rebuild()

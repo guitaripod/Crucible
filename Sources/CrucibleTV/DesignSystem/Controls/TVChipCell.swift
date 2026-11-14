@@ -5,6 +5,8 @@ struct TVChipItem: Hashable, Sendable {
     var title: String
     var symbol: String?
     var isSelected: Bool
+    /// Drawn faint while not selected, for something listed that is not there, such as a season the server lacks.
+    var isDimmed = false
     var accessibilityLabel: String?
     var accessibilityHint: String?
 
@@ -13,6 +15,7 @@ struct TVChipItem: Hashable, Sendable {
         title: String,
         symbol: String? = nil,
         isSelected: Bool = false,
+        isDimmed: Bool = false,
         accessibilityLabel: String? = nil,
         accessibilityHint: String? = nil
     ) {
@@ -20,6 +23,7 @@ struct TVChipItem: Hashable, Sendable {
         self.title = title
         self.symbol = symbol
         self.isSelected = isSelected
+        self.isDimmed = isDimmed
         self.accessibilityLabel = accessibilityLabel
         self.accessibilityHint = accessibilityHint
     }
@@ -72,6 +76,7 @@ final class TVChipCell: UICollectionViewCell {
         self.onSelect = onSelect
         button.menu = menu?(item)
         button.configuration = TVButton.configuration(.chip(selected: item.isSelected), title: item.title, symbol: item.symbol)
+        button.alpha = item.isDimmed && !item.isSelected ? 0.5 : 1
         button.accessibilityLabel = item.accessibilityLabel ?? item.title
         button.accessibilityHint = item.accessibilityHint
         button.accessibilityTraits = item.isSelected ? [.button, .selected] : .button
