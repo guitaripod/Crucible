@@ -106,10 +106,16 @@ enum TVMetrics {
     }
 
     enum Row {
-        static let height: CGFloat = 96
-        static let spacing: CGFloat = 12
-        static let iconWell: CGFloat = 60
+        static let height: CGFloat = 84
+        static let spacing: CGFloat = 6
+        static let iconWell: CGFloat = 56
         static let horizontalInset: CGFloat = 28
+
+        /// How far a focused row grows past each side (`TVFocusLift.rowScale`), whatever its width.
+        static let focusGrowth: CGFloat = 20
+
+        /// Room left after a list's rows, so a focused row's growth stays inside the safe area.
+        static let focusRoom: CGFloat = 24
     }
 
     enum Backdrop {

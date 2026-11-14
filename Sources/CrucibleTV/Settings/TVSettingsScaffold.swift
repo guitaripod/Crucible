@@ -60,7 +60,7 @@ class TVSettingsScaffold: TVScreenViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
         snapshot.appendItems(rows.map(\.id))
-        dataSource.applyReconfiguringExisting(snapshot)
+        dataSource.applyReconfiguringExisting(snapshot, animated: view.window != nil)
     }
 
     /// Replaces the list with a loading, empty or error state, or brings the list back with nil. The
@@ -75,11 +75,16 @@ class TVSettingsScaffold: TVScreenViewController {
         }
     }
 
-    /// The row that takes the focus when the screen appears; nil lets the system pick the first.
+    /// The row that takes the focus when the screen appears; nil puts it on the first row that does something.
     var preferredFocusRowID: String? { nil }
 
     override func initialFocusIndexPath() -> IndexPath? {
-        preferredFocusRowID.flatMap { dataSource.indexPath(for: $0) }
+        if let preferred = preferredFocusRowID.flatMap({ dataSource.indexPath(for: $0) }) { return preferred }
+        let firstActionable = dataSource.snapshot().itemIdentifiers.first { id in
+            guard let item = items[id] else { return false }
+            return item.isEnabled && !item.isStatic
+        }
+        return firstActionable.flatMap { dataSource.indexPath(for: $0) }
     }
 
     /// Puts `content` in the context column, top-aligned and as tall as it needs to be, so the
@@ -169,8 +174,14 @@ final class TVSettingsHeading: TVReadOnlyPanel {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Shows `body` under the title, cross-dissolving from the last one as the focus moves between rows.
     func setBody(_ body: String?) {
+        guard body != content.detail else { return }
         content.detail = body
-        titleView.configure(content)
+        guard window != nil else {
+            titleView.configure(content)
+            return
+        }
+        TVMotion.dissolve(titleView, duration: TVMetrics.Duration.heroText) { self.titleView.configure(self.content) }
     }
 }

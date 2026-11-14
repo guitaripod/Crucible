@@ -13,20 +13,33 @@ enum TVFocusLift {
         view.layer.shadowOffset = TVMetrics.Focus.shadowOffset
     }
 
-    static func transform(focused: Bool) -> CGAffineTransform {
-        focused ? CGAffineTransform(scaleX: TVMetrics.Focus.scale, y: TVMetrics.Focus.scale) : .identity
+    static func transform(focused: Bool, scale: CGFloat = TVMetrics.Focus.scale) -> CGAffineTransform {
+        focused ? CGAffineTransform(scaleX: scale, y: scale) : .identity
     }
 
-    static func apply(to view: UIView, focused: Bool) {
-        view.transform = transform(focused: focused)
+    static func apply(to view: UIView, focused: Bool, scale: CGFloat = TVMetrics.Focus.scale) {
+        view.transform = transform(focused: focused, scale: scale)
         view.layer.shadowOpacity = focused ? TVMetrics.Focus.shadowOpacity : 0
     }
 
-    static func animate(_ view: UIView, focused: Bool, with coordinator: UIFocusAnimationCoordinator, alongside extra: (() -> Void)? = nil) {
+    static func animate(
+        _ view: UIView,
+        focused: Bool,
+        scale: CGFloat = TVMetrics.Focus.scale,
+        with coordinator: UIFocusAnimationCoordinator,
+        alongside extra: (() -> Void)? = nil
+    ) {
         coordinator.addCoordinatedAnimations({
-            apply(to: view, focused: focused)
+            apply(to: view, focused: focused, scale: scale)
             extra?()
         })
+    }
+
+    /// The scale that grows a view `width` points wide by `Row.focusGrowth` at each side, never more than `Focus.scale`: a
+    /// full-width row lifts as far past its edges as a half-width one instead of reaching beyond the safe area.
+    static func rowScale(width: CGFloat) -> CGFloat {
+        guard width > 0 else { return TVMetrics.Focus.scale }
+        return min(TVMetrics.Focus.scale, 1 + 2 * TVMetrics.Row.focusGrowth / width)
     }
 
     static func updateShadowPath(of view: UIView, cornerRadius: CGFloat) {

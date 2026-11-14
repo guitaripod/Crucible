@@ -121,7 +121,7 @@ final class HistoryViewController: TVScreenViewController {
             subitems: [item]
         )
         let section = NSCollectionLayoutSection(group: group)
-        section.interGroupSpacing = TVMetrics.Row.spacing
+        section.interGroupSpacing = HistoryMetrics.rowSpacing
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 0, bottom: HistoryMetrics.daySectionBottomInset, trailing: 0)
         section.boundarySupplementaryItems = [
             NSCollectionLayoutBoundarySupplementaryItem(

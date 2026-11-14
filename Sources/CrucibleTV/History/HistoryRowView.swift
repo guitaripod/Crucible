@@ -7,6 +7,7 @@ enum HistoryMetrics {
     static let rowHeight: CGFloat = 144
     static let posterRadius: CGFloat = Theme.Radius.xs
     static let rowInset: CGFloat = 12
+    static let rowSpacing: CGFloat = 12
     static let buttonSpacing: CGFloat = Theme.Space.l
     static let dayHeaderHeight: CGFloat = 64
     static let daySectionBottomInset: CGFloat = 40

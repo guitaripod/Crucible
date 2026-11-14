@@ -75,6 +75,7 @@ final class TVRowContentView: UIView, UIContentView {
     private let subtitleLabel = UILabel()
     private let valueLabel = UILabel()
     private let accessoryView = UIImageView()
+    private var showsFocus: Bool?
 
     init(configuration: TVRowConfiguration) {
         self.configuration = configuration
@@ -150,12 +151,24 @@ final class TVRowContentView: UIView, UIContentView {
 
     private func apply() {
         guard let configuration = configuration as? TVRowConfiguration else { return }
+        let focusChanged = showsFocus != nil && showsFocus != configuration.isFocused
+        showsFocus = configuration.isFocused
+        guard focusChanged, window != nil else {
+            render(configuration)
+            return
+        }
+        TVMotion.dissolve(plate, duration: TVMetrics.Duration.focus) { self.render(configuration) }
+    }
+
+    /// Draws the row the way tvOS draws a list row: bare text on the screen while it rests, a light plate with dark text
+    /// while it has focus.
+    private func render(_ configuration: TVRowConfiguration) {
         let item = configuration.item
         let focused = configuration.isFocused
         let primary = focused ? TVColor.onFocusFill : (item.isDestructive ? Theme.Color.destructive : Theme.Color.label)
         let secondary = focused ? TVColor.onFocusFillSecondary : Theme.Color.labelSecondary
 
-        plate.backgroundColor = focused ? TVColor.focusFill : Theme.Color.surfaceRaised
+        plate.backgroundColor = focused ? TVColor.focusFill : .clear
         titleLabel.text = item.title
         titleLabel.textColor = primary
         subtitleLabel.text = item.subtitle
@@ -175,7 +188,9 @@ final class TVRowContentView: UIView, UIContentView {
 
         switch item.accessory {
         case .none:
-            accessoryView.isHidden = true
+            accessoryView.isHidden = (item.value ?? "").isEmpty
+            accessoryView.image = UIImage(systemName: "chevron.right")
+            accessoryView.tintColor = .clear
         case .chevron:
             accessoryView.isHidden = false
             accessoryView.image = UIImage(systemName: "chevron.right")
@@ -191,9 +206,10 @@ final class TVRowContentView: UIView, UIContentView {
 
 /// A focusable list row. Use with `TVRowList.layout()` (a plain cell in a list layout, so tvOS draws
 /// no default list highlight behind it); it lifts and scales with the focus
-/// animation, like the system Settings rows.
+/// animation and dips while Select is held, like the system Settings rows.
 final class TVRowCell: UICollectionViewCell {
     private(set) var item: TVRowItem?
+    private var showsFocus = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -227,7 +243,27 @@ final class TVRowCell: UICollectionViewCell {
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
         super.didUpdateFocus(in: context, with: coordinator)
-        TVFocusLift.animate(self, focused: context.nextFocusedView === self, with: coordinator)
+        showsFocus = context.nextFocusedView === self
+        TVFocusLift.animate(self, focused: showsFocus, scale: liftScale, with: coordinator)
+    }
+
+    private var liftScale: CGFloat { TVFocusLift.rowScale(width: bounds.width) }
+
+    override var isHighlighted: Bool {
+        didSet {
+            guard isHighlighted != oldValue, showsFocus else { return }
+            TVMotion.animate(TVMetrics.Duration.focus, options: [.beginFromCurrentState, .allowUserInteraction]) {
+                self.transform = self.isHighlighted
+                    ? CGAffineTransform(scaleX: TVMetrics.Focus.pressedScale, y: TVMetrics.Focus.pressedScale)
+                    : TVFocusLift.transform(focused: true, scale: self.liftScale)
+            }
+        }
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        showsFocus = false
+        TVFocusLift.apply(to: self, focused: false)
     }
 
     override func layoutSubviews() {
@@ -237,7 +273,8 @@ final class TVRowCell: UICollectionViewCell {
 }
 
 enum TVRowList {
-    /// A single-column list of `TVRowCell`s: no separators, 12pt apart, content inset by the screen.
+    /// A single-column list of `TVRowCell`s inside the safe area, ending early enough that a focused row's lift stays
+    /// inside the safe edge.
     @MainActor
     static func layout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { _, environment in
@@ -251,7 +288,12 @@ enum TVRowList {
         configuration.backgroundColor = .clear
         let section = NSCollectionLayoutSection.list(using: configuration, layoutEnvironment: environment)
         section.interGroupSpacing = TVMetrics.Row.spacing
-        section.contentInsets = NSDirectionalEdgeInsets(top: TVMetrics.shelfVerticalInset, leading: 0, bottom: TVMetrics.shelfVerticalInset, trailing: 0)
+        section.contentInsets = NSDirectionalEdgeInsets(
+            top: TVMetrics.shelfVerticalInset,
+            leading: 0,
+            bottom: TVMetrics.shelfVerticalInset,
+            trailing: TVMetrics.Row.focusRoom
+        )
         return section
     }
 }
