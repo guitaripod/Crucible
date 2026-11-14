@@ -95,15 +95,25 @@ Duo paragraph are part of 2.10.0's What's New.
 
 ## Privacy
 
-- `docs/privacy-policy.txt` has the section "Crucible's AI (optional)" from version 2.10; publish it with the
-  release. `docs/app-privacy.json` adds Search History and widens Product Interaction; apply and publish it with
-  `asc web privacy` at release.
+- `docs/privacy-policy.txt` has the section "Crucible's AI (optional)" from version 2.10. Published 2026-11-14:
+  midgarcorp.cc/crucible/privacy carries it, and every listing locale on both platforms has the 13 November text
+  as its App Store privacy text (the four Nordic listings had a shorter text from 7 November).
+- `docs/app-privacy.json` adds Search History. Applied and published 2026-11-14 with `asc web privacy apply` and
+  `publish`, which need an Apple web session (`asc web auth login`, a 2FA code from the founder); `asc web privacy
+  plan` reads no difference since.
 - The on-screen sentences, the policy and the request are checked against each other: a recap sends the series
   name and the episode descriptions and nothing else.
 
-## Open before release
+## Submitted (2026-11-14)
 
-- 2.9.0 has to clear review before the 2.10.0 version can be created.
+- iPhone and iPad 2.10.0 (build 202611131818) and Apple TV 2.10.0 (build 202611111328) went to review together,
+  release on approval. They were submitted with manual release while the App Privacy label still lacked Search
+  History and switched to release on approval once it was published the same day. Tag `2.10.0`.
+- `asc validate`: no errors on either platform; the one warning left is the annual subscription's missing
+  promotional image.
+
+## Open
+
 - Midgar's model service runs on a plan whose CPU limit a burst of requests can trip, which hangs one network edge
   for every app until the service is deployed again (Midgar roadmap P3.22). Decide that before this feature is in
   front of every Crucible Pro owner.
