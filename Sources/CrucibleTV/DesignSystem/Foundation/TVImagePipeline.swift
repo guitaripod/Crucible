@@ -31,14 +31,23 @@ enum TVImagePipeline {
 enum TVPlaceholder {
     private static var cache: [String: UIImage] = [:]
 
-    static func image(symbol: String, size: CGSize, traits: UITraitCollection, circular: Bool = false) -> UIImage {
-        let key = "\(symbol)|\(Int(size.width))x\(Int(size.height))|\(traits.userInterfaceStyle.rawValue)|\(circular)"
+    /// The placeholder for a card of `size`: an ellipse when `circular`, otherwise a rectangle with `cornerRadius` corners on a
+    /// transparent surround, so the focus effect follows the same shape as the artwork that replaces it.
+    static func image(symbol: String, size: CGSize, traits: UITraitCollection, circular: Bool = false, cornerRadius: CGFloat = 0) -> UIImage {
+        let key = "\(symbol)|\(Int(size.width))x\(Int(size.height))|\(traits.userInterfaceStyle.rawValue)|\(circular)|\(Int(cornerRadius))"
         if let cached = cache[key] { return cached }
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         var image = UIImage()
         traits.performAsCurrent {
             image = renderer.image { context in
-                if circular { UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).addClip() }
+                let bounds = CGRect(origin: .zero, size: size)
+                if circular {
+                    UIBezierPath(ovalIn: bounds).addClip()
+                } else if cornerRadius > 0 {
+                    UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).addClip()
+                }
                 Theme.Color.surfaceRaised.setFill()
                 context.fill(CGRect(origin: .zero, size: size))
                 let configuration = UIImage.SymbolConfiguration(pointSize: min(size.width, size.height) * 0.22, weight: .light)
@@ -67,6 +76,32 @@ extension UIImage {
             background.setFill()
             context.fill(CGRect(origin: .zero, size: canvas))
             draw(at: CGPoint(x: (canvas.width - size.width) / 2, y: (canvas.height - size.height) / 2))
+        }
+    }
+
+    /// The image cropped from its centre to `aspect` (height over width) and drawn with corners of `cornerRadius` points on a
+    /// view `pointWidth` wide, on a transparent surround, at the image's own resolution. The system focus effect zooms the
+    /// image it is given; one already in the card's shape looks the same at rest and while it grows, where an image of another
+    /// shape spills past the card at rest and is cut back to it once it has focus.
+    func shaped(toAspect aspect: CGFloat, cornerRadius: CGFloat, pointWidth: CGFloat) -> UIImage {
+        guard size.width > 0, size.height > 0, aspect > 0, pointWidth > 0 else { return self }
+        let canvas = size.height / size.width > aspect
+            ? CGSize(width: size.width, height: (size.width * aspect).rounded())
+            : CGSize(width: (size.height / aspect).rounded(), height: size.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = false
+        format.preferredRange = .standard
+        let bounds = CGRect(origin: .zero, size: canvas)
+        let radius = cornerRadius * canvas.width / pointWidth
+        return UIGraphicsImageRenderer(size: canvas, format: format).image { _ in
+            UIBezierPath(roundedRect: bounds, cornerRadius: radius).addClip()
+            draw(in: CGRect(
+                x: (canvas.width - size.width) / 2,
+                y: (canvas.height - size.height) / 2,
+                width: size.width,
+                height: size.height
+            ))
         }
     }
 

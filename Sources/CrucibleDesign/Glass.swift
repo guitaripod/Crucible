@@ -10,6 +10,14 @@ package enum Glass {
         return DeviceModel.supportsLiquidGlass
     }()
 
+    /// Whether the system's focus effect on an image view takes its outline from the view's corner radius and draws its rim
+    /// along it, as tvOS 26 and later do on every Apple TV. Earlier systems draw the effect on the image itself, so an image
+    /// view there masks the effect to the shape baked into its picture (`masksFocusEffectToContents`).
+    package static let systemShapesFocusEffect: Bool = {
+        guard #available(iOS 26.0, tvOS 26.0, *) else { return false }
+        return true
+    }()
+
     package static func effectView(
         fallback: UIBlurEffect.Style,
         clear: Bool = false,

@@ -17,7 +17,12 @@ enum HistoryMetrics {
 /// the time of day. Focus lifts it like a `TVRowCell` and turns the plate light with dark text.
 final class HistoryRowSurface: TVFocusableSurface {
     private let plate = UIView()
-    private let artwork = TVArtworkView(kind: .poster, nominalSize: HistoryMetrics.posterSize, placeholderSymbol: "film")
+    private let artwork = TVArtworkView(
+        kind: .poster,
+        nominalSize: HistoryMetrics.posterSize,
+        cornerRadius: HistoryMetrics.posterRadius,
+        placeholderSymbol: "film"
+    )
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let timeLabel = UILabel()
@@ -57,7 +62,6 @@ final class HistoryRowSurface: TVFocusableSurface {
         contentView.insertSubview(plate, at: 0)
 
         artwork.adjustsImageWhenAncestorFocused = false
-        artwork.layer.cornerRadius = HistoryMetrics.posterRadius
         artwork.translatesAutoresizingMaskIntoConstraints = false
 
         titleLabel.font = TVFont.rowTitle

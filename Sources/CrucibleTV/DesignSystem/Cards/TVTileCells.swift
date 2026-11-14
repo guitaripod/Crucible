@@ -81,7 +81,10 @@ enum TVTileImage {
         let key = "\(name)|\(Int(size.width))x\(Int(size.height))|\(override.map { "\($0.top).\($0.bottom)" } ?? "")"
         if let cached = cache[key] { return cached }
         let (top, bottom) = override.map { (UIColor(hex: $0.top), UIColor(hex: $0.bottom)) } ?? TVTilePalette.colors(for: name)
-        let image = UIGraphicsImageRenderer(size: size).image { context in
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: TVMetrics.Card.cornerRadius).addClip()
             let cg = context.cgContext
             let space = CGColorSpaceCreateDeviceRGB()
             guard let gradient = CGGradient(colorsSpace: space, colors: [top.cgColor, bottom.cgColor] as CFArray, locations: [0, 1]) else { return }
@@ -130,6 +133,7 @@ final class TVTileContentView: UIView, UIContentView {
 
     private func buildHierarchy() {
         artwork.adjustsImageWhenAncestorFocused = true
+        artwork.masksFocusEffectToContents = !Glass.systemShapesFocusEffect
         artwork.layer.cornerCurve = .continuous
         artwork.layer.cornerRadius = TVMetrics.Card.cornerRadius
         artwork.translatesAutoresizingMaskIntoConstraints = false
