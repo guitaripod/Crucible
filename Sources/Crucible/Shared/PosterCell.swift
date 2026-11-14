@@ -21,6 +21,8 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
     /// A word for the corner pill when there is no count to show ("New", "New Season").
     var badgeText: String?
     var isDownloaded: Bool = false
+    /// Something listed that cannot be played here, such as an episode the server lacks: the artwork is drawn faint.
+    var isDimmed: Bool = false
     var showPlayButton: Bool = false
     var onQuickPlay: (() -> Void)?
 
@@ -28,7 +30,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
         lhs.posterPath == rhs.posterPath && lhs.posterURL == rhs.posterURL && lhs.artworkAspect == rhs.artworkAspect && lhs.title == rhs.title && lhs.subtitle == rhs.subtitle
             && lhs.progress == rhs.progress && lhs.isUnwatched == rhs.isUnwatched
             && lhs.unwatchedCount == rhs.unwatchedCount && lhs.badgeText == rhs.badgeText && lhs.isDownloaded == rhs.isDownloaded
-            && lhs.showPlayButton == rhs.showPlayButton
+            && lhs.isDimmed == rhs.isDimmed && lhs.showPlayButton == rhs.showPlayButton
     }
 
     func hash(into hasher: inout Hasher) {
@@ -42,6 +44,7 @@ struct PosterContentConfiguration: UIContentConfiguration, Hashable {
         hasher.combine(unwatchedCount)
         hasher.combine(badgeText)
         hasher.combine(isDownloaded)
+        hasher.combine(isDimmed)
         hasher.combine(showPlayButton)
     }
 
@@ -278,6 +281,8 @@ final class PosterContentView: UIView, UIContentView {
         unwatchedDot.isHidden = !(config.isUnwatched && countPill.isHidden && !hasProgress)
         downloadChip.isHidden = !config.isDownloaded
         playChip.isHidden = !config.showPlayButton
+        cardView.alpha = config.isDimmed ? 0.4 : 1
+        titleLabel.alpha = config.isDimmed ? 0.65 : 1
 
         accessibilityLabel = Self.spokenDescription(for: config)
 

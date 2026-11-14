@@ -14,6 +14,7 @@ final class HomeViewController: UICollectionViewController {
         case media(String, HomeBucket)
         case rate(String)
         case release(String)
+        case missingNext(String)
         case week
         case skeleton
     }
@@ -54,6 +55,11 @@ final class HomeViewController: UICollectionViewController {
     private var releases: [WatchlistRelease] = []
     private var releasesObserver: UUID?
     private var releasesTask: Task<Void, Never>?
+    private var missingNext: [MissingNext] = []
+    private var missingNextObserver: UUID?
+    private var missingNextTask: Task<Void, Never>?
+    /// A pull to refresh also looks again for the next episodes the server lacks, once Home has reloaded.
+    private var forceGaps = false
 
     init(api: APIClient, preloaded: PlexMediaContainer? = nil) {
         self.api = api
@@ -78,8 +84,12 @@ final class HomeViewController: UICollectionViewController {
         if let releasesObserver {
             Task { @MainActor in WatchlistReleases.shared.removeObserver(releasesObserver) }
         }
+        if let missingNextObserver {
+            Task { @MainActor in UpNextGaps.shared.removeObserver(missingNextObserver) }
+        }
         asksTask?.cancel()
         releasesTask?.cancel()
+        missingNextTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -98,6 +108,7 @@ final class HomeViewController: UICollectionViewController {
 
         let refresh = UIRefreshControl()
         refresh.addAction(UIAction { [weak self] _ in
+            self?.forceGaps = true
             self?.loadData()
             self?.loadWeek()
             self?.loadReleases(force: true)
@@ -114,6 +125,9 @@ final class HomeViewController: UICollectionViewController {
             self?.releasesChanged()
         }
         releases = WatchlistReleases.shared.releases()
+        missingNextObserver = UpNextGaps.shared.addObserver { [weak self] in
+            self?.missingNextChanged()
+        }
         ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in
             self?.asksChanged()
         }
@@ -219,9 +233,9 @@ final class HomeViewController: UICollectionViewController {
             case .continueWatching where !layout.continueRail.isEmpty:
                 snapshot.appendSections([.continueWatching])
                 snapshot.appendItems(layout.continueRail.map { .media($0.id, .continueWatching) }, toSection: .continueWatching)
-            case .upNext where !layout.upNext.isEmpty:
+            case .upNext where !layout.upNext.isEmpty || (!layout.isEmpty && !missingNext.isEmpty):
                 snapshot.appendSections([.upNext])
-                snapshot.appendItems(layout.upNext.map { .media($0.id, .upNext) }, toSection: .upNext)
+                snapshot.appendItems(layout.upNext.map { .media($0.id, .upNext) } + missingNext.map { .missingNext($0.id) }, toSection: .upNext)
             case .thisWeek where layout.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false):
                 snapshot.appendSections([.week])
                 snapshot.appendItems([.week], toSection: .week)
@@ -334,6 +348,12 @@ final class HomeViewController: UICollectionViewController {
             cell.accessibilityIdentifier = "home.rate.\(id)"
         }
 
+        let missingNextReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
+            guard let entry = self?.missingNext.first(where: { $0.id == id }) else { return }
+            cell.contentConfiguration = HomeMediaActions.posterConfiguration(for: entry)
+            cell.accessibilityIdentifier = "home.missingNext.\(entry.showRatingKey)"
+        }
+
         let releaseReg = UICollectionView.CellRegistration<UICollectionViewCell, String> { [weak self] cell, _, id in
             guard let release = self?.releases.first(where: { $0.id == id }) else { return }
             cell.contentConfiguration = WatchlistReleaseActions.posterConfiguration(for: release)
@@ -360,6 +380,8 @@ final class HomeViewController: UICollectionViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: rateReg, for: indexPath, item: id)
             case .release(let id):
                 return collectionView.dequeueConfiguredReusableCell(using: releaseReg, for: indexPath, item: id)
+            case .missingNext(let id):
+                return collectionView.dequeueConfiguredReusableCell(using: missingNextReg, for: indexPath, item: id)
             case .week:
                 return collectionView.dequeueConfiguredReusableCell(using: weekReg, for: indexPath, item: item)
             case .skeleton:
@@ -375,8 +397,10 @@ final class HomeViewController: UICollectionViewController {
                 config.title = feed.arrangement.title(for: .continueWatching)
             case .upNext:
                 config.title = feed.arrangement.title(for: .upNext)
-                config.actionTitle = String(localized: "See All")
-                config.onAction = { [weak self] in self?.showAll(.upNext) }
+                if !feed.arrangement.upNext.isEmpty {
+                    config.actionTitle = String(localized: "See All")
+                    config.onAction = { [weak self] in self?.showAll(.upNext) }
+                }
             case .recentlyAdded:
                 config.title = feed.arrangement.title(for: .recentlyAdded)
                 config.actionTitle = String(localized: "See All")
@@ -520,7 +544,10 @@ final class HomeViewController: UICollectionViewController {
             do {
                 try await feed.refresh()
                 WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
+                missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
                 presentLoadedContent(animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
+                loadMissingNext(force: forceGaps)
+                forceGaps = false
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
@@ -608,6 +635,9 @@ final class HomeViewController: UICollectionViewController {
         case .release(let id):
             guard let release = releases.first(where: { $0.id == id }) else { return }
             WatchlistReleaseActions.open(release, api: api, from: self)
+        case .missingNext(let id):
+            guard let entry = missingNext.first(where: { $0.id == id }) else { return }
+            navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: entry.showRatingKey, initialSeasonKey: entry.initialSeasonKey), animated: true)
         case .week:
             navigationController?.pushViewController(StatisticsViewController(api: api), animated: true)
         case .skeleton:
@@ -633,6 +663,17 @@ final class HomeViewController: UICollectionViewController {
                         rate(ask, source: collectionView.cellForItem(at: indexPath) ?? collectionView)
                     }
                 )
+            })
+        }
+        if case .missingNext(let id) = item, let entry = missingNext.first(where: { $0.id == id }), SeerrAccount.shared.isConnected {
+            return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                guard let self else { return nil }
+                return UIMenu(title: entry.showTitle, children: [
+                    UIAction(title: SeerrCopy.request, image: UIImage(systemName: "plus.circle")) { [weak self] _ in
+                        guard let self else { return }
+                        SeerrRequestViewController.present(for: entry.showMetadata, api: api, isOnServer: true, from: self)
+                    },
+                ])
             })
         }
         if case .release(let id) = item, let release = releases.first(where: { $0.id == id }) {
@@ -706,6 +747,24 @@ final class HomeViewController: UICollectionViewController {
             await WatchlistReleases.shared.refresh(api: api, force: force)
             self?.releasesTask = nil
         }
+    }
+
+    /// Looks for the next episode, aired but not on the server, of the shows the viewer is caught up on, once Home's own
+    /// rows have said which shows the server has a next episode for.
+    private func loadMissingNext(force: Bool) {
+        guard HomeLayout.isOn(.upNext) else { return }
+        let candidates = UpNextGaps.candidates(followed: FollowedShows.recentlyFinished(), nextUp: feed.nextUpItems)
+        missingNextTask?.cancel()
+        missingNextTask = Task { [api] in
+            await UpNextGaps.shared.refresh(api: api, candidates: candidates, force: force)
+        }
+    }
+
+    private func missingNextChanged() {
+        let current = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
+        guard current != missingNext else { return }
+        missingNext = current
+        if !isShowingSkeleton { rebuildSnapshot(animated: true) }
     }
 
     private func releasesChanged() {

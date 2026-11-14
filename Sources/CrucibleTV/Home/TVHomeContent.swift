@@ -25,6 +25,7 @@ enum TVHomeItem: Hashable {
     case card(String, HomeBucket)
     case rate(String)
     case release(String)
+    case missingNext(String)
     case week
     case whatToWatch
     case surprise
@@ -64,6 +65,18 @@ enum TVHomeContent {
             subtitle: ask.caption(now: now),
             placeholderSymbol: ask.isShow ? "tv" : "film",
             accessibilityHint: UserRatingCopy.rate
+        )
+    }
+
+    /// The dimmed card Up Next ends with for a show the viewer is caught up on whose next episode the server lacks.
+    static func card(for entry: MissingNext) -> TVCardItem {
+        TVCardItem(
+            id: entry.id,
+            artworkPath: entry.artPath ?? entry.posterPath,
+            title: entry.showTitle,
+            subtitle: entry.caption,
+            isDimmed: true,
+            placeholderSymbol: "tv"
         )
     }
 

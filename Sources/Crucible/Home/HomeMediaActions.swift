@@ -20,6 +20,17 @@ enum HomeMediaActions {
         return config
     }
 
+    /// The dimmed card Up Next ends with for a show the viewer is caught up on whose next episode the server lacks.
+    static func posterConfiguration(for entry: MissingNext) -> PosterContentConfiguration {
+        var config = PosterContentConfiguration()
+        config.title = entry.showTitle
+        config.subtitle = entry.caption
+        config.posterPath = entry.posterPath
+        config.placeholderIcon = "tv"
+        config.isDimmed = true
+        return config
+    }
+
     static func landscapeConfiguration(for item: PlexMetadata) -> LandscapeContentConfiguration {
         let card = HomeCardModel(item: item, bucket: .continueWatching, layout: .landscape)
         var config = LandscapeContentConfiguration()

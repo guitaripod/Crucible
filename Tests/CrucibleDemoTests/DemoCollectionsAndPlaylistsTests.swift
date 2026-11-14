@@ -217,6 +217,24 @@ struct DemoWatchlistTests {
         }
     }
 
+    @Test func drySeasonWatchedToTheEndHasItsNextEpisodeOutButNotOnTheServer() async throws {
+        try await withDemo { demo in
+            let api = demo.api
+            let prefix = "/\(DemoRouter.plexTVPrefix)"
+            let check = MissingNextCheck(
+                fetchLeaves: { try await api.requestContainer(.folderPath("/library/metadata/\($0)/allLeaves")).Metadata ?? [] },
+                fetchChildren: { try await api.requestContainer(.folderPath("\(prefix)/library/metadata/\($0)/children")).Metadata ?? [] },
+                fetchShow: { try await api.requestContainer(.metadata(ratingKey: $0)).Metadata?.first }
+            )
+            let result = await check.run(shows: ["2006"], now: Date())
+            let next = try #require(result.found.first)
+            #expect(next.season == 2)
+            #expect(next.episode == 1)
+            #expect(next.showTitle == "Dry Season")
+            #expect(next.initialSeasonKey == MissingSeason.id(2))
+        }
+    }
+
     @Test func addingAndRemovingChangeTheList() async throws {
         try await withDemo { demo in
             let (_, removed) = try await demo.get("/actions/removeFromWatchlist?ratingKey=1001", method: "PUT")

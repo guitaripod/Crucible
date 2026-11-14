@@ -6,6 +6,13 @@ import Foundation
 package enum FollowedShows {
     package static let lookBack: TimeInterval = 60 * 86_400
 
+    /// The shows with an episode finished on this device in the last two months, the most recently watched first.
+    package static func recentlyFinished(now: Date = Date(), ledger: FinishedTitlesLedger = .shared) -> [String] {
+        ledger.followedShows(since: now.addingTimeInterval(-lookBack))
+            .sorted { $0.finishedAt > $1.finishedAt }
+            .compactMap(\.showRatingKey)
+    }
+
     package static func current(now: Date = Date(), ledger: FinishedTitlesLedger = .shared) -> Set<String> {
         var shows = Set(ledger.followedShows(since: now.addingTimeInterval(-lookBack)).compactMap(\.showRatingKey))
         if let snapshot = HomeSnapshotStore.loadSync(), snapshot.machineIdentifier == ServerBootstrap.savedMachineIdentifier {

@@ -66,6 +66,9 @@ package final class HomeFeed {
     /// Every title the last load listed, in rows the viewer hides too.
     package var fetchedItems: [PlexMetadata] { fetched.continueWatching + fetched.onDeck + fetched.recent }
 
+    /// What the server says to watch next, in rows the viewer hides too: what is in progress and each show's next episode.
+    package var nextUpItems: [PlexMetadata] { fetched.continueWatching + fetched.onDeck }
+
     package func item(id: String) -> PlexMetadata? {
         mediaByID[id]
     }

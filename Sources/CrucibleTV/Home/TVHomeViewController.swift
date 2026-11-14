@@ -41,6 +41,9 @@ final class TVHomeViewController: TVScreenViewController {
     private var releases: [WatchlistRelease] = []
     private var releasesObserver: UUID?
     private lazy var releasesSlot = makeTaskSlot()
+    private var missingNext: [MissingNext] = []
+    private var missingNextObserver: UUID?
+    private lazy var missingNextSlot = makeTaskSlot()
     private var skipNextAppearanceLoad = true
     private var hasAwaitedFirstSync = false
     private weak var seeAll: TVHomeSeeAllViewController?
@@ -73,6 +76,9 @@ final class TVHomeViewController: TVScreenViewController {
         if let releasesObserver {
             Task { @MainActor in WatchlistReleases.shared.removeObserver(releasesObserver) }
         }
+        if let missingNextObserver {
+            Task { @MainActor in UpNextGaps.shared.removeObserver(missingNextObserver) }
+        }
     }
 
     override func viewDidLoad() {
@@ -94,6 +100,9 @@ final class TVHomeViewController: TVScreenViewController {
             self?.releasesChanged()
         }
         releases = WatchlistReleases.shared.releases()
+        missingNextObserver = UpNextGaps.shared.addObserver { [weak self] in
+            self?.missingNextChanged()
+        }
         render(animated: false)
     }
 
@@ -232,6 +241,10 @@ final class TVHomeViewController: TVScreenViewController {
                 let data = self?.asks.first { $0.id == id }.map { TVHomeContent.card(for: $0) } ?? TVCardItem(id: id, title: "")
                 cell = collectionView.dequeueConfiguredReusableCell(using: poster, for: indexPath, item: data)
                 cell.accessibilityIdentifier = "home.rate.\(id)"
+            case .missingNext(let id):
+                let data = self?.missingNext.first { $0.id == id }.map { TVHomeContent.card(for: $0) } ?? TVCardItem(id: id, title: "")
+                cell = collectionView.dequeueConfiguredReusableCell(using: landscape, for: indexPath, item: data)
+                cell.accessibilityIdentifier = "home.missingNext.\(id)"
             case .release(let id):
                 let release = self?.releases.first { $0.id == id }
                 let data = release.map { TVHomeContent.card(for: $0) } ?? TVCardItem(id: id, title: "")
@@ -302,7 +315,7 @@ final class TVHomeViewController: TVScreenViewController {
         if section == .watchlistReleases { return TVSectionHeader(title: WatchlistReleaseCopy.rowTitle) }
         guard let bucket = section.bucket else { return nil }
         let title = feed.arrangement.title(for: bucket)
-        guard bucket != .continueWatching else { return TVSectionHeader(title: title) }
+        guard bucket != .continueWatching, !feed.arrangement.shelf(for: bucket).isEmpty else { return TVSectionHeader(title: title) }
         return TVSectionHeader(title: title, seeAllAction: { [weak self] in self?.showAll(bucket) })
     }
 
@@ -318,10 +331,11 @@ final class TVHomeViewController: TVScreenViewController {
             case .continueWatching, .upNext:
                 let section: TVHomeSection = row == .continueWatching ? .continueWatching : .upNext
                 guard let bucket = section.bucket else { continue }
-                let items = arrangement.shelf(for: bucket)
+                let items = arrangement.shelf(for: bucket).map { TVHomeItem.card($0.id, bucket) }
+                    + (section == .upNext && !arrangement.isEmpty ? missingNext.map { TVHomeItem.missingNext($0.id) } : [])
                 guard !items.isEmpty else { continue }
                 snapshot.appendSections([section])
-                snapshot.appendItems(items.map { .card($0.id, bucket) }, toSection: section)
+                snapshot.appendItems(items, toSection: section)
             case .thisWeek where arrangement.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false):
                 snapshot.appendSections([.week])
                 snapshot.appendItems([.week], toSection: .week)
@@ -438,7 +452,9 @@ final class TVHomeViewController: TVScreenViewController {
             do {
                 try await feed.refresh()
                 WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
+                missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
                 render(animated: true)
+                loadMissingNext()
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
@@ -531,6 +547,10 @@ final class TVHomeViewController: TVScreenViewController {
             TVSeerrRequestViewController.open(release.asMetadata, env: env, isOnServer: false, from: self)
             return
         }
+        if case .missingNext(let id)? = dataSource.itemIdentifier(for: indexPath), let entry = missingNext.first(where: { $0.id == id }) {
+            TVNavigation.push(TVScreens.showDetail(env, ratingKey: entry.showRatingKey, initialSeasonKey: entry.initialSeasonKey), from: self)
+            return
+        }
         guard let target = cardTarget(at: indexPath) else { return }
         actions.select(target.media, in: target.bucket, from: self)
     }
@@ -549,6 +569,24 @@ final class TVHomeViewController: TVScreenViewController {
         releasesSlot.run {
             await WatchlistReleases.shared.refresh(api: api)
         }
+    }
+
+    /// Looks for the next episode, aired but not on the server, of the shows the viewer is caught up on, once Home's own
+    /// rows have said which shows the server has a next episode for.
+    private func loadMissingNext() {
+        guard HomeLayout.isOn(.upNext) else { return }
+        let api = env.api
+        let candidates = UpNextGaps.candidates(followed: FollowedShows.recentlyFinished(), nextUp: feed.nextUpItems)
+        missingNextSlot.run {
+            await UpNextGaps.shared.refresh(api: api, candidates: candidates)
+        }
+    }
+
+    private func missingNextChanged() {
+        let current = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
+        guard current != missingNext else { return }
+        missingNext = current
+        if !collectionView.isHidden { applySnapshot(animated: true) }
     }
 
     private func releasesChanged() {
@@ -644,6 +682,14 @@ final class TVHomeViewController: TVScreenViewController {
         }
         if let release = release(at: indexPath) {
             return TVContextMenu.configuration(menu: releaseMenu(for: release))
+        }
+        if case .missingNext(let id)? = dataSource.itemIdentifier(for: indexPath), let entry = missingNext.first(where: { $0.id == id }), SeerrAccount.shared.isConnected {
+            return TVContextMenu.configuration(menu: UIMenu(title: entry.showTitle, children: [
+                UIAction(title: SeerrCopy.request, image: UIImage(systemName: "plus.circle")) { [weak self] _ in
+                    guard let self else { return }
+                    TVSeerrRequestViewController.open(entry.showMetadata, env: env, isOnServer: true, from: self)
+                },
+            ]))
         }
         guard let target = cardTarget(at: indexPath) else { return nil }
         return TVContextMenu.configuration(menu: actions.menu(for: target.media, in: target.bucket, from: self))
