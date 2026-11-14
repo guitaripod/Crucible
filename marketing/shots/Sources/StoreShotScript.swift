@@ -31,11 +31,9 @@ enum StoreShotScript {
         tabBar.select(.search)
         await ShotHarness.settle(1.5)
         if let search = ShotScript.navigation(tabBar)?.topViewController as? SearchViewController {
-            let controller = search.navigationItem.searchController
-            controller?.searchBar.text = "orchard"
-            if let controller { search.updateSearchResults(for: controller) }
-            await ShotHarness.settle(3)
+            await look(for: "orchard", in: search)
             await ShotHarness.capture("05b-search-request")
+            search.navigationItem.searchController?.isActive = false
         }
 
         tabBar.select(.downloads)
@@ -46,6 +44,19 @@ enum StoreShotScript {
         await statistics(tabBar: tabBar, api: api)
         await ShotScript.playRecap(api: api, tabBar: tabBar)
         await ShotHarness.capture("done")
+    }
+
+    /// Searches the way a person does, through an active search field, so the bar lays out its scope buttons above
+    /// the results. Text set on an idle bar shows the buttons over the first result instead, which no one ever sees.
+    private static func look(for query: String, in search: SearchViewController) async {
+        search.activateSearchField()
+        await ShotHarness.settle(1.5)
+        guard let controller = search.navigationItem.searchController else { return }
+        controller.searchBar.text = query
+        search.updateSearchResults(for: controller)
+        await ShotHarness.settle(3)
+        controller.searchBar.resignFirstResponder()
+        await ShotHarness.settle(1)
     }
 
     /// Statistics and its poster once the counting has settled, so the hours are the same on every display and in
