@@ -90,11 +90,19 @@ final class PreviouslyOnViewController: UIViewController {
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: Theme.Space.s),
             stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -Theme.Space.l),
-            stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: Theme.Space.l),
-            stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -Theme.Space.l),
-            stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -2 * Theme.Space.l),
-        ])
+            scroll.contentLayoutGuide.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
+        ] + besideTheBar(stack))
         if offer == .server { load() }
+    }
+
+    /// Keeps the text between the sheet's safe edges. On iPhone Duo's outer display the sheet's bar stands on the
+    /// trailing edge with Done in it, beside the text and not above it, and a title as wide as the sheet ran under
+    /// that button.
+    private func besideTheBar(_ stack: UIStackView) -> [NSLayoutConstraint] {
+        [
+            stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: Theme.Space.l),
+            stack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -Theme.Space.l),
+        ]
     }
 
     /// Lays out the described form: the episodes as Plex describes them, the button that has them written into one
