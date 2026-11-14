@@ -54,9 +54,23 @@ Duo paragraph are part of 2.10.0's What's New.
   - iPad 13-inch, English: the same panel second (ten in the set), from `IPadStoreShots.testCapturesWhatToWatch` in
     the demo, composed with `--only 09-what-to-watch`.
   - Apple TV, English: the picks at 4K second (ten in the set), from `DemoTests` on the 4K simulator.
-  - iPhone Duo: unchanged, ten stories without What to Watch.
+  - iPhone Duo, in English and fourteen locales (2026-11-14): ten stories that open with Ask what to watch and
+    Skip the filler on the inner display, then Skip the recap, Catch up before you play (Previously On), search,
+    the library, a title, Downloads, Statistics and the Year in Review poster. The type is twice the size of the
+    2.9.0 set's and each device fills its panel and runs off the lower edge. Captured from this release's build
+    with `marketing/shots/duo-run.sh STATE LANGUAGE...` and `SHOT_SCRIPT=store` (`StoreShotScript`: the screens the
+    store uses and nothing else, a third of the tour's time), composed with `marketing/store/compose_duo.py duo`.
+  - Header and Search Results, in all 21 listing languages: "Ask what to watch" over "Picks from your own Plex
+    library" and five iPhones, What to Watch in the middle. Each is made for its own placement (3840 by 1646 and
+    3840 by 2560) instead of one 5244 by 2950 image cropped two ways, because Apple promises only an art safe area
+    in the middle of each (1646 by 661 and 2168 by 1030, creative assets specifications in App Store Connect
+    Help): the phrase and the phone down to its request field sit inside it, which `compose_duo.py header
+    --guides` draws. The 2.9.0 images had their words above that box, where a crop removes them. Arabic and Thai
+    carry the English words; Indonesian, Russian, Turkish and Vietnamese carry their own words over the English app.
 - Upload once the 2.10.0 version exists and `docs/asc-metadata.json` names it: `python3 scripts/asc-screenshots.py
-  --locales=all`, then the Duo set and the Header and Search Results images as `docs/marketing-2.9.0.md` describes.
+  --locales=all` (iPhone, iPad, Duo and Apple TV), then `python3 scripts/asc-creative.py` for the Header and Search
+  Results images. Look at both placements in App Store Connect's preview before the version is submitted: Apple
+  publishes the safe areas, not how each device crops around them.
 
 ## Privacy
 

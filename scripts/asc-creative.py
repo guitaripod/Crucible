@@ -17,7 +17,7 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCE = os.path.join(ROOT, "marketing/appstore/header")
+SOURCE = os.path.realpath(os.path.join(ROOT, "marketing/appstore/header"))
 SPEC = json.load(open(os.path.join(ROOT, "docs/asc-metadata.json")))
 PLACEMENTS = {"header.png": "PRODUCT_PAGE_HEADER_ASSET", "search.png": "APP_STORE_SEARCH_RESULTS_ASSET"}
 

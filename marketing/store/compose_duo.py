@@ -1,19 +1,22 @@
 #!/usr/bin/python3
 """Compose Crucible's iPhone Duo screenshots and its product page Header and Search Results images.
 
-Usage: marketing/store/compose_duo.py [duo] [header] [--locale LOCALE] [--raw DIR]
+Usage: marketing/store/compose_duo.py [duo] [header] [--locale LOCALE] [--raw DIR] [--guides]
 
 duo: the ten Duo screenshots, one story each from captions.json's "duo" list, at the size of the display it was
 captured on (inner landscape 2853x2007, inner portrait 2007x2853, outer portrait 1398x2034, outer landscape
 2034x1398), into marketing/appstore/duo/<locale>. Captures come from DIR/<state>-<language>/<screen>.png, as
 marketing/shots/duo-run.sh writes them for each Duo state; every capture is set into Apple's Duo bezel by the
-`frames` CLI and placed on the ember gradient under its localized caption, as the iPhone set is.
+`frames` CLI and placed on the ember gradient under its localized caption, as the iPhone set is. The type is set
+to be read at the size the store shows a screenshot, and the device fills the panel's width.
 
-header: the 5244x2950 universal image App Store Connect takes for both the product page Header and the Search Results
-placement, into marketing/appstore/header/<locale>: header.png carries the icon, the name and the app's subtitle over
-Home on the inner display and a title on the outer one; search.png shows the app's purpose at a glance, the Essentials offer on the inner display
-beside Home on the outer one. Arabic and Thai, which this pipeline cannot shape, use the English text, as their
-screenshots do.
+header: the product page Header (3840x1646) and the Search Results image (3840x2560), each made for its own
+placement, into marketing/appstore/header/<locale> as header.png and search.png. Apple crops both differently on every
+device and promises only an art safe area in the middle (creative assets specifications, App Store Connect Help), so
+the phrase from captions.json's "creative" and the top of the iPhone that proves it sit inside that box, and four more
+iPhones run out of it as atmosphere. The phones come from marketing/shots/out/raw-dark[-language] (run.sh), in the
+frames CLI's bezel. --guides also draws the safe area, into header-guides.png and search-guides.png, for looking at.
+Arabic and Thai, which this pipeline cannot shape, use the English text, as their screenshots do.
 """
 
 import json
@@ -30,13 +33,13 @@ STORE_LOCALES = ["en-US", "ar-SA", "de-DE", "es-ES", "fr-FR", "id", "it", "ja", 
 UNSHAPED = {"ar-SA", "th"}
 
 SIZES = {
-    "inner-landscape": {"size": (2853, 2007), "headline": (124, 92, 142), "subhead": (64, 50, 80), "headline_top": 96, "gap": 28, "text_margin": 330, "device_gap": 64, "bottom": 56},
-    "inner-portrait": {"size": (2007, 2853), "headline": (146, 108, 168), "subhead": (76, 58, 94), "headline_top": 140, "gap": 36, "text_margin": 140, "device_gap": 84, "bottom": 70},
-    "outer-portrait": {"size": (1398, 2034), "headline": (108, 82, 126), "subhead": (56, 44, 70), "headline_top": 104, "gap": 28, "text_margin": 84, "device_gap": 64, "bottom": 60},
-    "outer-landscape": {"size": (2034, 1398), "headline": (98, 76, 114), "subhead": (52, 40, 64), "headline_top": 72, "gap": 24, "text_margin": 230, "device_gap": 48, "bottom": 44},
+    "inner-landscape": {"size": (2853, 2007), "headline": (168, 118, 190), "subhead": (84, 62, 104), "headline_top": 112, "gap": 34, "text_margin": 190, "device_gap": 78, "side": 96},
+    "inner-portrait": {"size": (2007, 2853), "headline": (170, 122, 194), "subhead": (84, 62, 104), "headline_top": 150, "gap": 40, "text_margin": 110, "device_gap": 92, "side": 84},
+    "outer-portrait": {"size": (1398, 2034), "headline": (124, 90, 142), "subhead": (62, 46, 78), "headline_top": 112, "gap": 30, "text_margin": 70, "device_gap": 72, "side": 62},
+    "outer-landscape": {"size": (2034, 1398), "headline": (128, 94, 146), "subhead": (64, 48, 80), "headline_top": 84, "gap": 26, "text_margin": 150, "device_gap": 58, "side": 70},
 }
-
-HEADER_SIZE = (5244, 2950)
+BOTTOM = 56
+MOST_CUT = 0.3
 
 
 def language_of(locale):
@@ -45,12 +48,13 @@ def language_of(locale):
 
 
 def captions_for(captions, locale):
-    """The Duo stories with the locale's headline and subhead where the iPhone set has them translated."""
+    """The Duo stories with the locale's headline and subhead: the iPhone set's for the same screen, or the story's
+    own where the iPhone set has no such screen."""
     text = captions["l10n"].get(locale, {}) if locale != "en-US" else {}
     stories = []
     for entry in captions["duo"]:
-        base = next(item for item in captions["iphone"] if item["screen"] == entry["screen"])
-        stories.append({**base, **text.get(entry["screen"], {}), **entry})
+        base = next((item for item in captions["iphone"] if item["screen"] == entry["screen"]), {})
+        stories.append({**base, **entry, **text.get(entry["screen"], {})})
     return stories
 
 
@@ -67,7 +71,10 @@ def caption_height(spec, entry):
 
 
 def panel(entry, raw_dir, device_tops):
-    """One Duo screenshot: the caption centred in the band above the device, the device as large as the room allows."""
+    """One Duo screenshot: the caption centred in the band above the device, the device as wide as the panel and
+    running off its lower edge so the screen is large enough to read, unless the story is marked `whole`, whose
+    point sits at the bottom of the screen. No more than `MOST_CUT` of a device is ever cut, or the story's own
+    `cut` where what it is about sits lower on the screen."""
     spec = SIZES[entry["state"]]
     width, height = spec["size"]
     path = os.path.join(raw_dir, f"{entry.get('from', entry['state'])}-{entry['language']}", f"{entry['screen']}.png")
@@ -81,10 +88,10 @@ def panel(entry, raw_dir, device_tops):
     top = spec["headline_top"] + (device_top - spec["device_gap"] - spec["headline_top"] - caption_height(spec, entry)) // 2
     y = compose.draw_lines(draw, headline[1], headline[0], headline[2], top, width, compose.HEADLINE_COLOR)
     compose.draw_lines(draw, subhead[1], subhead[0], subhead[2], y + spec["gap"], width, compose.SUBHEAD_COLOR)
-    room_width = width - 2 * max(spec["bottom"], 48)
-    room_height = height - device_top - spec["bottom"]
-    device = compose.framed(path, None, room_width)
-    scale = min(1.0, room_height / device.height)
+    device = compose.framed(path, None, width - 2 * spec["side"])
+    room = height - device_top
+    shown = room - BOTTOM if entry.get("whole") else room / (1 - entry.get("cut", MOST_CUT))
+    scale = min(1.0, shown / device.height)
     device = device.resize((round(device.width * scale), round(device.height * scale)), Image.LANCZOS)
     compose.paste_with_shadow(canvas, device, ((width - device.width) // 2, device_top))
     image = canvas.convert("RGB")
@@ -112,79 +119,115 @@ def compose_duo(captions, locale, raw_dir):
         print(target, flush=True)
 
 
-def icon(size):
-    """The app icon with the system's continuous corner, at `size` pixels."""
-    source = Image.open(os.path.join(ROOT, "ios/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png")).convert("RGBA")
-    source = source.resize((size, size), Image.LANCZOS)
-    mask = Image.new("L", (size * 4, size * 4), 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size * 4 - 1, size * 4 - 1), radius=round(size * 4 * 0.2237), fill=255)
-    source.putalpha(mask.resize((size, size), Image.LANCZOS))
-    return source
+CREATIVE = {
+    "header": {
+        "size": (3840, 1646), "safe": (1097, 493, 1646, 661),
+        "headline": (150, 100, 168), "subline": (76, 54, 92), "gap": 20, "device_gap": 40,
+        "hero": 880, "side": 770, "far": 680, "step": 80, "spacing": 74,
+    },
+    "search": {
+        "size": (3840, 2560), "safe": (836, 765, 2168, 1030),
+        "headline": (236, 150, 262), "subline": (116, 80, 140), "gap": 36, "device_gap": 70,
+        "hero": 1280, "side": 1100, "far": 960, "step": 120, "spacing": 96,
+    },
+}
+CREATIVE_SCREENS = ["02b-library-settled", "04c-essentials-offer", "15-what-to-watch", "01-home", "07c-share-preview"]
+CREATIVE_DIM = (1.0, 0.86, 0.7)
+REQUEST_FIELD_BOTTOM = 0.385
+SMALLEST_HERO = 0.8
+SMALLEST_TYPE = 0.7
 
 
-def header_text(locale):
-    """The subtitle the App Store shows under the name, in the locale's words, or English where it cannot be shaped."""
-    chosen = "en-US" if locale in UNSHAPED else locale
-    return json.load(open(os.path.join(ROOT, f"store/metadata/ios/app-info/{chosen}.json"), encoding="utf-8"))["subtitle"], chosen
+def creative_text(captions, locale):
+    """The phrase and the line under it for the Header and Search images, in the locale's words, or English where
+    the text cannot be shaped."""
+    if locale in UNSHAPED or locale == "en-US":
+        return captions["creative"], None
+    return {**captions["creative"], **captions["l10n"].get(locale, {}).get("creative", {})}, locale
 
 
-def scaled(image, height):
-    return image.resize((round(image.width * height / image.height), round(height)), Image.LANCZOS)
+def one_line(text, weight, spec, width):
+    """The text on one line, at a smaller size when it has to be and never under `SMALLEST_TYPE` of the size asked
+    for; on two lines at the full size only when that is not enough. A second line pushes the phone out of the
+    safe area, so a smaller line is the better trade."""
+    size, minimum, leading = spec
+    floor = max(minimum, round(size * SMALLEST_TYPE))
+    face, lines, scaled = compose.fit(text, weight, (size, floor, leading), width, 1)
+    if len(lines) == 1 and face.getlength(lines[0]) <= width:
+        return face, lines, scaled
+    return compose.fit(text, weight, spec, width, 2)
 
 
-def compose_header(locale, raw_dir):
-    """The Header and the Search Results images: everything that matters sits in the middle 70 % of the width and above
-    the lower fifth, where the App Store may lay its own name and button over the art."""
-    language = language_of(locale)
-    subtitle, text_locale = header_text(locale)
+def phone_raw(language):
+    return os.path.join(ROOT, "marketing/shots/out", "raw-dark" if language == "en" else f"raw-dark-{language}")
+
+
+def dimmed(device, factor):
+    """The device darkened towards the backdrop, so the one in the middle is the one that is looked at."""
+    if factor >= 1:
+        return device
+    red, green, blue, alpha = device.split()
+    scale = lambda channel: channel.point(lambda value: round(value * factor))
+    return Image.merge("RGBA", (scale(red), scale(green), scale(blue), alpha))
+
+
+def compose_creative(kind, captions, locale, guides=False):
+    """One product page image. Apple shows it cropped differently on every device and lays its own controls over the
+    edges, and promises only the art safe area: the phrase and the line under it sit inside that box with the top of
+    the phone that proves them down to its request field (`REQUEST_FIELD_BOTTOM` of the phone's width below its top),
+    and the other phones run out of it as atmosphere, each darker the further out it is. The phones run off the
+    bottom edge, where the App Store sets the app's name and button; long words make every phone a little smaller."""
+    spec = CREATIVE[kind]
+    width, height = spec["size"]
+    left, top, safe_width, safe_height = spec["safe"]
+    text, text_locale = creative_text(captions, locale)
     compose.LOCALE = text_locale
-    width = HEADER_SIZE[0]
+    canvas = compose.background(spec["size"])
+    draw = ImageDraw.Draw(canvas)
+    room = safe_width - 60
+    headline = one_line(text["headline"], "Bold", spec["headline"], room)
+    subline = one_line(text["subline"], "Medium", spec["subline"], room)
+    y = compose.draw_lines(draw, headline[1], headline[0], headline[2], top + 6, width, compose.HEADLINE_COLOR)
+    y = compose.draw_lines(draw, subline[1], subline[0], subline[2], y + spec["gap"], width, compose.SUBHEAD_COLOR)
+    device_top = y + spec["device_gap"] - round(subline[2] * 0.2)
+    shrink = min(1.0, (top + safe_height - device_top) / (REQUEST_FIELD_BOTTOM * spec["hero"]))
+    if shrink < SMALLEST_HERO:
+        sys.exit(f"{locale}/{kind}: the words leave no room in the safe area for the phone down to its request field (phone starts at {device_top})")
+
+    raw = phone_raw(language_of(locale))
+    widths = [round(spec[name] * shrink) for name in ("far", "side", "hero", "side", "far")]
+    order = [0, 4, 1, 3, 2]
+    centre = width // 2
+    offsets = {2: 0}
+    offsets[1] = -(widths[2] + widths[1]) // 2 - spec["spacing"]
+    offsets[3] = -offsets[1]
+    offsets[0] = offsets[1] - (widths[1] + widths[0]) // 2 - spec["spacing"]
+    offsets[4] = -offsets[0]
+    for index in order:
+        rank = abs(index - 2)
+        device = dimmed(compose.framed(os.path.join(raw, CREATIVE_SCREENS[index] + ".png"), "Black", widths[index]), CREATIVE_DIM[rank])
+        x = centre + offsets[index] - device.width // 2
+        compose.paste_with_shadow(canvas, device, (x, device_top + rank * spec["step"]))
+    image = canvas.convert("RGB")
+    if guides:
+        overlay = ImageDraw.Draw(image)
+        overlay.rectangle((left, top, left + safe_width, top + safe_height), outline=(0, 255, 120), width=6)
+    return image
+
+
+def compose_header(captions, locale, guides=False):
+    """The Header (3840x1646) and the Search Results image (3840x2560) of one listing language, each made for its own
+    placement instead of one image cropped two ways."""
     out = os.path.join(ROOT, "marketing/appstore/header", locale)
     os.makedirs(out, exist_ok=True)
-
-    inner_home = compose.framed(os.path.join(raw_dir, f"inner-landscape-{language}", "01-home.png"), None, 2600)
-    outer_detail = compose.framed(os.path.join(raw_dir, f"outer-portrait-{language}", "03-detail.png"), None, 900)
-
-    canvas = compose.background(HEADER_SIZE)
-    draw = ImageDraw.Draw(canvas)
-    mark = icon(300)
-    name_face = compose.font("Bold", 230)
-    name_width = name_face.getlength("Crucible")
-    row_width = mark.width + 70 + name_width
-    left = round((width - row_width) / 2)
-    canvas.alpha_composite(mark, (left, 230))
-    cap = name_face.getbbox("C")
-    draw.text((left + mark.width + 70, 230 + (mark.height - (cap[3] - cap[1])) / 2 - cap[1]), "Crucible", font=name_face, fill=compose.HEADLINE_COLOR)
-    face, lines, leading = compose.fit(subtitle, "Medium", (120, 84, 140), 3000, 1)
-    compose.draw_lines(draw, lines, face, leading, 620, width, compose.SUBHEAD_COLOR)
-
-    device_top = 880
-    inner = scaled(inner_home, 1560)
-    outer = scaled(outer_detail, 1760)
-    gap = -40
-    total = inner.width + outer.width + gap
-    x = (width - total) // 2
-    compose.paste_with_shadow(canvas, inner, (x, device_top + 120))
-    compose.paste_with_shadow(canvas, outer, (x + inner.width + gap, device_top))
-    canvas.convert("RGB").save(os.path.join(out, "header.png"), optimize=True)
-
-    search = compose.background(HEADER_SIZE)
-    draw = ImageDraw.Draw(search)
-    face, lines, leading = compose.fit(subtitle, "Bold", (190, 120, 220), 3600, 1)
-    compose.draw_lines(draw, lines, face, leading, 250, width, compose.HEADLINE_COLOR)
-    inner_offer = scaled(compose.framed(os.path.join(raw_dir, f"inner-landscape-{language}", "04c-essentials-offer.png"), None, 2800), 1800)
-    outer_home = scaled(compose.framed(os.path.join(raw_dir, f"outer-portrait-{language}", "01-home.png"), None, 900), 1920)
-    overlap = 60
-    total = inner_offer.width + outer_home.width - overlap
-    x = (width - total) // 2
-    compose.paste_with_shadow(search, inner_offer, (x, 680))
-    compose.paste_with_shadow(search, outer_home, (x + inner_offer.width - overlap, 620))
-    search.convert("RGB").save(os.path.join(out, "search.png"), optimize=True)
-    for name in ("header.png", "search.png"):
-        with Image.open(os.path.join(out, name)) as image:
-            if image.size != HEADER_SIZE or image.mode != "RGB":
-                sys.exit(f"{locale}/{name}: {image.size} {image.mode}, expected {HEADER_SIZE} RGB")
-        print(os.path.join(out, name), flush=True)
+    for kind in ("header", "search"):
+        image = compose_creative(kind, captions, locale, guides)
+        target = os.path.join(out, f"{kind}{'-guides' if guides else ''}.png")
+        image.save(target, optimize=True)
+        with Image.open(target) as saved:
+            if saved.size != CREATIVE[kind]["size"] or saved.mode != "RGB":
+                sys.exit(f"{locale}/{kind}: {saved.size} {saved.mode}, expected {CREATIVE[kind]['size']} RGB")
+        print(target, flush=True)
 
 
 def main():
@@ -199,6 +242,8 @@ def main():
         at = args.index("--locale")
         locales = [args[at + 1]]
         del args[at:at + 2]
+    guides = "--guides" in args
+    args = [arg for arg in args if arg != "--guides"]
     kinds = args or ["duo", "header"]
     captions = json.load(open(os.path.join(HERE, "captions.json"), encoding="utf-8"))
     for locale in locales:
@@ -206,7 +251,7 @@ def main():
         if "duo" in kinds:
             compose_duo(captions, locale, raw_dir)
         if "header" in kinds:
-            compose_header(locale, raw_dir)
+            compose_header(captions, locale, guides)
 
 
 if __name__ == "__main__":

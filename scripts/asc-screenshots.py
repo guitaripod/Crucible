@@ -20,7 +20,7 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHOTS = os.path.join(ROOT, "marketing/appstore")
+SHOTS = os.path.realpath(os.path.join(ROOT, "marketing/appstore"))
 SPEC = json.load(open(os.path.join(ROOT, "docs/asc-metadata.json")))
 VERSIONS = {"iphone": SPEC["versions"]["IOS"], "ipad": SPEC["versions"]["IOS"], "duo": SPEC["versions"]["IOS"], "tvos": SPEC["versions"]["TV_OS"]}
 DEVICES = {

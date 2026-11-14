@@ -1,9 +1,9 @@
 {
   "iphone": [
-    {"screen": "01-home", "headline": "Pick up where you left off", "subhead": "A Resume-first Home for your whole Plex library"},
     {"screen": "15-what-to-watch", "headline": "Ask what to watch", "subhead": "Say what you feel like, get picks from your own library"},
     {"screen": "04c-essentials-offer", "headline": "Skip the filler", "subhead": "Essentials hides the anime-only episodes of long shows"},
     {"screen": "09b-skip-recap", "headline": "Skip the recap", "subhead": "Skip Intro, Recap and Preview from your files' own chapters", "stack": ["09b-skip-intro", "09b-skip-recap"]},
+    {"screen": "01-home", "headline": "Pick up where you left off", "subhead": "A Resume-first Home for your whole Plex library"},
     {"screen": "02b-library-settled", "headline": "Every library at your fingertips", "subhead": "Filters, sort, an A–Z index and Recently Watched"},
     {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Trakt and IMDb scores, audio and subtitles, cast and crew"},
     {"screen": "05b-search-request", "headline": "Find anything, even what's missing", "subhead": "Not on your server? Request it through Seerr"},
@@ -12,16 +12,16 @@
     {"screen": "07c-share-preview", "headline": "Your year in one poster", "subhead": "A Year in Review to share as a Story or a Square"}
   ],
   "duo": [
-    {"screen": "01-home", "state": "inner-landscape"},
-    {"screen": "04c-essentials-offer", "state": "inner-landscape"},
-    {"screen": "09b-skip-recap", "state": "outer-landscape", "from": "outer-portrait"},
-    {"screen": "02b-library-settled", "state": "inner-portrait"},
-    {"screen": "03-detail", "state": "inner-landscape"},
-    {"screen": "05b-search-request", "state": "outer-portrait"},
+    {"screen": "15-what-to-watch", "state": "inner-landscape"},
+    {"screen": "04c-essentials-offer", "state": "inner-landscape", "cut": 0.12},
+    {"screen": "09b-skip-recap", "state": "outer-landscape", "from": "outer-portrait", "cut": 0.2},
+    {"screen": "16-previously-on", "state": "outer-portrait", "cut": 0.1, "headline": "Catch up before you play", "subhead": "A recap of your last episodes, when you ask"},
+    {"screen": "05b-search-request", "state": "inner-portrait", "cut": 0.18},
+    {"screen": "03-detail", "state": "inner-landscape", "cut": 0.18},
     {"screen": "06-downloads", "state": "outer-portrait"},
-    {"screen": "07-stats", "state": "inner-landscape"},
-    {"screen": "07c-share-preview", "state": "outer-portrait"},
-    {"screen": "10-history", "state": "inner-portrait"}
+    {"screen": "02b-library-settled", "state": "inner-portrait"},
+    {"screen": "07-stats", "state": "outer-portrait"},
+    {"screen": "07c-share-preview", "state": "outer-portrait", "whole": true}
   ],
   "ipad": [
     {"screen": "01-home", "headline": "Made for iPad", "subhead": "A sidebar for every library and a Home built for the big screen"},
@@ -35,6 +35,7 @@
     {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from Plex and Trakt"},
     {"screen": "08-history", "headline": "Every play, day by day", "subhead": "Watch History with posters, grouped by day"}
   ],
+  "creative": {"headline": "Ask what to watch", "subline": "Picks from your own Plex library"},
   "l10n": {
     "de-DE": {
       "04c-essentials-offer": {"headline": "Füllfolgen überspringen", "subhead": "Essentials blendet die reinen Anime-Folgen langer Serien aus"},
@@ -48,7 +49,9 @@
       "07-stats": {"headline": "Dein Sehverhalten im Blick", "subhead": "Streaks, Heatmaps und Binges aus Plex und Trakt"},
       "07c-share-preview": {"headline": "Dein Jahr auf einem Poster", "subhead": "Jahresrückblick zum Teilen als Story oder Quadrat"},
       "10-history": {"headline": "Jeder Abruf, Tag für Tag", "subhead": "Wiedergabeverlauf mit Postern, nach Tagen gruppiert"},
-      "15-what-to-watch": {"headline": "Frag, was du schauen willst", "subhead": "Sag, worauf du Lust hast: Tipps aus deiner Bibliothek"}
+      "15-what-to-watch": {"headline": "Frag, was du schauen willst", "subhead": "Sag, worauf du Lust hast: Tipps aus deiner Bibliothek"},
+      "16-previously-on": {"headline": "Erst nachholen, dann schauen", "subhead": "Ein Rückblick auf deine letzten Folgen, auf Wunsch"},
+      "creative": {"headline": "Frag, was du schauen willst", "subline": "Tipps aus deiner eigenen Plex-Bibliothek"}
     },
     "es-ES": {
       "04c-essentials-offer": {"headline": "Sáltate el relleno", "subhead": "Esenciales oculta los episodios exclusivos del anime en series largas"},
@@ -62,7 +65,9 @@
       "07-stats": {"headline": "Conoce tu forma de ver", "subhead": "Rachas, mapas de calor y maratones de Plex y Trakt"},
       "07c-share-preview": {"headline": "Tu año en un único póster", "subhead": "Resumen anual para compartir como historia o cuadrado"},
       "10-history": {"headline": "Cada reproducción, día a día", "subhead": "Historial de visualización con pósteres, agrupado por día"},
-      "15-what-to-watch": {"headline": "Pregúntale qué ver", "subhead": "Dile lo que te apetece y recibe ideas de tu biblioteca"}
+      "15-what-to-watch": {"headline": "Pregúntale qué ver", "subhead": "Dile lo que te apetece y recibe ideas de tu biblioteca"},
+      "16-previously-on": {"headline": "Ponte al día antes de ver", "subhead": "Un resumen de tus últimos episodios, cuando lo pidas"},
+      "creative": {"headline": "Pregúntale qué ver", "subline": "Ideas de tu propia biblioteca de Plex"}
     },
     "fr-FR": {
       "04c-essentials-offer": {"headline": "Passe les fillers", "subhead": "Essentiels masque les épisodes hors-série des longues séries"},
@@ -76,7 +81,9 @@
       "07-stats": {"headline": "Connais tes habitudes", "subhead": "Séries, cartes de chaleur et marathons de Plex et Trakt"},
       "07c-share-preview": {"headline": "Ton année en un seul poster", "subhead": "Bilan annuel à partager en Story ou en carré"},
       "10-history": {"headline": "Chaque lecture, jour après jour", "subhead": "Historique de lecture avec affiches, groupé par jour"},
-      "15-what-to-watch": {"headline": "Demande quoi regarder", "subhead": "Dis ce qui te tente, reçois des idées de ta bibliothèque"}
+      "15-what-to-watch": {"headline": "Demande quoi regarder", "subhead": "Dis ce qui te tente, reçois des idées de ta bibliothèque"},
+      "16-previously-on": {"headline": "Fais le point avant de regarder", "subhead": "Un résumé de tes derniers épisodes, quand tu le demandes"},
+      "creative": {"headline": "Demande quoi regarder", "subline": "Des idées de ta propre bibliothèque Plex"}
     },
     "it": {
       "04c-essentials-offer": {"headline": "Salta i filler", "subhead": "Essenziali nasconde gli episodi esclusivi dell'anime nelle serie lunghe"},
@@ -90,7 +97,9 @@
       "07-stats": {"headline": "Conosci le tue abitudini", "subhead": "Serie, heatmap e maratone da Plex e Trakt"},
       "07c-share-preview": {"headline": "Il tuo anno in un poster", "subhead": "Riepilogo annuale da condividere come storia o quadrato"},
       "10-history": {"headline": "Ogni riproduzione, giorno per giorno", "subhead": "Cronologia visioni con locandine, raggruppata per giorno"},
-      "15-what-to-watch": {"headline": "Chiedi cosa guardare", "subhead": "Di' cosa ti va, ricevi consigli dalla tua libreria"}
+      "15-what-to-watch": {"headline": "Chiedi cosa guardare", "subhead": "Di' cosa ti va, ricevi consigli dalla tua libreria"},
+      "16-previously-on": {"headline": "Fai il punto prima di guardare", "subhead": "Un riepilogo degli ultimi episodi, quando lo chiedi"},
+      "creative": {"headline": "Chiedi cosa guardare", "subline": "Consigli dalla tua libreria Plex"}
     },
     "ja": {
       "04c-essentials-offer": {"headline": "フィラーをスキップ", "subhead": "エッセンシャルで長編アニメのアニメオリジナル回を非表示に"},
@@ -104,7 +113,9 @@
       "07-stats": {"headline": "自分の視聴を把握", "subhead": "Plex と Trakt から連続視聴、ヒートマップ、一気見を分析"},
       "07c-share-preview": {"headline": "1年の視聴を1枚のポスターに", "subhead": "ストーリーや正方形で共有できる年間レビュー"},
       "10-history": {"headline": "毎日の再生をたどる", "subhead": "ポスター付きの視聴履歴を日別に表示"},
-      "15-what-to-watch": {"headline": "何を観るか聞く", "subhead": "気分を伝えると、自分のライブラリからおすすめ"}
+      "15-what-to-watch": {"headline": "何を観るか聞く", "subhead": "気分を伝えると、自分のライブラリからおすすめ"},
+      "16-previously-on": {"headline": "観る前におさらい", "subhead": "頼んだときだけ、直近の数話を振り返ります"},
+      "creative": {"headline": "何を観るか聞く", "subline": "自分のPlexライブラリからおすすめ"}
     },
     "ko": {
       "04c-essentials-offer": {"headline": "필러는 건너뛰기", "subhead": "에센셜이 긴 시리즈의 애니 오리지널 회차를 숨겨요"},
@@ -118,7 +129,9 @@
       "07-stats": {"headline": "내 시청 패턴 알아보기", "subhead": "연속 시청, 히트맵, 몰아보기를 Plex와 Trakt로"},
       "07c-share-preview": {"headline": "올해를 포스터 한 장에", "subhead": "스토리나 정사각형으로 공유하는 연간 리뷰"},
       "10-history": {"headline": "매일의 재생 기록", "subhead": "포스터와 함께 날짜별로 묶은 시청 기록"},
-      "15-what-to-watch": {"headline": "뭘 볼지 물어보기", "subhead": "기분을 말하면 내 라이브러리에서 골라 드려요"}
+      "15-what-to-watch": {"headline": "뭘 볼지 물어보기", "subhead": "기분을 말하면 내 라이브러리에서 골라 드려요"},
+      "16-previously-on": {"headline": "보기 전에 따라잡기", "subhead": "요청하면 최근 에피소드를 요약해 드려요"},
+      "creative": {"headline": "뭘 볼지 물어보기", "subline": "내 Plex 라이브러리에서 골라 드려요"}
     },
     "pl": {
       "04c-essentials-offer": {"headline": "Pomiń fillery", "subhead": "Essentials ukrywa odcinki tylko z anime w długich serialach"},
@@ -132,7 +145,9 @@
       "07-stats": {"headline": "Poznaj swoje oglądanie", "subhead": "Serie dni, mapy ciepła i maratony z Plex i Trakt"},
       "07c-share-preview": {"headline": "Twój rok na jednym plakacie", "subhead": "Podsumowanie roku do udostępnienia jako relacja lub kwadrat"},
       "10-history": {"headline": "Każde odtworzenie, dzień po dniu", "subhead": "Historia oglądania z plakatami, pogrupowana dniami"},
-      "15-what-to-watch": {"headline": "Zapytaj, co obejrzeć", "subhead": "Powiedz, na co masz ochotę: propozycje z twojej biblioteki"}
+      "15-what-to-watch": {"headline": "Zapytaj, co obejrzeć", "subhead": "Powiedz, na co masz ochotę: propozycje z twojej biblioteki"},
+      "16-previously-on": {"headline": "Nadrób, zanim włączysz", "subhead": "Streszczenie ostatnich odcinków, gdy o nie poprosisz"},
+      "creative": {"headline": "Zapytaj, co obejrzeć", "subline": "Propozycje z twojej biblioteki Plex"}
     },
     "pt-BR": {
       "04c-essentials-offer": {"headline": "Pule os fillers", "subhead": "Essenciais esconde os episódios exclusivos do anime em séries longas"},
@@ -146,7 +161,9 @@
       "07-stats": {"headline": "Conheça seus hábitos", "subhead": "Sequências, mapas de calor e maratonas do Plex e do Trakt"},
       "07c-share-preview": {"headline": "Seu ano em um pôster", "subhead": "Resumo do ano para compartilhar como Story ou quadrado"},
       "10-history": {"headline": "Cada play, dia a dia", "subhead": "Histórico de exibição com pôsteres, agrupado por dia"},
-      "15-what-to-watch": {"headline": "Pergunte o que assistir", "subhead": "Diga o que você está a fim e receba dicas da sua biblioteca"}
+      "15-what-to-watch": {"headline": "Pergunte o que assistir", "subhead": "Diga o que você está a fim e receba dicas da sua biblioteca"},
+      "16-previously-on": {"headline": "Fique em dia antes de assistir", "subhead": "Um resumo dos últimos episódios, quando você pedir"},
+      "creative": {"headline": "Pergunte o que assistir", "subline": "Sugestões da sua própria biblioteca Plex"}
     },
     "zh-Hans": {
       "04c-essentials-offer": {"headline": "跳过填充集", "subhead": "「精选」隐藏长篇动画的动画原创集"},
@@ -160,7 +177,9 @@
       "07-stats": {"headline": "了解你的观影习惯", "subhead": "连续观看、热力图与连刷统计，来自 Plex 和 Trakt"},
       "07c-share-preview": {"headline": "你的年度观影海报", "subhead": "可分享到动态或方图的年度回顾"},
       "10-history": {"headline": "每一次播放，按日回顾", "subhead": "带海报的观看历史，按天分组显示"},
-      "15-what-to-watch": {"headline": "问问该看什么", "subhead": "说说你现在的心情，从你的媒体库里挑出推荐"}
+      "15-what-to-watch": {"headline": "问问该看什么", "subhead": "说说你现在的心情，从你的媒体库里挑出推荐"},
+      "16-previously-on": {"headline": "看之前先补补前情", "subhead": "需要时，为你回顾最近几集的剧情"},
+      "creative": {"headline": "问问该看什么", "subline": "只从你自己的 Plex 媒体库里挑选"}
     },
     "zh-Hant": {
       "04c-essentials-offer": {"headline": "跳過填充集", "subhead": "「精選」隱藏長篇動畫的動畫原創集"},
@@ -174,7 +193,9 @@
       "07-stats": {"headline": "掌握你的觀影習慣", "subhead": "連續觀看、熱力圖與一口氣追劇，來自 Plex 與 Trakt"},
       "07c-share-preview": {"headline": "你的年度觀影海報", "subhead": "可分享到限時動態或方形圖的年度回顧"},
       "10-history": {"headline": "每次播放，逐日回顧", "subhead": "附海報的觀看紀錄，依日期分組顯示"},
-      "15-what-to-watch": {"headline": "問問該看什麼", "subhead": "說說你現在的心情，從你的媒體庫裡挑出推薦"}
+      "15-what-to-watch": {"headline": "問問該看什麼", "subhead": "說說你現在的心情，從你的媒體庫裡挑出推薦"},
+      "16-previously-on": {"headline": "看之前先補補前情", "subhead": "需要時，為你回顧最近幾集的劇情"},
+      "creative": {"headline": "問問該看什麼", "subline": "只從你自己的 Plex 媒體庫裡挑選"}
     },
     "sv": {
       "01-home": {"headline": "Fortsätt där du slutade", "subhead": "Startsidan med Återuppta först för hela ditt Plex-bibliotek"},
@@ -187,7 +208,9 @@
       "07-stats": {"headline": "Koll på din tittning", "subhead": "Dagar i rad, aktivitetskartor och binges från Plex och Trakt"},
       "07c-share-preview": {"headline": "Ditt år på en affisch", "subhead": "En årssammanfattning att dela som story eller kvadratisk affisch"},
       "10-history": {"headline": "Varje visning, dag för dag", "subhead": "Visningshistorik med affischer, grupperad per dag"},
-      "15-what-to-watch": {"headline": "Fråga vad du ska titta på", "subhead": "Säg vad du är sugen på, få tips från ditt eget bibliotek"}
+      "15-what-to-watch": {"headline": "Fråga vad du ska titta på", "subhead": "Säg vad du är sugen på, få tips från ditt eget bibliotek"},
+      "16-previously-on": {"headline": "Hinn ikapp innan du tittar", "subhead": "En sammanfattning av dina senaste avsnitt, när du ber om det"},
+      "creative": {"headline": "Fråga vad du ska titta på", "subline": "Tips från ditt eget Plex-bibliotek"}
     },
     "da": {
       "01-home": {"headline": "Fortsæt, hvor du slap", "subhead": "Startsiden med Genoptag først for hele dit Plex-bibliotek"},
@@ -200,7 +223,9 @@
       "07-stats": {"headline": "Kend din visning", "subhead": "Dage i træk, aktivitetsoversigter og binges fra Plex og Trakt"},
       "07c-share-preview": {"headline": "Dit år på ét plakat", "subhead": "En årsoversigt til deling som story eller kvadratisk plakat"},
       "10-history": {"headline": "Hver afspilning, dag for dag", "subhead": "Seerhistorik med plakater, grupperet pr. dag"},
-      "15-what-to-watch": {"headline": "Spørg, hvad du skal se", "subhead": "Sig hvad du har lyst til, få forslag fra dit eget bibliotek"}
+      "15-what-to-watch": {"headline": "Spørg, hvad du skal se", "subhead": "Sig hvad du har lyst til, få forslag fra dit eget bibliotek"},
+      "16-previously-on": {"headline": "Kom ajour, før du ser videre", "subhead": "Et resumé af dine seneste afsnit, når du beder om det"},
+      "creative": {"headline": "Spørg, hvad du skal se", "subline": "Forslag fra dit eget Plex-bibliotek"}
     },
     "no": {
       "01-home": {"headline": "Fortsett der du slapp", "subhead": "Startsiden med Fortsett først for hele Plex-biblioteket ditt"},
@@ -213,7 +238,9 @@
       "07-stats": {"headline": "Kjenn dine seervaner", "subhead": "Dager på rad, aktivitetskart og binge fra Plex og Trakt"},
       "07c-share-preview": {"headline": "Året ditt på ett plakat", "subhead": "En årsoppsummering å dele som story eller kvadratisk plakat"},
       "10-history": {"headline": "Hver avspilling, dag for dag", "subhead": "Visningslogg med plakater, gruppert etter dag"},
-      "15-what-to-watch": {"headline": "Spør hva du vil se", "subhead": "Si hva du har lyst på, få forslag fra ditt eget bibliotek"}
+      "15-what-to-watch": {"headline": "Spør hva du vil se", "subhead": "Si hva du har lyst på, få forslag fra ditt eget bibliotek"},
+      "16-previously-on": {"headline": "Bli oppdatert før du ser videre", "subhead": "Et sammendrag av de siste episodene, når du ber om det"},
+      "creative": {"headline": "Spør hva du vil se", "subline": "Tips fra ditt eget Plex-bibliotek"}
     },
     "fi": {
       "01-home": {"headline": "Jatka siitä, mihin jäit", "subhead": "Koti, jossa Jatka on ensin, koko Plex-kirjastollesi"},
@@ -226,7 +253,21 @@
       "07-stats": {"headline": "Tunne katselusi", "subhead": "Putket, toimintakartat ja maratonit Plexistä ja Traktista"},
       "07c-share-preview": {"headline": "Vuotesi yhdessä julisteessa", "subhead": "Vuosikatsaus jaettavaksi Story- tai neliöjulisteena"},
       "10-history": {"headline": "Jokainen toisto, päivä kerrallaan", "subhead": "Katseluhistoria julisteineen, ryhmiteltynä päivittäin"},
-      "15-what-to-watch": {"headline": "Kysy, mitä katsoa", "subhead": "Kerro mitä tekee mieli, saat ehdotuksia omasta kirjastostasi"}
+      "15-what-to-watch": {"headline": "Kysy, mitä katsoa", "subhead": "Kerro mitä tekee mieli, saat ehdotuksia omasta kirjastostasi"},
+      "16-previously-on": {"headline": "Kertaa ennen kuin jatkat", "subhead": "Kertaus viimeisimmistä jaksoista, kun pyydät sitä"},
+      "creative": {"headline": "Kysy, mitä katsoa", "subline": "Ehdotukset omasta Plex-kirjastostasi"}
+    },
+    "ru": {
+      "creative": {"headline": "Спроси, что посмотреть", "subline": "Подборка из твоей библиотеки Plex"}
+    },
+    "tr": {
+      "creative": {"headline": "Ne izlesem diye sor", "subline": "Kendi Plex kütüphanenden öneriler"}
+    },
+    "id": {
+      "creative": {"headline": "Tanya mau nonton apa", "subline": "Saran dari perpustakaan Plex-mu sendiri"}
+    },
+    "vi": {
+      "creative": {"headline": "Hỏi nên xem gì", "subline": "Gợi ý từ chính thư viện Plex của bạn"}
     }
   }
 }
