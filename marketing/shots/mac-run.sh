@@ -7,7 +7,9 @@ NAME=${NAME:-CrucibleSim}
 PORT=${PORT:-$((32400 + $(printf %s "$NAME" | cksum | cut -d' ' -f1) % 500))}
 MODE=${MODE:-dark}
 SIGNALS=/tmp/crucible-shots-$NAME
-RAW=$ROOT/marketing/shots/out/raw-$MODE
+RAW=${RAW:-$ROOT/marketing/shots/out/raw-$MODE}
+DEVICE_TYPE=${DEVICE_TYPE:-iPhone 17 Pro Max}
+DUO_STATE=${DUO_STATE:-}
 APP_ID=com.guitaripod.crucible.shots
 DEVICE_NAME=CrucibleShots-$NAME
 PIDFILE=/tmp/crucible-mock-$PORT.pid
@@ -42,7 +44,7 @@ find_device() {
 
 create_device() {
   local devtype runtime udid
-  devtype=$(xcrun simctl list devicetypes | grep -F 'iPhone 17 Pro Max (' \
+  devtype=$(xcrun simctl list devicetypes | grep -F "$DEVICE_TYPE (" \
     | grep -oE 'com\.apple\.CoreSimulator\.SimDeviceType\.[^)]+' | head -1)
   for runtime in $(xcrun simctl list runtimes | grep -E '^iOS [0-9]' | grep -v unavailable \
     | awk '{print $2, $0}' | sort -rV | grep -oE 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+'); do
@@ -67,7 +69,7 @@ rm -f "$RAW"/*.png "$SIGNALS"/*
 PORT=$PORT nohup python3 "$ROOT/marketing/mock/server.py" > "$MOCK_LOG" 2>&1 < /dev/null &
 echo $! > "$PIDFILE"
 mock_up=0
-for _ in $(seq 1 50); do
+for _ in $(seq 1 150); do
   if curl -fs -H 'Accept: application/json' "http://127.0.0.1:$PORT/identity" > /dev/null; then mock_up=1; break; fi
   sleep 0.2
 done
@@ -98,7 +100,27 @@ else
     CRUCIBLE_PACKAGE_NAME="$PACKAGE_NAME" -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$ROOT/.dd" \
     build > "$XCODE_LOG" 2>&1 || { tail -40 "$XCODE_LOG"; exit 1; }
 fi
+pose_duo() {
+  case "$DUO_STATE" in
+    outer-*) duoctl -d "$UDID" close > /dev/null ;;
+    inner-*) duoctl -d "$UDID" open > /dev/null ;;
+    *) echo "unknown DUO_STATE $DUO_STATE (inner-landscape, inner-portrait, outer-portrait, outer-landscape)" >&2; exit 1 ;;
+  esac
+  sleep 2
+  duoctl -d "$UDID" rotate "${DUO_STATE#*-}" > /dev/null
+  sleep 2
+}
+
+shoot() {
+  if [ -n "$DUO_STATE" ]; then
+    duoctl -d "$UDID" screenshot "$1" > /dev/null 2>&1
+  else
+    xcrun simctl io "$UDID" screenshot --type=png "$1" > /dev/null 2>&1
+  fi
+}
+
 xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
+[ -z "$DUO_STATE" ] || pose_duo
 [ "${KEEP_INSTALL:-0}" = 1 ] || xcrun simctl uninstall "$UDID" "$APP_ID" 2>/dev/null || true
 xcrun simctl install "$UDID" "$APP"
 
@@ -131,7 +153,7 @@ while [ $SECONDS -lt $deadline ]; do
       exit 0
     fi
     sleep 0.6
-    xcrun simctl io "$UDID" screenshot --type=png "$RAW/$name.png" > /dev/null 2>&1
+    shoot "$RAW/$name.png"
     rm -f "$ready"
     touch "$SIGNALS/$name.ack"
     echo "shot $name"

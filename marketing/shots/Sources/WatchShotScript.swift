@@ -21,6 +21,12 @@ enum WatchShotScript {
         guard let tabBar = await ShotHarness.waitForTabBar() else { return }
         let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
         await ShotHarness.settle(3)
+        await scenes(tabBar: tabBar, api: api)
+        await ShotHarness.capture("done")
+    }
+
+    /// What to Watch asked and answered, then Previously On read and written, starting from any tab.
+    static func scenes(tabBar: TabBarController, api: APIClient) async {
         tabBar.select(.home)
         await ShotHarness.settle(1)
         let home = tabBar.selectedViewController as? UINavigationController
@@ -48,8 +54,10 @@ enum WatchShotScript {
             }
             await ShotHarness.settle(4)
             await ShotHarness.capture("16-previously-on")
+            tabBar.presentedViewController?.dismiss(animated: false)
+            await ShotHarness.settle(1)
+            home?.popToRootViewController(animated: false)
         }
-        await ShotHarness.capture("done")
     }
 
     private static func button(_ identifier: String, in view: UIView) -> UIButton? {

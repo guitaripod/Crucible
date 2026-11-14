@@ -40,7 +40,7 @@ enum ShotHarness {
             .init(ratingKey: "4013", state: .paused, progress: 0.64, watched: 0, gigabytes: 1.3, ageDays: 0.1),
         ])
 
-        if environment["CRUCIBLE_SHOT_SCRIPT"] == "watch" { WatchShotScript.prepare() }
+        if ["watch", "store"].contains(environment["CRUCIBLE_SHOT_SCRIPT"] ?? "") { WatchShotScript.prepare() }
 
         if environment["CRUCIBLE_PROBE"] == "1" {
             NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
@@ -72,6 +72,8 @@ enum ShotHarness {
                         await WatchCardShotScript.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "watch" {
                         await WatchShotScript.run()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "store" {
+                        await StoreShotScript.run()
                     } else {
                         await ShotScript.run()
                     }

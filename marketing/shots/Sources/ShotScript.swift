@@ -217,7 +217,7 @@ enum ShotScript {
 
     /// An anime episode of Paper Lanterns in landscape, filling the screen, paused inside its Opening chapter and then its
     /// Recap chapter, so the player shows Skip Intro and Skip Recap from the file's own chapter names.
-    private static func playRecap(api: APIClient, tabBar: TabBarController) async {
+    static func playRecap(api: APIClient, tabBar: TabBarController) async {
         tabBar.presentedViewController?.dismiss(animated: false)
         await ShotHarness.settle(2)
         guard let season = try? await api.requestContainer(.children(ratingKey: "2005")).Metadata?.first,
@@ -241,7 +241,7 @@ enum ShotScript {
         withExtendedLifetime(coordinator) {}
     }
 
-    private static func navigation(_ tabBar: TabBarController) -> UINavigationController? {
+    static func navigation(_ tabBar: TabBarController) -> UINavigationController? {
         tabBar.selectedViewController as? UINavigationController
     }
 
