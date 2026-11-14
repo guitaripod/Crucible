@@ -23,7 +23,7 @@ final class TVCompanionViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Theme.Color.canvas
-        heading.font = Theme.Font.title2
+        heading.font = TVFont.screenTitle
         heading.textColor = Theme.Color.label
         heading.accessibilityTraits = .header
         for label in [statusLabel, detailLabel] {
@@ -46,9 +46,9 @@ final class TVCompanionViewController: UIViewController {
         stack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: Theme.Space.xl),
-            stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: Theme.Space.xl),
-            stack.widthAnchor.constraint(lessThanOrEqualToConstant: 1200),
+            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: TVMetrics.tabBarClearance),
+            stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            stack.widthAnchor.constraint(lessThanOrEqualToConstant: TVMetrics.Column.wide),
         ])
     }
 
