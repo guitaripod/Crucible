@@ -60,9 +60,18 @@ package enum WatchlistService {
     /// The title on the viewer's server that a watchlist entry is, found by guid in a search for its name, or nil when the server does not have it.
     package static func localMatch(for entry: PlexMetadata, api: APIClient) async throws -> PlexMetadata? {
         let container = try await api.requestContainer(.search(query: entry.title))
-        let candidates = (container.Hub ?? []).flatMap { $0.Metadata ?? [] }.filter { ["movie", "show"].contains($0.mediaType) }
-        if let guid = entry.guid, let exact = candidates.first(where: { $0.guid == guid }) { return exact }
-        return candidates.first { $0.guid == nil && $0.title.lowercased() == entry.title.lowercased() && $0.year == entry.year }
+        return match(for: entry, among: (container.Hub ?? []).flatMap { $0.Metadata ?? [] })
+    }
+
+    /// The candidate with the entry's own guid, or else one of the same kind, name and year that a legacy or local agent
+    /// matched and so carries no Plex guid to compare.
+    static func match(for entry: PlexMetadata, among candidates: [PlexMetadata]) -> PlexMetadata? {
+        let titles = candidates.filter { ["movie", "show"].contains($0.mediaType) }
+        if let guid = entry.guid, let exact = titles.first(where: { $0.guid == guid }) { return exact }
+        return titles.first {
+            $0.guid?.hasPrefix("plex://") != true && $0.mediaType == entry.mediaType
+                && $0.title.lowercased() == entry.title.lowercased() && $0.year == entry.year
+        }
     }
 
     package static let title = String(localized: "Watchlist", comment: "Name of the list of titles saved to watch later")

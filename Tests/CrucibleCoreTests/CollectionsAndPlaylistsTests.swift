@@ -454,4 +454,13 @@ struct WatchlistTests {
         let missing = DetailFixtures.item(["ratingKey": "zzz", "type": "movie", "title": "Halcyon", "guid": "plex://movie/zzz", "year": 1999])
         #expect(try await WatchlistService.localMatch(for: missing, api: server.client) == nil)
     }
+
+    @Test func aTitleALegacyAgentMatchedIsFoundByKindNameAndYear() {
+        let entry = DetailFixtures.item(["ratingKey": "abc", "type": "show", "title": "Halcyon", "guid": "plex://show/abc", "year": 2021])
+        let legacy = DetailFixtures.item(["ratingKey": "7", "type": "show", "title": "halcyon", "guid": "com.plexapp.agents.thetvdb://123?lang=en", "year": 2021])
+        let otherPlexTitle = DetailFixtures.item(["ratingKey": "8", "type": "show", "title": "Halcyon", "guid": "plex://show/zzz", "year": 2021])
+        let film = DetailFixtures.item(["ratingKey": "9", "type": "movie", "title": "Halcyon", "guid": "local://9", "year": 2021])
+        #expect(WatchlistService.match(for: entry, among: [otherPlexTitle, film, legacy])?.id == "7")
+        #expect(WatchlistService.match(for: entry, among: [otherPlexTitle, film]) == nil)
+    }
 }
