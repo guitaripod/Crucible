@@ -109,6 +109,11 @@ Duo paragraph are part of 2.10.0's What's New.
 - iPhone and iPad 2.10.0 (build 202611131818) and Apple TV 2.10.0 (build 202611111328) went to review together,
   release on approval. They were submitted with manual release while the App Privacy label still lacked Search
   History and switched to release on approval once it was published the same day. Tag `2.10.0`.
+- Build 202611131818 crashed the first time a Share Card was saved: it was archived from a root `project.yml` derived in
+  the ship worktree before the photo library's usage description reached `ios/project.yml`, so TCC stopped the app.
+  The iPhone submission was replaced the same day with build 202611131819 (`midgar ship --replace`, submission
+  ac792762), whose Info.plist carries `NSPhotoLibraryAddUsageDescription`; Apple TV was not affected. `midgar ship` now
+  derives the spec itself before every xcodegen run (the registry's `[release] spec`).
 - `asc validate`: no errors on either platform; the one warning left is the annual subscription's missing
   promotional image.
 
