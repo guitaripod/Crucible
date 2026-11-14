@@ -11,9 +11,16 @@ Duo paragraph are part of 2.10.0's What's New.
 ## Where it starts from
 
 - The 30 days to 2026-11-12 (`myyty app crucible`): 95 first downloads, 19 redownloads, 289 updates, 3 Crucible Pro
-  purchases (3.2 % of first downloads). Impressions and tap-through were not read for this release.
+  purchases (3.2 % of first downloads).
+- The store funnel over the 20 report days from 2026-10-19 to 2026-11-12 (App Store Discovery and Engagement,
+  `asc analytics`): 7,384 impressions, 532 product page views and 68 taps in all, with Apple TV holding 4,056 of
+  the impressions. On iPhone, search showed Crucible 1,794 times and 62 of those became a page view (3.5 %), while
+  browse turned 31 of 169 into one (18 %). App Downloads counts 58 first downloads from 2026-10-26 to 2026-11-12,
+  50 of them from search. Search is where people meet Crucible and where it loses them, and what they see there is
+  the Search Results image and the first screenshots.
 - Target for the 30 days after release: first downloads at or above 95 and Crucible Pro purchases above 3.2 % of
-  them, read on the lifetime price that starts 2026-12-07 (`docs/pricing.md`).
+  them, read on the lifetime price that starts 2026-12-07 (`docs/pricing.md`), and iPhone search turning 6 % of
+  its impressions into page views.
 
 ## What the release says, and where it is true
 
