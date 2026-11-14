@@ -50,6 +50,9 @@ Duo paragraph are part of 2.10.0's What's New.
   description gains ASK WHAT TO WATCH, names both features first in the Crucible Pro list and says what they send in
   PRIVATE BY DESIGN; the iPad, offline and search wording is shorter to stay within 4,000 characters.
 - What's New: What to Watch and Previously On, then 2.9.1's notes, then on iPhone and iPad the iPhone Duo paragraph.
+- Keywords (2026-11-14): no word of the name or subtitle any more. The App Store indexes both already, so
+  filler, skip, intro and recap were spent twice in seventeen of twenty-one languages; their room went to
+  movies, series, subtitles, 4K, HDR and what to watch, in each market's words, within 100 characters.
 - App Review notes: `store/review-notes-2.10.0.txt` (where both features are in the demo, what they send).
 - Screens, staged 2026-11-14 in `marketing/appstore` (not in git):
   - iPhone 6.9-inch, in English and fourteen locales (2026-11-14): the set opens with Ask what to watch, Skip the
@@ -63,7 +66,15 @@ Duo paragraph are part of 2.10.0's What's New.
     sheet that had not opened yet; several languages were shot again for that on 2026-11-14.
   - iPad 13-inch, English: the same panel second (ten in the set), from `IPadStoreShots.testCapturesWhatToWatch` in
     the demo, composed with `--only 09-what-to-watch`.
-  - Apple TV, English: the picks at 4K second (ten in the set), from `DemoTests` on the 4K simulator.
+  - Apple TV, English (2026-11-14): all ten panels shot again at 4K from the polished build, because the round
+    that redrew the settings rows, the cards and the tab bar made the October set stale. Home, What to Watch,
+    a Previously On recap, Skip 11 Anime-Only on Paper Lanterns, Halcyon, a card's menu, the Movies library,
+    scrubbing, Up Next and Statistics for the year. The recap is new to the set and takes the place of the Audio
+    menu, whose third track name the menu cuts short; the Movies panel is the loaded library with its Recently
+    Watched row and Statistics is the demo's year, in place of the Genre menu over six copies of one poster and
+    the mock's week.
+    `marketing/store/tv_set.py` names the UI test and attachment behind each panel and assembles the set from a
+    test run on the Apple TV 4K simulator at 4K.
   - iPhone Duo, in English and fourteen locales (2026-11-14): ten stories that open with Ask what to watch and
     Skip the filler on the inner display, then Skip the recap, Catch up before you play (Previously On), search,
     the library, a title, Downloads, Statistics and the Year in Review poster. The type is twice the size of the
