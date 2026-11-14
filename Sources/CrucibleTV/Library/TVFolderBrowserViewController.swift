@@ -161,7 +161,7 @@ final class TVFolderBrowserViewController: TVScreenViewController {
     private func markWatched(_ item: PlexMetadata, _ watched: Bool) {
         Task { @MainActor in
             try? await WatchedService.setWatched(watched, ratingKey: item.id, api: env.api)
-            load()
+            refresh()
         }
     }
 

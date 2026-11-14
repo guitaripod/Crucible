@@ -142,8 +142,8 @@ final class HistoryViewController: TVScreenViewController {
     private func configureDataSource() {
         let titleCell = TVScreenTitleView.registration()
         let chipCell = TVChipCell.registration { [weak self] chip in self?.chipPressed(chip) }
-        let rowCell = TVHostCell.registration { [weak self] (item: HistoryItem) -> UIView in
-            let view = HistoryRowView()
+        let rowCell = UICollectionView.CellRegistration<TVHostCell, HistoryItem> { [weak self] cell, _, item in
+            let view = (cell.hosted as? HistoryRowView) ?? HistoryRowView()
             view.configure(
                 with: item,
                 isBusy: self?.busyIDs.contains(item.uniqueId) ?? false,
@@ -151,7 +151,7 @@ final class HistoryViewController: TVScreenViewController {
                 onPlay: { [weak self] in self?.playAgain(item) },
                 menu: { [weak self] in self?.menu(for: item) }
             )
-            return view
+            if cell.hosted !== view { cell.host(view) }
         }
         let noMatchesCell = TVHostCell.registration { (filter: HistoryFilter) -> UIView in
             let view = TVStateView()
