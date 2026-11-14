@@ -12,7 +12,9 @@ locales without their own set show the en-US screenshots.
 The iPhone Duo set is marketing/appstore/duo/<locale>/*.png from marketing/store/compose_duo.py: ten screenshots across the four
 Duo sizes, one folder per locale (en-US first, the rest with --locales=all).
 
-Usage: python3 scripts/asc-screenshots.py [--only=iphone|ipad|duo|tvos] [--locales=all] [--skip-existing]
+With --locales=de-DE,fr-FR only those locales' iPhone and Duo sets are uploaded, and the en-US sets are left as they are.
+
+Usage: python3 scripts/asc-screenshots.py [--only=iphone|ipad|duo|tvos] [--locales=all|LOCALE,...] [--skip-existing]
 """
 import json
 import os
@@ -75,14 +77,16 @@ def verify(kind, loc_id, expected):
 def main():
     only = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--only=")), None)
     replace = "--skip-existing" not in sys.argv
-    failures = [message for kind in VERSIONS if not only or kind == only if (message := upload(kind, replace))]
-    if "--locales=all" in sys.argv and (not only or only == "iphone"):
+    choice = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--locales=")), None)
+    named = None if choice in (None, "all") else choice.split(",")
+    failures = [] if named else [message for kind in VERSIONS if not only or kind == only if (message := upload(kind, replace))]
+    if choice and (not only or only == "iphone"):
         localized = sorted(os.listdir(os.path.join(SHOTS, "l10n"))) if os.path.isdir(os.path.join(SHOTS, "l10n")) else []
-        failures += [message for locale in localized if (message := upload("iphone", replace, locale))]
-    if "--locales=all" in sys.argv and (not only or only == "duo"):
+        failures += [message for locale in localized if named is None or locale in named if (message := upload("iphone", replace, locale))]
+    if choice and (not only or only == "duo"):
         duo = os.path.join(SHOTS, "duo")
         localized = sorted(name for name in os.listdir(duo) if name != "en-US") if os.path.isdir(duo) else []
-        failures += [message for locale in localized if (message := upload("duo", replace, locale))]
+        failures += [message for locale in localized if named is None or locale in named if (message := upload("duo", replace, locale))]
     if failures:
         sys.exit("!! " + "\n!! ".join(failures))
     print("all sets verified", flush=True)
