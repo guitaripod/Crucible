@@ -103,9 +103,11 @@ class TVScreenViewController: UIViewController, UICollectionViewDelegate {
     /// has none, whenever it was inside the screen's content or state.
     final func show(state: TVStateView.State) {
         let hadFocus = ownsFocus
-        collectionView.isHidden = true
-        stateView.isHidden = false
-        stateView.show(state)
+        swapContent(animated: !isShowingState) {
+            self.collectionView.isHidden = true
+            self.stateView.isHidden = false
+            self.stateView.show(state)
+        }
         if hadFocus { requestFocusUpdate() }
     }
 
@@ -113,9 +115,21 @@ class TVScreenViewController: UIViewController, UICollectionViewDelegate {
     /// collection's preferred item.
     final func showContent() {
         let hadFocus = ownsFocus
-        stateView.isHidden = true
-        collectionView.isHidden = false
+        swapContent(animated: isShowingState) {
+            self.stateView.isHidden = true
+            self.collectionView.isHidden = false
+        }
         if hadFocus { requestFocusUpdate() }
+    }
+
+    /// Applies a swap between the content and a state as a cross-dissolve while the screen is on display, the way tvOS
+    /// fades between loading and loaded, and at once before it appears or under Reduce Motion.
+    private func swapContent(animated: Bool, _ changes: @escaping () -> Void) {
+        guard animated, view.window != nil else {
+            changes()
+            return
+        }
+        TVMotion.dissolve(view, animations: changes)
     }
 
     /// Which item gets focus when nothing was remembered. Nil lets the focus engine choose.

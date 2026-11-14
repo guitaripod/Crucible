@@ -4,6 +4,7 @@ import UIKit
 /// accessibility element; all drawing lives in `TVCardContentView`.
 class TVCardCell: UICollectionViewCell {
     private(set) var item: TVCardItem?
+    private var wasFocused = false
 
     class var style: TVCardStyle { .poster }
 
@@ -48,8 +49,18 @@ class TVCardCell: UICollectionViewCell {
 
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
-        let dimmed = item?.isDimmed == true && !state.isFocused
-        contentView.alpha = dimmed ? TVMetrics.Card.watchedDimming : 1
+        let alpha = item?.isDimmed == true && !state.isFocused ? TVMetrics.Card.watchedDimming : 1
+        let focusChanged = state.isFocused != wasFocused
+        wasFocused = state.isFocused
+        guard alpha != contentView.alpha else { return }
+        guard focusChanged, window != nil else {
+            contentView.layer.removeAnimation(forKey: "opacity")
+            contentView.alpha = alpha
+            return
+        }
+        TVMotion.animate(TVMetrics.Duration.focus, options: [.beginFromCurrentState, .allowUserInteraction]) {
+            self.contentView.alpha = alpha
+        }
     }
 
     override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
@@ -61,6 +72,8 @@ class TVCardCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        wasFocused = false
+        contentView.layer.removeAnimation(forKey: "opacity")
         contentView.alpha = 1
     }
 }

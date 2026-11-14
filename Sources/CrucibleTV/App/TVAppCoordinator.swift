@@ -252,7 +252,14 @@ final class TVAppCoordinator: TVSessionActions {
             self?.launch(connection: connection)
         }
         window.backgroundColor = Theme.Color.canvas
-        window.rootViewController = TVNavigation.makeNavigationController(root: onboarding)
+        let root = TVNavigation.makeNavigationController(root: onboarding)
+        guard window.rootViewController != nil, TVMotion.animationsEnabled else {
+            window.rootViewController = root
+            return
+        }
+        UIView.transition(with: window, duration: Self.crossDissolveDuration, options: [.transitionCrossDissolve, .curveEaseOut]) {
+            self.window.rootViewController = root
+        }
     }
 
     var topViewController: UIViewController? {

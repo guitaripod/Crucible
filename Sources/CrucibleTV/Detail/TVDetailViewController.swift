@@ -172,11 +172,28 @@ class TVDetailViewController: TVScreenViewController {
     /// where the viewer put it.
     func present(_ content: TVDetailContent) {
         self.content = content
+        let replacesSkeleton = !hasContent && !skeleton.isHidden && view.window != nil
         hasContent = true
-        skeleton.isHidden = true
+        if replacesSkeleton {
+            fadeOutSkeleton()
+        } else {
+            skeleton.isHidden = true
+        }
         backdrop.show(path: content.artwork.path, kind: content.artwork.isBackdrop ? .backdrop : .poster, immediate: true)
         applySnapshot(for: content)
         showContent()
+    }
+
+    /// Fades the loading skeleton out under the first content, the way tvOS dissolves a placeholder into the page.
+    private func fadeOutSkeleton() {
+        collectionView.alpha = 0
+        TVMotion.animate(TVMetrics.Duration.fade, options: [.beginFromCurrentState, .allowUserInteraction]) {
+            self.skeleton.alpha = 0
+            self.collectionView.alpha = 1
+        } completion: { _ in
+            self.skeleton.alpha = 1
+            if self.hasContent { self.skeleton.isHidden = true }
+        }
     }
 
     /// Runs a refresh that adds what arrived after the page appeared (Trakt's scores on the meta line, a button) as a short cross-fade, so nothing
