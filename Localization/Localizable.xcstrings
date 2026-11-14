@@ -1704,7 +1704,7 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ har %lld afsnit. Dragon Ball Super har 131 afsnit."
+            "value" : "%@ har %lld afsnit."
           }
         },
         "de" : {
