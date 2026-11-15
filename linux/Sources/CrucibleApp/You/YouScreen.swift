@@ -37,6 +37,7 @@ final class YouScreen: ScreenView {
                     value: theme.density == .desk ? String(localized: "Desk") : String(localized: "Couch"), symbol: "textformat.size"),
             RowItem(id: "appearance", title: String(localized: "Appearance"), value: theme.palette.appearance == .dark ? String(localized: "Dark") : String(localized: "Light"),
                     symbol: "circle.lefthalf.filled"),
+            RowItem(id: "settings", title: String(localized: "Settings"), symbol: "gearshape", accessory: .chevron),
             RowItem(id: "signout", title: String(localized: "Sign Out"), symbol: "rectangle.portrait.and.arrow.right", isDestructive: true),
         ])
         setNeedsLayout()
@@ -53,6 +54,7 @@ final class YouScreen: ScreenView {
             theme.palette = theme.palette.appearance == .dark ? .light : .dark
             window?.background = theme.palette.canvas
             relayoutEverything()
+        case "settings": navigation?.push(SettingsScreen(api: payload.api))
         case "signout": onSignOut?()
         default: break
         }

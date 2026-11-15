@@ -13,6 +13,7 @@ enum LinuxSetup {
         KeychainHelper.install(SecretServiceStore(fallback: fallback))
         loadStrings()
         Strings.lookup = { key in String(localized: String.LocalizationValue(stringLiteral: key)) }
+        AppInfo.override = (CrucibleLinux.version, CrucibleLinux.build)
     }
 
     /// Reads `Localizable.xcstrings` for the desktop's languages (`LANGUAGE`, then `LANG`), English otherwise.

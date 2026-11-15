@@ -232,6 +232,8 @@ public final class ScreenTitleView: View {
     public var title: String { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
     public var summary: String? { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
     public var detail: String? { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
+    /// Lines the title up with a centred column of this width (a settings list) instead of the screen's margin.
+    public var columnWidth: Float? { didSet { setNeedsDisplay() } }
 
     public init(title: String, summary: String? = nil, detail: String? = nil) {
         self.title = title
@@ -242,10 +244,17 @@ public final class ScreenTitleView: View {
 
     private var rasterScale: Float { window?.scale ?? 1 }
 
+    private var leading: Float {
+        let metrics = Theme.current.metrics
+        guard let columnWidth else { return metrics.sideMargin }
+        let width = min(columnWidth, frame.width - metrics.sideMargin * 2)
+        return ((frame.width - width) / 2).rounded() + metrics.rowInset
+    }
+
     private func layouts(width: Float) -> (TextLayout, TextLayout?, TextLayout?) {
         let type = Theme.current.type
         let metrics = Theme.current.metrics
-        let column = width - metrics.sideMargin * 2
+        let column = width - leading - metrics.sideMargin
         let titleLayout = TextLayout(title, font: type.screenTitle, maxWidth: column, scale: rasterScale)
         let summaryLayout = summary.map { TextLayout($0, font: type.screenSummary, maxWidth: column - titleLayout.size.width - metrics.tv(32), scale: rasterScale) }
         let detailLayout = detail.map { TextLayout($0, font: type.screenDetail, maxWidth: min(column, metrics.messageColumn), maxLines: 3, scale: rasterScale) }
@@ -255,20 +264,23 @@ public final class ScreenTitleView: View {
     public override func sizeThatFits(_ size: Size) -> Size {
         let (title, _, detail) = layouts(width: size.width)
         let metrics = Theme.current.metrics
-        return Size(width: size.width, height: title.size.height + (detail.map { metrics.tv(16) + $0.size.height } ?? 0) + metrics.tv(24))
+        let titleHeight = self.title.isEmpty ? 0 : title.size.height
+        return Size(width: size.width, height: titleHeight + (detail.map { (titleHeight > 0 ? metrics.tv(16) : 0) + $0.size.height } ?? 0) + metrics.tv(24))
     }
 
     public override func draw(_ context: inout DrawContext) {
         let palette = Theme.current.palette
         let metrics = Theme.current.metrics
         let (title, summary, detail) = layouts(width: frame.width)
-        context.text(title, at: Point(x: metrics.sideMargin, y: 0), color: palette.label)
+        let x = leading
+        let titleHeight = self.title.isEmpty ? 0 : title.size.height
+        if !self.title.isEmpty { context.text(title, at: Point(x: x, y: 0), color: palette.label) }
         if let summary {
             let baselineShift = title.baseline - summary.baseline
-            context.text(summary, at: Point(x: metrics.sideMargin + title.size.width + metrics.tv(32), y: baselineShift), color: palette.labelSecondary)
+            context.text(summary, at: Point(x: x + title.size.width + metrics.tv(32), y: baselineShift), color: palette.labelSecondary)
         }
         if let detail {
-            context.text(detail, at: Point(x: metrics.sideMargin, y: title.size.height + metrics.tv(16)), color: palette.labelSecondary)
+            context.text(detail, at: Point(x: x, y: titleHeight + (titleHeight > 0 ? metrics.tv(16) : 0)), color: palette.labelSecondary)
         }
     }
 }

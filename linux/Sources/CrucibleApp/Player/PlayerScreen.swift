@@ -128,6 +128,7 @@ final class PlayerScreen: View {
         streamOffset = resolved.isDirectPlay ? 0 : start
         upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
                                 showRatingKey: item.grandparentRatingKey, markers: resolved.markers)
+        player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)
         player?.setPaused(false)
@@ -337,9 +338,21 @@ final class PlayerScreen: View {
         showChrome(autoHide: true)
     }
 
+    private var autoSkipped: Set<SkipMarker> = []
+
+    /// Shows Skip Intro or Skip Credits inside a segment, or skips it at once when Settings say so (once per segment, so
+    /// seeking back into it plays it).
     private func updateSkip() {
         let now = position
         if let segment = segments.first(where: { now >= $0.startSecs && now < $0.endSecs - 1 }) {
+            let automatic = segment.isCredits ? Preferences.skipOutroMode == .automatic : Preferences.skipIntroMode == .automatic
+            let off = segment.isCredits ? Preferences.skipOutroMode == .off : Preferences.skipIntroMode == .off
+            if off { return }
+            if automatic, !segment.isCredits, !autoSkipped.contains(segment) {
+                autoSkipped.insert(segment)
+                seek(to: segment.endSecs)
+                return
+            }
             skip.title = segment.title
             if skip.isHidden {
                 skip.isHidden = false
@@ -445,9 +458,9 @@ final class PlayerScreen: View {
         case .space, Key.character("k"):
             player.togglePause()
         case .left, Key.character("j"):
-            seek(to: position - 10)
+            seek(to: position - Double(Preferences.skipBackSeconds))
         case .right, Key.character("l"):
-            seek(to: position + 10)
+            seek(to: position + Double(Preferences.skipForwardSeconds))
         case .up:
             player.setVolume(player.state.volume + 5)
         case .down:

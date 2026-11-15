@@ -5,6 +5,7 @@ import Kiln
 
 enum CrucibleLinux {
     static let version = "0.1.0"
+    static let build = "1"
 }
 
 /// Crucible for Linux.
@@ -38,6 +39,11 @@ func runCrucible() -> Int32 {
         window.contentView = player
         window.background = .black
         window.focus.focus(player, animated: false)
+    } else if ProcessInfo.processInfo.environment["CRUCIBLE_SCREEN"] == "settings" {
+        let api = APIClient(baseURL: URL(string: "http://127.0.0.1:9")!, token: "")
+        let stack = NavigationView(root: SettingsScreen(api: api))
+        window.contentView = stack
+        window.focus.focus(stack, animated: false)
     } else {
         coordinator.start()
     }
