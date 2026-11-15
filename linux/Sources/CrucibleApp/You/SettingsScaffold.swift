@@ -25,6 +25,8 @@ class SettingsScaffold: ScreenView {
         page.setSections([heading, body])
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
         rows.onSelect = { [weak self] item in self?.rowSelected(item.id) }
+        rows.onFocus = { [weak self] item in self?.rowFocused(item.id) }
+        rows.onContextMenu = { [weak self] item, anchor in self?.rowMenu(item.id, at: anchor) ?? false }
     }
 
     override var preferredFocusView: View? { state.isHidden ? rows : state }
@@ -63,6 +65,13 @@ class SettingsScaffold: ScreenView {
 
     /// A row was chosen; subclasses act on it.
     func rowSelected(_ id: String) {}
+
+    /// A row took the focus; subclasses that show more about the focused row act on it.
+    func rowFocused(_ id: String) {}
+
+    /// The menu for a row (right-click or the Menu key) at `anchor` in the window; subclasses that offer one present it
+    /// and return true.
+    func rowMenu(_ id: String, at anchor: Rect) -> Bool { false }
 
     override func layoutSubviews() {
         page.topInset = Theme.current.metrics.tabBarClearance

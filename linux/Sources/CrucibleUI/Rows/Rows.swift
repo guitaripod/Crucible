@@ -42,6 +42,8 @@ public final class RowView: View {
     /// Asked for the row's menu (right-click or the Menu key) with where to anchor it in the window; returns whether a
     /// menu opened.
     public var onContextMenu: ((RowItem, Rect) -> Bool)?
+    /// The row took the focus.
+    public var onFocus: ((RowItem) -> Void)?
 
     private var focus = Animated(0)
     private var hover = Animated(0)
@@ -85,7 +87,10 @@ public final class RowView: View {
         startAnimating()
     }
 
-    public override func focusDidChange(focused: Bool, animated: Bool) { update() }
+    public override func focusDidChange(focused: Bool, animated: Bool) {
+        update()
+        if focused { onFocus?(item) }
+    }
     public override func focusVisibilityDidChange(_ visible: Bool) { if isFocused { update() } }
     public override func pointerEntered() { update() }
 
@@ -213,6 +218,8 @@ public final class RowListView: View {
     public var onSelect: ((RowItem) -> Void)?
     /// The menu for a row (right-click or the Menu key), given where to anchor it in the window; returns whether one opened.
     public var onContextMenu: ((RowItem, Rect) -> Bool)?
+    /// A row took the focus.
+    public var onFocus: ((RowItem) -> Void)?
     public var columnWidth: Float?
     /// Starts the column at the screen's margin, in line with a grid below it, instead of centring it.
     public var isLeadingAligned = false { didSet { setNeedsLayout() } }
@@ -233,6 +240,7 @@ public final class RowListView: View {
             let row = rows[item.id] ?? RowView(item: item)
             row.item = item
             row.onSelect = { [weak self] item in self?.onSelect?(item) }
+            row.onFocus = { [weak self] item in self?.onFocus?(item) }
             row.onContextMenu = { [weak self] item, anchor in self?.onContextMenu?(item, anchor) ?? false }
             if row.superview == nil { addSubview(row) }
             next[item.id] = row
