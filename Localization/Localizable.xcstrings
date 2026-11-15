@@ -36910,6 +36910,102 @@
         }
       }
     },
+    "Check the Model" : {
+      "comment" : "Row that asks the person's own model a test question",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test modellen"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modell testen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probar el modelo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarkista malli"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tester le modèle"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prófa líkanið"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica il modello"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを確認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델 확인"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test modellen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź model"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testar o modelo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrollera modellen"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查模型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檢查模型"
+          }
+        }
+      }
+    },
     "Check the connection to your server and try again." : {
       "localizations" : {
         "da" : {
@@ -45984,6 +46080,294 @@
         }
       }
     },
+    "Couldn't choose because your model gave no usable answer. Check its name in Settings, then try again." : {
+      "comment" : "What to Watch on Linux when the person's model answered with an error or nonsense",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi din model gav et svar, der ikke kan bruges. Tjek dens navn i Indstillinger, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil dein Modell keine brauchbare Antwort gab. Prüfe seinen Namen in den Einstellungen und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque tu modelo no dio una respuesta utilizable. Comprueba su nombre en Configuración y vuelve a intentarlo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valinta ei onnistunut, koska mallisi ei antanut käyttökelpoista vastausta. Tarkista sen nimi Asetuksissa ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir, car votre modèle n’a donné aucune réponse exploitable. Vérifiez son nom dans Paramètres, puis réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því líkanið skilaði engu nothæfu svari. Athugaðu nafnið á því í Stillingum og reyndu svo aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere perché il tuo modello non ha dato una risposta utilizzabile. Controlla il suo nome nelle Impostazioni, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルから使える応答が得られなかったため選べませんでした。設定でモデル名を確認してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 쓸 수 있는 응답을 주지 않아 고를 수 없습니다. 설정에서 모델 이름을 확인한 다음 다시 시도하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi modellen din ga et svar som ikke kan brukes. Sjekk navnet i Innstillinger, og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać, bo Twój model nie dał użytecznej odpowiedzi. Sprawdź jego nazwę w Ustawieniach, a potem spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher porque o seu modelo não deu uma resposta utilizável. Verifique o nome dele nas Configurações e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att välja eftersom din modell inte gav något användbart svar. Kontrollera dess namn i Inställningar och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为你的模型没有给出可用的回答。请在设置中检查它的名称，然后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為你的模型沒有給出可用的回答。請在設定中檢查它的名稱，然後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't choose because your model is busy. Try again in a minute." : {
+      "comment" : "What to Watch on Linux when the person's model is busy",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi din model er optaget. Prøv igen om et minut."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil dein Modell beschäftigt ist. Versuche es in einer Minute erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque tu modelo está ocupado. Vuelve a intentarlo en un minuto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valinta ei onnistunut, koska mallisi on kiireinen. Yritä uudelleen minuutin kuluttua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir, car votre modèle est occupé. Réessayez dans une minute."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því líkanið er upptekið. Reyndu aftur eftir eina mínútu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere perché il tuo modello è occupato. Riprova tra un minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが混み合っているため選べませんでした。1分ほどしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 사용 중이라 고를 수 없습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi modellen din er opptatt. Prøv igjen om et minutt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać, bo Twój model jest zajęty. Spróbuj ponownie za minutę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher porque o seu modelo está ocupado. Tente novamente em um minuto."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att välja eftersom din modell är upptagen. Försök igen om en minut."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为你的模型正忙。请一分钟后再试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為你的模型正忙。請一分鐘後再試。"
+          }
+        }
+      }
+    },
+    "Couldn't choose because your model isn't answering. Check that it is running and its address is right, then try again." : {
+      "comment" : "What to Watch on Linux when the person's model cannot be reached",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vælge, fordi din model ikke svarer. Tjek, at den kører, og at adressen er rigtig, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl nicht möglich, weil dein Modell nicht antwortet. Prüfe, ob es läuft und die Adresse stimmt, und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo elegir porque tu modelo no responde. Comprueba que esté en marcha y que la dirección sea correcta, y vuelve a intentarlo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valinta ei onnistunut, koska mallisi ei vastaa. Tarkista, että se on käynnissä ja osoite on oikein, ja yritä sitten uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de choisir, car votre modèle ne répond pas. Vérifiez qu’il est lancé et que l’adresse est correcte, puis réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að velja því líkanið svarar ekki. Athugaðu hvort það sé í gangi og hvort vistfangið sé rétt, og reyndu svo aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scegliere perché il tuo modello non risponde. Controlla che sia in esecuzione e che l’indirizzo sia corretto, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが応答しないため選べませんでした。モデルが起動していて、アドレスが正しいか確認してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 응답하지 않아 고를 수 없습니다. 모델이 실행 중이고 주소가 맞는지 확인한 다음 다시 시도하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke velge fordi modellen din ikke svarer. Sjekk at den kjører og at adressen er riktig, og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wybrać, bo Twój model nie odpowiada. Sprawdź, czy jest uruchomiony i czy adres jest poprawny, a potem spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escolher porque o seu modelo não está respondendo. Verifique se ele está em execução e se o endereço está certo e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att välja eftersom din modell inte svarar. Kontrollera att den körs och att adressen stämmer, och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择，因为你的模型没有响应。请检查它是否正在运行、地址是否正确，然后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選擇，因為你的模型沒有回應。請檢查它是否正在執行、位址是否正確，然後再試一次。"
+          }
+        }
+      }
+    },
     "Couldn't choose from that. Describe what you want to watch." : {
       "localizations" : {
         "da" : {
@@ -49657,6 +50041,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法更新"
+          }
+        }
+      }
+    },
+    "Couldn’t Use That Address" : {
+      "comment" : "Alert when the typed model address is not a web address",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adressen kan ikke bruges"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse nicht verwendbar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede usar esa dirección"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Osoitetta ei voi käyttää"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’utiliser cette adresse"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki hægt að nota vistfangið"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile usare quell’indirizzo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのアドレスは使えません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "해당 주소를 사용할 수 없음"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan ikke bruke adressen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie można użyć tego adresu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não é possível usar esse endereço"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det går inte att använda adressen"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法使用该地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法使用該位址"
           }
         }
       }
@@ -88122,6 +88602,102 @@
         }
       }
     },
+    "Leave empty when the server needs none" : {
+      "comment" : "Placeholder of the API key field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lad feltet være tomt, hvis serveren ikke kræver en"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer lassen, wenn der Server keinen benötigt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déjalo vacío si el servidor no lo necesita"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jätä tyhjäksi, jos palvelin ei vaadi avainta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laissez vide si le serveur n’en demande pas"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skildu eftir tómt ef þjónninn þarfnast hans ekki"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lascia vuoto se il server non ne richiede uno"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーが不要な場合は空欄のまま"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버에서 필요 없으면 비워 두세요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La stå tomt når serveren ikke trenger en"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozostaw puste, jeśli serwer go nie wymaga"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe vazio quando o servidor não precisar"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lämna tomt när servern inte behöver någon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器不需要时留空"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器不需要時留空"
+          }
+        }
+      }
+    },
     "Leave the Demo" : {
       "localizations" : {
         "da" : {
@@ -96897,6 +97473,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在同步您的 Plex 觀看紀錄…"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "comment" : "Setting: the name of the model to ask at the person's own address",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modell"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Malli"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modèle"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Líkan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modell"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modell"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型"
           }
         }
       }
@@ -107286,6 +107958,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未請求"
+          }
+        }
+      }
+    },
+    "Not Set" : {
+      "comment" : "Value of a setting nobody has filled in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke angivet"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht festgelegt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin definir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei asetettu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non défini"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki stillt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non impostato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定なし"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke angitt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieustawiony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não definido"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inte angiven"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未設定"
           }
         }
       }
@@ -133342,6 +134110,102 @@
         }
       }
     },
+    "Remove Model" : {
+      "comment" : "Row that forgets the address, model and key of the person's own model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fjern model"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modell entfernen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitar modelo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poista malli"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le modèle"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fjarlægja líkan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi modello"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델 삭제"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fjern modell"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń model"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover modelo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta bort modell"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除模型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除模型"
+          }
+        }
+      }
+    },
     "Remove Request" : {
       "comment" : "Button that removes a Seerr request",
       "localizations" : {
@@ -141692,6 +142556,102 @@
         }
       }
     },
+    "Saved" : {
+      "comment" : "Value of the API key setting once a key is stored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gespeichert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardada"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tallennettu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrée"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vistaður"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장됨"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lagret"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparad"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已保存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已儲存"
+          }
+        }
+      }
+    },
     "Saved fields are locked, so the server keeps them when it refreshes the title." : {
       "comment" : "Note under the Edit Details form",
       "localizations" : {
@@ -142068,6 +143028,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "說說你現在想看什麼，Crucible 會從你自己的媒體庫中挑選。你說的話，以及電影和影集的片名、年份、類型、片長、評分和觀看狀態，會傳送到 Crucible 的 AI 進行挑選。除此之外，不會有其他資料離開這台裝置。"
+          }
+        }
+      }
+    },
+    "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to your model to choose. Nothing else leaves this computer." : {
+      "comment" : "What to Watch on Linux: what is sent to the person's own model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sig, hvad du har lyst til, så vælger Crucible fra dit eget bibliotek. Dine ord samt titler, år, genrer, længder, bedømmelser og visningsstatus for dine film og serier sendes til din model, som vælger. Intet andet forlader denne computer."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag, worauf du Lust hast, und Crucible wählt aus deiner eigenen Bibliothek. Deine Worte sowie Titel, Jahre, Genres, Längen, Bewertungen und der Gesehen-Status deiner Filme und Serien gehen zur Auswahl an dein Modell. Nichts anderes verlässt diesen Computer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dile qué te apetece y Crucible elegirá de tu propia biblioteca. Tus palabras y los títulos, años, géneros, duraciones, valoraciones y estado de visto de tus películas y series se envían a tu modelo para que elija. Nada más sale de este equipo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kerro, mitä mieli tekee, niin Crucible valitsee omasta kirjastostasi. Sanasi sekä elokuviesi ja sarjojesi nimet, vuodet, lajityypit, kestot, arviot ja katselutila lähetetään mallillesi valittavaksi. Mikään muu ei poistu tältä tietokoneelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites ce qui vous fait envie, et Crucible choisit dans votre propre bibliothèque. Vos mots ainsi que les titres, années, genres, durées, notes et état de visionnage de vos films et séries sont envoyés à votre modèle pour qu’il choisisse. Rien d’autre ne quitte cet ordinateur."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segðu hvað þig langar í og Crucible velur úr þínu eigin safni. Orðin þín ásamt titlum, árum, tegundum, lengdum, einkunnum og áhorfsstöðu kvikmynda og þátta þinna fara til líkansins þíns til að velja. Ekkert annað fer frá þessari tölvu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dì che cosa ti va e Crucible sceglie dalla tua libreria. Le tue parole e i titoli, gli anni, i generi, le durate, le valutazioni e lo stato di visione dei tuoi film e serie vanno al tuo modello, che sceglie. Nient’altro lascia questo computer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "気分を伝えると、Crucible が手持ちのライブラリから選びます。あなたの言葉と、映画やシリーズのタイトル、公開年、ジャンル、長さ、評価、視聴状況が、選択のためにモデルへ送られます。このコンピュータから外に出るものはこれ以外にありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보고 싶은 것을 말하면 Crucible이 내 라이브러리에서 골라 줍니다. 입력한 내용과 영화 및 시리즈의 제목, 연도, 장르, 길이, 평점, 시청 상태가 선택을 위해 모델로 전송됩니다. 그 밖의 정보는 이 컴퓨터를 벗어나지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si hva du har lyst på, så velger Crucible fra ditt eget bibliotek. Ordene dine og titlene, årene, sjangrene, lengdene, vurderingene og visningsstatusen til filmene og seriene dine sendes til modellen din for å velge. Ingenting annet forlater denne datamaskinen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiedz, na co masz ochotę, a Crucible wybierze z Twojej biblioteki. Twoje słowa oraz tytuły, lata, gatunki, długości, oceny i stan obejrzenia Twoich filmów i seriali trafiają do Twojego modelu, który wybiera. Nic innego nie opuszcza tego komputera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga o que você está a fim de ver e o Crucible escolhe na sua biblioteca. Suas palavras e os títulos, anos, gêneros, durações, avaliações e status de visto dos seus filmes e séries vão para o seu modelo escolher. Nada além disso sai deste computador."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säg vad du har lust med, så väljer Crucible från ditt eget bibliotek. Dina ord samt titlar, år, genrer, längder, betyg och visningsstatus för dina filmer och serier skickas till din modell för att välja. Inget annat lämnar datorn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说说你想看什么，Crucible 会从你自己的资料库中挑选。你说的话，以及你的电影和剧集的片名、年份、类型、时长、评分和观看状态，都会发送给你的模型来挑选。除此之外，没有任何内容会离开这台电脑。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說說你想看什麼，Crucible 會從你自己的資料庫中挑選。你說的話，以及你的電影和影集的片名、年份、類型、長度、評分和觀看狀態，都會傳送給你的模型來挑選。除此之外，沒有任何內容會離開這台電腦。"
           }
         }
       }
@@ -151371,6 +152427,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "四步完成設定"
+          }
+        }
+      }
+    },
+    "Set up your own model in Settings to use What to Watch." : {
+      "comment" : "What to Watch on Linux before a model is set up",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurer din egen model under Indstillinger for at bruge Titelforslag."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richte in den Einstellungen dein eigenes Modell ein, um „Was schauen?“ zu nutzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura tu propio modelo en Configuración para usar “Qué ver”."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ota oma malli käyttöön Asetuksissa, niin voit käyttää ”Mitä katsoa” -toimintoa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurez votre propre modèle dans Paramètres pour utiliser « Quoi regarder ? »."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settu upp þitt eigið líkan í Stillingum til að nota „Hvað á að horfa á“."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura il tuo modello nelle Impostazioni per usare “Cosa guardare”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「何を観る？」を使うには、設定で自分のモデルを設定してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "볼거리 추천을 사용하려면 설정에서 직접 모델을 설정하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sett opp din egen modell i Innstillinger for å bruke Titeltips."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aby korzystać z funkcji „Co obejrzeć”, skonfiguruj własny model w Ustawieniach."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure seu próprio modelo em Configurações para usar “O que assistir”."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurera din egen modell i Inställningar för att använda Titeltips."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在设置中配置你自己的模型，才能使用“看什么”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先在設定中設定你自己的模型，才能使用「看什麼」。"
           }
         }
       }
@@ -170098,6 +171250,102 @@
         }
       }
     },
+    "The model's name, e.g. qwen3" : {
+      "comment" : "Placeholder of the model name field",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modellens navn, fx qwen3"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Name des Modells, z. B. qwen3"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre del modelo, p. ej. qwen3"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mallin nimi, esimerkiksi qwen3"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom du modèle, par ex. qwen3"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heiti líkansins, t.d. qwen3"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome del modello, ad es. qwen3"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル名（例：qwen3）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델 이름(예: qwen3)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modellens navn, f.eks. qwen3"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa modelu, np. qwen3"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome do modelo, por ex. qwen3"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modellens namn, t.ex. qwen3"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型名称，例如 qwen3"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型名稱，例如 qwen3"
+          }
+        }
+      }
+    },
     "The newest lines of Crucible’s log. Focus the log and swipe to read older entries." : {
       "localizations" : {
         "da" : {
@@ -184126,6 +185374,102 @@
         }
       }
     },
+    "Type an address such as http://192.168.1.20:8080/v1." : {
+      "comment" : "How to type the address of the person's own model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv en adresse, fx http://192.168.1.20:8080/v1."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib eine Adresse ein, z. B. http://192.168.1.20:8080/v1."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe una dirección, como http://192.168.1.20:8080/v1."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjoita osoite, esimerkiksi http://192.168.1.20:8080/v1."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez une adresse, par exemple http://192.168.1.20:8080/v1."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrifaðu inn vistfang, til dæmis http://192.168.1.20:8080/v1."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci un indirizzo, ad esempio http://192.168.1.20:8080/v1."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "http://192.168.1.20:8080/v1 のようなアドレスを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "http://192.168.1.20:8080/v1 같은 주소를 입력하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv inn en adresse, for eksempel http://192.168.1.20:8080/v1."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz adres, np. http://192.168.1.20:8080/v1."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite um endereço, como http://192.168.1.20:8080/v1."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv en adress, till exempel http://192.168.1.20:8080/v1."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入地址，例如 http://192.168.1.20:8080/v1。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入位址，例如 http://192.168.1.20:8080/v1。"
+          }
+        }
+      }
+    },
     "UP NEXT" : {
       "localizations" : {
         "da" : {
@@ -193054,6 +194398,102 @@
         }
       }
     },
+    "What to Watch and recaps run on a model you choose: any OpenAI-compatible address, such as llama.cpp, Ollama, LM Studio or vLLM on your network, or a hosted service with its key. It gets your request and the titles, years, genres, lengths, ratings and watched state of your films and series. Nothing else leaves this computer." : {
+      "comment" : "Explanation in the Linux settings for the person's own model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelforslag og resuméer kører på en model, du selv vælger: en OpenAI-kompatibel adresse, fx llama.cpp, Ollama, LM Studio eller vLLM på dit netværk, eller en hostet tjeneste med sin nøgle. Den får din forespørgsel og titlerne, årene, genrerne, længderne, bedømmelserne og visningsstatus for dine film og serier. Intet andet forlader denne computer."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was schauen?“ und Zusammenfassungen laufen auf einem Modell deiner Wahl: einer beliebigen OpenAI-kompatiblen Adresse, etwa llama.cpp, Ollama, LM Studio oder vLLM in deinem Netzwerk, oder einem gehosteten Dienst mit seinem Schlüssel. Es erhält deine Anfrage sowie Titel, Jahre, Genres, Längen, Bewertungen und den Gesehen-Status deiner Filme und Serien. Nichts anderes verlässt diesen Computer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Qué ver” y los resúmenes funcionan con un modelo que elijas: cualquier dirección compatible con OpenAI, como llama.cpp, Ollama, LM Studio o vLLM en tu red, o un servicio alojado con su clave. Recibe tu petición y los títulos, años, géneros, duraciones, valoraciones y estado de visto de tus películas y series. Nada más sale de este equipo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "”Mitä katsoa” ja tiivistelmät toimivat itse valitsemallasi mallilla: millä tahansa OpenAI-yhteensopivalla osoitteella, kuten llama.cpp, Ollama, LM Studio tai vLLM omassa verkossasi, tai verkkopalvelulla sen omalla avaimella. Malli saa pyyntösi sekä elokuviesi ja sarjojesi nimet, vuodet, lajityypit, kestot, arviot ja katselutilan. Mikään muu ei poistu tältä tietokoneelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Quoi regarder ? » et les résumés fonctionnent avec un modèle de votre choix : n’importe quelle adresse compatible OpenAI, comme llama.cpp, Ollama, LM Studio ou vLLM sur votre réseau, ou un service hébergé avec sa clé. Il reçoit votre demande ainsi que les titres, années, genres, durées, notes et état de visionnage de vos films et séries. Rien d’autre ne quitte cet ordinateur."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Hvað á að horfa á“ og samantektir keyra á líkani sem þú velur: hvaða OpenAI-samhæfðu vistfangi sem er, eins og llama.cpp, Ollama, LM Studio eða vLLM á netinu þínu, eða hýstri þjónustu með sínum lykli. Það fær beiðnina þína ásamt titlum, árum, tegundum, lengdum, einkunnum og áhorfsstöðu kvikmynda og þátta. Ekkert annað fer frá þessari tölvu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Cosa guardare” e i riassunti funzionano con un modello a tua scelta: qualsiasi indirizzo compatibile con OpenAI, come llama.cpp, Ollama, LM Studio o vLLM sulla tua rete, oppure un servizio ospitato con la sua chiave. Riceve la tua richiesta e i titoli, gli anni, i generi, le durate, le valutazioni e lo stato di visione dei tuoi film e serie. Nient’altro lascia questo computer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「何を観る？」とあらすじは、お好みのモデルで動作します。OpenAI 互換の任意のアドレス（ネットワーク上の llama.cpp、Ollama、LM Studio、vLLM など）や、キー付きのホスト型サービスを指定できます。送信されるのは、リクエストと、映画やシリーズのタイトル、公開年、ジャンル、長さ、評価、視聴状況です。このコンピュータから外に出るものはこれ以外にありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "볼거리 추천과 줄거리 요약은 직접 고른 모델에서 실행됩니다. 네트워크의 llama.cpp, Ollama, LM Studio, vLLM 같은 OpenAI 호환 주소나 키가 있는 호스팅 서비스를 쓸 수 있습니다. 요청과 함께 영화와 시리즈의 제목, 연도, 장르, 길이, 평점, 시청 상태가 전송됩니다. 그 밖의 정보는 이 컴퓨터를 벗어나지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titeltips og oppsummeringer kjører på en modell du velger: en hvilken som helst OpenAI-kompatibel adresse, for eksempel llama.cpp, Ollama, LM Studio eller vLLM på nettverket ditt, eller en hostet tjeneste med nøkkelen sin. Den får forespørselen din og titlene, årene, sjangrene, lengdene, vurderingene og visningsstatusen til filmene og seriene dine. Ingenting annet forlater denne datamaskinen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Co obejrzeć” i podsumowania działają na wybranym przez Ciebie modelu: dowolnym adresie zgodnym z OpenAI, np. llama.cpp, Ollama, LM Studio lub vLLM w Twojej sieci, albo usłudze hostowanej z kluczem. Model dostaje Twoje zapytanie oraz tytuły, lata, gatunki, długości, oceny i stan obejrzenia Twoich filmów i seriali. Nic innego nie opuszcza tego komputera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“O que assistir” e os resumos rodam em um modelo que você escolhe: qualquer endereço compatível com OpenAI, como llama.cpp, Ollama, LM Studio ou vLLM na sua rede, ou um serviço hospedado com a sua chave. Ele recebe o seu pedido e os títulos, anos, gêneros, durações, avaliações e status de visto dos seus filmes e séries. Nada além disso sai deste computador."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titeltips och sammanfattningar körs på en modell du väljer: valfri OpenAI-kompatibel adress, till exempel llama.cpp, Ollama, LM Studio eller vLLM på ditt nätverk, eller en värdtjänst med sin nyckel. Den får din förfrågan samt titlar, år, genrer, längder, betyg och visningsstatus för dina filmer och serier. Inget annat lämnar datorn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“看什么”和剧情回顾由你选择的模型运行：可以是任何兼容 OpenAI 的地址，例如你网络中的 llama.cpp、Ollama、LM Studio 或 vLLM，也可以是带密钥的托管服务。它会收到你的请求，以及你的电影和剧集的片名、年份、类型、时长、评分和观看状态。除此之外，没有任何内容会离开这台电脑。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「看什麼」和劇情回顧由你選擇的模型執行：可以是任何相容 OpenAI 的位址，例如你網路上的 llama.cpp、Ollama、LM Studio 或 vLLM，也可以是附帶金鑰的託管服務。它會收到你的請求，以及你的電影和影集的片名、年份、類型、長度、評分和觀看狀態。除此之外，沒有任何內容會離開這台電腦。"
+          }
+        }
+      }
+    },
     "What to Watch isn't part of this build of Crucible." : {
       "localizations" : {
         "da" : {
@@ -199015,6 +200455,102 @@
         }
       }
     },
+    "Your Own Model" : {
+      "comment" : "Linux settings for the OpenAI-compatible model What to Watch and recaps run on",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din egen model"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein eigenes Modell"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu propio modelo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oma malli"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre propre modèle"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigið líkan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo modello"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分のモデル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "나만의 모델"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din egen modell"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Własny model"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu próprio modelo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din egen modell"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的模型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的模型"
+          }
+        }
+      }
+    },
     "Your Plex library, beautifully on Apple TV." : {
       "localizations" : {
         "da" : {
@@ -201471,6 +203007,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的模型"
+          }
+        }
+      }
+    },
+    "Your model answered." : {
+      "comment" : "Alert after a successful test of the person's own model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din model svarede."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Modell hat geantwortet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu modelo ha respondido."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mallisi vastasi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre modèle a répondu."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Líkanið svaraði."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo modello ha risposto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが応答しました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが応答しました。"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modellen din svarte."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój model odpowiedział."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu modelo respondeu."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din modell svarade."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型已回复。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型已回覆。"
           }
         }
       }

@@ -20,7 +20,12 @@ final class SettingsScreen: ScreenView {
         addSubview(page)
         page.setSections([title, rows])
         rows.onSelect = { [weak self] item in
-            guard let self, let category = SettingsCategory(rawValue: item.id) else { return }
+            guard let self else { return }
+            if item.id == Self.ownModelID {
+                self.navigation?.push(OwnModelSettingsScreen())
+                return
+            }
+            guard let category = SettingsCategory(rawValue: item.id) else { return }
             if category == .appearance {
                 self.navigation?.push(AppearanceSettingsScreen())
             } else {
@@ -32,12 +37,19 @@ final class SettingsScreen: ScreenView {
 
     override var preferredFocusView: View? { rows }
 
+    private static let ownModelID = "linux.ownModel"
+
     override func screenDidAppear() {
-        rows.setItems(Self.categories.map { category in
+        var items = Self.categories.map { category in
             RowItem(id: category.rawValue, title: category.title(on: .linux), subtitle: category.explanation(on: .linux),
                     value: category == .appearance ? LinuxDisplay.summary : SettingsCatalog.summary(of: category, on: .linux), symbol: Symbol(category.symbol),
                     accessory: .chevron)
-        })
+        }
+        let ownModel = RowItem(id: Self.ownModelID, title: OwnModelCopy.title, subtitle: WatchCopy.title,
+                               value: OwnModel.model ?? OwnModelCopy.notSet, symbol: "sparkles", accessory: .chevron)
+        let after = items.firstIndex { $0.id == SettingsCategory.integrations.rawValue }.map { $0 + 1 } ?? items.count
+        items.insert(ownModel, at: after)
+        rows.setItems(items)
         setNeedsLayout()
     }
 

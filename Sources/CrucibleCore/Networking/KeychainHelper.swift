@@ -33,9 +33,9 @@ package enum KeychainHelper {
     private static let defaultStore: any SecretStoring = FileSecretStore(url: AppPlatform.persistentDirectory.appendingPathComponent("secrets.json"))
     #endif
 
-    static func save(key: String, value: String) { store.save(key: key, value: value) }
-    static func load(key: String) -> String? { store.load(key: key) }
-    static func delete(key: String) { store.delete(key: key) }
+    package static func save(key: String, value: String) { store.save(key: key, value: value) }
+    package static func load(key: String) -> String? { store.load(key: key) }
+    package static func delete(key: String) { store.delete(key: key) }
     static func deleteAll() { store.deleteAll() }
 }
 
