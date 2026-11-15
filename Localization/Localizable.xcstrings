@@ -43818,7 +43818,7 @@
       }
     },
     "Copy" : {
-      "comment" : "Button that copies a command in the Seerr guide",
+      "comment" : "Copies selected text (a title, a synopsis) or a command in the Seerr guide",
       "localizations" : {
         "da" : {
           "stringUnit" : {

@@ -64,6 +64,7 @@
   "desktopcomputer": "monitor",
   "dial.high": "gauge",
   "doc": "file",
+  "doc.on.doc": "copy",
   "doc.text": "file-text",
   "doc.text.magnifyingglass": "file-search",
   "dot.radiowaves.left.and.right": "radio",

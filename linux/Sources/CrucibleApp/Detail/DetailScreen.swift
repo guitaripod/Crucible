@@ -246,6 +246,14 @@ class DetailScreen: ScreenView {
         rootView?.push(DetailScreen.make(api: api, route: route))
     }
 
+    /// The page sits over the hero, which shows through its top: a point on the hero's text there goes to the hero, so the
+    /// title can be selected.
+    override func hitTest(_ point: Point) -> View? {
+        let hit = super.hitTest(point)
+        guard hit === page, !hero.isHidden else { return hit }
+        return hero.hitTest(hero.convert(point, from: self)) ?? hit
+    }
+
     /// A cast or crew member's titles in the libraries (`TVScreens.filmography`).
     func openPerson(_ person: PlexRole) {
         let api = api

@@ -299,6 +299,12 @@ open class View {
 
     open func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {}
 
+    /// The pointer moved while a press this view took is held, wherever the pointer is.
+    open func pointerDragged(to point: Point) {}
+
+    /// The pointer's shape over `point`: `cursor` everywhere unless the view tells its parts apart.
+    open func cursor(at point: Point) -> Cursor { cursor }
+
     /// Scrolling over this view; returning false passes it to the superview.
     open func scrolled(_ event: ScrollEvent) -> Bool { false }
 

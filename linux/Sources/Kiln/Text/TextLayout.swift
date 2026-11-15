@@ -90,6 +90,14 @@ public struct TextLayout {
         return Rect(x: Float(caret.x) / scale, y: Float(caret.y) / scale, width: 0, height: Float(caret.height) / scale)
     }
 
+    /// What a selection of the UTF-8 bytes `range` of `text` paints: a rectangle or more for every line it touches, in points
+    /// from the layout's top left.
+    public func rects(forUTF8 range: Range<Int>) -> [Rect] {
+        TextRenderer.rects(text, style: style, start: range.lowerBound, end: range.upperBound).map {
+            Rect(x: Float($0.x) / scale, y: Float($0.y) / scale, width: Float($0.width) / scale, height: Float($0.height) / scale)
+        }
+    }
+
     /// The UTF-8 byte offset into `text` of the character boundary nearest `point` (in points from the layout's top left).
     public func utf8Index(at point: Point) -> Int {
         TextRenderer.index(text, style: style, x: Int((point.x * scale).rounded()), y: Int((point.y * scale).rounded()))

@@ -138,14 +138,39 @@ public struct HeroInfo: Hashable, Sendable {
 /// The text over a backdrop (`TVHeroInfoView`): eyebrow, title, a middle-dot fact line, outlined badges, the synopsis and
 /// a thin progress bar, bottom-aligned in a fixed height. A long title and synopsis give way rather than overflow: the
 /// synopsis loses lines first (3, 2, 1), then the title drops to one line, then the synopsis goes. Changes cross-dissolve.
+/// Its text can be selected and copied; the view takes the pointer only over text, so what lies behind keeps the rest.
 @MainActor
-public final class HeroInfoView: View {
+public final class HeroInfoView: View, TextSelecting {
     private var info: HeroInfo?
     private var previous: HeroInfo?
     private var crossfade = Animated(1)
+    private let selector = TextSelector()
+
+    public override init(frame: Rect = .zero) {
+        super.init(frame: frame)
+        selector.onChange = { [weak self] in self?.setNeedsDisplay() }
+    }
+
+    public var selectedText: String? { selector.selectedText }
+    public func clearSelection() { selector.clear() }
+    public override var isPointerInteractive: Bool { true }
+    public override var cursor: Cursor { .text }
+
+    public override func hitTest(_ point: Point) -> View? {
+        let hit = super.hitTest(point)
+        return hit === self && selector.block(at: point) == nil ? nil : hit
+    }
+
+    public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        SelectableText.press(button, at: point, selector: selector, in: self)
+    }
+
+    public override func pointerDragged(to point: Point) { selector.drag(to: point) }
+    public override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) { selector.release() }
 
     public func configure(_ newInfo: HeroInfo?, animated: Bool) {
         guard newInfo != info else { return }
+        if newInfo?.title != info?.title { selector.clear() }
         previous = animated ? info : nil
         info = newInfo
         if animated {
@@ -166,11 +191,12 @@ public final class HeroInfoView: View {
     }
 
     public override func draw(_ context: inout DrawContext) {
+        selector.beginDrawing()
         if let previous, crossfade.value < 1 {
-            context.faded(1 - crossfade.value) { inner in draw(previous, context: &inner) }
+            context.faded(1 - crossfade.value) { inner in draw(previous, selectable: false, context: &inner) }
         }
         if let info {
-            context.faded(crossfade.value) { inner in draw(info, context: &inner) }
+            context.faded(crossfade.value) { inner in draw(info, selectable: true, context: &inner) }
         }
     }
 
@@ -238,17 +264,23 @@ public final class HeroInfoView: View {
         }
     }
 
-    private func draw(_ info: HeroInfo, context: inout DrawContext) {
+    /// One state of the text; `selectable` registers its text blocks with the selector (the current state, never the one
+    /// fading out).
+    private func draw(_ info: HeroInfo, selectable: Bool, context: inout DrawContext) {
         let laidOut = fitted(info)
         let metrics = Theme.current.metrics
         let palette = Theme.current.palette
         let total = laidOut.reduce(0) { $0 + $1.height } + laidOut.dropLast().reduce(0) { $0 + $1.spacingAfter }
         var y = frame.height - total
-        for block in laidOut {
+        for (index, block) in laidOut.enumerated() {
             switch block.kind {
             case .text(let layout, let color):
+                if selectable { selector.draw(layout, key: "text.\(index)", at: Point(x: 0, y: y), color: SelectableText.highlight, in: &context) }
                 context.text(layout, at: Point(x: 0, y: y), color: color)
             case .meta(let layout, let ratings, let font):
+                if selectable, let layout {
+                    selector.draw(layout, key: "meta", at: Point(x: 0, y: y), color: SelectableText.highlight, in: &context)
+                }
                 drawMeta(layout, ratings: ratings, font: font, at: y, context: &context)
             case .badges(let layouts):
                 var x: Float = 0

@@ -131,6 +131,15 @@ public final class TextRenderer {
         return withRawStyle(style) { raw in text.withCString { kiln_text_caret_at($0, &raw, Int32(byteIndex)) } }
     }
 
+    static func rects(_ text: String, style: TextStyle, start: Int, end: Int) -> [kiln_text_rect] {
+        registerFonts()
+        var rects = [kiln_text_rect](repeating: kiln_text_rect(), count: 64)
+        let count = withRawStyle(style) { raw in
+            text.withCString { utf8 in rects.withUnsafeMutableBufferPointer { kiln_text_range_rects(utf8, &raw, Int32(start), Int32(end), $0.baseAddress, Int32($0.count)) } }
+        }
+        return Array(rects.prefix(Int(count)))
+    }
+
     static func index(_ text: String, style: TextStyle, x: Int, y: Int) -> Int {
         registerFonts()
         return withRawStyle(style) { raw in Int(text.withCString { kiln_text_index_at($0, &raw, Int32(x), Int32(y)) }) }

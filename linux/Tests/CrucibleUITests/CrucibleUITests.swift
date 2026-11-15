@@ -195,6 +195,35 @@ enum SharedGPU {
         editor.removeFromSuperview()
     }
 
+    @Test func aSynopsisSelectsWithThePointerAndCopiesWithControlC() {
+        let synopsis = SynopsisView(text: "A retired salvage pilot is hired to find what its crew left behind.")
+        let button = ButtonView(style: .glass, title: "Play")
+        synopsis.frame = Rect(x: 0, y: 0, width: 1000, height: synopsis.sizeThatFits(Size(width: 1000, height: 1000)).height)
+        button.frame = Rect(x: 0, y: 300, width: 160, height: 50)
+        window.contentView.addSubview(synopsis)
+        window.contentView.addSubview(button)
+        window.focus.focus(button, animated: false)
+        window.render()
+        let margin = Theme.current.metrics.sideMargin
+        window.handlePointerMoved(to: Point(x: margin + 4, y: 10))
+        #expect(synopsis.cursor(at: Point(x: margin + 4, y: 10)) == .text)
+        for _ in 0..<3 {
+            window.handlePointerButton(.primary, pressed: true)
+            window.handlePointerButton(.primary, pressed: false)
+        }
+        #expect(window.clickCount == 3)
+        #expect(synopsis.selectedText == synopsis.text)
+        window.copy("")
+        window.handleKey(KeyEvent(key: Key.character("c"), modifiers: .control))
+        #expect(window.pasteboardText() == synopsis.text, "Ctrl+C copies the selection while a button has the focus")
+        window.handlePointerMoved(to: Point(x: 20, y: 320))
+        window.handlePointerButton(.primary, pressed: true)
+        window.handlePointerButton(.primary, pressed: false)
+        #expect(synopsis.selectedText == nil, "a press elsewhere clears the selection")
+        synopsis.removeFromSuperview()
+        button.removeFromSuperview()
+    }
+
     @Test func closingAMenuOrAlertHandsFocusStraightBack() {
         let anchor = ButtonView(style: .glass, title: "Manage")
         let neighbour = ButtonView(style: .glass, title: "Neighbour")

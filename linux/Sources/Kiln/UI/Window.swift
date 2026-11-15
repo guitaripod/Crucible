@@ -69,6 +69,12 @@ public final class Window {
     private var hovered: View?
     private var pressed: (view: View, button: MouseButton)?
     private var pointer: Point?
+    private var shownCursor: Cursor?
+    private var lastClick: (time: Double, point: Point, button: MouseButton)?
+    /// How many presses of the same button, close in time and place, the latest one ends: 2 for a double click.
+    public private(set) var clickCount = 1
+    /// The view holding the window's one text selection.
+    public private(set) weak var selectionOwner: (any TextSelecting)?
     private var modifiers: Modifiers = []
     private var repeatRate: Int32 = 25
     private var repeatDelay: Int32 = 600
@@ -171,6 +177,7 @@ public final class Window {
     }
 
     public func setCursor(_ cursor: Cursor) {
+        shownCursor = cursor
         surface?.setCursor(cursor)
     }
 
@@ -189,6 +196,12 @@ public final class Window {
     @discardableResult
     public func activate(token: String) -> Bool {
         surface?.activate(token: token) ?? false
+    }
+
+    /// Makes `owner`'s selection the window's, clearing the one another view held.
+    public func claimSelection(_ owner: any TextSelecting) {
+        if let previous = selectionOwner, previous !== owner { previous.clearSelection() }
+        selectionOwner = owner
     }
 
     /// Puts `text` on the desktop's clipboard (Ctrl+C, a menu's Copy). Headless windows keep it to themselves.
@@ -449,6 +462,10 @@ public final class Window {
             if view.keyPressed(event) { return }
             responder = view.superview
         }
+        if event.clipboardCommand == .copy, let text = selectionOwner?.selectedText {
+            copy(text)
+            return
+        }
         if contentView.keyPressed(event) { return }
         if focus.handle(event) { return }
         _ = delegate?.window(self, unhandledKey: event)
@@ -463,9 +480,10 @@ public final class Window {
             hovered = hit
             hit?.isHovered = true
             hit?.pointerEntered()
-            surface?.setCursor(hit?.cursor ?? .default)
         }
         if let hit { hit.pointerMoved(to: hit.convert(point, from: nil)) }
+        if let pressed { pressed.view.pointerDragged(to: pressed.view.convert(point, from: nil)) }
+        showCursor((pressed?.view ?? hit).map { $0.cursor(at: $0.convert(point, from: nil)) } ?? .default)
         updateTooltip(hit.flatMap { $0.tooltip(at: $0.convert(point, from: nil)) })
     }
 
@@ -496,8 +514,27 @@ public final class Window {
         tooltip = nil
     }
 
+    /// Sets the pointer's shape when it changed; the compositor forgets it when the pointer leaves.
+    private func showCursor(_ cursor: Cursor) {
+        guard cursor != shownCursor else { return }
+        shownCursor = cursor
+        surface?.setCursor(cursor)
+    }
+
+    /// Counts `button` presses in a row: each within 0.45 seconds and a few points of the one before.
+    private func countClick(_ button: MouseButton, at point: Point) {
+        let now = Window.now()
+        if let last = lastClick, last.button == button, now - last.time < 0.45, abs(last.point.x - point.x) < 5, abs(last.point.y - point.y) < 5 {
+            clickCount += 1
+        } else {
+            clickCount = 1
+        }
+        lastClick = (now, point, button)
+    }
+
     public func handlePointerLeft() {
         hideTooltip()
+        shownCursor = nil
         pointer = nil
         hovered?.isHovered = false
         hovered?.pointerExited()
@@ -510,14 +547,17 @@ public final class Window {
         if isPressed {
             hideTooltip()
             focus.pointerDidClick()
+            countClick(button, at: pointer)
             var responder = contentView.hitTest(pointer)
             while let view = responder {
                 if view.pointerPressed(button, at: view.convert(pointer, from: nil)) {
                     self.pressed = (view, button)
+                    if let owner = selectionOwner, owner !== view { owner.clearSelection() }
                     return
                 }
                 responder = view.superview
             }
+            selectionOwner?.clearSelection()
             if delegate?.window(self, unhandledButton: button) == true { return }
         } else if let pressed, pressed.button == button {
             self.pressed = nil

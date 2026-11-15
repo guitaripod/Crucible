@@ -37,6 +37,13 @@ typedef struct {
     int height;
 } kiln_text_caret;
 
+typedef struct {
+    int x;
+    int y;
+    int width;
+    int height;
+} kiln_text_rect;
+
 /** Makes a font file available to Pango for this process (bundled Inter). */
 bool kiln_text_register_font(const char *path);
 
@@ -56,5 +63,9 @@ kiln_text_caret kiln_text_caret_at(const char *utf8, const kiln_text_style *styl
 
 /** The byte index of the character boundary nearest `x`, `y` (pixels from the top left) in the laid-out text. */
 int kiln_text_index_at(const char *utf8, const kiln_text_style *style, int x, int y);
+
+/** The rectangles that cover the bytes from `start` to `end` of the laid-out text (pixels from the top left), at least one
+ * for every line the range touches: what a selection paints. Writes at most `capacity` and returns how many it wrote. */
+int kiln_text_range_rects(const char *utf8, const kiln_text_style *style, int start, int end, kiln_text_rect *rects, int capacity);
 
 #endif

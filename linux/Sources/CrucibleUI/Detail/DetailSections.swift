@@ -2,19 +2,41 @@ import Foundation
 import Kiln
 
 /// A title's synopsis under its hero (`TVDetailSynopsisCell`): up to four lines, and More when it runs longer, which
-/// opens the whole text.
+/// opens the whole text. The text can be selected and copied; a triple click takes all of it, the hidden part too.
 @MainActor
-public final class SynopsisView: View {
+public final class SynopsisView: View, TextSelecting {
     public var onMore: (() -> Void)?
     private let more = ButtonView(style: .plain, title: Strings.lookup("More"))
-    public var text: String { didSet { if text != oldValue { setNeedsLayout(); superview?.setNeedsLayout(); setNeedsDisplay() } } }
+    private let selector = TextSelector()
+    public var text: String {
+        didSet {
+            guard text != oldValue else { return }
+            selector.clear()
+            setNeedsLayout()
+            superview?.setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
 
     public init(text: String) {
         self.text = text
         super.init()
         more.onPress = { [weak self] in self?.onMore?() }
+        selector.onChange = { [weak self] in self?.setNeedsDisplay() }
         addSubview(more)
     }
+
+    public var selectedText: String? { selector.selectedText }
+    public func clearSelection() { selector.clear() }
+    public override var isPointerInteractive: Bool { true }
+    public override func cursor(at point: Point) -> Cursor { SelectableText.cursor(at: point, selector: selector, otherwise: .default) }
+
+    public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        SelectableText.press(button, at: point, selector: selector, in: self)
+    }
+
+    public override func pointerDragged(to point: Point) { selector.drag(to: point) }
+    public override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) { selector.release() }
 
     private var column: Float { Theme.current.metrics.heroTextColumn }
 
@@ -41,20 +63,44 @@ public final class SynopsisView: View {
 
     public override func draw(_ context: inout DrawContext) {
         guard let scale = window?.scale else { return }
-        context.text(layout(scale: scale), at: Point(x: Theme.current.metrics.sideMargin, y: 0), color: Theme.current.palette.labelSecondary)
+        let laidOut = layout(scale: scale)
+        let origin = Point(x: Theme.current.metrics.sideMargin, y: 0)
+        selector.beginDrawing()
+        selector.draw(laidOut, key: "synopsis", at: origin, color: SelectableText.highlight, in: &context)
+        context.text(laidOut, at: origin, color: Theme.current.palette.labelSecondary)
     }
 }
 
 /// The Information panel of a title page (`TVInformationSurface`): its facts (studio, directors, dates, file, audio) in a
-/// two-column grid under a heading. It takes focus, so the keyboard can scroll down to it.
+/// two-column grid under a heading. It takes focus, so the keyboard can scroll down to it, and its values can be selected
+/// and copied.
 @MainActor
-public final class InformationView: View {
-    public var facts: [(key: String, value: String)] = [] { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
+public final class InformationView: View, TextSelecting {
+    public var facts: [(key: String, value: String)] = [] {
+        didSet {
+            selector.clear()
+            superview?.setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
     private var focus = Animated(0)
+    private let selector = TextSelector()
 
     public override init(frame: Rect = .zero) {
         super.init(frame: frame)
+        selector.onChange = { [weak self] in self?.setNeedsDisplay() }
     }
+
+    public var selectedText: String? { selector.selectedText }
+    public func clearSelection() { selector.clear() }
+    public override func cursor(at point: Point) -> Cursor { SelectableText.cursor(at: point, selector: selector, otherwise: .default) }
+
+    public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        SelectableText.press(button, at: point, selector: selector, in: self)
+    }
+
+    public override func pointerDragged(to point: Point) { selector.drag(to: point) }
+    public override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) { selector.release() }
 
     public override var canBecomeFocused: Bool { !facts.isEmpty }
     public override var accessibilityLabel: String? { facts.map { "\($0.key) \($0.value)" }.joined(separator: ", ") }
@@ -119,13 +165,16 @@ public final class InformationView: View {
         context.fill(panel, radius: metrics.radiusM, color: palette.surface.mixed(with: palette.surfaceRaised, amount: focus.value))
         let column = (panel.width - inset * 2 - columnGap) / 2
         var y = panel.y + inset
+        selector.beginDrawing()
         for (row, height) in rows.enumerated() {
             for side in 0..<2 {
                 let index = row * 2 + side
                 guard index < laid.count else { continue }
                 let x = panel.x + inset + Float(side) * (column + columnGap)
+                let valueOrigin = Point(x: x, y: y + laid[index].key.size.height + metrics.tv(6))
                 context.text(laid[index].key, at: Point(x: x, y: y), color: palette.labelTertiary)
-                context.text(laid[index].value, at: Point(x: x, y: y + laid[index].key.size.height + metrics.tv(6)), color: palette.label)
+                selector.draw(laid[index].value, key: "fact.\(index)", at: valueOrigin, color: SelectableText.highlight, in: &context)
+                context.text(laid[index].value, at: valueOrigin, color: palette.label)
             }
             y += height + metrics.tv(28)
         }

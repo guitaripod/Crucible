@@ -197,3 +197,36 @@ int kiln_text_index_at(const char *utf8, const kiln_text_style *style, int x, in
     g_object_unref(layout);
     return result;
 }
+
+int kiln_text_range_rects(const char *utf8, const kiln_text_style *style, int start, int end, kiln_text_rect *rects, int capacity) {
+    if (end <= start || capacity <= 0) return 0;
+    PangoLayout *layout = make_layout(utf8, style);
+    PangoLayoutIter *iter = pango_layout_get_iter(layout);
+    int count = 0;
+    do {
+        PangoLayoutLine *line = pango_layout_iter_get_line_readonly(iter);
+        int line_start = line->start_index;
+        int line_end = line_start + line->length;
+        if (line_start >= end) break;
+        int from = start > line_start ? start : line_start;
+        int to = end < line_end ? end : line_end;
+        if (to <= from) continue;
+        PangoRectangle logical;
+        pango_layout_iter_get_line_extents(iter, NULL, &logical);
+        int *ranges = NULL;
+        int pairs = 0;
+        pango_layout_line_get_x_ranges(line, from, to, &ranges, &pairs);
+        for (int pair = 0; pair < pairs && count < capacity; pair++) {
+            int left = PANGO_PIXELS(ranges[pair * 2]);
+            int right = PANGO_PIXELS(ranges[pair * 2 + 1]);
+            if (right <= left) continue;
+            rects[count++] = (kiln_text_rect) {
+                .x = left, .y = PANGO_PIXELS(logical.y), .width = right - left, .height = PANGO_PIXELS(logical.y + logical.height) - PANGO_PIXELS(logical.y),
+            };
+        }
+        g_free(ranges);
+    } while (count < capacity && pango_layout_iter_next_line(iter));
+    pango_layout_iter_free(iter);
+    g_object_unref(layout);
+    return count;
+}
