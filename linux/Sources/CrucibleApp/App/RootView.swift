@@ -124,6 +124,11 @@ final class RootView: View {
             self?.player = nil
             if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
         }
+        screen.onPlayNext = { [weak self, weak screen] episode in
+            screen?.removeFromSuperview()
+            self?.player = nil
+            self?.play(item: episode, api: api, from: 0)
+        }
         player = screen
         addSubview(screen)
         screen.frame = bounds

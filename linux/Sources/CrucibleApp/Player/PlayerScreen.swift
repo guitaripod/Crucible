@@ -19,8 +19,16 @@ final class PlayerScreen: View {
     }
 
     var onClose: (() -> Void)?
+    /// Plays the next episode in place of this one (Up Next, the media keys' Next).
+    var onPlayNext: ((PlexMetadata) -> Void)?
 
     private let source: Source
+    /// The player on screen, so quitting the app can stop it before its window and GPU go away.
+    static weak var active: PlayerScreen?
+
+    private var upNext: UpNextResolver?
+    private var card: UpNextCard?
+    private var offerTask: Task<Void, Never>?
     private var player: VideoPlayer?
     private var videoView: VideoView?
     private let transport = TransportView()
@@ -71,6 +79,7 @@ final class PlayerScreen: View {
 
     private func start() {
         guard let window, let loop = window.loop else { return }
+        PlayerScreen.active = self
         do {
             let player = try VideoPlayer(gpu: window.gpu, loop: loop)
             let view = VideoView(player: player)
@@ -93,6 +102,7 @@ final class PlayerScreen: View {
                 player?.load(url)
                 player?.setPaused(false)
                 window.inhibitIdle(true)
+                showDemoUpNextIfAsked()
             }
             return
         }
@@ -116,6 +126,8 @@ final class PlayerScreen: View {
         segments = resolved.segments
         let start = ResumeStrategy.streamStart(resumePosition: requested ?? resumePosition, isDirectPlay: resolved.isDirectPlay)
         streamOffset = resolved.isDirectPlay ? 0 : start
+        upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
+                                showRatingKey: item.grandparentRatingKey, markers: resolved.markers)
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)
         player?.setPaused(false)
@@ -136,8 +148,12 @@ final class PlayerScreen: View {
         transport.update(position: position, duration: duration, buffered: playerState.cachedSeconds, paused: playerState.isPaused,
                          buffering: playerState.isBuffering)
         updateSkip()
+        if var resolver = upNext, card == nil, resolver.creditsReached(at: position) {
+            upNext = resolver
+            offerNext(.credits)
+        }
         controls?.update(playing: !playerState.isPaused, title: transport.title, show: showTitle, artURL: nil, duration: duration, position: position,
-                         canGoNext: false)
+                         canGoNext: upNext?.canOfferNext ?? false)
         let reportState = playerState.isPaused ? "paused" : "playing"
         if reportState != lastReportedState { report(reportState) }
         if playerState.isPaused { showChrome(autoHide: false) }
@@ -149,7 +165,9 @@ final class PlayerScreen: View {
         case .loaded, .seeked:
             break
         case .ended:
-            close()
+            if let card, card.offer.autoplays || card.offer.playbackEnded { return }
+            if card != nil { dismissCard() }
+            offerNext(.playbackEnded)
         case .failed(let message):
             fail(message)
         }
@@ -165,6 +183,71 @@ final class PlayerScreen: View {
     private func seek(toFraction fraction: Float) {
         guard duration > 0 else { return }
         seek(to: Double(fraction) * duration)
+    }
+
+    // MARK: Up Next
+
+    /// Asks for the next episode; shows the card, or plays at once when asked for, or leaves at the end with none.
+    private func offerNext(_ reason: UpNextOffer.Reason) {
+        guard let resolver = upNext, case .plex(let api, _, _) = source else {
+            if reason == .playbackEnded { close() }
+            return
+        }
+        offerTask?.cancel()
+        offerTask = Task { [weak self] in
+            let offer = try? await resolver.loadOffer(api: api, reason: reason)
+            guard let self, !Task.isCancelled, !self.closed else { return }
+            guard let offer else {
+                if reason == .playbackEnded { self.close() }
+                return
+            }
+            if reason == .requested {
+                self.playNext(offer.episode)
+            } else {
+                self.show(offer)
+            }
+        }
+    }
+
+    private func show(_ offer: UpNextOffer) {
+        card?.removeFromSuperview()
+        let next = UpNextCard(offer: offer)
+        next.onPlay = { [weak self] in self?.playNext(offer.episode) }
+        next.onLeave = { [weak self] in
+            if offer.playbackEnded { self?.close() } else { self?.dismissCard() }
+        }
+        card = next
+        addSubview(next)
+        setNeedsLayout()
+        next.appearNow()
+        window?.focus.focus(next, animated: false)
+        showChrome(autoHide: true)
+    }
+
+    /// `CRUCIBLE_UPNEXT_DEMO=1` with a local file shows the Up Next card two seconds in, for headless checks of its look.
+    private func showDemoUpNextIfAsked() {
+        guard ProcessInfo.processInfo.environment["CRUCIBLE_UPNEXT_DEMO"] == "1" else { return }
+        let json = #"{"ratingKey":"demo-2","key":"/library/metadata/2","type":"episode","title":"What the Bees Know","index":2,"parentIndex":1}"#
+        guard let episode = try? JSONDecoder().decode(PlexMetadata.self, from: Data(json.utf8)) else { return }
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            self?.show(UpNextOffer(episode: episode, seasonRatingKey: "demo", reason: .credits, autoplays: true))
+        }
+    }
+
+    private func dismissCard() {
+        card?.stopCounting()
+        card?.removeFromSuperview()
+        card = nil
+        window?.focus.focus(self, animated: false)
+    }
+
+    /// Ends this playback (the server hears it stopped) and hands the next episode on.
+    private func playNext(_ episode: PlexMetadata) {
+        let hand = onPlayNext
+        onClose = nil
+        close()
+        hand?(episode)
     }
 
     // MARK: Tracks
@@ -242,7 +325,8 @@ final class PlayerScreen: View {
         case .stop: close()
         case .seek(let offset): seek(to: position + offset)
         case .setPosition(let target): seek(to: target)
-        case .next, .previous, .raise: break
+        case .next: offerNext(.requested)
+        case .previous, .raise: break
         }
     }
 
@@ -309,6 +393,8 @@ final class PlayerScreen: View {
         resolveTask?.cancel()
         reportTask?.cancel()
         hideTask?.cancel()
+        offerTask?.cancel()
+        card?.stopCounting()
         report("stopped")
         if let stream, !stream.isDirectPlay, case .plex(let api, _, _) = source {
             let session = stream.sessionId
@@ -377,7 +463,9 @@ final class PlayerScreen: View {
         case Key.character("f"), .f11:
             if let window { window.setFullscreen(!window.isFullscreen) }
         case .escape, .back:
-            close()
+            if card != nil { dismissCard() } else { close() }
+        case Key.character("n"):
+            offerNext(.requested)
         default:
             return false
         }
@@ -427,6 +515,11 @@ final class PlayerScreen: View {
         let size = skip.sizeThatFits(Size(width: 600, height: 200))
         skip.frame = Rect(x: frame.width - metrics.sideMargin - size.width, y: transport.frame.y - size.height - metrics.tv(32),
                           width: size.width, height: size.height)
+        if let card {
+            let cardSize = card.sizeThatFits(bounds.size)
+            card.frame = Rect(x: frame.width - metrics.sideMargin - cardSize.width, y: transport.frame.y - cardSize.height - metrics.tv(32),
+                              width: cardSize.width, height: cardSize.height)
+        }
     }
 }
 
