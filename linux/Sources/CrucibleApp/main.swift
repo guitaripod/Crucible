@@ -64,6 +64,10 @@ func runCrucible() -> Int32 {
         window.contentView = player
         window.background = .black
         window.focus.focus(player, animated: false)
+    } else if ProcessInfo.processInfo.environment["CRUCIBLE_SCREEN"] == "sports", let fixture = ProcessInfo.processInfo.environment["CRUCIBLE_SPORTS_FIXTURE"] {
+        let stack = NavigationView(root: SportsResearchScreen(source: SportsFixture(url: URL(fileURLWithPath: fixture))))
+        window.contentView = stack
+        window.focus.focus(stack, animated: false)
     } else if ProcessInfo.processInfo.environment["CRUCIBLE_SCREEN"] == "settings" {
         let api = APIClient(baseURL: URL(string: "http://127.0.0.1:9")!, token: "")
         let stack = NavigationView(root: SettingsScreen(api: api))

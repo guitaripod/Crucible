@@ -31,6 +31,7 @@ final class CrucibleServerScreen: SettingsScaffold {
         static let enterCode = "server.enterCode"
         static let showCode = "server.showCode"
         static let install = "server.install"
+        static let sports = "server.sports"
         static let unpair = "server.unpair"
     }
 
@@ -58,6 +59,7 @@ final class CrucibleServerScreen: SettingsScaffold {
             panel.content = .init(symbol: "server.rack", title: CompanionCopy.paired(server.name), status: status ?? CompanionCopy.checking,
                                   statusColor: Theme.current.palette.labelSecondary, body: CompanionCopy.pitch)
             setRows([
+                RowItem(id: RowID.sports, title: SportsCopy.title, symbol: "sportscourt", accessory: .chevron),
                 RowItem(id: RowID.unpair, title: CompanionCopy.unpair, symbol: "xmark.circle", isDestructive: true),
             ])
         } else {
@@ -107,6 +109,9 @@ final class CrucibleServerScreen: SettingsScaffold {
             navigation?.push(screen)
         case RowID.install:
             Browser.open(CompanionCopy.installURL)
+        case RowID.sports:
+            guard let client = PreviouslyOnRequest.client() else { return }
+            navigation?.push(SportsResearchScreen(source: client))
         case RowID.unpair:
             AlertView.confirm(title: CompanionCopy.unpair, message: CompanionCopy.unpairMessage, confirm: CompanionCopy.unpair, in: window) { [weak self] in
                 CompanionStore.forget()
