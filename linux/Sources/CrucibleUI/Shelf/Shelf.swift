@@ -137,6 +137,8 @@ public final class ShelfView: View {
             cardX += style.itemWidth + metrics.gutter
         }
         scroller.contentLength = cardX - metrics.gutter + margin
+        scroller.snapInterval = style.itemWidth + metrics.gutter
+        scroller.wheelStep = style.itemWidth + metrics.gutter
         let arrowSize = metrics.tv(72)
         let arrowY = metrics.shelfTopInset + style.artworkSize.height / 2 - arrowSize / 2 + cardsTop
         leadingArrow.frame = Rect(x: margin * 0.25, y: arrowY, width: arrowSize, height: arrowSize)
