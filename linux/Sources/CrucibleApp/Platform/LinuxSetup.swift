@@ -9,6 +9,7 @@ import MidgarCore
 @MainActor
 enum LinuxSetup {
     static func install() {
+        CrucibleLog.configure()
         let fallback = FileSecretStore(url: AppPlatform.persistentDirectory.appendingPathComponent("secrets.json"))
         KeychainHelper.install(SecretServiceStore(fallback: fallback))
         loadStrings()

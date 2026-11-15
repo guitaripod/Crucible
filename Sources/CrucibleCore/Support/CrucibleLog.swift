@@ -6,9 +6,19 @@ package enum CrucibleLog {
     /// The file every Crucible process appends to, kept from the retired per-app logger so the ios-device-logs workflow still finds it.
     package static let fileName = "crucible.log"
 
-    /// `Library/Logs` in the process's container, where MidgarLog writes.
+    /// `Library/Logs` in the process's container, where MidgarLog writes; on Linux, which has no Library, MidgarLog's
+    /// `$XDG_STATE_HOME/<process>/logs` (`~/.local/state/crucible/logs`).
     package static var directory: URL {
+        #if os(Linux)
+        let environment = ProcessInfo.processInfo.environment
+        let home = environment["HOME"].map { URL(fileURLWithPath: $0, isDirectory: true) } ?? FileManager.default.temporaryDirectory
+        let state = environment["XDG_STATE_HOME"].flatMap { $0.hasPrefix("/") ? URL(fileURLWithPath: $0, isDirectory: true) : nil }
+            ?? home.appendingPathComponent(".local/state", isDirectory: true)
+        return state.appendingPathComponent(ProcessInfo.processInfo.processName.lowercased(), isDirectory: true)
+            .appendingPathComponent("logs", isDirectory: true)
+        #else
         FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Logs", isDirectory: true)
+        #endif
     }
 
     /// Opens the log file. Call first thing in every process (app, Top Shelf) so nothing before it is lost.
