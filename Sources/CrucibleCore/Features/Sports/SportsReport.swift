@@ -1,7 +1,8 @@
 import Foundation
 
 /// Where Sports Research stands on the paired Crucible Server: every requirement, the owner's settings, what the
-/// server is doing and what it did, as `GET /sports` reports it.
+/// server is doing and what it made of each file, as `GET /sports` reports it. Fields a server from before v2 does not
+/// send decode as empty.
 package struct SportsReport: Decodable, Equatable, Sendable {
     package var owner: Bool
     package var ready: Bool
@@ -11,8 +12,9 @@ package struct SportsReport: Decodable, Equatable, Sendable {
     package var status: SportsStatus
     package var counts: [String: Int]
     package var items: [SportsItem]
+    package var model: SportsModel?
 
-    package init(owner: Bool, ready: Bool, checks: [SportsCheck], settings: SportsSettings, libraries: [SportsLibrary], status: SportsStatus, counts: [String: Int], items: [SportsItem]) {
+    package init(owner: Bool, ready: Bool, checks: [SportsCheck], settings: SportsSettings, libraries: [SportsLibrary], status: SportsStatus, counts: [String: Int], items: [SportsItem], model: SportsModel? = nil) {
         self.owner = owner
         self.ready = ready
         self.checks = checks
@@ -21,6 +23,18 @@ package struct SportsReport: Decodable, Equatable, Sendable {
         self.status = status
         self.counts = counts
         self.items = items
+        self.model = model
+    }
+}
+
+/// The model doing the research, by name and the host it runs on.
+package struct SportsModel: Decodable, Equatable, Sendable {
+    package var name: String
+    package var host: String
+
+    package init(name: String, host: String) {
+        self.name = name
+        self.host = host
     }
 }
 
@@ -84,19 +98,76 @@ package struct SportsLibrary: Decodable, Equatable, Hashable, Sendable {
     }
 }
 
+/// One step of a live research, as the server's timeline records it.
+package struct SportsLiveStep: Decodable, Equatable, Hashable, Sendable {
+    package enum Kind: String, Sendable {
+        case thinking
+        case searching
+        case reading
+        case checking
+        case writing
+    }
+
+    package var id: Int
+    package var kind: Kind
+    package var detail: String
+    package var at: Int
+
+    package init(id: Int, kind: Kind, detail: String = "", at: Int) {
+        self.id = id
+        self.kind = kind
+        self.detail = detail
+        self.at = at
+    }
+
+    enum CodingKeys: String, CodingKey { case id, kind, detail, at }
+
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(Int.self, forKey: .id) ?? 0
+        kind = Kind(rawValue: try container.decodeIfPresent(String.self, forKey: .kind) ?? "") ?? .thinking
+        detail = try container.decodeIfPresent(String.self, forKey: .detail) ?? ""
+        at = try container.decodeIfPresent(Int.self, forKey: .at) ?? 0
+    }
+}
+
 package struct SportsStatus: Decodable, Equatable, Sendable {
-    /// The file being researched and the step the model is on.
+    /// The file being researched and the steps the model has taken on it.
     package struct Current: Decodable, Equatable, Sendable {
         package var ratingKey: String
         package var name: String
+        package var file: String
         package var step: String
         package var started: Int
+        package var elapsed: Int
+        package var steps: [SportsLiveStep]
 
-        package init(ratingKey: String, name: String, step: String, started: Int) {
+        package init(ratingKey: String, name: String, file: String = "", step: String = "", started: Int, elapsed: Int = 0, steps: [SportsLiveStep] = []) {
             self.ratingKey = ratingKey
             self.name = name
+            self.file = file
             self.step = step
             self.started = started
+            self.elapsed = elapsed
+            self.steps = steps
+        }
+
+        enum CodingKeys: String, CodingKey { case ratingKey, name, file, step, started, elapsed, steps }
+
+        package init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            ratingKey = try container.decode(String.self, forKey: .ratingKey)
+            name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+            file = try container.decodeIfPresent(String.self, forKey: .file) ?? ""
+            step = try container.decodeIfPresent(String.self, forKey: .step) ?? ""
+            started = try container.decodeIfPresent(Int.self, forKey: .started) ?? 0
+            elapsed = try container.decodeIfPresent(Int.self, forKey: .elapsed) ?? 0
+            steps = try container.decodeIfPresent([SportsLiveStep].self, forKey: .steps) ?? []
+        }
+
+        /// The newest steps first, as the timeline shows them.
+        package func newestSteps(_ count: Int) -> [SportsLiveStep] {
+            Array(steps.suffix(count).reversed())
         }
     }
 
@@ -115,6 +186,169 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
     }
 
     package var isWorking: Bool { phase == "looking" || phase == "researching" || phase == "writing" }
+}
+
+/// The event research found for a file.
+package struct SportsEventDetail: Decodable, Equatable, Hashable, Sendable {
+    package struct Bout: Decodable, Equatable, Hashable, Sendable {
+        package var matchup: String
+        package var detail: String
+
+        package init(matchup: String, detail: String = "") {
+            self.matchup = matchup
+            self.detail = detail
+        }
+    }
+
+    package var event: String
+    package var part: String?
+    package var date: String
+    package var venue: String
+    package var city: String
+    package var headline: String
+    package var league: String
+    package var sport: String
+    package var summary: String
+    package var lineup: [Bout]
+    package var sources: [String]
+    package var posterUrl: String?
+
+    package init(event: String, part: String? = nil, date: String = "", venue: String = "", city: String = "", headline: String = "", league: String = "", sport: String = "", summary: String = "", lineup: [Bout] = [], sources: [String] = [], posterUrl: String? = nil) {
+        self.event = event
+        self.part = part
+        self.date = date
+        self.venue = venue
+        self.city = city
+        self.headline = headline
+        self.league = league
+        self.sport = sport
+        self.summary = summary
+        self.lineup = lineup
+        self.sources = sources
+        self.posterUrl = posterUrl
+    }
+
+    enum CodingKeys: String, CodingKey { case event, part, date, venue, city, headline, league, sport, summary, lineup, sources, posterUrl }
+
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        event = try container.decodeIfPresent(String.self, forKey: .event) ?? ""
+        part = try container.decodeIfPresent(String.self, forKey: .part)
+        date = try container.decodeIfPresent(String.self, forKey: .date) ?? ""
+        venue = try container.decodeIfPresent(String.self, forKey: .venue) ?? ""
+        city = try container.decodeIfPresent(String.self, forKey: .city) ?? ""
+        headline = try container.decodeIfPresent(String.self, forKey: .headline) ?? ""
+        league = try container.decodeIfPresent(String.self, forKey: .league) ?? ""
+        sport = try container.decodeIfPresent(String.self, forKey: .sport) ?? ""
+        summary = try container.decodeIfPresent(String.self, forKey: .summary) ?? ""
+        lineup = try container.decodeIfPresent([Bout].self, forKey: .lineup) ?? []
+        sources = try container.decodeIfPresent([String].self, forKey: .sources) ?? []
+        posterUrl = try container.decodeIfPresent(String.self, forKey: .posterUrl)
+    }
+
+    /// The event's day, from the `YYYY-MM-DD` the server sends.
+    package var day: Date? {
+        let parts = date.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return Calendar(identifier: .gregorian).date(from: DateComponents(timeZone: TimeZone(identifier: "UTC"), year: parts[0], month: parts[1], day: parts[2], hour: 12))
+    }
+
+    /// Venue and city as one place, without repeating a city the venue already names.
+    package var place: String {
+        let venue = venue.trimmingCharacters(in: .whitespaces)
+        let city = city.trimmingCharacters(in: .whitespaces)
+        if city.isEmpty || venue.contains(city) { return venue }
+        if venue.isEmpty { return city }
+        return "\(venue), \(city)"
+    }
+}
+
+/// What research made of one file.
+package struct SportsItem: Decodable, Equatable, Hashable, Sendable {
+    package var ratingKey: String
+    package var file: String
+    package var state: String
+    package var title: String
+    package var note: String
+    package var updated: Int
+    package var seconds: Int
+    package var searches: Int
+    package var reads: Int
+    /// Whether the server counted what the research took; files researched before it did come without the counts.
+    package var measured: Bool
+    package var detail: SportsEventDetail?
+
+    package init(ratingKey: String, file: String, state: String, title: String, note: String = "", updated: Int, seconds: Int = 0, searches: Int = 0, reads: Int = 0, measured: Bool = true, detail: SportsEventDetail? = nil) {
+        self.ratingKey = ratingKey
+        self.file = file
+        self.state = state
+        self.title = title
+        self.note = note
+        self.updated = updated
+        self.seconds = seconds
+        self.searches = searches
+        self.reads = reads
+        self.measured = measured
+        self.detail = detail
+    }
+
+    enum CodingKeys: String, CodingKey { case ratingKey, file, state, title, note, updated, seconds, searches, reads, detail }
+
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        ratingKey = try container.decode(String.self, forKey: .ratingKey)
+        file = try container.decodeIfPresent(String.self, forKey: .file) ?? ""
+        state = try container.decodeIfPresent(String.self, forKey: .state) ?? "failed"
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
+        note = try container.decodeIfPresent(String.self, forKey: .note) ?? ""
+        updated = try container.decodeIfPresent(Int.self, forKey: .updated) ?? 0
+        let effort = [
+            try container.decodeIfPresent(Int.self, forKey: .seconds),
+            try container.decodeIfPresent(Int.self, forKey: .searches),
+            try container.decodeIfPresent(Int.self, forKey: .reads),
+        ]
+        measured = effort.allSatisfy { ($0 ?? -1) >= 0 }
+        seconds = max(0, effort[0] ?? 0)
+        searches = max(0, effort[1] ?? 0)
+        reads = max(0, effort[2] ?? 0)
+        detail = try container.decodeIfPresent(SportsEventDetail.self, forKey: .detail)
+    }
+
+    /// The file's own name, for an item research has not titled.
+    package var fileName: String { file.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? file }
+
+    /// Whether the research of another part of the same event was reused, so this file took no research of its own.
+    package var reusedResearch: Bool { measured && state == "matched" && seconds == 0 && searches == 0 && reads == 0 }
+
+    /// The Plex path of the poster Plex shows for it, which research replaces with the event's artwork.
+    package var posterPath: String { "/library/metadata/\(ratingKey)/thumb" }
+
+    /// The words a drawn poster carries until Plex's own arrives: the event's number with the part, and the main bout.
+    package var posterWords: SportsPosterWords? {
+        guard let detail, state == "matched" || state == "edited" else { return nil }
+        return SportsPosterWords(event: detail.event, part: detail.part, headline: detail.headline)
+    }
+}
+
+/// The two lines of a drawn poster: "UFC 334 · PRELIMS" above "Gane vs. Hokit".
+package struct SportsPosterWords: Equatable, Hashable, Sendable {
+    package var eyebrow: String
+    package var caption: String
+
+    package init(eyebrow: String, caption: String) {
+        self.eyebrow = eyebrow
+        self.caption = caption
+    }
+
+    /// From an event title such as "UFC 334: Gane vs. Hokit", its part and its headline.
+    package init(event: String, part: String?, headline: String) {
+        let pieces = event.components(separatedBy: ": ")
+        let number = pieces.count > 1 ? pieces[0] : event
+        let named = pieces.count > 1 ? pieces.dropFirst().joined(separator: ": ") : ""
+        let shownPart = part.flatMap { $0 == "Main card" || $0 == "Full event" ? nil : $0 }
+        eyebrow = [number, shownPart].compactMap { $0 }.joined(separator: " · ")
+        caption = headline.isEmpty ? named : headline
+    }
 }
 
 extension SportsReport {
@@ -141,176 +375,4 @@ package func sportsCommand(in fix: String) -> String? {
         }
     }
     return command.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "."))
-}
-
-/// What research made of one file.
-package struct SportsItem: Decodable, Equatable, Hashable, Sendable {
-    package var ratingKey: String
-    package var file: String
-    package var state: String
-    package var title: String
-    package var note: String
-    package var updated: Int
-
-    package init(ratingKey: String, file: String, state: String, title: String, note: String = "", updated: Int) {
-        self.ratingKey = ratingKey
-        self.file = file
-        self.state = state
-        self.title = title
-        self.note = note
-        self.updated = updated
-    }
-
-    /// The file's own name, for an item research has not titled.
-    package var fileName: String { file.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? file }
-}
-
-/// Every requirement, in the order a person meets them and grouped the way the screen shows them.
-package enum SportsRequirement: String, CaseIterable, Sendable {
-    case owner
-    case model
-    case tools
-    case thinking
-    case context
-    case search
-    case agreement
-    case libraries
-    case on
-
-    package enum Group: Int, CaseIterable, Sendable {
-        case plex
-        case model
-        case web
-        case library
-    }
-
-    package var group: Group {
-        switch self {
-        case .owner: .plex
-        case .model, .tools, .thinking, .context: .model
-        case .search, .agreement: .web
-        case .libraries, .on: .library
-        }
-    }
-
-    /// Whether the owner settles it from the app rather than on the server.
-    package var settledInApp: Bool {
-        self == .agreement || self == .libraries || self == .on
-    }
-}
-
-extension SportsCheck {
-    /// Whether this unmet requirement is the owner's to settle with the app's own controls: one of the choices, or one that
-    /// waits on them (search is tried only once the owner agrees). Agreeing is a choice only once a search engine is set,
-    /// because until then there is nothing to agree to.
-    package func settledInApp(in report: SportsReport) -> Bool {
-        guard report.owner, state != .done else { return false }
-        if requirement == .agreement && report.settings.destination == nil {
-            return false
-        }
-        return requirement?.settledInApp == true || fix?.contains("in Crucible") == true
-    }
-}
-
-/// The report arranged for the screen: requirements by group, how far setup is, and one line about what the server
-/// is doing.
-package struct SportsBoard: Equatable, Sendable {
-    package let report: SportsReport
-
-    package init(report: SportsReport) {
-        self.report = report
-    }
-
-    /// The checks of each group in requirement order, skipping groups the server reported nothing for.
-    package var groups: [(SportsRequirement.Group, [SportsCheck])] {
-        let known = report.checks.filter { $0.requirement != nil }.sorted {
-            (SportsRequirement.allCases.firstIndex(of: $0.requirement!) ?? 0) < (SportsRequirement.allCases.firstIndex(of: $1.requirement!) ?? 0)
-        }
-        return SportsRequirement.Group.allCases.compactMap { group in
-            let checks = known.filter { $0.requirement?.group == group }
-            return checks.isEmpty ? nil : (group, checks)
-        }
-    }
-
-    package static func == (lhs: SportsBoard, rhs: SportsBoard) -> Bool { lhs.report == rhs.report }
-
-    package var doneCount: Int { report.checks.filter { $0.state == .done }.count }
-    package var total: Int { report.checks.count }
-
-    /// The requirements still open, in order.
-    package var open: [SportsCheck] {
-        groups.flatMap(\.1).filter { $0.state != .done }
-    }
-
-    /// The only thing between the owner and research is the switch.
-    package var onlySwitchIsOff: Bool {
-        open.map(\.id) == [SportsRequirement.on.rawValue]
-    }
-
-    package func count(_ state: String) -> Int { report.counts[state] ?? 0 }
-
-    /// The items to list, the ones needing a look first, then by newest change.
-    package var items: [SportsItem] {
-        let weight: (String) -> Int = { state in
-            switch state {
-            case "attention": 0
-            case "failed": 1
-            default: 2
-            }
-        }
-        return report.items.sorted { weight($0.state) != weight($1.state) ? weight($0.state) < weight($1.state) : $0.updated > $1.updated }
-    }
-}
-
-/// Where a Sports Research screen gets its report and sends the owner's changes: the paired Crucible Server, or a fixture
-/// in screenshots and UI tests.
-package protocol SportsSource: Sendable {
-    func sports() async throws(CompanionError) -> SportsReport
-    /// Whether the server has Sports Research at all (a server from before it answers its routes with nothing useful), or
-    /// nil when the server could not be asked.
-    func hasSports() async -> Bool?
-    func changeSports(on: Bool?, libraries: [String]?, agree: Bool?) async throws(CompanionError)
-    func recheckSports() async throws(CompanionError)
-    func runSports() async throws(CompanionError)
-    func redoSports(ratingKey: String) async throws(CompanionError)
-}
-
-extension CompanionClient: SportsSource {
-    package func hasSports() async -> Bool? {
-        guard let hello = try? await hello() else { return nil }
-        return hello.sports == true
-    }
-}
-
-/// A report read from a JSON file in the shape `GET /sports` answers, whose changes go nowhere.
-package struct SportsFixture: SportsSource {
-    private let url: URL
-
-    package init(url: URL) {
-        self.url = url
-    }
-
-    package func sports() async throws(CompanionError) -> SportsReport {
-        guard let data = try? Data(contentsOf: url), let report = try? JSONDecoder().decode(SportsReport.self, from: data) else {
-            throw .failed("No Sports Research fixture at \(url.path)")
-        }
-        return report
-    }
-
-    package func hasSports() async -> Bool? { true }
-    package func changeSports(on: Bool?, libraries: [String]?, agree: Bool?) async throws(CompanionError) {}
-    package func recheckSports() async throws(CompanionError) {}
-    package func runSports() async throws(CompanionError) {}
-    package func redoSports(ratingKey: String) async throws(CompanionError) {}
-}
-
-/// How a researched file is named in lists.
-package enum SportsItemLabel {
-    /// The title research gave it when it has one (matched, or edited by the owner since), else the file's own name.
-    package static func title(_ item: SportsItem) -> String {
-        switch item.state {
-        case "matched", "edited" where !item.title.isEmpty: item.title
-        default: item.fileName
-        }
-    }
 }

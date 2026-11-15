@@ -105,4 +105,91 @@ struct SportsResearchTests {
         report.owner = false
         #expect(!agreement.settledInApp(in: report))
     }
+
+    private let live = """
+    {"owner": true, "ready": true, "checks": [{"id": "owner", "group": "plex", "state": "done", "detail": "", "fix": null}],
+     "settings": {"on": true, "agreed": true}, "libraries": [],
+     "status": {"phase": "researching", "queued": 0,
+       "current": {"ratingKey": "9", "name": "UFC 334 Prelims", "file": "UFC 334 Prelims 1080p.mp4", "step": "", "started": 100, "elapsed": 41,
+         "steps": [{"id": 1, "kind": "thinking", "at": 1}, {"id": 2, "kind": "searching", "detail": "UFC 334 prelims", "at": 2}, {"id": 3, "kind": "dreaming", "at": 3}]}},
+     "counts": {"matched": 2},
+     "items": [
+       {"ratingKey": "1", "file": "/s/UFC.334.mkv", "state": "matched", "title": "UFC 334: Gane vs. Hokit", "updated": 300, "seconds": 23, "searches": 1, "reads": 2,
+        "detail": {"event": "UFC 334: Gane vs. Hokit", "part": "Prelims", "date": "2026-11-14", "venue": "Madison Square Garden", "city": "New York City, United States", "headline": "Gane vs. Hokit", "summary": "", "lineup": [{"matchup": "Stephen Thompson vs. Charles Radtke", "detail": "Welterweight"}], "sources": ["ufc.com"]}},
+       {"ratingKey": "2", "file": "/s/UFC.334.Early.mkv", "state": "matched", "title": "UFC 334 · Early prelims", "updated": 200, "seconds": 0, "searches": 0, "reads": 0},
+       {"ratingKey": "3", "file": "/s/UFC.229.mkv", "state": "matched", "title": "UFC 229", "updated": 100, "seconds": null, "searches": null, "reads": null}
+     ]}
+    """
+
+    private func liveBoard() throws -> SportsBoard {
+        SportsBoard(report: try JSONDecoder().decode(SportsReport.self, from: Data(live.utf8)))
+    }
+
+    @Test func decodesTheLiveResearchNewestStepFirst() throws {
+        let current = try #require(try liveBoard().report.status.current)
+        #expect(current.file == "UFC 334 Prelims 1080p.mp4" && current.elapsed == 41)
+        #expect(current.newestSteps(2).map(\.id) == [3, 2])
+        #expect(current.steps.last?.kind == .thinking, "a step kind from a newer server reads as thinking")
+        #expect(SportsCopy.step(current.steps[1]).contains("UFC 334 prelims"))
+    }
+
+    @Test func aResultCarriesItsEventAndWhatTheResearchTook() throws {
+        let board = try liveBoard()
+        let item = try #require(board.report.items.first { $0.ratingKey == "1" })
+        let detail = try #require(item.detail)
+        #expect(detail.place == "Madison Square Garden, New York City, United States")
+        #expect(detail.day.map { Calendar(identifier: .gregorian).dateComponents(in: TimeZone(identifier: "UTC")!, from: $0).day } == 14)
+        #expect(item.posterWords == SportsPosterWords(eyebrow: "UFC 334 · Prelims", caption: "Gane vs. Hokit"))
+        #expect(item.posterPath == "/library/metadata/1/thumb")
+        #expect(SportsCopy.meta(item).hasSuffix("Madison Square Garden, New York City, United States"))
+        #expect(item.measured && !item.reusedResearch)
+        #expect(board.hero?.ratingKey == "1", "the hero is the newest match that has its event")
+    }
+
+    @Test func onlyMeasuredEffortClaimsReusedResearch() throws {
+        let items = try liveBoard().report.items
+        #expect(items[1].measured && items[1].reusedResearch)
+        #expect(!items[2].measured && !items[2].reusedResearch, "a file from before the counts is not said to reuse research")
+        #expect(try !board().report.items[0].measured, "a server without the counts sends none")
+    }
+
+    @Test func posterWordsLeaveOutTheMainCard() {
+        #expect(SportsPosterWords(event: "UFC 334: Gane vs. Hokit", part: "Main card", headline: "").eyebrow == "UFC 334")
+        #expect(SportsPosterWords(event: "Samourai MMA 21", part: nil, headline: "Doe vs. Roe") == SportsPosterWords(eyebrow: "Samourai MMA 21", caption: "Doe vs. Roe"))
+    }
+
+    @Test func theScreenFollowsProOwnershipAndWhatIsLeft() throws {
+        let setup = try board()
+        #expect(setup.mode(isPro: false) == .notPro)
+        #expect(setup.mode(isPro: true) == .setup)
+        #expect(try liveBoard().mode(isPro: true) == .ready)
+        var shared = setup.report
+        shared.owner = false
+        #expect(SportsBoard(report: shared).mode(isPro: true) == .viewer)
+    }
+
+    @Test func stepsAreNumberedAndTheFirstOpenOneLeads() throws {
+        let steps = try board().steps
+        #expect(steps.map(\.number) == [1, 2, 3, 4])
+        #expect(steps.map(\.state) == [.done, .done, .failed, .missing])
+        #expect(try board().firstOpenStep?.group == .web)
+        #expect(SportsCopy.howSteps.count == 4)
+    }
+
+    @Test func aNeedsALookResultSaysWhyOrWhatToDo() {
+        let noted = SportsItem(ratingKey: "2", file: "/s/x.mkv", state: "attention", title: "", note: "No page confirms the date.", updated: 1)
+        #expect(SportsCopy.meta(noted) == "No page confirms the date.")
+        #expect(SportsCopy.meta(SportsItem(ratingKey: "3", file: "/s/y.mkv", state: "attention", title: "", updated: 1)) == SportsCopy.attentionHelp)
+        #expect(SportsItemLabel.title(noted) == "x.mkv")
+    }
+
+    @Test func filesThatWillBeTriedAgainCountAsNeedingALook() throws {
+        var report = try board().report
+        report.counts = ["matched": 40, "attention": 2, "failed": 3]
+        let board = SportsBoard(report: report)
+        #expect(board.needingALookCount == 5)
+        #expect(SportsCopy.counts(board).contains("5"))
+        report.counts = ["matched": 40]
+        #expect(SportsBoard(report: report).needingALookCount == 1, "an older server's counts fall back to the items sent")
+    }
 }
