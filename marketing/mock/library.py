@@ -483,7 +483,7 @@ class Library:
             "videoProfile": "main 10" if hdr else "high",
             "Part": [{"id": part_id, "key": f"/library/parts/{part_id}/{1700000000 + int(rk)}/file.mp4",
                       "duration": duration_ms, "file": f"/media/{title_kind}s/{rk}.mp4", "size": size, "container": "mp4",
-                      "Stream": streams}],
+                      "indexes": "sd", "Stream": streams}],
         }]
 
     def _markers(self, rk, duration_ms, kind):

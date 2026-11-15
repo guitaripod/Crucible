@@ -6,6 +6,7 @@ import random
 import re
 import socketserver
 import string
+import subprocess
 import sys
 import threading
 import time
@@ -36,10 +37,30 @@ def initial_flags():
         "no_credits": os.environ.get("MOCK_NO_CREDITS") == "1",
         "early_credits": os.environ.get("MOCK_EARLY_CREDITS") == "1",
         "plex_timeline": os.environ.get("MOCK_PLEX_TIMELINE") == "1",
+        "no_indexes": os.environ.get("MOCK_NO_INDEXES") == "1",
     }
 
 
 FLAGS = initial_flags()
+
+STILLS = {}
+STILL_INTERVAL_S = 2
+
+
+def index_still(offset_ms):
+    """The preview still nearest offset_ms, as a server with video preview thumbnails every 2 s serves it: a 320x180
+    frame of clip.mp4 (looped over its 150 s), cut once by ffmpeg and kept in memory."""
+    second = (offset_ms // 1000 + STILL_INTERVAL_S // 2) // STILL_INTERVAL_S * STILL_INTERVAL_S % 150
+    with LOCK:
+        if second in STILLS:
+            return STILLS[second]
+    cut = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(second), "-i", os.path.join(ASSETS, "clip.mp4"), "-frames:v", "1",
+                          "-vf", "scale=320:180", "-f", "image2pipe", "-vcodec", "mjpeg", "-q:v", "5", "-"], capture_output=True)
+    still = cut.stdout if cut.returncode == 0 and cut.stdout else None
+    with LOCK:
+        STILLS[second] = still
+    return still
+
 
 
 def apply_flags():
@@ -961,6 +982,19 @@ class Handler(BaseHTTPRequestHandler):
             if FLAGS["fail_parts"]:
                 return self.send_json(container(size=0, error="mock part failure"), 500)
             return self.send_file(os.path.join(ASSETS, "clip.mp4"), "video/mp4", ranged=True)
+
+        m = re.match(r"^/library/parts/\d+/indexes/sd/(\d+)$", p)
+        if m:
+            still = None if FLAGS["no_indexes"] else index_still(int(m.group(1)))
+            if not still:
+                return self.not_found()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(still)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(still)
+            return
 
         m = re.match(r"^/library/parts/(\d+)$", p)
         if m:

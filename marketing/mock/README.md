@@ -29,6 +29,7 @@ Runtime switches for player tests, read from `MOCK_*` environment variables at s
 - `fail_transcode=1` (`MOCK_FAIL_TRANSCODE`): `start.m3u8` answers 500, so a failed fallback reaches the error state.
 - `no_credits=1` (`MOCK_NO_CREDITS`): drops the credits markers, so Up Next comes from the end of the item.
 - `latency_ms=N` (`MOCK_LATENCY_MS`): delays every non-`/mock/` response.
+- `no_indexes=1` (`MOCK_NO_INDEXES`): every part still says `indexes="sd"`, but its preview stills (`/library/parts/<id>/indexes/sd/<ms>`, otherwise a frame of clip.mp4 every 2 s) answer 404, as on a server whose thumbnails were deleted.
 - `fail_metadata_once=<ratingKey>` (`MOCK_FAIL_METADATA_ONCE`): the next single-item `/library/metadata/<ratingKey>` request answers 404 (a 5xx would be retried by the app's own client), then the flag clears itself (a resolve that fails once, then succeeds on Retry); `0` clears it.
 
 `GET /mock/log?q=<text>` returns the last 3000 request lines containing `<text>` as a JSON array (`GET /:/timeline?...`), so a UI test can assert which timeline states, transcode starts or pings reached the server.
