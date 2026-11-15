@@ -10,7 +10,7 @@ public enum GlassStyle {
     }
 
     public static func secondaryLabel(tone: Float) -> Color {
-        Color(hex: 0xF6F3EF, alpha: 0.68).mixed(with: Color(hex: 0x1A1816, alpha: 0.66), amount: tone)
+        Color(hex: 0xF6F3EF, srgbAlpha: 0.68).mixed(with: Color(hex: 0x1A1816, srgbAlpha: 0.66), amount: tone)
     }
 
     /// A glass capsule (or rounded rectangle) filling `rect`, lit from `light`.

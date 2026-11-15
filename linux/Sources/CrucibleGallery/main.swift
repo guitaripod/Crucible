@@ -30,6 +30,7 @@ struct Gallery {
         case "cards": GalleryCards()
         case "controls": GalleryControls()
         case "grid": GalleryGrid()
+        case "states": GalleryStates()
         default: GalleryHome()
         }
     }
@@ -40,7 +41,7 @@ struct Gallery {
         let window = try Window(offscreen: size, scale: scale)
         window.useImages(diskDirectory: nil) { url in try Data(contentsOf: url) }
         GalleryArt.preload(GalleryFixtures.allArt, into: window.images!, gpu: window.gpu, scale: 1)
-        let pages = value("--page").map { [$0] } ?? ["home", "cards", "controls", "grid"]
+        let pages = value("--page").map { [$0] } ?? ["home", "cards", "controls", "grid", "states"]
         var report: [String] = []
         for name in pages {
             let page = makePage(name)
@@ -88,6 +89,15 @@ struct Gallery {
                 window.handlePointerMoved(to: Point(x: hovered.midX, y: hovered.midY))
                 settle(window)
                 write(window, to: "\(directory)/controls-focus.png", report: &report)
+            case "states":
+                let states = page as! GalleryStates
+                window.focus.setVisible(true)
+                window.focus.focus(states.rows, animated: false)
+                window.handleKey(KeyEvent(key: .down))
+                let hovered = states.failed.subviews[2].frameInWindow
+                window.handlePointerMoved(to: Point(x: hovered.midX, y: hovered.midY))
+                settle(window)
+                write(window, to: "\(directory)/states-focus.png", report: &report)
             default:
                 break
             }
@@ -158,6 +168,7 @@ final class GalleryHost: WindowDelegate {
         case "2": show("cards")
         case "3": show("controls")
         case "4": show("grid")
+        case "5": show("states")
         default:
             if event.key == .escape || (event.key == Key.character("q") && event.modifiers.contains(.control)) {
                 onClose?()

@@ -197,18 +197,18 @@ public struct Palette: Sendable {
     public let destructive: Color
     public let statusOK: Color
     public let onArt = Color.white
-    public let onArtSecondary = Color.white.withAlpha(0.78)
-    public let onArtMuted = Color.white.withAlpha(0.85)
-    public let artHairline = Color.white.withAlpha(0.10)
+    public let onArtSecondary = Color.white.withSRGBAlpha(0.78)
+    public let onArtMuted = Color.white.withSRGBAlpha(0.85)
+    public let artHairline = Color.white.withSRGBAlpha(0.10)
     public let focusFill: Color
     public let onFocusFill = Color(hex: 0x1A1816)
-    public let onFocusFillSecondary = Color(hex: 0x1A1816, alpha: 0.66)
+    public let onFocusFillSecondary = Color(hex: 0x1A1816, srgbAlpha: 0.66)
     public let emberTop = Color(hex: 0x2B1708)
     public let emberMid = Color(hex: 0x6E3510)
     public let emberBottom = Color(hex: 0xC96A14)
     public let emberEyebrow = Color(hex: 0xFFD08A)
 
-    public var accentTint: Color { accent.withAlpha(0.16) }
+    public var accentTint: Color { accent.withSRGBAlpha(0.16) }
 
     public static let dark = Palette(
         appearance: .dark,
@@ -216,10 +216,10 @@ public struct Palette: Sendable {
         surface: Color(hex: 0x232221),
         surfaceRaised: Color(hex: 0x2D2B29),
         surfaceHigh: Color(hex: 0x3A3734),
-        separator: Color.white.withAlpha(0.09),
+        separator: Color.white.withSRGBAlpha(0.09),
         label: Color(hex: 0xF6F3EF),
-        labelSecondary: Color(hex: 0xF6F3EF, alpha: 0.68),
-        labelTertiary: Color(hex: 0xF6F3EF, alpha: 0.52),
+        labelSecondary: Color(hex: 0xF6F3EF, srgbAlpha: 0.68),
+        labelTertiary: Color(hex: 0xF6F3EF, srgbAlpha: 0.52),
         accent: Color(hex: 0xFF9F0A),
         accentText: Color(hex: 0xFF9F0A),
         destructive: Color(hex: 0xFF453A),
@@ -233,10 +233,10 @@ public struct Palette: Sendable {
         surface: Color(hex: 0xFFFFFF),
         surfaceRaised: Color(hex: 0xEBE8E3),
         surfaceHigh: Color(hex: 0xDCD8D2),
-        separator: Color.black.withAlpha(0.09),
+        separator: Color.black.withSRGBAlpha(0.09),
         label: Color(hex: 0x1A1816),
-        labelSecondary: Color(hex: 0x1A1816, alpha: 0.72),
-        labelTertiary: Color(hex: 0x1A1816, alpha: 0.62),
+        labelSecondary: Color(hex: 0x1A1816, srgbAlpha: 0.72),
+        labelTertiary: Color(hex: 0x1A1816, srgbAlpha: 0.62),
         accent: Color(hex: 0xFF9500),
         accentText: Color(hex: 0xA85800),
         destructive: Color(hex: 0xFF3B30),

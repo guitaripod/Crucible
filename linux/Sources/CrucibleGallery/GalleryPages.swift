@@ -269,3 +269,50 @@ final class GalleryGrid: View {
         page.frame = bounds
     }
 }
+
+/// A pushed screen's title over settings rows, and the loading, empty and error states beside a loading skeleton.
+@MainActor
+final class GalleryStates: View {
+    let title = ScreenTitleView(title: "Settings", summary: "Crucible 3.0", detail: "Everything here applies to this computer.")
+    let rows = RowListView()
+    let loading = StateView()
+    let empty = StateView()
+    let failed = StateView()
+    let skeleton = SkeletonShelfView(style: .poster)
+
+    override init(frame: Rect = .zero) {
+        super.init(frame: frame)
+        [title, rows, loading, empty, failed, skeleton].forEach(addSubview)
+        rows.columnWidth = Theme.current.metrics.tv(1100)
+        rows.setItems([
+            RowItem(id: "server", title: "Server", subtitle: "Midgar · 3 libraries", value: "Connected", symbol: "server.rack", accessory: .chevron),
+            RowItem(id: "quality", title: "Streaming Quality", value: "Original", symbol: "dial.high", accessory: .chevron),
+            RowItem(id: "match", title: "Match Content", subtitle: "Switch the display to the video's frame rate and range", value: "On",
+                    symbol: "tv"),
+            RowItem(id: "lang", title: "Subtitles", symbol: "captions.bubble", accessory: .checkmark),
+            RowItem(id: "signout", title: "Sign Out", symbol: "rectangle.portrait.and.arrow.right", isDestructive: true),
+        ])
+        rows.onSelect = { _ in }
+        loading.show(.loading(title: "Loading Library"))
+        empty.show(.empty(title: "Nothing Here Yet", message: "Movies you add to your watchlist show up here.", symbol: "bookmark",
+                          action: StateView.Action(title: "Browse Movies") {}))
+        failed.show(.error(title: "Couldn't Load Home", message: "The server didn't answer. Check that it's running.", retryTitle: "Try Again",
+                           retry: {}, secondary: StateView.Action(title: "Switch Server") {}))
+    }
+
+    override var preferredFocusView: View? { rows }
+
+    override func layoutSubviews() {
+        let metrics = Theme.current.metrics
+        let titleHeight = title.sizeThatFits(bounds.size).height
+        title.frame = Rect(x: 0, y: metrics.tv(60), width: frame.width / 2, height: titleHeight)
+        let rowsHeight = rows.sizeThatFits(Size(width: frame.width / 2, height: 0)).height
+        rows.frame = Rect(x: 0, y: title.frame.maxY + metrics.tv(24), width: frame.width / 2, height: rowsHeight)
+        let third = frame.height / 3
+        loading.frame = Rect(x: frame.width / 2, y: 0, width: frame.width / 2, height: third)
+        empty.frame = Rect(x: frame.width / 2, y: third, width: frame.width / 2, height: third)
+        failed.frame = Rect(x: frame.width / 2, y: third * 2, width: frame.width / 2, height: third)
+        let skeletonHeight = skeleton.sizeThatFits(bounds.size).height
+        skeleton.frame = Rect(x: 0, y: frame.height - skeletonHeight, width: frame.width / 2, height: skeletonHeight)
+    }
+}
