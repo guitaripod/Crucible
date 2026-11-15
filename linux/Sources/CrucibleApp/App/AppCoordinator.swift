@@ -90,6 +90,7 @@ final class AppCoordinator: WindowDelegate {
         let main = RootView(payload: payload)
         main.onSignOut = { [weak self] in self?.signOut() }
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
+        main.onReconnect = { [weak self] in self?.reconnect() }
         APIClient.onBaseURLChanged.withLock { handler in
             handler = { url in Task { @MainActor in Artwork.pipeline = PlexArtworkPipeline(baseURL: url) } }
         }

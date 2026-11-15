@@ -1,0 +1,184 @@
+import CrucibleCore
+import CrucibleUI
+import Foundation
+import Kiln
+
+/// A settings screen in the Apple TV's two columns (`TVSettingsScaffold`): a panel about the subject on the left and its
+/// rows on the right; in a window too narrow for both, the panel sits above the rows.
+@MainActor
+class SettingsScaffold: ScreenView {
+    let heading: ScreenTitleView
+    let rows = RowListView()
+    private let page = PageView()
+    private let body = SplitSection()
+
+    init(title: String, detail: String? = nil) {
+        heading = ScreenTitleView(title: title, detail: detail)
+        super.init()
+        body.rows = rows
+        body.addSubview(rows)
+        addSubview(page)
+        page.setSections([heading, body])
+        page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
+        rows.onSelect = { [weak self] item in self?.rowSelected(item.id) }
+    }
+
+    override var preferredFocusView: View? { rows }
+    override var remembersFocus: Bool { true }
+
+    /// Puts `view` in the left column; it sizes itself through `sizeThatFits`.
+    func installContext(_ view: View) {
+        body.context?.removeFromSuperview()
+        body.context = view
+        body.addSubview(view)
+        setNeedsLayout()
+    }
+
+    func setRows(_ items: [RowItem]) {
+        rows.setItems(items)
+        body.setNeedsLayout()
+        page.setNeedsLayout()
+    }
+
+    /// A row was chosen; subclasses act on it.
+    func rowSelected(_ id: String) {}
+
+    override func layoutSubviews() {
+        page.topInset = Theme.current.metrics.tabBarClearance
+        page.frame = bounds
+        page.setNeedsLayout()
+    }
+
+    override func draw(_ context: inout DrawContext) {
+        context.fill(bounds, color: Theme.current.palette.canvas)
+    }
+}
+
+/// The scaffold's body: the context panel and the rows side by side, or stacked when the window is narrow.
+@MainActor
+private final class SplitSection: View {
+    var context: View?
+    weak var rows: RowListView?
+
+    private var contextWidth: Float { Theme.current.metrics.tv(620) }
+    private var gap: Float { Theme.current.metrics.tv(60) }
+
+    private func isStacked(_ width: Float) -> Bool {
+        width - Theme.current.metrics.sideMargin * 2 < contextWidth + gap + Theme.current.metrics.tv(800)
+    }
+
+    private func rowsWidth(_ width: Float) -> Float {
+        let metrics = Theme.current.metrics
+        return isStacked(width) ? min(width - metrics.sideMargin * 2, metrics.wideColumn) : width - metrics.sideMargin * 2 - contextWidth - gap
+    }
+
+    override func sizeThatFits(_ size: Size) -> Size {
+        let metrics = Theme.current.metrics
+        rows?.columnWidth = rowsWidth(size.width)
+        let rowsHeight = rows?.sizeThatFits(Size(width: size.width, height: 0)).height ?? 0
+        let contextHeight = context?.sizeThatFits(Size(width: contextWidth, height: 0)).height ?? 0
+        let height = isStacked(size.width) ? contextHeight + (contextHeight > 0 ? metrics.tv(40) : 0) + rowsHeight : max(contextHeight, rowsHeight)
+        return Size(width: size.width, height: height + metrics.tv(60))
+    }
+
+    override func layoutSubviews() {
+        let metrics = Theme.current.metrics
+        let width = rowsWidth(frame.width)
+        rows?.columnWidth = width
+        let contextHeight = context?.sizeThatFits(Size(width: contextWidth, height: 0)).height ?? 0
+        let rowsHeight = rows?.sizeThatFits(Size(width: frame.width, height: 0)).height ?? 0
+        if isStacked(frame.width) {
+            let x = ((frame.width - width) / 2).rounded()
+            context?.frame = Rect(x: x, y: 0, width: width, height: contextHeight)
+            let top = contextHeight > 0 ? contextHeight + metrics.tv(40) : 0
+            rows?.frame = Rect(x: 0, y: top, width: frame.width, height: rowsHeight)
+        } else {
+            context?.frame = Rect(x: metrics.sideMargin, y: 0, width: contextWidth, height: contextHeight)
+            let left = metrics.sideMargin + contextWidth + gap
+            rows?.frame = Rect(x: left - metrics.sideMargin, y: 0, width: width + metrics.sideMargin * 2, height: rowsHeight)
+        }
+    }
+}
+
+/// A raised read-only panel for the scaffold's left column: an icon well, a title, lines under it and a footnote
+/// (`TVReadOnlyPanel` with `TVServerCardView`'s or About's content).
+@MainActor
+final class ContextPanel: View {
+    struct Content {
+        var symbol: Symbol
+        var title: String
+        var subtitle: String?
+        var status: String?
+        var statusColor: Color?
+        var body: String?
+    }
+
+    var content: Content { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
+
+    init(content: Content) {
+        self.content = content
+        super.init()
+    }
+
+    private var inset: Float { Theme.current.metrics.tv(36) }
+    private var well: Float { Theme.current.metrics.tv(120) }
+
+    private struct Line {
+        let layout: TextLayout
+        let color: Color
+        let after: Float
+        var isStatus = false
+    }
+
+    private func layouts(width: Float, scale: Float) -> [Line] {
+        let theme = Theme.current
+        let palette = theme.palette
+        let textWidth = width - inset * 2
+        var result = [Line(layout: TextLayout(content.title, font: theme.type.title3, maxWidth: textWidth, maxLines: 2, scale: scale),
+                           color: palette.label, after: theme.metrics.tv(6))]
+        if let subtitle = content.subtitle {
+            result.append(Line(layout: TextLayout(subtitle, font: theme.type.callout, maxWidth: textWidth, maxLines: 2, scale: scale),
+                               color: palette.labelSecondary, after: theme.metrics.tv(16)))
+        }
+        if let status = content.status {
+            let dot = content.statusColor == nil ? 0 : theme.metrics.tv(26)
+            result.append(Line(layout: TextLayout(status, font: theme.type.callout, maxWidth: textWidth - dot, maxLines: 3, scale: scale),
+                               color: palette.label, after: theme.metrics.tv(20), isStatus: true))
+        }
+        if let body = content.body {
+            result.append(Line(layout: TextLayout(body, font: theme.type.footnote, maxWidth: textWidth, maxLines: 8, scale: scale),
+                               color: palette.labelSecondary, after: 0))
+        }
+        return result
+    }
+
+    override func sizeThatFits(_ size: Size) -> Size {
+        let scale = window?.scale ?? 1
+        let text = layouts(width: size.width, scale: scale).reduce(Float(0)) { $0 + $1.layout.size.height + $1.after }
+        return Size(width: size.width, height: (inset * 2 + well + Theme.current.metrics.tv(24) + text).rounded(.up))
+    }
+
+    override func draw(_ context: inout DrawContext) {
+        guard let scale = window?.scale else { return }
+        let theme = Theme.current
+        let metrics = theme.metrics
+        let palette = theme.palette
+        context.fill(bounds, radius: metrics.radiusL, color: palette.surface)
+        let wellRect = Rect(x: inset, y: inset, width: well, height: well)
+        context.fill(wellRect, radius: metrics.radiusL, color: palette.accentTint)
+        let glyph = well * 0.5
+        context.symbol(content.symbol, in: Rect(x: wellRect.midX - glyph / 2, y: wellRect.midY - glyph / 2, width: glyph, height: glyph),
+                       color: palette.accentText)
+        var y = wellRect.maxY + metrics.tv(24)
+        for line in layouts(width: bounds.width, scale: scale) {
+            var x = inset
+            if line.isStatus, let dotColor = content.statusColor {
+                let dot = metrics.tv(14)
+                context.fill(Rect(x: x, y: y + (line.layout.size.height - dot) / 2, width: dot, height: dot), radius: dot / 2, color: dotColor)
+                x += metrics.tv(26)
+            }
+            context.text(line.layout, at: Point(x: x, y: y), color: line.color)
+            y += line.layout.size.height + line.after
+        }
+    }
+}

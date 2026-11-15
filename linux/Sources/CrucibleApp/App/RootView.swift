@@ -11,6 +11,8 @@ final class RootView: View {
     let payload: LaunchPayload
     var onSignOut: (() -> Void)?
     var onSwitchServer: (() -> Void)?
+    /// Connects again from the saved server (after Add Server by Address).
+    var onReconnect: (() -> Void)?
 
     private let tabBar = TabBarView()
     private var stacks: [String: NavigationView] = [:]

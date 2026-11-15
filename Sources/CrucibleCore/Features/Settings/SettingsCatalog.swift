@@ -237,7 +237,7 @@ package enum SettingsCatalog {
             Spec(item: .destination(.seerr), category: .integrations, section: nil, platforms: both),
             Spec(item: .preference(.appearance), category: .appearance, section: nil, platforms: phone),
             Spec(item: .preference(.libraryGrid), category: .appearance, section: nil, platforms: phone),
-            Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: both),
+            Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: all),
             Spec(item: .destination(.crucibleServer), category: .connection, section: nil, platforms: both),
             Spec(item: .preference(.preferLocalConnection), category: .connection, section: nil, platforms: all),
             Spec(item: .preference(.allowRelayConnection), category: .connection, section: nil, platforms: all),
@@ -246,7 +246,7 @@ package enum SettingsCatalog {
             Spec(item: .action(.forgetFinishedTitles), category: .privacy, section: nil, platforms: both),
             Spec(item: .action(.clearImageCache), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.shareLogs), category: .help, section: nil, platforms: phone),
-            Spec(item: .destination(.diagnostics), category: .help, section: nil, platforms: tv),
+            Spec(item: .destination(.diagnostics), category: .help, section: nil, platforms: [.tv, .linux]),
             Spec(item: .destination(.sourceCode), category: .help, section: nil, platforms: phone),
             Spec(item: .destination(.about), category: .help, section: nil, platforms: all),
         ]

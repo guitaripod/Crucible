@@ -106,8 +106,9 @@ final class SettingsCategoryScreen: ScreenView {
         case .action(let action):
             return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol),
                            isDestructive: action.needsConfirmation)
-        case .destination:
-            return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol), isStatic: true)
+        case .destination(let destination):
+            return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol),
+                           accessory: Self.screen(for: destination) == nil ? .none : .chevron, isStatic: Self.screen(for: destination) == nil)
         case .privacyStatement:
             return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol), isStatic: true)
         }
@@ -135,8 +136,20 @@ final class SettingsCategoryScreen: ScreenView {
             }
         case .action(let action):
             perform(action, anchor: window.focusedView?.frameInWindow ?? frameInWindow)
+        case .destination(let destination):
+            if let screen = Self.screen(for: destination) { navigation?.push(screen) }
         default:
             break
+        }
+    }
+
+    /// The screen a destination row opens, where the Linux client has one.
+    private static func screen(for destination: SettingsDestination) -> ScreenView? {
+        switch destination {
+        case .serverConnection: ServerConnectionScreen()
+        case .about: AboutScreen()
+        case .diagnostics: DiagnosticsScreen()
+        default: nil
         }
     }
 
