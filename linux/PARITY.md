@@ -9,13 +9,13 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Sign in, launch, tabs and navigation | 48 | 5 | 3 | 1 |
 | Home and libraries | 74 | 3 | 1 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
-| Player and What to Watch | 65 | 0 | 3 | 1 |
+| Player and What to Watch | 66 | 0 | 2 | 1 |
 | Search, Pro features (free on Linux) and demo | 51 | 0 | 4 | 8 |
 | You, profiles, history, statistics and manage | 80 | 1 | 3 | 3 |
 | Settings and integrations | 58 | 1 | 8 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 69 | 7 | 27 | 0 |
-| **All** | 614 | 20 | 52 | 16 |
+| **All** | 615 | 20 | 51 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -289,7 +289,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `player-timeline-reporting` (S) Tell the server the playhead every ten seconds, and on pause and stop _Apple TV: Sources/CrucibleMedia/PlaybackReporter.swift:59_
 - [x] `player-stop-and-transcode-stop` (S) On leaving, report stopped and end the server's transcode session _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:439-467 (finish, engine stop)_
 - [x] `player-clean-exit-save` (S) Quitting mid-title (SIGTERM, SIGINT, SIGHUP) saves the resume position and sends the stopped timeline before exit _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:497-534 (resign and background hold and report)_
-- [ ] `player-background-pause` (M) Pause and save the position when the app leaves the foreground; hold the position across the absence Gap: No focus, occlusion or suspend handling in the Linux player; it keeps playing when the window is hidden, and it never pauses after a long absence. The desktop equivalent still needs a decision. _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:503-550_
+- [x] `player-background-pause` (M) Pause and save the position when the app leaves the foreground; hold the position across the absence _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:503-550_
 - [x] `player-rewind-after-break` (M) Rewind After a Break: back up a few seconds on return, resume only if it was playing, never into a skip segment _Apple TV: Sources/CrucibleMedia/PlaybackSession+Lifecycle.swift:90-110_
 - [x] `player-absence-recovery` (L) Notice an absence no notification announces (sleep, a reaped transcode), re-sync the clock and restart the stream _Apple TV: Sources/CrucibleMedia/PlaybackSession+Lifecycle.swift:144-160 (heartbeat)_
 - [x] `player-transcode-fallback` (M) Direct play that fails falls back to a server transcode at the playhead, with a note of the reason _Apple TV: Sources/CrucibleMedia/PlaybackSession+Transcode.swift:170-211_
