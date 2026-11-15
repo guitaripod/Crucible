@@ -22,6 +22,26 @@ public struct Color: Hashable, Sendable {
         self.alpha = alpha
     }
 
+    /// A design-token colour at an opacity tuned under sRGB blending (Apple's): Kiln blends in linear light, where a
+    /// translucent light colour over a dark ground comes out brighter and a dark one over a light ground paler, so the
+    /// alpha is converted to land on the same result over the grounds such colours sit on.
+    public init(hex: UInt32, srgbAlpha alpha: Float) {
+        self.init(hex: hex, alpha: 1)
+        self.alpha = Self.linearAlpha(alpha, luminance: luminance)
+    }
+
+    static func linearAlpha(_ alpha: Float, luminance: Float) -> Float {
+        let a = Double(min(max(alpha, 0), 1))
+        if luminance > 0.5 { return Float(pow(a, 2.2)) }
+        if luminance < 0.05 { return Float(1 - pow(1 - a, 2.2)) }
+        return Float(a)
+    }
+
+    /// `self` at an opacity tuned under sRGB blending (see `init(hex:srgbAlpha:)`).
+    public func withSRGBAlpha(_ alpha: Float) -> Color {
+        Color(linearRed: red, green: green, blue: blue, alpha: Self.linearAlpha(alpha, luminance: luminance))
+    }
+
     /// A colour given as sRGB components from 0 to 1, as UIKit's `UIColor(red:green:blue:alpha:)` takes them.
     public init(srgbRed red: Float, green: Float, blue: Float, alpha: Float = 1) {
         self.red = Self.linear(red)
