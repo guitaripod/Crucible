@@ -395,6 +395,31 @@ extension PlayerScreen {
         }
     }
 
+    /// Pauses and tells the server where playback stopped when the machine is about to sleep or the session locks, as the
+    /// Apple TV does when the app leaves the foreground; the machine sleeps once the server has it. Waking or unlocking leaves
+    /// it paused for the viewer to carry on, and the heartbeat puts the stream back after a sleep.
+    func sessionChanged(_ event: SessionWatch.Event) {
+        switch event {
+        case .sleep, .lock:
+            guard let player, !player.state.isPaused else {
+                if event == .sleep { sessionWatch?.readyToSleep() }
+                return
+            }
+            MidgarLog.notice("Pausing at \(Int(position)) s because the \(event == .sleep ? "machine is going to sleep" : "session locked")",
+                             category: .playback)
+            player.setPaused(true)
+            showChrome(autoHide: false)
+            let reported = report("paused")
+            guard event == .sleep else { return }
+            Task { [weak self] in
+                await reported?.value
+                self?.sessionWatch?.readyToSleep()
+            }
+        case .wake, .unlock:
+            break
+        }
+    }
+
     /// Notes when the viewer paused, and on playing again after a pause long enough to be a break backs up a little first
     /// (`BreakRule`); a converted stream the server may have reaped meanwhile is rebuilt under a new session.
     func notePause(_ isPaused: Bool) {

@@ -60,6 +60,7 @@ final class PlayerScreen: View {
     private var failurePolicy = PlaybackFailurePolicy()
     var heals = HealBudget()
     var pingTask: Task<Void, Never>?
+    var sessionWatch: SessionWatch?
     var streamOffset: Double = 0
     var segments: [SkipMarker] = []
     var subtitlesTurnedOff = false
@@ -152,6 +153,8 @@ final class PlayerScreen: View {
             player.onEvent = { [weak self] event in self?.handle(event) }
             controls = MediaControls(loop: loop)
             controls?.onCommand = { [weak self] command in self?.perform(command) }
+            sessionWatch = SessionWatch(loop: loop)
+            sessionWatch?.onEvent = { [weak self] event in self?.sessionChanged(event) }
         } catch {
             presentFailure(String(describing: error), retry: nil)
             return
@@ -677,6 +680,8 @@ final class PlayerScreen: View {
         player = nil
         controls?.close()
         controls = nil
+        sessionWatch?.close()
+        sessionWatch = nil
         ScreenAwake.hold(false, in: window)
         window?.setCursor(.default)
         onClose?()

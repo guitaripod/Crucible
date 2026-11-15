@@ -2,5 +2,6 @@ module CLinuxServices {
     header "crucible_linux.h"
     header "crucible_mpris.h"
     header "crucible_app.h"
+    header "crucible_session.h"
     export *
 }
