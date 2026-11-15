@@ -167,6 +167,67 @@ class DetailScreen: ScreenView {
         AlertView.notice(title: title, message: message, in: window)
     }
 
+    /// Fetches Trakt's scores for the hero's meta line alongside the page, when Trakt is connected and `cached` is empty, and
+    /// hands them to `arrived` once there are some.
+    func fetchScores(ratingKey: String, cached: [TraktScore], arrived: @escaping @MainActor ([TraktScore]) -> Void) {
+        guard TraktAccount.shared.isConnected, cached.isEmpty else { return }
+        let api = api
+        Task {
+            let scores = await TraktScores.shared.scores(ratingKey: ratingKey, api: api)
+            guard !scores.isEmpty else { return }
+            arrived(scores)
+        }
+    }
+
+    /// The Check In action (Cancel Check-In while checked in to this title) for a movie or episode, while Trakt is connected
+    /// and allowed to send changes (`TVMediaDetailViewController`).
+    func checkInAction(for item: PlexMetadata, done: @escaping @MainActor () -> Void) -> DetailAction? {
+        guard TraktAccount.shared.isConnected, TraktAccount.shared.choices.sendsChanges else { return nil }
+        let checkedIn = TraktCheckin.isCheckedIn(to: item.id)
+        return DetailAction(id: "checkIn", title: checkedIn ? TraktCopy.cancelCheckIn : TraktCopy.checkIn,
+                            symbol: checkedIn ? "mappin.slash" : "mappin.and.ellipse",
+                            behaviour: .run { [weak self] in self?.checkIn(ratingKey: item.id, durationSecs: item.durationSecs, done: done) })
+    }
+
+    /// Checks in to `ratingKey` on Trakt, or cancels the check-in already on it, offering to replace a check-in to something
+    /// else still running (`TVDetailNavigation.checkIn`).
+    private func checkIn(ratingKey: String, durationSecs: Double?, replacing: Bool = false, done: @escaping @MainActor () -> Void) {
+        let api = api
+        Task { [weak self] in
+            do {
+                if TraktCheckin.isCheckedIn(to: ratingKey), !replacing {
+                    try await TraktCheckin.cancel()
+                    self?.alert(TraktCopy.checkInCancelled)
+                    done()
+                    return
+                }
+                if replacing { try await TraktCheckin.cancel() }
+                switch try await TraktCheckin.checkIn(ratingKey: ratingKey, durationSecs: durationSecs, api: api) {
+                case .checkedIn:
+                    self?.alert(TraktCopy.checkedIn)
+                    done()
+                case .notMatched:
+                    self?.alert(TraktCopy.checkIn, message: TraktCopy.checkInNotMatched)
+                case .alreadyWatching(let until):
+                    self?.offerReplacingCheckIn(until: until) { [weak self] in
+                        self?.checkIn(ratingKey: ratingKey, durationSecs: durationSecs, replacing: true, done: done)
+                    }
+                }
+            } catch {
+                MidgarLog.error("Trakt check-in failed ratingKey=\(ratingKey): \(error)", category: .trakt)
+                self?.alert(TraktCopy.checkIn, message: ConnectionError.message(for: error))
+            }
+        }
+    }
+
+    /// Asks whether to replace the check-in to something else that runs until `until`.
+    private func offerReplacingCheckIn(until: Date?, replace: @escaping () -> Void) {
+        guard let window else { return }
+        let time = until.map { $0.formatted(date: .omitted, time: .shortened) }
+        AlertView.confirm(title: TraktCopy.checkIn, message: TraktCopy.alreadyCheckedIn(until: time), confirm: TraktCopy.replaceCheckIn,
+                          in: window, action: replace)
+    }
+
     private func presentSynopsis() {
         guard let window else { return }
         AlertView(title: synopsisTitle, message: synopsis.text, actions: [AlertView.Action(String(localized: "Close"), role: .cancel)]).present(in: window)

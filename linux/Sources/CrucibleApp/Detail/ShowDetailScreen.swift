@@ -12,6 +12,7 @@ import MidgarCore
 @MainActor
 final class ShowDetailScreen: DetailScreen {
     private let showKey: String
+    private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: showKey)
     private let initialSeasonKey: String?
     private var model: ShowDetailModel?
     private var loadingSeasonKey: String?
@@ -86,6 +87,10 @@ final class ShowDetailScreen: DetailScreen {
     }
 
     override func fetch() async {
+        fetchScores(ratingKey: showKey, cached: scores) { [weak self] in
+            self?.scores = $0
+            self?.rebuild()
+        }
         do {
             let model = try await ShowDetailLoader.load(api: api, showRatingKey: showKey, initialSeasonKey: initialSeasonKey,
                                                         selectedSeasonKey: { [weak self] in self?.model?.selectedSeasonKey },
@@ -162,7 +167,7 @@ final class ShowDetailScreen: DetailScreen {
         }
         if !roles.isEmpty { sections.append(cast) }
         if !model.related.isEmpty { sections.append(related) }
-        present(hero: DetailMapping.hero(model.heroInfo, progress: nil), artwork: model.heroArtwork,
+        present(hero: DetailMapping.hero(model.heroInfo(trakt: scores), progress: nil), artwork: model.heroArtwork,
                 synopsis: model.hasSummary ? model.show.summary : nil, synopsisTitle: model.show.title, actions: actions(for: model), sections: sections)
     }
 

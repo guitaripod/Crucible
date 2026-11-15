@@ -20,6 +20,7 @@ final class MediaDetailScreen: DetailScreen {
     private var subtitlesBeforeSearch: Set<Int>?
     private var isOnWatchlist: Bool?
     private var watchlistTask: Task<Void, Never>?
+    private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: ratingKey)
     private let extras = ShelfView(header: SectionHeader(title: String(localized: "Extras")), style: .episode)
     private let cast = ShelfView(header: SectionHeader(title: String(localized: "Cast & Crew")), style: .person)
     private let related = ShelfView(header: SectionHeader(title: String(localized: "More Like This")), style: .poster)
@@ -68,6 +69,10 @@ final class MediaDetailScreen: DetailScreen {
     }
 
     override func fetch() async {
+        fetchScores(ratingKey: ratingKey, cached: scores) { [weak self] in
+            self?.scores = $0
+            self?.rebuild()
+        }
         do {
             guard let loaded = try await MovieDetailLoader.load(api: api, ratingKey: ratingKey, showRatingKey: showRatingKey,
                                                                 seasonRatingKey: seasonRatingKey) else {
@@ -111,7 +116,7 @@ final class MediaDetailScreen: DetailScreen {
         if !model.castAndCrew.isEmpty { sections.append(cast) }
         if !model.related.isEmpty { sections.append(related) }
         if !information.facts.isEmpty { sections.append(information) }
-        present(hero: DetailMapping.hero(model.heroInfo, progress: model.hasProgress ? model.progress.fraction : nil), artwork: model.heroArtwork,
+        present(hero: DetailMapping.hero(model.heroInfo(trakt: scores), progress: model.hasProgress ? model.progress.fraction : nil), artwork: model.heroArtwork,
                 synopsis: model.hasSummary ? item.summary : nil, synopsisTitle: item.title, actions: actions(for: model), sections: sections)
     }
 
@@ -128,6 +133,7 @@ final class MediaDetailScreen: DetailScreen {
         let current = rating.shown(served: model.userRating)
         list.append(DetailAction(id: "rate", title: UserRatingCopy.actionTitle(for: current), symbol: current == nil ? "star" : "star.fill",
                                  behaviour: .run { [weak self] in self?.presentRating(title: item.title, current: current) }))
+        if let checkIn = checkInAction(for: item, done: { [weak self] in self?.rebuild() }) { list.append(checkIn) }
         if item.isPlaylistable {
             list.append(DetailAction(id: "playlist", title: PlaylistFormat.addToPlaylist, symbol: "text.badge.plus", behaviour: .run { [weak self] in
                 guard let self, let window = self.window else { return }

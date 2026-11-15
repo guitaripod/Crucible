@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 43 | 5 | 8 | 1 |
 | Home and libraries | 70 | 3 | 5 | 0 |
-| Title pages, collections, playlists and server activity | 65 | 0 | 13 | 1 |
+| Title pages, collections, playlists and server activity | 67 | 0 | 11 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 76 | 2 | 6 | 3 |
 | Settings and integrations | 42 | 6 | 19 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 532 | 27 | 127 | 16 |
+| **All** | 534 | 27 | 125 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -162,13 +162,13 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 - [x] `detail-hero-movie` (S) Movie and episode page hero: eyebrow, title, meta line (year, runtime and Plex audience and critic ratings), badges, synopsis, backdrop from heroArtwork and progress bar, dimming as content scrolls _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:4-6_
 - [x] `detail-hero-plex-ratings` (S) Plex audience and critic ratings drawn in the hero meta line under their source marks, on movie, episode and show pages _Apple TV: Sources/CrucibleTV/Detail/TVDetailContent.swift:80-92_
-- [ ] `detail-hero-trakt-scores` (M) Trakt community scores shown in the hero meta line, fetched alongside the page when Trakt is connected Gap: No Trakt connection or score fetch in any Linux source (rg for trakt in linux/Sources: no hits); DetailScreen calls heroInfo without trakt scores _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:224-228 (startScores)_
+- [x] `detail-hero-trakt-scores` (M) Trakt community scores shown in the hero meta line, fetched alongside the page when Trakt is connected _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:224-228 (startScores)_
 - [x] `detail-synopsis-more` (S) More button under the synopsis that opens the full synopsis in a text sheet with Close _Apple TV: Sources/CrucibleTV/Detail/TVDetailSynopsisCell.swift:27-30_
 - [x] `detail-play-progress-label` (S) Primary button label includes progress text, e.g. Resume with a percentage or time left _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:302-304_
 - [x] `detail-start-over` (S) Start Over button beside Resume that plays from 0 when a saved position exists _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:314-321_
 - [x] `detail-watched-toggle-title` (S) Mark Watched or Mark Unwatched button; on press it calls the server, reloads the page on success, and presents a Couldn’t Update alert on failure _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift:148-158_
 - [x] `detail-rate` (M) Rate action on movie, episode and show pages: glass panel with ten half-star steps moved by swipe, Select to commit, Clear Rating when set, Menu to close, failure alert Your rating was not saved. _Apple TV: Sources/CrucibleTV/Detail/TVRatingViewController.swift:85-124_
-- [ ] `detail-trakt-checkin` (M) Trakt Check In and Cancel Check In for movies and episodes, with a replace-confirmation when a check-in is active and result alerts Gap: No Trakt account, device-code flow or check-in on Linux; the doc lists Trakt as in scope for Linux _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:339-347_
+- [x] `detail-trakt-checkin` (M) Trakt Check In and Cancel Check In for movies and episodes, with a replace-confirmation when a check-in is active and result alerts _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:339-347_
 - [ ] `detail-trakt-community-pulse` (M) Community after Cast & Crew (after the episodes on a show): Trakt's score with its 1 to 10 vote spread as rising bars, watchers, plays, lists, comments and favourites, and who is watching now with their faces; Select lists who is watching (Pro) Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityViews.swift (TVCommunityPulseView), Sources/CrucibleTV/Detail/TVDetailViewController.swift (communitySections)_
 - [ ] `detail-trakt-community-sentiments` (S) What people loved and what not so much, as chips that open the comments each came from (Pro) Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift (aspectChip, selectAspect)_
 - [ ] `detail-trakt-community-comments` (M) Comments shelf, most liked first: spoilers covered until pressed, inline spoiler tags drawn as bars, Markdown and emoji short codes, GIFs, likes, replies and reactions per card; long press likes, reacts, reports, edits and deletes; See All, Unlock (without Pro, two comments free) and Write a Review cards Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityViews.swift (TVCommentCardView, TVCommunityActionCard)_
