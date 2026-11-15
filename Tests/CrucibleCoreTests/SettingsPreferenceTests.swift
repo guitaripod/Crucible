@@ -264,3 +264,12 @@ struct SettingsCatalogTests {
         }
     }
 }
+
+struct LinuxNotificationSettingsTests {
+    @Test func linuxOffersTheServersNewsAndCountsOnlyThat() {
+        #expect(NotificationKind.offered(on: .linux) == [.newEpisodes, .watchlistArrivals])
+        #expect(NotificationKind.offered(on: .phone) == NotificationKind.allCases)
+        #expect(SettingsCatalog.preferences(in: .notifications, on: .linux) == [.notifyNewEpisodes, .notifyWatchlistArrivals])
+        #expect(SettingsCategory.notifications.explanation(on: .linux) != SettingsCategory.notifications.explanation(on: .phone))
+    }
+}

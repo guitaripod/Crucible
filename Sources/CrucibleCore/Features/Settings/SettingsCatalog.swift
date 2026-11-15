@@ -118,7 +118,9 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
             }
         case .home: return String(localized: "Which rows Home shows, in what order, and which libraries count.")
         case .downloads: return String(localized: "Quality, cellular data and storage for offline viewing.")
-        case .notifications: return String(localized: "Rating reminders, new episodes, watchlist arrivals and your weekly recap.")
+        case .notifications:
+            guard platform == .linux else { return String(localized: "Rating reminders, new episodes, watchlist arrivals and your weekly recap.") }
+            return String(localized: "New episodes and watchlist arrivals from your server.", comment: "Linux Settings: what the notifications category holds")
         case .integrations: return TraktCopy.integrationsExplanation
         case .appearance: return String(localized: "Light or dark, and poster size.")
         case .connection: return String(localized: "How Crucible reaches your Plex server.")
@@ -228,8 +230,8 @@ package enum SettingsCatalog {
             Spec(item: .preference(.notifyRatingReminders), category: .notifications, section: reminders, platforms: phone),
             Spec(item: .preference(.ratingReminderTiming), category: .notifications, section: reminders, platforms: phone),
             Spec(item: .preference(.quietHours), category: .notifications, section: reminders, platforms: phone),
-            Spec(item: .preference(.notifyNewEpisodes), category: .notifications, section: news, platforms: phone),
-            Spec(item: .preference(.notifyWatchlistArrivals), category: .notifications, section: news, platforms: phone),
+            Spec(item: .preference(.notifyNewEpisodes), category: .notifications, section: news, platforms: [.phone, .linux]),
+            Spec(item: .preference(.notifyWatchlistArrivals), category: .notifications, section: news, platforms: [.phone, .linux]),
             Spec(item: .preference(.notifyWeeklyRecap), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyYearInReview), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyDownloads), category: .notifications, section: news, platforms: phone),
@@ -304,8 +306,9 @@ package enum SettingsCatalog {
         case .downloads:
             return PreferenceSetting.downloadQuality.valueLabel
         case .notifications:
-            let on = NotificationKind.allCases.filter { Preferences.notifies($0) }.count
-            return String(localized: "\(on) of \(NotificationKind.allCases.count) on", comment: "Summary of notification switches, e.g. 5 of 6 on")
+            let kinds = NotificationKind.offered(on: platform)
+            let on = kinds.filter { Preferences.notifies($0) }.count
+            return String(localized: "\(on) of \(kinds.count) on", comment: "Summary of notification switches, e.g. 5 of 6 on")
         case .integrations:
             return Integrations.summary
         case .appearance:

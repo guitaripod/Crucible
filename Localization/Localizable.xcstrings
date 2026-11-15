@@ -103171,6 +103171,102 @@
         }
       }
     },
+    "New episodes and watchlist arrivals from your server." : {
+      "comment" : "Linux Settings: what the notifications category holds",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nye afsnit og nye titler på se-listen fra din server."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Folgen und neue Titel auf der Watchlist von deinem Server."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuevos episodios y novedades de tu lista para ver en tu servidor."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uudet jaksot ja katselulistalle saapuneet kohteet palvelimeltasi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveaux épisodes et arrivées de la liste de suivi sur votre serveur."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nýir þættir og nýir titlar á áhorfslista á þjóninum þínum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovi episodi e arrivi in Watchlist sul tuo server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーに届いた新しいエピソードとウォッチリストへの追加。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버에 도착한 새 에피소드와 관심 목록 항목."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nye episoder og nytt på se-listen fra serveren din."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowe odcinki i nowości z listy do obejrzenia na Twoim serwerze."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novos episódios e chegadas à lista para assistir no seu servidor."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nya avsnitt och tillägg på bevakningslistan från din server."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器上的新剧集和待看列表上线内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器上的新集數與待看清單到貨內容。"
+          }
+        }
+      }
+    },
     "New seasons and episodes of shows on your watchlist that your server doesn’t have yet." : {
       "comment" : "Explanation of the Out Now on Your Watchlist row in Settings › Home Rows",
       "localizations" : {

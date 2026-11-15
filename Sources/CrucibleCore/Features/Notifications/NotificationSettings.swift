@@ -48,6 +48,11 @@ package enum NotificationKind: String, CaseIterable, Sendable {
         }
     }
 
+    /// The kinds a platform sends: on Linux the news from the server, checked while Crucible runs and by its timer.
+    package static func offered(on platform: SettingsPlatform) -> [NotificationKind] {
+        platform == .linux ? [.newEpisodes, .watchlistArrivals] : allCases
+    }
+
     /// Kinds that Crucible finds by checking your server now and then in the background.
     package var needsBackgroundChecks: Bool {
         self == .newEpisodes || self == .watchlistArrivals
