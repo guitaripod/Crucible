@@ -16,10 +16,12 @@ private actor FakeHistoryServer {
     private(set) var historyStarts: [Int] = []
     private(set) var historySizes: [Int] = []
     private var metadata: PlexMediaContainer?
+    private var current: PlexMediaContainer?
 
-    init(replies: [Reply], metadata: PlexMediaContainer? = nil) {
+    init(replies: [Reply], metadata: PlexMediaContainer? = nil, current: PlexMediaContainer? = nil) {
         self.replies = replies
         self.metadata = metadata
+        self.current = current
     }
 
     func respond(to endpoint: PlexEndpoint) async throws -> PlexMediaContainer {
@@ -39,6 +41,9 @@ private actor FakeHistoryServer {
         case .metadata:
             guard let metadata else { throw Failure() }
             return metadata
+        case .items:
+            guard let current else { throw Failure() }
+            return current
         default:
             throw Failure()
         }
@@ -364,6 +369,19 @@ struct HistoryFeedTests {
         await settle(feed)
         #expect(feed.emptyState(filter: .tv) == .noMatches(.tv))
         #expect(feed.emptyState(filter: .movies) == .populated)
+    }
+
+    @Test func playsShowTheTitleAndPosterTheirItemHasNow() async {
+        let renamed = HistoryFixtures.container(total: 1, rows: [HistoryFixtures.json(key: "1", title: "UFC 334: Gane vs. Hokit", thumb: "/library/metadata/1/thumb/2")])
+        let server = FakeHistoryServer(replies: [.page(HistoryFixtures.container(total: 2, rows: rows(0..<2)))], current: renamed)
+        let (feed, _) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        #expect(feed.items.map(\.title) == ["Item 0", "UFC 334: Gane vs. Hokit"])
+        #expect(feed.items[1].thumb == "/library/metadata/1/thumb/2")
+        #expect(feed.items[1].viewedAt == HistoryFixtures.ago(days: 31))
+        let endpoints = await server.endpoints
+        if case .items(let keys) = endpoints.last { #expect(keys == ["0", "1"]) } else { Issue.record("expected one lookup of the played items") }
     }
 
     @Test func playAgainFetchesTheMetadataForTheRatingKey() async throws {

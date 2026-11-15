@@ -105,7 +105,10 @@ package final class HistoryFeed {
             do {
                 let container = try await request(.history(start: offset, size: HistoryPager.pageSize))
                 guard !Task.isCancelled else { return }
-                let page = HistoryItem.items(in: container, offset: offset)
+                let played = HistoryItem.items(in: container, offset: offset)
+                let current = await CurrentMetadata.fetch(played.map(\.ratingKey), request: request)
+                guard !Task.isCancelled else { return }
+                let page = played.map { CurrentMetadata.played($0, now: current) }
                 pager.finishLoading(offset: offset, count: page.count, total: container.totalSize)
                 pagerBeforeRefresh = nil
                 items = offset == 0 ? page : items + page

@@ -160,9 +160,9 @@ package struct PlexMetadata: Decodable, Sendable {
     package let viewOffset: Int?
     package let viewCount: Int?
     package let lastViewedAt: Int?
-    package let viewedAt: Int?
-    package let accountID: Int?
-    package let deviceID: Int?
+    package var viewedAt: Int?
+    package var accountID: Int?
+    package var deviceID: Int?
     package let addedAt: Int?
     package let originallyAvailableAt: String?
     package let thumb: String?

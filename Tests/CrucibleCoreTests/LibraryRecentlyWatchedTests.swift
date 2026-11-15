@@ -12,6 +12,16 @@ struct LibraryRecentlyWatchedTests {
     ]
     """#
 
+    @Test func aCardShowsTheTitleItsItemHasNowAndKeepsWhenItWasPlayed() throws {
+        let rows = try LibraryFixtures.history(#"[{"ratingKey":"7","type":"movie","title":"UFC 334 Prelims 1080p WEB-DL H264-FBB","viewedAt":3000}]"#)
+        let played = RecentlyWatched.railItems(from: rows, groupingByShow: false, limit: 20)
+        let fresh = HistoryFixtures.metadata(HistoryFixtures.json(key: "7", title: "UFC 334: Gane vs. Hokit · Prelims", thumb: "/library/metadata/7/thumb/9"))
+        let items = played.map { CurrentMetadata.played($0, now: CurrentMetadata.byKey([fresh])) }
+        #expect(items.map(\.title) == ["UFC 334: Gane vs. Hokit · Prelims"])
+        #expect(items[0].viewedAt == 3000 && items[0].thumb == "/library/metadata/7/thumb/9")
+        #expect(CurrentMetadata.played(played[0], now: [:]).title == "UFC 334 Prelims 1080p WEB-DL H264-FBB")
+    }
+
     @Test func aShowRailKeepsOneCardPerSeriesNewestFirst() throws {
         let rows = try LibraryFixtures.history(episodes)
         let items = RecentlyWatched.railItems(from: rows, groupingByShow: true, limit: 20)

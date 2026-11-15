@@ -18,8 +18,10 @@ package enum RecentlyWatched {
             return []
         }
         let rows = ownerScoped(response?.MediaContainer.Metadata ?? [])
-        let items = railItems(from: rows, groupingByShow: groupingByShow, limit: limit)
-        MidgarLog.info("Recently watched section=\(sectionId): \(items.count) items from \(rows.count) rows", category: .networking)
+        let played = railItems(from: rows, groupingByShow: groupingByShow, limit: limit)
+        let current = await CurrentMetadata.fetch(played.compactMap(\.ratingKey)) { try await api.requestContainer($0) }
+        let items = played.map { CurrentMetadata.played($0, now: current) }
+        MidgarLog.info("Recently watched section=\(sectionId): \(items.count) items from \(rows.count) rows, \(current.count) current", category: .networking)
         return items
     }
 

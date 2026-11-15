@@ -21,6 +21,8 @@ package enum PlexEndpoint: Sendable {
     case collectionItems(ratingKey: String, start: Int = 0, size: Int = 200)
     case folderPath(String)
     case metadata(ratingKey: String)
+    /// Several items at once, without the extras, markers and related hubs `metadata` asks for.
+    case items(ratingKeys: [String])
     case children(ratingKey: String)
     case hubs(count: Int = 20)
     case sectionHubs(sectionId: String)
@@ -167,6 +169,8 @@ package enum PlexEndpoint: Sendable {
             return "/library/sections/\(sectionId)/\(facet)"
         case .metadata(let ratingKey):
             return "/library/metadata/\(ratingKey)"
+        case .items(let ratingKeys):
+            return "/library/metadata/\(ratingKeys.joined(separator: ","))"
         case .children(let ratingKey):
             return "/library/metadata/\(ratingKey)/children"
         case .hubs:
