@@ -130,10 +130,17 @@ extension SportsReport {
     }
 }
 
-/// The command a fix names for the computer with Plex, such as `crucible-server sports --on`, when it names one.
+/// The command a fix names for the computer with Plex, such as `crucible-server sports --on`, when it names one: the
+/// command alone, without the words or the alternative that may follow it.
 package func sportsCommand(in fix: String) -> String? {
     guard let start = fix.range(of: "crucible-server ") else { return nil }
-    return String(fix[start.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    var command = Substring(fix[start.lowerBound...])
+    for ending in [" (", ", or ", "; ", ". "] {
+        if let found = command.range(of: ending) {
+            command = command[..<found.lowerBound]
+        }
+    }
+    return command.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "."))
 }
 
 /// What research made of one file.
@@ -194,9 +201,14 @@ package enum SportsRequirement: String, CaseIterable, Sendable {
 
 extension SportsCheck {
     /// Whether this unmet requirement is the owner's to settle with the app's own controls: one of the choices, or one that
-    /// waits on them (search is tried only once the owner agrees).
-    package func settledInApp(byOwner owner: Bool) -> Bool {
-        owner && state != .done && (requirement?.settledInApp == true || fix?.contains("in Crucible") == true)
+    /// waits on them (search is tried only once the owner agrees). Agreeing is a choice only once a search engine is set,
+    /// because until then there is nothing to agree to.
+    package func settledInApp(in report: SportsReport) -> Bool {
+        guard report.owner, state != .done else { return false }
+        if requirement == .agreement && report.settings.destination == nil {
+            return false
+        }
+        return requirement?.settledInApp == true || fix?.contains("in Crucible") == true
     }
 }
 
@@ -254,8 +266,9 @@ package struct SportsBoard: Equatable, Sendable {
 /// in screenshots and UI tests.
 package protocol SportsSource: Sendable {
     func sports() async throws(CompanionError) -> SportsReport
-    /// Whether the server has Sports Research at all; a server from before it answers its routes with nothing useful.
-    func hasSports() async -> Bool
+    /// Whether the server has Sports Research at all (a server from before it answers its routes with nothing useful), or
+    /// nil when the server could not be asked.
+    func hasSports() async -> Bool?
     func changeSports(on: Bool?, libraries: [String]?, agree: Bool?) async throws(CompanionError)
     func recheckSports() async throws(CompanionError)
     func runSports() async throws(CompanionError)
@@ -263,8 +276,9 @@ package protocol SportsSource: Sendable {
 }
 
 extension CompanionClient: SportsSource {
-    package func hasSports() async -> Bool {
-        (try? await hello())?.sports == true
+    package func hasSports() async -> Bool? {
+        guard let hello = try? await hello() else { return nil }
+        return hello.sports == true
     }
 }
 
@@ -283,7 +297,7 @@ package struct SportsFixture: SportsSource {
         return report
     }
 
-    package func hasSports() async -> Bool { true }
+    package func hasSports() async -> Bool? { true }
     package func changeSports(on: Bool?, libraries: [String]?, agree: Bool?) async throws(CompanionError) {}
     package func recheckSports() async throws(CompanionError) {}
     package func runSports() async throws(CompanionError) {}

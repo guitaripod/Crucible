@@ -50,6 +50,12 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         refreshTask = nil
     }
 
+    /// Starts the polling again after an action, unless the screen was left while the action ran.
+    private func resumeRefreshingIfShown() {
+        guard viewIfLoaded?.window != nil else { return }
+        startRefreshing()
+    }
+
     private func startRefreshing() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
@@ -67,7 +73,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             presentState(nil)
             render()
         } catch {
-            let message = await source.hasSports() ? error.message : SportsCopy.updateServer
+            let message = SportsCopy.failure(error, hasSports: await source.hasSports())
             guard board == nil else {
                 heading.setBody(message)
                 return
@@ -88,7 +94,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         )]
         for (_, checks) in board.groups {
             rows += checks.map { check in
-                TVRowItem(id: ID.check + check.id, title: SportsCopy.title(check.requirement ?? .model), subtitle: check.state == .done ? nil : check.settledInApp(byOwner: report.owner) ? SportsCopy.belowInChoices : check.detail, value: check.state == .done ? nil : SportsCopy.state(check.state), symbol: symbol(check.state))
+                TVRowItem(id: ID.check + check.id, title: SportsCopy.title(check.requirement ?? .model), subtitle: check.state == .done ? nil : check.settledInApp(in: report) ? SportsCopy.belowInChoices : check.detail, value: check.state == .done ? nil : SportsCopy.state(check.state), symbol: symbol(check.state))
             }
         }
         if report.owner {
@@ -135,7 +141,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         guard let id, let board else { return }
         if id.hasPrefix(ID.check), let check = board.report.checks.first(where: { ID.check + $0.id == id }), let requirement = check.requirement {
             var lines = [SportsCopy.why(requirement)]
-            if check.settledInApp(byOwner: board.report.owner) {
+            if check.settledInApp(in: board.report) {
                 lines.append(SportsCopy.belowInChoices)
             } else if check.state != .done {
                 lines.append(check.detail)
@@ -210,7 +216,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             }
             self?.busy = false
             await self?.load()
-            self?.startRefreshing()
+            self?.resumeRefreshingIfShown()
         }
     }
 }

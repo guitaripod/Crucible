@@ -83,5 +83,26 @@ struct SportsResearchTests {
     @Test func onlyACommandIsOfferedForCopying() {
         #expect(sportsCommand(in: "Turn it on in Crucible, or on the server: crucible-server sports --on") == "crucible-server sports --on")
         #expect(sportsCommand(in: "Start the model server at http://127.0.0.1:8080/v1.") == nil)
+        #expect(sportsCommand(in: "On the server: crucible-server sports --searxng http://127.0.0.1:8888 (a SearXNG with its JSON format on), or --brave-key-file <file>") == "crucible-server sports --searxng http://127.0.0.1:8888")
+        #expect(sportsCommand(in: "crucible-server model --context 65536 (and serve the model with that window)") == "crucible-server model --context 65536")
+        #expect(sportsCommand(in: "On the server: crucible-server sports --on.") == "crucible-server sports --on")
+    }
+
+    @Test func anUnansweringServerIsNotCalledOld() {
+        #expect(SportsCopy.failure(.unreachable, hasSports: nil) == CompanionError.unreachable.message)
+        #expect(SportsCopy.failure(.wrongServer, hasSports: true) == CompanionError.wrongServer.message)
+        #expect(SportsCopy.failure(.failed("404"), hasSports: false) == SportsCopy.updateServer)
+    }
+
+    @Test func agreeingIsAChoiceOnlyOnceASearchEngineIsSet() throws {
+        var report = try board().report
+        report.owner = true
+        let agreement = SportsCheck(id: "agreement", state: .missing, detail: "Needs a search engine first.", fix: "Set a search engine first.")
+        report.settings.destination = nil
+        #expect(!agreement.settledInApp(in: report))
+        report.settings.destination = "your SearXNG at http://127.0.0.1:8888"
+        #expect(agreement.settledInApp(in: report))
+        report.owner = false
+        #expect(!agreement.settledInApp(in: report))
     }
 }

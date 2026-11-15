@@ -143,6 +143,12 @@ package enum SportsCopy {
         String(localized: "This Crucible Server is from before Sports Research. Update it on the computer with Plex, then come back.", comment: "Sports Research: the paired server is too old")
     }
 
+    /// What to say when the report could not be read: that the server needs an update only when it answered and has no
+    /// Sports Research, else what went wrong, such as the server not answering.
+    package static func failure(_ error: CompanionError, hasSports: Bool?) -> String {
+        hasSports == false ? updateServer : error.message
+    }
+
     package static var proPitch: String {
         String(localized: "Sports Research is part of Crucible Pro.", comment: "Sports Research: the feature needs Pro")
     }

@@ -73,6 +73,12 @@ final class SportsResearchViewController: UICollectionViewController {
     }
 
     /// Asks the server now and then again while the screen shows: every few seconds while it works, else every half minute.
+    /// Starts the polling again after an action, unless the screen was left while the action ran.
+    private func resumeRefreshingIfShown() {
+        guard viewIfLoaded?.window != nil else { return }
+        startRefreshing()
+    }
+
     private func startRefreshing() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
@@ -89,7 +95,7 @@ final class SportsResearchViewController: UICollectionViewController {
             board = SportsBoard(report: try await source.sports())
             failure = nil
         } catch {
-            failure = await source.hasSports() ? error.message : SportsCopy.updateServer
+            failure = SportsCopy.failure(error, hasSports: await source.hasSports())
         }
         applySnapshot()
     }
@@ -210,7 +216,7 @@ final class SportsResearchViewController: UICollectionViewController {
             guard let check = check(id) else { return IconRowContentConfiguration(symbol: "circle", title: id) }
             let requirement = check.requirement ?? .model
             var lines = [SportsCopy.why(requirement)]
-            if check.settledInApp(byOwner: board?.report.owner == true) {
+            if let report = board?.report, check.settledInApp(in: report) {
                 lines.append(SportsCopy.belowInChoices)
             } else if check.state != .done {
                 lines.append(check.detail)
@@ -396,7 +402,7 @@ final class SportsResearchViewController: UICollectionViewController {
             }
             self?.busy = false
             await self?.load()
-            self?.startRefreshing()
+            self?.resumeRefreshingIfShown()
         }
     }
 }
