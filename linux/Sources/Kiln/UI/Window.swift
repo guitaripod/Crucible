@@ -48,8 +48,13 @@ public final class Window {
     public private(set) var hasKeyboardFocus = true
 
     private var needsDisplay = true
-    private var renderScheduled = false
+    private var changedSinceFrame = true
+    private var rendering = false
     private var waitingForFrame = false
+    private var lastPresent: Double = 0
+    private var refreshInterval: Double = 1.0 / 60
+    private var retryAfter: Double = 0
+    private var wakeArmed: Double?
     private var animating: [ObjectIdentifier: View] = [:]
     private var lastFrameTime: Double?
     private var hovered: View?
@@ -119,6 +124,7 @@ public final class Window {
                 self.delegate?.windowShouldClose(self)
             }
         }
+        loop.atEndOfEachTurn { [weak self] in self?.renderIfDue() }
         setNeedsDisplay()
     }
 
@@ -159,15 +165,36 @@ public final class Window {
 
     // MARK: Drawing
 
+    /// Asks for a frame; it is drawn at the end of the event-loop turn, after every pending input has been handled.
     public func setNeedsDisplay() {
         needsDisplay = true
-        guard surface != nil, !renderScheduled, !waitingForFrame, !closed else { return }
-        renderScheduled = true
-        DispatchQueue.main.async { [weak self] in
+        if !rendering { changedSinceFrame = true }
+    }
+
+    /// Draws a frame at the end of an event-loop turn once one is due. A change (input, loaded artwork, a video frame)
+    /// draws straight away, or within a refresh when the compositor has not yet shown the last frame, so input never
+    /// waits on a late compositor; animation ticks wait for the compositor's frame callback, so an occluded window
+    /// stops drawing. Mailbox presentation keeps either from blocking.
+    private func renderIfDue() {
+        guard needsDisplay, surface != nil, !closed else { return }
+        if waitingForFrame && !changedSinceFrame { return }
+        let now = Window.now()
+        let earliest = max(lastPresent + refreshInterval * (waitingForFrame ? 1 : 0.75), retryAfter)
+        if now < earliest {
+            wake(at: earliest)
+            return
+        }
+        renderIfNeeded(time: now)
+    }
+
+    /// Wakes the event loop at `time` so the turn's end can draw the frame that was not yet due.
+    private func wake(at time: Double) {
+        if let wakeArmed, wakeArmed <= time { return }
+        wakeArmed = time
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(time - Window.now(), 0)) { [weak self] in
             MainActor.assumeIsolated {
-                guard let self else { return }
-                self.renderScheduled = false
-                self.renderIfNeeded()
+                guard let self, self.wakeArmed == time else { return }
+                self.wakeArmed = nil
             }
         }
     }
@@ -184,6 +211,9 @@ public final class Window {
     func renderIfNeeded(time: Double = Window.now()) {
         guard needsDisplay, !closed else { return }
         needsDisplay = false
+        changedSinceFrame = false
+        rendering = true
+        defer { rendering = false }
         var frame = trace.begin()
         frame.animatingViews = animating.count
         if trace.isWriting { frame.animatingNames = animating.values.map { String(describing: type(of: $0)) } }
@@ -205,8 +235,12 @@ public final class Window {
             mark = Window.now()
             surface.requestFrame()
             trace.frameRequested()
-            waitingForFrame = true
-            gpu.present(renderer.target)
+            if gpu.present(renderer.target) {
+                waitingForFrame = true
+                lastPresent = mark
+            } else {
+                presentFailed(at: mark)
+            }
             surface.flush()
             frame.present = Window.now() - mark
             trace.gpu(gpu.takeGPUMilliseconds())
@@ -214,6 +248,17 @@ public final class Window {
         let settled = animating.isEmpty && !showsPerformanceHUD
         trace.end(frame, settled: settled)
         if !settled { needsDisplay = true }
+    }
+
+    /// Nothing reached the compositor (the swapchain is being rebuilt, or the window is mid-resize), so no frame callback
+    /// will come: the frame is drawn again a little later instead of the window waiting forever.
+    private func presentFailed(at time: Double) {
+        waitingForFrame = false
+        retryAfter = time + 0.05
+        changedSinceFrame = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated { self?.setNeedsDisplay() }
+        }
     }
 
     private func advanceAnimations(_ dt: Float) {
@@ -425,13 +470,15 @@ public final class Window {
             window.resize(width: Int(window.size.width), height: Int(window.size.height), scale: Float(scale))
         }
 
-        func windowPresented(_ surface: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {}
+        func windowPresented(_ surface: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
+            guard let window, refreshNanoseconds > 1_000_000 else { return }
+            window.refreshInterval = Double(refreshNanoseconds) / 1e9
+        }
 
         func windowFrameDone(_ surface: WaylandWindow) {
             guard let window else { return }
             window.waitingForFrame = false
             window.trace.frameCallbackArrived()
-            if window.needsDisplay { window.renderIfNeeded() }
         }
 
         func windowPointerMoved(_ surface: WaylandWindow, x: Double, y: Double) {

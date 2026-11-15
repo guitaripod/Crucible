@@ -99,6 +99,15 @@ static pl_vulkan create_device(kiln_gpu *g) {
     ));
 }
 
+/** Mailbox, so a present never blocks the main thread on vblank (frame callbacks pace the window); `KILN_PRESENT=fifo`
+ * selects FIFO for comparison. */
+static VkPresentModeKHR present_mode(void) {
+    const char *mode = getenv("KILN_PRESENT");
+    if (mode && strcmp(mode, "fifo") == 0) return VK_PRESENT_MODE_FIFO_KHR;
+    if (mode && strcmp(mode, "immediate") == 0) return VK_PRESENT_MODE_IMMEDIATE_KHR;
+    return VK_PRESENT_MODE_MAILBOX_KHR;
+}
+
 kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface, char *error, size_t error_size) {
     kiln_gpu *g = calloc(1, sizeof(*g));
     g->log = pl_log_create(PL_API_VER, pl_log_params(.log_cb = pl_log_color, .log_level = getenv("KILN_PL_DEBUG") ? PL_LOG_DEBUG : PL_LOG_WARN));
@@ -127,7 +136,7 @@ kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface
     if (g->surface) {
         g->swapchain = pl_vulkan_create_swapchain(g->vulkan, pl_vulkan_swapchain_params(
             .surface = g->surface,
-            .present_mode = VK_PRESENT_MODE_FIFO_KHR,
+            .present_mode = present_mode(),
             .swapchain_depth = 2,
         ));
         if (!g->swapchain) { fail(error, error_size, "swapchain"); kiln_gpu_destroy(g); return NULL; }
@@ -496,13 +505,13 @@ bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source) {
     struct pl_color_map_params color_map = pl_color_map_default_params;
     color_map.tone_mapping_function = &pl_tone_map_clip;
     color_map.gamut_mapping = &pl_gamut_map_clip;
-    bool ok = pl_render_image(g->renderer, &image, &target, pl_render_params(
+    pl_render_image(g->renderer, &image, &target, pl_render_params(
         .upscaler = &pl_filter_bilinear, .downscaler = &pl_filter_bilinear,
         .skip_anti_aliasing = true, .disable_linear_scaling = true,
         .color_map_params = &color_map,
     ));
-    ok = pl_swapchain_submit_frame(g->swapchain) && ok;
-    pl_swapchain_swap_buffers(g->swapchain);
+    bool ok = pl_swapchain_submit_frame(g->swapchain);
+    if (ok) pl_swapchain_swap_buffers(g->swapchain);
     collect_timers(g);
     g->pass_index = 0;
     return ok;

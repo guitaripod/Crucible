@@ -13,6 +13,7 @@ public final class EventLoop {
     }
 
     private var sources: [Source] = []
+    private var turnEnds: [@MainActor () -> Void] = []
     private var stopRequested = false
 
     public init() {
@@ -24,6 +25,11 @@ public final class EventLoop {
 
     public func add(fd: Int32, handler: @escaping Handler) {
         sources.append(Source(fd: fd, handler: handler))
+    }
+
+    /// Runs `handler` after every turn's sources, so work queued while handling them (a frame to draw) sees all of it.
+    public func atEndOfEachTurn(_ handler: @escaping @MainActor () -> Void) {
+        turnEnds.append(handler)
     }
 
     public func remove(fd: Int32) {
@@ -44,6 +50,7 @@ public final class EventLoop {
             let readable = ready > 0 && (descriptors[index].revents & Int16(POLLIN)) != 0
             source.handler(readable)
         }
+        for handler in turnEnds { handler() }
     }
 
     public func run(until finished: @MainActor () -> Bool) {

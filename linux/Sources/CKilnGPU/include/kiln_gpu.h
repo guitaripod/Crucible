@@ -93,7 +93,7 @@ bool kiln_gpu_pass(kiln_gpu *gpu, kiln_tex *target, const char *header, const ch
                    const kiln_uniform *uniforms, int uniform_count,
                    const float *rect, bool blend);
 
-/** Starts a swapchain frame, draws `source` onto it, submits and swaps. */
+/** Starts a swapchain frame, draws `source` onto it, submits and swaps; false when nothing reached the compositor. */
 bool kiln_gpu_present(kiln_gpu *gpu, kiln_tex *source);
 
 /** GPU time of the passes since the last call, in milliseconds (a frame or two late). */
