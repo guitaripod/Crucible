@@ -273,6 +273,7 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 | P4 Player | Chrome, markers, Up Next, post-play, sleep timer, MPRIS, idle inhibit, Match Content | Bench passes on mpv; a film and a series watched start to finish on the C5 |
 | P5 Integrations | Trakt, Seerr, Statistics, What to Watch and recaps on the person's own model (D1), Crucible Server | Each feature's Apple TV UI test has a Linux counterpart |
 | P6 Ship | Install script, AUR, release tarball and self-update, README screenshots | Installed from the package on arch (D2) |
+| Status (2026-11-15) | P1 done (1,709 Core tests on Linux in CI). P2 done: Kiln's views, focus, springs, scrolling, text, images, symbols and glass with adaptive tone; the design system and `crucible-gallery`. P3 in place: sign-in through plex.tv with code and QR, server choice, launch gate, Home, the libraries, title pages, Search, You. P4 in place: the player with the glass transport, markers and timeline reports, HDR10 and Dolby Vision into Kiln through libmpv on Kiln's own device (mpv patch 0011). P6 started: `linux/scripts/install.sh` installs `crucible` 0.1.0 for the user. Open: checks against a signed-in server, Up Next and post-play, MPRIS, Match Content, track menus, Settings catalogue, P5, AUR and the real-display checks of P0 | |
 
 Linux targets never affect the Apple builds, so every phase lands on `master` as it is finished.
 
