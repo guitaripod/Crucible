@@ -1,6 +1,15 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+#if canImport(os)
 import os
+#endif
 
 /// A paired Crucible Server, as this device keeps it in the Keychain: the token it was given and the fingerprint of
 /// the certificate it pinned.
@@ -109,21 +118,49 @@ private final class FingerprintTrust: NSObject, URLSessionDelegate, Sendable {
     /// Whether a certificate other than the pinned or first one answered.
     var rejected: Bool { rejection.withLock { $0 } }
 
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
-        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-              let trust = challenge.protectionSpace.serverTrust,
-              let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate],
-              let leaf = chain.first else { return (.cancelAuthenticationChallenge, nil) }
-        let fingerprint = SHA256.hash(data: SecCertificateCopyData(leaf) as Data).map { String(format: "%02x", $0) }.joined()
+    /// Whether a leaf certificate with this SHA-256 fingerprint (lowercase hex) may answer: the pinned one, or the first
+    /// one this connection meets while pairing.
+    func accept(fingerprint: String) -> Bool {
         let first = seen.withLock { seen in
             if seen == nil { seen = fingerprint }
             return seen
         }
         guard (expected ?? first) == fingerprint else {
             rejection.withLock { $0 = true }
-            return (.cancelAuthenticationChallenge, nil)
+            return false
         }
+        return true
+    }
+
+    #if canImport(Security)
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let trust = challenge.protectionSpace.serverTrust,
+              let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate],
+              let leaf = chain.first else { return (.cancelAuthenticationChallenge, nil) }
+        let fingerprint = SHA256.hash(data: SecCertificateCopyData(leaf) as Data).map { String(format: "%02x", $0) }.joined()
+        guard accept(fingerprint: fingerprint) else { return (.cancelAuthenticationChallenge, nil) }
         return (.useCredential, URLCredential(trust: trust))
+    }
+    #endif
+}
+
+/// Sends one HTTPS request to a server with a self-made certificate, accepting it only when `verify` approves the leaf's
+/// SHA-256 fingerprint (lowercase hex). Apple platforms answer URLSession's trust challenge instead; a Linux client installs
+/// one of these, because swift-corelibs-foundation cannot inspect a server's certificate.
+package protocol FingerprintPinnedTransport: Sendable {
+    func send(_ request: URLRequest, timeout: TimeInterval, verify: @escaping @Sendable (String) -> Bool) async throws -> (Data, URLResponse)
+}
+
+package enum CompanionTransport {
+    private static let installed = OSAllocatedUnfairLock<(any FingerprintPinnedTransport)?>(initialState: nil)
+
+    package static func install(_ transport: any FingerprintPinnedTransport) {
+        installed.withLock { $0 = transport }
+    }
+
+    static var current: (any FingerprintPinnedTransport)? {
+        installed.withLock { $0 }
     }
 }
 
@@ -141,16 +178,30 @@ private struct Connection {
     let base: URL
     let session: URLSession
     let trust: FingerprintTrust
+    let timeout: TimeInterval
 
     init?(host: String, expected: String?, timeout: TimeInterval) {
         guard let base = URL(string: "https://\(host)/crucible/v1/") else { return nil }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = timeout
+        #if canImport(Darwin)
         configuration.waitsForConnectivity = false
+        #endif
         let trust = FingerprintTrust(expected: expected)
         self.base = base
         self.trust = trust
+        self.timeout = timeout
         session = URLSession(configuration: configuration, delegate: trust, delegateQueue: nil)
+    }
+
+    /// The request through URLSession's trust challenge, or on Linux through the installed pinned transport.
+    func fetch(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        #if canImport(Security)
+        return try await session.data(for: request)
+        #else
+        guard let transport = CompanionTransport.current else { throw URLError(.secureConnectionFailed) }
+        return try await transport.send(request, timeout: timeout, verify: { [trust] in trust.accept(fingerprint: $0) })
+        #endif
     }
 
     func send<Body: Encodable, Answer: Decodable>(_ method: String, _ path: String, body: Body?, headers: [String: String] = [:]) async throws(CompanionError) -> Answer {
@@ -162,7 +213,7 @@ private struct Connection {
         if let body { request.httpBody = try? JSONEncoder().encode(body) }
         let data: Data, response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await fetch(request)
         } catch {
             throw trust.rejected ? .wrongServer : .unreachable
         }
@@ -196,7 +247,7 @@ private extension Connection {
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         let data: Data, response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await fetch(request)
         } catch {
             throw trust.rejected ? .wrongServer : .unreachable
         }

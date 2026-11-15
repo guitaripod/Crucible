@@ -17,6 +17,7 @@ let widgetKeep: [LinkerSetting] = [
 let grdb: Target.Dependency = .product(name: "GRDB", package: "GRDB.swift")
 let midgarCore: Target.Dependency = .product(name: "MidgarCore", package: "MidgarKit")
 let midgarCommerce: Target.Dependency = .product(name: "MidgarCommerce", package: "MidgarKit")
+let linuxCrypto: Target.Dependency = .product(name: "Crypto", package: "swift-crypto", condition: .when(platforms: [.linux]))
 
 let coreOnly = ProcessInfo.processInfo.environment["CRUCIBLE_CORE_ONLY"] != nil
 let benchOnly = ProcessInfo.processInfo.environment["CRUCIBLE_BENCH"] != nil
@@ -26,10 +27,11 @@ var products: [Product] = []
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
     .package(url: "https://github.com/guitaripod/MidgarKit.git", exact: "4.7.0"),
+    .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"6.0.0"),
 ]
 
 var targets: [Target] = [
-    .target(name: "CrucibleCore", dependencies: [midgarCore], resources: [.copy("Resources/guides.envelope.json")]),
+    .target(name: "CrucibleCore", dependencies: [midgarCore, linuxCrypto], resources: [.copy("Resources/guides.envelope.json")]),
     .target(name: "CrucibleStats", dependencies: ["CrucibleCore", grdb, midgarCore]),
 ]
 
@@ -46,7 +48,7 @@ if benchOnly {
 }
 
 if coreOnly {
-    targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats"]))
+    targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats", linuxCrypto]))
 } else {
     products += [
         .library(name: "Crucible", targets: ["Crucible"]),

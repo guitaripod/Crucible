@@ -20,10 +20,7 @@ package enum DetailFormat {
 
     package static func spokenDuration(_ seconds: Double) -> String? {
         guard seconds.isFinite, seconds > 0 else { return nil }
-        let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .full
-        formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-        return formatter.string(from: max(60, seconds))
+        return PortableFormat.duration(seconds, width: .full)
     }
 
     package static func episodeCode(season: Int?, episode: Int?) -> String? {

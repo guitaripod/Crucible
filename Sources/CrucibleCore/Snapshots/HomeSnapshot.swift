@@ -1,5 +1,5 @@
 import Foundation
-import os
+import MidgarCore
 
 /// Trimmed, Codable projection of a Home rail card — just enough to repaint the Home screen in
 /// frame 1 on a cold launch, before the /hubs network call returns.
@@ -42,7 +42,6 @@ package enum HomeSnapshotStore {
     package static let schemaVersion = 2
     private static let maxReadBytes = 512 * 1024
     private static let queue = DispatchQueue(label: "com.guitaripod.crucible.homesnapshot")
-    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "persistence")
 
     private static var directory: URL {
         AppPlatform.persistentDirectory
@@ -78,7 +77,7 @@ package enum HomeSnapshotStore {
                 values.isExcludedFromBackup = true
                 try? mutable.setResourceValues(values)
             } catch {
-                log.error("Home snapshot save failed: \(error.localizedDescription, privacy: .public)")
+                MidgarLog.error("Home snapshot save failed: \(error.localizedDescription)", category: .persistence)
             }
         }
     }

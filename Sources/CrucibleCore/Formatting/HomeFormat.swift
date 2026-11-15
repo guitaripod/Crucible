@@ -49,11 +49,7 @@ package enum HomeFormat {
     /// Spelled-out duration for VoiceOver, e.g. "1 hour, 12 minutes".
     package static func spoken(_ seconds: Double) -> String {
         guard seconds.isFinite, seconds >= 60 else { return String(localized: "less than a minute") }
-        let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .full
-        formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-        formatter.zeroFormattingBehavior = .dropAll
-        return formatter.string(from: seconds) ?? ""
+        return PortableFormat.duration(seconds, width: .full, dropZeros: true) ?? ""
     }
 
     /// "S2 · E4" followed by an optional tail ("Low Tide", "44 min").

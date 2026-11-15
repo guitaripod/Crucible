@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Asks plex.tv whether it still accepts an account token. Only an explicit 401 counts as
 /// rejected: a network failure says nothing about the token.
@@ -6,7 +9,7 @@ package enum PlexTokenCheck {
     package static func isRejected(
         token: String,
         send: @Sendable (URLRequest) async throws -> Int = { request in
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await HTTPSession.current.data(for: request)
             return (response as? HTTPURLResponse)?.statusCode ?? 0
         }
     ) async -> Bool {

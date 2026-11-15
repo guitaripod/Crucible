@@ -104,7 +104,7 @@ package enum SportsCopy {
     }
 
     package static func lastLooked(_ date: Date, now: Date = Date()) -> String {
-        let relative = RelativeDateTimeFormatter().localizedString(for: date, relativeTo: now)
+        let relative = PortableFormat.relative(date, to: now, width: .full)
         return String(localized: "Last looked \(relative)", comment: "Sports Research: when the server last looked at the libraries, e.g. Last looked 5 minutes ago")
     }
 

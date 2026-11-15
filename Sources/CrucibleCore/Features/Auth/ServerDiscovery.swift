@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// The network and storage calls server discovery makes, injectable so the rules around them are
 /// testable. `live` is the real thing.
@@ -38,7 +41,7 @@ package struct ServerDiscoveryEnvironment: Sendable {
         firstReachable: { urls, token in await ServerConnectionResolver.firstReachable(urls, token: token) },
         machineIdentifier: { url, token in
             guard let request = try? PlexEndpoint.identity.urlRequest(baseURL: url, token: token),
-                  let (data, _) = try? await URLSession.shared.data(for: request),
+                  let (data, _) = try? await HTTPSession.current.data(for: request),
                   let identity = try? JSONDecoder().decode(PlexIdentity.self, from: data)
             else { return nil }
             return identity.MediaContainer.machineIdentifier

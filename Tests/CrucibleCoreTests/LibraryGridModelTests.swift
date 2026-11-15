@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import CrucibleCore
 
@@ -13,7 +16,13 @@ final class LibraryStubProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) private static var routes: [String: @Sendable (URLRequest) -> Reply] = [:]
     nonisolated(unsafe) private static var recorded: [URLRequest] = []
 
+    /// Registered once for the whole run: a test instance's deinit can run after the next instance's init, and
+    /// unregistering there would leave the next test talking to the real network.
+    private static let registration: Bool = URLProtocol.registerClass(LibraryStubProtocol.self)
+
     static func reset() {
+        _ = registration
+        TestHTTP.install()
         lock.withLock {
             routes = [:]
             recorded = []
@@ -32,6 +41,7 @@ final class LibraryStubProtocol: URLProtocol, @unchecked Sendable {
         requests.filter { $0.url?.path == path }
     }
 
+    private let delivery = NSRecursiveLock()
     private var stopped = false
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -48,17 +58,39 @@ final class LibraryStubProtocol: URLProtocol, @unchecked Sendable {
             Self.recorded.append(request)
             return Self.routes[request.url?.path ?? ""]?(request) ?? Reply()
         }
-        DispatchQueue.global().asyncAfter(deadline: .now() + reply.delay) { [weak self] in
-            guard let self, !self.stopped, let url = request.url else { return }
-            let response = HTTPURLResponse(url: url, statusCode: reply.status, httpVersion: nil, headerFields: nil)!
-            self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            self.client?.urlProtocol(self, didLoad: Data(reply.body.utf8))
-            self.client?.urlProtocolDidFinishLoading(self)
+        guard reply.delay > 0 else {
+            deliver(reply, for: request)
+            return
+        }
+        let owner = Owned(protocol: self)
+        DispatchQueue.global().asyncAfter(deadline: .now() + reply.delay) {
+            owner.protocol.deliver(reply, for: request)
         }
     }
 
+    /// Answers unless the task was stopped or is no longer running; swift-corelibs-foundation releases a finished task's
+    /// client and traps when it is used afterwards.
+    private func deliver(_ reply: Reply, for request: URLRequest) {
+        delivery.lock()
+        defer { delivery.unlock() }
+        guard !stopped, task?.state == .running, let url = request.url, let client else { return }
+        let response = HTTPURLResponse(url: url, statusCode: reply.status, httpVersion: nil, headerFields: nil)!
+        client.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client.urlProtocol(self, didLoad: Data(reply.body.utf8))
+        client.urlProtocolDidFinishLoading(self)
+    }
+
+    /// Waits out a reply being delivered, so a cancelled task is never answered afterwards (swift-corelibs-foundation
+    /// traps on that).
     override func stopLoading() {
+        delivery.lock()
         stopped = true
+        delivery.unlock()
+    }
+
+    /// Holds the protocol until its delayed reply is delivered; swift-corelibs-foundation does not keep it alive itself.
+    private struct Owned: @unchecked Sendable {
+        let `protocol`: LibraryStubProtocol
     }
 }
 
@@ -82,15 +114,11 @@ final class LibraryGridModelTests {
     private var updates: [LibraryGridModel.Update] = []
 
     init() {
-        URLProtocol.registerClass(LibraryStubProtocol.self)
         LibraryStubProtocol.reset()
         model = LibraryGridModel(api: APIClient(baseURL: URL(string: "http://plex.test:32400")!, token: "token"), sectionId: "1", kind: .movie)
         model.onUpdate = { [weak self] update in self?.updates.append(update) }
     }
 
-    deinit {
-        URLProtocol.unregisterClass(LibraryStubProtocol.self)
-    }
 
     private func serveItems(total: Int, title: String = "Item") {
         LibraryStubProtocol.route("/library/sections/1/all") { request in

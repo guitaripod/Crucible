@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 /// The one answer to "where is the viewer in this item", kept apart from the player's own clock.
 ///

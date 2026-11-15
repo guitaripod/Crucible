@@ -1,6 +1,8 @@
 import Foundation
 import MidgarCore
+#if canImport(os)
 import os
+#endif
 
 /// Why Crucible's hosted model gave no answer, each with its own next step for the person.
 package enum HostedBrainError: Error, Equatable, Sendable {

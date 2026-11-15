@@ -1,3 +1,4 @@
+#if canImport(Network)
 import Foundation
 import Network
 
@@ -89,3 +90,4 @@ package enum CompanionHandOffChannel {
         }
     }
 }
+#endif

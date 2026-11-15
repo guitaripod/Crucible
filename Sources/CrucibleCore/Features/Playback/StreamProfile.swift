@@ -1,5 +1,11 @@
+#if canImport(AVFoundation)
 import AVFoundation
 import VideoToolbox
+#endif
+import Foundation
+#if canImport(os)
+import os
+#endif
 
 /// What this device's player can take as the file carries it, which decides what the server may copy into a stream rather
 /// than convert.
@@ -23,11 +29,26 @@ package struct PlaybackCapabilities: Sendable, Equatable {
         #if DEBUG
         if let forced = forcedForTesting { return forced }
         #endif
+        #if canImport(AVFoundation)
         return PlaybackCapabilities(
             decodesHEVC: VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC),
             decodesAV1: VTIsHardwareDecodeSupported(kCMVideoCodecType_AV1),
             showsHDR: AVPlayer.eligibleForHDRPlayback
         )
+        #else
+        return provided.withLock { $0 } ?? .everything
+        #endif
+    }
+
+    /// What mpv takes on Linux: every codec it decodes, and HDR kept, because the client tone-maps itself and the
+    /// compositor maps an HDR surface onto an SDR output.
+    package static let everything = PlaybackCapabilities(decodesHEVC: true, decodesAV1: true, showsHDR: true)
+
+    private static let provided = OSAllocatedUnfairLock<PlaybackCapabilities?>(initialState: nil)
+
+    /// Lets a platform without a capability probe of its own state what its player and screen take.
+    package static func provide(_ capabilities: PlaybackCapabilities?) {
+        provided.withLock { $0 = capabilities }
     }
 
     #if DEBUG

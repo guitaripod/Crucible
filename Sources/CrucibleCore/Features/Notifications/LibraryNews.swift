@@ -203,9 +203,7 @@ package enum NotificationCopy {
         let shown = names.count > 3
             ? Array(names.prefix(2)) + [String(localized: "\(names.count - 2) more", comment: "Last item of a list of titles in a notification, e.g. the end of Dune, Severance and 2 more")]
             : names
-        let formatter = ListFormatter()
-        formatter.locale = Formatters.interfaceLocale
-        return formatter.string(from: shown) ?? shown.joined(separator: ", ")
+        return PortableFormat.list(shown, locale: Formatters.interfaceLocale)
     }
 
     package static func newEpisodesTitle(_ news: ShowNews) -> String {

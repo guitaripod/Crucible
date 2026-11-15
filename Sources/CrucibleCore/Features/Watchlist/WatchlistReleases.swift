@@ -405,12 +405,9 @@ package enum WatchlistReleaseCopy {
 
     /// When an episode aired, short enough for the line under a poster: "Today", "Yesterday", "5 days ago".
     package static func aired(daysAgo: Int) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Formatters.interfaceLocale
-        formatter.dateTimeStyle = .named
-        formatter.unitsStyle = .full
-        formatter.formattingContext = .beginningOfSentence
-        return formatter.localizedString(from: DateComponents(day: -max(0, daysAgo)))
+        let now = Date()
+        let aired = Calendar.current.date(byAdding: .day, value: -max(0, daysAgo), to: now) ?? now
+        return PortableFormat.relative(aired, to: now, width: .full, named: true, beginningOfSentence: true, locale: Formatters.interfaceLocale)
     }
 
     /// The line a watchlist card shows: what came out while nobody has asked Seerr for it, otherwise where the request stands.

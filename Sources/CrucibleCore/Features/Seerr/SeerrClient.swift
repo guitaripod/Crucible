@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import MidgarCore
 
 /// What can go wrong talking to Seerr, in the words a viewer needs to act on it.

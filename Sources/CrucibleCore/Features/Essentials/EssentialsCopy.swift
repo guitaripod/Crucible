@@ -4,11 +4,7 @@ import Foundation
 package enum EssentialsCopy {
     /// "8 h 6 min", "45 min".
     package static func duration(_ seconds: Double) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-        formatter.unitsStyle = .abbreviated
-        formatter.zeroFormattingBehavior = .dropAll
-        return formatter.string(from: max(60, seconds)) ?? ""
+        PortableFormat.duration(seconds, width: .abbreviated, dropZeros: true) ?? ""
     }
 
     /// The bar's title: the level in use.
@@ -37,7 +33,7 @@ package enum EssentialsCopy {
     /// "From the Dragon Ball Wiki and Wikipedia · CC BY-SA", the attribution the sources' licence asks for.
     package static func sourceLine(_ guide: GuideShow) -> String {
         let names = guide.sources.map(\.name)
-        let list = ListFormatter.localizedString(byJoining: names.isEmpty ? ["Crucible Guides"] : names)
+        let list = PortableFormat.list(names.isEmpty ? ["Crucible Guides"] : names)
         return String(localized: "From \(list) · CC BY-SA", comment: "Attribution under Essentials, naming the wikis the episode guide comes from")
     }
 
@@ -53,7 +49,7 @@ package enum EssentialsCopy {
 
     /// "I've Seen the Films", naming what the retold stretch retells.
     package static func retoldTitle(_ range: GuideRange) -> String {
-        String(localized: "I've Seen \(ListFormatter.localizedString(byJoining: range.retells))", comment: "Essentials toggle that hides episodes retelling films the viewer has seen, e.g. I've Seen Battle of Gods and Resurrection 'F'")
+        String(localized: "I've Seen \(PortableFormat.list(range.retells))", comment: "Essentials toggle that hides episodes retelling films the viewer has seen, e.g. I've Seen Battle of Gods and Resurrection 'F'")
     }
 
     package static func retoldSubtitle(_ range: GuideRange) -> String {

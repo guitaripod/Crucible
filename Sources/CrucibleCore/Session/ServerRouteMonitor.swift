@@ -1,6 +1,5 @@
 import Foundation
 import MidgarCore
-import Network
 
 /// How good a route to the server is for this device right now; a smaller tier is better.
 package enum RouteTier: Int, Comparable, Sendable {
@@ -149,7 +148,7 @@ package final class ServerRouteMonitor {
     private var checkGeneration = 0
     private var generation = 0
     private var pendingCheck: Task<Void, Never>?
-    private var pathMonitor: NWPathMonitor?
+    private var pathMonitor: NetworkPathWatcher?
     private var pathSignature: String?
     private var isActive = true
     private var changedWhileAway = false
@@ -163,13 +162,11 @@ package final class ServerRouteMonitor {
     /// Starts watching the network. Calling it again changes nothing.
     package func start() {
         guard pathMonitor == nil else { return }
-        let monitor = NWPathMonitor()
-        monitor.pathUpdateHandler = { @Sendable [weak self] path in
-            let signature = Self.signature(of: path)
+        let watcher = NetworkPathWatcher { [weak self] signature in
             Task { @MainActor in self?.networkChanged(signature) }
         }
-        monitor.start(queue: DispatchQueue(label: "com.guitaripod.crucible.routes", qos: .utility))
-        pathMonitor = monitor
+        watcher.start()
+        pathMonitor = watcher
     }
 
     /// The main screen is up after a launch: a moment later the routes are tried, so a session pinned to a remote route at home
@@ -347,10 +344,4 @@ package final class ServerRouteMonitor {
         }
     }
 
-    /// What identifies the network in use: its status, its interfaces (Wi-Fi, cellular, the Tailscale tunnel) and its gateways.
-    private nonisolated static func signature(of path: NWPath) -> String {
-        let interfaces = path.availableInterfaces.map { "\($0.type)-\($0.name)" }.joined(separator: ",")
-        let gateways = path.gateways.map { "\($0)" }.joined(separator: ",")
-        return "\(path.status)|\(interfaces)|\(gateways)"
-    }
 }

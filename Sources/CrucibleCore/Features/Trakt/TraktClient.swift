@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import MidgarCore
 
 /// What can go wrong talking to Trakt, in the words a viewer needs to act on it.
@@ -89,7 +92,7 @@ package struct TraktTransport: Sendable {
     }
 
     package static let live = TraktTransport { request in
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await HTTPSession.current.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw TraktError.unavailable }
         return (data, http)
     }

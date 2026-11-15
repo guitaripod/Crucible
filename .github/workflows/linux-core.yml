@@ -1,0 +1,17 @@
+name: Linux Core
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-24.04
+    container: swift:6.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Core and Stats tests
+        run: CRUCIBLE_CORE_ONLY=1 swift test

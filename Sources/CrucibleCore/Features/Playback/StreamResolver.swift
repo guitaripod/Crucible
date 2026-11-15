@@ -1,6 +1,8 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import MidgarCore
-import os
 
 /// How the stream carries the subtitle it was resolved with.
 package enum SubtitleDelivery: String, Sendable {
@@ -100,7 +102,6 @@ package enum StreamResolverError: Error, LocalizedError {
 }
 
 package enum StreamResolver {
-    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
     private static let directPlayContainers: Set<String> = ["mp4", "mov", "m4v"]
     private static let directPlayVideoCodecs: Set<String> = ["h264", "hevc"]
     private static let directPlayAudioCodecs: Set<String> = ["aac", "ac3", "eac3", "mp3", "alac", "flac"]
@@ -204,7 +205,7 @@ package enum StreamResolver {
 
         let decision = await fetchDecision(startURL: url, token: token)
         if let decision, decision.isRefusal {
-            log.error("Server refused the stream code=\(decision.generalCode ?? 0) text=\(decision.generalText ?? "", privacy: .public)")
+            MidgarLog.error("Server refused the stream code=\(decision.generalCode ?? 0) text=\(decision.generalText ?? "")", category: .playback)
             throw StreamResolverError.refused(PlaybackDecisionCopy.refusalMessage(decision))
         }
         if delivery == .track, decision?.subtitleDecision == "burn" {
@@ -277,7 +278,7 @@ package enum StreamResolver {
             request.setValue(value, forHTTPHeaderField: key)
         }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
+        guard let (data, response) = try? await HTTPSession.current.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         return PlaybackDecision.parse(data)
     }
@@ -347,12 +348,12 @@ package enum StreamResolver {
             request.setValue(value, forHTTPHeaderField: key)
         }
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await HTTPSession.current.data(for: request)
             if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
-                log.error("Stream selection for part \(partId) answered \(status)")
+                MidgarLog.error("Stream selection for part \(partId) answered \(status)", category: .playback)
             }
         } catch {
-            log.error("Stream selection PUT failed for part \(partId): \(error.localizedDescription, privacy: .public)")
+            MidgarLog.error("Stream selection PUT failed for part \(partId): \(error.localizedDescription)", category: .playback)
         }
         await api.invalidate(ratingKey: ratingKey)
     }

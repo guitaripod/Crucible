@@ -93,9 +93,7 @@ package struct ServerChoice: Hashable, Sendable {
     package var detailText: String {
         guard isOnline else {
             guard let lastSeen else { return String(localized: "Offline") }
-            let relative = RelativeDateTimeFormatter()
-            relative.unitsStyle = .full
-            return String(localized: "Offline · last seen \(relative.localizedString(for: lastSeen, relativeTo: Date()))")
+            return String(localized: "Offline · last seen \(PortableFormat.relative(lastSeen, to: Date(), width: .full))")
         }
         if isOwned {
             return routes.count == 1 ? String(localized: "Owned by you · 1 connection") : String(localized: "Owned by you · \(routes.count) connections")

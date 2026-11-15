@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// One computer on the tailnet, as the Tailscale API lists it.
 package struct TailscaleDevice: Sendable, Hashable, Decodable {
@@ -85,7 +88,7 @@ package enum TailscaleAPI {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await HTTPSession.current.data(for: request)
         } catch {
             throw TailscaleAPIError.unavailable
         }

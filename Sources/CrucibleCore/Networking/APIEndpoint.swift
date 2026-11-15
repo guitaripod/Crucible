@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 package enum PlexEndpoint: Sendable {
     case requestPin(strong: Bool)

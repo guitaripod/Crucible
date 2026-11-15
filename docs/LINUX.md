@@ -209,27 +209,29 @@ mpv with `ao=pipewire`. A passthrough setting (Auto, On, Off) feeds `--audio-spd
 
 ## 8. Shared code: the Linux seams
 
-Each seam is a protocol or a cross-platform API in Core, never `#if` inside a feature. The counts are from the probe.
+Each seam is a protocol, a cross-platform API or a Linux stand-in with Apple's surface, kept in `Support/Portability` or beside its feature, never `#if` scattered through feature code.
 
-| Seam | Today | Change |
+| Seam | Before | Now (P1, done 2026-11-15) |
 | --- | --- | --- |
-| Locks | `OSAllocatedUnfairLock`, 10 sites | `Synchronization.Mutex` on both platforms |
-| Logging | `os.Logger` in 6 files | `MidgarLog` everywhere (it already builds on Linux); the log file is `~/.local/state/crucible/crucible.log` |
-| Crypto | `CryptoKit` in 3 files | `Crypto` from swift-crypto on Linux, the same API |
-| Secrets | `KeychainHelper`, `ProWeek` | `SecretStore` protocol: Keychain on Apple, libsecret on Linux. KWallet's Secret Service has a confirmed memory leak (KDE bug 522615), so Diagnostics reports which provider answered |
-| Strings | `String(localized:)`, 1,826 keys, 16 languages | Unchanged call sites. A build step compiles `Localizable.xcstrings` (and MidgarCore's) into per-language tables; the Linux implementation of the same API reads them and picks plural and device variations with ICU's plural rules |
-| Formatters | `DateComponentsFormatter` (1), `RelativeDateTimeFormatter` (5), `ListFormatter` (3) | `Duration.UnitsFormatStyle`, `Date.RelativeFormatStyle` and `ListFormatStyle` on both platforms, with the existing format tests proving identical output |
-| HTTP | `URLSession` | `APIClient` takes an `HTTPTransport`. Apple keeps URLSession; Linux uses AsyncHTTPClient, which streams server events (`ServerEvents`) and pins the Crucible Server's certificate by fingerprint through NIOSSL (`CompanionClient`) |
-| Network changes | `NWPathMonitor` | `PathMonitor` protocol; Linux reads rtnetlink link, address and route events and keeps today's interfaces-and-gateways signature |
-| Addresses | `IPv4Address`, `IPv6Address` | `inet_pton` on both platforms |
-| Device capability | VideoToolbox and `AVPlayer` in `StreamProfile` | A capability provider per platform |
-| Containers and crashes | App Group container, `NSSetUncaughtExceptionHandler` | `AppPlatform` answers XDG directories; fatal signals flush the log (the Tailscode shim) |
-| Pro | `ProAccess` with `MidgarProAccess` on Apple | Linux installs `UnlockedProAccess`, the source-build provider, so every Pro gate opens (D1), and `HostedBrain` is the `OwnModelBrain` |
-| Apple-only | Bonjour hand-off channel, Top Shelf store | Stay Apple-only behind `canImport(Network)` and the platform's screen catalogue |
-| Processes | none in Core today | If one is ever needed, swift-subprocess: Foundation `Process` leaks and races on Linux (Tailscode and omp-bridge both hit it) |
-| Tests | `URLProtocol` stubs (18 Linux failures) | Transport fakes, which also make the Apple tests independent of URL loading |
+| Locks | `OSAllocatedUnfairLock`, 10 sites | Unchanged call sites; Linux gets a stand-in with the same surface (`Support/Portability/UnfairLockLinux.swift`), because `Synchronization.Mutex` needs iOS 18 and Crucible supports iOS 17 |
+| Logging | `os.Logger` in 5 files | `MidgarLog` everywhere (it already builds on Linux) |
+| Crypto | `CryptoKit` in 3 files | `Crypto` from swift-crypto on Linux, the same API, declared for Linux only in `Package.swift` |
+| Secrets | `KeychainHelper`, `ProWeek` | `KeychainHelper` sits on a `SecretStoring` backend: the Keychain on Apple; on Linux the store the app installs (Secret Service), with a 0600 file as the default. Pro Week keeps its Keychain item on Apple only |
+| Strings | `String(localized:)`, 1,421 call sites, 16 languages | Unchanged call sites. On Linux, `String.LocalizationValue` and `String(localized:)` are implemented in Core (`LocalizationLinux.swift`), reading the same `Localizable.xcstrings` at launch, with CLDR plural rules for the 16 languages and a formatter that fills `%@`, `%lld` and positional arguments while leaving a literal `%` (as in "87% critics") as text |
+| Formatters | `RelativeDateTimeFormatter`, `ListFormatter`, `DateComponentsFormatter` at 11 sites | `PortableFormat`: the formatters on Apple (iOS 17), swift-foundation's `AnchoredRelativeFormatStyle`, `ListFormatStyle` and `Duration.UnitsFormatStyle` on Linux |
+| HTTP | `URLSession.shared` at 10 sites | `HTTPSession.current` (`.shared` unless installed). swift-corelibs-foundation's shared session only sees URL protocols registered before its first use, so tests install one session with their stubs |
+| Server events | `URLSession.bytes(for:)` | A streaming `bytes(for:)` for Linux built on a delegate data task (`StreamingBytesLinux.swift`), cancelled when the reader stops |
+| Certificate pinning | `CompanionClient`'s trust challenge | The decision (`FingerprintTrust.accept`) is shared; Apple answers URLSession's challenge, Linux sends through an installed `FingerprintPinnedTransport` (AsyncHTTPClient and NIOSSL in the Linux package) |
+| Network changes | `NWPathMonitor` | `NetworkPathWatcher`: Network.framework on Apple, rtnetlink link, address and route events on Linux, same signature |
+| Addresses | `IPv4Address`, `IPv6Address` | `IPAddressBytes` (`inet_pton`) on both platforms |
+| Device capability | VideoToolbox and `AVPlayer` in `StreamProfile` | Apple probes as before; Linux defaults to everything mpv decodes, with HDR kept, and the app can `provide` its own |
+| Platform | App Group container, `NSSetUncaughtExceptionHandler`, Library directories | `AppPlatform` answers `Linux` and XDG directories (`~/.local/share/crucible`, logs in `~/.local/state/crucible`); Top Shelf and the exception handler stay Apple-only |
+| Apple-only | Bonjour hand-off channel | Stays behind `canImport(Network)` |
+| Tests | `URLProtocol` stubs | Registered once and delivered only while the task runs (swift-corelibs-foundation traps on a late answer) |
 
-A Linux job in CI runs `CRUCIBLE_CORE_ONLY=1 swift test` on every push, so an Apple-side change cannot break Linux unnoticed; MidgarKit gets the same job for `MidgarCore`, which has no CI today.
+Measured: all 1,709 Core tests pass on Linux (Swift 6.4.2) and all 1,710 on the Mac host (the extra one is the Apple-only hand-off), and the iPhone and Apple TV package schemes build.
+
+A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=1 swift test` on every push, so an Apple-side change cannot break Linux unnoticed; MidgarKit should get the same job for `MidgarCore`, which has no CI today.
 
 ## 9. System integration (`CrucibleSystem`)
 

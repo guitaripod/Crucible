@@ -1,6 +1,5 @@
 import Foundation
 import MidgarCore
-import os
 
 package enum ServerConnectionResolver {
     enum Outcome: Sendable {
@@ -8,19 +7,18 @@ package enum ServerConnectionResolver {
         case needsSetup
     }
 
-    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "bootstrap")
 
     static func validate(
         connection: PlexConnection,
         progress: @escaping @Sendable (String) -> Void
     ) async -> Outcome {
         if await APIClient.probe(baseURL: connection.serverURI, token: connection.authToken) {
-            log.notice("Pinned route \(connection.serverURI.absoluteString, privacy: .public) healthy")
+            MidgarLog.notice("Pinned route \(connection.serverURI.absoluteString) healthy", category: .networking)
             return .connection(connection)
         }
 
         progress(String(localized: "Looking for \(connection.serverName)…"))
-        log.error("Pinned route \(connection.serverURI.absoluteString, privacy: .public) unreachable; re-discovering")
+        MidgarLog.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", category: .networking)
         MidgarLog.error("Pinned route \(connection.serverURI.absoluteString) unreachable; re-discovering", category: .networking)
 
         var candidates = await APIClient.discoverCandidates(token: connection.plexTVToken, pinned: connection.serverURI)
@@ -31,12 +29,12 @@ package enum ServerConnectionResolver {
             candidates += tailnet
         }
         guard let healthy = reachable else {
-            log.error("No reachable route to \(connection.serverName, privacy: .public); falling back to setup")
+            MidgarLog.error("No reachable route to \(connection.serverName); falling back to setup", category: .networking)
             MidgarLog.error("No reachable route to \(connection.serverName) among \(candidates.count) candidates", category: .networking)
             return .needsSetup
         }
 
-        log.notice("Re-pinned to \(healthy.absoluteString, privacy: .public)")
+        MidgarLog.notice("Re-pinned to \(healthy.absoluteString)", category: .networking)
         MidgarLog.notice("Re-pinned to \(healthy.absoluteString)", category: .networking)
         ServerBootstrap.repin(uri: healthy)
         return .connection(PlexConnection(

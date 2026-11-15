@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 package enum ConnectionKind: Sendable, Hashable {
     case local
@@ -161,7 +164,7 @@ package enum ConnectionProber {
         let clock = ContinuousClock()
         let start = clock.now
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await HTTPSession.current.data(for: request)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
             let elapsed = start.duration(to: clock.now)
             let milliseconds = Int((Double(elapsed.components.seconds) * 1000 + Double(elapsed.components.attoseconds) / 1e15).rounded())

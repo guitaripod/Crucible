@@ -1,6 +1,10 @@
 import Foundation
 #if canImport(Darwin)
+#if canImport(Darwin)
 import Darwin
+#else
+import Glibc
+#endif
 #endif
 
 /// Whether Tailscale is carrying traffic on this device. A tailnet address is a 100.64.0.0/10

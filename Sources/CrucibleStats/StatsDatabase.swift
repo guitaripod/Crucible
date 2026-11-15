@@ -2,7 +2,9 @@ import CrucibleCore
 import Foundation
 import GRDB
 import MidgarCore
+#if canImport(os)
 import os
+#endif
 
 /// Owns the on-disk GRDB queue for the local watch-history mirror. It lives in
 /// ``AppPlatform/persistentDirectory`` (Application Support on iOS, Caches on tvOS, where nothing else

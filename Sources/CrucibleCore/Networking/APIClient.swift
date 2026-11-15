@@ -1,6 +1,11 @@
 import Foundation
-import MidgarCore
+#if canImport(os)
 import os
+#endif
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+import MidgarCore
 
 package enum APIError: Error, LocalizedError, Sendable {
     case invalidURL
@@ -41,7 +46,6 @@ package actor APIClient {
     package nonisolated let token: String
     private var baseURLStorage: URL
     private let decoder: JSONDecoder
-    private let logger = Logger(subsystem: "com.guitaripod.crucible", category: "api")
 
     private struct CacheEntry {
         let container: PlexMediaContainer
@@ -169,8 +173,6 @@ package actor APIClient {
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
-            logger.error("Decode \(T.self, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-            logger.debug("Decode body: \(String(data: data.prefix(500), encoding: .utf8) ?? "non-utf8", privacy: .private)")
             let body = String(data: data.prefix(280), encoding: .utf8) ?? "non-utf8"
             MidgarLog.error("Decode \(T.self) failed: \(String(describing: error)) | body: \(body)", category: .networking)
             throw APIError.decodingError(error.localizedDescription)
@@ -203,8 +205,7 @@ package actor APIClient {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            Logger(subsystem: "com.guitaripod.crucible", category: "api")
-                .error("Decode \(T.self, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            MidgarLog.error("Decode \(T.self) failed: \(error.localizedDescription)", category: .networking)
             throw APIError.decodingError(error.localizedDescription)
         }
     }
@@ -217,7 +218,7 @@ package actor APIClient {
 
     private static func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await HTTPSession.current.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.invalidURL
             }
@@ -250,7 +251,7 @@ package actor APIClient {
     private func failover(
         _ replay: @Sendable (URL) async throws -> (Data, HTTPURLResponse)
     ) async throws -> (Data, HTTPURLResponse) {
-        logger.error("Transport failure on \(self.baseURLStorage.absoluteString, privacy: .public); attempting failover")
+        MidgarLog.error("Transport failure on \(self.baseURLStorage.absoluteString); attempting failover", category: .networking)
         let candidates = await Self.discoverCandidates(token: ServerBootstrap.plexTVToken ?? token, pinned: baseURL).filter { $0 != baseURL }
         var reachable = await ServerConnectionResolver.firstReachable(candidates, token: token)
         if reachable == nil, let connection = ServerBootstrap.connection() {
@@ -258,11 +259,10 @@ package actor APIClient {
             reachable = await ServerConnectionResolver.firstReachable(tailnet, token: token)
         }
         guard let candidate = reachable else {
-            logger.error("Failover found no reachable route; rethrowing")
             MidgarLog.error("Failover from \(baseURLStorage.absoluteString) found no reachable route", category: .networking)
             throw APIError.serverUnavailable
         }
-        logger.notice("Failover to \(candidate.absoluteString, privacy: .public)")
+        MidgarLog.notice("Failover to \(candidate.absoluteString)", category: .networking)
         MidgarLog.notice("Failover to \(candidate.absoluteString)", category: .networking)
         ServerBootstrap.repin(uri: candidate)
         Self.move(to: candidate, replacing: Set(candidates + [baseURLStorage]))

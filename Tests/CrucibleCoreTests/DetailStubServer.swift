@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 @testable import CrucibleCore
 
 /// Answers `URLSession.shared` requests for one fake host, so loaders run against canned Plex responses and every request is recorded in order.
@@ -20,6 +23,7 @@ final class DetailStubServer: @unchecked Sendable {
     private var urlLog: [String] = []
 
     init() {
+        TestHTTP.install()
         Self.lock.lock()
         defer { Self.lock.unlock() }
         if !Self.registered {
@@ -121,4 +125,18 @@ final class StubProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
+}
+
+/// One session for every stubbed request in the test run, with both stub protocols. Installed before the first stub
+/// answers, because swift-corelibs-foundation's shared session never sees protocol classes registered after its first use.
+enum TestHTTP {
+    private static let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubProtocol.self, LibraryStubProtocol.self] + (configuration.protocolClasses ?? [])
+        return URLSession(configuration: configuration)
+    }()
+
+    static func install() {
+        HTTPSession.install(session)
+    }
 }

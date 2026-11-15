@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// The kind of item a Trakt id lookup or a scrobble names.
 package enum TraktMediaKind: String, Codable, Sendable {

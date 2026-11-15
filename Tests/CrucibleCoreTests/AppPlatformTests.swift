@@ -4,7 +4,7 @@ import Testing
 
 struct AppPlatformTests {
     @Test func platformNameMatchesFlag() {
-        #expect(AppPlatform.plexName == (AppPlatform.isTV ? "tvOS" : "iOS"))
+        #expect(AppPlatform.plexName == (AppPlatform.isLinux ? "Linux" : AppPlatform.isTV ? "tvOS" : "iOS"))
     }
 
     @Test func persistentDirectoryExists() {
@@ -15,12 +15,17 @@ struct AppPlatformTests {
 
     @Test func logsDirectoryIsNamedLogsUnderTheLibraryOrCaches() {
         let directory = AppPlatform.logsDirectory
+        if AppPlatform.isLinux {
+            #expect(directory.lastPathComponent == "crucible")
+            #expect(directory.deletingLastPathComponent().lastPathComponent == "state")
+            return
+        }
         #expect(directory.lastPathComponent == "Logs")
         let parent = directory.deletingLastPathComponent().lastPathComponent
         #expect(parent == (AppPlatform.isTV ? "Caches" : "Library"))
     }
 
     @Test func fallbackDeviceNameMatchesPlatform() {
-        #expect(AppPlatform.fallbackDeviceName == (AppPlatform.isTV ? "Apple TV" : "iPhone"))
+        #expect(AppPlatform.fallbackDeviceName == (AppPlatform.isLinux ? "Linux" : AppPlatform.isTV ? "Apple TV" : "iPhone"))
     }
 }

@@ -1,4 +1,8 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 import Foundation
 
 /// The signed form Crucible Guides is served in. The signature covers the header and the bundle's bytes,

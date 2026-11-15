@@ -1,5 +1,8 @@
 import Foundation
-import os
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+import MidgarCore
 
 /// Holds the newest Crucible Guides bundle this device trusts: the seed built into the app, replaced by the
 /// signed bundle downloaded weekly from Midgar's gateway. The download is the whole bundle, never a part, so
@@ -9,7 +12,6 @@ package actor GuideStore {
 
     package static let url = URL(string: "https://api.midgarcorp.cc/v1/crucible/guides")!
     package static let refreshInterval: TimeInterval = 7 * 86_400
-    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "essentials")
     private static let etagKey = "essentials_guides_etag"
     private static let checkedKey = "essentials_guides_checked"
 
@@ -69,7 +71,7 @@ package actor GuideStore {
         request.setValue("crucible", forHTTPHeaderField: "X-App-ID")
         if let etag = defaults.string(forKey: Self.etagKey) { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
         guard let (data, response) = try? await session.data(for: request), let http = response as? HTTPURLResponse else {
-            Self.log.notice("Guides check failed to reach the server")
+            MidgarLog.notice("Guides check failed to reach the server", category: .networking)
             return false
         }
         defaults.set(now.timeIntervalSince1970, forKey: Self.checkedKey)
@@ -81,10 +83,10 @@ package actor GuideStore {
             try data.write(to: savedURL, options: .atomic)
             loaded = (bundle, envelope.sequence)
             if let etag = http.value(forHTTPHeaderField: "ETag") { defaults.set(etag, forKey: Self.etagKey) }
-            Self.log.notice("Guides updated to #\(envelope.sequence) with \(bundle.shows.count) shows")
+            MidgarLog.notice("Guides updated to #\(envelope.sequence) with \(bundle.shows.count) shows", category: .networking)
             return true
         } catch {
-            Self.log.notice("Guides download refused: \(String(describing: error), privacy: .public)")
+            MidgarLog.notice("Guides download refused: \(String(describing: error))", category: .networking)
             return false
         }
     }

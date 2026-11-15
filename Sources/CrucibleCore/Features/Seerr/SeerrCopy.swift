@@ -125,9 +125,7 @@ package enum SeerrCopy {
     /// A line under the state, when there is more to say: when a download should finish.
     package static func detail(_ availability: SeerrAvailability, now: Date = Date()) -> String? {
         guard case .downloading(_, let eta) = availability, let eta, eta > now else { return nil }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return String(localized: "Ready \(formatter.localizedString(for: eta, relativeTo: now))", comment: "When a download should finish, e.g. Ready in 2 hours")
+        return String(localized: "Ready \(PortableFormat.relative(eta, to: now, width: .full))", comment: "When a download should finish, e.g. Ready in 2 hours")
     }
 
     /// Where a title stands, short and in sentence case for the line under its poster.

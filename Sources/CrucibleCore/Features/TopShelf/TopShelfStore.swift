@@ -21,7 +21,11 @@ package struct TopShelfStore: Sendable {
     }
 
     package static var shared: TopShelfStore {
+        #if canImport(Darwin)
         TopShelfStore(directory: FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier))
+        #else
+        TopShelfStore(directory: nil)
+        #endif
     }
 
     /// Where the snapshot is written and read, most preferred first.

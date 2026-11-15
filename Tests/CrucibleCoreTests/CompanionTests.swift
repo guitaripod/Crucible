@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(Network)
 import Network
+#endif
 import Testing
 @testable import CrucibleCore
 
@@ -183,6 +185,7 @@ struct CompanionHandOffTests {
         #expect(CompanionHandOff.answer(inLine: "nonsense") == nil)
     }
 
+    #if canImport(Network)
     @Test func theChannelCarriesALineEachWayAndTimesOut() async throws {
         let queue = DispatchQueue(label: "handoff-test")
         let listener = try NWListener(using: .tcp, on: .any)
@@ -210,4 +213,5 @@ struct CompanionHandOffTests {
         server.cancel()
         listener.cancel()
     }
+    #endif
 }

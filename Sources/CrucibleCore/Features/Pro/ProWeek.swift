@@ -1,6 +1,8 @@
 import Foundation
 import MidgarCore
+#if canImport(Security)
 import Security
+#endif
 
 /// A week of Crucible Pro for every viewer who has not bought it, once per device, from the first film or episode they watch
 /// to the end. Nothing is charged and nothing renews. When it ends the free app is as it was; titles downloaded during the
@@ -139,10 +141,13 @@ package final class ProWeekStore: @unchecked Sendable {
         for key in [startKey, announcedKey, endNoticeKey] {
             defaults.removeObject(forKey: key)
         }
+        #if canImport(Security)
         if usesKeychain { SecItemDelete(Self.baseQuery as CFDictionary) }
+        #endif
     }
     #endif
 
+    #if canImport(Security)
     private static var baseQuery: [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
@@ -173,4 +178,8 @@ package final class ProWeekStore: @unchecked Sendable {
             MidgarLog.notice("Pro Week start not written to the keychain: \(status)", category: .store)
         }
     }
+    #else
+    private static func keychainStart() -> Double? { nil }
+    private static func writeKeychainStart(_ seconds: Double) {}
+    #endif
 }

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Fetches the signed-in plex.tv account's display name so the You tab can greet the user.
 package enum PlexAccountName {
@@ -17,7 +20,7 @@ package enum PlexAccountName {
         for (key, value) in PlexHeaders.allHeaders(token: token) {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
+        guard let (data, response) = try? await HTTPSession.current.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let account = try? JSONDecoder().decode(Account.self, from: data)
         else { return }

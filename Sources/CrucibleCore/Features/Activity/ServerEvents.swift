@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import MidgarCore
 
 /// Something the server announced on its live notification stream, reduced to what the app reacts to.
@@ -156,7 +159,7 @@ package enum ServerEventStream {
         let started = ContinuousClock.now
         do {
             let request = try PlexEndpoint.eventSource.urlRequest(baseURL: await api.baseURL, token: api.token)
-            let (bytes, response) = try await URLSession.shared.bytes(for: request)
+            let (bytes, response) = try await HTTPSession.current.bytes(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             guard status == 200 else {
                 MidgarLog.notice("Server events refused with HTTP \(status)", category: .networking)

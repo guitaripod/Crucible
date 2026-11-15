@@ -90,23 +90,17 @@ package enum Formatters {
         return f
     }()
 
-    nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .short
-        return f
-    }()
-
     static func relativeDate(_ isoString: String?) -> String? {
         guard let isoString else { return nil }
         let date = isoFormatterFractional.date(from: isoString) ?? isoFormatter.date(from: isoString)
         guard let date else { return nil }
-        return relativeFormatter.localizedString(for: date, relativeTo: Date())
+        return PortableFormat.relative(date, to: Date(), width: .short)
     }
 
     package static func unixRelativeDate(_ timestamp: Int?) -> String? {
         guard let timestamp else { return nil }
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        return relativeFormatter.localizedString(for: date, relativeTo: Date())
+        return PortableFormat.relative(date, to: Date(), width: .short)
     }
 
     private static let dateTimeFormatter: DateFormatter = {

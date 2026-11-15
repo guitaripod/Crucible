@@ -77,12 +77,7 @@ package enum RatingAskCopy {
 
     /// When a movie was finished, short enough for the line under a poster: "Yesterday", "3 days ago".
     package static func finished(at date: Date, now: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Formatters.interfaceLocale
-        formatter.dateTimeStyle = .named
-        formatter.unitsStyle = .short
-        formatter.formattingContext = .beginningOfSentence
-        return formatter.localizedString(for: min(date, now), relativeTo: now)
+        PortableFormat.relative(min(date, now), to: now, width: .short, named: true, beginningOfSentence: true, locale: Formatters.interfaceLocale)
     }
 }
 

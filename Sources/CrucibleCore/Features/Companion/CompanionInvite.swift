@@ -1,6 +1,9 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 import Foundation
-import Network
 
 /// What pairing with Crucible Server needs: its name, where it may answer, the single-use secret its terminal showed,
 /// and the certificate fingerprint when the QR code carried one.
@@ -84,13 +87,11 @@ package struct CompanionInvite: Equatable, Sendable {
         if host.hasSuffix(".plex.direct"), let label = host.split(separator: ".").first {
             host = label.replacingOccurrences(of: "-", with: ".")
         }
-        if let v4 = IPv4Address(host) {
-            let b = [UInt8](v4.rawValue)
+        if let b = IPAddressBytes.v4(host) {
             return b[0] == 10 || (b[0] == 172 && (16...31).contains(b[1])) || (b[0] == 192 && b[1] == 168)
                 || (b[0] == 100 && (64...127).contains(b[1])) || (b[0] == 169 && b[1] == 254)
         }
-        if let v6 = IPv6Address(host) {
-            let b = [UInt8](v6.rawValue)
+        if let b = IPAddressBytes.v6(host) {
             return (b[0] & 0xfe) == 0xfc || (b[0] == 0xfe && (b[1] & 0xc0) == 0x80)
         }
         return false

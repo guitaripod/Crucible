@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 /// How big subtitles are drawn, as a percentage of the standard size: the server draws a burned-in subtitle at this size and
 /// the player scales the ones it draws itself.

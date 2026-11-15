@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import MidgarCore
 
 /// Finds a Plex server on the tailnet when plex.tv does not list a route to it. plex.tv only knows
@@ -139,7 +142,7 @@ package struct TailnetServerFinder: Sendable {
         var request = URLRequest(url: url.appendingPathComponent("identity"))
         request.timeoutInterval = 2.5
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
+        guard let (data, response) = try? await HTTPSession.current.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200
         else { return nil }
         return (try? JSONDecoder().decode(PlexIdentity.self, from: data))?.MediaContainer.machineIdentifier
@@ -185,7 +188,11 @@ enum HostResolver {
     private static func lookup(_ name: String) -> [String] {
         var hints = addrinfo()
         hints.ai_family = AF_INET
+        #if canImport(Glibc)
+        hints.ai_socktype = Int32(SOCK_STREAM.rawValue)
+        #else
         hints.ai_socktype = SOCK_STREAM
+        #endif
         var head: UnsafeMutablePointer<addrinfo>?
         guard getaddrinfo(name, nil, &hints, &head) == 0, let first = head else { return [] }
         defer { freeaddrinfo(head) }
