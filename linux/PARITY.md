@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 82 | 1 | 1 | 3 |
 | Settings and integrations | 59 | 1 | 7 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 74 | 7 | 22 | 0 |
-| **All** | 627 | 18 | 41 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 75 | 7 | 21 | 0 |
+| **All** | 628 | 18 | 40 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -729,7 +729,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `linux-tab-reading-order-focus` (S) Tab and Shift+Tab walk controls in reading order, wrapping at the ends _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [x] `linux-enter-activates` (S) Enter selects the focused control _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [x] `linux-focus-ring-keyboard-only` (S) The focus ring shows only once the keyboard is used, and a click hides it again _Apple TV: docs/LINUX.md §5.4 Keyboard_
-- [ ] `linux-tooltips` (S) Tooltips name icon-only buttons after a short hover Gap: Only a doc comment mentions tooltips (Kiln/UI/View.swift:290). No hover-delay tooltip rendering exists in Kiln or CrucibleUI. _Apple TV: docs/LINUX.md §5.4 Text_
+- [x] `linux-tooltips` (S) Tooltips name icon-only buttons after a short hover _Apple TV: docs/LINUX.md §5.4 Text_
 - [ ] `linux-text-select-copy` (M) Titles, synopses and cast names can be selected and copied Gap: No text selection or clipboard code in linux/Sources; text is drawn as labels only. _Apple TV: docs/LINUX.md §5.4 Text_
 - [ ] `linux-search-text-ime` (M) **partial** Desk Search is a real text field with IME input through text-input-v3 Gap: A plain text field exists (CrucibleUI/Controls/TextField.swift, used by SearchScreen) and typing works, but no zwp_text_input_v3 binding exists in linux/ (no text_input reference), so IME composition is not supported. _Apple TV: docs/LINUX.md §6 Search_
 - [x] `linux-reduce-transparency-motion` (S) Reduce Transparency and Reduce Motion from the desktop settings portal turn glass opaque and motion instant _Apple TV: docs/LINUX.md §5.7 Liquid Glass_
