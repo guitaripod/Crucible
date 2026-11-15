@@ -42,6 +42,8 @@ final class PlayerScreen: View {
     static var pendingStop: Task<Void, Never>?
 
     var upNext: UpNextResolver?
+    /// What Up Next found after this title, once it asked: the next episode, or that there is nothing next.
+    var nextKnown: NextKnown?
     var card: UpNextCard?
     var offerTask: Task<Void, Never>?
     var player: VideoPlayer?
@@ -398,9 +400,10 @@ final class PlayerScreen: View {
         }
         offerTask?.cancel()
         offerTask = Task { [weak self] in
-            let offer = try? await resolver.loadOffer(api: api, reason: reason)
+            let answer = await Result { try await resolver.loadOffer(api: api, reason: reason) }
             guard let self, !Task.isCancelled, !self.closed else { return }
-            guard let offer else {
+            if case .success(let found) = answer { self.nextKnown = found.map(NextKnown.offer) ?? .nothingNext }
+            guard case .success(let found) = answer, let offer = found else {
                 if reason == .playbackEnded { self.endOfPlayback() }
                 return
             }
@@ -618,6 +621,7 @@ final class PlayerScreen: View {
         alert = nil
         let finished = WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
         watchers.forEach { $0.playback(.stopped(position: position, finished: finished, at: Date())) }
+        if finished { recordFinish() }
         watchers = []
         if let stopped = report("stopped") {
             let pending = Task { @MainActor in
@@ -638,6 +642,36 @@ final class PlayerScreen: View {
         ScreenAwake.hold(false, in: window)
         window?.setCursor(.default)
         onClose?()
+    }
+
+    /// Notes a finished movie or episode in the ledger behind Rate What You Watched and the shows the viewer follows
+    /// (`PlaybackSession.recordFinish`): an episode closed its season when the next one belongs to another season, and
+    /// closed the show when there was nothing next; a playlist's entries close neither.
+    private func recordFinish() {
+        guard case .plex(_, let item, _) = source else { return }
+        let kind: FinishedTitle.Kind
+        switch item.mediaType {
+        case "movie": kind = .movie
+        case "episode": kind = .episode
+        default: return
+        }
+        var endedShow = false
+        var endedSeason = false
+        if kind == .episode, run.queue == nil {
+            switch nextKnown {
+            case .offer(let offer):
+                endedSeason = offer.episode.parentIndex != nil && offer.episode.parentIndex != item.parentIndex
+            case .nothingNext:
+                endedShow = true
+            case nil:
+                break
+            }
+        }
+        FinishedTitlesLedger.shared.record(FinishedTitle(
+            ratingKey: item.id, kind: kind, title: item.title, showTitle: item.grandparentTitle, showRatingKey: item.grandparentRatingKey,
+            seasonNumber: item.parentIndex, episodeNumber: item.index, posterPath: item.thumb, showPosterPath: item.grandparentThumb,
+            finishedAt: Date(), endedShow: endedShow, endedSeason: endedSeason, librarySectionID: item.librarySectionID
+        ), server: ServerBootstrap.savedMachineIdentifier)
     }
 
     // MARK: Chrome
@@ -811,4 +845,10 @@ final class PlayerScreen: View {
                               width: cardSize.width, height: cardSize.height)
         }
     }
+}
+
+/// What Up Next learned about the title after the one playing.
+enum NextKnown {
+    case offer(UpNextOffer)
+    case nothingNext
 }
