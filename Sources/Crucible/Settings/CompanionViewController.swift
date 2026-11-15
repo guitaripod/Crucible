@@ -7,6 +7,7 @@ import CrucibleDesign
 final class CompanionViewController: UICollectionViewController {
     private enum Row: Hashable {
         case status
+        case sports
         case enterCode
         case howToInstall
         case unpair
@@ -77,11 +78,13 @@ final class CompanionViewController: UICollectionViewController {
                 content = IconRowContentConfiguration(symbol: "keyboard", title: CompanionCopy.enterCode)
             case .howToInstall:
                 content = IconRowContentConfiguration(symbol: "safari", title: CompanionCopy.howToInstall)
+            case .sports:
+                content = IconRowContentConfiguration(symbol: "sportscourt", title: SportsCopy.title, subtitle: ProFeature.sportsResearch.summary, isActionable: true)
             case .unpair:
                 content = IconRowContentConfiguration(symbol: "xmark.circle", title: CompanionCopy.unpair)
             }
             cell.contentConfiguration = content
-            cell.accessories = row == .enterCode || row == .howToInstall ? [.disclosureIndicator()] : []
+            cell.accessories = row == .enterCode || row == .howToInstall || row == .sports ? [.disclosureIndicator()] : []
             cell.applyThemedBackground()
             cell.accessibilityIdentifier = "settings.crucibleServer.\(row)"
         }
@@ -113,7 +116,7 @@ final class CompanionViewController: UICollectionViewController {
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Int, Row>()
         snapshot.appendSections([0])
-        let rows: [Row] = CompanionStore.current() == nil ? [.enterCode, .howToInstall] : [.status, .unpair]
+        let rows: [Row] = CompanionStore.current() == nil ? [.enterCode, .howToInstall] : [.status, .sports, .unpair]
         snapshot.appendItems(rows)
         snapshot.reconfigureItems(rows)
         snapshot.reloadSections([0])
@@ -131,8 +134,14 @@ final class CompanionViewController: UICollectionViewController {
         case .enterCode: askForCode()
         case .howToInstall: UIApplication.shared.open(CompanionCopy.installURL)
         case .unpair: confirmUnpair()
+        case .sports: openSports()
         default: break
         }
+    }
+
+    private func openSports() {
+        guard let client = PreviouslyOnRequest.client() else { return }
+        navigationController?.pushViewController(SportsResearchViewController(source: client), animated: true)
     }
 
     private func askForCode() {

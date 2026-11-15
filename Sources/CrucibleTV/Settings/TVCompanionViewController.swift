@@ -17,6 +17,7 @@ final class TVCompanionViewController: UIViewController {
     private let handOffQueue = DispatchQueue(label: "com.guitaripod.crucible.companion-handoff")
     private static let handOff = NWBrowser.Descriptor.applicationService(name: CompanionHandOff.serviceName)
     private lazy var unpairButton = TVButton.make(.glass, title: CompanionCopy.unpair) { [weak self] in self?.confirmUnpair() }
+    private lazy var sportsButton = TVButton.make(.glass, title: SportsCopy.title) { [weak self] in self?.openSports() }
     private var statusTask: Task<Void, Never>?
     private var handingOff = false
 
@@ -38,7 +39,11 @@ final class TVCompanionViewController: UIViewController {
         buttons.axis = .horizontal
         buttons.spacing = Theme.Space.m
         unpairButton.accessibilityIdentifier = "settings.crucibleServer.unpair"
-        let stack = UIStackView(arrangedSubviews: [heading, statusLabel, detailLabel, buttons, unpairButton])
+        sportsButton.accessibilityIdentifier = "settings.crucibleServer.sports"
+        let pairedButtons = UIStackView(arrangedSubviews: [sportsButton, unpairButton])
+        pairedButtons.axis = .horizontal
+        pairedButtons.spacing = Theme.Space.m
+        let stack = UIStackView(arrangedSubviews: [heading, statusLabel, detailLabel, buttons, pairedButtons])
         stack.axis = .vertical
         stack.alignment = .leading
         stack.spacing = Theme.Space.l
@@ -58,7 +63,7 @@ final class TVCompanionViewController: UIViewController {
     }
 
     override var preferredFocusEnvironments: [UIFocusEnvironment] {
-        guard CompanionStore.current() == nil else { return [unpairButton] }
+        guard CompanionStore.current() == nil else { return [sportsButton] }
         return [Self.canPairWithIPhone ? phoneButton : showCodeButton]
     }
 
@@ -77,6 +82,7 @@ final class TVCompanionViewController: UIViewController {
         showCodeButton.isHidden = server != nil
         phoneButton.isHidden = server != nil || !Self.canPairWithIPhone
         unpairButton.isHidden = server == nil
+        sportsButton.isHidden = server == nil
         setNeedsFocusUpdate()
         statusTask?.cancel()
         guard let server else { return }
@@ -186,6 +192,11 @@ final class TVCompanionViewController: UIViewController {
                 self?.statusLabel.text = error.message
             }
         }
+    }
+
+    private func openSports() {
+        guard let client = PreviouslyOnRequest.client() else { return }
+        TVNavigation.push(TVSportsResearchViewController(source: client), from: self)
     }
 
     private func confirmUnpair() {

@@ -10,6 +10,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
     case yearInReviewPoster
     case topShelf
     case manageRequests
+    case sportsResearch
 
     package var title: String {
         switch self {
@@ -20,6 +21,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .yearInReviewPoster: return String(localized: "Year in Review poster")
         case .topShelf: return String(localized: "Top Shelf")
         case .manageRequests: return String(localized: "Manage Requests", comment: "Pro feature: approve and decline Seerr requests")
+        case .sportsResearch: return SportsCopy.title
         }
     }
 
@@ -32,6 +34,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .yearInReviewPoster: return String(localized: "Preview and share your year as a Story or Square poster.")
         case .topShelf: return String(localized: "Continue Watching and Up Next on the Apple TV Home screen.")
         case .manageRequests: return String(localized: "Approve, decline and retry everyone's Seerr requests from the couch.", comment: "Pro feature summary for managing Seerr requests")
+        case .sportsResearch: return String(localized: "Your own model looks up the events in your sports recordings and gives them real titles, dates, cards and posters.", comment: "Pro feature summary for Sports Research")
         }
     }
 
@@ -44,13 +47,15 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .yearInReviewPoster: return "sparkles.rectangle.stack"
         case .topShelf: return "tv"
         case .manageRequests: return "tray.full"
+        case .sportsResearch: return "sportscourt"
         }
     }
 
     /// The features worth showing on the current platform: downloads exist only on the iPhone and Top Shelf only on Apple TV.
     /// Managing requests shows only to someone who approves requests on a connected Seerr, or who reached for it.
     /// What to Watch and Previously On show where Crucible has its hosted AI, which a source build and the demo do not.
-    package static func listed(isTV: Bool = AppPlatform.isTV, includingRequests: Bool = false, includingHosted: Bool = HostedBrain.isAvailable) -> [ProFeature] {
+    /// Sports Research shows to someone paired with a Crucible Server, which it runs on.
+    package static func listed(isTV: Bool = AppPlatform.isTV, includingRequests: Bool = false, includingHosted: Bool = HostedBrain.isAvailable, includingServer: Bool = CompanionStore.load() != nil) -> [ProFeature] {
         allCases.filter { feature in
             switch feature {
             case .whatToWatch, .previouslyOn: return includingHosted
@@ -58,6 +63,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
             case .topShelf: return isTV
             case .fullStatistics, .yearInReviewPoster: return true
             case .manageRequests: return includingRequests
+            case .sportsResearch: return includingServer
             }
         }
     }

@@ -20,6 +20,9 @@ enum TVDebugScreen {
             openPro(on: tabBar)
         case "whattowatch":
             tabBar.showHome().pushViewController(TVScreens.whatToWatchAsk(environment), animated: false)
+        case "sports":
+            guard let path = ProcessInfo.processInfo.environment["CRUCIBLE_SPORTS_FIXTURE"] else { return }
+            tabBar.showHome().pushViewController(TVSportsResearchViewController(source: SportsFixture(url: URL(fileURLWithPath: path))), animated: false)
         default:
             break
         }

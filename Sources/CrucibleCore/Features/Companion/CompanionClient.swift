@@ -188,6 +188,26 @@ private struct Connection {
 
 private struct Nothing: Codable {}
 
+private extension Connection {
+    /// A request whose success carries no body, such as `202 Accepted`.
+    func sendExpectingNothing(_ method: String, _ path: String, headers: [String: String]) async throws(CompanionError) {
+        var request = URLRequest(url: URL(string: path, relativeTo: base)?.absoluteURL ?? base)
+        request.httpMethod = method
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        let data: Data, response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw trust.rejected ? .wrongServer : .unreachable
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(status) else {
+            let detail = try? JSONDecoder().decode(ErrorBody.self, from: data).error
+            throw status == 401 ? .notPaired : .refused(detail?.message ?? HTTPURLResponse.localizedString(forStatusCode: status))
+        }
+    }
+}
+
 /// What `/hello` says about the server.
 package struct CompanionHello: Decodable, Sendable {
     package let protocolVersion: Int
@@ -196,9 +216,11 @@ package struct CompanionHello: Decodable, Sendable {
     package let fingerprint: String
     package let brain: Bool
     package let plexMachineIdentifier: String?
+    /// Whether the server can research sports files; a server from before Sports Research says nothing.
+    package let sports: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case protocolVersion = "protocol", name, version, fingerprint, brain, plexMachineIdentifier
+        case protocolVersion = "protocol", name, version, fingerprint, brain, plexMachineIdentifier, sports
     }
 }
 
@@ -455,6 +477,55 @@ package struct CompanionClient: Sendable {
             let body = QuestionRequest(item: item, playheadMs: playheadMs, finished: finished, question: question, language: language)
             let started: Started = try await connection.send("POST", "questions", body: body, headers: headers)
             return try await collect(connection, path: "questions/\(started.id)")
+        }
+    }
+
+    /// Where Sports Research stands on the server.
+    package func sports() async throws(CompanionError) -> SportsReport {
+        try await onFirstHost(timeout: 30) { connection throws(CompanionError) in
+            try await connection.send("GET", "sports", body: Nothing?.none, headers: headers)
+        }
+    }
+
+    private struct SportsChange: Encodable {
+        let on: Bool?
+        let libraries: [String]?
+        let agree: Bool?
+    }
+
+    private struct SportsChanged: Decodable {
+        let on: Bool
+    }
+
+    /// The owner turns research on or off, chooses its libraries, or agrees to where searches go.
+    package func changeSports(on: Bool? = nil, libraries: [String]? = nil, agree: Bool? = nil) async throws(CompanionError) {
+        let _: SportsChanged = try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
+            try await connection.send("PUT", "sports", body: SportsChange(on: on, libraries: libraries, agree: agree), headers: headers)
+        }
+    }
+
+    private struct SportsRechecked: Decodable {
+        let ready: Bool
+    }
+
+    /// The owner has every requirement checked again now, the model probed afresh.
+    package func recheckSports() async throws(CompanionError) {
+        let _: SportsRechecked = try await onFirstHost(timeout: 90) { connection throws(CompanionError) in
+            try await connection.send("POST", "sports/checks", body: Nothing?.none, headers: headers)
+        }
+    }
+
+    /// The owner asks the server to look at the libraries now.
+    package func runSports() async throws(CompanionError) {
+        try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
+            try await connection.sendExpectingNothing("POST", "sports/run", headers: headers)
+        }
+    }
+
+    /// The owner asks for one file to be researched again from scratch.
+    package func redoSports(ratingKey: String) async throws(CompanionError) {
+        try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
+            try await connection.sendExpectingNothing("POST", "sports/items/\(ratingKey)/redo", headers: headers)
         }
     }
 

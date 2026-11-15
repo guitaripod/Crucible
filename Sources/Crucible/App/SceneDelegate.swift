@@ -299,6 +299,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 DemoCoordinator.shared.mainAppDidAppear(tabBar)
                 NotificationCoordinator.shared.mainAppDidAppear(tabBar)
             }
+            #if DEBUG
+            PhoneDebugSession.openIfRequested(over: root)
+            #endif
             if let invite = self.pendingInvite {
                 self.pendingInvite = nil
                 self.offerPairing(invite)
@@ -323,6 +326,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let nav = UINavigationController(rootViewController: setup)
         window?.backgroundColor = Theme.Color.canvas
         window?.rootViewController = nav
+        #if DEBUG
+        DispatchQueue.main.async { PhoneDebugSession.openIfRequested(over: nav) }
+        #endif
     }
 
     /// The window where the sign-in finished connects for every window.

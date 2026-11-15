@@ -2,6 +2,7 @@ import Foundation
 #if DEBUG
 import CrucibleCore
 import MidgarCore
+import UIKit
 #endif
 
 /// Launch-time switches for simulator runs and UI tests. Everything that changes the session only exists in DEBUG builds.
@@ -29,6 +30,16 @@ enum PhoneDebugSession {
             MidgarLog.notice("Debug session: mock connection \(base.absoluteString)", category: .lifecycle)
         }
         FinishedTitlesLedger.shared.seedFromEnvironment()
+    }
+
+    /// With `CRUCIBLE_OPEN=sports` and `CRUCIBLE_SPORTS_FIXTURE=<file>` shows Sports Research over the first screen with the report in
+    /// that file, for screenshots of states a live server cannot be put in on demand.
+    @MainActor
+    static func openIfRequested(over root: UIViewController) {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["CRUCIBLE_OPEN"] == "sports", let path = environment["CRUCIBLE_SPORTS_FIXTURE"] else { return }
+        let screen = SportsResearchViewController(source: SportsFixture(url: URL(fileURLWithPath: path)))
+        root.present(UINavigationController(rootViewController: screen), animated: false)
     }
 
     /// With `CRUCIBLE_DEMO_DONE="play,browse,statistics"` marks those tour steps done. Called once the demo session has begun, because
