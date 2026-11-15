@@ -46,6 +46,7 @@ final class TitleGridScreen: ScreenView {
     private let grid = CardGridView()
     private let state = StateView()
     private var items: [String: PlexMetadata] = [:]
+    private var shown: [PlexMetadata] = []
     private var hasLoaded = false
     private var loadTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
@@ -141,11 +142,8 @@ final class TitleGridScreen: ScreenView {
         var seen = Set<String>()
         let loaded = all.filter { seen.insert($0.entryID).inserted }
         items = Dictionary(loaded.map { ($0.entryID, $0) }, uniquingKeysWith: { first, _ in first })
-        grid.setItems(loaded.map { item in
-            var shown = card(item)
-            shown.id = item.entryID
-            return shown
-        })
+        shown = loaded
+        refreshCards()
         heading.summary = summary(loaded)
         onLoaded?(loaded)
         if loaded.isEmpty {
@@ -156,6 +154,15 @@ final class TitleGridScreen: ScreenView {
             state.isHidden = true
         }
         page.setNeedsLayout()
+    }
+
+    /// Draws the cards again from what is shown, after something a card says changed (a request's state, a release).
+    func refreshCards() {
+        grid.setItems(shown.map { item in
+            var drawn = card(item)
+            drawn.id = item.entryID
+            return drawn
+        })
     }
 
     override func layoutSubviews() {

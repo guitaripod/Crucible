@@ -18,6 +18,7 @@ final class YouScreen: SettingsScaffold {
         static let history = "you.history"
         static let statistics = "you.statistics"
         static let playlists = "you.playlists"
+        static let watchlist = "you.watchlist"
         static let activity = "you.activity"
         static let dashboard = "you.dashboard"
         static let playback = "you.playback"
@@ -54,6 +55,12 @@ final class YouScreen: SettingsScaffold {
         yearCard.onSelect = { [weak self] in self?.openStatistics() }
         YouConnectionStatus.shared.onChange = { [weak self] _ in self?.refreshProfile() }
         refreshProfile()
+    }
+
+    /// How many shows on the watchlist have something new out, when any do.
+    private var watchlistNews: String? {
+        let count = WatchlistReleases.shared.releases().count
+        return count > 0 ? WatchlistReleaseCopy.newCount(count) : nil
     }
 
     override func screenDidAppear() {
@@ -122,6 +129,7 @@ final class YouScreen: SettingsScaffold {
             RowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
             RowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
             RowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
+            RowItem(id: RowID.watchlist, title: WatchlistService.title, value: watchlistNews, symbol: "bookmark", accessory: .chevron),
             RowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
             RowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .linux), value: SettingsCatalog.summary(of: .playback, on: .linux),
                     symbol: Symbol(SettingsCategory.playback.symbol), accessory: .chevron),
@@ -151,8 +159,8 @@ final class YouScreen: SettingsScaffold {
             items.insert(RowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron),
                          at: 0)
         }
-        if SeerrAccount.shared.isConnected, let playlists = items.firstIndex(where: { $0.id == RowID.playlists }) {
-            items.insert(RowItem(id: RowID.requests, title: SeerrCopy.requests, symbol: "tray.full", accessory: .chevron), at: playlists + 1)
+        if SeerrAccount.shared.isConnected, let watchlist = items.firstIndex(where: { $0.id == RowID.watchlist }) {
+            items.insert(RowItem(id: RowID.requests, title: SeerrCopy.requests, symbol: "tray.full", accessory: .chevron), at: watchlist + 1)
         }
         if ServerOwnership.isOwner(), let activity = items.firstIndex(where: { $0.id == RowID.activity }) {
             items.insert(RowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron),
@@ -182,6 +190,7 @@ final class YouScreen: SettingsScaffold {
         case RowID.history: navigation?.push(HistoryScreen(api: api))
         case RowID.statistics: openStatistics()
         case RowID.playlists: navigation?.push(PlaylistScreens.playlists(api: api))
+        case RowID.watchlist: navigation?.push(WatchlistScreens.watchlist(api: api))
         case RowID.activity: navigation?.push(OwnerScreens.activity(api: api))
         case RowID.dashboard: navigation?.push(ServerDashboardScreen(api: api))
         case RowID.playback: navigation?.push(SettingsCategoryScreen(category: .playback, api: api))
