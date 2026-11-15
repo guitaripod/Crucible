@@ -115,3 +115,5 @@ enum TitleCards {
                         progress: card.progress, isUnwatched: card.isUnwatched, placeholderSymbol: card.isShow ? "tv" : "film")
     }
 }
+
+extension TitleGridScreen: Reloadable {}

@@ -4,10 +4,16 @@ import Foundation
 import Kiln
 import MidgarCore
 
-/// Home (`TVHomeViewController`): the backdrop follows the focused card, the hero tells what it is, and the shelves are
-/// the shared Home arrangement: Continue Watching, Up Next and Recently Added, in the order the viewer keeps them.
+/// Home (`TVHomeViewController`): the backdrop and hero follow the focused card over the rows the viewer keeps on Home, in
+/// their order: Continue Watching, Up Next, Recently Added with Surprise Me, Out Now on Your Watchlist and Rate What You
+/// Watched. The launch payload paints the first frame; every later appearance reloads, the server's change events reload
+/// within seconds, and a reload that fails keeps what is on screen.
 @MainActor
 final class HomeScreen: ScreenView {
+    private enum Row: String {
+        case continueWatching, upNext, recentlyAdded, releases, rate
+    }
+
     private let payload: LaunchPayload
     private let feed: HomeFeed
     private let backdrop = BackdropView()
@@ -15,107 +21,235 @@ final class HomeScreen: ScreenView {
     private let page = PageView()
     private let heroRoom = SpacerView(height: 0)
     private let state = StateView()
-    private var shelves: [HomeBucket: ShelfView] = [:]
+    private let skeleton = [SkeletonShelfView(style: .landscape), SkeletonShelfView(style: .landscape)]
+    private var shelves: [Row: ShelfView] = [:]
     private var refreshTask: Task<Void, Never>?
-    private var lastRefresh = Date()
+    private var liveTask: Task<Void, Never>?
+    private var asksTask: Task<Void, Never>?
+    private var releasesTask: Task<Void, Never>?
+    private var skipNextAppearanceLoad = true
+    private lazy var rateFeed = RatingAsksFeed(api: payload.api)
+    private var asks: [RatingAsk] = []
+    private var pendingRated = Set<String>()
+    private var releases: [WatchlistRelease] = []
+    private var observers: [() -> Void] = []
+    private static let surpriseID = "home.surprise"
 
     init(payload: LaunchPayload) {
         self.payload = payload
         feed = HomeFeed(api: payload.api)
         super.init()
         [backdrop, hero, page, state].forEach(addSubview)
+        for shelf in skeleton { shelf.count = 4 }
         state.isHidden = true
         page.onScroll = { [weak self] offset in self?.scrolled(offset) }
         feed.apply(container: payload.hubs)
+        asks = rateFeed.current()
+        releases = WatchlistReleases.shared.releases()
+        observe()
         render()
     }
 
+    isolated deinit {
+        observers.forEach { $0() }
+        liveTask?.cancel()
+    }
+
+    /// Keeps the rows in step with what the rest of the app changes: libraries shown on Home, the rows themselves,
+    /// titles finished or rated, and new releases of watchlisted shows.
+    private func observe() {
+        let visibility = LibraryVisibility.addObserver { [weak self] in self?.homeSettingsChanged() }
+        let layout = HomeLayout.addObserver { [weak self] in self?.homeSettingsChanged() }
+        let ledger = FinishedTitlesLedger.shared.addObserver { [weak self] in
+            guard let self else { return }
+            self.adoptAsks(self.rateFeed.current())
+        }
+        let watchlist = WatchlistReleases.shared.addObserver { [weak self] in self?.releasesChanged() }
+        observers = [
+            { LibraryVisibility.removeObserver(visibility) },
+            { HomeLayout.removeObserver(layout) },
+            { FinishedTitlesLedger.shared.removeObserver(ledger) },
+            { WatchlistReleases.shared.removeObserver(watchlist) },
+        ]
+    }
+
+    /// The first card of the first row in a fixed order, whatever order the rows are in.
     override var preferredFocusView: View? {
-        state.isHidden ? page.sections.first { $0 is ShelfView } : state
+        guard state.isHidden else { return state }
+        for row in [Row.continueWatching, .upNext, .recentlyAdded, .releases, .rate] {
+            if let shelf = shelves[row], shelf.superview != nil { return shelf }
+        }
+        return nil
     }
 
     override func screenDidAppear() {
-        guard Date().timeIntervalSince(lastRefresh) > 60 else { return }
-        refresh()
+        loadAsks()
+        loadReleases()
+        if skipNextAppearanceLoad {
+            skipNextAppearanceLoad = false
+        } else {
+            reload()
+        }
+        let api = payload.api
+        liveTask?.cancel()
+        liveTask = Task { [weak self] in
+            await ServerEventHub.shared.listen(api: api, every: .seconds(3), matching: \.changesHome) { self?.reload() }.hold()
+        }
     }
 
-    private func refresh() {
+    override func screenWillDisappear() {
+        liveTask?.cancel()
+        liveTask = nil
+    }
+
+    /// Ctrl+R and the server's change events.
+    func reload() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             guard let self else { return }
             do {
-                try await feed.refresh()
-                lastRefresh = Date()
-                render()
+                try await self.feed.refresh()
+                WatchlistReleases.shared.noteOnServer(self.feed.fetchedItems)
+                self.render()
             } catch {
+                guard !Task.isCancelled else { return }
                 MidgarLog.error("Home refresh failed: \(error)", category: .networking)
-                if feed.isEmpty { showFailure(error) }
+                if self.feed.isEmpty { self.showLoadError(error) } else { self.render() }
             }
         }
     }
 
-    private func showFailure(_ error: Error) {
-        state.isHidden = false
-        page.isHidden = true
-        state.show(.error(title: String(localized: "Couldn’t Load Home"), message: ConnectionError.message(for: error),
-                          retryTitle: String(localized: "Try Again"), retry: { [weak self] in self?.refresh() }))
+    private func retry() {
+        state.isHidden = true
+        page.isHidden = false
+        page.setSections([heroRoom] + skeleton)
+        reload()
     }
 
-    /// Paints the arrangement: the hero item at the head of its rail, then the rails the viewer keeps on Home.
+    private func showLoadError(_ error: Error) {
+        let copy = HomeStateCopy.loadFailed(error)
+        backdrop.show(nil, immediate: true)
+        hero.configure(nil, animated: false)
+        state.isHidden = false
+        page.isHidden = true
+        state.show(.error(title: copy.title, message: copy.message, retryTitle: String(localized: "Retry"), retry: { [weak self] in self?.retry() }))
+    }
+
+    private func homeSettingsChanged() {
+        feed.reapplyLibraryVisibility()
+        asks = rateFeed.current()
+        render()
+        loadReleases()
+    }
+
+    /// Paints the rows the viewer keeps on Home, or why Home is empty.
     private func render() {
         let arrangement = feed.arrangement
-        guard !arrangement.isEmpty else {
+        guard !feed.isEmpty else {
             let copy = HomeStateCopy.empty(librariesAreFiltered: LibraryVisibility.isCustomized, rowsAreHidden: HomeLayout.contentRowsAreOff)
+            backdrop.show(nil, immediate: true)
+            hero.configure(nil, animated: false)
             state.isHidden = false
             page.isHidden = true
-            state.show(.empty(title: copy.title, message: copy.message, symbol: "house", action: nil))
+            state.show(.empty(title: copy.title, message: copy.message, symbol: "play.rectangle",
+                              action: StateView.Action(title: String(localized: "Refresh", comment: "Button that retries loading the home screen")) { [weak self] in
+                                  self?.retry()
+                              }))
             return
         }
+        let hadFocus = !state.isHidden
         state.isHidden = true
         page.isHidden = false
         var sections: [View] = [heroRoom]
-        var used = Set<HomeBucket>()
-        for row in HomeLayout.visibleRows() {
-            let bucket: HomeBucket
-            switch row {
-            case .continueWatching: bucket = .continueWatching
-            case .upNext: bucket = .upNext
-            case .recentlyAdded: bucket = .recentlyAdded
-            default: continue
-            }
-            let items = arrangement.shelf(for: bucket)
-            guard !items.isEmpty else { continue }
-            let shelf = shelves[bucket] ?? makeShelf(bucket)
-            shelf.header = SectionHeader(title: arrangement.title(for: bucket))
-            shelf.setItems(items.map { card(for: $0, bucket: bucket) })
+        var used = Set<Row>()
+        func add(_ row: Row, title: String, seeAll: HomeBucket?, items: [CardItem]) {
+            guard !items.isEmpty else { return }
+            let shelf = shelves[row] ?? makeShelf(row)
+            shelf.header = SectionHeader(title: title, hasSeeAll: seeAll != nil)
+            shelf.onSeeAll = seeAll.map { bucket in { [weak self] in self?.showAll(bucket) } }
+            shelf.setItems(items)
             sections.append(shelf)
-            used.insert(bucket)
+            used.insert(row)
         }
-        for (bucket, shelf) in shelves where !used.contains(bucket) {
+        for row in HomeLayout.visibleRows() {
+            switch row {
+            case .continueWatching:
+                add(.continueWatching, title: arrangement.title(for: .continueWatching), seeAll: nil,
+                    items: arrangement.shelf(for: .continueWatching).map { card(for: $0, bucket: .continueWatching) })
+            case .upNext:
+                add(.upNext, title: arrangement.title(for: .upNext), seeAll: .upNext,
+                    items: arrangement.shelf(for: .upNext).map { card(for: $0, bucket: .upNext) })
+            case .recentlyAdded where !arrangement.recent.isEmpty:
+                let surprise = CardItem(id: Self.surpriseID, title: String(localized: "Surprise Me"), subtitle: String(localized: "A random pick"),
+                                        placeholderSymbol: "shuffle")
+                add(.recentlyAdded, title: arrangement.title(for: .recentlyAdded), seeAll: .recentlyAdded,
+                    items: arrangement.recent.map { card(for: $0, bucket: .recentlyAdded) } + [surprise])
+            case .watchlistReleases where !arrangement.isEmpty:
+                add(.releases, title: WatchlistReleaseCopy.rowTitle, seeAll: nil, items: releases.map(card(for:)))
+            case .rateWatched where !arrangement.isEmpty:
+                add(.rate, title: RatingAskCopy.rowTitle, seeAll: nil, items: visibleAsks.map(card(for:)))
+            default:
+                break
+            }
+        }
+        for (row, shelf) in shelves where !used.contains(row) {
             shelf.removeFromSuperview()
-            shelves[bucket] = nil
+            shelves[row] = nil
         }
         page.setSections(sections)
-        if let first = arrangement.hero { feature(first, bucket: .hero, animated: false) }
+        if let first = arrangement.hero, window?.focusedView?.isDescendant(of: page) != true { feature(first, bucket: .hero, animated: false) }
+        if hadFocus, let target = preferredFocusView { window?.focus.focus(target, animated: false) }
         setNeedsLayout()
     }
 
-    private func makeShelf(_ bucket: HomeBucket) -> ShelfView {
-        let shelf = ShelfView(header: nil, style: bucket == .recentlyAdded ? .poster : .landscape)
+    private func makeShelf(_ row: Row) -> ShelfView {
+        let style: CardStyle = row == .continueWatching || row == .upNext ? .landscape : .poster
+        let shelf = ShelfView(header: nil, style: style)
         shelf.onFocus = { [weak self] item in
-            guard let self, let media = self.feed.item(id: item.id) else { return }
+            guard let self, let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
             self.feature(media, bucket: bucket, animated: true)
         }
-        shelf.onActivate = { [weak self] item in
-            guard let self, let media = self.feed.item(id: item.id) else { return }
-            self.open(media)
-        }
-        shelf.onContextMenu = { [weak self] item, point in
-            guard let self, let media = self.feed.item(id: item.id) else { return }
-            ItemActions.present(for: media, api: self.payload.api, at: point, in: self) { [weak self] in self?.refresh() }
-        }
-        shelves[bucket] = shelf
+        shelf.onActivate = { [weak self] item in self?.activate(item.id, in: row) }
+        shelf.onContextMenu = { [weak self] item, point in self?.presentMenu(for: item.id, in: row, at: point) }
+        shelves[row] = shelf
         return shelf
+    }
+
+    private static func bucket(_ row: Row) -> HomeBucket? {
+        switch row {
+        case .continueWatching: .continueWatching
+        case .upNext: .upNext
+        case .recentlyAdded: .recentlyAdded
+        case .releases, .rate: nil
+        }
+    }
+
+    private func activate(_ id: String, in row: Row) {
+        let api = payload.api
+        switch row {
+        case .rate:
+            if let ask = asks.first(where: { $0.id == id }) { rate(ask) }
+        case .releases:
+            if let release = releases.first(where: { $0.id == id }) { presentReleaseMenu(release, at: nil) }
+        default:
+            if id == Self.surpriseID {
+                presentSurpriseMenu()
+            } else if let bucket = Self.bucket(row), let media = feed.item(id: id) {
+                ItemActions.select(media, in: bucket, api: api, from: self)
+            }
+        }
+    }
+
+    private func presentMenu(for id: String, in row: Row, at point: Point?) {
+        switch row {
+        case .rate:
+            if let ask = asks.first(where: { $0.id == id }) { presentAskMenu(ask, at: point) }
+        case .releases:
+            if let release = releases.first(where: { $0.id == id }) { presentReleaseMenu(release, at: point) }
+        default:
+            guard let media = feed.item(id: id) else { return }
+            ItemActions.present(for: media, bucket: Self.bucket(row), api: payload.api, at: point, in: self) { [weak self] in self?.reload() }
+        }
     }
 
     private func card(for media: PlexMetadata, bucket: HomeBucket) -> CardItem {
@@ -135,19 +269,175 @@ final class HomeScreen: ScreenView {
         )
     }
 
-    /// The hero and backdrop show the focused item.
+    private func card(for ask: RatingAsk) -> CardItem {
+        CardItem(id: ask.id, artwork: ask.posterPath.map { .path($0, .poster) }, title: ask.title, subtitle: ask.caption(now: Date()),
+                 placeholderSymbol: ask.isShow ? "tv" : "film")
+    }
+
+    private func card(for release: WatchlistRelease) -> CardItem {
+        CardItem(id: release.id, artwork: release.posterPath.map { .path($0, .poster) }, title: release.title, subtitle: release.caption(now: Date()),
+                 badgeText: release.news.badge.uppercased(), placeholderSymbol: "tv")
+    }
+
+    /// The hero and backdrop show the focused card.
     private func feature(_ media: PlexMetadata, bucket: HomeBucket, animated: Bool) {
         let continuing = bucket == .continueWatching || (bucket == .hero && feed.arrangement.heroIsContinue)
         let model = feed.heroModel(for: media, bucket: bucket, continuing: continuing)
         hero.configure(HeroInfo(eyebrow: model.eyebrow, title: model.title, metaParts: model.metaParts, badges: model.badges,
                                 synopsis: media.summary, progress: model.progress), animated: animated)
-        let path = HomeHeroModel.backdropPath(for: media, cachedArt: feed.cachedArt)
-        backdrop.show(path.map { .path($0, .backdrop) }, immediate: !animated)
+        backdrop.show(model.backdropPath.map { .path($0, .backdrop) }, immediate: !animated)
     }
 
-    private func open(_ media: PlexMetadata) {
-        rootView?.push(DetailScreen.make(api: payload.api, item: media))
+    // MARK: See All
+
+    private func showAll(_ bucket: HomeBucket) {
+        let screen = HomeSeeAllScreen(api: payload.api, bucket: bucket, title: feed.arrangement.title(for: bucket),
+                                      items: { [weak self] in self?.feed.arrangement.shelf(for: bucket) ?? [] }) { [weak self] in self?.reload() }
+        rootView?.push(screen)
     }
+
+    // MARK: Surprise Me
+
+    private func presentSurpriseMenu() {
+        guard let window else { return }
+        var actions = [SurpriseMe.Kind.any, .movie, .show].map { kind in
+            AlertView.Action(kind.menuTitle) { [weak self] in self?.surprise(kind) }
+        }
+        actions.append(AlertView.Action(String(localized: "Cancel"), role: .cancel))
+        AlertView(title: String(localized: "Surprise Me"), actions: actions).present(in: window)
+    }
+
+    private func surprise(_ kind: SurpriseMe.Kind) {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                guard let pick = try await self.feed.surprise(kind) else {
+                    self.notice(SurpriseMe.nothingToPickTitle, message: SurpriseMe.nothingToPickMessage(for: kind))
+                    return
+                }
+                switch pick {
+                case .movie(let key): self.rootView?.push(DetailScreen.make(api: self.payload.api, route: .item(ratingKey: key, mediaType: "movie",
+                                                                                                               showRatingKey: nil, seasonRatingKey: nil)))
+                case .show(let key): self.rootView?.push(DetailScreen.make(api: self.payload.api, route: .show(ratingKey: key, initialSeasonKey: nil)))
+                }
+            } catch let failure as SurpriseMe.LookupFailure {
+                self.notice(SurpriseMe.lookupFailedTitle, message: failure.message)
+            } catch {
+                return
+            }
+        }
+    }
+
+    private func notice(_ title: String, message: String?) {
+        guard let window else { return }
+        AlertView.notice(title: title, message: message, in: window)
+    }
+
+    // MARK: Rate What You Watched
+
+    private var visibleAsks: [RatingAsk] { asks.filter { !pendingRated.contains($0.id) } }
+
+    private func loadAsks() {
+        asksTask?.cancel()
+        asksTask = Task { [weak self] in
+            guard let self else { return }
+            let loaded = await self.rateFeed.load()
+            guard !Task.isCancelled else { return }
+            self.adoptAsks(loaded)
+        }
+    }
+
+    private func adoptAsks(_ loaded: [RatingAsk]) {
+        pendingRated = pendingRated.filter { key in loaded.contains { $0.id == key } }
+        guard loaded != asks else { return }
+        asks = loaded
+        render()
+    }
+
+    /// The half-star panel for a title the viewer finished; its card leaves at once, and comes back if the server refuses.
+    private func rate(_ ask: RatingAsk) {
+        guard let window else { return }
+        let api = payload.api
+        let panel = RatingPanelView(title: RatingAskCopy.question(for: ask), halfStars: nil, clearTitle: String(localized: "Clear Rating"))
+        panel.onCommit = { [weak self] halfStars in
+            guard let rating = halfStars.flatMap(UserRating.init(halfStars:)) else { return }
+            self?.pendingRated.insert(ask.id)
+            self?.render()
+            Task { [weak self] in
+                do {
+                    try await RatingService.setRating(rating, ratingKey: ask.ratingKey, api: api)
+                } catch {
+                    self?.pendingRated.remove(ask.id)
+                    self?.render()
+                    self?.notice(String(localized: "Couldn’t Save Rating", comment: "Alert title when the server refused a star rating"), message: nil)
+                }
+            }
+        }
+        panel.present(in: window)
+    }
+
+    private func presentAskMenu(_ ask: RatingAsk, at point: Point?) {
+        guard let window else { return }
+        let menu = MenuView(title: ask.title, items: [
+            .init(id: "rate", title: UserRatingCopy.rate, symbol: "star"),
+            .init(id: "details", title: String(localized: "View Details"), symbol: "info.circle"),
+            .init(id: "notNow", title: RatingAskCopy.notNow, symbol: "xmark.circle"),
+        ], anchor: menuAnchor(point))
+        menu.onSelect = { [weak self] item in
+            guard let self else { return }
+            switch item.id {
+            case "rate": self.rate(ask)
+            case "details":
+                let route: DetailRoute = ask.isShow ? .show(ratingKey: ask.ratingKey, initialSeasonKey: nil)
+                    : .item(ratingKey: ask.ratingKey, mediaType: ask.mediaType, showRatingKey: nil, seasonRatingKey: nil)
+                self.rootView?.push(DetailScreen.make(api: self.payload.api, route: route))
+            case "notNow": FinishedTitlesLedger.shared.dismiss(ask.ratingKey)
+            default: break
+            }
+        }
+        menu.present(in: window)
+    }
+
+    // MARK: Out Now on Your Watchlist
+
+    /// Looks for new seasons and episodes of watchlisted shows while their row is on Home; a look under six hours old stands.
+    private func loadReleases() {
+        guard HomeLayout.isOn(.watchlistReleases) else { return }
+        let api = payload.api
+        releasesTask?.cancel()
+        releasesTask = Task { await WatchlistReleases.shared.refresh(api: api) }
+    }
+
+    private func releasesChanged() {
+        let current = WatchlistReleases.shared.releases()
+        guard current != releases else { return }
+        releases = current
+        render()
+    }
+
+    private func presentReleaseMenu(_ release: WatchlistRelease, at point: Point?) {
+        guard let window else { return }
+        let token = payload.api.token
+        let menu = MenuView(title: release.title, items: [.init(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true)],
+                            anchor: menuAnchor(point))
+        menu.onSelect = { [weak self] _ in
+            Task { [weak self] in
+                do {
+                    try await WatchlistService.remove(guid: release.guid, token: token)
+                } catch {
+                    self?.notice(String(localized: "Couldn’t Update"), message: ConnectionError.message(for: error))
+                }
+            }
+        }
+        menu.present(in: window)
+    }
+
+    private func menuAnchor(_ point: Point?) -> Rect {
+        let frame = window?.focusedView?.frameInWindow ?? frameInWindow
+        return Rect(x: point?.x ?? frame.minX, y: point?.y ?? frame.maxY, width: 1, height: 1)
+    }
+
+    // MARK: Layout
 
     private func scrolled(_ offset: Float) {
         hero.translation = Point(x: 0, y: -offset)
@@ -167,3 +457,80 @@ final class HomeScreen: ScreenView {
         page.setNeedsLayout()
     }
 }
+
+/// See All for a Home row (`TVHomeSeeAllViewController`): every card of the row in a grid, posters for Recently Added and
+/// landscape cards for the others, with the row's card actions; it follows Home's refreshes while it is open.
+@MainActor
+final class HomeSeeAllScreen: ScreenView {
+    private let api: APIClient
+    private let bucket: HomeBucket
+    private let items: () -> [PlexMetadata]
+    private let onChange: () -> Void
+    private let page = PageView()
+    private let heading: ScreenTitleView
+    private let grid = CardGridView()
+    private let state = StateView()
+    private var byID: [String: PlexMetadata] = [:]
+
+    init(api: APIClient, bucket: HomeBucket, title: String, items: @escaping () -> [PlexMetadata], onChange: @escaping () -> Void) {
+        self.api = api
+        self.bucket = bucket
+        self.items = items
+        self.onChange = onChange
+        heading = ScreenTitleView(title: title)
+        super.init()
+        grid.aspect = bucket == .recentlyAdded ? 1.5 : 9.0 / 16.0
+        [page, state].forEach(addSubview)
+        page.setSections([heading, grid])
+        page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
+        grid.onActivate = { [weak self] card in
+            guard let self, let media = self.byID[card.id] else { return }
+            ItemActions.select(media, in: self.bucket, api: self.api, from: self)
+        }
+        grid.onContextMenu = { [weak self] card, point in
+            guard let self, let media = self.byID[card.id] else { return }
+            ItemActions.present(for: media, bucket: self.bucket, api: self.api, at: point, in: self) { [weak self] in
+                self?.onChange()
+                self?.refresh()
+            }
+        }
+        refresh()
+    }
+
+    override var preferredFocusView: View? { state.isHidden ? grid : state }
+
+    override func screenDidAppear() {
+        refresh()
+    }
+
+    private func refresh() {
+        let current = items()
+        byID = Dictionary(current.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+        let layout: HomeCardModel.Layout = bucket == .recentlyAdded ? .poster : .landscape
+        grid.setItems(current.map { media in
+            let model = HomeCardModel(item: media, bucket: bucket, layout: layout)
+            return CardItem(id: media.id, artwork: model.imagePath.map { .path($0, layout == .poster ? .poster : .backdrop) }, title: model.title,
+                            subtitle: model.subtitle, detail: model.trailingText, progress: model.progress, isUnwatched: model.isUnwatched,
+                            placeholderSymbol: model.usesSeriesPlaceholder ? "tv" : "film")
+        })
+        heading.summary = current.count == 1 ? String(localized: "1 title") : String(localized: "\(current.count) titles")
+        state.isHidden = !current.isEmpty
+        if current.isEmpty {
+            state.show(.empty(title: String(localized: "Nothing Here"), message: String(localized: "This list is empty right now."),
+                              symbol: "rectangle.stack", action: nil))
+        }
+        page.setNeedsLayout()
+    }
+
+    override func layoutSubviews() {
+        page.topInset = Theme.current.metrics.tabBarClearance
+        page.frame = bounds
+        state.frame = bounds
+    }
+
+    override func draw(_ context: inout DrawContext) {
+        context.fill(bounds, color: Theme.current.palette.canvas)
+    }
+}
+
+extension HomeScreen: Reloadable {}

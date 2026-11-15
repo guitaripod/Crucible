@@ -157,3 +157,9 @@ final class LibraryScreen: ScreenView {
         context.fill(bounds, color: Theme.current.palette.canvas)
     }
 }
+
+extension LibraryScreen: Reloadable {
+    func reload() {
+        model.refreshAll()
+    }
+}

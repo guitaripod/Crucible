@@ -60,9 +60,11 @@ final class RootView: View {
 
     /// Opens `id`'s tab: its stack keeps the screens it had, and focus goes where it was in it.
     func select(_ id: String) {
+        let existed = stacks[id] != nil
         let stack = makeStack(for: id)
         tabBar.select(id, animated: true)
         guard stack !== current else { return }
+        current?.top?.screenWillDisappear()
         current?.removeFromSuperview()
         currentID = id
         current = stack
@@ -70,6 +72,7 @@ final class RootView: View {
         stack.frame = bounds
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
+        if existed { stack.top?.screenDidAppear() }
     }
 
     private func navigationChanged() {
@@ -104,6 +107,10 @@ final class RootView: View {
             (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
             return true
         }
+        if event.key == Key.character("r") && event.modifiers == .control, player == nil {
+            (current?.top as? Reloadable)?.reload()
+            return true
+        }
         let digit = Int(event.key.rawValue) - 0x30
         if event.modifiers == .control, digit >= 1, digit <= min(9, tabBar.tabs.count) {
             select(tabBar.tabs[digit - 1].id)
@@ -125,6 +132,7 @@ final class RootView: View {
             screen?.removeFromSuperview()
             self?.player = nil
             if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
+            self?.current?.top?.screenDidAppear()
         }
         screen.onPlayNext = { [weak self, weak screen] episode in
             screen?.removeFromSuperview()
@@ -166,6 +174,12 @@ final class RootView: View {
         player?.frame = bounds
         tabBar.frame = Rect(x: 0, y: 0, width: frame.width, height: metrics.tabBarTop + metrics.tabBarHeight + metrics.tv(20))
     }
+}
+
+/// A screen Ctrl+R refreshes.
+@MainActor
+protocol Reloadable: AnyObject {
+    func reload()
 }
 
 extension View {

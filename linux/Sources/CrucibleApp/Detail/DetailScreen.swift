@@ -236,3 +236,5 @@ enum DetailMapping {
         return all
     }
 }
+
+extension DetailScreen: Reloadable {}
