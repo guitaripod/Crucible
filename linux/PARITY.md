@@ -9,13 +9,13 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Sign in, launch, tabs and navigation | 48 | 5 | 3 | 1 |
 | Home and libraries | 74 | 3 | 1 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
-| Player and What to Watch | 62 | 0 | 6 | 1 |
+| Player and What to Watch | 63 | 0 | 5 | 1 |
 | Search, Pro features (free on Linux) and demo | 51 | 0 | 4 | 8 |
 | You, profiles, history, statistics and manage | 80 | 1 | 3 | 3 |
 | Settings and integrations | 58 | 1 | 8 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 69 | 7 | 27 | 0 |
-| **All** | 611 | 20 | 55 | 16 |
+| **All** | 612 | 20 | 54 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -248,7 +248,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `player-play-pause` (S) Play and pause from remote Play/Pause, a click on the picture, the transport button, Space or K _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:101-122_
 - [x] `player-scrub-pointer` (S) Scrub by pressing and dragging on the bar, and by moving the wheel over the title _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:101-122 (AVKit clickpad scrubbing)_
 - [x] `player-scrub-timecode-preview` (S) Hovering the bar shows the timecode it would seek to _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:101-122 (AVKit scrub bubble)_
-- [ ] `player-scrub-thumbnails` (L) Scrubbing shows a picture preview for each position (Plex index thumbnails, per docs/LINUX.md 7.5) Gap: Confirmed missing: no 'indexes', BIF or trickplay code in Core, CrucibleMedia, CrucibleTV or linux/Sources. Apple has none either, so this is a Linux-only requirement from docs/LINUX.md 7.5 and stays in scope. _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator+Chapters.swift:11-25 (only chapter artwork reaches AVKit; no index-thumbnail code exists in Sources/CrucibleTV or Sources/CrucibleMedia)_
+- [x] `player-scrub-thumbnails` (L) Scrubbing shows a picture preview for each position (Plex index thumbnails, per docs/LINUX.md 7.5) _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator+Chapters.swift:11-25 (only chapter artwork reaches AVKit; no index-thumbnail code exists in Sources/CrucibleTV or Sources/CrucibleMedia)_
 - [x] `player-chapters` (M) Chapter list on the scrubber with names and, once loaded, a picture for each chapter; chapter navigation _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator+Chapters.swift:8-50 (navigationMarkerGroups, titles, artwork)_
 - [x] `player-info-panel` (M) Info panel with the title, description (show line plus synopsis), genres (up to three), content rating and poster _Apple TV: Sources/CrucibleTV/Player/TVPlayerMetadata.swift:36-62_
 - [x] `player-stream-info` (S) Stream Info panel: how the title reaches the screen (route, quality, streams, chosen audio and subtitle) _Apple TV: Sources/CrucibleTV/Player/TVStreamInfoViewController.swift:1-54_
