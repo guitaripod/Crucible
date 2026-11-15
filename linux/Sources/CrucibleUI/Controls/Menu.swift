@@ -143,7 +143,8 @@ public final class MenuView: View {
     }
 }
 
-/// One row of a menu: a checkmark when chosen, the title and its detail, the light plate under focus or the pointer.
+/// One row of a menu: a checkmark when chosen, the title and its detail, the item's symbol on the trailing edge as tvOS
+/// menus draw it, the light plate under focus or the pointer.
 @MainActor
 final class MenuRowView: View {
     let item: MenuView.Item
@@ -163,7 +164,8 @@ final class MenuRowView: View {
         let metrics = Theme.current.metrics
         let title = TextLayout(item.title, font: Theme.current.type.control, scale: scale).size.width
         let detail = item.detail.map { TextLayout($0, font: Theme.current.type.cardSubtitle, scale: scale).size.width } ?? 0
-        return (max(title, detail) + metrics.tv(140)).rounded(.up)
+        let symbol = item.symbol == nil ? 0 : metrics.tv(56)
+        return (max(title, detail) + metrics.tv(140) + symbol).rounded(.up)
     }
 
     private func update() {
@@ -207,8 +209,14 @@ final class MenuRowView: View {
             context.symbol("checkmark", in: Rect(x: metrics.tv(20), y: bounds.midY - check / 2, width: check, height: check), color: color)
         }
         let x = metrics.tv(64)
-        let title = TextLayout(item.title, font: theme.type.control, maxWidth: bounds.width - x - metrics.tv(20), scale: scale)
-        let detail = item.detail.map { TextLayout($0, font: theme.type.cardSubtitle, maxWidth: bounds.width - x - metrics.tv(20), scale: scale) }
+        var trailing = metrics.tv(20)
+        if let symbol = item.symbol {
+            let side = metrics.tv(30)
+            context.symbol(symbol, in: Rect(x: bounds.width - metrics.tv(24) - side, y: bounds.midY - side / 2, width: side, height: side), color: color)
+            trailing += metrics.tv(56)
+        }
+        let title = TextLayout(item.title, font: theme.type.control, maxWidth: bounds.width - x - trailing, scale: scale)
+        let detail = item.detail.map { TextLayout($0, font: theme.type.cardSubtitle, maxWidth: bounds.width - x - trailing, scale: scale) }
         let total = title.size.height + (detail.map { $0.size.height } ?? 0)
         var y = ((bounds.height - total) / 2 * scale).rounded() / scale
         context.text(title, at: Point(x: x, y: y), color: color)
