@@ -88,9 +88,9 @@ private final class SplitSection: View {
         rows?.columnWidth = width
         let contextHeight = context?.sizeThatFits(Size(width: contextWidth, height: 0)).height ?? 0
         let rowsHeight = rows?.sizeThatFits(Size(width: frame.width, height: 0)).height ?? 0
+        rows?.isLeadingAligned = isStacked(frame.width)
         if isStacked(frame.width) {
-            let x = ((frame.width - width) / 2).rounded()
-            context?.frame = Rect(x: x, y: 0, width: width, height: contextHeight)
+            context?.frame = Rect(x: metrics.sideMargin, y: 0, width: width, height: contextHeight)
             let top = contextHeight > 0 ? contextHeight + metrics.tv(40) : 0
             rows?.frame = Rect(x: 0, y: top, width: frame.width, height: rowsHeight)
         } else {
