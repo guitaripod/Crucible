@@ -34,7 +34,9 @@ public final class AlertView: View {
     private weak var returnFocus: View?
 
     /// An alert titled `title` with `actions` as its buttons, in order; `fieldPlaceholder` adds a text field above them.
-    public init(title: String, message: String? = nil, actions: [Action], fieldPlaceholder: String? = nil, fieldText: String = "") {
+    /// `secureField` shows the field's text as dots (a PIN).
+    public init(title: String, message: String? = nil, actions: [Action], fieldPlaceholder: String? = nil, fieldText: String = "",
+                secureField: Bool = false) {
         heading = title
         self.message = message?.isEmpty == true ? nil : message
         self.actions = actions.isEmpty ? [Action(Strings.lookup("OK"))] : actions
@@ -46,6 +48,7 @@ public final class AlertView: View {
         field = fieldPlaceholder.map { TextFieldView(placeholder: $0, symbol: nil) }
         super.init()
         if let field {
+            field.isSecure = secureField
             field.setText(fieldText, notify: false)
             field.onSubmit = { [weak self] _ in self?.choose(self?.actions.firstIndex { $0.role != .cancel } ?? 0) }
             addSubview(field)

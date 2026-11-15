@@ -8,6 +8,11 @@ import Kiln
 public final class TextFieldView: View {
     public var text = "" { didSet { if text != oldValue { caret = min(caret, text.count); setNeedsDisplay() } } }
     public var placeholder: String { didSet { setNeedsDisplay() } }
+    /// Shows a dot for every character instead of the text (a PIN or a password).
+    public var isSecure = false { didSet { setNeedsDisplay() } }
+
+    /// What the field draws for its text.
+    private var shownText: String { isSecure ? String(repeating: "•", count: text.count) : text }
     public var symbol: Symbol?
     public var onChange: ((String) -> Void)?
     public var onSubmit: ((String) -> Void)?
@@ -27,7 +32,7 @@ public final class TextFieldView: View {
 
     public override var canBecomeFocused: Bool { true }
     public override var cursor: Cursor { .text }
-    public override var accessibilityLabel: String? { text.isEmpty ? placeholder : text }
+    public override var accessibilityLabel: String? { text.isEmpty || isSecure ? placeholder : text }
     public override var overdraw: Float { Theme.current.metrics.tv(40) }
 
     public override func sizeThatFits(_ size: Size) -> Size {
@@ -193,8 +198,8 @@ public final class TextFieldView: View {
             let layout = TextLayout(placeholder, font: font, maxWidth: available, scale: scale)
             context.text(layout, at: Point(x: x, y: ((rect.height - layout.size.height) / 2 * scale).rounded() / scale), color: secondary)
         } else {
-            let layout = TextLayout(text, font: font, scale: scale)
-            let before = TextLayout(String(text.prefix(caret)), font: font, scale: scale).size.width
+            let layout = TextLayout(shownText, font: font, scale: scale)
+            let before = TextLayout(String(shownText.prefix(caret)), font: font, scale: scale).size.width
             let shift = max(0, before - available + metrics.tv(8))
             let y = ((rect.height - layout.size.height) / 2 * scale).rounded() / scale
             context.clipped(to: Rect(x: x, y: 0, width: available, height: rect.height)) { inner in
