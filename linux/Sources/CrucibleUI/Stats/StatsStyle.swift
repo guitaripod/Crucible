@@ -60,10 +60,12 @@ public enum StatsStyle {
 
 /// A Statistics card that takes focus (`TVStatsPanel`), so the keyboard can walk the whole page: a surface with a hairline,
 /// an optional headline and trailing accessory, and one content view. Focus lifts it, raises the surface and lays a sheen
-/// over it; Return runs `onSelect` when there is one.
+/// over it; Return or a click runs `onSelect` when there is one, and a right-click or the Menu key `onContextMenu`.
 @MainActor
 public final class StatsPanelView: View {
     public var onSelect: (() -> Void)?
+    /// The panel's menu (right-click or the Menu key), with the pointer's place in the window when it came from a click.
+    public var onContextMenu: ((Point?) -> Void)?
 
     public let content: View
     private let title: String?
@@ -83,6 +85,7 @@ public final class StatsPanelView: View {
     }
 
     public override var canBecomeFocused: Bool { true }
+    public override var cursor: Cursor { onSelect == nil ? .default : .pointer }
 
     private var inset: Float { isFlush ? 0 : Theme.current.metrics.tv(40) }
     private var spacing: Float { Theme.current.metrics.tv(28) }
@@ -118,6 +121,23 @@ public final class StatsPanelView: View {
 
     public override func activate() {
         onSelect?()
+    }
+
+    public override func showContextMenu(at point: Point?) -> Bool {
+        guard let onContextMenu else { return false }
+        onContextMenu(point.map { transformToWindow.apply($0) })
+        return true
+    }
+
+    public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        guard button == .secondary, let onContextMenu else { return button == .primary && onSelect != nil }
+        window?.focus.focus(self, animated: true, reveal: false)
+        onContextMenu(transformToWindow.apply(point))
+        return true
+    }
+
+    public override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
+        if button == .primary, inside { onSelect?() }
     }
 
     public override func focusDidChange(focused: Bool, animated: Bool) { update() }
