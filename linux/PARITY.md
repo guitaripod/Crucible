@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 75 | 2 | 7 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
-| Design system | 89 | 4 | 4 | 0 |
+| Design system | 90 | 3 | 4 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 512 | 32 | 142 | 16 |
+| **All** | 513 | 31 | 142 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -622,7 +622,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-state-empty` (S) Empty state with a symbol, a title, an optional message and an optional action button (Nothing Here Yet, No Results, Not Available) _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVStateView.swift:72-77_
 - [x] `design-state-error` (S) Error state with a warning triangle, a title, a message and a retry primary button _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVStateView.swift:78-84_
 - [x] `design-state-secondary-action` (S) Error state with a second glass action (Sign Out, Switch Server on the launch screen) _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVStateView.swift:99-102_
-- [ ] `design-state-content-dissolve` (S) **partial** Content and state swap cross-dissolve (0.25s) while the screen is up, and apply at once before it appears or under Reduce Motion Gap: StateView.show swaps at once with no dissolve, and screens hide or show their content themselves (LibraryScreen.swift:126-138). No Linux equivalent of TVScreenViewController's dissolve exists. _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVScreenViewController.swift:104-133_
+- [x] `design-state-content-dissolve` (S) Content and state swap cross-dissolve (0.25s) while the screen is up, and apply at once before it appears or under Reduce Motion _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVScreenViewController.swift:104-133_
 - [x] `design-image-pipeline` (S) Artwork requests sized to the point width times scale with a 1.1 oversample, capped at 720 pixels for posters and 1920 for backdrops, with a disk cache _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVImagePipeline.swift:7-27_
 - [x] `design-artwork-remote-url` (S) Artwork from a full URL outside the Plex server (a request-service poster), loaded as is _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVArtworkView.swift:96-113_
 - [x] `design-typography` (S) Type recipes: control 31 semibold, card title 29 semibold, subtitle 25, eyebrow 23 bold, art caption 23 semibold, screen title title2, screen summary callout, detail body, mono for codes; sizes scale to a Dynamic Type ceiling _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVFont.swift:4-37_
