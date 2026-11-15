@@ -24,6 +24,10 @@ final class ShowDetailScreen: DetailScreen {
     private var openedInitialMissingSeason = false
     /// The viewer chose a season themselves, which a late catalogue answer never overrides.
     private var viewerPickedSeason = false
+    /// Seerr says the show is missing seasons nobody asked for, which adds Request More Seasons.
+    private var offersRequest = false
+    private var requestTask: Task<Void, Never>?
+    private var missingByID: [String: MissingEpisode] = [:]
     private let seasons = ChipRowView()
     private let episodes = ShelfView(header: nil, style: .episode)
     private let episodesLoading = SkeletonShelfView(style: .episode)
@@ -47,8 +51,12 @@ final class ShowDetailScreen: DetailScreen {
             self?.selectSeason(chip.id)
         }
         episodes.onActivate = { [weak self] card in
-            guard let self, let episode = self.episode(card.id) else { return }
-            self.rootView?.play(item: episode, api: self.api)
+            guard let self else { return }
+            if let episode = self.episode(card.id) {
+                self.rootView?.play(item: episode, api: self.api)
+            } else if self.missingByID[card.id] != nil {
+                self.requestMissing()
+            }
         }
         episodes.onContextMenu = { [weak self] card, point in
             guard let self, let episode = self.episode(card.id) else { return }
@@ -94,7 +102,10 @@ final class ShowDetailScreen: DetailScreen {
         do {
             let model = try await ShowDetailLoader.load(api: api, showRatingKey: showKey, initialSeasonKey: initialSeasonKey,
                                                         selectedSeasonKey: { [weak self] in self?.model?.selectedSeasonKey },
-                                                        onShow: { [weak self] show in self?.showArrived(show) })
+                                                        onShow: { [weak self] show in
+                                                            self?.showArrived(show)
+                                                            self?.loadRequestState(for: show)
+                                                        })
             guard !Task.isCancelled else { return }
             guard let model else {
                 if !hasContent { showUnavailable(DetailMessage.showUnavailable) }
@@ -128,12 +139,14 @@ final class ShowDetailScreen: DetailScreen {
         let highlightKeys = model.highlightKeys
         let rows = model.episodeRows(showingSkipped: showsSkipped, highlights: highlightsOnly && model.essentials == nil ? highlightKeys : nil)
         var cards: [CardItem] = []
+        missingByID = [:]
         for row in rows {
             switch row {
             case .episode(let episode):
                 let shielded = shield && !episode.isWatched
                 cards.append(card(for: episode, status: model.status(for: episode, shielded: shielded, highlights: highlightKeys), shielded: shielded))
             case .missing(let missing):
+                missingByID[missing.id] = missing
                 cards.append(missingCard(missing, shielded: shield))
             }
         }
@@ -193,7 +206,30 @@ final class ShowDetailScreen: DetailScreen {
         switch marker {
         case .inProgress: String(localized: "Continue", comment: "Action title that resumes a partly watched item")
         case .upNext: String(localized: "Up Next")
+        case .missing: ShowGapsCopy.notOnServer
         default: nil
+        }
+    }
+
+    /// Asks Seerr for what the server lacks of the show, or says how to connect Seerr when it is not.
+    private func requestMissing() {
+        guard let show = model?.show else { return }
+        SeerrRequestScreen.open(show, api: api, isOnServer: true, from: self)
+    }
+
+    /// Asks Seerr whether the show is missing seasons nobody asked for, which adds Request More Seasons; the page never
+    /// waits for it.
+    private func loadRequestState(for show: PlexMetadata) {
+        guard SeerrAccount.shared.isConnected else { return }
+        let api = api
+        requestTask?.cancel()
+        requestTask = Task { [weak self] in
+            let state = try? await SeerrTitles.shared.state(for: show, api: api)
+            guard !Task.isCancelled, let self else { return }
+            let offers = state?.canRequest(with: SeerrAccount.shared.permissions) ?? false
+            guard offers != self.offersRequest else { return }
+            self.offersRequest = offers
+            self.rebuild()
         }
     }
 
@@ -225,6 +261,12 @@ final class ShowDetailScreen: DetailScreen {
         list.append(DetailAction(id: "rate", title: UserRatingCopy.actionTitle(for: current), symbol: current == nil ? "star" : "star.fill",
                                  behaviour: .run { [weak self] in self?.presentRating(title: model.show.title, current: current) }))
         let show = model.show
+        if offersRequest {
+            list.append(DetailAction(id: "request", title: SeerrCopy.requestMore, symbol: "plus.rectangle.on.rectangle", behaviour: .run { [weak self] in
+                guard let self else { return }
+                SeerrRequestScreen.open(show, api: self.api, isOnServer: true, from: self)
+            }))
+        }
         list.append(DetailAction(id: "playlist", title: PlaylistFormat.addToPlaylist, symbol: "text.badge.plus", behaviour: .run { [weak self] in
             guard let self, let window = self.window else { return }
             PlaylistPicker.present(adding: [show], api: self.api, in: window)

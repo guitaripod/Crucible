@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 48 | 5 | 3 | 1 |
 | Home and libraries | 70 | 3 | 5 | 0 |
-| Title pages, collections, playlists and server activity | 67 | 0 | 11 | 1 |
+| Title pages, collections, playlists and server activity | 70 | 0 | 8 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 47 | 0 | 8 | 8 |
 | You, profiles, history, statistics and manage | 79 | 2 | 3 | 3 |
 | Settings and integrations | 50 | 6 | 11 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 561 | 27 | 98 | 16 |
+| **All** | 564 | 27 | 95 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -215,11 +215,11 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `detail-related-show` (S) More Like This shelf on show pages _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:194-196,216_
 - [x] `detail-season-loading-placeholders` (S) Season loading state: placeholder episode cells labelled Loading episodes, and No episodes in this season when a season is empty _Apple TV: Sources/CrucibleTV/Detail/TVDetailEpisodePlaceholderCells.swift:36-38_
 - [x] `detail-season-failed-retry` (S) Season failed state: Couldn’t load this season. with a Retry button that reloads the season _Apple TV: Sources/CrucibleTV/Detail/TVDetailEpisodePlaceholderCells.swift:72-77_
-- [ ] `detail-missing-episode-cards` (M) Aired episodes the server lacks shown as placeholder cards with Not on your server meta; selecting one opens the Seerr request sheet Gap: compactMap drops every .missing row, so missing episodes are invisible on Linux; no catalogue lookup _Apple TV: Sources/CrucibleTV/Detail/TVDetailContent.swift:124-137_
+- [x] `detail-missing-episode-cards` (M) Aired episodes the server lacks shown as placeholder cards with Not on your server meta; selecting one opens the Seerr request sheet _Apple TV: Sources/CrucibleTV/Detail/TVDetailContent.swift:124-137_
 - [x] `detail-missing-seasons-open` (M) Seasons the server lacks: chip dimmed, opening it lists the aired episodes from the catalogue (asked once, cached), and the season moves to the server once it arrives _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:247-282,586-625_
 - [x] `detail-open-initial-missing-season` (S) Opening a show on a season the server lacks (initial season key) opens that season _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:260-268_
-- [ ] `detail-request-more-seasons` (M) Request More Seasons action on a show that Seerr says can take more requests, opening the Seerr request sheet Gap: No Seerr request state or request sheet on the Linux detail page (rg for seerr in linux/Sources: no hits) _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:291-300,466-472_
-- [ ] `detail-request-missing-episodes` (M) Request the server's missing episodes through Seerr from the show page, or explain how to connect Seerr when not connected Gap: No Seerr sheet on Linux; Seerr is in the Linux scope per the doc (Trakt, Seerr, Crucible Server row) _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:285-288,97_
+- [x] `detail-request-more-seasons` (M) Request More Seasons action on a show that Seerr says can take more requests, opening the Seerr request sheet _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:291-300,466-472_
+- [x] `detail-request-missing-episodes` (M) Request the server's missing episodes through Seerr from the show page, or explain how to connect Seerr when not connected _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:285-288,97_
 - [x] `detail-spoiler-shield` (S) Spoiler Shield per show: unwatched episodes show only Episode N titles, toggled from the Essentials menu _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:175,184-189,529-535_
 - [x] `detail-essentials-menu` (L) Episodes filter (Essentials) menu: levels Show All, Skip Anime-Only and others, Retold toggle, Show Skipped toggle, source line and per-season counts _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:440-446,488-538_
 - [x] `detail-essentials-offer` (M) Essentials offer button Skip N Anime-Only · Save X that turns on the level when pressed _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:430-439,549-555_
