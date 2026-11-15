@@ -1,12 +1,13 @@
 import CrucibleCore
+import CrucibleStats
 import CrucibleUI
 import Foundation
 import Kiln
 import MidgarCore
 
 /// Home (`TVHomeViewController`): the backdrop and hero follow the focused card over the rows the viewer keeps on Home, in
-/// their order: Continue Watching, Up Next, Recently Added with Surprise Me, Out Now on Your Watchlist and Rate What You
-/// Watched. The launch payload paints the first frame; every later appearance reloads, the server's change events reload
+/// their order: Continue Watching, Up Next, This Week, Recently Added with Surprise Me, Out Now on Your Watchlist and Rate
+/// What You Watched. The launch payload paints the first frame; every later appearance reloads, the server's change events reload
 /// within seconds, and a reload that fails keeps what is on screen.
 @MainActor
 final class HomeScreen: ScreenView {
@@ -35,6 +36,10 @@ final class HomeScreen: ScreenView {
     /// The next episodes the server lacks of shows the viewer is caught up on, at the end of Up Next.
     private var missingNext: [MissingNext] = []
     private var missingNextTask: Task<Void, Never>?
+    private let week = HomeWeekSection()
+    private var weekSummary: HomeWeekSummary?
+    private var weekTask: Task<Void, Never>?
+    private var hasAwaitedFirstSync = false
     private var observers: [() -> Void] = []
     private static let surpriseID = "home.surprise"
     private static let watchID = "home.watch"
@@ -51,6 +56,10 @@ final class HomeScreen: ScreenView {
         asks = rateFeed.current()
         releases = WatchlistReleases.shared.releases()
         missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
+        week.onSelect = { [weak self] in
+            guard let self else { return }
+            self.rootView?.push(StatisticsScreen(api: self.payload.api))
+        }
         observe()
         render()
     }
@@ -90,6 +99,7 @@ final class HomeScreen: ScreenView {
     }
 
     override func screenDidAppear() {
+        loadWeek()
         loadAsks()
         loadReleases()
         loadMissingNext()
@@ -129,6 +139,26 @@ final class HomeScreen: ScreenView {
         }
     }
 
+    /// Reads this week's watch time from Statistics' store for the This Week tile, waiting for the first sync once when the
+    /// store has nothing yet (`TVHomeViewController.loadWeek`).
+    private func loadWeek() {
+        guard let store = StatsManager.shared.store else { return }
+        weekTask?.cancel()
+        weekTask = Task { [weak self] in
+            var summary = await store.homeWeekSummaryOrNil()
+            if let self, !self.hasAwaitedFirstSync {
+                self.hasAwaitedFirstSync = true
+                if summary?.isEmpty != false {
+                    _ = await StatsManager.shared.refreshNow()
+                    summary = await store.homeWeekSummaryOrNil()
+                }
+            }
+            guard !Task.isCancelled, let self, summary != self.weekSummary else { return }
+            self.weekSummary = summary
+            self.render()
+        }
+    }
+
     private func retry() {
         state.isHidden = true
         page.isHidden = false
@@ -149,6 +179,7 @@ final class HomeScreen: ScreenView {
         feed.reapplyLibraryVisibility()
         asks = rateFeed.current()
         render()
+        loadWeek()
         loadReleases()
     }
 
@@ -191,6 +222,10 @@ final class HomeScreen: ScreenView {
                 let missing = arrangement.isEmpty ? [] : missingNext.map(card(for:))
                 add(.upNext, title: arrangement.title(for: .upNext), seeAll: .upNext,
                     items: arrangement.shelf(for: .upNext).map { card(for: $0, bucket: .upNext) } + missing)
+            case .thisWeek where arrangement.showsWeekCard(hasWeekActivity: weekSummary?.isEmpty == false):
+                guard let model = weekSummary?.cardModel else { break }
+                week.configure(model)
+                sections.append(week)
             case .recentlyAdded where !arrangement.recent.isEmpty:
                 let surprise = CardItem(id: Self.surpriseID, title: String(localized: "Surprise Me"), subtitle: String(localized: "A random pick"),
                                         placeholderSymbol: "shuffle")
