@@ -10,12 +10,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Home and libraries | 70 | 3 | 5 | 0 |
 | Title pages, collections, playlists and server activity | 70 | 0 | 8 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
-| Search, Pro features (free on Linux) and demo | 47 | 0 | 8 | 8 |
+| Search, Pro features (free on Linux) and demo | 48 | 0 | 7 | 8 |
 | You, profiles, history, statistics and manage | 79 | 2 | 3 | 3 |
 | Settings and integrations | 50 | 6 | 11 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 564 | 27 | 95 | 16 |
+| **All** | 565 | 27 | 94 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -339,7 +339,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `search-filtered-grids` (M) With a scope other than All, movies and shows become a six-column grid and episodes a four-column grid instead of shelves. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchResultsViewController.swift:223-246_
 - [x] `search-top-result` (M) The best match is a hero: 200 by 300 poster, “TOP RESULT” eyebrow, title with the query highlighted, a type line such as “Movie · 2019 · 2h 4m”, a Play or Resume button (not for shows) and an Open Movie, Open Show or Open Episode button; Play takes focus. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchTopResultView.swift:14-45,31-33_
 - [x] `search-section-titles` (S) Results are grouped under Movies, Shows, Episodes and Not on Your Server in that order, with the best match as an eyebrow-labelled hero above them (no section title of its own). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchModels.swift:3-18_
-- [ ] `search-elsewhere` (L) With Seerr connected, titles the server lacks appear under Not on Your Server with the Seerr poster, year and availability; selecting one opens the Seerr request sheet; late Seerr answers render a second time. Gap: No Seerr client, request sheet or Seerr settings anywhere under linux/ (case-insensitive rg empty). SearchScreen never reads SearchResults.Parts.elsewhere. Core SearchSession already fills it. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchResultsViewController.swift:160-162,289-290,309-319,409-411_
+- [x] `search-elsewhere` (L) With Seerr connected, titles the server lacks appear under Not on Your Server with the Seerr poster, year and availability; selecting one opens the Seerr request sheet; late Seerr answers render a second time. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchResultsViewController.swift:160-162,289-290,309-319,409-411_
 - [x] `search-highlight` (S) The typed query is highlighted in the top result title and episode titles, matching whole phrase first or each word, ignoring case and diacritics. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Search/SearchHighlight.swift:1-17_
 - [x] `search-movie-show-cards` (S) Movie and show result cards show the year, a progress bar, an unwatched dot on movies and an unwatched count on shows. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchCards.swift:6-22_
 - [x] `search-watched-check` (S) Watched movies and episodes show a watched check on their result cards (shows never do on Apple TV). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchCards.swift:17,31_

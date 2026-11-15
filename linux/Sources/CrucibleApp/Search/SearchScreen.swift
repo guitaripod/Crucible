@@ -30,6 +30,8 @@ final class SearchScreen: ScreenView {
     private var shelves: [String: ShelfView] = [:]
     private var grids: [String: (title: SectionTitleView, grid: CardGridView)] = [:]
     private var items: [String: PlexMetadata] = [:]
+    /// Titles the server does not have that Seerr found, by card id.
+    private var hits: [String: SeerrSearchHit] = [:]
     private var genreList: [String: SearchGenre] = [:]
     private var scope: SearchScope = .all
     private var query: String?
@@ -204,6 +206,10 @@ final class SearchScreen: ScreenView {
             sections += group("episodes", title: SearchSection.episodes.title ?? "", cards: parts.episodes.map { episodeCard($0) }, filtered: filtered,
                               landscape: true)
         }
+        if !parts.elsewhere.isEmpty {
+            sections += group("elsewhere", title: SearchSection.elsewhere.title ?? "", cards: parts.elsewhere.map { hitCard($0) }, filtered: filtered,
+                              landscape: false)
+        }
         showSections(sections)
     }
 
@@ -322,7 +328,22 @@ final class SearchScreen: ScreenView {
         session.update(query: field.text, scope: newScope)
     }
 
+    /// A title Seerr found that the server does not have: Seerr's poster, the year and where it stands when someone asked.
+    private func hitCard(_ hit: SeerrSearchHit) -> CardItem {
+        let id = "seerr.\(hit.kind.rawValue).\(hit.tmdbID)"
+        hits[id] = hit
+        let poster = SeerrAccount.shared.connection.flatMap { SeerrImage.poster(hit.posterPath, base: $0.address) }
+        let label = hit.availability == .notRequested ? nil : SeerrCopy.cardLabel(hit.availability)
+        return CardItem(id: id, artwork: poster.map { .url($0) }, title: hit.title,
+                        subtitle: [hit.year.map(String.init), label].compactMap { $0 }.joined(separator: " · "), placeholderSymbol: hit.kind == .tv ? "tv" : "film")
+    }
+
     private func activate(_ id: String, rememberingQuery: Bool) {
+        if let hit = hits[id] {
+            if rememberingQuery { session.rememberCurrentQuery() }
+            SeerrRequestScreen.open(hit.asMetadata, api: api, isOnServer: false, from: self)
+            return
+        }
         guard let item = items[id] else { return }
         if rememberingQuery { session.rememberCurrentQuery() }
         open(item)
