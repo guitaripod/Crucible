@@ -11,19 +11,23 @@ class SettingsScaffold: ScreenView {
     let rows = RowListView()
     private let page = PageView()
     private let body = SplitSection()
+    private let state = StateView()
 
     init(title: String, detail: String? = nil) {
         heading = ScreenTitleView(title: title, detail: detail)
         super.init()
         body.rows = rows
+        body.state = state
         body.addSubview(rows)
+        body.addSubview(state)
+        state.isHidden = true
         addSubview(page)
         page.setSections([heading, body])
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
         rows.onSelect = { [weak self] item in self?.rowSelected(item.id) }
     }
 
-    override var preferredFocusView: View? { rows }
+    override var preferredFocusView: View? { state.isHidden ? rows : state }
     override var remembersFocus: Bool { true }
 
     /// Puts `view` in the left column; it sizes itself through `sizeThatFits`.
@@ -38,6 +42,23 @@ class SettingsScaffold: ScreenView {
         rows.setItems(items)
         body.setNeedsLayout()
         page.setNeedsLayout()
+    }
+
+    /// Shows `newState` (loading, empty or failed) where the rows go, or the rows again for nil
+    /// (`TVSettingsScaffold.presentState`); the focus follows when it was on the side that goes away.
+    func presentState(_ newState: StateView.State?) {
+        let hadFocus = containsFocus
+        if let newState {
+            state.show(newState)
+            state.isHidden = false
+            rows.isHidden = true
+        } else {
+            state.isHidden = true
+            rows.isHidden = false
+        }
+        body.setNeedsLayout()
+        page.setNeedsLayout()
+        if hadFocus { window?.focus.focus(state.isHidden ? rows : state, animated: false) }
     }
 
     /// A row was chosen; subclasses act on it.
@@ -59,6 +80,7 @@ class SettingsScaffold: ScreenView {
 private final class SplitSection: View {
     var context: View?
     weak var rows: RowListView?
+    weak var state: StateView?
 
     private var contextWidth: Float { Theme.current.metrics.tv(620) }
     private var gap: Float { Theme.current.metrics.tv(60) }
@@ -73,10 +95,16 @@ private final class SplitSection: View {
         return isStacked(width) ? min(width - metrics.sideMargin * 2, metrics.wideColumn) : width - metrics.sideMargin * 2 - contextWidth - gap
     }
 
+    /// The rows' height, or the state's room in their place while it shows.
+    private func listHeight(_ width: Float) -> Float {
+        if state?.isHidden == false { return Theme.current.metrics.tv(480) }
+        return rows?.sizeThatFits(Size(width: width, height: 0)).height ?? 0
+    }
+
     override func sizeThatFits(_ size: Size) -> Size {
         let metrics = Theme.current.metrics
         rows?.columnWidth = rowsWidth(size.width)
-        let rowsHeight = rows?.sizeThatFits(Size(width: size.width, height: 0)).height ?? 0
+        let rowsHeight = listHeight(size.width)
         let contextHeight = context?.sizeThatFits(Size(width: contextWidth, height: 0)).height ?? 0
         let height = isStacked(size.width) ? contextHeight + (contextHeight > 0 ? metrics.tv(40) : 0) + rowsHeight : max(contextHeight, rowsHeight)
         return Size(width: size.width, height: height + metrics.tv(60))
@@ -87,16 +115,18 @@ private final class SplitSection: View {
         let width = rowsWidth(frame.width)
         rows?.columnWidth = width
         let contextHeight = context?.sizeThatFits(Size(width: contextWidth, height: 0)).height ?? 0
-        let rowsHeight = rows?.sizeThatFits(Size(width: frame.width, height: 0)).height ?? 0
+        let rowsHeight = listHeight(frame.width)
         rows?.isLeadingAligned = isStacked(frame.width)
         if isStacked(frame.width) {
             context?.frame = Rect(x: metrics.sideMargin, y: 0, width: width, height: contextHeight)
             let top = contextHeight > 0 ? contextHeight + metrics.tv(40) : 0
             rows?.frame = Rect(x: 0, y: top, width: frame.width, height: rowsHeight)
+            state?.frame = Rect(x: metrics.sideMargin, y: top, width: width, height: rowsHeight)
         } else {
             context?.frame = Rect(x: metrics.sideMargin, y: 0, width: contextWidth, height: contextHeight)
             let left = metrics.sideMargin + contextWidth + gap
             rows?.frame = Rect(x: left - metrics.sideMargin, y: 0, width: width + metrics.sideMargin * 2, height: rowsHeight)
+            state?.frame = Rect(x: left, y: 0, width: width, height: rowsHeight)
         }
     }
 }

@@ -221,6 +221,11 @@ public final class RowListView: View {
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? { items.first { $0.isEnabled && !$0.isStatic }.flatMap { rows[$0.id] } }
 
+    /// The row showing the item `id`, for a screen that puts the focus on a particular one.
+    public func row(id: String) -> View? {
+        rows[id]
+    }
+
     public func setItems(_ newItems: [RowItem]) {
         items = newItems
         var next: [String: RowView] = [:]
