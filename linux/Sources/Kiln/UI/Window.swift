@@ -57,6 +57,7 @@ public final class Window {
     private var wakeArmed: Double?
     private var animating: [ObjectIdentifier: View] = [:]
     private var parked: [ObjectIdentifier: ParkedView] = [:]
+    private var lastShaderSave = Window.now()
     private var lastFrameTime: Double?
     private var hovered: View?
     private var pressed: (view: View, button: MouseButton)?
@@ -248,17 +249,10 @@ public final class Window {
         }
         let settled = animating.isEmpty && !showsPerformanceHUD
         trace.end(frame, settled: settled)
-        if !settled { needsDisplay = true }
-    }
-
-    /// Nothing reached the compositor (the swapchain is being rebuilt, or the window is mid-resize), so no frame callback
-    /// will come: the frame is drawn again a little later instead of the window waiting forever.
-    private func presentFailed(at time: Double) {
-        waitingForFrame = false
-        retryAfter = time + 0.05
-        changedSinceFrame = true
-        DispatchQueue.main.async { [weak self] in
-            MainActor.assumeIsolated { self?.setNeedsDisplay() }
+        if settled {
+            saveShadersIfDue(time)
+        } else {
+            needsDisplay = true
         }
     }
 
@@ -276,6 +270,25 @@ public final class Window {
                 animating[key] = nil
             }
         }
+    }
+
+    /// Nothing reached the compositor (the swapchain is being rebuilt, or the window is mid-resize), so no frame callback
+    /// will come: the frame is drawn again a little later instead of the window waiting forever.
+    private func presentFailed(at time: Double) {
+        waitingForFrame = false
+        retryAfter = time + 0.05
+        changedSinceFrame = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated { self?.setNeedsDisplay() }
+        }
+    }
+
+    /// Writes newly compiled shaders to the cache once the window settles, at most every few seconds (a no-op when nothing
+    /// new compiled), so a crash still leaves a warm cache behind.
+    private func saveShadersIfDue(_ time: Double) {
+        guard time - lastShaderSave > 5 else { return }
+        lastShaderSave = time
+        gpu.saveShaderCache()
     }
 
     /// A view was shown again: the animations parked under it pick up where they stopped.
