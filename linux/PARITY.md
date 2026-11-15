@@ -7,7 +7,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 49 | 4 | 3 | 1 |
-| Home and libraries | 74 | 3 | 1 | 0 |
+| Home and libraries | 76 | 2 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
 | Search, Pro features (free on Linux) and demo | 51 | 0 | 4 | 8 |
@@ -15,7 +15,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 59 | 1 | 7 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 71 | 7 | 25 | 0 |
-| **All** | 621 | 19 | 46 | 16 |
+| **All** | 623 | 18 | 45 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -92,7 +92,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `browse-home-up-next-row` (S) Up Next rail with the next episode of each show, plus items already in Continue Watching removed from it. _Apple TV: Sources/CrucibleCore/Features/Home/HomeArrangement.swift:16-31 (init(buckets:rows:))_
 - [x] `browse-home-recently-added-row` (S) Recently Added rail drawn as posters, the newest titles first. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:342-344 (recentlyAdded snapshot section)_
 - [x] `browse-home-empty-rows-hidden` (S) A rail with no items is left out of Home instead of showing an empty shelf. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:336 (guard !items.isEmpty)_
-- [ ] `browse-home-rows-saved-order-and-visibility` (M) **partial** Home shows only the rows the viewer switched on, in the order they arranged them. Gap: Linux reads HomeLayout.visibleRows (HomeScreen.swift:78) but draws only Continue Watching, Up Next and Recently Added; thisWeek, watchlistReleases and rateWatched fall to default: continue (HomeScreen.swift:84), and the layout cannot be changed on Linux. _Apple TV: Sources/CrucibleCore/Features/Home/HomeLayout.swift:176-178 (visibleRows)_
+- [x] `browse-home-rows-saved-order-and-visibility` (M) Home shows only the rows the viewer switched on, in the order they arranged them. _Apple TV: Sources/CrucibleCore/Features/Home/HomeLayout.swift:176-178 (visibleRows)_
 - [x] `browse-home-rows-settings-screen` (M) Settings > Home & Libraries > Home Rows lets the viewer switch rows on or off and drag them into order. _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:221 (destination homeRows, platforms both)_
 - [x] `browse-home-library-visibility-filter` (S) Libraries the viewer excluded from Home contribute nothing to Home rows, the hero or Surprise Me. _Apple TV: Sources/CrucibleCore/Features/Home/HomeFeed.swift:146 (setContent, visible(excluding:))_
 - [x] `browse-libraries-visibility-settings` (M) Settings > Home & Libraries > Libraries lets the viewer choose which libraries count toward Home and Statistics, with Reset to Plex Defaults. _Apple TV: Sources/CrucibleCore/Features/Settings/LibrariesSettings.swift:1-70_
@@ -104,7 +104,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `browse-home-empty-state` (S) An empty Home explains why (filtered libraries or every content row turned off, from HomeStateCopy) with a Refresh button. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:382-393 (showEmpty with Refresh action, play.rectangle symbol)_
 - [x] `browse-home-error-state-retry` (S) When Home cannot load and has nothing to show, an error state explains the failure with a Retry button. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:395-400 (showLoadError)_
 - [x] `browse-home-refresh-failure-keeps-content` (S) A failed Home refresh keeps the rails already on screen rather than replacing them with an error. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:458-466 (reload catch branch)_
-- [ ] `browse-home-this-week-tile` (M) This Week tile at the end of Home: total watch time, change against last week, seven daily bars; Select opens Statistics. Gap: No week summary or tile on Linux; Statistics is not reachable from Home (no StatsManager or HomeWeekSummary use in linux/Sources). _Apple TV: Sources/CrucibleTV/Home/TVHomeTiles.swift:1-70 (TVHomeWeekSurface)_
+- [x] `browse-home-this-week-tile` (M) This Week tile at the end of Home: total watch time, change against last week, seven daily bars; Select opens Statistics. _Apple TV: Sources/CrucibleTV/Home/TVHomeTiles.swift:1-70 (TVHomeWeekSurface)_
 - [x] `browse-home-surprise-me-tile` (M) Surprise Me tile after Recently Added; Select offers Any, Movie or Show and opens a random pick from recent titles, with alerts when nothing matches or the lookup fails. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:280-285 (makeSurpriseTile), 501-529 (presentSurpriseMenu, surprise)_
 - [x] `browse-home-what-to-watch-tile` (M) What to Watch tile beside Surprise Me (when the AI brain is available) opens the mood question and picks from the viewer's library. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:287-296 (makeWhatToWatchTile), 344 (HostedBrain.isAvailable gate)_
 - [x] `browse-home-out-now-row` (M) Out Now on Your Watchlist row of new seasons and episodes of watchlisted shows; Select opens the Seerr request sheet; the menu offers Request and Remove from Watchlist. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:345-347 (row), 546-549 (select), 599-619 (releaseMenu), 566-572 (loadReleases)_
