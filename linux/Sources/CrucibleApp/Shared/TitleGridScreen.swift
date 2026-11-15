@@ -26,6 +26,10 @@ final class TitleGridScreen: ScreenView {
     var onMenu: ((PlexMetadata, Point?) -> Void)?
     /// The Play/Pause key on a card; returns whether it played.
     var onPlay: ((PlexMetadata) -> Bool)?
+    /// Loads again this often while the screen is up (Server Activity's live list).
+    var refreshInterval: Duration?
+    /// Loads again when the server reports events that match (playback starting or stopping elsewhere).
+    var liveRefresh: (@Sendable (ServerEvent) -> Bool)?
     /// How tall the cards' artwork is for its width.
     var aspect: Float {
         get { grid.aspect }
@@ -42,6 +46,8 @@ final class TitleGridScreen: ScreenView {
     private var items: [String: PlexMetadata] = [:]
     private var hasLoaded = false
     private var loadTask: Task<Void, Never>?
+    private var pollTask: Task<Void, Never>?
+    private var liveTask: Task<Void, Never>?
 
     /// `initial` shows at once while the full list loads (a shelf's items before its See All arrives).
     init(api: APIClient, title: String, empty: Empty = Empty(), initial: [PlexMetadata]? = nil, load: @escaping () async throws -> [PlexMetadata]) {
@@ -84,10 +90,27 @@ final class TitleGridScreen: ScreenView {
 
     override func screenDidAppear() {
         reload()
+        if let refreshInterval {
+            pollTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: refreshInterval)
+                    guard !Task.isCancelled else { return }
+                    self?.reload()
+                }
+            }
+        }
+        if let liveRefresh {
+            let api = api
+            liveTask = Task { [weak self] in
+                await ServerEventHub.shared.listen(api: api, every: .seconds(2), matching: liveRefresh) { self?.reload() }.hold()
+            }
+        }
     }
 
     override func screenWillDisappear() {
         loadTask?.cancel()
+        pollTask?.cancel()
+        liveTask?.cancel()
     }
 
     func reload() {

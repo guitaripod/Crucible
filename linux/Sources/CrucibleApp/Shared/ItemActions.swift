@@ -47,8 +47,9 @@ enum ItemActions {
     /// Play or Resume, Play from Beginning, View Details, Go to Show, Mark Watched or Unwatched (a whole show by its
     /// unwatched episodes), Remove from Continue Watching or Up Next on those rows, and Add to Playlist; what does not apply
     /// is left out. `afterChange` runs once the server has the change.
+    /// `extras` adds a screen's own items after the shared ones, each with what it does.
     static func present(for media: PlexMetadata, bucket: HomeBucket? = nil, api: APIClient, at point: Point?, in view: View,
-                        afterChange: @escaping () -> Void) {
+                        extras: [(item: MenuView.Item, run: () -> Void)] = [], afterChange: @escaping () -> Void) {
         guard let window = view.window else { return }
         var items: [MenuView.Item] = []
         if HomeMediaRules.isPlayable(media) {
@@ -68,6 +69,7 @@ enum ItemActions {
         if media.isPlaylistable {
             items.append(.init(id: "playlist", title: PlaylistFormat.addToPlaylist, symbol: "text.badge.plus"))
         }
+        items += extras.map(\.item)
         let frame = window.focusedView?.frameInWindow ?? view.frameInWindow
         let anchor = Rect(x: point.map { $0.x } ?? frame.minX, y: point.map { $0.y } ?? frame.maxY, width: 1, height: 1)
         let menu = MenuView(title: media.title, items: items, anchor: anchor)
@@ -100,7 +102,7 @@ enum ItemActions {
             case "playlist":
                 PlaylistPicker.present(adding: [media], api: api, in: window)
             default:
-                break
+                extras.first { $0.item.id == item.id }?.run()
             }
         }
         menu.present(in: window)
