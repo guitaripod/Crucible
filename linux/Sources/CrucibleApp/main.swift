@@ -35,6 +35,7 @@ func runCrucible() -> Int32 {
     let coordinator = AppCoordinator(window: window)
     var running = true
     coordinator.onQuit = { running = false }
+    let signals = quitOnSignals(coordinator)
     if let file = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_FILE"] {
         let player = PlayerScreen(source: .file(URL(fileURLWithPath: file), title: URL(fileURLWithPath: file).deletingPathExtension().lastPathComponent))
         player.onClose = { running = false }
@@ -51,11 +52,27 @@ func runCrucible() -> Int32 {
     }
     scheduleCaptures(arguments, window: window, coordinator: coordinator) { running = false }
     loop.run { !running }
+    signals.forEach { $0.cancel() }
     PlayerScreen.active?.close()
     UserDefaults.standard.synchronize()
     window.close()
+    let deadline = Window.now() + 2
+    loop.run { PlayerScreen.pendingStop == nil || Window.now() > deadline }
     return 0
 }
+/// SIGTERM (logout, `kill`), SIGINT (Ctrl+C) and SIGHUP (the terminal closing) quit the way Ctrl+Q does: the player
+/// stops, the server hears where, and the window closes, instead of the process dying mid-title.
+@MainActor
+func quitOnSignals(_ coordinator: AppCoordinator) -> [DispatchSourceSignal] {
+    [SIGTERM, SIGINT, SIGHUP].map { number in
+        signal(number, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: number, queue: .main)
+        source.setEventHandler { MainActor.assumeIsolated { coordinator.onQuit?() } }
+        source.resume()
+        return source
+    }
+}
+
 
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, in order), waits a moment and writes the window to PATH; the app quits after the last.

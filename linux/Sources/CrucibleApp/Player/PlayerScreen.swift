@@ -25,6 +25,9 @@ final class PlayerScreen: View {
     private let source: Source
     /// The player on screen, so quitting the app can stop it before its window and GPU go away.
     static weak var active: PlayerScreen?
+    /// The stopped report of the last player that closed, until the server has it: quitting waits for it, so the
+    /// position the viewer stopped at is the one the server resumes from.
+    static var pendingStop: Task<Void, Never>?
 
     private var upNext: UpNextResolver?
     private var card: UpNextCard?
@@ -386,11 +389,12 @@ final class PlayerScreen: View {
         }
     }
 
-    private func report(_ playbackState: String) {
-        guard stream != nil, duration > 0, case .plex(let api, let item, _) = source else { return }
+    @discardableResult
+    private func report(_ playbackState: String) -> Task<Void, Never>? {
+        guard stream != nil, duration > 0, case .plex(let api, let item, _) = source else { return nil }
         lastReportedState = playbackState
         let endpoint = PlexEndpoint.timeline(ratingKey: item.id, state: playbackState, timeMs: Int(position * 1000), durationMs: Int(duration * 1000))
-        Task {
+        return Task {
             do {
                 try await api.requestVoid(endpoint)
             } catch {
@@ -408,7 +412,13 @@ final class PlayerScreen: View {
         hideTask?.cancel()
         offerTask?.cancel()
         card?.stopCounting()
-        report("stopped")
+        if let stopped = report("stopped") {
+            let pending = Task { @MainActor in
+                await stopped.value
+                PlayerScreen.pendingStop = nil
+            }
+            PlayerScreen.pendingStop = pending
+        }
         if let stream, !stream.isDirectPlay, case .plex(let api, _, _) = source {
             let session = stream.sessionId
             Task { try? await api.requestVoid(.stopTranscode(session: session)) }
