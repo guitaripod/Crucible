@@ -15,6 +15,8 @@ public struct TextStyle: Hashable, Sendable {
     public var letterSpacingPixels = 0.0
     /// Inter's optical size axis (14 for text up to 32 for display): the point size the style was designed at.
     public var opticalSize: Double
+    /// UTF-8 byte ranges of the only text drawn, the rest laid out but transparent (a search match to tint); empty draws all.
+    public var visibleByteRanges: [Range<Int>] = []
 
     public init(sizePixels: Double, weight: Int, opticalSize: Double, maxWidthPixels: Int = 0, maxLines: Int = 0, alignment: Alignment = .leading) {
         self.sizePixels = sizePixels
@@ -155,19 +157,24 @@ public final class TextRenderer {
 
     private static func withRawStyle<R>(_ style: TextStyle, _ body: (inout kiln_text_style) -> R) -> R {
         let face = family(for: style)
+        let ranges = style.visibleByteRanges.flatMap { [Int32($0.lowerBound), Int32($0.upperBound)] }
         return face.name.withCString { family in
-            var raw = kiln_text_style(
-                family: family,
-                size_px: style.sizePixels,
-                optical_size: face.opticalSize,
-                weight: Int32(style.weight),
-                italic: style.italic,
-                max_width_px: Int32(style.maxWidthPixels),
-                max_lines: Int32(style.maxLines),
-                alignment: style.alignment.rawValue,
-                letter_spacing_px: style.letterSpacingPixels
-            )
-            return body(&raw)
+            ranges.withUnsafeBufferPointer { visible in
+                var raw = kiln_text_style(
+                    family: family,
+                    size_px: style.sizePixels,
+                    optical_size: face.opticalSize,
+                    weight: Int32(style.weight),
+                    italic: style.italic,
+                    max_width_px: Int32(style.maxWidthPixels),
+                    max_lines: Int32(style.maxLines),
+                    alignment: style.alignment.rawValue,
+                    letter_spacing_px: style.letterSpacingPixels,
+                    visible_ranges: ranges.isEmpty ? nil : visible.baseAddress,
+                    visible_range_count: Int32(style.visibleByteRanges.count)
+                )
+                return body(&raw)
+            }
         }
     }
 }

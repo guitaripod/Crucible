@@ -14,6 +14,10 @@ typedef struct {
     int max_lines;
     int alignment;
     double letter_spacing_px;
+    /** Byte ranges (start, end pairs) of the only text drawn: everything else is laid out but left transparent, so the
+     * mask lines up with the full text's and tints just the matched words. NULL draws all of it. */
+    const int *visible_ranges;
+    int visible_range_count;
 } kiln_text_style;
 
 typedef struct {

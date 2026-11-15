@@ -44,9 +44,20 @@ static PangoLayout *make_layout(const char *utf8, const kiln_text_style *style) 
     }
     pango_layout_set_font_description(layout, font);
     pango_font_description_free(font);
-    if (style->letter_spacing_px != 0) {
+    if (style->letter_spacing_px != 0 || style->visible_ranges) {
         PangoAttrList *attributes = pango_attr_list_new();
-        pango_attr_list_insert(attributes, pango_attr_letter_spacing_new((int) lround(style->letter_spacing_px * PANGO_SCALE)));
+        if (style->letter_spacing_px != 0) {
+            pango_attr_list_insert(attributes, pango_attr_letter_spacing_new((int) lround(style->letter_spacing_px * PANGO_SCALE)));
+        }
+        if (style->visible_ranges) {
+            pango_attr_list_insert(attributes, pango_attr_foreground_alpha_new(1));
+            for (int index = 0; index < style->visible_range_count; index++) {
+                PangoAttribute *shown = pango_attr_foreground_alpha_new(65535);
+                shown->start_index = (guint) style->visible_ranges[index * 2];
+                shown->end_index = (guint) style->visible_ranges[index * 2 + 1];
+                pango_attr_list_insert(attributes, shown);
+            }
+        }
         pango_layout_set_attributes(layout, attributes);
         pango_attr_list_unref(attributes);
     }

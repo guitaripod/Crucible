@@ -33,7 +33,7 @@ public struct TextLayout {
     public let maxLines: Int
     public let alignment: TextStyle.Alignment
     public let scale: Float
-    let style: TextStyle
+    var style: TextStyle
     let metrics: TextMetrics
 
     /// Lays out `text` no wider than `maxWidth` points (0 for unbounded) in at most `maxLines` lines (0 for any), ending
@@ -51,6 +51,22 @@ public struct TextLayout {
         style.letterSpacingPixels = Double(font.letterSpacing * scale)
         self.style = style
         metrics = text.isEmpty ? TextMetrics(width: 0, height: 0, lines: 0, baseline: 0, truncated: false) : TextRenderer.measure(text, style: style)
+    }
+
+    /// The same layout drawing only the characters in `ranges` (UTF-16 offsets, as `NSRange` gives them), for tinting a
+    /// search match over the full text; nil when nothing matches.
+    public func showingOnly(utf16 ranges: [(location: Int, length: Int)]) -> TextLayout? {
+        let utf16 = Array(text.utf16)
+        let bytes = ranges.compactMap { range -> Range<Int>? in
+            guard range.length > 0, range.location >= 0, range.location + range.length <= utf16.count else { return nil }
+            let prefix = String(decoding: utf16[0..<range.location], as: UTF16.self).utf8.count
+            let match = String(decoding: utf16[range.location..<(range.location + range.length)], as: UTF16.self).utf8.count
+            return prefix..<(prefix + match)
+        }
+        guard !bytes.isEmpty else { return nil }
+        var shown = self
+        shown.style.visibleByteRanges = bytes
+        return shown
     }
 
     /// The size in points (whole pixels at this scale).

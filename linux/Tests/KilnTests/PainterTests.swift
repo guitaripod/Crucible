@@ -96,7 +96,7 @@ import CKilnText
             let sample = "Continue Watching 0123456789"
             let cut = TextRenderer.measure(sample, style: style)
             var raw = kiln_text_style(family: nil, size_px: style.sizePixels, optical_size: opsz, weight: Int32(style.weight), italic: false,
-                                      max_width_px: 0, max_lines: 0, alignment: 0, letter_spacing_px: 0)
+                                      max_width_px: 0, max_lines: 0, alignment: 0, letter_spacing_px: 0, visible_ranges: nil, visible_range_count: 0)
             let variable = "Inter Variable".withCString { family in
                 raw.family = family
                 return sample.withCString { kiln_text_measure($0, &raw) }
@@ -104,6 +104,14 @@ import CKilnText
             #expect(cut.width == Int(variable.width), "the static cut sets text exactly as the variable font at its coordinates")
             #expect(cut.height == Int(variable.height))
         }
+    }
+
+    @Test func aHighlightKeepsTheLayoutAndMapsUTF16ToBytes() {
+        let layout = TextLayout("Café Noir", font: Font(size: 20), scale: 1)
+        let match = layout.showingOnly(utf16: [(location: 5, length: 4)])
+        #expect(match?.size == layout.size, "the highlight mask lines up with the full text")
+        #expect(match?.style.visibleByteRanges == [6..<10], "é takes two bytes, so Noir starts at byte 6")
+        #expect(layout.showingOnly(utf16: []) == nil)
     }
 
     @Test func textIsLaidOutInInterAndDrawnInItsColour() throws {
