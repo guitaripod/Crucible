@@ -71,8 +71,9 @@ pub enum ResearchError {
     SearchBusy(String),
 }
 
-fn tools(only_submit: bool) -> Vec<Value> {
-    let submit = tool(
+/// The submit tool of a sports record.
+fn sports_submit() -> Value {
+    tool(
         "submit",
         "Hand in the finished record. Call exactly once, at the end.",
         json!({"type": "object", "properties": {
@@ -97,7 +98,12 @@ fn tools(only_submit: bool) -> Vec<Value> {
             "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
             "notes": {"type": "string"}},
             "required": ["identified", "event", "date", "summary", "sources", "confidence"]}),
-    );
+    )
+}
+
+/// The tools a research may call: searching, reading and handing in, or only handing in once it must finish.
+pub fn tools(submit: &Value, only_submit: bool) -> Vec<Value> {
+    let submit = submit.clone();
     if only_submit {
         return vec![submit];
     }
@@ -141,31 +147,48 @@ pub fn brief(release: &Release, added: &str) -> String {
     lines.join("\n")
 }
 
-fn folded(query: &str) -> String {
+pub fn folded(query: &str) -> String {
     query.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Researches the file `release` names. `newest` is the last day (days since 1970) the event can have been, from
-/// when Plex added the file, and `added` the same day written out for the model.
-pub async fn research(
+/// What a research saw: the addresses its searches returned and its pages had, and the images each page offered.
+#[derive(Default)]
+pub struct Seen {
+    pub known: BTreeSet<String>,
+    pub images: BTreeSet<String>,
+    pub page_images: Vec<(String, Vec<String>)>,
+    /// The text of every page read, for checks that look at what the pages said.
+    pub texts: Vec<String>,
+}
+
+/// What a research took.
+pub struct Took {
+    pub turns: usize,
+    pub searches: usize,
+    pub reads: usize,
+    pub seconds: u64,
+}
+
+/// The research loop every kind of file shares: the model thinks, searches and reads within the budget until it calls
+/// submit; `check` turns that call into a checked record, or the problems the model is sent back once to fix.
+pub async fn investigate<T>(
     brain: &Brain,
     web: &Web,
-    release: &Release,
-    added: &str,
-    newest: i64,
+    system: &str,
+    brief: String,
+    submit: &Value,
     step: &(dyn Fn(Step) + Send + Sync),
-) -> Result<Research, ResearchError> {
+    mut check: impl FnMut(&ToolCall, &Seen, bool) -> Result<T, Vec<String>>,
+) -> Result<(T, Took), ResearchError> {
     let started = Instant::now();
-    let mut messages = vec![json!({"role": "system", "content": SYSTEM}), json!({"role": "user", "content": brief(release, added)})];
-    let mut known: BTreeSet<String> = BTreeSet::new();
-    let mut images: BTreeSet<String> = BTreeSet::new();
-    let mut page_images: Vec<(String, Vec<String>)> = Vec::new();
+    let mut messages = vec![json!({"role": "system", "content": system}), json!({"role": "user", "content": brief})];
+    let mut seen = Seen::default();
     let mut asked: BTreeSet<String> = BTreeSet::new();
     let (mut searches, mut reads, mut sent_back) = (0, 0, false);
     for turn in 0..TURNS {
         let force = turn + 2 >= TURNS || (searches >= SEARCHES && reads >= READS);
         step(Step::Thinking);
-        let said = brain.converse(&messages, &tools(force), force, ANSWER_TOKENS).await?;
+        let said = brain.converse(&messages, &tools(submit, force), force, ANSWER_TOKENS).await?;
         messages.push(said.as_message());
         if said.calls.is_empty() {
             messages.push(json!({"role": "user", "content": "Use the tools, and finish by calling submit with the record."}));
@@ -184,7 +207,7 @@ pub async fn research(
                         step(Step::Searching(query.clone()));
                         match web.search(&query).await {
                             Ok(found) => {
-                                known.extend(found.iter().map(|result| result.url.clone()));
+                                seen.known.extend(found.iter().map(|result| result.url.clone()));
                                 results_for_model(&found)
                             }
                             Err(
@@ -206,10 +229,11 @@ pub async fn research(
                         step(Step::Reading(url.clone()));
                         match web.read(&url, page_room(brain.model.context)).await {
                             Ok(page) => {
-                                known.insert(url.clone());
-                                known.insert(page.url.clone());
-                                images.extend(page.images.iter().cloned());
-                                page_images.push((page.url.clone(), page.images.clone()));
+                                seen.known.insert(url.clone());
+                                seen.known.insert(page.url.clone());
+                                seen.images.extend(page.images.iter().cloned());
+                                seen.page_images.push((page.url.clone(), page.images.clone()));
+                                seen.texts.push(format!("{} {}", page.title, page.text));
                                 json!(page)
                             }
                             Err(error) => json!({"error": error.to_string()}),
@@ -218,12 +242,9 @@ pub async fn research(
                 }
                 "submit" => {
                     step(Step::Checking);
-                    match settle(call, release, &known, &images, newest, sent_back) {
-                        Ok(mut record) => {
-                            if record.poster_url.is_none() {
-                                record.poster_url = official_artwork(&record, &page_images);
-                            }
-                            return Ok(Research { record, turns: turn + 1, searches, reads, seconds: started.elapsed().as_secs() });
+                    match check(call, &seen, sent_back) {
+                        Ok(record) => {
+                            return Ok((record, Took { turns: turn + 1, searches, reads, seconds: started.elapsed().as_secs() }));
                         }
                         Err(problems) if !sent_back => {
                             sent_back = true;
@@ -238,6 +259,27 @@ pub async fn research(
         }
     }
     Err(ResearchError::NoRecord(format!("the model handed in no record within {TURNS} turns")))
+}
+
+/// Researches the file `release` names. `newest` is the last day (days since 1970) the event can have been, from
+/// when Plex added the file, and `added` the same day written out for the model.
+pub async fn research(
+    brain: &Brain,
+    web: &Web,
+    release: &Release,
+    added: &str,
+    newest: i64,
+    step: &(dyn Fn(Step) + Send + Sync),
+) -> Result<Research, ResearchError> {
+    let (record, took) = investigate(brain, web, SYSTEM, brief(release, added), &sports_submit(), step, |call, seen, sent_back| {
+        let mut record = settle(call, release, &seen.known, &seen.images, newest, sent_back)?;
+        if record.poster_url.is_none() {
+            record.poster_url = official_artwork(&record, &seen.page_images);
+        }
+        Ok(record)
+    })
+    .await?;
+    Ok(Research { record, turns: took.turns, searches: took.searches, reads: took.reads, seconds: took.seconds })
 }
 
 /// Artwork for a record that names none: the leading image of the first page it cites that is not an encyclopedia's,

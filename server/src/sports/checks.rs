@@ -168,20 +168,20 @@ async fn finish(mut checks: Vec<Check>, inputs: Inputs<'_>) -> Vec<Check> {
             "search",
             State::Missing,
             format!("{} is set, and is tried once you agree to where searches go.", engine.label()),
-            "Agree in Crucible, or on the server: crucible-server sports --agree",
+            "Agree in Crucible, or on the server: crucible-server research --agree",
         ),
         (Some(web), Some(engine)) => match web.works().await {
             Ok(found) if found > 0 => done("search", format!("{} answers.", engine.label())),
             Ok(_) => not_yet("search", State::Failed, format!("{} found nothing for a test search.", engine.label()), "Check the engines your search uses."),
             Err(error) => {
-                not_yet("search", State::Failed, error.to_string(), "Start the search engine, or choose another: crucible-server sports --searxng <url>")
+                not_yet("search", State::Failed, error.to_string(), "Start the search engine, or choose another: crucible-server research --searxng <url>")
             }
         },
         _ => not_yet(
             "search",
             State::Missing,
             "No search engine is set.",
-            "On the server: crucible-server sports --searxng http://127.0.0.1:8888 (a SearXNG with its JSON format on), or --brave-key-file <file>",
+            "On the server: crucible-server research --searxng http://127.0.0.1:8888 (a SearXNG with its JSON format on), or --brave-key-file <file>",
         ),
     });
     checks.push(match &settings.engine {
@@ -189,8 +189,8 @@ async fn finish(mut checks: Vec<Check>, inputs: Inputs<'_>) -> Vec<Check> {
         Some(engine) => not_yet(
             "agreement",
             State::Missing,
-            format!("Searches naming your sports files' events go to {}, and public pages are read from this server.", engine.destination()),
-            "Agree in Crucible, or on the server: crucible-server sports --agree",
+            format!("Searches naming what is in your files go to {}, and public pages are read from this server.", engine.destination()),
+            "Agree in Crucible, or on the server: crucible-server research --agree",
         ),
         None => not_yet("agreement", State::Missing, "Needs a search engine first.", "Set a search engine first."),
     });
@@ -200,7 +200,7 @@ async fn finish(mut checks: Vec<Check>, inputs: Inputs<'_>) -> Vec<Check> {
             "libraries",
             State::Missing,
             "No library is chosen.",
-            "Choose an Other Videos library in Crucible, or on the server: crucible-server sports --library <name>",
+            "Choose an Other Videos library in Crucible, or on the server: crucible-server research --library <name>",
         )
     } else if let Some((_, title, _)) = chosen.iter().find(|(_, _, other_videos)| !other_videos) {
         not_yet("libraries", State::Failed, format!("{title} is not an Other Videos library."), "Choose libraries Plex keeps as Other Videos.")
@@ -210,7 +210,7 @@ async fn finish(mut checks: Vec<Check>, inputs: Inputs<'_>) -> Vec<Check> {
     checks.push(if settings.on {
         done("on", "Research runs as new files arrive.")
     } else {
-        not_yet("on", State::Missing, "Research is off.", "Turn it on in Crucible, or on the server: crucible-server sports --on")
+        not_yet("on", State::Missing, "Research is off.", "Turn it on in Crucible, or on the server: crucible-server research --on")
     });
     checks
 }

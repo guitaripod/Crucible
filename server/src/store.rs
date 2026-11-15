@@ -88,7 +88,9 @@ pub struct SportsItem {
     pub section: String,
     pub file: String,
     /// `matched`, `attention` (the model could not identify it, or its record failed the checks), `edited` (the owner
-    /// changed what was written, so it is left alone) or `failed` (the model, the web or Plex did not answer; tried again later).
+    /// changed what was written, so it is left alone), `failed` (the model, the web or Plex did not answer; tried again
+    /// later) or `undone` (the owner took research back: Plex shows the file as it was, and it is not researched again
+    /// until the owner asks).
     pub state: String,
     pub title: String,
     #[serde(skip)]
@@ -103,6 +105,9 @@ pub struct SportsItem {
     pub seconds: i64,
     pub searches: i64,
     pub reads: i64,
+    /// What Plex showed for the file before research first wrote to it, as JSON, so the owner can take research back.
+    #[serde(skip)]
+    pub original: Option<String>,
 }
 
 pub fn now() -> i64 {
@@ -126,6 +131,11 @@ impl Store {
     fn with(connection: Connection) -> rusqlite::Result<Self> {
         connection.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         connection.execute_batch(SCHEMA)?;
+        if let Err(error) = connection.execute("ALTER TABLE sports_items ADD COLUMN original TEXT", []) {
+            if !error.to_string().contains("duplicate column") {
+                return Err(error);
+            }
+        }
         for column in ["seconds", "searches", "reads"] {
             let added = connection.execute(&format!("ALTER TABLE sports_items ADD COLUMN {column} INTEGER NOT NULL DEFAULT {UNMEASURED}"), []);
             if let Err(error) = added {
@@ -214,8 +224,8 @@ impl Store {
 
     pub fn save_sports_item(&self, item: &SportsItem) -> rusqlite::Result<()> {
         self.lock().execute(
-            "INSERT OR REPLACE INTO sports_items (rating_key, section, file, state, title, record, applied, note, tries, next_try, updated, seconds, searches, reads)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            "INSERT OR REPLACE INTO sports_items (rating_key, section, file, state, title, record, applied, note, tries, next_try, updated, seconds, searches, reads, original)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
             params![
                 item.rating_key,
                 item.section,
@@ -230,7 +240,8 @@ impl Store {
                 item.updated,
                 item.seconds,
                 item.searches,
-                item.reads
+                item.reads,
+                item.original
             ],
         )?;
         Ok(())
@@ -247,6 +258,65 @@ impl Store {
     }
 
     /// How many items are in each state.
+    /// How many files research has a row for, by library section.
+    pub fn sports_per_section(&self) -> rusqlite::Result<Vec<(String, i64)>> {
+        let connection = self.lock();
+        let mut statement = connection.prepare("SELECT section, COUNT(*) FROM sports_items WHERE state != 'undone' GROUP BY section")?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect()
+    }
+
+    /// The items of the chosen sections to show: those needing a look first, then the most recently changed.
+    pub fn sports_items_among(&self, sections: &[String], limit: usize) -> rusqlite::Result<Vec<SportsItem>> {
+        if sections.is_empty() {
+            return Ok(Vec::new());
+        }
+        let connection = self.lock();
+        let marks = vec!["?"; sections.len()].join(", ");
+        let mut statement = connection.prepare(&format!(
+            "SELECT {SPORTS_COLUMNS} FROM sports_items WHERE section IN ({marks}) ORDER BY CASE state WHEN 'attention' THEN 0 WHEN 'failed' THEN 1 ELSE 2 END, updated DESC, rating_key LIMIT {limit}"
+        ))?;
+        let rows = statement.query_map(rusqlite::params_from_iter(sections.iter()), sports_item_from)?;
+        rows.collect()
+    }
+
+    /// How many items of the chosen sections are in each state.
+    pub fn sports_counts_among(&self, sections: &[String]) -> rusqlite::Result<Vec<(String, i64)>> {
+        if sections.is_empty() {
+            return Ok(Vec::new());
+        }
+        let connection = self.lock();
+        let marks = vec!["?"; sections.len()].join(", ");
+        let mut statement =
+            connection.prepare(&format!("SELECT state, COUNT(*) FROM sports_items WHERE section IN ({marks}) GROUP BY state ORDER BY state"))?;
+        let rows = statement.query_map(rusqlite::params_from_iter(sections.iter()), |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect()
+    }
+
+    /// The item whose rating key is `name`, or whose file is named `name`.
+    pub fn sports_item_named(&self, name: &str) -> rusqlite::Result<Option<SportsItem>> {
+        if let Some(item) = self.sports_item(name)? {
+            return Ok(Some(item));
+        }
+        let connection = self.lock();
+        let mut statement = connection.prepare(&format!("SELECT {SPORTS_COLUMNS} FROM sports_items WHERE file = ?1 OR file LIKE ?2 ESCAPE '\\' LIMIT 1"))?;
+        let escaped = name.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+        statement.query_row(params![name, format!("%/{escaped}")], sports_item_from).optional()
+    }
+
+    /// Forgets every item of a library section.
+    pub fn forget_sports_section(&self, section: &str) -> rusqlite::Result<usize> {
+        self.lock().execute("DELETE FROM sports_items WHERE section = ?1", params![section])
+    }
+
+    /// Every item of one library section.
+    pub fn sports_items_in(&self, section: &str) -> rusqlite::Result<Vec<SportsItem>> {
+        let connection = self.lock();
+        let mut statement = connection.prepare(&format!("SELECT {SPORTS_COLUMNS} FROM sports_items WHERE section = ?1"))?;
+        let rows = statement.query_map(params![section], sports_item_from)?;
+        rows.collect()
+    }
+
     pub fn sports_counts(&self) -> rusqlite::Result<Vec<(String, i64)>> {
         let connection = self.lock();
         let mut statement = connection.prepare("SELECT state, COUNT(*) FROM sports_items GROUP BY state ORDER BY state")?;
@@ -260,15 +330,15 @@ impl Store {
     }
 
     /// Forgets items no longer in the library.
-    pub fn keep_sports_items(&self, present: &[String]) -> rusqlite::Result<usize> {
+    pub fn keep_sports_items(&self, sections: &[String], present: &[String]) -> rusqlite::Result<usize> {
         let connection = self.lock();
-        let known: Vec<String> = {
-            let mut statement = connection.prepare("SELECT rating_key FROM sports_items")?;
-            let rows = statement.query_map([], |row| row.get(0))?;
+        let known: Vec<(String, String)> = {
+            let mut statement = connection.prepare("SELECT rating_key, section FROM sports_items")?;
+            let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
             rows.collect::<rusqlite::Result<_>>()?
         };
         let mut removed = 0;
-        for key in known.iter().filter(|key| !present.contains(key)) {
+        for (key, _) in known.iter().filter(|(key, section)| sections.contains(section) && !present.contains(key)) {
             removed += connection.execute("DELETE FROM sports_items WHERE rating_key = ?1", params![key])?;
         }
         Ok(removed)
@@ -327,7 +397,7 @@ impl Store {
 /// What a file researched before the server counted its effort holds in `seconds`, `searches` and `reads`: unknown, not none.
 pub const UNMEASURED: i64 = -1;
 
-const SPORTS_COLUMNS: &str = "rating_key, section, file, state, title, record, applied, note, tries, next_try, updated, seconds, searches, reads";
+const SPORTS_COLUMNS: &str = "rating_key, section, file, state, title, record, applied, note, tries, next_try, updated, seconds, searches, reads, original";
 
 fn sports_item_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<SportsItem> {
     Ok(SportsItem {
@@ -345,12 +415,42 @@ fn sports_item_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<SportsItem> {
         seconds: row.get(11)?,
         searches: row.get(12)?,
         reads: row.get(13)?,
+        original: row.get(14)?,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn finds_an_item_by_its_file_name_or_key() {
+        let store = Store::in_memory().unwrap();
+        let item = SportsItem {
+            rating_key: "21417".into(),
+            section: "4".into(),
+            file: "/s/UFC_334 Prelims%.mp4".into(),
+            state: "matched".into(),
+            title: String::new(),
+            record: None,
+            applied: None,
+            note: String::new(),
+            tries: 0,
+            next_try: 0,
+            updated: 1,
+            seconds: 0,
+            searches: 0,
+            reads: 0,
+            original: None,
+        };
+        store.save_sports_item(&item).unwrap();
+        assert!(store.sports_item_named("21417").unwrap().is_some());
+        assert!(store.sports_item_named("UFC_334 Prelims%.mp4").unwrap().is_some());
+        assert!(store.sports_item_named("UFCx334 Prelims%.mp4").unwrap().is_none());
+        assert_eq!(store.sports_per_section().unwrap(), vec![("4".to_string(), 1)]);
+        store.forget_sports_section("4").unwrap();
+        assert!(store.sports_item("21417").unwrap().is_none());
+    }
 
     #[test]
     fn files_researched_before_effort_was_counted_read_as_unmeasured() {
@@ -380,11 +480,12 @@ mod tests {
             seconds: 23,
             searches: 1,
             reads: 2,
+            original: None,
         };
         store.save_sports_item(&item).unwrap();
         assert_eq!(store.sports_item("21417").unwrap(), Some(item.clone()));
         assert_eq!(store.sports_counts().unwrap(), vec![("matched".to_string(), 1)]);
-        assert_eq!(store.keep_sports_items(&["1".into()]).unwrap(), 1);
+        assert_eq!(store.keep_sports_items(&["4".into()], &["1".into()]).unwrap(), 1);
         assert!(store.sports_items(10).unwrap().is_empty());
         store.save_sports_event("UFC 334", "{\"a\":1}").unwrap();
         assert_eq!(store.sports_event("UFC 334").unwrap().map(|(record, _)| record), Some("{\"a\":1}".into()));

@@ -73,6 +73,9 @@ pub struct Sports {
     /// Library section keys.
     #[serde(default)]
     pub libraries: Vec<String>,
+    /// What each chosen library holds, by section key; a library chosen before kinds existed holds sports.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub kinds: std::collections::BTreeMap<String, Kind>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub engine: Option<crate::sports::web::Engine>,
     /// The destination the owner agreed searches go to, as the engine describes it; a changed engine needs agreeing again.
@@ -80,7 +83,44 @@ pub struct Sports {
     pub agreed: Option<String>,
 }
 
+/// What a library holds, which decides how its files are researched.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Kind {
+    /// Recordings of sports events, researched as events with their card.
+    #[default]
+    Sports,
+    /// Adult films and scenes, researched as works with their studio and performers.
+    Adult,
+    /// Anything else: game cinematics, concerts, documentaries, clips; the model works out what each file is.
+    General,
+}
+
+impl Kind {
+    pub fn parse(text: &str) -> Option<Kind> {
+        match text.trim().to_lowercase().as_str() {
+            "sports" => Some(Kind::Sports),
+            "adult" => Some(Kind::Adult),
+            "general" | "other" | "anything" => Some(Kind::General),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Kind::Sports => "sports",
+            Kind::Adult => "adult",
+            Kind::General => "general",
+        }
+    }
+}
+
 impl Sports {
+    /// What the library with `section` holds.
+    pub fn kind_of(&self, section: &str) -> Kind {
+        self.kinds.get(section).copied().unwrap_or_default()
+    }
+
     /// Whether the owner agreed to the engine that is set now.
     pub fn agreed_to_engine(&self) -> bool {
         matches!((&self.engine, &self.agreed), (Some(engine), Some(agreed)) if engine.destination() == *agreed)

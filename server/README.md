@@ -8,9 +8,9 @@ TV pairs with it once and then gets:
 - **Previously On**: a short recap of the last episodes you finished, written by a model you choose from Plex's
   synopsis and the episodes' own subtitles, and checked before you see it.
 - **Ask**: pause and ask about what you're watching; the answer uses only what you've already seen.
-- **Sports Research**: for the sports recordings in an Other Videos library, your model searches the web, reads the
-  event's pages and gives each file a real title, date, card and poster in Plex, without touching the files
-  ([Sports Research](#sports-research)).
+- **Library Research**: for the videos in your Other Videos libraries (sports, adult films or anything else), your model
+  searches the web, reads the pages about each file and gives it a real title, date, description, people and poster in
+  Plex, without touching the files, and all of it can be taken back ([Library Research](#library-research)).
 
 With a model on this machine or on a computer on your own tailnet, nothing leaves your network. No such computer?
 Point it at a hosted model with your own key instead ([The model](#the-model)); it says what would be sent before
@@ -59,7 +59,7 @@ Needs ffmpeg for subtitles.
 
 ## The model
 
-Recaps, answers and Sports Research come from any OpenAI-compatible endpoint. `setup` looks for llama-swap, Ollama and
+Recaps, answers and Library Research come from any OpenAI-compatible endpoint. `setup` looks for llama-swap, Ollama and
 LM Studio on this machine and lists their models by name, a loaded one with a large enough window first;
 `crucible-server model` changes the choice later without signing in to Plex again, asks the model a tiny question to
 see that it answers, and restarts the service this user installed (restart a container yourself).
@@ -96,38 +96,60 @@ home network or your tailnet that asks for a key gets it over plain HTTP, direct
 Redirects are never followed. In Docker, mount the key as a secret and give its path to `setup` with
 `--model-key-file`, or in `CRUCIBLE_MODEL_KEY_FILE`, beside `--model-url`.
 
-## Sports Research
+## Library Research
 
-Plex has no agent for sports, so a recording in an Other Videos library shows up as its file name
-(`ufc.fight.night.286.nurmagomedov.vs.song.1080p.web.h264-verum`). Sports Research turns that into
+Plex has no agent for the videos in an Other Videos library, so each shows up as its file name
+(`ufc.fight.night.286.nurmagomedov.vs.song.1080p.web.h264-verum`). Library Research turns that into
 **UFC Fight Night 286: Nurmagomedov vs. Song**, dated, sorted with the event's other parts, with the card, the venue and
-the event's artwork, and does it again on its own whenever a new file arrives.
+the event's artwork, and does it again on its own whenever a new file arrives. You say what each library holds:
+
+- **Sports**: each file is researched as an event, with its card, and every part of an event is titled alike.
+- **Adult**: each film or scene is researched for its title, studio, performers, release date and cover, through your
+  own model and the search engine you chose. The summary is a neutral, non-graphic listing. A file whose name, record
+  or any page the model read says or suggests someone under 18 is not researched or written, and the same check covers
+  a file in another library whose name or sources mark it as adult. The apps never show this artwork on their research
+  screens, and only the owner sees these files there.
+- **General**: anything else, such as game cinematics, concerts, documentaries or clips; the model works out what each
+  file is, with its series, maker and the people in it.
 
 It is for people who run a capable model: one that calls tools, thinks before it answers and has a context window of
 32K tokens or more. In practice that is a model of about 20 billion parameters or more on a graphics card with 16 GB
 of memory (24 GB is comfortable), or on an Apple silicon Mac with 32 GB or more. Each file is researched by the model
-itself: it searches the web, reads the league's own event page and Wikipedia, and hands in a record. The server checks
+itself: it searches the web, reads the pages that confirm what the file is, and hands in a record. The server checks
 the record before anything reaches Plex: the date must be real and before the file arrived, an event number in the
 file name must match, the sources must be pages the model actually saw, and nothing may give away a result. Then it
-writes the title, sort title, date, summary, studio, genre, collection and artwork through Plex's own API, every field
-locked so Plex's agents leave it alone. The media files are never opened, moved or renamed, so a torrent client can
-keep seeding them. Change a field by hand in Plex and the server leaves that item to you from then on.
+writes the title, sort title, date, summary, studio, genre, collection, cast and artwork through Plex's own API, every
+field locked so Plex's agents leave it alone. The media files are never opened, moved or renamed, so a torrent client
+can keep seeding them. Change a field by hand in Plex and the server leaves that item to you from then on.
+
+Before research first writes to a file it keeps what Plex showed, poster included, so any file, or a whole library, can
+be taken back: every field research wrote returns to what it was and is unlocked, the genres, collections and cast it
+added go, and its poster gives way to the one Plex showed before. Whatever you changed in Plex yourself since stays as
+you made it, and research leaves the file alone until you ask for it again. Take a library out of research and the
+research running in it stops at once (a write already under way finishes, so Plex is never left half written); what it
+wrote stays until you take it back. Change what a library holds and its files are researched again as the new kind.
 
 ```sh
-crucible-server sports                                                   # every requirement, checked live
-crucible-server sports --searxng http://127.0.0.1:8888 --library Sports --agree --on
-crucible-server sports --try "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"     # research one name, write nothing
+crucible-server research                                                     # every requirement, checked live
+crucible-server research --searxng http://127.0.0.1:8888 --library Sports --kind Sports=sports --agree --on
+crucible-server research --try "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"       # research one name, write nothing
+crucible-server research --try "01 - Wings of Liberty - The Deal.mkv" --as general
+crucible-server research --undo "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"      # take one file back
+crucible-server research --undo-library Sports                                    # take a whole library back
+crucible-server research --again "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"     # research it again
 ```
 
 Search goes through a [SearXNG](https://docs.searxng.org) you run (turn its JSON format on) or Brave Search with your
-own key (`--brave-key-file`). Searches name the events in your files, such as "UFC 334 prelims"; nothing else from
-your library is sent, and the research does not start until you agree to where searches go. Pages are read only from
-public addresses, checked again on every redirect.
+own key (`--brave-key-file`). Searches name what is in your files, such as "UFC 334 prelims" or a film's title; nothing
+else from your library is sent, and the research does not start until you agree to where searches go. Pages are read
+only from public addresses, checked again on every redirect.
 
 Crucible on iPhone, iPad and Apple TV shows every requirement with whether it is met and how to meet it, lets the
-owner choose libraries, agree and switch research on, shows the file being researched and the step the model is on,
-and lists what it made of each file. With Nemotron 3.5 Bolt on llama.cpp, a UFC event takes about a minute and the
-other parts of the same event reuse it; with a model on your own machines, four events are researched at once.
+owner choose libraries and what they hold, agree and switch research on, shows each file being researched and the step
+the model is on, lists what it made of each file, and takes back a file or a library. With Nemotron 3.5 Bolt on
+llama.cpp a file takes about a minute; the copies of a file and the other parts of a sports event reuse it (each scene
+of a film is its own research, since it has its own title, cast and date), newest files go first, and with a model on
+your own machines four are researched at once.
 
 ## How it keeps you safe
 
@@ -148,7 +170,8 @@ other parts of the same event reuse it; with a model on your own machines, four 
   network over plain HTTP. `crucible-server doctor` says where the model is, and so does Crucible's own status line.
 - Summaries use names only from the episode's dialogue, synopsis and cast; a summary that invents one, or a sentence
   the sources don't support, is rewritten or dropped.
-- Sports Research writes to Plex only for the libraries the owner chose, only as the owner, and only metadata. It
-  reads web pages only at public addresses, so a page cannot steer it into your network.
+- Library Research writes to Plex only for the libraries the owner chose, only as the owner, and only metadata, and keeps
+  what it replaced so it can be taken back. It reads web pages only at public addresses, so a page cannot steer it into
+  your network.
 
 Licensed GPL-3.0, like Crucible.

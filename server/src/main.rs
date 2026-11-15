@@ -87,8 +87,10 @@ enum Command {
         #[arg(long, short)]
         yes: bool,
     },
-    /// Research the sports files of an Other Videos library with your model and write proper titles, dates, cards and
-    /// artwork into Plex. Without options, shows every requirement and where it stands.
+    /// Research the files of your Other Videos libraries (sports, adult or anything else) with your model and write
+    /// proper titles, dates, descriptions, people and artwork into Plex; take it back with --undo. Without options,
+    /// shows every requirement and where it stands.
+    #[command(name = "research", alias = "sports")]
     Sports {
         /// Search with the SearXNG at this address, with its JSON format on, such as http://127.0.0.1:8888.
         #[arg(long)]
@@ -108,9 +110,25 @@ enum Command {
         /// Agree to where searches go without being asked.
         #[arg(long)]
         agree: bool,
+        /// What a chosen library holds, as LIBRARY=KIND (sports, adult or general); repeat for more.
+        #[arg(long = "kind", value_name = "LIBRARY=KIND")]
+        kinds: Vec<String>,
         /// Research this file name and print what Plex would show, writing nothing; to judge a model.
         #[arg(long = "try", value_name = "FILE NAME")]
         try_name: Option<String>,
+        /// What the file given to --try is: sports (the default), adult or general.
+        #[arg(long = "as", value_name = "KIND", requires = "try_name")]
+        try_kind: Option<String>,
+        /// Take research back from one file, by its file name or rating key: Plex shows it as it was, and it is not
+        /// researched again until asked.
+        #[arg(long, value_name = "FILE NAME")]
+        undo: Option<String>,
+        /// Take research back from every file of a library, by its name.
+        #[arg(long, value_name = "LIBRARY")]
+        undo_library: Option<String>,
+        /// Research one file again from scratch, by its file name or rating key, including one taken back.
+        #[arg(long, value_name = "FILE NAME")]
+        again: Option<String>,
     },
     /// Check Plex, the model, ffmpeg, the certificate and the service.
     Doctor,
@@ -174,8 +192,9 @@ async fn run(command: Command, paths: Paths) -> Result<(), String> {
             setup::model(&paths, setup::ModelOptions { url, name, key_file, context, assume_yes: yes }, off).await
         }
         Command::Serve => serve::run(&paths).await,
-        Command::Sports { searxng, brave_key_file, libraries, on, off, agree, try_name } => {
-            sports::cli::run(&paths, sports::cli::Options { searxng, brave_key_file, libraries, on, off, agree, try_name }).await
+        Command::Sports { searxng, brave_key_file, libraries, on, off, agree, kinds, try_name, try_kind, undo, undo_library, again } => {
+            let options = sports::cli::Options { searxng, brave_key_file, libraries, on, off, agree, kinds, try_name, try_kind, undo, undo_library, again };
+            sports::cli::run(&paths, options).await
         }
         Command::Pair => {
             let (config, store) = context(&paths)?;

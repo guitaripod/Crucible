@@ -4,10 +4,52 @@ use serde_json::{json, Value};
 
 use super::record::{domain, Record};
 use super::release::Release;
+use super::work::WorkRecord;
+use crate::config::Kind;
 use crate::store::SportsItem;
 
-/// One item as `GET /sports` lists it.
-pub fn item_view(item: &SportsItem) -> Value {
+/// The distinct sites of a record's sources, in order.
+fn sites(sources: &[String]) -> Vec<String> {
+    let mut sites: Vec<String> = Vec::new();
+    for site in sources.iter().filter_map(|source| domain(source)) {
+        if !sites.contains(&site) {
+            sites.push(site);
+        }
+    }
+    sites
+}
+
+/// What research found for a file that is not sports, in the shape the apps read, with its own fields beside.
+fn work_detail(record: WorkRecord, kind: Kind) -> Value {
+    let event = if record.title.is_empty() { record.series.clone() } else { record.title.clone() };
+    json!({
+        "kind": kind.name(),
+        "event": event,
+        "part": record.part,
+        "date": record.date,
+        "year": record.year,
+        "venue": "",
+        "city": "",
+        "headline": "",
+        "league": record.studio,
+        "sport": record.genres.first().cloned().unwrap_or_default(),
+        "summary": record.summary,
+        "lineup": [],
+        "series": record.series,
+        "studio": record.studio,
+        "people": record.people,
+        "genres": record.genres,
+        "sources": sites(&record.sources),
+        "posterUrl": record.poster_url,
+    })
+}
+
+/// One item as `GET /sports` lists it, from a library of `kind`.
+pub fn item_view(item: &SportsItem, kind: Kind) -> Value {
+    if kind != Kind::Sports {
+        let detail = item.record.as_deref().and_then(|text| serde_json::from_str::<WorkRecord>(text).ok()).map(|record| work_detail(record, kind));
+        return item_json(item, kind, detail);
+    }
     let record: Option<Record> = item.record.as_deref().and_then(|text| serde_json::from_str(text).ok());
     let detail = record.map(|record| {
         let lineup: Vec<Value> = record
@@ -16,13 +58,9 @@ pub fn item_view(item: &SportsItem) -> Value {
             .filter(|bout| bout.matchup.contains(" vs. "))
             .map(|bout| json!({"matchup": bout.matchup, "detail": bout.detail}))
             .collect();
-        let mut sources: Vec<String> = Vec::new();
-        for source in record.sources.iter().filter_map(|source| domain(source)) {
-            if !sources.contains(&source) {
-                sources.push(source);
-            }
-        }
+        let sources = sites(&record.sources);
         json!({
+            "kind": "sports",
             "event": record.event_title(),
             "part": record.part,
             "date": record.date,
@@ -37,8 +75,13 @@ pub fn item_view(item: &SportsItem) -> Value {
             "posterUrl": record.poster_url,
         })
     });
+    item_json(item, kind, detail)
+}
+
+fn item_json(item: &SportsItem, kind: Kind, detail: Option<Value>) -> Value {
     json!({
         "ratingKey": item.rating_key,
+        "kind": kind.name(),
         "section": item.section,
         "file": item.file,
         "fileName": Release::read(&item.file).file_name,
@@ -103,15 +146,16 @@ mod tests {
             seconds: 23,
             searches: 1,
             reads: 2,
+            original: None,
         };
-        let view = item_view(&item);
+        let view = item_view(&item, Kind::Sports);
         assert_eq!(view["fileName"], "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4");
         assert_eq!(view["detail"]["event"], "UFC 334: Gane vs. Hokit");
         assert_eq!(view["detail"]["lineup"].as_array().unwrap().len(), 1);
         assert_eq!(view["detail"]["sources"], json!(["ufc.com", "en.wikipedia.org"]));
         assert_eq!(view["seconds"], 23);
         let unmeasured = SportsItem { seconds: crate::store::UNMEASURED, searches: crate::store::UNMEASURED, reads: crate::store::UNMEASURED, ..item.clone() };
-        assert!(item_view(&unmeasured)["seconds"].is_null() && item_view(&unmeasured)["reads"].is_null());
-        assert!(item_view(&SportsItem { record: None, ..item }).get("detail").is_some_and(Value::is_null));
+        assert!(item_view(&unmeasured, Kind::Sports)["seconds"].is_null() && item_view(&unmeasured, Kind::Sports)["reads"].is_null());
+        assert!(item_view(&SportsItem { record: None, ..item }, Kind::Sports).get("detail").is_some_and(Value::is_null));
     }
 }

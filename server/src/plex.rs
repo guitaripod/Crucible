@@ -48,6 +48,22 @@ struct IdentityContainer {
 }
 
 #[derive(Debug, Default, Deserialize)]
+struct ArtworkContainer {
+    #[serde(rename = "Metadata", default)]
+    metadata: Vec<ArtworkChoice>,
+}
+
+/// One image Plex has for an item's poster or background.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct ArtworkChoice {
+    /// What Plex selects the image by: `upload://posters/…` for an uploaded one, `media://…` for one Plex made.
+    #[serde(rename = "ratingKey", default)]
+    pub key: String,
+    #[serde(default)]
+    pub selected: bool,
+}
+
+#[derive(Debug, Default, Deserialize)]
 struct MetadataContainer {
     #[serde(rename = "Metadata", default)]
     metadata: Vec<Item>,
@@ -95,6 +111,10 @@ pub struct Item {
     pub tagline: Option<String>,
     #[serde(default)]
     pub thumb: Option<String>,
+    #[serde(default)]
+    pub art: Option<String>,
+    #[serde(default)]
+    pub year: Option<i64>,
     #[serde(rename = "Field", default)]
     pub locks: Vec<FieldLock>,
     #[serde(rename = "Collection", default)]
@@ -384,6 +404,49 @@ impl Plex {
     }
 
     /// Uploads an image as an item's poster (`posters`) or background (`arts`); Plex keeps the bytes and selects it.
+    /// Asks Plex to look at an item again with its own agent, which fills every unlocked field and picks the artwork.
+    pub async fn refresh_item(&self, rating_key: &str, token: &str) -> Result<(), PlexError> {
+        let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
+        let response = self
+            .request_with(reqwest::Method::PUT, &format!("/library/metadata/{key}/refresh"), Some(token))
+            .send()
+            .await
+            .map_err(|error| PlexError::Unreachable(self.base.clone(), error.to_string()))?;
+        Self::accepted(response.status())
+    }
+
+    /// The images Plex has for an item's poster or background, with the one it shows marked.
+    pub async fn artwork_choices(&self, rating_key: &str, kind: Artwork, token: &str) -> Result<Vec<ArtworkChoice>, PlexError> {
+        let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
+        let path = format!("/library/metadata/{key}/{}", kind.path());
+        let response = self.send(&path, Some(token)).await?;
+        match response.status() {
+            StatusCode::OK => {}
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => return Err(PlexError::Unauthorized),
+            StatusCode::NOT_FOUND => return Err(PlexError::NotFound(path)),
+            other => return Err(PlexError::Status(other.as_u16())),
+        }
+        let body: Envelope<ArtworkContainer> = response.json().await.map_err(|error| PlexError::Decode(error.to_string()))?;
+        Ok(body.container.metadata)
+    }
+
+    /// The key of the image Plex shows as an item's poster or background, when it shows one.
+    pub async fn chosen_artwork(&self, rating_key: &str, kind: Artwork, token: &str) -> Result<Option<String>, PlexError> {
+        Ok(self.artwork_choices(rating_key, kind, token).await?.into_iter().find(|choice| choice.selected).map(|choice| choice.key))
+    }
+
+    /// Shows one of the item's images, by the key `artwork_choices` gave, as its poster or background.
+    pub async fn choose_artwork(&self, rating_key: &str, kind: Artwork, choice: &str, token: &str) -> Result<(), PlexError> {
+        let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
+        let response = self
+            .request_with(reqwest::Method::PUT, &format!("/library/metadata/{key}/{}", kind.chosen_path()), Some(token))
+            .query(&[("url", choice)])
+            .send()
+            .await
+            .map_err(|error| PlexError::Unreachable(self.base.clone(), error.to_string()))?;
+        Self::accepted(response.status())
+    }
+
     pub async fn upload_artwork(&self, rating_key: &str, kind: Artwork, bytes: Vec<u8>, token: &str) -> Result<(), PlexError> {
         let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
         let response = self
@@ -422,6 +485,22 @@ impl Artwork {
         match self {
             Artwork::Poster => "posters",
             Artwork::Background => "arts",
+        }
+    }
+
+    /// The path that selects one of the item's images as this kind.
+    fn chosen_path(self) -> &'static str {
+        match self {
+            Artwork::Poster => "poster",
+            Artwork::Background => "art",
+        }
+    }
+
+    /// The image in words.
+    pub fn noun(self) -> &'static str {
+        match self {
+            Artwork::Poster => "poster",
+            Artwork::Background => "background",
         }
     }
 

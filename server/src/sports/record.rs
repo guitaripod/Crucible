@@ -46,6 +46,7 @@ pub struct Record {
 
 /// The fields written to Plex for one item.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Desired {
     pub title: String,
     pub title_sort: String,
@@ -56,6 +57,8 @@ pub struct Desired {
     pub year: i32,
     pub genres: Vec<String>,
     pub collections: Vec<String>,
+    /// The people in it, written as Plex's cast.
+    pub cast: Vec<String>,
     pub poster: Option<String>,
     pub background: Option<String>,
 }
@@ -346,6 +349,7 @@ impl Record {
             year: date.map_or(0, |(year, _, _)| year),
             genres: if self.sport.trim().is_empty() { Vec::new() } else { vec![self.sport.trim().to_string()] },
             collections: if in_collection { vec![event_title] } else { Vec::new() },
+            cast: Vec::new(),
             poster: self.poster_url.clone().filter(|url| url.starts_with("http")),
             background: self.background_url.clone().filter(|url| url.starts_with("http")),
         }

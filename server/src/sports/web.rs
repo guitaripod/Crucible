@@ -77,7 +77,7 @@ pub enum WebError {
     NotPublic,
     #[error("{0} is too large to read")]
     TooLarge(String),
-    #[error("Brave Search needs its key: crucible-server sports --brave-key-file")]
+    #[error("Brave Search needs its key: crucible-server research --brave-key-file")]
     NoKey,
     #[error("the search engines {0} are turning searches away for now")]
     Busy(String),

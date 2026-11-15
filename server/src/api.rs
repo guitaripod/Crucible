@@ -122,7 +122,9 @@ pub fn router(state: Shared) -> Router {
         .route("/sports", get(sports_status).put(sports_settings))
         .route("/sports/run", post(sports_run))
         .route("/sports/checks", post(sports_checks))
-        .route("/sports/items/{rating_key}/redo", post(sports_redo));
+        .route("/sports/items/{rating_key}/redo", post(sports_redo))
+        .route("/sports/items/{rating_key}/undo", post(sports_undo))
+        .route("/sports/libraries/{key}/undo", post(sports_undo_library));
     Router::new()
         .nest("/crucible/v1", v1)
         .layer(DefaultBodyLimit::max(1 << 20))
@@ -213,7 +215,7 @@ async fn hello(State(state): State<Shared>) -> Json<Value> {
         "fingerprint": state.fingerprint,
         "brain": state.writer.is_some(),
         "sports": state.sports.is_some(),
-        "sportsVersion": 2,
+        "sportsVersion": 3,
         "plexMachineIdentifier": state.config.machine_identifier,
     }))
 }
@@ -431,7 +433,7 @@ fn sports(state: &AppState) -> Result<Arc<Sports>, ApiError> {
     state
         .sports
         .clone()
-        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "no_sports", "This Crucible Server has no sports research.").hint("Update Crucible Server."))
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "no_sports", "This Crucible Server has no library research.").hint("Update Crucible Server."))
 }
 
 /// A caller who is the server's owner, for the routes that change what the server writes into Plex.
@@ -440,7 +442,7 @@ async fn owner(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiError
     if state.home.is_owner(&caller.plex_token).await {
         Ok(caller)
     } else {
-        Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "Only the owner of this Plex server can change sports research."))
+        Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "Only the owner of this Plex server can change library research."))
     }
 }
 
@@ -460,20 +462,28 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
         }
         status.last_error = None;
     }
+    let researched = sports.researched_per_library();
     let libraries: Vec<Value> = sports
         .libraries()
         .await
         .into_iter()
         .filter(|(_, _, other_videos)| *other_videos)
-        .map(|(key, title, _)| json!({"key": key, "title": title, "chosen": settings.libraries.contains(&key)}))
+        .map(|(key, title, _)| {
+            let researched = researched.get(&key).copied().unwrap_or(0);
+            json!({"key": key, "title": title, "chosen": settings.libraries.contains(&key), "kind": settings.kind_of(&key).name(), "researched": researched})
+        })
         .collect();
     let (mut items, counts) = sports.items(60);
     if !is_owner {
+        items.retain(|item| settings.kind_of(&item.section) != crate::config::Kind::Adult);
         for item in &mut items {
             item.file = item.file.rsplit(['/', '\\']).next().unwrap_or_default().to_string();
         }
+        let adult = crate::config::Kind::Adult.name();
+        status.running.retain(|current| current.kind != adult);
+        status.current = status.running.first().cloned();
     }
-    let items: Vec<Value> = items.iter().map(crate::sports::view::item_view).collect();
+    let items: Vec<Value> = items.iter().map(|item| crate::sports::view::item_view(item, settings.kind_of(&item.section))).collect();
     Ok(Json(json!({
         "owner": is_owner,
         "ready": ready,
@@ -497,6 +507,7 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
 struct SportsChange {
     on: Option<bool>,
     libraries: Option<Vec<String>>,
+    kinds: Option<std::collections::BTreeMap<String, String>>,
     agree: Option<bool>,
 }
 
@@ -522,6 +533,11 @@ async fn sports_settings(State(state): State<Shared>, headers: HeaderMap, Json(c
             if let Some(chosen) = change.libraries {
                 settings.libraries = chosen;
             }
+            for (section, kind) in change.kinds.iter().flatten() {
+                if let Some(kind) = crate::config::Kind::parse(kind) {
+                    settings.kinds.insert(section.clone(), kind);
+                }
+            }
             match change.agree {
                 Some(true) => settings.agreed = settings.engine.as_ref().map(|engine| engine.destination()),
                 Some(false) => settings.agreed = None,
@@ -529,7 +545,7 @@ async fn sports_settings(State(state): State<Shared>, headers: HeaderMap, Json(c
             }
         })
         .map_err(|error| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "config", error))?;
-    tracing::info!(on = updated.on, libraries = ?updated.libraries, agreed = updated.agreed_to_engine(), "the owner changed sports research");
+    tracing::info!(on = updated.on, libraries = ?updated.libraries, kinds = ?updated.kinds, agreed = updated.agreed_to_engine(), "the owner changed sports research");
     Ok(Json(json!({"on": updated.on, "libraries": updated.libraries, "agreed": updated.agreed_to_engine()})))
 }
 
@@ -551,6 +567,25 @@ async fn sports_checks(State(state): State<Shared>, headers: HeaderMap) -> Resul
     Ok(Json(json!({"ready": crate::sports::checks::ready(&checks), "checks": checks})))
 }
 
+/// The owner takes research back from one item: Plex shows it as it was, and it is not researched again until asked.
+async fn sports_undo(State(state): State<Shared>, headers: HeaderMap, Path(rating_key): Path<String>) -> Result<StatusCode, ApiError> {
+    owner(&state, &headers).await?;
+    let key = sanitize_key(&rating_key).ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "not_found", "No such item."))?;
+    sports(&state)?.undo(key).await.map_err(|error| ApiError::new(StatusCode::BAD_GATEWAY, "undo_failed", error))?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// The owner takes research back from a whole library; it runs on, item after item, after the answer.
+async fn sports_undo_library(State(state): State<Shared>, headers: HeaderMap, Path(key): Path<String>) -> Result<StatusCode, ApiError> {
+    owner(&state, &headers).await?;
+    let section = sanitize_key(&key).ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "not_found", "No such library."))?.to_string();
+    let sports = sports(&state)?.clone();
+    tokio::spawn(async move {
+        sports.undo_library(&section).await;
+    });
+    Ok(StatusCode::ACCEPTED)
+}
+
 /// The owner asks for one item to be researched again from scratch.
 async fn sports_redo(State(state): State<Shared>, headers: HeaderMap, Path(rating_key): Path<String>) -> Result<StatusCode, ApiError> {
     owner(&state, &headers).await?;
@@ -558,6 +593,6 @@ async fn sports_redo(State(state): State<Shared>, headers: HeaderMap, Path(ratin
     if sports(&state)?.redo(key) {
         Ok(StatusCode::ACCEPTED)
     } else {
-        Err(ApiError::new(StatusCode::NOT_FOUND, "not_found", "Sports research has not seen that item."))
+        Err(ApiError::new(StatusCode::NOT_FOUND, "not_found", "Research has not seen that item."))
     }
 }

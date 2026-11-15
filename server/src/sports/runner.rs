@@ -10,16 +10,17 @@ use futures_util::stream::{self, StreamExt};
 use serde::Serialize;
 use tokio::sync::Notify;
 
-use super::apply::{apply, edited_by_owner};
+use super::apply::{apply, artwork_of, edited_by_owner, undo_pairs, Original};
 use super::checks::{self, Check, Inputs};
 use super::record::{days_from_civil, Desired, Record};
 use super::release::Release;
 use super::research::{research, ResearchError, Step};
 use super::web::{Engine, Web};
+use super::work::{research_work, Work, WorkRecord};
 use crate::brain::Brain;
-use crate::config::{Config, Model, Sports as Settings};
+use crate::config::{Config, Kind, Model, Sports as Settings};
 use crate::paths::Paths;
-use crate::plex::{Item, Plex};
+use crate::plex::{Artwork, Item, Plex, PlexError};
 use crate::store::{now, SportsItem, Store, UNMEASURED};
 
 /// How often the libraries are looked at when nothing wakes the service sooner.
@@ -33,6 +34,54 @@ enum Handled {
     Done,
     /// The search engine turned research away; the rest of the pass waits for the next one.
     SearchBusy,
+    /// The owner took the item's library out, or switched research off, while it ran.
+    Stopped,
+}
+
+/// A record research made: of a sports event, or of any other work.
+enum Found {
+    Event(Record),
+    Work(WorkRecord),
+}
+
+impl Found {
+    /// The record kept for an item, when it was researched as the kind its library holds now. A record from before
+    /// the owner changed the library's kind is not read as the new kind's, so the file is researched again.
+    fn read(kind: Kind, text: &str) -> Option<Found> {
+        let value: serde_json::Value = serde_json::from_str(text).ok()?;
+        let stored = value.get("kind").and_then(serde_json::Value::as_str).unwrap_or(Kind::Sports.name());
+        if stored != kind.name() {
+            return None;
+        }
+        match kind {
+            Kind::Sports => serde_json::from_value::<Record>(value).ok().map(Found::Event),
+            Kind::Adult | Kind::General => serde_json::from_value::<WorkRecord>(value).ok().map(Found::Work),
+        }
+    }
+
+    fn settle(&mut self, release: &Release, work: &Work) {
+        match self {
+            Found::Event(record) => record.settle(release),
+            Found::Work(record) => record.settle(work),
+        }
+    }
+
+    fn render(&self, together: bool) -> Desired {
+        match self {
+            Found::Event(record) => record.render(together),
+            Found::Work(record) => record.render(),
+        }
+    }
+
+    /// The record as kept, marked with the kind it was researched as.
+    fn json(&self, kind: Kind) -> Option<String> {
+        let mut value = match self {
+            Found::Event(record) => serde_json::to_value(record).ok()?,
+            Found::Work(record) => serde_json::to_value(record).ok()?,
+        };
+        value.as_object_mut()?.insert("kind".into(), kind.name().into());
+        serde_json::to_string(&value).ok()
+    }
 }
 
 /// What the service is doing now, for the app.
@@ -41,6 +90,8 @@ enum Handled {
 pub struct Status {
     /// `idle`, `looking`, `researching`, `writing` or `waiting` (not everything is ready).
     pub phase: String,
+    /// Items still to take back after the owner undid a library's research.
+    pub undoing: usize,
     /// The research running longest, for clients that show one.
     pub current: Option<Current>,
     /// Every research running now, oldest first.
@@ -57,6 +108,8 @@ pub struct Current {
     pub rating_key: String,
     pub name: String,
     pub file: String,
+    /// What the file's library holds: `sports`, `adult` or `general`.
+    pub kind: String,
     /// The step in words, for clients from before `steps`.
     pub step: String,
     pub started: i64,
@@ -103,10 +156,16 @@ impl Status {
 impl Current {
     /// The live research of `release`, starting now with no steps yet.
     fn starting(rating_key: &str, release: &Release) -> Self {
+        Current::named(rating_key, &release.cleaned, &release.file_name, Kind::Sports)
+    }
+
+    /// The live research of a file by the name it is shown under and its file name, starting now with no steps yet.
+    fn named(rating_key: &str, name: &str, file: &str, kind: Kind) -> Self {
         Current {
             rating_key: rating_key.to_string(),
-            name: release.cleaned.clone(),
-            file: release.file_name.clone(),
+            name: name.to_string(),
+            file: file.to_string(),
+            kind: kind.name().to_string(),
             step: "Thinking".into(),
             started: now(),
             elapsed: 0,
@@ -155,6 +214,10 @@ pub struct Sports {
     status: Mutex<Status>,
     checked: Mutex<Option<(i64, Vec<Check>)>>,
     wake: Notify,
+    /// Counts every change of the settings, so research running in a library the owner took out stops at once.
+    changed: tokio::sync::watch::Sender<u64>,
+    /// One lock per item, so research writing an item and the owner taking it back never run at once.
+    item_locks: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
 }
 
 /// The start of the note on an item whose research is done but whose write Plex refused.
@@ -183,15 +246,20 @@ fn research_at_once(model: &Model) -> usize {
 /// A library item due for research, with the section it is in.
 type Due<'a> = &'a (String, Item);
 
-/// The due items in groups that run one after another: the parts of one event together, in the order they came, so
-/// the first part's research is there for the rest; every file without an event number alone.
-fn by_event<'a>(due: &[Due<'a>]) -> Vec<Vec<Due<'a>>> {
+/// The due items in groups that run one after another, so a group's first research is there for the rest: the parts
+/// of one sports event together, the copies and scenes of one work together, in the order they came; every other file
+/// alone.
+fn grouped<'a>(due: &[Due<'a>], kind_of: impl Fn(&str) -> Kind) -> Vec<Vec<Due<'a>>> {
     let mut groups: Vec<(Option<String>, Vec<Due<'a>>)> = Vec::new();
     for entry in due {
-        let event = entry.1.part().and_then(|part| part.file.as_deref()).map(Release::read).and_then(|release| release.event);
-        match groups.iter_mut().find(|(key, _)| event.is_some() && *key == event) {
+        let file = entry.1.part().and_then(|part| part.file.as_deref());
+        let key = file.and_then(|file| match kind_of(&entry.0) {
+            Kind::Sports => Release::read(file).event.map(|event| format!("event:{event}")),
+            kind @ (Kind::Adult | Kind::General) => Some(format!("work:{}:{}", kind.name(), Work::read(file).key)),
+        });
+        match groups.iter_mut().find(|(group, _)| key.is_some() && *group == key) {
             Some((_, group)) => group.push(entry),
-            None => groups.push((event, vec![entry])),
+            None => groups.push((key, vec![entry])),
         }
     }
     groups.into_iter().map(|(_, group)| group).collect()
@@ -232,6 +300,8 @@ impl Sports {
             status: Mutex::new(Status { phase: "idle".into(), ..Status::default() }),
             checked: Mutex::new(None),
             wake: Notify::new(),
+            changed: tokio::sync::watch::channel(0).0,
+            item_locks: Mutex::new(HashMap::new()),
             paths,
         }
     }
@@ -274,8 +344,25 @@ impl Sports {
         *self.settings.write().unwrap_or_else(PoisonError::into_inner) = updated.clone();
         *self.web.write().unwrap_or_else(PoisonError::into_inner) = web_for(&self.paths, &updated);
         *self.checked.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        self.changed.send_modify(|count| *count += 1);
         self.wake.notify_one();
         Ok(updated)
+    }
+
+    /// The lock that keeps research's write of an item and the owner's take back of it apart.
+    fn item_lock(&self, rating_key: &str) -> Arc<tokio::sync::Mutex<()>> {
+        self.item_locks.lock().unwrap_or_else(PoisonError::into_inner).entry(rating_key.to_string()).or_default().clone()
+    }
+
+    /// Whether the owner took research back from an item, which is then left alone until they ask for it again.
+    fn taken_back(&self, rating_key: &str) -> bool {
+        self.store.sports_item(rating_key).ok().flatten().is_some_and(|row| row.state == "undone")
+    }
+
+    /// Whether research is off or the owner took `section` out of it.
+    fn left_research(&self, section: &str) -> bool {
+        let settings = self.settings();
+        !settings.on || !settings.libraries.contains(&section.to_string())
     }
 
     /// Looks at the libraries now instead of at the next interval.
@@ -367,10 +454,12 @@ impl Sports {
                 return;
             }
         };
+        let titles: HashMap<String, String> = listed.iter().map(|(key, title, _)| (key.clone(), title.clone())).collect();
         let existing: Vec<String> = listed.into_iter().filter(|(_, _, other_videos)| *other_videos).map(|(key, _, _)| key).collect();
+        let sections: Vec<String> = self.settings().libraries.into_iter().filter(|section| existing.contains(section)).collect();
         let mut items: Vec<(String, Item)> = Vec::new();
-        for section in self.settings().libraries.into_iter().filter(|section| existing.contains(section)) {
-            match self.plex.section_videos(&section, &token).await {
+        for section in &sections {
+            match self.plex.section_videos(section, &token).await {
                 Ok(found) => items.extend(found.into_iter().map(|item| (section.clone(), item))),
                 Err(error) => {
                     tracing::warn!(%section, %error, "could not list a sports library");
@@ -383,7 +472,7 @@ impl Sports {
             }
         }
         let present: Vec<String> = items.iter().map(|(_, item)| item.rating_key.clone()).collect();
-        let _ = self.store.keep_sports_items(&present);
+        let _ = self.store.keep_sports_items(&sections, &present);
         let mut parts_per_event: HashMap<String, usize> = HashMap::new();
         for (_, item) in &items {
             if let Some(event) = item.part().and_then(|part| part.file.as_deref()).map(Release::read).and_then(|release| release.event) {
@@ -391,25 +480,32 @@ impl Sports {
             }
         }
         self.follow_owner_titles(&items);
-        let due: Vec<&(String, Item)> = items.iter().filter(|(_, item)| self.is_due(item)).collect();
+        let mut due: Vec<&(String, Item)> = items.iter().filter(|(_, item)| self.is_due(item)).collect();
+        due.sort_by_key(|(_, item)| std::cmp::Reverse(item.added_at.unwrap_or(0)));
+        let kinds = self.settings();
         self.set_status(|status| {
             status.phase = if due.is_empty() { "idle" } else { "researching" }.into();
             status.queued = due.len();
         });
         let paused = AtomicBool::new(false);
         let started = AtomicUsize::new(0);
-        stream::iter(by_event(&due))
+        stream::iter(grouped(&due, |section| kinds.kind_of(section)))
             .for_each_concurrent(research_at_once(&brain.model), |group| {
-                let (brain, web, token, parts_per_event, paused, started, total) = (&brain, &web, &token, &parts_per_event, &paused, &started, due.len());
+                let (brain, web, token, parts_per_event, paused, started, total, titles) =
+                    (&brain, &web, &token, &parts_per_event, &paused, &started, due.len(), &titles);
                 async move {
                     for (section, item) in group {
                         let settings = self.settings();
                         if paused.load(Ordering::Relaxed) || !settings.on || !settings.agreed_to_engine() {
                             return;
                         }
+                        if !settings.libraries.contains(section) {
+                            continue;
+                        }
                         let begun = started.fetch_add(1, Ordering::Relaxed) + 1;
                         self.set_status(|status| status.queued = total.saturating_sub(begun));
-                        let handled = self.handle(brain, web, token, section, item, parts_per_event).await;
+                        let library = titles.get(section).map(String::as_str).unwrap_or("");
+                        let handled = self.handle(brain, web, token, section, library, item, parts_per_event).await;
                         self.set_status(|status| status.finish(&item.rating_key));
                         if handled == Handled::SearchBusy {
                             paused.store(true, Ordering::Relaxed);
@@ -456,16 +552,47 @@ impl Sports {
         }
     }
 
-    async fn handle(&self, brain: &Brain, web: &Web, token: &str, section: &str, item: &Item, parts_per_event: &HashMap<String, usize>) -> Handled {
+    /// Resolves once the owner takes `section` out of research or switches research off.
+    async fn stopped(&self, section: &str) {
+        let mut changes = self.changed.subscribe();
+        loop {
+            if self.left_research(section) {
+                return;
+            }
+            if changes.changed().await.is_err() {
+                std::future::pending::<()>().await;
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn handle(
+        &self,
+        brain: &Brain,
+        web: &Web,
+        token: &str,
+        section: &str,
+        library: &str,
+        item: &Item,
+        parts_per_event: &HashMap<String, usize>,
+    ) -> Handled {
         let Some(file) = item.part().and_then(|part| part.file.clone()) else { return Handled::Done };
+        let kind = self.settings().kind_of(section);
         let release = Release::read(&file);
+        let work = Work::read(&file);
+        let shown_name = if kind == Kind::Sports { release.cleaned.clone() } else { work.cleaned.clone() };
+        let lock = self.item_lock(&item.rating_key);
+        let looking = lock.lock().await;
         let known = self.store.sports_item(&item.rating_key).ok().flatten();
+        if known.as_ref().is_some_and(|known| known.state == "undone") {
+            return Handled::Done;
+        }
         let mut row = known.clone().unwrap_or_else(|| SportsItem {
             rating_key: item.rating_key.clone(),
             section: section.to_string(),
             file: file.clone(),
             state: "failed".into(),
-            title: release.cleaned.clone(),
+            title: shown_name.clone(),
             record: None,
             applied: None,
             note: String::new(),
@@ -475,12 +602,11 @@ impl Sports {
             seconds: UNMEASURED,
             searches: UNMEASURED,
             reads: UNMEASURED,
+            original: None,
         });
+        let together = release.event.as_ref().and_then(|event| parts_per_event.get(event)).is_some_and(|count| *count > 1);
         let applied: Option<Desired> = row.applied.as_deref().and_then(|text| serde_json::from_str(text).ok());
-        let wanted: Option<Desired> = row.record.as_deref().and_then(|text| serde_json::from_str::<Record>(text).ok()).map(|record| {
-            let together = release.event.as_ref().and_then(|event| parts_per_event.get(event)).is_some_and(|count| *count > 1);
-            record.render(together)
-        });
+        let wanted: Option<Desired> = row.record.as_deref().and_then(|text| Found::read(kind, text)).map(|found| found.render(together));
         let set_by_hand = match &applied {
             Some(applied) => edited_by_owner(item, applied) && wanted.as_ref().is_none_or(|wanted| edited_by_owner(item, wanted)),
             None => {
@@ -497,45 +623,76 @@ impl Sports {
             let _ = self.store.save_sports_item(&row);
             return Handled::Done;
         }
-        let record = match (&known, row.record.as_deref().and_then(|text| serde_json::from_str::<Record>(text).ok())) {
-            (Some(known), Some(mut record)) if known.state == "matched" || wrote_before(Some(known)) => {
-                record.settle(&release);
-                record
+        drop(looking);
+        let stored = row.record.as_deref().and_then(|text| Found::read(kind, text));
+        let researched = match (&known, stored) {
+            (Some(known), Some(mut found)) if known.state == "matched" || wrote_before(Some(known)) => {
+                found.settle(&release, &work);
+                Ok((found, None))
             }
-            _ => match self.record_for(brain, web, item, &release).await {
-                Ok((record, effort)) => {
+            _ => {
+                let research = async {
+                    match kind {
+                        Kind::Sports => self.record_for(brain, web, item, &release).await.map(|(record, effort)| (Found::Event(record), Some(effort))),
+                        Kind::Adult | Kind::General => {
+                            self.work_for(brain, web, kind, item, &work, library).await.map(|(record, effort)| (Found::Work(record), Some(effort)))
+                        }
+                    }
+                };
+                tokio::select! {
+                    researched = research => researched,
+                    () = self.stopped(section) => return Handled::Stopped,
+                }
+            }
+        };
+        let _writing = lock.lock().await;
+        if self.left_research(section) {
+            return Handled::Stopped;
+        }
+        if self.taken_back(&item.rating_key) {
+            return Handled::Done;
+        }
+        let found = match researched {
+            Ok((found, effort)) => {
+                if let Some(effort) = effort {
                     row.seconds = effort.seconds;
                     row.searches = effort.searches;
                     row.reads = effort.reads;
-                    record
                 }
-                Err((state, note, wait)) => {
-                    let busy = note.starts_with("Searching paused");
-                    row.tries += if busy { 0 } else { 1 };
-                    row.state = state.into();
-                    row.note = note;
-                    row.next_try = now() + wait.saturating_mul(row.tries.clamp(1, 6));
-                    row.updated = now();
-                    let _ = self.store.save_sports_item(&row);
-                    return if busy { Handled::SearchBusy } else { Handled::Done };
-                }
-            },
+                found
+            }
+            Err((state, note, wait)) => {
+                let busy = note.starts_with("Searching paused");
+                row.tries += if busy { 0 } else { 1 };
+                row.state = state.into();
+                row.note = note;
+                row.next_try = now() + wait.saturating_mul(row.tries.clamp(1, 6));
+                row.updated = now();
+                let _ = self.store.save_sports_item(&row);
+                return if busy { Handled::SearchBusy } else { Handled::Done };
+            }
         };
-        let together = release.event.as_ref().and_then(|event| parts_per_event.get(event)).is_some_and(|count| *count > 1);
-        let desired = record.render(together);
+        let desired = found.render(together);
         if known.as_ref().is_some_and(|known| known.state == "matched") && applied.as_ref() == Some(&desired) {
             return Handled::Done;
+        }
+        if row.original.is_none() && row.applied.is_none() {
+            let mut before = self.plex.item(&item.rating_key, token).await.map(|full| Original::of(&full)).unwrap_or_else(|_| Original::of(item));
+            before.poster = self.plex.chosen_artwork(&item.rating_key, Artwork::Poster, token).await.ok().flatten();
+            before.background = self.plex.chosen_artwork(&item.rating_key, Artwork::Background, token).await.ok().flatten();
+            row.original = serde_json::to_string(&before).ok();
+            let _ = self.store.save_sports_item(&row);
         }
         self.set_status(|status| {
             status.phase = "writing".into();
             if status.live(&item.rating_key).is_none() {
-                status.start(Current::starting(&item.rating_key, &release));
+                status.start(Current::named(&item.rating_key, &shown_name, &release.file_name, kind));
             }
             if let Some(current) = status.live(&item.rating_key) {
                 current.push("writing", String::new());
             }
         });
-        match apply(&self.plex, web, token, section, &item.rating_key, &desired, applied.as_ref()).await {
+        match apply(&self.plex, web, token, section, item, &desired, applied.as_ref()).await {
             Ok(outcome) => {
                 let mut written = desired.clone();
                 if !outcome.poster && desired.poster != applied.as_ref().and_then(|before| before.poster.clone()) {
@@ -546,7 +703,7 @@ impl Sports {
                 }
                 row.state = "matched".into();
                 row.title = desired.title.clone();
-                row.record = serde_json::to_string(&record).ok();
+                row.record = found.json(kind);
                 row.applied = serde_json::to_string(&written).ok();
                 row.note = outcome.notes.join("; ");
                 row.tries = 0;
@@ -555,7 +712,7 @@ impl Sports {
             Err(error) => {
                 row.tries += 1;
                 row.state = "failed".into();
-                row.record = serde_json::to_string(&record).ok();
+                row.record = found.json(kind);
                 row.note = format!("{WRITE_REFUSED}: {error}");
                 row.next_try = now() + 15 * 60 * row.tries.min(6);
             }
@@ -564,6 +721,77 @@ impl Sports {
         let _ = self.store.save_sports_item(&row);
         self.set_status(|status| status.phase = "researching".into());
         Handled::Done
+    }
+
+    /// The record for a file that is not sports: from an earlier research of the same work (another copy, or another
+    /// scene of the same movie), or a new one. On failure, the state, note and seconds to wait before trying again.
+    async fn work_for(
+        &self,
+        brain: &Brain,
+        web: &Web,
+        kind: Kind,
+        item: &Item,
+        work: &Work,
+        library: &str,
+    ) -> Result<(WorkRecord, Effort), (&'static str, String, i64)> {
+        let key = format!("work:{}:{}", kind.name(), work.key);
+        if let Some(mut record) = self.store.sports_event(&key).ok().flatten().and_then(|(text, _)| serde_json::from_str::<WorkRecord>(&text).ok()) {
+            record.settle(work);
+            return Ok((record, Effort::default()));
+        }
+        let (added, newest) = day_of(item.added_at.unwrap_or_else(now));
+        let started = now();
+        self.set_status(|status| {
+            status.phase = "researching".into();
+            status.start(Current { started, ..Current::named(&item.rating_key, &work.cleaned, &work.file_name, kind) });
+        });
+        let on_step = |step: Step| self.show_step(&item.rating_key, step);
+        match research_work(brain, web, kind, work, library, &added, newest + 1, &on_step).await {
+            Ok((record, took)) if record.identified => {
+                tracing::info!(file = %work.file_name, seconds = took.seconds, searches = took.searches, reads = took.reads, "researched a file");
+                let mut shared = record.clone();
+                shared.part = None;
+                if let Ok(text) = serde_json::to_string(&shared) {
+                    let _ = self.store.save_sports_event(&key, &text);
+                }
+                Ok((record, Effort { seconds: took.seconds as i64, searches: took.searches as i64, reads: took.reads as i64 }))
+            }
+            Ok((record, _)) => Err(("attention", unidentified(&record.notes), 3 * 86_400)),
+            Err(error) => Err(self.failed(error)),
+        }
+    }
+
+    /// Shows one step of a running research on the item's live card.
+    fn show_step(&self, rating_key: &str, step: Step) {
+        let (kind, detail) = match step {
+            Step::Thinking => ("thinking", String::new()),
+            Step::Searching(query) => ("searching", query),
+            Step::Reading(url) => ("reading", url.trim_start_matches("https://").trim_start_matches("http://").trim_start_matches("www.").to_string()),
+            Step::Checking => ("checking", String::new()),
+        };
+        self.set_status(|status| {
+            if let Some(current) = status.live(rating_key) {
+                current.push(kind, detail);
+            }
+        });
+    }
+
+    /// The state, note and wait for a research that did not end in a record.
+    fn failed(&self, error: ResearchError) -> (&'static str, String, i64) {
+        match error {
+            ResearchError::NoRecord(problems) => ("attention", format!("The model's record did not pass the checks: {problems}"), 86_400),
+            ResearchError::SearchBusy(reason) => {
+                self.set_status(|status| status.last_error = Some(reason.clone()));
+                ("failed", format!("Searching paused: {reason}"), 20 * 60)
+            }
+            ResearchError::Model(crate::brain::BrainError::Status(400, refusal)) => {
+                ("attention", format!("The model refused the research, which usually means its context window is too small: {refusal}"), 86_400)
+            }
+            ResearchError::Model(error) => {
+                self.set_status(|status| status.last_error = Some(error.to_string()));
+                ("failed", format!("The model did not answer: {error}"), 15 * 60)
+            }
+        }
     }
 
     /// The record for a file: from an earlier research of the same event, or a new one. On failure, the state, note
@@ -586,19 +814,7 @@ impl Sports {
             status.phase = "researching".into();
             status.start(Current { started, ..Current::starting(&item.rating_key, release) });
         });
-        let on_step = |step: Step| {
-            let (kind, detail) = match step {
-                Step::Thinking => ("thinking", String::new()),
-                Step::Searching(query) => ("searching", query),
-                Step::Reading(url) => ("reading", url.trim_start_matches("https://").trim_start_matches("http://").trim_start_matches("www.").to_string()),
-                Step::Checking => ("checking", String::new()),
-            };
-            self.set_status(|status| {
-                if let Some(current) = status.live(&item.rating_key) {
-                    current.push(kind, detail);
-                }
-            });
-        };
+        let on_step = |step: Step| self.show_step(&item.rating_key, step);
         match research(brain, web, release, &added, newest + 1, &on_step).await {
             Ok(done) if done.record.identified => {
                 tracing::info!(file = %release.file_name, seconds = done.seconds, searches = done.searches, reads = done.reads, "researched a sports file");
@@ -620,33 +836,129 @@ impl Sports {
                 Ok((done.record, Effort { seconds: done.seconds as i64, searches: done.searches as i64, reads: done.reads as i64 }))
             }
             Ok(done) => Err(("attention", unidentified(&done.record.notes), 3 * 86_400)),
-            Err(ResearchError::NoRecord(problems)) => Err(("attention", format!("The model's record did not pass the checks: {problems}"), 86_400)),
-            Err(ResearchError::SearchBusy(reason)) => {
-                self.set_status(|status| status.last_error = Some(reason.clone()));
-                Err(("failed", format!("Searching paused: {reason}"), 20 * 60))
-            }
-            Err(ResearchError::Model(crate::brain::BrainError::Status(400, refusal))) => {
-                Err(("attention", format!("The model refused the research, which usually means its context window is too small: {refusal}"), 86_400))
-            }
-            Err(ResearchError::Model(error)) => {
-                self.set_status(|status| status.last_error = Some(error.to_string()));
-                Err(("failed", format!("The model did not answer: {error}"), 15 * 60))
-            }
+            Err(error) => Err(self.failed(error)),
         }
     }
 
     /// The items to show, newest first, and how many are in each state.
     pub fn items(&self, limit: usize) -> (Vec<SportsItem>, BTreeMap<String, i64>) {
-        let items = self.store.sports_items(limit).unwrap_or_default();
-        let counts = self.store.sports_counts().unwrap_or_default().into_iter().collect();
+        let chosen = self.settings().libraries;
+        let items = self.store.sports_items_among(&chosen, limit).unwrap_or_default();
+        let counts = self.store.sports_counts_among(&chosen).unwrap_or_default().into_iter().collect();
         (items, counts)
+    }
+
+    /// How many files research has written to or looked at, by library, so a library the owner took out can still be
+    /// taken back.
+    pub fn researched_per_library(&self) -> BTreeMap<String, i64> {
+        self.store.sports_per_section().unwrap_or_default().into_iter().collect()
+    }
+
+    /// Takes research back from one item: every field research wrote and the owner did not change since returns to
+    /// what Plex showed before and is unlocked, so Plex's own agent manages it again; the genres, collections and cast
+    /// research added go, and its artwork gives way to the image Plex showed before. What the owner changed by hand
+    /// stays as they made it. The item is not researched again until the owner asks.
+    pub async fn undo(&self, rating_key: &str) -> Result<(), String> {
+        let token = self.owner_token.as_deref().ok_or("Crucible Server is not signed in to Plex.")?;
+        let lock = self.item_lock(rating_key);
+        let _writing = lock.lock().await;
+        let mut row = self.store.sports_item(rating_key).map_err(|error| error.to_string())?.ok_or("Research has nothing for that item.")?;
+        let file_name = row.file.rsplit(['/', '\\']).next().unwrap_or(&row.file).to_string();
+        let original: Original = row.original.as_deref().and_then(|text| serde_json::from_str(text).ok()).unwrap_or_else(|| Original::of_file(&file_name));
+        let applied: Option<Desired> = row.applied.as_deref().and_then(|text| serde_json::from_str(text).ok());
+        let mut shown = row.title.clone();
+        if applied.is_some() || wrote_before(Some(&row)) {
+            match self.plex.item(rating_key, token).await {
+                Ok(now) => {
+                    let pairs = undo_pairs(&original, applied.as_ref(), &now);
+                    shown = if pairs.iter().any(|(name, _)| name == "title.value") { original.title.clone() } else { now.title.clone() };
+                    if !pairs.is_empty() {
+                        self.plex.edit(&row.section, rating_key, &pairs, token).await.map_err(|error| error.to_string())?;
+                    }
+                    let uploaded = |kind: Artwork| applied.as_ref().is_some_and(|applied| artwork_of(applied, kind).is_some());
+                    for (kind, before) in [(Artwork::Poster, &original.poster), (Artwork::Background, &original.background)] {
+                        if uploaded(kind) {
+                            self.restore_artwork(&row.section, rating_key, kind, before.as_deref(), token).await;
+                        }
+                    }
+                    if let Err(error) = self.plex.refresh_item(rating_key, token).await {
+                        tracing::warn!(%error, rating_key, "Plex did not refresh an item research took back");
+                    }
+                }
+                Err(PlexError::NotFound(_)) => tracing::info!(file = %file_name, "an item research took back is no longer in Plex"),
+                Err(error) => return Err(error.to_string()),
+            }
+        }
+        row.state = "undone".into();
+        row.title = shown;
+        row.record = None;
+        row.applied = None;
+        row.note = "Taken back: Plex shows the file as it did before research, with your own changes kept.".into();
+        row.tries = 0;
+        row.next_try = 0;
+        row.updated = now();
+        self.store.save_sports_item(&row).map_err(|error| error.to_string())?;
+        tracing::info!(file = %file_name, "took research back");
+        Ok(())
+    }
+
+    /// Shows the image Plex showed before research uploaded its own, unless the owner chose another one since: the
+    /// one kept from before, or else the first image Plex made itself. An image Plex made is unlocked again; one the
+    /// owner uploaded before research stays locked.
+    async fn restore_artwork(&self, section: &str, rating_key: &str, kind: Artwork, before: Option<&str>, token: &str) {
+        let Ok(choices) = self.plex.artwork_choices(rating_key, kind, token).await else { return };
+        let uploaded = |key: &str| key.starts_with("upload://");
+        if choices.iter().find(|choice| choice.selected).is_some_and(|choice| !uploaded(&choice.key)) {
+            return;
+        }
+        let target = before
+            .filter(|before| choices.iter().any(|choice| choice.key == *before))
+            .or_else(|| choices.iter().map(|choice| choice.key.as_str()).find(|key| !uploaded(key)));
+        let Some(target) = target else { return };
+        if let Err(error) = self.plex.choose_artwork(rating_key, kind, target, token).await {
+            tracing::warn!(%error, rating_key, "Plex did not take back research's artwork");
+            return;
+        }
+        if !uploaded(target) {
+            let _ = self.plex.edit(section, rating_key, &[(kind.lock_field().to_string(), "0".to_string())], token).await;
+        }
+    }
+
+    /// Takes research back from every item of a library, one after another. A library the owner no longer chose is
+    /// forgotten afterwards, so choosing it again starts afresh; one still chosen keeps its items as taken back.
+    pub async fn undo_library(&self, section: &str) -> (usize, usize) {
+        let rows: Vec<SportsItem> = self.store.sports_items_in(section).unwrap_or_default().into_iter().filter(|row| row.state != "undone").collect();
+        self.set_status(|status| status.undoing += rows.len());
+        let (mut undone, mut failed) = (0, 0);
+        for row in &rows {
+            match self.undo(&row.rating_key).await {
+                Ok(()) => undone += 1,
+                Err(error) => {
+                    failed += 1;
+                    tracing::warn!(%error, rating_key = %row.rating_key, "could not take research back");
+                }
+            }
+            self.set_status(|status| status.undoing = status.undoing.saturating_sub(1));
+        }
+        if !self.settings().libraries.contains(&section.to_string()) && failed == 0 {
+            let _ = self.store.forget_sports_section(section);
+        }
+        tracing::info!(section, undone, failed, "took research back from a library");
+        (undone, failed)
     }
 
     /// Researches an item again from scratch, with its event.
     pub fn redo(&self, rating_key: &str) -> bool {
         let Some(known) = self.store.sports_item(rating_key).ok().flatten() else { return false };
-        if let Some(event) = Release::read(&known.file).event {
-            let _ = self.store.forget_sports_event(&event);
+        match self.settings().kind_of(&known.section) {
+            Kind::Sports => {
+                if let Some(event) = Release::read(&known.file).event {
+                    let _ = self.store.forget_sports_event(&event);
+                }
+            }
+            kind => {
+                let _ = self.store.forget_sports_event(&format!("work:{}:{}", kind.name(), Work::read(&known.file).key));
+            }
         }
         let mut cleared = known;
         cleared.state = "failed".into();
@@ -689,7 +1001,8 @@ mod tests {
             item("4", "/s/CFFC 161 Lleshi vs Calvert UFC Fight Pass 1080p WEBRip H 264-Star.mp4"),
         ];
         let due: Vec<&(String, Item)> = items.iter().collect();
-        let groups: Vec<Vec<&str>> = by_event(&due).iter().map(|group| group.iter().map(|entry| entry.1.rating_key.as_str()).collect()).collect();
+        let groups: Vec<Vec<&str>> =
+            grouped(&due, |_| Kind::Sports).iter().map(|group| group.iter().map(|entry| entry.1.rating_key.as_str()).collect()).collect();
         assert_eq!(groups[0], vec!["1", "3"]);
         assert!(groups.iter().skip(1).all(|group| group.len() == 1));
         assert_eq!(groups.len(), 3);
@@ -748,6 +1061,7 @@ mod tests {
             seconds: UNMEASURED,
             searches: UNMEASURED,
             reads: UNMEASURED,
+            original: None,
         }
     }
 
@@ -777,6 +1091,29 @@ mod tests {
         assert_eq!(current.steps.len(), STEPS_SHOWN);
         assert_eq!(current.steps.last().unwrap().detail, "page 19");
         assert!(current.steps.windows(2).all(|pair| pair[0].id < pair[1].id));
+    }
+
+    #[test]
+    fn a_record_is_read_only_as_the_kind_it_was_researched_as() {
+        let work = Found::Work(WorkRecord { identified: true, title: "The Deal".into(), ..WorkRecord::default() });
+        let kept = work.json(Kind::General).unwrap();
+        assert!(Found::read(Kind::General, &kept).is_some());
+        assert!(Found::read(Kind::Adult, &kept).is_none() && Found::read(Kind::Sports, &kept).is_none());
+        let from_before_kinds = r#"{"identified": true, "event": "UFC 334", "lineup": []}"#;
+        assert!(Found::read(Kind::Adult, from_before_kinds).is_none());
+    }
+
+    #[test]
+    fn copies_of_a_work_go_together_and_scenes_apart() {
+        let items = [
+            item("1", "/h/Movie X - sc1 720p.mp4"),
+            item("2", "/h/Movie X - sc2 720p.mp4"),
+            item("3", "/h/Movie X - sc1 1080p.mkv"),
+        ];
+        let due: Vec<&(String, Item)> = items.iter().collect();
+        let groups: Vec<Vec<&str>> =
+            grouped(&due, |_| Kind::Adult).iter().map(|group| group.iter().map(|entry| entry.1.rating_key.as_str()).collect()).collect();
+        assert_eq!(groups, vec![vec!["1", "3"], vec!["2"]]);
     }
 
     #[test]
