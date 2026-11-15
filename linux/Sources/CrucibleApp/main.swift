@@ -52,6 +52,7 @@ func runCrucible() -> Int32 {
     scheduleCaptures(arguments, window: window, coordinator: coordinator) { running = false }
     loop.run { !running }
     PlayerScreen.active?.close()
+    UserDefaults.standard.synchronize()
     window.close()
     return 0
 }

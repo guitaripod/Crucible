@@ -37,10 +37,14 @@ final class AppCoordinator: WindowDelegate {
         reconnect()
     }
 
+    /// A saved server launches; a Plex sign-in without a saved server goes straight to choosing one; nothing starts at
+    /// the welcome screen.
     func reconnect() {
         launchTask?.cancel()
         if let connection = ServerBootstrap.connection() {
             launch(connection)
+        } else if ServerBootstrap.accountToken != nil {
+            showOnboarding(.switchServer)
         } else {
             showOnboarding(.signIn)
         }
@@ -62,6 +66,7 @@ final class AppCoordinator: WindowDelegate {
             guard !Task.isCancelled, let self, let gate else { return }
             switch outcome {
             case .success(let payload):
+                UserDefaults.standard.synchronize()
                 self.showMain(payload)
             case .failure(.signInExpired):
                 gate.showSignInExpired()
