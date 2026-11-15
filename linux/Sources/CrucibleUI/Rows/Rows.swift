@@ -36,6 +36,9 @@ public struct RowItem: Hashable, Sendable {
 public final class RowView: View {
     public var item: RowItem { didSet { if item != oldValue { superview?.setNeedsLayout(); setNeedsDisplay() } } }
     public var onSelect: ((RowItem) -> Void)?
+    /// Asked for the row's menu (right-click or the Menu key) with where to anchor it in the window; returns whether a
+    /// menu opened.
+    public var onContextMenu: ((RowItem, Rect) -> Bool)?
 
     private var focus = Animated(0)
     private var hover = Animated(0)
@@ -90,6 +93,11 @@ public final class RowView: View {
     }
 
     public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        if button == .secondary, canBecomeFocused, let onContextMenu {
+            window?.focus.focus(self, animated: true, reveal: false)
+            let origin = frameInWindow.origin
+            return onContextMenu(item, Rect(x: origin.x + point.x, y: origin.y + point.y, width: 1, height: 1))
+        }
         guard button == .primary, canBecomeFocused else { return false }
         pressedByPointer = true
         press.set(1, animation: .press)
@@ -113,6 +121,13 @@ public final class RowView: View {
         press.set(0, animation: .press)
         startAnimating()
         onSelect?(item)
+    }
+
+    public override func showContextMenu(at point: Point?) -> Bool {
+        let frame = frameInWindow
+        let anchor = point.map { Rect(x: frame.x + $0.x, y: frame.y + $0.y, width: 1, height: 1) }
+            ?? Rect(x: frame.maxX - Theme.current.metrics.tv(500), y: frame.maxY, width: 1, height: 1)
+        return onContextMenu?(item, anchor) ?? false
     }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
@@ -189,6 +204,8 @@ public final class RowView: View {
 public final class RowListView: View {
     public private(set) var items: [RowItem] = []
     public var onSelect: ((RowItem) -> Void)?
+    /// The menu for a row (right-click or the Menu key), given where to anchor it in the window; returns whether one opened.
+    public var onContextMenu: ((RowItem, Rect) -> Bool)?
     public var columnWidth: Float?
     /// Starts the column at the screen's margin, in line with a grid below it, instead of centring it.
     public var isLeadingAligned = false { didSet { setNeedsLayout() } }
@@ -204,6 +221,7 @@ public final class RowListView: View {
             let row = rows[item.id] ?? RowView(item: item)
             row.item = item
             row.onSelect = { [weak self] item in self?.onSelect?(item) }
+            row.onContextMenu = { [weak self] item, anchor in self?.onContextMenu?(item, anchor) ?? false }
             if row.superview == nil { addSubview(row) }
             next[item.id] = row
         }
