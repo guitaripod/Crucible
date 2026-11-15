@@ -158,7 +158,7 @@ final class ContextPanel: View {
                                color: palette.label, after: theme.metrics.tv(20), isStatus: true))
         }
         if let body = content.body {
-            result.append(Line(layout: TextLayout(body, font: theme.type.footnote, maxWidth: textWidth, maxLines: 8, scale: scale),
+            result.append(Line(layout: TextLayout(body, font: theme.type.footnote, maxWidth: textWidth, maxLines: 24, scale: scale),
                                color: palette.labelSecondary, after: 0))
         }
         return result

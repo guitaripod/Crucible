@@ -24,6 +24,7 @@ final class YouScreen: SettingsScaffold {
         static let homeRows = "you.homeRows"
         static let libraries = "you.libraries"
         static let server = "you.server"
+        static let trakt = "you.trakt"
         static let privacy = "you.privacy"
         static let diagnostics = "you.diagnostics"
         static let about = "you.about"
@@ -125,6 +126,8 @@ final class YouScreen: SettingsScaffold {
                     symbol: Symbol(SettingsCatalog.symbol(.homeRows)), accessory: .chevron),
             RowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             RowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
+            RowItem(id: RowID.trakt, title: TraktCopy.name, subtitle: TraktCopy.tagline, value: TraktAccount.shared.rowStatus, symbol: Symbol(SettingsCatalog.symbol(.trakt)),
+                    accessory: .chevron, brand: "trakt"),
             RowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .linux), value: SettingsCatalog.summary(of: .privacy, on: .linux),
                     symbol: Symbol(SettingsCategory.privacy.symbol), accessory: .chevron),
             RowItem(id: RowID.density, title: String(localized: "Interface Size"),
@@ -163,6 +166,7 @@ final class YouScreen: SettingsScaffold {
         case RowID.homeRows: navigation?.push(HomeRowsScreen())
         case RowID.libraries: navigation?.push(LibrariesScreen(api: api))
         case RowID.server: navigation?.push(ServerConnectionScreen())
+        case RowID.trakt: navigation?.push(TraktSettingsScreen())
         case RowID.privacy: navigation?.push(SettingsCategoryScreen(category: .privacy, api: api))
         case RowID.diagnostics: navigation?.push(DiagnosticsScreen())
         case RowID.about: navigation?.push(AboutScreen())

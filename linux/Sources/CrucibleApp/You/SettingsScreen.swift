@@ -123,7 +123,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .destination(let destination):
             let opens = Self.opens(destination)
             return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, value: Self.value(of: destination), symbol: Symbol(entry.symbol),
-                           accessory: opens ? .chevron : .none, isStatic: !opens)
+                           accessory: opens ? .chevron : .none, isStatic: !opens, brand: Self.brand(of: destination))
         case .privacyStatement:
             return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol), isStatic: true)
         }
@@ -163,6 +163,7 @@ final class SettingsCategoryScreen: ScreenView {
         switch destination {
         case .homeRows: HomeRowsScreen()
         case .libraries: LibrariesScreen(api: api)
+        case .trakt: TraktSettingsScreen()
         case .serverConnection: ServerConnectionScreen()
         case .about: AboutScreen()
         case .diagnostics: DiagnosticsScreen()
@@ -173,8 +174,17 @@ final class SettingsCategoryScreen: ScreenView {
     /// Whether the Linux client has a screen for `destination`; the others show as plain text.
     private static func opens(_ destination: SettingsDestination) -> Bool {
         switch destination {
-        case .homeRows, .libraries, .serverConnection, .about, .diagnostics: true
+        case .homeRows, .libraries, .trakt, .serverConnection, .about, .diagnostics: true
         default: false
+        }
+    }
+
+    /// The service's mark for an integration's row.
+    private static func brand(of destination: SettingsDestination) -> String? {
+        switch destination {
+        case .trakt: "trakt"
+        case .seerr: "seerr"
+        default: nil
         }
     }
 
@@ -183,6 +193,7 @@ final class SettingsCategoryScreen: ScreenView {
         switch destination {
         case .homeRows: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows")
         case .libraries: LibrariesSettings.summary
+        case .trakt: TraktAccount.shared.rowStatus
         case .about: AppInfo.versionSummary
         default: nil
         }
