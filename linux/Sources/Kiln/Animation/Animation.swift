@@ -48,7 +48,7 @@ public enum Animation: Sendable, Equatable {
     /// The focus lift and anything that follows the hand: quick, barely overshooting.
     public static let focus = Animation.spring(response: 0.32, dampingFraction: 0.82)
     /// Content scrolling to reveal what gained focus.
-    public static let scroll = Animation.spring(response: 0.42, dampingFraction: 1)
+    public static let scroll = Animation.spring(response: 0.32, dampingFraction: 1)
     public static let fade = Animation.timed(duration: 0.25, curve: .easeInOut)
     public static let backdrop = Animation.timed(duration: 0.35, curve: .easeInOut)
     public static let press = Animation.timed(duration: 0.12, curve: .easeOut)
