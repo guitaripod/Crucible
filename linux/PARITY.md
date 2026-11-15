@@ -10,12 +10,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
-| Search, Pro features (free on Linux) and demo | 52 | 0 | 3 | 8 |
+| Search, Pro features (free on Linux) and demo | 53 | 0 | 2 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 65 | 0 | 2 | 2 |
-| Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 80 | 6 | 17 | 0 |
-| **All** | 648 | 11 | 27 | 16 |
+| Design system | 92 | 2 | 3 | 0 |
+| Linux-only requirements (docs/LINUX.md) | 81 | 5 | 17 | 0 |
+| **All** | 651 | 9 | 26 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -319,7 +319,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `search-text-editing` (S) Desk text field: typing inserts at the caret, Backspace and Delete (Ctrl for word), Left and Right, Home and End, Ctrl+A selects all so the next key replaces it, Escape clears; a blinking caret. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Navigation/Screens+Search.swift:7-13_
 - [x] `search-type-to-open` (S) Typing a character anywhere outside a text field opens Search with that character in the field.
 - [x] `search-open-shortcuts` (S) Ctrl+F and the slash key select the Search tab (Linux command set).
-- [ ] `search-ime` (M) The desk field accepts IME composition (text-input-v3) so CJK and dead-key input works as on a phone. Gap: No text-input-v3, preedit, commit-string or compose code under linux/ or CKiln (rg empty). TextField consumes raw KeyEvent only. docs/LINUX.md:168 requires it.
+- [x] `search-ime` (M) The desk field accepts IME composition (text-input-v3) so CJK and dead-key input works as on a phone.
 - [ ] `search-couch-letter-grid` (M) In Couch density, Search shows a tvOS-style letter grid so a gamepad can type a query. Gap: No letter grid or on-screen keyboard anywhere in linux/ (rg for Couch in Search and CrucibleUI controls is empty). Couch only changes theme density (YouScreen.swift:36-51). Apple uses the system keyboard, which has no Linux equivalent yet. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Navigation/Screens+Search.swift:7_
 - [x] `search-query-rules` (S) Query is trimmed; under two characters returns to the idle page; a new query waits 300 ms of quiet; re-typing a shown query re-renders without a request. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Search/SearchSession.swift:6,63-83_
 - [x] `search-resume-on-return` (S) Leaving Search and coming back keeps the query and its results, or refreshes the idle page when the field is empty. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchResultsViewController.swift:46-55_
@@ -610,7 +610,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-play-pause-on-focused-item` (S) Play/Pause on a focused card or item starts or resumes that item from the grid, as the Apple TV does _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:7-43_
 - [ ] `design-gamepad-input` (L) Gamepad and remote-style focus: d-pad and stick move focus with repeat, A selects, B goes back, Start plays or pauses, Y opens the context menu, LB and RB change tabs, and the right stick drives parallax Gap: No gamepad source exists in Kiln or the app (no joystick, SDL or gamepad code under linux/Sources; Input.swift handles keyboard and pointer only). View.swift:287 mentions Y but nothing feeds it. docs/LINUX.md:126 lists it as planned. _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:29-43_
 - [x] `design-remote-menu-back` (S) Back and Menu pop the screen or dismiss the open alert or menu, and Escape does the same on the desk _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVNavigation.swift:22-30_
-- [ ] `design-text-field` (M) **partial** Single-line text field with caret, select-all, word delete, placeholder, submit, and an IME-capable input path Gap: Typing, caret, select-all, word delete, placeholder and submit exist (TextField.swift:8-216). There is no text-input-v3 or preedit path under linux/Sources/Kiln or CKiln, so IME composition cannot work. The Apple refs point at the alert text field, not an inline field. _Apple TV: Sources/CrucibleTV/DesignSystem/Extensions/UIViewController+Alert.swift:41-69_
+- [x] `design-text-field` (M) Single-line text field with caret, select-all, word delete, placeholder, submit, and an IME-capable input path _Apple TV: Sources/CrucibleTV/DesignSystem/Extensions/UIViewController+Alert.swift:41-69_
 - [x] `design-glass-liquid` (S) Liquid Glass controls: lensing, a rim, a specular light that follows the pointer or focus, adaptive light or dark tone, and a contact shadow on floating glass _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-12_
 - [x] `design-glass-tone-hysteresis` (S) Glass flips between light and dark from the luminance under it, with hysteresis so text never flickers over moving video _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-12_
 - [x] `design-reduce-transparency` (M) Reduce Transparency swaps glass for an opaque raised surface _Apple TV: Sources/CrucibleDesign/Glass.swift:1-60_
@@ -731,7 +731,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `linux-focus-ring-keyboard-only` (S) The focus ring shows only once the keyboard is used, and a click hides it again _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [x] `linux-tooltips` (S) Tooltips name icon-only buttons after a short hover _Apple TV: docs/LINUX.md §5.4 Text_
 - [x] `linux-text-select-copy` (M) Titles, synopses and cast names can be selected and copied _Apple TV: docs/LINUX.md §5.4 Text_
-- [ ] `linux-search-text-ime` (M) **partial** Desk Search is a real text field with IME input through text-input-v3 Gap: A plain text field exists (CrucibleUI/Controls/TextField.swift, used by SearchScreen) and typing works, but no zwp_text_input_v3 binding exists in linux/ (no text_input reference), so IME composition is not supported. _Apple TV: docs/LINUX.md §6 Search_
+- [x] `linux-search-text-ime` (M) Desk Search is a real text field with IME input through text-input-v3 _Apple TV: docs/LINUX.md §6 Search_
 - [x] `linux-reduce-transparency-motion` (S) Reduce Transparency and Reduce Motion from the desktop settings portal turn glass opaque and motion instant _Apple TV: docs/LINUX.md §5.7 Liquid Glass_
 - [x] `linux-font-inter` (S) Inter is bundled as static cuts, Inter Display from optical size 23, and CJK falls back through fontconfig _Apple TV: docs/LINUX.md §5.6 Type and symbols_
 - [x] `linux-symbols-lucide` (S) SF Symbol names map to bundled open icons (Lucide), rasterised by librsvg at the drawn pixel size _Apple TV: docs/LINUX.md §5.6 Type and symbols_
