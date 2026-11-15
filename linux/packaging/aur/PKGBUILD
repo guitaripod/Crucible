@@ -6,8 +6,9 @@ pkgdesc="Plex client in the Apple TV design, with Liquid Glass and HDR video (Wa
 arch=('x86_64')
 url="https://github.com/guitaripod/Crucible"
 license=('GPL-3.0-only')
-depends=('vulkan-icd-loader' 'wayland' 'libxkbcommon' 'pango' 'cairo' 'fontconfig' 'libjpeg-turbo' 'libpng' 'libwebp' 'librsvg'
+depends=('vulkan-icd-loader' 'wayland' 'libxkbcommon' 'pango' 'cairo' 'fontconfig' 'libjpeg-turbo' 'libpng' 'libwebp' 'librsvg' 'giflib'
          'libsecret' 'qrencode' 'systemd-libs' 'ffmpeg' 'libass' 'shaderc' 'lcms2' 'libplacebo' 'pipewire' 'xdg-utils' 'sqlite' 'curl' 'libxml2')
+optdepends=('noto-fonts-emoji: emoji in comments, reactions and titles drawn in colour')
 makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-bin')
 provides=('crucible')
 conflicts=('crucible')
