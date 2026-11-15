@@ -76,6 +76,8 @@ final class PlayerScreen: View {
     private var revealTask: Task<Void, Never>?
     var metadataTask: Task<Void, Never>?
     private var lastReportedState: String?
+    private var watchers: [PlaybackWatching] = []
+    private var watchersStarted = false
     private var lastClick: Date?
     private(set) var closed = false
     var controls: MediaControls?
@@ -195,6 +197,7 @@ final class PlayerScreen: View {
         streamOffset = resolved.isDirectPlay ? 0 : start
         upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
                                 showRatingKey: item.grandparentRatingKey, queue: run.queue, markers: resolved.markers)
+        startWatchers(for: item, api: api)
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
         player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
         player?.set("speed", String(speed))
@@ -262,7 +265,11 @@ final class PlayerScreen: View {
                          position: position, canGoNext: upNext?.canOfferNext ?? false)
         notePause(playerState.isPaused)
         let reportState = playerState.isPaused ? "paused" : "playing"
-        if reportState != lastReportedState { report(reportState) }
+        if reportState != lastReportedState {
+            report(reportState)
+            let change: PlaybackChange = playerState.isPaused ? .paused(position: position) : .playing(position: position)
+            watchers.forEach { $0.playback(change) }
+        }
         if playerState.isPaused, preroll == nil { showChrome(autoHide: false) }
         setNeedsDisplay()
     }
@@ -546,6 +553,17 @@ final class PlayerScreen: View {
 
     // MARK: Timeline
 
+    /// The integrations that follow this title (Trakt scrobbling), made once for it: a stream restarted mid-play keeps
+    /// them, so a play is never started twice.
+    private func startWatchers(for item: PlexMetadata, api: APIClient) {
+        guard !watchersStarted else { return }
+        watchersStarted = true
+        watchers = Integrations.playbackWatchers(for: PlaybackSubject(
+            ratingKey: item.id, mediaType: item.mediaType, showRatingKey: item.grandparentRatingKey, title: item.title,
+            showTitle: item.grandparentTitle, seasonNumber: item.parentIndex, episodeNumber: item.index, durationSecs: duration,
+            server: ServerBootstrap.savedMachineIdentifier ?? "", api: api))
+    }
+
     private func startReporting() {
         reportTask?.cancel()
         reportTask = Task { [weak self] in
@@ -597,6 +615,9 @@ final class PlayerScreen: View {
         card?.stopCounting()
         alert?.dismiss()
         alert = nil
+        let finished = WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
+        watchers.forEach { $0.playback(.stopped(position: position, finished: finished, at: Date())) }
+        watchers = []
         if let stopped = report("stopped") {
             let pending = Task { @MainActor in
                 await stopped.value
