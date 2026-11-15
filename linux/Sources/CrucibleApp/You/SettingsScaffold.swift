@@ -23,7 +23,10 @@ class SettingsScaffold: ScreenView {
         state.isHidden = true
         addSubview(page)
         page.setSections([heading, body])
-        page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
+        page.onScroll = { [weak self] offset in
+            self?.rootView?.contentScrolled(offset: offset)
+            self?.body.follow(offset)
+        }
         rows.onSelect = { [weak self] item in self?.rowSelected(item.id) }
         rows.onFocus = { [weak self] item in self?.rowFocused(item.id) }
         rows.onContextMenu = { [weak self] item, anchor in self?.rowMenu(item.id, at: anchor) ?? false }
@@ -31,6 +34,13 @@ class SettingsScaffold: ScreenView {
 
     override var preferredFocusView: View? { state.isHidden ? rows : state }
     override var remembersFocus: Bool { true }
+
+    /// Keeps the context panel in view while the rows scroll past it, as the Apple TV's column stays put; for a panel that
+    /// shows the focused row (Sports Research's stage).
+    var pinsContext: Bool {
+        get { body.pinsContext }
+        set { body.pinsContext = newValue }
+    }
 
     /// Puts `view` in the left column; it sizes itself through `sizeThatFits`.
     func installContext(_ view: View) {
@@ -92,6 +102,20 @@ private final class SplitSection: View {
     var context: View?
     weak var rows: RowListView?
     weak var state: StateView?
+    var pinsContext = false
+    private var scrolled: Float = 0
+
+    /// Moves a pinned panel down with the page, never past the end of the rows.
+    func follow(_ offset: Float) {
+        scrolled = offset
+        guard pinsContext, let context else { return }
+        guard !isStacked(frame.width) else {
+            context.translation = .zero
+            return
+        }
+        let shift = min(max(0, offset + Theme.current.metrics.tv(40) - frame.y), max(0, frame.height - context.frame.height - Theme.current.metrics.tv(60)))
+        context.translation = Point(x: 0, y: shift.rounded())
+    }
 
     private var contextWidth: Float { Theme.current.metrics.tv(620) }
     private var gap: Float { Theme.current.metrics.tv(60) }
@@ -139,6 +163,7 @@ private final class SplitSection: View {
             rows?.frame = Rect(x: left - metrics.sideMargin, y: 0, width: width + metrics.sideMargin * 2, height: rowsHeight)
             state?.frame = Rect(x: left, y: 0, width: width, height: rowsHeight)
         }
+        follow(scrolled)
     }
 }
 
