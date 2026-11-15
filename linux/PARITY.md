@@ -6,16 +6,16 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 50 | 4 | 2 | 1 |
+| Sign in, launch, tabs and navigation | 51 | 3 | 2 | 1 |
 | Home and libraries | 76 | 2 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
 | Search, Pro features (free on Linux) and demo | 51 | 0 | 4 | 8 |
-| You, profiles, history, statistics and manage | 82 | 1 | 1 | 3 |
-| Settings and integrations | 59 | 1 | 7 | 2 |
+| You, profiles, history, statistics and manage | 83 | 1 | 0 | 3 |
+| Settings and integrations | 64 | 0 | 3 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 75 | 7 | 21 | 0 |
-| **All** | 628 | 18 | 40 | 16 |
+| **All** | 635 | 16 | 35 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -62,7 +62,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-fullscreen-quit-keys` (S) F11 toggles fullscreen and Ctrl+Q quits.
 - [x] `shell-you-account-header` (M) You tab header shows a profile panel (account name and connection status) and a Year in Review card that opens Statistics. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:36-38, 149-178 (profile panel, year card, context column)_
 - [x] `shell-you-switch-profile` (M) Switch Profile row appears in You when the account's Home has more than one profile. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:241-243 (HomeProfiles.knownCount > 1)_
-- [ ] `shell-you-root-rows` (M) **partial** You root list holds Watch History, Statistics, Playlists, Watchlist with new-release count, Server Activity, Server Dashboard (owner), Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Requests, Privacy, Diagnostics, About with version, and Sign Out. Gap: Every row is on Linux You except Crucible Server, which waits on pairing (you-crucible-server-row). _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:219-237 (refreshRows)_
+- [x] `shell-you-root-rows` (M) You root list holds Watch History, Statistics, Playlists, Watchlist with new-release count, Server Activity, Server Dashboard (owner), Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Requests, Privacy, Diagnostics, About with version, and Sign Out. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:219-237 (refreshRows)_
 - [x] `shell-settings-about` (S) About Crucible shows the app version and details. _Apple TV: Sources/CrucibleTV/Settings/TVAboutViewController.swift:27, 47-72 (version, build, license, source code, support, credits)_
 - [x] `shell-diagnostics` (M) Diagnostics screen (Apple TV only in the catalogue) shows the app's diagnostic information from Settings > Help. _Apple TV: Sources/CrucibleTV/Settings/TVDiagnosticsViewController.swift_
 - [x] `shell-demo-entry` (L) Welcome offers Try the demo on the sign-in route when the build carries the demo, with a caption, Starting the demo progress and a Couldn't Start the Demo alert on failure. _Apple TV: Sources/CrucibleTV/Onboarding/TVWelcomeViewController.swift:36-87 (offersDemo, startDemo, makeDemoCaption, alert)_
@@ -398,7 +398,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `you-libraries-row` (M) Libraries row with a summary value opens library visibility choices (per-library On or Off, reset to Plex defaults, loading and error states) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:228_
 - [x] `you-server-row` (M) Server & Connection row shows the route summary and opens the server page (connection details, local and relay preferences) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:229_
 - [x] `you-server-route-list` (M) Server & Connection page: active-server card (name, Plex Media Server version, ownership, status dot), one row per route (kind, 'In use · detail', latency, checkmark on the route in use), Test Connection with a Testing… state, Add Server by Address, Switch Server, and alert 'Couldn't Use This Connection' when a picked route does not answer _Apple TV: Sources/CrucibleTV/Settings/TVServerSettingsViewController.swift:77-81_
-- [ ] `you-crucible-server-row` (L) Crucible Server row (paired server name or 'Not set up') opens pairing and management Gap: No Crucible Server pairing (invite or QR) and no row on Linux; Crucible Server is absent from the Linux Settings catalogue (SettingsCatalog.swift:241 is phone and tv only). No Companion code in linux/Sources. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:230_
+- [x] `you-crucible-server-row` (L) Crucible Server row (paired server name or 'Not set up') opens pairing and management _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:230_
 - [x] `you-trakt-row` (M) Trakt row with status value (TraktAccount.rowStatus) opens Trakt settings (device code and QR sign-in) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:231_
 - [x] `you-seerr-row` (M) Seerr row with connected display name or 'Off' opens Seerr settings _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:232_
 - [x] `you-privacy-row` (S) Privacy & Data row opens the privacy page: privacy statement, clear search history, forget what you finished, clear image cache _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:233_
@@ -470,7 +470,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 ## Settings and integrations
 
-- [ ] `settings-root-categories` (M) **partial** Settings root lists the categories with a value line each (Playback quality, skip distances, Home rows and libraries, Integrations, Crucible Server, connection, privacy, Diagnostics, version) Gap: Every category is on Linux with its value line (Server & Connection now says the route), plus Your Own Model; only the Crucible Server row is missing, which waits on pairing (settings-crucible-server-entry). _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:refreshRows (Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Privacy, Diagnostics, About rows)_
+- [x] `settings-root-categories` (M) Settings root lists the categories with a value line each (Playback quality, skip distances, Home rows and libraries, Integrations, Crucible Server, connection, privacy, Diagnostics, version) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:refreshRows (Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Privacy, Diagnostics, About rows)_
 - [x] `settings-category-screen` (S) Each category screen shows its title and explanation at the top, then its rows grouped by section _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:viewDidLoad (installHeading) and rowDidFocus (context column explanation)_
 - [x] `settings-explanation-per-row` (S) The explanation of the focused row is shown in a context column on Apple TV; on Linux each row carries its explanation as its subtitle _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:rowDidFocus (heading.setBody)_
 - [x] `settings-choice-menu` (S) A choice row opens a single-select menu with a checkmark on the current value; picking one applies it at once _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:TVSettingsChoiceViewController (checkmark list, applies on select)_
@@ -509,11 +509,11 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `seerr-account-rights` (S) Connected Seerr rows: signed-in name, address, what this account may request (auto-approved, needs approval, cannot request) and pending approvals count _Apple TV: Sources/CrucibleTV/Settings/TVSeerrSettingsViewController.swift:render (connected case, rightsLabel)_
 - [x] `seerr-requests-from-settings` (L) Requests list reached from Seerr settings and the You tab: filter Mine, Everyone, Awaiting; per request approve, decline, retry, withdraw or remove; open the title; a request's seasons (detail screen owned by the Seerr area) _Apple TV: Sources/CrucibleTV/Settings/TVSeerrRequestsViewController.swift (filter, actions, play)_
 - [x] `seerr-disconnect` (S) Disconnect Seerr after a confirmation, then search again _Apple TV: Sources/CrucibleTV/Settings/TVSeerrSettingsViewController.swift:rowDidSelect seerr.disconnect (disconnect, then discoverIfNeeded)_
-- [ ] `settings-crucible-server-entry` (M) Crucible Server row: the paired computer's name or Not Set Up, with a pitch and install address when unpaired Gap: No Crucible Server screen or row on Linux (no Companion use in linux/Sources). _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:refreshRows (crucibleServer row)_
-- [ ] `companion-show-code-qr` (M) Pair by showing a code and QR on the TV, which a phone or computer completes; the screen waits and returns once paired Gap: No pairing on Linux; docs/LINUX.md section 6 requires invite or QR pairing. _Apple TV: Sources/CrucibleTV/Settings/TVCompanionCodeViewController.swift (code, QR, wait, onPaired)_
-- [ ] `companion-enter-code` (S) Pair by typing the code printed by crucible-server pair; a refused or expired code gets its own message Gap: Nothing on Linux. _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:askForCode, pair(code:)_
+- [x] `settings-crucible-server-entry` (M) Crucible Server row: the paired computer's name or Not Set Up, with a pitch and install address when unpaired _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:refreshRows (crucibleServer row)_
+- [x] `companion-show-code-qr` (M) Pair by showing a code and QR on the TV, which a phone or computer completes; the screen waits and returns once paired _Apple TV: Sources/CrucibleTV/Settings/TVCompanionCodeViewController.swift (code, QR, wait, onPaired)_
+- [x] `companion-enter-code` (S) Pair by typing the code printed by crucible-server pair; a refused or expired code gets its own message _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:askForCode, pair(code:)_
 - [x] `companion-pair-with-iphone` (S) n/a: Pair with iPhone: the system picker of nearby iPhones and iPads running Crucible, then a hand-off of the pairing _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:pairWithIPhone, handOff (DDDevicePickerViewController)_
-- [ ] `companion-status-and-unpair` (S) Paired status line from the server's brain status (checking, then the status text or the error), and Unpair after a confirmation Gap: Nothing on Linux. _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:refresh (CompanionClient.brain), confirmUnpair (presentConfirmation)_
+- [x] `companion-status-and-unpair` (S) Paired status line from the server's brain status (checking, then the status text or the error), and Unpair after a confirmation _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:refresh (CompanionClient.brain), confirmUnpair (presentConfirmation)_
 - [ ] `companion-sports-research` (L) Sports Research, opened from the paired Crucible Server: four setup steps, switch on research for new files, choose libraries, agree to the terms (withdraw), Check Again, Look Now, a results board with per-item states, Research Again after a confirmation, and a Pro pitch for non-Pro users Gap: Nothing on Linux. The Pro pitch does not apply on Linux (D1); the rest must be built. _Apple TV: Sources/CrucibleTV/Settings/TVSportsResearchViewController.swift_
 - [x] `linux-own-model-settings` (M) Model address and key for What to Watch and described recaps on the person's own model (D1, D38), a Linux-only settings entry _Apple TV: Sources/CrucibleCore/Features/Hosted/HostedBrain.swift (HostedBrainProviding, line 24)_
 - [ ] `linux-match-content-setting` (L) Match Content: switch the display to the video's frame rate and range (Linux-only, docs/LINUX.md section 7.4) Gap: Only a static gallery row exists (linux/Sources/CrucibleGallery/GalleryPages.swift:290); no Settings entry and no output switching in the app.
