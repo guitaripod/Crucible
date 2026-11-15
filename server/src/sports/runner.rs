@@ -70,6 +70,14 @@ pub struct Sports {
     wake: Notify,
 }
 
+/// The start of the note on an item whose research is done but whose write Plex refused.
+const WRITE_REFUSED: &str = "Plex did not take the write";
+
+/// Whether Crucible has already tried to write this item, so locks on it may be its own rather than the owner's.
+fn wrote_before(known: Option<&SportsItem>) -> bool {
+    known.is_some_and(|known| known.applied.is_some() || (known.state == "failed" && known.note.starts_with(WRITE_REFUSED)))
+}
+
 fn web_for(paths: &Paths, settings: &Settings) -> Option<Web> {
     let engine = settings.engine.clone()?;
     let key = matches!(engine, Engine::Brave).then(|| std::fs::read_to_string(paths.search_key()).ok()).flatten();
@@ -149,12 +157,17 @@ impl Sports {
 
     /// The owner's libraries as (section key, title, is Other Videos), for choosing.
     pub async fn libraries(&self) -> Vec<(String, String, bool)> {
-        let Some(token) = &self.owner_token else { return Vec::new() };
+        self.listed_libraries().await.unwrap_or_default()
+    }
+
+    /// The owner's libraries as Plex lists them now, or why Plex could not list them.
+    async fn listed_libraries(&self) -> Result<Vec<(String, String, bool)>, String> {
+        let Some(token) = &self.owner_token else { return Ok(Vec::new()) };
         self.plex
             .sections(token)
             .await
             .map(|sections| sections.into_iter().map(|section| (section.key.clone(), section.title.clone(), section.is_other_videos())).collect())
-            .unwrap_or_default()
+            .map_err(|error| error.to_string())
     }
 
     /// Every requirement and where it stands, from the last ten minutes unless `again`.
@@ -215,7 +228,18 @@ impl Sports {
             self.set_status(|status| status.phase = "waiting".into());
             return;
         };
-        let existing: Vec<String> = self.libraries().await.into_iter().filter(|(_, _, other_videos)| *other_videos).map(|(key, _, _)| key).collect();
+        let listed = match self.listed_libraries().await {
+            Ok(listed) => listed,
+            Err(error) => {
+                tracing::warn!(%error, "could not list the libraries");
+                self.set_status(|status| {
+                    status.phase = "idle".into();
+                    status.last_error = Some(error);
+                });
+                return;
+            }
+        };
+        let existing: Vec<String> = listed.into_iter().filter(|(_, _, other_videos)| *other_videos).map(|(key, _, _)| key).collect();
         let mut items: Vec<(String, Item)> = Vec::new();
         for section in self.settings().libraries.into_iter().filter(|section| existing.contains(section)) {
             match self.plex.section_videos(&section, &token).await {
@@ -303,7 +327,9 @@ impl Sports {
         });
         let set_by_hand = match &applied {
             Some(applied) => edited_by_owner(item, applied) && wanted.as_ref().is_none_or(|wanted| edited_by_owner(item, wanted)),
-            None => known.is_none() && item.locks.iter().any(|lock| lock.locked && matches!(lock.name.as_str(), "title" | "summary" | "titleSort")),
+            None => {
+                !wrote_before(known.as_ref()) && item.locks.iter().any(|lock| lock.locked && matches!(lock.name.as_str(), "title" | "summary" | "titleSort"))
+            }
         };
         if set_by_hand {
             row.state = "edited".into();
@@ -313,7 +339,7 @@ impl Sports {
             return Handled::Done;
         }
         let record = match (&known, row.record.as_deref().and_then(|text| serde_json::from_str::<Record>(text).ok())) {
-            (Some(known), Some(record)) if known.state == "matched" => record,
+            (Some(known), Some(record)) if known.state == "matched" || wrote_before(Some(known)) => record,
             _ => match self.record_for(brain, web, item, &release).await {
                 Ok(record) => record,
                 Err((state, note, wait)) => {
@@ -359,7 +385,8 @@ impl Sports {
             Err(error) => {
                 row.tries += 1;
                 row.state = "failed".into();
-                row.note = format!("Plex did not take the write: {error}");
+                row.record = serde_json::to_string(&record).ok();
+                row.note = format!("{WRITE_REFUSED}: {error}");
                 row.next_try = now() + 15 * 60 * row.tries.min(6);
             }
         }
@@ -466,6 +493,31 @@ impl Sports {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn row(state: &str, note: &str, applied: Option<&str>) -> SportsItem {
+        SportsItem {
+            rating_key: "1".into(),
+            section: "4".into(),
+            file: "/mnt/Sports/UFC.334.mkv".into(),
+            state: state.into(),
+            title: "UFC 334".into(),
+            record: None,
+            applied: applied.map(str::to_string),
+            note: note.into(),
+            tries: 1,
+            next_try: 0,
+            updated: 0,
+        }
+    }
+
+    #[test]
+    fn only_rows_crucible_wrote_or_tried_to_write_can_own_their_locks() {
+        assert!(!wrote_before(None));
+        assert!(!wrote_before(Some(&row("attention", "Could not tell which event this is.", None))));
+        assert!(!wrote_before(Some(&row("failed", "The model did not answer.", None))));
+        assert!(wrote_before(Some(&row("failed", &format!("{WRITE_REFUSED}: 500"), None))));
+        assert!(wrote_before(Some(&row("matched", "", Some("{}")))));
+    }
 
     #[test]
     fn reads_days_from_unix_time() {
