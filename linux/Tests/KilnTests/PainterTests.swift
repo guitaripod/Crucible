@@ -172,6 +172,19 @@ import CKilnText
     }
 
 
+    @Test func aGIFDecodesEveryFrameWithItsDelayAndItsFirstAsAnImage() throws {
+        let gif = try #require(Data(base64Encoded: "R0lGODlhBAAEAIEAAP8AAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQABQAAACwAAAAABAAEAAAICQABCBxIsCCAgAAh+QQBDAABACwAAAAABAAEAIEAAP8AAAAAAAAAAAAICQABCBxIsCCAgAA7"))
+        let animated = try AnimatedImage.decodeGIF(gif)
+        #expect(animated.width == 4 && animated.height == 4)
+        #expect(animated.frames.count == 2)
+        #expect(Array(animated.frames[0].prefix(4)) == [255, 0, 0, 255])
+        #expect(Array(animated.frames[1].prefix(4)) == [0, 0, 255, 255])
+        #expect(animated.delays == [0.05, 0.12])
+        let still = try ImageDecoder.decode(gif)
+        #expect(still.width == 4 && Array(still.pixels.prefix(4)) == [255, 0, 0, 255], "a GIF shows as its first frame where it does not animate")
+    }
+
+
     @Test func aHighlightKeepsTheLayoutAndMapsUTF16ToBytes() {
         let layout = TextLayout("Café Noir", font: Font(size: 20), scale: 1)
         let match = layout.showingOnly(utf16: [(location: 5, length: 4)])

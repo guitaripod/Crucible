@@ -46,6 +46,40 @@ public enum ImageDecoder {
     }
 }
 
+/// A GIF's frames, each already composited over the ones before it, with how long each shows.
+public struct AnimatedImage: Sendable {
+    public let width: Int
+    public let height: Int
+    /// Straight-alpha RGBA8 rows, top first, one array a frame.
+    public let frames: [[UInt8]]
+    /// Seconds each frame shows.
+    public let delays: [Double]
+
+    /// Decodes every frame of a GIF, at most `maximumFrames` of them.
+    public static func decodeGIF(_ data: Data, maximumFrames: Int = 240) throws(ImageError) -> AnimatedImage {
+        var width: Int32 = 0
+        var height: Int32 = 0
+        var count: Int32 = 0
+        var delays: UnsafeMutablePointer<Int32>?
+        var error = [CChar](repeating: 0, count: 160)
+        let pixels = data.withUnsafeBytes { buffer in
+            kiln_gif_decode_frames(buffer.baseAddress?.assumingMemoryBound(to: UInt8.self), buffer.count, Int32(maximumFrames), &width, &height, &count,
+                                   &delays, &error, error.count)
+        }
+        guard let pixels, let delays else {
+            throw .decode(error.withUnsafeBufferPointer { String(cString: $0.baseAddress!) })
+        }
+        defer {
+            kiln_image_free(pixels)
+            free(delays)
+        }
+        let frameBytes = Int(width) * Int(height) * 4
+        let frames = (0..<Int(count)).map { index in Array(UnsafeBufferPointer(start: pixels + index * frameBytes, count: frameBytes)) }
+        let times = (0..<Int(count)).map { Double(delays[$0]) / 1000 }
+        return AnimatedImage(width: Int(width), height: Int(height), frames: frames, delays: times)
+    }
+}
+
 /// Writes linear RGBA floats (a capture) as an 8-bit sRGB PNG, reference white as white and highlights clipped.
 public enum PNGWriter {
     public static func write(linear pixels: [Float], width: Int, height: Int, to path: String) -> Bool {

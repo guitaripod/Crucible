@@ -8,6 +8,7 @@
 #include <png.h>
 #include <webp/decode.h>
 #include <librsvg/rsvg.h>
+#include <gif_lib.h>
 
 static void fail(char *error, size_t error_size, const char *reason) {
     if (error && error_size) snprintf(error, error_size, "%s", reason);
@@ -16,6 +17,113 @@ static void fail(char *error, size_t error_size, const char *reason) {
 static bool is_jpeg(const uint8_t *data, size_t size) { return size > 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF; }
 static bool is_png(const uint8_t *data, size_t size) { return size > 8 && memcmp(data, "\x89PNG\r\n\x1a\n", 8) == 0; }
 static bool is_webp(const uint8_t *data, size_t size) { return size > 12 && memcmp(data, "RIFF", 4) == 0 && memcmp(data + 8, "WEBP", 4) == 0; }
+static bool is_gif(const uint8_t *data, size_t size) { return size > 6 && memcmp(data, "GIF8", 4) == 0; }
+
+typedef struct {
+    const uint8_t *data;
+    size_t size;
+    size_t offset;
+} gif_source;
+
+static int gif_read(GifFileType *file, GifByteType *buffer, int length) {
+    gif_source *source = file->UserData;
+    size_t left = source->size - source->offset;
+    size_t count = (size_t) length < left ? (size_t) length : left;
+    memcpy(buffer, source->data + source->offset, count);
+    source->offset += count;
+    return (int) count;
+}
+
+uint8_t *kiln_gif_decode_frames(const uint8_t *data, size_t size, int max_frames, int *width, int *height, int *count, int **delays,
+                                char *error, size_t error_size) {
+    gif_source source = { data, size, 0 };
+    int status = 0;
+    GifFileType *file = DGifOpen(&source, gif_read, &status);
+    if (!file) {
+        fail(error, error_size, "gif open");
+        return NULL;
+    }
+    if (DGifSlurp(file) != GIF_OK || file->ImageCount < 1 || file->SWidth <= 0 || file->SHeight <= 0) {
+        fail(error, error_size, "gif decode");
+        DGifCloseFile(file, &status);
+        return NULL;
+    }
+    int w = file->SWidth, h = file->SHeight;
+    int frames = file->ImageCount < max_frames ? file->ImageCount : max_frames;
+    size_t frame_bytes = (size_t) w * h * 4;
+    uint8_t *out = calloc(frame_bytes * frames, 1);
+    uint8_t *canvas = calloc(frame_bytes, 1);
+    uint8_t *previous = calloc(frame_bytes, 1);
+    int *times = calloc(frames, sizeof(int));
+    if (!out || !canvas || !previous || !times) {
+        free(out); free(canvas); free(previous); free(times);
+        fail(error, error_size, "gif memory");
+        DGifCloseFile(file, &status);
+        return NULL;
+    }
+    for (int index = 0; index < frames; index++) {
+        SavedImage *image = &file->SavedImages[index];
+        GraphicsControlBlock control = { .DisposalMode = DISPOSAL_UNSPECIFIED, .DelayTime = 10, .TransparentColor = NO_TRANSPARENT_COLOR };
+        DGifSavedExtensionToGCB(file, index, &control);
+        ColorMapObject *map = image->ImageDesc.ColorMap ? image->ImageDesc.ColorMap : file->SColorMap;
+        if (control.DisposalMode == DISPOSE_PREVIOUS) memcpy(previous, canvas, frame_bytes);
+        int left = image->ImageDesc.Left, top = image->ImageDesc.Top;
+        int frame_width = image->ImageDesc.Width, frame_height = image->ImageDesc.Height;
+        for (int y = 0; y < frame_height && map; y++) {
+            int row = image->ImageDesc.Interlace ? -1 : y;
+            if (image->ImageDesc.Interlace) {
+                static const int starts[] = { 0, 4, 2, 1 }, steps[] = { 8, 8, 4, 2 };
+                int seen = 0;
+                for (int pass = 0; pass < 4 && row < 0; pass++) {
+                    int rows = (frame_height - starts[pass] + steps[pass] - 1) / steps[pass];
+                    if (y < seen + rows) row = starts[pass] + (y - seen) * steps[pass];
+                    seen += rows;
+                }
+            }
+            int canvas_y = top + row;
+            if (canvas_y < 0 || canvas_y >= h) continue;
+            for (int x = 0; x < frame_width; x++) {
+                int canvas_x = left + x;
+                if (canvas_x < 0 || canvas_x >= w) continue;
+                int color = image->RasterBits[y * frame_width + x];
+                if (color == control.TransparentColor || color >= map->ColorCount) continue;
+                uint8_t *pixel = canvas + ((size_t) canvas_y * w + canvas_x) * 4;
+                pixel[0] = map->Colors[color].Red;
+                pixel[1] = map->Colors[color].Green;
+                pixel[2] = map->Colors[color].Blue;
+                pixel[3] = 255;
+            }
+        }
+        memcpy(out + frame_bytes * index, canvas, frame_bytes);
+        times[index] = control.DelayTime > 1 ? control.DelayTime * 10 : 100;
+        if (control.DisposalMode == DISPOSE_BACKGROUND) {
+            for (int y = top; y < top + frame_height && y < h; y++) {
+                if (y < 0) continue;
+                for (int x = left; x < left + frame_width && x < w; x++) {
+                    if (x >= 0) memset(canvas + ((size_t) y * w + x) * 4, 0, 4);
+                }
+            }
+        } else if (control.DisposalMode == DISPOSE_PREVIOUS) {
+            memcpy(canvas, previous, frame_bytes);
+        }
+    }
+    free(canvas);
+    free(previous);
+    DGifCloseFile(file, &status);
+    *width = w;
+    *height = h;
+    *count = frames;
+    *delays = times;
+    return out;
+}
+
+static uint8_t *decode_gif(const uint8_t *data, size_t size, int *width, int *height, char *error, size_t error_size) {
+    int count = 0;
+    int *delays = NULL;
+    uint8_t *frames = kiln_gif_decode_frames(data, size, 1, width, height, &count, &delays, error, error_size);
+    free(delays);
+    return frames;
+}
 
 /** The smallest DCT scaling factor that still covers the requested size, so a 4K backdrop asked for at 1280 decodes at
  * half or quarter size in a fraction of the time. */
@@ -119,6 +227,7 @@ uint8_t *kiln_image_decode(const uint8_t *data, size_t size, int min_width, int 
     if (is_jpeg(data, size)) return decode_jpeg(data, size, min_width, min_height, width, height, error, error_size);
     if (is_png(data, size)) return decode_png(data, size, width, height, error, error_size);
     if (is_webp(data, size)) return decode_webp(data, size, width, height, error, error_size);
+    if (is_gif(data, size)) return decode_gif(data, size, width, height, error, error_size);
     fail(error, error_size, "unknown image format");
     return NULL;
 }
