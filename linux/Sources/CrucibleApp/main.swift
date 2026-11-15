@@ -31,6 +31,7 @@ func runCrucible() -> Int32 {
         return 1
     }
     if arguments.contains("--fullscreen") || arguments.contains("--couch") { window.setFullscreen(true) }
+    TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
     let coordinator = AppCoordinator(window: window)
     var running = true
     coordinator.onQuit = { running = false }

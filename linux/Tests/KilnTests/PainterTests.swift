@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import CKilnText
 @testable import Kiln
 
 @MainActor
@@ -81,6 +82,28 @@ import Testing
         let pixels = target.download()
         #expect(pixel(pixels, 40, 100).0 < 0.01)
         #expect(abs(pixel(pixels, 160, 100).0 - 0.2159) < 0.01)
+    }
+
+    @Test func uprightTextIsSetInStaticCutsThatMatchTheVariableFont() {
+        let text = TextStyle(sizePixels: 30, weight: 600, opticalSize: 14)
+        let display = TextStyle(sizePixels: 60, weight: 700, opticalSize: 32)
+        #expect(TextRenderer.family(for: text).name == "Kiln Inter")
+        #expect(TextRenderer.family(for: display).name == "Kiln Inter Display")
+        var italic = text
+        italic.italic = true
+        #expect(TextRenderer.family(for: italic).name == "Inter Variable")
+        for (style, opsz) in [(text, 14.0), (display, 32.0)] {
+            let sample = "Continue Watching 0123456789"
+            let cut = TextRenderer.measure(sample, style: style)
+            var raw = kiln_text_style(family: nil, size_px: style.sizePixels, optical_size: opsz, weight: Int32(style.weight), italic: false,
+                                      max_width_px: 0, max_lines: 0, alignment: 0, letter_spacing_px: 0)
+            let variable = "Inter Variable".withCString { family in
+                raw.family = family
+                return sample.withCString { kiln_text_measure($0, &raw) }
+            }
+            #expect(cut.width == Int(variable.width), "the static cut sets text exactly as the variable font at its coordinates")
+            #expect(cut.height == Int(variable.height))
+        }
     }
 
     @Test func textIsLaidOutInInterAndDrawnInItsColour() throws {

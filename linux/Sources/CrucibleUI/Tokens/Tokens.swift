@@ -176,6 +176,14 @@ public struct TypeScale {
     public var screenTitle: Font { title2 }
     public var screenSummary: Font { callout }
     public var screenDetail: Font { body }
+    /// The text typed into the Search field.
+    public var searchField: Font { Font(size: title3.size * 0.85, weight: .medium) }
+
+    /// Every recipe, for warming the fonts at launch.
+    public var all: [Font] {
+        [largeTitle, title2, title3, headline, body, callout, subheadline, footnote, caption1, caption2, control, cardTitle, cardSubtitle,
+         eyebrow, artCaption, searchField]
+    }
 }
 
 /// `Theme.Color` and `TVColor` in both appearances.

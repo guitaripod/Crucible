@@ -166,7 +166,7 @@ public final class TextFieldView: View {
             context.symbol(symbol, in: Rect(x: x, y: rect.midY - side / 2, width: side, height: side), color: secondary)
             x += side + metrics.tv(20)
         }
-        let font = Font(size: theme.type.title3.size * 0.85, weight: .medium)
+        let font = theme.type.searchField
         let available = rect.width - x - metrics.controlInset
         if text.isEmpty {
             let layout = TextLayout(placeholder, font: font, maxWidth: available, scale: scale)

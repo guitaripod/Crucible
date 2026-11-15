@@ -38,7 +38,13 @@ public struct TextMetrics: Sendable {
 /// rendered once and drawn as a tinted quad every frame after.
 @MainActor
 public final class TextRenderer {
-    public static let family = "Inter Variable"
+    /// Upright text is set in static cuts of Inter, Text below the middle of its optical-size axis and Display from
+    /// there (as SF switches from Text to Display), because Cairo re-applies a variable font's coordinates whenever text
+    /// switches between instances, which cost half a millisecond a label. Italics keep the variable font.
+    static func family(for style: TextStyle) -> (name: String, opticalSize: Double) {
+        if style.italic { return ("Inter Variable", style.opticalSize) }
+        return (style.opticalSize >= 23 ? "Kiln Inter Display" : "Kiln Inter", 0)
+    }
 
     private struct Key: Hashable {
         let text: String
@@ -63,6 +69,29 @@ public final class TextRenderer {
     public static func registerFonts() {
         _ = fontsRegistered
     }
+
+    /// Loads every font in `fonts` at `scale` and rasterises its common glyphs, one font per main-queue turn, so the
+    /// first screens draw their labels without stopping for font matching (about 2 ms a font) or cold glyph caches.
+    public static func warmUp(_ fonts: [Font], scale: Float) {
+        var pending = Array(Set(fonts))
+        func next() {
+            guard let font = pending.popLast() else { return }
+            let layout = TextLayout(warmUpSample, font: font, scale: scale)
+            let stride = (layout.metrics.width + 3) & ~3
+            if layout.metrics.width > 0, layout.metrics.height > 0 {
+                var pixels = [UInt8](repeating: 0, count: stride * layout.metrics.height)
+                _ = withRawStyle(layout.style) { raw in
+                    warmUpSample.withCString {
+                        kiln_text_render($0, &raw, &pixels, Int32(layout.metrics.width), Int32(layout.metrics.height), Int32(stride))
+                    }
+                }
+            }
+            DispatchQueue.main.async { MainActor.assumeIsolated { next() } }
+        }
+        next()
+    }
+
+    private static let warmUpSample = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz 0123456789 ·:–…&'’!?,."
 
     private struct MeasureKey: Hashable {
         let text: String
@@ -120,11 +149,12 @@ public final class TextRenderer {
     }
 
     private static func withRawStyle<R>(_ style: TextStyle, _ body: (inout kiln_text_style) -> R) -> R {
-        family.withCString { family in
+        let face = family(for: style)
+        return face.name.withCString { family in
             var raw = kiln_text_style(
                 family: family,
                 size_px: style.sizePixels,
-                optical_size: style.opticalSize,
+                optical_size: face.opticalSize,
                 weight: Int32(style.weight),
                 italic: style.italic,
                 max_width_px: Int32(style.maxWidthPixels),
