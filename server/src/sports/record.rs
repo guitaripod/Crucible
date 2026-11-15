@@ -82,6 +82,67 @@ pub fn without_spoilers(text: &str) -> String {
 }
 
 /// "Gane vs Hokit" and "Gane v. Hokit" as "Gane vs. Hokit".
+/// A name folded for comparing spellings: lower case, without accents or punctuation ("Medić" and "medic" agree).
+fn folded(text: &str) -> String {
+    text.to_lowercase()
+        .chars()
+        .map(|letter| match letter {
+            'á' | 'à' | 'ä' | 'â' | 'ã' | 'å' | 'ą' => 'a',
+            'ć' | 'č' | 'ç' => 'c',
+            'é' | 'è' | 'ë' | 'ê' | 'ě' | 'ę' => 'e',
+            'í' | 'ì' | 'ï' | 'î' => 'i',
+            'ñ' | 'ń' | 'ň' => 'n',
+            'ó' | 'ò' | 'ö' | 'ô' | 'õ' | 'ø' => 'o',
+            'ú' | 'ù' | 'ü' | 'û' | 'ů' => 'u',
+            'ý' | 'ÿ' => 'y',
+            'š' | 'ś' => 's',
+            'ž' | 'ź' | 'ż' => 'z',
+            'ř' => 'r',
+            'ł' => 'l',
+            'đ' | 'ď' => 'd',
+            'ť' => 't',
+            other => other,
+        })
+        .filter(|letter| letter.is_alphanumeric() || letter.is_whitespace())
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// One side of a headline written as the file writes it, when the headline's side ends with the file's names: the
+/// headline's own spelling of those last words, and the rematch number the file or the headline gives.
+fn side_as_the_file(headline: &str, file: &str) -> Option<String> {
+    let number = |side: &str| {
+        side.rsplit_once(' ')
+            .filter(|(_, last)| last.len() <= 2 && last.chars().all(|c| c.is_ascii_digit()))
+            .map(|(name, last)| (name.to_string(), Some(last.to_string())))
+    };
+    let (head_name, head_number) = number(headline).unwrap_or((headline.to_string(), None));
+    let (file_name, file_number) = number(file).unwrap_or((file.to_string(), None));
+    let head_words: Vec<&str> = head_name.split_whitespace().collect();
+    let file_words = folded(&file_name);
+    let count = file_words.split_whitespace().count();
+    if count == 0 || count > head_words.len() || folded(&head_words[head_words.len() - count..].join(" ")) != file_words {
+        return None;
+    }
+    let name = head_words[head_words.len() - count..].join(" ");
+    Some(match file_number.or(head_number) {
+        Some(number) => format!("{name} {number}"),
+        None => name,
+    })
+}
+
+/// The headline in the file name's own form when both of its sides end with the names the file gives ("Allen vs. Costa"
+/// for "Arnold Allen vs. Melquizael Costa", "Kape vs. Horiguchi 2" for a rematch the model left unnumbered), so every
+/// part of an event reads alike; nil when the file names the matchup otherwise or not at all.
+fn named_as_the_file(headline: &str, release: &Release) -> Option<String> {
+    let (left, right) = release.matchup()?;
+    let (head_left, head_right) = headline.split_once(" vs. ")?;
+    let named = format!("{} vs. {}", side_as_the_file(head_left.trim(), &left)?, side_as_the_file(head_right.trim(), &right)?);
+    (named != headline).then_some(named)
+}
+
 pub fn tidy_matchup(text: &str) -> String {
     VS.replace_all(text.trim(), " vs. ").replace(['—', '–'], "-")
 }
@@ -146,6 +207,9 @@ impl Record {
         }
         self.part = release.part.clone().or_else(|| self.part.as_deref().and_then(canonical_part));
         self.headline = tidy_matchup(&self.headline);
+        if let Some(named) = named_as_the_file(&self.headline, release) {
+            self.headline = named;
+        }
         self.event = tidy_matchup(&self.event);
         for bout in &mut self.lineup {
             bout.matchup = tidy_matchup(&bout.matchup);
@@ -291,6 +355,53 @@ impl Record {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn settling_a_stored_record_again_changes_nothing_more() {
+        let release = Release::read("UFC Fight Night 276 Allen vs Costa Prelims 1080p WEB-DL H264 Fight-BB.mp4");
+        let mut record = Record {
+            identified: true,
+            event: "UFC Fight Night: Allen vs Costa".into(),
+            event_number: Some("UFC Fight Night 276".into()),
+            headline: "Arnold Allen vs Melquizael Costa".into(),
+            date: "2026-05-02".into(),
+            summary: "Arnold Allen meets Melquizael Costa \u{2014} a featherweight main event.".into(),
+            lineup: vec![Bout { matchup: "Arnold Allen v Melquizael Costa".into(), detail: "Featherweight Bout".into(), part: Some("main card".into()) }],
+            confidence: "High".into(),
+            ..Record::default()
+        };
+        record.settle(&release);
+        let once = record.clone();
+        record.settle(&release);
+        assert_eq!(record, once);
+        assert_eq!(once.headline, "Allen vs. Costa");
+    }
+
+    #[test]
+    fn a_headline_reads_like_the_files_matchup() {
+        let named = |headline: &str, file: &str| named_as_the_file(headline, &Release::read(file));
+        assert_eq!(
+            named("Arnold Allen vs. Melquizael Costa", "UFC Fight Night 276 Allen vs Costa 1080p WEB-DL H264 Fight-BB.mp4").as_deref(),
+            Some("Allen vs. Costa")
+        );
+        assert_eq!(
+            named("Jean Silva vs. Delgado", "UFC Fight Night 288 Silva vs Delgado Prelims 1080p WEB-DL H264 Fight-BB.mp4").as_deref(),
+            Some("Silva vs. Delgado")
+        );
+        assert_eq!(
+            named("Kape vs. Horiguchi", "UFC Fight Night 279 Kape vs Horiguchi 2 1080p WEB-DL H264 Fight-BB.mp4").as_deref(),
+            Some("Kape vs. Horiguchi 2")
+        );
+        assert_eq!(
+            named("Dricus du Plessis vs. Kamaru Usman", "UFC Fight Night 281 du Plessis vs Usman 1080p WEB-DL H264 Fight-BB.mp4").as_deref(),
+            Some("du Plessis vs. Usman")
+        );
+        assert_eq!(named("Medić vs. Rodriguez", "ufc.fight.night.283.medic.vs.rodriguez.1080p.web.h264-verum.mkv"), None);
+        assert_eq!(named("Rosas Jr. vs. Barcelos", "UFC Fight Night 289 Rosas vs Barcelos 1080p WEB-DL H264 Fight-BB.mp4"), None);
+        assert_eq!(named("Holloway vs. Oliveira 2", "ufc.326.holloway.vs.oliveira.2.ppv.1080p.web.h264-verum.mkv"), None);
+        assert_eq!(named("Lleshi vs. Calvert", "CFFC 161 Lleshi vs Calvert UFC Fight Pass 1080p WEBRip H 264-Star.mp4"), None);
+        assert_eq!(named("Gane vs. Hokit", "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"), None);
+    }
 
     fn ufc334() -> Record {
         Record {

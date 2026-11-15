@@ -498,7 +498,10 @@ impl Sports {
             return Handled::Done;
         }
         let record = match (&known, row.record.as_deref().and_then(|text| serde_json::from_str::<Record>(text).ok())) {
-            (Some(known), Some(record)) if known.state == "matched" || wrote_before(Some(known)) => record,
+            (Some(known), Some(mut record)) if known.state == "matched" || wrote_before(Some(known)) => {
+                record.settle(&release);
+                record
+            }
             _ => match self.record_for(brain, web, item, &release).await {
                 Ok((record, effort)) => {
                     row.seconds = effort.seconds;

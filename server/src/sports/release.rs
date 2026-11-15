@@ -28,6 +28,9 @@ static UFC_EVENT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\bUFC\s+(?:(Fight\s+Night|PPV|Vegas|on\s+(?:ESPN\+?|ABC|FOX|FX|Fuel(?:\s+TV)?))\s*)?(\d{1,4})\b").expect("UFC pattern"));
 static EARLY_PRELIMS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bearly\s+prelim(?:s|inary|inaries)?\b|\bUFP\b").expect("early prelims pattern"));
 static PRELIMS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bprelim(?:s|inary|inaries)?\b").expect("prelims pattern"));
+static FILE_VS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\s+vs\.?\s+").expect("file vs pattern"));
+static PART_WORDS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b(early\s+prelim\w*|prelim\w*|main\s+card|ppv|ufp|ufc\s+fight\s+pass|fight\s+pass)\b").expect("part words pattern"));
 static FULL_EVENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\b(complete|full\s+event)\b").expect("full event pattern"));
 static FIGHT_PASS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bUFC\s+Fight\s+Pass\b").expect("Fight Pass pattern"));
 static SPACES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").expect("spaces pattern"));
@@ -52,6 +55,16 @@ fn series_name(series: Option<&str>) -> String {
 }
 
 impl Release {
+    /// The two sides of the matchup the name gives after the event number, as written ("Kape", "Horiguchi 2"), without
+    /// the words that name the part.
+    pub fn matchup(&self) -> Option<(String, String)> {
+        let start = UFC_EVENT.find(&self.cleaned).map(|found| found.end()).unwrap_or(0);
+        let mut sides = FILE_VS.splitn(&self.cleaned[start..], 2);
+        let clean = |side: &str| PART_WORDS.replace_all(side, " ").split_whitespace().collect::<Vec<_>>().join(" ");
+        let (left, right) = (clean(sides.next()?), clean(sides.next()?));
+        (!left.is_empty() && !right.is_empty()).then_some((left, right))
+    }
+
     /// Reads a file name, or a path whose last component is the file.
     pub fn read(path: &str) -> Self {
         let file_name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_string();
