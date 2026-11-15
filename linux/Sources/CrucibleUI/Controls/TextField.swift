@@ -14,7 +14,8 @@ public final class TextFieldView: View {
 
     private var caret = 0
     private var selectAll = false
-    private var blink: Float = 0
+    private var blinkStart = Window.now()
+    private var caretFlip: DispatchWorkItem?
     private var focus = Animated(0)
     private var tone = GlassTone()
 
@@ -50,7 +51,7 @@ public final class TextFieldView: View {
         }
         change(&characters, &caret)
         let updated = String(characters)
-        blink = 0
+        restartBlink()
         if updated != text {
             text = updated
             onChange?(updated)
@@ -86,13 +87,13 @@ public final class TextFieldView: View {
         case .left where !text.isEmpty && caret > 0:
             caret = control ? wordStart(Array(text), from: caret) : caret - 1
             selectAll = false
-            blink = 0
+            restartBlink()
             setNeedsDisplay()
             return true
         case .right where caret < text.count:
             caret += 1
             selectAll = false
-            blink = 0
+            restartBlink()
             setNeedsDisplay()
             return true
         case .home:
@@ -126,8 +127,33 @@ public final class TextFieldView: View {
 
     public override func focusDidChange(focused: Bool, animated: Bool) {
         focus.set(focused ? 1 : 0, animation: .focus)
-        blink = 0
+        restartBlink()
         startAnimating()
+    }
+
+    /// The caret shows solid again (after a key or a focus change) and blinks from now.
+    private func restartBlink() {
+        blinkStart = Window.now()
+        scheduleCaretFlip()
+    }
+
+    /// Whether the caret is in the shown half of its blink.
+    private var caretShown: Bool { isFocused && Int((Window.now() - blinkStart) * 1.6) % 2 == 0 }
+
+    /// Redraws at the caret's next blink, not every frame in between, and stops once the field lets go of focus.
+    private func scheduleCaretFlip() {
+        caretFlip?.cancel()
+        let elapsed = Window.now() - blinkStart
+        let next = (floor(elapsed * 1.6) + 1) / 1.6 - elapsed
+        let flip = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.isFocused else { return }
+                self.setNeedsDisplay()
+                self.scheduleCaretFlip()
+            }
+        }
+        caretFlip = flip
+        DispatchQueue.main.asyncAfter(deadline: .now() + next, execute: flip)
     }
 
     public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
@@ -139,11 +165,6 @@ public final class TextFieldView: View {
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
         let moving = [focus.advance(dt), tone.advance(dt)].contains(true)
-        if isFocused {
-            blink += dt
-            setNeedsDisplay()
-            return true
-        }
         setNeedsDisplay()
         return moving
     }
@@ -183,12 +204,12 @@ public final class TextFieldView: View {
                 }
                 inner.text(layout, at: Point(x: x - shift, y: y), color: label)
             }
-            if isFocused && Int(blink * 1.6) % 2 == 0 {
+            if caretShown {
                 context.fill(Rect(x: x + before - shift, y: y + 2, width: max(metrics.tv(3), 1.5), height: layout.size.height - 4), color: theme.palette.accent)
             }
             return
         }
-        if isFocused && Int(blink * 1.6) % 2 == 0 {
+        if caretShown {
             context.fill(Rect(x: x, y: rect.midY - font.size * 0.6, width: max(metrics.tv(3), 1.5), height: font.size * 1.2), color: theme.palette.accent)
         }
     }

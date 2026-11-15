@@ -305,7 +305,8 @@ public final class Window {
         }
     }
 
-    static func now() -> Double {
+    /// Monotonic seconds, the clock frames and animations run on.
+    public static func now() -> Double {
         var spec = timespec()
         clock_gettime(CLOCK_MONOTONIC, &spec)
         return Double(spec.tv_sec) + Double(spec.tv_nsec) / 1e9
