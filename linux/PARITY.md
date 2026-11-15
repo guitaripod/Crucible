@@ -10,12 +10,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Home and libraries | 76 | 2 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
-| Search, Pro features (free on Linux) and demo | 51 | 0 | 4 | 8 |
+| Search, Pro features (free on Linux) and demo | 52 | 0 | 3 | 8 |
 | You, profiles, history, statistics and manage | 83 | 1 | 0 | 3 |
-| Settings and integrations | 64 | 0 | 3 | 2 |
+| Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 75 | 7 | 21 | 0 |
-| **All** | 635 | 16 | 35 | 16 |
+| **All** | 637 | 16 | 33 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -358,7 +358,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `pro-full-statistics` (L) Full Statistics: every range, library filter, patterns, binges and taste from Plex history plus Trakt (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:9,20,33,64_
 - [ ] `pro-year-in-review` (M) Year in Review poster: preview and share your year as a Story or Square poster (D1). Gap: No Year in Review on Linux; depends on Statistics data and a share surface. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:10,34,64_
 - [x] `pro-manage-requests` (L) Manage Requests: approve, decline and retry everyone’s Seerr requests, listed only when the connected Seerr manages requests (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:12,23,36,65_
-- [ ] `pro-sports-research` (L) Sports Research: your own model looks up the events in your sports recordings and fills in titles, dates, cards and posters; listed when paired with a Crucible Server (D1). Gap: No Sports screen and no Crucible Server pairing on Linux (rg for CompanionStore and SportsCopy under linux/ is empty). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:13,24,37,57,66_
+- [x] `pro-sports-research` (L) Sports Research: your own model looks up the events in your sports recordings and fills in titles, dates, cards and posters; listed when paired with a Crucible Server (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:13,24,37,57,66_
 - [x] `pro-unlimited-downloads` (S) n/a: Unlimited downloads and whole-season downloads (iPhone-only in the Pro list). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:8,17,32,62_
 - [x] `pro-top-shelf` (S) n/a: Top Shelf: Continue Watching and Up Next on the Apple TV Home screen. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:14,35,64_
 - [x] `pro-paywall-and-plans` (S) n/a: Crucible Pro paywall (offer cards, plan choice, purchase button, renewal terms, legal text, Retry and Close on unavailable) and the Pro page with its plan, manage-subscription text and feature checklist. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Pro/TVPaywallViewController.swift:14-120_
@@ -514,7 +514,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `companion-enter-code` (S) Pair by typing the code printed by crucible-server pair; a refused or expired code gets its own message _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:askForCode, pair(code:)_
 - [x] `companion-pair-with-iphone` (S) n/a: Pair with iPhone: the system picker of nearby iPhones and iPads running Crucible, then a hand-off of the pairing _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:pairWithIPhone, handOff (DDDevicePickerViewController)_
 - [x] `companion-status-and-unpair` (S) Paired status line from the server's brain status (checking, then the status text or the error), and Unpair after a confirmation _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:refresh (CompanionClient.brain), confirmUnpair (presentConfirmation)_
-- [ ] `companion-sports-research` (L) Sports Research, opened from the paired Crucible Server: four setup steps, switch on research for new files, choose libraries, agree to the terms (withdraw), Check Again, Look Now, a results board with per-item states, Research Again after a confirmation, and a Pro pitch for non-Pro users Gap: Nothing on Linux. The Pro pitch does not apply on Linux (D1); the rest must be built. _Apple TV: Sources/CrucibleTV/Settings/TVSportsResearchViewController.swift_
+- [x] `companion-sports-research` (L) Sports Research, opened from the paired Crucible Server: four setup steps, switch on research for new files, choose libraries, agree to the terms (withdraw), Check Again, Look Now, a results board with per-item states, Research Again after a confirmation, and a Pro pitch for non-Pro users _Apple TV: Sources/CrucibleTV/Settings/TVSportsResearchViewController.swift_
 - [x] `linux-own-model-settings` (M) Model address and key for What to Watch and described recaps on the person's own model (D1, D38), a Linux-only settings entry _Apple TV: Sources/CrucibleCore/Features/Hosted/HostedBrain.swift (HostedBrainProviding, line 24)_
 - [ ] `linux-match-content-setting` (L) Match Content: switch the display to the video's frame rate and range (Linux-only, docs/LINUX.md section 7.4) Gap: Only a static gallery row exists (linux/Sources/CrucibleGallery/GalleryPages.swift:290); no Settings entry and no output switching in the app.
 - [ ] `linux-audio-passthrough-setting` (M) Audio passthrough: Auto, On or Off for the bitstream codecs sent to the receiver (docs/LINUX.md section 7.6, Linux-only settings entry) Gap: No passthrough setting in Settings or the player. The entry is small, but the IEC958 path it drives (docs/LINUX.md section 7.6) is not.
