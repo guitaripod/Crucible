@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 48 | 5 | 3 | 1 |
+| Sign in, launch, tabs and navigation | 49 | 4 | 3 | 1 |
 | Home and libraries | 74 | 3 | 1 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
@@ -15,7 +15,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 59 | 1 | 7 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 71 | 7 | 25 | 0 |
-| **All** | 620 | 20 | 46 | 16 |
+| **All** | 621 | 19 | 46 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -60,7 +60,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `shell-command-menu` (M) A menu button in the tab bar and F10 open a Go, View, Media and Settings menu with each item's shortcut, and Ctrl+? shows the full shortcut list (docs/LINUX.md section 6). Gap: No menu button, no F10 menu and no shortcut overlay. Linux-only requirement.
 - [x] `shell-shortcuts-refresh-settings-zoom` (S) Ctrl+R refreshes, Ctrl+comma opens Settings, and Ctrl+plus and Ctrl+minus change poster size (docs/LINUX.md section 6).
 - [x] `shell-fullscreen-quit-keys` (S) F11 toggles fullscreen and Ctrl+Q quits.
-- [ ] `shell-you-account-header` (M) **partial** You tab header shows a profile panel (account name and connection status) and a Year in Review card that opens Statistics. Gap: No profile panel, no connection status and no Year in Review card. Core has YouProfile, YouConnectionStatus and YearInReviewSummary, none used on Linux. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:36-38, 149-178 (profile panel, year card, context column)_
+- [x] `shell-you-account-header` (M) You tab header shows a profile panel (account name and connection status) and a Year in Review card that opens Statistics. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:36-38, 149-178 (profile panel, year card, context column)_
 - [x] `shell-you-switch-profile` (M) Switch Profile row appears in You when the account's Home has more than one profile. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:241-243 (HomeProfiles.knownCount > 1)_
 - [ ] `shell-you-root-rows` (M) **partial** You root list holds Watch History, Statistics, Playlists, Watchlist with new-release count, Server Activity, Server Dashboard (owner), Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Requests, Privacy, Diagnostics, About with version, and Sign Out. Gap: Every row is on Linux You except Crucible Server, which waits on pairing (you-crucible-server-row). _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:219-237 (refreshRows)_
 - [x] `shell-settings-about` (S) About Crucible shows the app version and details. _Apple TV: Sources/CrucibleTV/Settings/TVAboutViewController.swift:27, 47-72 (version, build, license, source code, support, credits)_
@@ -470,7 +470,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 ## Settings and integrations
 
-- [ ] `settings-root-categories` (M) **partial** Settings root lists the categories with a value line each (Playback quality, skip distances, Home rows and libraries, Integrations, Crucible Server, connection, privacy, Diagnostics, version) Gap: Linux shows only the five catalogue categories with Linux entries (Playback, Skip Buttons, Server & Connection, Privacy & Data, Help & About). Home & Libraries, Integrations (Trakt, Seerr), the Crucible Server row and Diagnostics are absent. Server & Connection holds only two toggles and its value is 'Relay allowed' or nothing, not a route summary. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:refreshRows (Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Privacy, Diagnostics, About rows)_
+- [ ] `settings-root-categories` (M) **partial** Settings root lists the categories with a value line each (Playback quality, skip distances, Home rows and libraries, Integrations, Crucible Server, connection, privacy, Diagnostics, version) Gap: Every category is on Linux with its value line (Server & Connection now says the route), plus Your Own Model; only the Crucible Server row is missing, which waits on pairing (settings-crucible-server-entry). _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:refreshRows (Playback, Remote, Home Rows, Libraries, Server & Connection, Crucible Server, Trakt, Seerr, Privacy, Diagnostics, About rows)_
 - [x] `settings-category-screen` (S) Each category screen shows its title and explanation at the top, then its rows grouped by section _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:viewDidLoad (installHeading) and rowDidFocus (context column explanation)_
 - [x] `settings-explanation-per-row` (S) The explanation of the focused row is shown in a context column on Apple TV; on Linux each row carries its explanation as its subtitle _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:rowDidFocus (heading.setBody)_
 - [x] `settings-choice-menu` (S) A choice row opens a single-select menu with a checkmark on the current value; picking one applies it at once _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:TVSettingsChoiceViewController (checkmark list, applies on select)_
