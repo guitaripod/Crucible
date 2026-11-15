@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <linux/input-event-codes.h>
+#include <sys/mman.h>
 
 struct kiln_wl {
     struct wl_display *display;
@@ -25,6 +26,20 @@ struct kiln_wl {
     struct wl_pointer *pointer;
     struct wl_keyboard *keyboard;
     struct wp_cursor_shape_device_v1 *cursor_device;
+    uint32_t pointer_serial;
+    uint32_t cursor_shape;
+    struct xkb_context *xkb;
+    struct xkb_keymap *xkb_keymap;
+    struct xkb_state *xkb_state;
+    struct {
+        double value[2];
+        int32_t value120[2];
+        bool stop[2];
+        bool inverted[2];
+        uint32_t source;
+        uint32_t time;
+        bool pending;
+    } axis;
 
     struct wl_surface *surface;
     struct xdg_surface *xdg_surface;
@@ -87,7 +102,12 @@ static const struct xdg_wm_base_listener wm_listener = { .ping = wm_ping };
 
 static void pointer_enter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y) {
     kiln_wl *wl = data;
-    if (wl->cursor_device) wp_cursor_shape_device_v1_set_shape(wl->cursor_device, serial, WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT);
+    wl->pointer_serial = serial;
+    if (wl->cursor_shape == 0) {
+        wl_pointer_set_cursor(pointer, serial, NULL, 0, 0);
+    } else if (wl->cursor_device) {
+        wp_cursor_shape_device_v1_set_shape(wl->cursor_device, serial, wl->cursor_shape);
+    }
     if (wl->callbacks.pointer_motion) wl->callbacks.pointer_motion(wl->context, wl_fixed_to_double(x), wl_fixed_to_double(y));
 }
 
@@ -108,20 +128,61 @@ static void pointer_button(void *data, struct wl_pointer *pointer, uint32_t seri
 
 static void pointer_axis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value) {
     kiln_wl *wl = data;
-    if (wl->callbacks.pointer_axis) wl->callbacks.pointer_axis(wl->context, axis, wl_fixed_to_double(value), 0);
+    if (axis > 1) return;
+    wl->axis.value[axis] += wl_fixed_to_double(value);
+    wl->axis.time = time;
+    wl->axis.pending = true;
 }
 
-static void pointer_frame(void *data, struct wl_pointer *pointer) {}
-static void pointer_axis_source(void *data, struct wl_pointer *pointer, uint32_t source) {}
-static void pointer_axis_stop(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis) {}
+static void pointer_axis_source(void *data, struct wl_pointer *pointer, uint32_t source) {
+    kiln_wl *wl = data;
+    wl->axis.source = source;
+}
+
+static void pointer_axis_stop(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis) {
+    kiln_wl *wl = data;
+    if (axis > 1) return;
+    wl->axis.stop[axis] = true;
+    wl->axis.time = time;
+    wl->axis.pending = true;
+}
+
 static void pointer_axis_discrete(void *data, struct wl_pointer *pointer, uint32_t axis, int32_t discrete) {}
 
 static void pointer_axis_value120(void *data, struct wl_pointer *pointer, uint32_t axis, int32_t value120) {
     kiln_wl *wl = data;
-    if (wl->callbacks.pointer_axis) wl->callbacks.pointer_axis(wl->context, axis, 0, value120);
+    if (axis > 1) return;
+    wl->axis.value120[axis] += value120;
+    wl->axis.pending = true;
 }
 
-static void pointer_axis_direction(void *data, struct wl_pointer *pointer, uint32_t axis, uint32_t direction) {}
+static void pointer_axis_direction(void *data, struct wl_pointer *pointer, uint32_t axis, uint32_t direction) {
+    kiln_wl *wl = data;
+    if (axis > 1) return;
+    wl->axis.inverted[axis] = direction == WL_POINTER_AXIS_RELATIVE_DIRECTION_INVERTED;
+}
+
+/** Hands one frame of scrolling to the owner: both axes together, with the device that produced them and whether the
+ * fingers lifted, so the owner can tell a wheel's notches from a touchpad's glide and start momentum at the lift. */
+static void pointer_frame(void *data, struct wl_pointer *pointer) {
+    kiln_wl *wl = data;
+    if (!wl->axis.pending) return;
+    if (wl->callbacks.pointer_axis) {
+        kiln_wl_axis_frame frame = {
+            .dx = wl->axis.value[1],
+            .dy = wl->axis.value[0],
+            .dx120 = wl->axis.value120[1],
+            .dy120 = wl->axis.value120[0],
+            .source = wl->axis.source,
+            .stop_x = wl->axis.stop[1],
+            .stop_y = wl->axis.stop[0],
+            .natural = wl->axis.inverted[0],
+            .time_ms = wl->axis.time,
+        };
+        wl->callbacks.pointer_axis(wl->context, frame);
+    }
+    memset(&wl->axis, 0, sizeof wl->axis);
+}
 
 static const struct wl_pointer_listener pointer_listener = {
     .enter = pointer_enter,
@@ -137,17 +198,76 @@ static const struct wl_pointer_listener pointer_listener = {
     .axis_relative_direction = pointer_axis_direction,
 };
 
-static void keyboard_keymap(void *data, struct wl_keyboard *keyboard, uint32_t format, int32_t fd, uint32_t size) { close(fd); }
-static void keyboard_enter(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys) {}
-static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface) {}
-
-static void keyboard_key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
+static void keyboard_keymap(void *data, struct wl_keyboard *keyboard, uint32_t format, int32_t fd, uint32_t size) {
     kiln_wl *wl = data;
-    if (wl->callbacks.key) wl->callbacks.key(wl->context, key, state == WL_KEYBOARD_KEY_STATE_PRESSED);
+    if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
+        close(fd);
+        return;
+    }
+    char *text = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (text == MAP_FAILED) return;
+    struct xkb_keymap *keymap = xkb_keymap_new_from_string(wl->xkb, text, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    munmap(text, size);
+    if (!keymap) return;
+    struct xkb_state *state = xkb_state_new(keymap);
+    if (!state) {
+        xkb_keymap_unref(keymap);
+        return;
+    }
+    if (wl->xkb_state) xkb_state_unref(wl->xkb_state);
+    if (wl->xkb_keymap) xkb_keymap_unref(wl->xkb_keymap);
+    wl->xkb_keymap = keymap;
+    wl->xkb_state = state;
 }
 
-static void keyboard_modifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {}
-static void keyboard_repeat(void *data, struct wl_keyboard *keyboard, int32_t rate, int32_t delay) {}
+static uint32_t keyboard_modifier_mask(kiln_wl *wl) {
+    if (!wl->xkb_state) return 0;
+    uint32_t mask = 0;
+    if (xkb_state_mod_name_is_active(wl->xkb_state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE) > 0) mask |= KILN_MOD_SHIFT;
+    if (xkb_state_mod_name_is_active(wl->xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0) mask |= KILN_MOD_CTRL;
+    if (xkb_state_mod_name_is_active(wl->xkb_state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE) > 0) mask |= KILN_MOD_ALT;
+    if (xkb_state_mod_name_is_active(wl->xkb_state, XKB_MOD_NAME_LOGO, XKB_STATE_MODS_EFFECTIVE) > 0) mask |= KILN_MOD_SUPER;
+    return mask;
+}
+
+static void keyboard_enter(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys) {
+    kiln_wl *wl = data;
+    if (wl->callbacks.keyboard_focus) wl->callbacks.keyboard_focus(wl->context, true);
+}
+
+static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface) {
+    kiln_wl *wl = data;
+    if (wl->callbacks.keyboard_focus) wl->callbacks.keyboard_focus(wl->context, false);
+}
+
+/** Translates an evdev key through the keymap into a keysym, the text it types and the modifiers held, and says whether
+ * the keymap lets it repeat. */
+static void keyboard_key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
+    kiln_wl *wl = data;
+    if (!wl->callbacks.key) return;
+    kiln_wl_key event = { .code = key, .pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED };
+    if (wl->xkb_state) {
+        xkb_keycode_t code = key + 8;
+        event.keysym = xkb_state_key_get_one_sym(wl->xkb_state, code);
+        xkb_state_key_get_utf8(wl->xkb_state, code, event.text, sizeof event.text);
+        event.modifiers = keyboard_modifier_mask(wl);
+        event.repeats = xkb_keymap_key_repeats(wl->xkb_keymap, code);
+    }
+    wl->callbacks.key(wl->context, event);
+}
+
+static void keyboard_modifiers(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
+    kiln_wl *wl = data;
+    if (!wl->xkb_state) return;
+    xkb_state_update_mask(wl->xkb_state, depressed, latched, locked, 0, 0, group);
+    if (wl->callbacks.modifiers) wl->callbacks.modifiers(wl->context, keyboard_modifier_mask(wl));
+}
+
+static void keyboard_repeat(void *data, struct wl_keyboard *keyboard, int32_t rate, int32_t delay) {
+    kiln_wl *wl = data;
+    if (wl->callbacks.repeat_info) wl->callbacks.repeat_info(wl->context, rate, delay);
+}
 
 static const struct wl_keyboard_listener keyboard_listener = {
     .keymap = keyboard_keymap,
@@ -214,6 +334,8 @@ kiln_wl *kiln_wl_connect(const char *name) {
     if (!display) return NULL;
     kiln_wl *wl = calloc(1, sizeof(kiln_wl));
     wl->display = display;
+    wl->cursor_shape = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+    wl->xkb = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     wl->registry = wl_display_get_registry(display);
     wl_registry_add_listener(wl->registry, &registry_listener, wl);
     wl_display_roundtrip(display);
@@ -236,6 +358,12 @@ void kiln_wl_disconnect(kiln_wl *wl) {
     if (wl->toplevel) xdg_toplevel_destroy(wl->toplevel);
     if (wl->xdg_surface) xdg_surface_destroy(wl->xdg_surface);
     if (wl->surface) wl_surface_destroy(wl->surface);
+    if (wl->cursor_device) wp_cursor_shape_device_v1_destroy(wl->cursor_device);
+    if (wl->pointer) wl_pointer_release(wl->pointer);
+    if (wl->keyboard) wl_keyboard_release(wl->keyboard);
+    if (wl->xkb_state) xkb_state_unref(wl->xkb_state);
+    if (wl->xkb_keymap) xkb_keymap_unref(wl->xkb_keymap);
+    if (wl->xkb) xkb_context_unref(wl->xkb);
     wl_display_flush(wl->display);
     wl_display_disconnect(wl->display);
     free(wl);
@@ -458,4 +586,22 @@ void kiln_dispatch_drain_main_queue(void) {
     int fd = _dispatch_get_main_queue_handle_4CF();
     while (read(fd, &count, sizeof(count)) == sizeof(count)) {}
     _dispatch_main_queue_callback_4CF(NULL);
+}
+
+void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor) {
+    uint32_t shape = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT;
+    switch (cursor) {
+    case KILN_CURSOR_DEFAULT: shape = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT; break;
+    case KILN_CURSOR_POINTER: shape = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER; break;
+    case KILN_CURSOR_TEXT: shape = WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_TEXT; break;
+    case KILN_CURSOR_HIDDEN: shape = 0; break;
+    }
+    if (shape == wl->cursor_shape) return;
+    wl->cursor_shape = shape;
+    if (!wl->pointer || !wl->pointer_serial) return;
+    if (shape == 0) {
+        wl_pointer_set_cursor(wl->pointer, wl->pointer_serial, NULL, 0, 0);
+    } else if (wl->cursor_device) {
+        wp_cursor_shape_device_v1_set_shape(wl->cursor_device, wl->pointer_serial, shape);
+    }
 }

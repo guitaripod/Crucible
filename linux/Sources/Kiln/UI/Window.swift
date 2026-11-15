@@ -1,0 +1,456 @@
+import Foundation
+
+/// What a window asks of the app: commands the focused views did not take, and closing.
+@MainActor
+public protocol WindowDelegate: AnyObject {
+    /// A key no view handled (shortcuts, Escape for back); return whether it was used.
+    func window(_ window: Window, unhandledKey event: KeyEvent) -> Bool
+    /// A mouse button no view handled (the back and forward buttons walk history).
+    func window(_ window: Window, unhandledButton button: MouseButton) -> Bool
+    func windowShouldClose(_ window: Window)
+}
+
+extension WindowDelegate {
+    public func window(_ window: Window, unhandledKey event: KeyEvent) -> Bool { false }
+    public func window(_ window: Window, unhandledButton button: MouseButton) -> Bool { false }
+    public func windowShouldClose(_ window: Window) {}
+}
+
+/// A Kiln window: a view tree drawn by libplacebo into an FP16 scRGB swapchain on Wayland, or offscreen for tests and
+/// the gallery. It owns layout, animation, focus and input routing for its tree.
+@MainActor
+public final class Window {
+    public weak var delegate: WindowDelegate?
+    public let gpu: GPU
+    let renderer: SceneRenderer
+    private let surface: WaylandWindow?
+    public let focus = FocusEngine()
+    public private(set) var images: ImageStore?
+
+    /// The root of the tree, filling the window.
+    public var contentView: View {
+        didSet {
+            oldValue.window = nil
+            attach(contentView)
+        }
+    }
+
+    public var background = Color(hex: 0x181818) { didSet { setNeedsDisplay() } }
+
+    /// Size in points.
+    public private(set) var size: Size
+    /// Device pixels per point (fractional scaling included).
+    public private(set) var scale: Float
+
+    public private(set) var isFullscreen = false
+    public private(set) var hasKeyboardFocus = true
+
+    private var needsDisplay = true
+    private var renderScheduled = false
+    private var waitingForFrame = false
+    private var animating: [ObjectIdentifier: View] = [:]
+    private var lastFrameTime: Double?
+    private var hovered: View?
+    private var pressed: (view: View, button: MouseButton)?
+    private var pointer: Point?
+    private var modifiers: Modifiers = []
+    private var repeatRate: Int32 = 25
+    private var repeatDelay: Int32 = 600
+    private var repeatTask: Task<Void, Never>?
+    private var closed = false
+    private let listener: WaylandListener
+
+    /// Frames drawn (and presented, on Wayland) since the window opened.
+    public private(set) var frameCount = 0
+
+    // MARK: Creation
+
+    /// An offscreen window of `size` points at `scale`: rendering, layout, focus and input without a display, on its own
+    /// GPU device or a shared one.
+    public init(offscreen size: Size, scale: Float = 1, gpu shared: GPU? = nil, contentView: View = View()) throws(RenderError) {
+        if let shared {
+            gpu = shared
+        } else {
+            gpu = try GPU(display: nil, surface: nil)
+        }
+        surface = nil
+        listener = WaylandListener()
+        self.size = size
+        self.scale = scale
+        renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
+        renderer.scale = scale
+        self.contentView = contentView
+        focus.window = self
+        attach(contentView)
+    }
+
+    /// Opens a toplevel on the Wayland display and its swapchain, then the loop drives it.
+    public init(title: String, appID: String, loop: EventLoop, contentView: View = View()) throws(RenderError) {
+        guard let surface = WaylandWindow() else { throw .device("no Wayland display") }
+        let listener = WaylandListener()
+        guard surface.open(title: title, appID: appID, delegate: listener) else { throw .device("window") }
+        self.surface = surface
+        self.listener = listener
+        _ = surface.pump(readable: false)
+        size = Size(width: Float(surface.width), height: Float(surface.height))
+        scale = Float(surface.scale)
+        gpu = try GPU(display: surface.display, surface: surface.surface)
+        renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
+        renderer.scale = scale
+        self.contentView = contentView
+        listener.window = self
+        focus.window = self
+        attach(contentView)
+        _ = gpu.resize(width: renderer.target.width, height: renderer.target.height)
+        loop.add(fd: surface.fileDescriptor) { [weak self] readable in
+            guard let self, let surface = self.surface, !self.closed else { return }
+            if !surface.pump(readable: readable) {
+                self.delegate?.windowShouldClose(self)
+            }
+        }
+        setNeedsDisplay()
+    }
+
+    /// Attaches an image store that views load artwork through.
+    public func useImages(diskDirectory: URL?, fetch: @escaping ImageStore.Fetch) {
+        images = ImageStore(gpu: gpu, diskDirectory: diskDirectory, fetch: fetch)
+    }
+
+    private func attach(_ view: View) {
+        view.frame = Rect(origin: .zero, size: size)
+        view.window = self
+        view.setNeedsLayout()
+        setNeedsDisplay()
+    }
+
+    public func close() {
+        guard !closed else { return }
+        closed = true
+        repeatTask?.cancel()
+        contentView.window = nil
+        gpu.finish()
+        surface?.close()
+    }
+
+    public func setFullscreen(_ fullscreen: Bool) {
+        surface?.setFullscreen(fullscreen)
+    }
+
+    public func setCursor(_ cursor: Cursor) {
+        surface?.setCursor(cursor)
+    }
+
+    public func inhibitIdle(_ inhibit: Bool) {
+        surface?.inhibitIdle(inhibit)
+    }
+
+    // MARK: Drawing
+
+    public func setNeedsDisplay() {
+        needsDisplay = true
+        guard surface != nil, !renderScheduled, !waitingForFrame, !closed else { return }
+        renderScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.renderScheduled = false
+                self.renderIfNeeded()
+            }
+        }
+    }
+
+    /// Registers a view whose animated values move; it is advanced every frame until it reports it has settled.
+    func startAnimating(_ view: View) {
+        animating[ObjectIdentifier(view)] = view
+        setNeedsDisplay()
+    }
+
+    public var isAnimating: Bool { !animating.isEmpty }
+
+    /// Lays out, advances animations to `time` (seconds, monotonic) and draws, if anything changed.
+    func renderIfNeeded(time: Double = Window.now()) {
+        guard needsDisplay, !closed else { return }
+        needsDisplay = false
+        let dt = Float(min(max(time - (lastFrameTime ?? time), 0), 0.1))
+        lastFrameTime = animating.isEmpty ? nil : time
+        advanceAnimations(dt)
+        if !animating.isEmpty { lastFrameTime = time }
+        contentView.layoutIfNeeded()
+        renderer.render(root: contentView, background: background)
+        frameCount += 1
+        if let surface {
+            surface.requestFrame()
+            waitingForFrame = true
+            gpu.present(renderer.target)
+            surface.flush()
+        }
+        if !animating.isEmpty { needsDisplay = true }
+    }
+
+    private func advanceAnimations(_ dt: Float) {
+        guard !animating.isEmpty else { return }
+        for (key, view) in animating where !view.advanceAnimations(dt) || view.window !== self {
+            animating[key] = nil
+        }
+    }
+
+    static func now() -> Double {
+        var spec = timespec()
+        clock_gettime(CLOCK_MONOTONIC, &spec)
+        return Double(spec.tv_sec) + Double(spec.tv_nsec) / 1e9
+    }
+
+    // MARK: Offscreen driving
+
+    /// Draws now (offscreen windows render only when asked).
+    public func render() {
+        needsDisplay = true
+        renderIfNeeded(time: lastFrameTime ?? 0)
+    }
+
+    /// Advances animations by `seconds` in 1/120 s steps and draws, for deterministic tests and gallery captures.
+    public func advance(by seconds: Double) {
+        var time = lastFrameTime ?? 0
+        let end = time + seconds
+        lastFrameTime = time
+        while time < end - 1e-9 {
+            time = min(time + 1.0 / 120, end)
+            needsDisplay = true
+            renderIfNeeded(time: time)
+        }
+    }
+
+    /// Settles every animation and draws the result.
+    public func settle() {
+        var steps = 0
+        while isAnimating && steps < 2400 {
+            advance(by: 1.0 / 120)
+            steps += 1
+        }
+        render()
+    }
+
+    /// The last drawn frame as linear RGBA floats, top row first.
+    public func capture() -> (width: Int, height: Int, pixels: [Float]) {
+        gpu.finish()
+        return (renderer.target.width, renderer.target.height, renderer.target.download())
+    }
+
+    // MARK: Resizing
+
+    func resize(width: Int, height: Int, scale newScale: Float) {
+        size = Size(width: Float(width), height: Float(height))
+        scale = newScale
+        renderer.scale = newScale
+        let pixelWidth = Int((Float(width) * newScale).rounded())
+        let pixelHeight = Int((Float(height) * newScale).rounded())
+        if let surface {
+            surface.applyScale(logicalWidth: width, logicalHeight: height)
+            _ = gpu.resize(width: pixelWidth, height: pixelHeight)
+        }
+        try? renderer.resize(width: pixelWidth, height: pixelHeight)
+        contentView.frame = Rect(origin: .zero, size: size)
+        invalidateLayout(contentView)
+        setNeedsDisplay()
+    }
+
+    private func invalidateLayout(_ view: View) {
+        view.setNeedsLayout()
+        for subview in view.subviews { invalidateLayout(subview) }
+    }
+
+    /// Resizes an offscreen window.
+    public func resizeOffscreen(to size: Size, scale: Float? = nil) {
+        resize(width: Int(size.width), height: Int(size.height), scale: scale ?? self.scale)
+    }
+
+    // MARK: Focus
+
+    public var focusedView: View? { focus.focusedView }
+
+    /// Whether the keyboard (or a gamepad) has been used since the last click, so focus is drawn.
+    public var isFocusVisible: Bool { focus.isVisible }
+
+    func viewBecameUnavailable(_ view: View, formerSuperview: View?) {
+        if let hovered, hovered.isDescendant(of: view) {
+            self.hovered = nil
+            hovered.isHovered = false
+            hovered.pointerExited()
+        }
+        focus.viewBecameUnavailable(view, formerSuperview: formerSuperview)
+    }
+
+    // MARK: Input
+
+    /// A key from the keymap: the focused view and its ancestors first, then focus movement, then the delegate.
+    public func handleKey(_ event: KeyEvent) {
+        var responder = focus.focusedView
+        while let view = responder {
+            if view.keyPressed(event) { return }
+            responder = view.superview
+        }
+        if contentView.keyPressed(event) { return }
+        if focus.handle(event) { return }
+        _ = delegate?.window(self, unhandledKey: event)
+    }
+
+    public func handlePointerMoved(to point: Point) {
+        pointer = point
+        let hit = contentView.hitTest(point)
+        if hit !== hovered {
+            hovered?.isHovered = false
+            hovered?.pointerExited()
+            hovered = hit
+            hit?.isHovered = true
+            hit?.pointerEntered()
+            surface?.setCursor(hit?.cursor ?? .default)
+        }
+        if let hit { hit.pointerMoved(to: hit.convert(point, from: nil)) }
+    }
+
+    public func handlePointerLeft() {
+        pointer = nil
+        hovered?.isHovered = false
+        hovered?.pointerExited()
+        hovered = nil
+    }
+
+    public func handlePointerButton(_ button: MouseButton, pressed isPressed: Bool) {
+        guard let pointer else { return }
+        if isPressed {
+            focus.pointerDidClick()
+            var responder = contentView.hitTest(pointer)
+            while let view = responder {
+                if view.pointerPressed(button, at: view.convert(pointer, from: nil)) {
+                    self.pressed = (view, button)
+                    return
+                }
+                responder = view.superview
+            }
+            if delegate?.window(self, unhandledButton: button) == true { return }
+        } else if let pressed, pressed.button == button {
+            self.pressed = nil
+            let local = pressed.view.convert(pointer, from: nil)
+            pressed.view.pointerReleased(button, at: local, inside: pressed.view.bounds.contains(local) && pressed.view.window === self)
+        }
+    }
+
+    public func handleScroll(_ event: ScrollEvent) {
+        var scroll = event
+        scroll.modifiers = modifiers
+        if scroll.modifiers.contains(.shift), scroll.isDiscrete, scroll.dx == 0 {
+            scroll.dx = scroll.dy
+            scroll.notchesX = scroll.notchesY
+            scroll.dy = 0
+            scroll.notchesY = 0
+        }
+        guard let pointer else { return }
+        var responder = contentView.hitTestAny(pointer)
+        while let view = responder {
+            if view.scrolled(scroll) { return }
+            responder = view.superview
+        }
+    }
+
+    func keyFromSurface(_ event: KeyEvent, pressed isPressed: Bool, repeats: Bool) {
+        repeatTask?.cancel()
+        repeatTask = nil
+        guard isPressed else { return }
+        handleKey(event)
+        guard repeats, repeatRate > 0 else { return }
+        let delay = UInt64(max(repeatDelay, 1)) * 1_000_000
+        let interval = UInt64(1_000_000_000 / Int(repeatRate))
+        repeatTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: delay)
+            while !Task.isCancelled {
+                guard let self else { return }
+                self.handleKey(KeyEvent(key: event.key, text: event.text, modifiers: event.modifiers, isRepeat: true))
+                try? await Task.sleep(nanoseconds: interval)
+            }
+        }
+    }
+
+    // MARK: Wayland
+
+    /// Receives the toplevel's events on the main actor.
+    @MainActor
+    final class WaylandListener: WaylandWindowDelegate {
+        weak var window: Window?
+
+        func windowConfigured(_ surface: WaylandWindow, width: Int, height: Int, fullscreen: Bool) {
+            guard let window else { return }
+            window.isFullscreen = fullscreen
+            window.resize(width: width, height: height, scale: Float(surface.scale))
+        }
+
+        func windowClosed(_ surface: WaylandWindow) {
+            guard let window else { return }
+            window.delegate?.windowShouldClose(window)
+        }
+
+        func windowScaleChanged(_ surface: WaylandWindow, scale: Double) {
+            guard let window else { return }
+            window.resize(width: Int(window.size.width), height: Int(window.size.height), scale: Float(scale))
+        }
+
+        func windowPresented(_ surface: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {}
+
+        func windowFrameDone(_ surface: WaylandWindow) {
+            guard let window else { return }
+            window.waitingForFrame = false
+            if window.needsDisplay { window.renderIfNeeded() }
+        }
+
+        func windowPointerMoved(_ surface: WaylandWindow, x: Double, y: Double) {
+            window?.handlePointerMoved(to: Point(x: Float(x), y: Float(y)))
+        }
+
+        func windowPointerLeft(_ surface: WaylandWindow) {
+            window?.handlePointerLeft()
+        }
+
+        func windowPointerButton(_ surface: WaylandWindow, button: UInt32, pressed: Bool) {
+            window?.handlePointerButton(MouseButton(code: button), pressed: pressed)
+        }
+
+        func windowScrolled(_ surface: WaylandWindow, event: ScrollEvent) {
+            window?.handleScroll(event)
+        }
+
+        func windowKey(_ surface: WaylandWindow, event: KeyEvent, pressed: Bool, repeats: Bool) {
+            window?.keyFromSurface(event, pressed: pressed, repeats: repeats)
+        }
+
+        func windowModifiersChanged(_ surface: WaylandWindow, modifiers: Modifiers) {
+            window?.modifiers = modifiers
+        }
+
+        func windowRepeatInfo(_ surface: WaylandWindow, rate: Int32, delay: Int32) {
+            window?.repeatRate = rate
+            window?.repeatDelay = delay
+        }
+
+        func windowKeyboardFocusChanged(_ surface: WaylandWindow, focused: Bool) {
+            guard let window else { return }
+            window.hasKeyboardFocus = focused
+            if !focused {
+                window.repeatTask?.cancel()
+                window.repeatTask = nil
+            }
+        }
+    }
+}
+
+extension View {
+    /// The deepest view under `point` whether or not it is interactive: scrolling goes to whatever is under the pointer.
+    func hitTestAny(_ point: Point) -> View? {
+        guard !isHidden, alpha > 0.01 else { return nil }
+        let inside = bounds.contains(point)
+        if clipsToBounds && !inside { return nil }
+        let inner = Point(x: point.x + contentOffset.x, y: point.y + contentOffset.y)
+        for subview in subviews.reversed() {
+            if let hit = subview.hitTestAny(subview.transformToSuperview.inverted.apply(inner)) { return hit }
+        }
+        return inside ? self : nil
+    }
+}

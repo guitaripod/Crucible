@@ -1,0 +1,4 @@
+module CImageLibs [system] {
+    header "shim.h"
+    export *
+}

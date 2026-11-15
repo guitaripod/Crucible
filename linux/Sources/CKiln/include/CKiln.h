@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <wayland-client.h>
+#include <xkbcommon/xkbcommon.h>
 
 #include "../protocols/xdg-shell-client-protocol.h"
 #include "../protocols/xdg-decoration-unstable-v1-client-protocol.h"
@@ -33,6 +34,46 @@ enum {
     KILN_COLOR_LUMINANCES = 1 << 5,
 };
 
+enum {
+    KILN_MOD_SHIFT = 1 << 0,
+    KILN_MOD_CTRL = 1 << 1,
+    KILN_MOD_ALT = 1 << 2,
+    KILN_MOD_SUPER = 1 << 3,
+};
+
+enum kiln_cursor {
+    KILN_CURSOR_DEFAULT = 0,
+    KILN_CURSOR_POINTER = 1,
+    KILN_CURSOR_TEXT = 2,
+    KILN_CURSOR_HIDDEN = 3,
+};
+
+/** One wl_pointer frame of scrolling. Values are in surface points (dx and dy, positive right and down), wheel notches
+ * in 120ths, `source` is WL_POINTER_AXIS_SOURCE_* (wheel, finger, continuous, wheel tilt), and a stop marks the fingers
+ * lifting off a touchpad. */
+typedef struct {
+    double dx;
+    double dy;
+    int32_t dx120;
+    int32_t dy120;
+    uint32_t source;
+    bool stop_x;
+    bool stop_y;
+    bool natural;
+    uint32_t time_ms;
+} kiln_wl_axis_frame;
+
+/** A key through the keymap: the evdev code, the keysym, the UTF-8 it types (empty for none), the modifiers held and
+ * whether the keymap repeats it. */
+typedef struct {
+    uint32_t code;
+    uint32_t keysym;
+    char text[16];
+    uint32_t modifiers;
+    bool pressed;
+    bool repeats;
+} kiln_wl_key;
+
 typedef struct {
     void (*configure)(void *context, int32_t width, int32_t height, uint32_t states);
     void (*close)(void *context);
@@ -43,8 +84,11 @@ typedef struct {
     void (*pointer_motion)(void *context, double x, double y);
     void (*pointer_leave)(void *context);
     void (*pointer_button)(void *context, uint32_t button, uint32_t pressed);
-    void (*pointer_axis)(void *context, uint32_t axis, double value, int32_t discrete120);
-    void (*key)(void *context, uint32_t key, uint32_t pressed);
+    void (*pointer_axis)(void *context, kiln_wl_axis_frame frame);
+    void (*key)(void *context, kiln_wl_key key);
+    void (*modifiers)(void *context, uint32_t modifiers);
+    void (*repeat_info)(void *context, int32_t rate, int32_t delay);
+    void (*keyboard_focus)(void *context, bool focused);
 } kiln_wl_callbacks;
 
 /** Connects to the named Wayland display (NULL for $WAYLAND_DISPLAY) and binds every global Kiln uses. */
@@ -76,6 +120,9 @@ void kiln_wl_request_frame(kiln_wl *wl);
 void kiln_wl_set_fifo_barrier(kiln_wl *wl);
 
 void kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit);
+
+/** Sets the pointer's cursor over the window (a link hand over clickable content, hidden while video plays). */
+void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor);
 
 /** Hands libdispatch's main-queue handle to the event loop, as CoreFoundation's run loop does. */
 int kiln_dispatch_main_queue_handle(void);

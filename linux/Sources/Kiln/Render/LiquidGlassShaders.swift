@@ -128,7 +128,7 @@ enum LiquidGlassShaders {
         glass += press * 0.22 * exp(-distanceToLight / max(shapeA.w * 1.5, 1.0));
         float hairline = 1.0 - smoothstep(0.0, 1.25, abs(d + 0.6));
         glass = mix(glass, vec3(1.15), hairline * (0.22 + 0.6 * facing));
-        color = vec4(mix(base, glass, coverage), 1.0);
+        color = vec4(mix(base, glass, coverage * opacity), 1.0);
     }
     """
 }

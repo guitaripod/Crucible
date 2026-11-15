@@ -9,7 +9,7 @@ import Testing
     let painter: Painter
 
     init() throws {
-        gpu = try GPU(display: nil, surface: nil)
+        gpu = TestGPU.shared
         target = try gpu.texture(width: 640, height: 360, format: .rgba16f, renderable: true)
         painter = Painter(gpu: gpu, target: target)
     }
@@ -86,7 +86,7 @@ import Testing
     @Test func textIsLaidOutInInterAndDrawnInItsColour() throws {
         let text = TextRenderer(gpu: gpu)
         let style = TextStyle(sizePixels: 48, weight: 700, opticalSize: 32)
-        let metrics = text.measure("Continue Watching", style: style)
+        let metrics = TextRenderer.measure("Continue Watching", style: style)
         #expect(metrics.width > 300 && metrics.width < 520)
         #expect(metrics.lines == 1)
         let label = try #require(try text.texture(for: "Continue Watching", style: style))
@@ -109,15 +109,14 @@ import Testing
     }
 
     @Test func longTextWrapsAndEllipsisesAtItsLineLimit() {
-        let text = TextRenderer(gpu: gpu)
         var style = TextStyle(sizePixels: 20, weight: 400, opticalSize: 14, maxWidthPixels: 200, maxLines: 2)
         let synopsis = "A retired detective returns to the coastal town where it all began, only to find the past waiting for him at every turn."
-        let wrapped = text.measure(synopsis, style: style)
+        let wrapped = TextRenderer.measure(synopsis, style: style)
         #expect(wrapped.lines == 2)
         #expect(wrapped.truncated)
         #expect(wrapped.width <= 200)
         style.maxLines = 0
-        #expect(text.measure(synopsis, style: style).lines > 2)
+        #expect(TextRenderer.measure(synopsis, style: style).lines > 2)
     }
 
     @Test func aCachedLabelIsTheSameTexture() throws {
@@ -126,5 +125,35 @@ import Testing
         let first = try #require(try text.texture(for: "Movies", style: style))
         let second = try #require(try text.texture(for: "Movies", style: style))
         #expect(first.texture === second.texture)
+    }
+}
+
+@MainActor
+@Suite struct PainterCostProbe {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["KILN_PROBE"] != nil)) func passCost() throws {
+        let gpu = TestGPU.shared
+        let target = try gpu.texture(width: 3840, height: 2160, format: .rgba16f, renderable: true)
+        let painter = Painter(gpu: gpu, target: target)
+        let text = TextRenderer(gpu: gpu)
+        let style = TextStyle(sizePixels: 29, weight: 600, opticalSize: 17)
+        let labels = try (0..<60).map { try #require(try text.texture(for: "Title \($0)", style: style)) }
+        for round in 0..<5 {
+            let start = ContinuousClock.now
+            painter.clear(.black)
+            for index in 0..<60 {
+                let x = Float(index % 10) * 360 + 40
+                let y = Float(index / 10) * 340 + 40
+                let rect = Rect(x: x, y: y, width: 260, height: 260)
+                painter.shadow(rect, radius: 16, blur: 32, offsetY: 20, opacity: 0.4)
+                painter.fill(rect, radius: 16, color: Color(hex: 0x2D2B29))
+                painter.fill(Rect(x: x + 14, y: y + 230, width: 232, height: 8), radius: 4, color: Color(hex: 0xFF9F0A))
+                painter.text(labels[index].texture, x: x, y: y + 270, color: .white)
+                painter.text(labels[index].texture, x: x, y: y + 300, color: Color.white.withAlpha(0.6))
+            }
+            let cpu = ContinuousClock.now - start
+            gpu.finish()
+            let total = ContinuousClock.now - start
+            print("round \(round): 301 passes cpu \(cpu) total \(total) gpu \(gpu.takeGPUMilliseconds()) ms")
+        }
     }
 }

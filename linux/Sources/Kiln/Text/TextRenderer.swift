@@ -64,8 +64,9 @@ public final class TextRenderer {
         _ = fontsRegistered
     }
 
-    public func measure(_ text: String, style: TextStyle) -> TextMetrics {
-        withRawStyle(style) { raw in
+    public static func measure(_ text: String, style: TextStyle) -> TextMetrics {
+        registerFonts()
+        return withRawStyle(style) { raw in
             let measured = text.withCString { kiln_text_measure($0, &raw) }
             return TextMetrics(width: Int(measured.width), height: Int(measured.height), lines: Int(measured.lines),
                                baseline: Int(measured.baseline), truncated: measured.truncated)
@@ -79,11 +80,11 @@ public final class TextRenderer {
             cache[key]?.frame = frame
             return (cached.texture, cached.metrics)
         }
-        let metrics = measure(text, style: style)
+        let metrics = Self.measure(text, style: style)
         guard metrics.width > 0, metrics.height > 0 else { return nil }
         let stride = (metrics.width + 3) & ~3
         var pixels = [UInt8](repeating: 0, count: stride * metrics.height)
-        let rendered = withRawStyle(style) { raw in
+        let rendered = Self.withRawStyle(style) { raw in
             text.withCString { kiln_text_render($0, &raw, &pixels, Int32(metrics.width), Int32(metrics.height), Int32(stride)) }
         }
         guard rendered else { return nil }
@@ -100,8 +101,8 @@ public final class TextRenderer {
         cache = cache.filter { frame - $0.value.frame < 600 }
     }
 
-    private func withRawStyle<R>(_ style: TextStyle, _ body: (inout kiln_text_style) -> R) -> R {
-        Self.family.withCString { family in
+    private static func withRawStyle<R>(_ style: TextStyle, _ body: (inout kiln_text_style) -> R) -> R {
+        family.withCString { family in
             var raw = kiln_text_style(
                 family: family,
                 size_px: style.sizePixels,

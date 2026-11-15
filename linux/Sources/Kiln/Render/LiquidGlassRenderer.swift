@@ -93,7 +93,8 @@ public final class LiquidGlassRenderer {
         }
     }
 
-    public func composite(scene: Texture, into target: Texture, element: LiquidGlass) {
+    /// Composites `element` over `scene` into `target`, everywhere or only inside `rect` (target pixels), faded by `opacity`.
+    public func composite(scene: Texture, into target: Texture, element: LiquidGlass, rect: Rect? = nil, opacity: Float = 1) {
         let a = element.primary
         let b = element.secondary
         let pill = element.pill
@@ -113,9 +114,12 @@ public final class LiquidGlassRenderer {
             .init("light", element.lightX, element.lightY),
             .init("press", element.press),
             .init("clearness", element.variant == .clear ? 1 : 0),
-            .init("shadowOpacity", element.shadowOpacity),
+            .init("shadowOpacity", element.shadowOpacity * opacity),
+            .init("opacity", opacity),
             .init("shadowOffset", 0, element.shadowOffsetY),
             .init("shadowRadius", element.shadowRadius),
-        ])
+        ], rect: rect.map { area in
+            (area.x.rounded(.down), area.y.rounded(.down), area.maxX.rounded(.up), area.maxY.rounded(.up))
+        })
     }
 }

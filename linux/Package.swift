@@ -13,16 +13,19 @@ let package = Package(
             name: "CKiln",
             linkerSettings: [
                 .linkedLibrary("wayland-client"),
+                .linkedLibrary("xkbcommon"),
             ]
         ),
         .systemLibrary(name: "CMPV", pkgConfig: "mpv"),
         .systemLibrary(name: "CPlacebo", pkgConfig: "libplacebo"),
         .systemLibrary(name: "CPangoCairo", pkgConfig: "pangocairo fontconfig"),
         .target(name: "CKilnText", dependencies: ["CPangoCairo"]),
+        .systemLibrary(name: "CImageLibs", pkgConfig: "libturbojpeg libpng libwebp librsvg-2.0"),
+        .target(name: "CKilnImage", dependencies: ["CImageLibs"]),
         .target(name: "CKilnGPU", dependencies: ["CPlacebo"], linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
-        .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText"], resources: [.copy("Resources/Fonts")]),
+        .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText", "CKilnImage"], resources: [.copy("Resources/Fonts"), .copy("Resources/Symbols")]),
         .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"]),
-        .testTarget(name: "KilnTests", dependencies: ["Kiln"]),
+        .testTarget(name: "KilnTests", dependencies: ["Kiln"], exclude: ["Fixtures"]),
     ],
     swiftLanguageModes: [.v6]
 )

@@ -189,8 +189,8 @@ final class Spike: WaylandWindowDelegate {
     func windowPointerMoved(_ window: WaylandWindow, x: Double, y: Double) {}
     func windowPointerLeft(_ window: WaylandWindow) {}
     func windowPointerButton(_ window: WaylandWindow, button: UInt32, pressed: Bool) {}
-    func windowScrolled(_ window: WaylandWindow, axis: UInt32, value: Double, value120: Int32) {}
-    func windowKey(_ window: WaylandWindow, key: UInt32, pressed: Bool) {}
+    func windowScrolled(_ window: WaylandWindow, event: ScrollEvent) {}
+    func windowKey(_ window: WaylandWindow, event: KeyEvent, pressed: Bool, repeats: Bool) {}
 }
 
 struct SpikeError: Error, CustomStringConvertible {

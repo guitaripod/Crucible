@@ -11,8 +11,17 @@ public protocol WaylandWindowDelegate: AnyObject {
     func windowPointerMoved(_ window: WaylandWindow, x: Double, y: Double)
     func windowPointerLeft(_ window: WaylandWindow)
     func windowPointerButton(_ window: WaylandWindow, button: UInt32, pressed: Bool)
-    func windowScrolled(_ window: WaylandWindow, axis: UInt32, value: Double, value120: Int32)
-    func windowKey(_ window: WaylandWindow, key: UInt32, pressed: Bool)
+    func windowScrolled(_ window: WaylandWindow, event: ScrollEvent)
+    func windowKey(_ window: WaylandWindow, event: KeyEvent, pressed: Bool, repeats: Bool)
+    func windowModifiersChanged(_ window: WaylandWindow, modifiers: Modifiers)
+    func windowRepeatInfo(_ window: WaylandWindow, rate: Int32, delay: Int32)
+    func windowKeyboardFocusChanged(_ window: WaylandWindow, focused: Bool)
+}
+
+extension WaylandWindowDelegate {
+    public func windowModifiersChanged(_ window: WaylandWindow, modifiers: Modifiers) {}
+    public func windowRepeatInfo(_ window: WaylandWindow, rate: Int32, delay: Int32) {}
+    public func windowKeyboardFocusChanged(_ window: WaylandWindow, focused: Bool) {}
 }
 
 /// One xdg toplevel on its own Wayland connection, with the colour, timing and scale protocols Kiln relies on.
@@ -73,6 +82,10 @@ public final class WaylandWindow {
 
     public func applyScale(logicalWidth: Int, logicalHeight: Int) {
         kiln_wl_set_buffer_scale120(connection, UInt32((scale * 120).rounded()), Int32(logicalWidth), Int32(logicalHeight))
+    }
+
+    public func setCursor(_ cursor: Cursor) {
+        kiln_wl_set_cursor(connection, cursor.raw)
     }
 
     public func inhibitIdle(_ inhibit: Bool) {
@@ -141,14 +154,42 @@ public final class WaylandWindow {
                 window.delegate?.windowPointerButton(window, button: button, pressed: pressed != 0)
             }
         },
-        pointer_axis: { context, axis, value, value120 in
+        pointer_axis: { context, frame in
             WaylandWindow.on(context) { window in
-                window.delegate?.windowScrolled(window, axis: axis, value: value, value120: value120)
+                let source: ScrollEvent.Source = switch frame.source {
+                case 0: .wheel
+                case 1: .finger
+                case 2: .continuous
+                default: .wheelTilt
+                }
+                let event = ScrollEvent(dx: Float(frame.dx), dy: Float(frame.dy), notchesX: Float(frame.dx120) / 120,
+                                        notchesY: Float(frame.dy120) / 120, source: frame.dx120 != 0 || frame.dy120 != 0 ? .wheel : source,
+                                        ended: frame.stop_x || frame.stop_y, timeMilliseconds: frame.time_ms)
+                window.delegate?.windowScrolled(window, event: event)
             }
         },
-        key: { context, key, pressed in
+        key: { context, key in
             WaylandWindow.on(context) { window in
-                window.delegate?.windowKey(window, key: key, pressed: pressed != 0)
+                let text = withUnsafeBytes(of: key.text) { buffer in
+                    String(decoding: buffer.prefix { $0 != 0 }, as: UTF8.self)
+                }
+                let event = KeyEvent(key: Key(key.keysym), text: text, modifiers: Modifiers(rawValue: key.modifiers))
+                window.delegate?.windowKey(window, event: event, pressed: key.pressed, repeats: key.repeats)
+            }
+        },
+        modifiers: { context, mask in
+            WaylandWindow.on(context) { window in
+                window.delegate?.windowModifiersChanged(window, modifiers: Modifiers(rawValue: mask))
+            }
+        },
+        repeat_info: { context, rate, delay in
+            WaylandWindow.on(context) { window in
+                window.delegate?.windowRepeatInfo(window, rate: rate, delay: delay)
+            }
+        },
+        keyboard_focus: { context, focused in
+            WaylandWindow.on(context) { window in
+                window.delegate?.windowKeyboardFocusChanged(window, focused: focused)
             }
         }
     )
