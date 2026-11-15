@@ -437,3 +437,82 @@ struct ConnectRecoveryTests {
         #expect(recovery.steps == [.connectTailscale, .allowLocalNetwork])
     }
 }
+
+struct LocalNetworkDiscoveryTests {
+    private let answer = "HTTP/1.0 200 OK\r\nContent-Type: plex/media-server\r\nResource-Identifier: m1\r\nName: arch\r\nPort: 32400\r\nUpdated-At: 1794730000\r\nVersion: 1.43.5\r\n"
+
+    @Test func aServersAnswerNamesItsIdentifierAndAddress() {
+        let server = PlexGDM.parse(answer, host: "192.168.1.197")
+        #expect(server == PlexGDM.Server(id: "m1", name: "arch", url: URL(string: "http://192.168.1.197:32400")!))
+        #expect(PlexGDM.parse(answer.replacingOccurrences(of: "Port: 32400", with: "Port: 32401"), host: "fe80::1")?.url.absoluteString == "http://[fe80::1]:32401")
+    }
+
+    @Test func anythingButAPlexServersAnswerIsIgnored() {
+        #expect(PlexGDM.parse(answer.replacingOccurrences(of: "200 OK", with: "404 Not Found"), host: "10.0.0.2") == nil)
+        #expect(PlexGDM.parse(answer.replacingOccurrences(of: "plex/media-server", with: "plex/media-player"), host: "10.0.0.2") == nil)
+        #expect(PlexGDM.parse(answer.replacingOccurrences(of: "Resource-Identifier: m1\r\n", with: ""), host: "10.0.0.2") == nil)
+        #expect(PlexGDM.parse("", host: "10.0.0.2") == nil)
+    }
+
+    private func environment(resources: [PlexResource], heard: [PlexGDM.Server]) -> ServerDiscoveryEnvironment {
+        ServerDiscoveryEnvironment(
+            resources: { _ in resources },
+            probe: { _, _ in false },
+            firstReachable: { _, _ in nil },
+            machineIdentifier: { _, _ in nil },
+            measure: { _, _ in nil },
+            save: { _, _, _, _ in nil },
+            localServers: { heard }
+        )
+    }
+
+    @Test func aListedServerGainsTheAddressItAnsweredAtBeforeItsRemoteRoutes() async throws {
+        let remote = "https://1-2-3-4.abc.plex.direct:32400"
+        let heard = [PlexGDM.Server(id: "m1", name: "arch", url: URL(string: "http://192.168.1.197:32400")!)]
+        let listing = try await ServerDiscovery(token: "tok", environment: environment(resources: [AuthFixtures.resource(name: "Arch", id: "m1", uris: [remote])], heard: heard)).listing()
+        guard case .single(let server) = listing else { Issue.record("expected single"); return }
+        #expect(server.routes.map(\.uri) == ["http://192.168.1.197:32400", remote])
+    }
+
+    @Test func aServerOnlyTheLocalNetworkKnowsIsListedToo() async throws {
+        let heard = [PlexGDM.Server(id: "m9", name: "basement", url: URL(string: "http://192.168.1.50:32400")!)]
+        let listing = try await ServerDiscovery(token: "tok", environment: environment(resources: [AuthFixtures.resource(name: "Arch", id: "m1", uris: ["http://192.168.1.197:32400"])], heard: heard)).listing()
+        guard case .several(let servers) = listing else { Issue.record("expected several"); return }
+        #expect(servers.map(\.id) == ["m1", "m9"])
+        #expect(servers[1].name == "basement" && servers[1].isOnline && servers[1].routes.map(\.kind) == [.local])
+    }
+}
+
+struct OfflineLocalDiscoveryTests {
+    private func environment(failure: any Error, heard: [PlexGDM.Server]) -> ServerDiscoveryEnvironment {
+        ServerDiscoveryEnvironment(
+            resources: { _ in throw failure },
+            probe: { _, _ in false },
+            firstReachable: { _, _ in nil },
+            machineIdentifier: { _, _ in nil },
+            measure: { _, _ in nil },
+            save: { _, _, _, _ in nil },
+            localServers: { heard }
+        )
+    }
+
+    private let arch = PlexGDM.Server(id: "m1", name: "arch", url: URL(string: "http://192.168.1.197:32400")!)
+
+    @Test func withoutPlexTVTheServersOnTheLocalNetworkAreStillListed() async throws {
+        let listing = try await ServerDiscovery(token: "tok", environment: environment(failure: URLError(.notConnectedToInternet), heard: [arch])).listing()
+        guard case .single(let server) = listing else { Issue.record("expected single"); return }
+        #expect(server.id == "m1" && server.routes.map(\.uri) == ["http://192.168.1.197:32400"])
+    }
+
+    @Test func aRefusedSignInIsStillAFailureWhateverTheNetworkHeard() async {
+        await #expect(throws: APIError.self) {
+            _ = try await ServerDiscovery(token: "tok", environment: environment(failure: APIError.unauthorized, heard: [arch])).listing()
+        }
+    }
+
+    @Test func withNothingHeardPlexTVsFailureStands() async {
+        await #expect(throws: URLError.self) {
+            _ = try await ServerDiscovery(token: "tok", environment: environment(failure: URLError(.notConnectedToInternet), heard: [])).listing()
+        }
+    }
+}

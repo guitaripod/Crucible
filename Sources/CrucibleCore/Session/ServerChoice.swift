@@ -56,6 +56,16 @@ package struct ServerChoice: Hashable, Sendable {
     let lastSeen: Date?
     package var routes: [ServerRoute]
 
+    /// A server only the local network told of: online, reached at the address it answered from.
+    package init(local server: PlexGDM.Server) {
+        id = server.id
+        name = server.name
+        isOwned = false
+        isOnline = true
+        lastSeen = nil
+        routes = [ServerRoute(url: server.url)]
+    }
+
     package init(resource: PlexResource) {
         id = resource.clientIdentifier
         name = resource.name
@@ -104,6 +114,15 @@ package struct ServerChoice: Hashable, Sendable {
     /// Adds routes found on the tailnet after the local ones and before remote and relay routes,
     /// the order a person on that network would want them tried. Routes already listed are skipped.
     package mutating func addTailnetRoutes(_ urls: [URL]) {
+        insertFound(urls)
+    }
+
+    /// Routes heard on the local network (`PlexGDM`), ahead of remote and relay routes like the tailnet's.
+    package mutating func addLocalRoutes(_ urls: [URL]) {
+        insertFound(urls)
+    }
+
+    private mutating func insertFound(_ urls: [URL]) {
         let fresh = urls.filter { url in !routes.contains { $0.uri == url.absoluteString } }
         guard !fresh.isEmpty else { return }
         let position = routes.firstIndex { $0.kind == .remote || $0.kind == .relay } ?? routes.endIndex

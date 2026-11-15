@@ -14,6 +14,8 @@ package struct ServerDiscoveryEnvironment: Sendable {
     package var save: @Sendable (_ uri: URL, _ name: String, _ machineIdentifier: String, _ candidates: [URL]) -> PlexConnection?
     package var isOnTailnet: @Sendable () -> Bool
     package var tailnetRoutes: @Sendable (_ targets: [TailnetTarget]) async -> [String: [URL]]
+    /// The Plex servers that answer on the local network (`PlexGDM`).
+    package var localServers: @Sendable () async -> [PlexGDM.Server]
 
     package init(
         resources: @escaping @Sendable (String) async throws -> [PlexResource],
@@ -23,7 +25,8 @@ package struct ServerDiscoveryEnvironment: Sendable {
         measure: @escaping @Sendable (URL, String) async -> Int?,
         save: @escaping @Sendable (URL, String, String, [URL]) -> PlexConnection?,
         isOnTailnet: @escaping @Sendable () -> Bool = { false },
-        tailnetRoutes: @escaping @Sendable ([TailnetTarget]) async -> [String: [URL]] = { _ in [:] }
+        tailnetRoutes: @escaping @Sendable ([TailnetTarget]) async -> [String: [URL]] = { _ in [:] },
+        localServers: @escaping @Sendable () async -> [PlexGDM.Server] = { [] }
     ) {
         self.resources = resources
         self.probe = probe
@@ -33,6 +36,7 @@ package struct ServerDiscoveryEnvironment: Sendable {
         self.save = save
         self.isOnTailnet = isOnTailnet
         self.tailnetRoutes = tailnetRoutes
+        self.localServers = localServers
     }
 
     package static let live = ServerDiscoveryEnvironment(
@@ -52,7 +56,8 @@ package struct ServerDiscoveryEnvironment: Sendable {
             return ServerBootstrap.connection()
         },
         isOnTailnet: { TailnetPresence.isConnected },
-        tailnetRoutes: { targets in await TailnetServerFinder.live.routes(for: targets) }
+        tailnetRoutes: { targets in await TailnetServerFinder.live.routes(for: targets) },
+        localServers: { await PlexGDM.find() }
     )
 }
 
@@ -133,8 +138,17 @@ package struct ServerDiscovery: Sendable {
     /// The account's servers, each with the routes plex.tv lists plus, when this device is on a
     /// tailnet, the ones found there.
     package func listing(progress: (@MainActor @Sendable (ConnectProgress) -> Void)? = nil) async throws -> ServerListing {
-        let resources = try await environment.resources(token)
+        async let heard = environment.localServers()
+        let resources: [PlexResource]
+        do {
+            resources = try await environment.resources(token)
+        } catch {
+            let local = await heard
+            guard Self.isUnreachable(error), !local.isEmpty else { throw error }
+            resources = []
+        }
         var servers = resources.filter { $0.provides.contains("server") }.map(ServerChoice.init(resource:))
+        Self.merge(await heard, into: &servers)
         if environment.isOnTailnet(), servers.contains(where: \.isOnline) {
             await progress?(.searchingTailnet)
             let found = await environment.tailnetRoutes(servers.filter(\.isOnline).map(TailnetTarget.init(choice:)))
@@ -146,6 +160,27 @@ package struct ServerDiscovery: Sendable {
         case 0: return .none
         case 1: return .single(servers[0])
         default: return .several(servers)
+        }
+    }
+
+    /// Whether plex.tv could not be reached at all, as opposed to refusing the sign-in; servers heard on the local network
+    /// are listed then on their own.
+    static func isUnreachable(_ error: any Error) -> Bool {
+        if case APIError.unauthorized = error { return false }
+        if error is URLError { return true }
+        if case APIError.serverUnavailable = error { return true }
+        return false
+    }
+
+    /// Adds the address each server answered at on the local network to its routes, and lists a server only the local
+    /// network knows of (one plex.tv does not list for this account) as a choice of its own.
+    static func merge(_ local: [PlexGDM.Server], into servers: inout [ServerChoice]) {
+        for server in local {
+            if let index = servers.firstIndex(where: { $0.id == server.id }) {
+                servers[index].addLocalRoutes([server.url])
+            } else if !servers.contains(where: { $0.id == server.id }) {
+                servers.append(ServerChoice(local: server))
+            }
         }
     }
 
