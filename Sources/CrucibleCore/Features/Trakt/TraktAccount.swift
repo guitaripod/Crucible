@@ -152,6 +152,7 @@ package final class TraktAccount {
         await tokens.clear()
         defaults.removeObject(forKey: profileKey)
         defaults.removeObject(forKey: choicesKey)
+        TraktCommentDrafts.clearAll(owner: owner, defaults: defaults)
         choices = TraktChoices()
         TraktOutbox.shared.clear(owner: owner)
         set(TraktConfig.isAvailable ? .disconnected : .unavailable)
@@ -167,6 +168,8 @@ package final class TraktAccount {
         for owner in owners {
             for prefix in prefixes { defaults.removeObject(forKey: prefix + owner) }
         }
+        TraktCommentDrafts.clearAll(owner: nil, defaults: defaults)
+        TraktCommentRules.forget(defaults: defaults)
         choices = TraktChoices()
         TraktResolver.shared.forgetAll()
         TraktOutbox.shared.clear()

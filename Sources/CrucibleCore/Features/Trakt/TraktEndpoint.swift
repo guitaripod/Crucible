@@ -68,12 +68,15 @@ package enum TraktEndpoint: Sendable {
     case ratings(kind: TraktMediaKind, ids: TraktIDs, season: Int?, number: Int?, showID: Int?)
     /// One page of everything the viewer watched, newest first, with runtimes, genres and posters; from `startAt` on when given.
     case history(page: Int, limit: Int, startAt: Date?)
+    /// Comments, reactions, what people say, who is watching, and members' profiles.
+    case community(TraktCommunityRoute)
 
     /// The redirect URI device-code tokens are refreshed with: they were issued without a browser redirect.
     static let deviceRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
     package var method: String {
         switch self {
+        case .community(let route): return route.method
         case .userSettings, .plexSettings, .lookup, .episode, .ratings, .history: return "GET"
         case .disablePlexScrobbler, .updatePlexSettings: return "PUT"
         case .cancelCheckin: return "DELETE"
@@ -93,6 +96,7 @@ package enum TraktEndpoint: Sendable {
 
     package var requiresToken: Bool {
         switch self {
+        case .community(let route): return route.requiresToken
         case .deviceCode, .deviceToken, .refreshToken, .revoke, .lookup, .episode, .ratings: return false
         default: return true
         }
@@ -100,6 +104,7 @@ package enum TraktEndpoint: Sendable {
 
     package var path: String {
         switch self {
+        case .community(let route): return route.path
         case .deviceCode: return "/oauth/device/code"
         case .deviceToken: return "/oauth/device/token"
         case .refreshToken: return "/oauth/token"
@@ -128,6 +133,7 @@ package enum TraktEndpoint: Sendable {
         switch self {
         case .lookup(_, let kind): return [URLQueryItem(name: "type", value: kind.rawValue)]
         case .ratings: return [URLQueryItem(name: "extended", value: "all")]
+        case .community(let route): return route.queryItems
         case .history(let page, let limit, let startAt):
             var items = [
                 URLQueryItem(name: "page", value: String(page)),
@@ -168,6 +174,8 @@ package enum TraktEndpoint: Sendable {
             return try encoder.encode(items)
         case .checkin(let kind, let ids):
             return try encoder.encode(ScrobbleBody(kind: kind, ids: ids, progress: nil))
+        case .community(let route):
+            return try route.body()
         case .userSettings, .plexSettings, .lookup, .episode, .cancelCheckin, .ratings, .history:
             return nil
         }

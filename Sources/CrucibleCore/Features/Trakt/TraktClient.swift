@@ -24,6 +24,8 @@ package enum TraktError: Error, Equatable, LocalizedError, Sendable {
     /// Only Trakt VIP accounts can do this (426).
     case vipOnly(URL?)
     case rateLimited
+    /// Trakt turned a comment down for its own rules (422), in Trakt's words, such as "must be at least 5 words".
+    case rejected([String])
     case unavailable
     case offline
     case unexpected(Int)
@@ -41,6 +43,9 @@ package enum TraktError: Error, Equatable, LocalizedError, Sendable {
         case .locked: return String(localized: "Trakt has locked this account. Contact Trakt support to unlock it.", comment: "Trakt error 423")
         case .vipOnly: return String(localized: "This needs Trakt VIP.", comment: "Trakt error 426")
         case .rateLimited: return String(localized: "Trakt asked Crucible to slow down. It will try again shortly.", comment: "Trakt error 429")
+        case .rejected(let reasons):
+            guard !reasons.isEmpty else { return String(localized: "Trakt didn't accept this comment.", comment: "Trakt error when a comment broke Trakt's rules without saying which") }
+            return String(localized: "Trakt didn't accept this comment: \(reasons.joined(separator: ", ")).", comment: "Trakt error naming the rules a comment broke, in Trakt's English words")
         case .unavailable, .unexpected: return String(localized: "Trakt isn't answering right now. Crucible will try again later.", comment: "Trakt error for a server problem")
         case .offline: return String(localized: "You're offline. Crucible will send this to Trakt when you're back.", comment: "Trakt error when offline")
         }
@@ -52,6 +57,24 @@ package enum TraktError: Error, Equatable, LocalizedError, Sendable {
         case .rateLimited, .unavailable, .offline, .unexpected: return true
         default: return false
         }
+    }
+
+    /// The rules a 422 names: Trakt answers a comment it refuses with its messages as strings, in a list or under a field.
+    static func validationMessages(in data: Data) -> [String] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) else { return [] }
+        var messages: [String] = []
+        func collect(_ value: Any) {
+            if let text = value as? String {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty, !messages.contains(trimmed) { messages.append(trimmed) }
+            } else if let list = value as? [Any] {
+                list.forEach(collect)
+            } else if let object = value as? [String: Any] {
+                for key in object.keys.sorted() { collect(object[key] as Any) }
+            }
+        }
+        collect(json)
+        return messages
     }
 
     static func status(_ code: Int, data: Data, upgradeURL: String?) -> TraktError? {
@@ -151,6 +174,36 @@ package actor TraktClient {
         }
     }
 
+    /// Sends a paged `endpoint` asking for `page`, and returns it with the page and item counts Trakt reports.
+    package func paged<Item: Decodable & Sendable>(_ endpoint: TraktEndpoint, page: Int, as type: Item.Type = Item.self) async throws -> TraktPage<Item> {
+        let (data, response) = try await performResponse(endpoint)
+        do {
+            let items = try JSONDecoder().decode([Item].self, from: data)
+            return TraktPage(
+                items: items,
+                page: page,
+                pageCount: response.value(forHTTPHeaderField: "X-Pagination-Page-Count").flatMap(Int.init),
+                itemCount: response.value(forHTTPHeaderField: "X-Pagination-Item-Count").flatMap(Int.init)
+            )
+        } catch {
+            MidgarLog.error("Trakt \(endpoint.path) answered in a shape Crucible can't read: \(error)", category: .trakt)
+            throw TraktError.decoding
+        }
+    }
+
+    /// Sends `endpoint` and decodes its answer, or returns nil when Trakt answered with no content (204), as it does for a
+    /// member who is watching nothing.
+    package func sendOptional<T: Decodable & Sendable>(_ endpoint: TraktEndpoint, as type: T.Type = T.self) async throws -> T? {
+        let (data, response) = try await performResponse(endpoint)
+        guard response.statusCode != 204, !data.isEmpty else { return nil }
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            MidgarLog.error("Trakt \(endpoint.path) answered in a shape Crucible can't read: \(error)", category: .trakt)
+            throw TraktError.decoding
+        }
+    }
+
     /// Sends `endpoint` and returns the body of a successful answer.
     package func perform(_ endpoint: TraktEndpoint) async throws -> Data {
         try await performResponse(endpoint).0
@@ -179,7 +232,8 @@ package actor TraktClient {
                 if Task.isCancelled { throw CancellationError() }
                 throw (error as? URLError)?.isOffline == true ? TraktError.offline : TraktError.unavailable
             }
-            guard let failure = TraktError.status(response.statusCode, data: data, upgradeURL: response.value(forHTTPHeaderField: "X-Upgrade-URL")) else { return (data, response) }
+            guard var failure = TraktError.status(response.statusCode, data: data, upgradeURL: response.value(forHTTPHeaderField: "X-Upgrade-URL")) else { return (data, response) }
+            if case .community = endpoint, response.statusCode == 422 { failure = .rejected(TraktError.validationMessages(in: data)) }
             switch failure {
             case .unauthorized where endpoint.requiresToken && !refreshedAfterRefusal:
                 refreshedAfterRefusal = true

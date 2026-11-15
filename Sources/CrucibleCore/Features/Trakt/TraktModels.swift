@@ -202,9 +202,12 @@ package struct TraktRatings: Decodable, Sendable {
         package let rating: Double?
         package let votes: Int?
         package let link: String?
+        package let distribution: [String: Double]?
     }
 
     package let trakt: Entry?
+    /// Trakt's own spread of votes when the answer is not extended: then it sits beside the rating instead of under `trakt`.
+    package let distribution: [String: Double]?
     package let imdb: Entry?
     package let tmdb: Entry?
     package let metascore: Entry?
@@ -213,8 +216,13 @@ package struct TraktRatings: Decodable, Sendable {
     package let mal: Entry?
 
     private enum CodingKeys: String, CodingKey {
-        case trakt, imdb, tmdb, metascore, letterboxd, mal
+        case trakt, imdb, tmdb, metascore, letterboxd, mal, distribution
         case rottenTomatoes = "rotten_tomatoes"
+    }
+
+    /// How Trakt's voters spread across its ten-point scale, when Trakt sent it.
+    package var traktDistribution: TraktRatingDistribution? {
+        TraktRatingDistribution(raw: trakt?.distribution ?? distribution)
     }
 
     /// The scores in the order the strip shows them, each only when Trakt has a value for it.

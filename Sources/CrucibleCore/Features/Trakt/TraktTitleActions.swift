@@ -8,7 +8,7 @@ package final class TraktScores {
     package static let shared = TraktScores()
 
     static let lifetime: TimeInterval = 6 * 3_600
-    private var cache: [String: (scores: [TraktScore], at: Date)] = [:]
+    private var cache: [String: (scores: [TraktScore], distribution: TraktRatingDistribution?, at: Date)] = [:]
 
     /// The scores of `ratingKey`, or none when Trakt is not connected, the title is not matched or Trakt has none.
     package func scores(ratingKey: String, api: APIClient, now: Date = Date()) async -> [TraktScore] {
@@ -19,7 +19,7 @@ package final class TraktScores {
               let endpoint = Self.ratingsEndpoint(for: target) else { return [] }
         do {
             let ratings = try await TraktClient.shared.send(endpoint, as: TraktRatings.self)
-            cache[key] = (ratings.scores, now)
+            cache[key] = (ratings.scores, ratings.traktDistribution, now)
             return ratings.scores
         } catch {
             MidgarLog.notice("Trakt scores not loaded for \(ratingKey): \(error.localizedDescription)", category: .trakt)
@@ -32,6 +32,13 @@ package final class TraktScores {
         guard TraktAccount.shared.isConnected, let server = ServerBootstrap.savedMachineIdentifier,
               let entry = cache["\(server)/\(ratingKey)"], now.timeIntervalSince(entry.at) < Self.lifetime else { return [] }
         return entry.scores
+    }
+
+    /// How Trakt's voters spread their votes for `ratingKey`, once its scores were fetched and while they are fresh.
+    package func cachedDistribution(ratingKey: String, now: Date = Date()) -> TraktRatingDistribution? {
+        guard TraktAccount.shared.isConnected, let server = ServerBootstrap.savedMachineIdentifier,
+              let entry = cache["\(server)/\(ratingKey)"], now.timeIntervalSince(entry.at) < Self.lifetime else { return nil }
+        return entry.distribution
     }
 
     static func ratingsEndpoint(for target: TraktTarget) -> TraktEndpoint? {
