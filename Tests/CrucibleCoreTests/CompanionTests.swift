@@ -39,6 +39,10 @@ struct CompanionTests {
         }
         #expect(CompanionInvite.isNearby("arch.tail1234.ts.net:32500", tailnetNames: true))
         #expect(!CompanionInvite.isNearby("evil.example:32500", tailnetNames: true))
+        for host in ["127.0.0.1:32500", "localhost:32500", "[::1]:32500"] {
+            #expect(!CompanionInvite.isNearby(host), "\(host)")
+            #expect(CompanionInvite.isNearby(host, tailnetNames: true), "\(host)")
+        }
         let mixed = try #require(URL(string: "crucible://pair?v=1&hosts=evil.example:32500,192.168.1.5:32500&secret=AEAQCAIBAEAQCAIBAEAQCAIBAE"))
         #expect(CompanionInvite(url: mixed)?.hosts == ["192.168.1.5:32500"])
         #expect(CompanionInvite(url: URL(string: "crucible://pair?v=1&hosts=evil.example:32500&secret=AEAQCAIBAEAQCAIBAEAQCAIBAE")!) == nil)

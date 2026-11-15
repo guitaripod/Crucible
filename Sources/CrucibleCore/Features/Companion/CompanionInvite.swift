@@ -72,9 +72,10 @@ package struct CompanionInvite: Equatable, Sendable {
 
     /// Whether a link's host is on the home network or a tailnet: a private, link-local, CGNAT or ULA address, a `.local`
     /// name, or a plex.direct name for a private address. A scanned or forged link can never send a pairing, and later
-    /// the person's Plex token, to a computer on the internet. `tailnetNames` also admits MagicDNS names under `ts.net`,
-    /// right for the address this device already reaches its own Plex server at but never for a link, since Funnel can
-    /// put such a name on the internet.
+    /// the person's Plex token, to a computer on the internet. `tailnetNames` also admits MagicDNS names under `ts.net` and
+    /// this computer's own loopback, right for the address this device already reaches its own Plex server at (a Linux
+    /// desktop running Plex itself) but never for a link, since Funnel can put such a name on the internet and another
+    /// account on the same computer could listen on loopback.
     static func isNearby(_ hostPort: String, tailnetNames: Bool = false) -> Bool {
         var host = hostPort
         if host.hasPrefix("["), let close = host.firstIndex(of: "]") {
@@ -84,6 +85,7 @@ package struct CompanionInvite: Equatable, Sendable {
         }
         host = host.lowercased()
         if host.hasSuffix(".local") || tailnetNames && host.hasSuffix(".ts.net") { return true }
+        if tailnetNames, isLoopback(host) { return true }
         if host.hasSuffix(".plex.direct"), let label = host.split(separator: ".").first {
             host = label.replacingOccurrences(of: "-", with: ".")
         }
@@ -94,6 +96,14 @@ package struct CompanionInvite: Equatable, Sendable {
         if let b = IPAddressBytes.v6(host) {
             return (b[0] & 0xfe) == 0xfc || (b[0] == 0xfe && (b[1] & 0xc0) == 0x80)
         }
+        return false
+    }
+
+    /// `localhost`, 127.0.0.0/8 or ::1: this computer itself.
+    private static func isLoopback(_ host: String) -> Bool {
+        if host == "localhost" { return true }
+        if let b = IPAddressBytes.v4(host) { return b[0] == 127 }
+        if let b = IPAddressBytes.v6(host) { return b.dropLast().allSatisfy { $0 == 0 } && b.last == 1 }
         return false
     }
 
