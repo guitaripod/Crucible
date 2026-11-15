@@ -175,7 +175,6 @@ final class YouScreen: SettingsScaffold {
     }
 
     override func rowSelected(_ id: String) {
-        let theme = Theme.current
         let api = payload.api
         switch id {
         case RowID.switchProfile:
@@ -196,13 +195,8 @@ final class YouScreen: SettingsScaffold {
         case RowID.privacy: navigation?.push(SettingsCategoryScreen(category: .privacy, api: api))
         case RowID.diagnostics: navigation?.push(DiagnosticsScreen())
         case RowID.about: navigation?.push(AboutScreen())
-        case RowID.density:
-            theme.density = theme.density == .desk ? .couch : .desk
-            window?.relayoutEverything()
-        case RowID.appearance:
-            theme.palette = theme.palette.appearance == .dark ? .light : .dark
-            window?.background = theme.palette.canvas
-            window?.relayoutEverything()
+        case RowID.density: LinuxDisplay.toggleDensity(in: window)
+        case RowID.appearance: LinuxDisplay.toggleAppearance(in: window)
         case RowID.demo: navigation?.push(DemoTourScreen(payload: payload))
         case RowID.leaveDemo:
             guard let window else { return }

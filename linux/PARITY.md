@@ -12,10 +12,10 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 48 | 0 | 7 | 8 |
 | You, profiles, history, statistics and manage | 79 | 2 | 3 | 3 |
-| Settings and integrations | 50 | 6 | 11 | 2 |
+| Settings and integrations | 52 | 4 | 11 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 58 | 8 | 37 | 0 |
-| **All** | 566 | 27 | 93 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 59 | 7 | 37 | 0 |
+| **All** | 569 | 24 | 93 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -478,8 +478,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `settings-value-labels` (S) Each row shows the current value (choice label, On/Off, counts, versions) on the right _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:value(of:)_
 - [ ] `settings-restore-defaults` (S) Restore Defaults row appears at the end of a category once any of its settings changed; it asks to confirm and resets each changed setting Gap: No Restore Defaults row or confirmation in SettingsCategoryScreen. Core already provides SettingsCatalog.preferences(in:on:) (SettingsCatalog.swift:286), PreferenceSetting.isChanged and restoreDefault, and none is called on Linux. _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:refreshRows (restoreID row) and confirmRestoreDefaults (Restore Defaults? confirmation, setting.restoreDefault())_
 - [ ] `settings-shortcut-ctrl-comma` (S) Ctrl+comma opens Settings from anywhere (Linux doc section 6 menu shortcut list) Gap: RootView.handleCommand (RootView.swift:97-110) handles Ctrl+F, /, Ctrl+1 to 9 and typed text only. There is no Ctrl+comma binding and no Go/View/Media/Settings menu or F10 entry (docs/LINUX.md section 6).
-- [ ] `settings-interface-size` (S) **partial** Interface Size switches the layout between Desk and Couch density (Linux-only, a Settings entry in the doc's design) Gap: Switches in-session (YouScreen.swift:35-37 and 50-52) but is not saved. main.swift:25 sets Theme.current.density from --couch on every launch and nothing writes it back. The entry sits on You, not in the Settings catalogue that docs/LINUX.md section 6 names.
-- [ ] `settings-appearance-toggle` (S) **partial** Appearance switches the interface between light and dark (Linux addition; the Apple TV has no appearance setting) Gap: Switches in-session (YouScreen.swift:38-40 and 53-56) but is not saved. main.swift:26 sets the palette from --light on every launch, and nothing persists the choice across launches.
+- [x] `settings-interface-size` (S) Interface Size switches the layout between Desk and Couch density (Linux-only, a Settings entry in the doc's design)
+- [x] `settings-appearance-toggle` (S) Appearance switches the interface between light and dark (Linux addition; the Apple TV has no appearance setting)
 - [x] `pb-quality-home` (S) Quality at Home: Original or a bitrate ladder, applied to streams started on the home network _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift (Playback, Streaming Quality section)_
 - [x] `pb-quality-away` (S) Quality Away from Home: same as at home or its own bitrate, for servers reached over the internet or relay _Apple TV: Sources/CrucibleCore/Features/Settings/PreferenceSetting.swift (remoteQuality choices)_
 - [x] `pb-autoplay-next` (S) Autoplay Next Episode: the next episode starts on its own when credits roll _Apple TV: Sources/CrucibleCore/Features/Playback/UpNextResolver.swift:70-82 (AutoplayRule)_
@@ -685,7 +685,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `density-couch-desktop-action` (S) Desktop entry action Open on the TV (Couch) runs crucible --couch _Apple TV: docs/LINUX.md §9 Couch_
 - [ ] `density-couch-tokens-canvas` (M) **partial** Couch draws the tvOS tokens one to one on a 1920 by 1080 canvas scaled to the output Gap: Couch sets the density factor to 1 (Tokens.swift:9-13) and draws in the output's points. No code scales a fixed 1920 by 1080 canvas to the output, so the design matches only where the output's points are 1920 by 1080 (the C5 at 4K with scale 2). _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [ ] `density-view-menu-couch` (S) Couch density is chosen from the View menu Gap: No View menu exists (see linux-menu-bar). Couch is toggled only by the Interface Size row on the You tab (YouScreen.swift:35-37, 50-51). _Apple TV: docs/LINUX.md §5.5 Two densities_
-- [ ] `density-settings-entry` (S) **partial** Density is a Linux-only Settings entry (Interface Size) Gap: Density is a row on the You tab (YouScreen.swift:35-51, Interface Size), not a Settings entry. The shared catalogue has no density item (SettingsCatalog.swift:206-251). _Apple TV: docs/LINUX.md §6 Settings_
+- [x] `density-settings-entry` (S) Density is a Linux-only Settings entry (Interface Size) _Apple TV: docs/LINUX.md §6 Settings_
 - [ ] `density-couch-offer-gamepad-40in` (M) Couch is offered once when a gamepad is used fullscreen on an output 40 inches or larger (EDID) Gap: No gamepad input and no output-size or EDID read: kiln_wayland.c has no wl_output geometry handling (wl_output appears only as a callback parameter, :527). _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `windowed-ssd-fullscreen-hide` (S) Windowed mode uses the desktop's server-side decorations; fullscreen and Couch hide them _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [ ] `couch-letter-grid-search` (M) Couch Search shows a tvOS-style letter grid so a gamepad can type Gap: SearchScreen has only the desk text field (linux/Sources/CrucibleApp/Search/SearchScreen.swift); no letter grid and no couch-specific Search layout. _Apple TV: docs/LINUX.md §6 Search_

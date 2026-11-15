@@ -21,7 +21,11 @@ final class SettingsScreen: ScreenView {
         page.setSections([title, rows])
         rows.onSelect = { [weak self] item in
             guard let self, let category = SettingsCategory(rawValue: item.id) else { return }
-            self.navigation?.push(SettingsCategoryScreen(category: category, api: self.api))
+            if category == .appearance {
+                self.navigation?.push(AppearanceSettingsScreen())
+            } else {
+                self.navigation?.push(SettingsCategoryScreen(category: category, api: self.api))
+            }
         }
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
     }
@@ -29,11 +33,19 @@ final class SettingsScreen: ScreenView {
     override var preferredFocusView: View? { rows }
 
     override func screenDidAppear() {
-        rows.setItems(SettingsCatalog.categories(on: .linux).map { category in
+        rows.setItems(Self.categories.map { category in
             RowItem(id: category.rawValue, title: category.title(on: .linux), subtitle: category.explanation(on: .linux),
-                    value: SettingsCatalog.summary(of: category, on: .linux), symbol: Symbol(category.symbol), accessory: .chevron)
+                    value: category == .appearance ? LinuxDisplay.summary : SettingsCatalog.summary(of: category, on: .linux), symbol: Symbol(category.symbol),
+                    accessory: .chevron)
         })
         setNeedsLayout()
+    }
+
+    /// The catalogue's categories for Linux, with Appearance in its place: the desk's own appearance, density and poster
+    /// size live there, outside the shared catalogue.
+    private static var categories: [SettingsCategory] {
+        let listed = Set(SettingsCatalog.categories(on: .linux)).union([.appearance])
+        return SettingsCategory.allCases.filter(listed.contains)
     }
 
     override func layoutSubviews() {

@@ -48,14 +48,18 @@ enum CardZoom {
     }
 
     static func apply(_ step: Step) {
-        let theme = Theme.current
-        let next: Float
+        let current = Theme.current.cardZoom
         switch step {
-        case .larger: next = theme.cardZoom + increment
-        case .smaller: next = theme.cardZoom - increment
-        case .reset: next = 1
+        case .larger: set(current + increment)
+        case .smaller: set(current - increment)
+        case .reset: set(1)
         }
-        theme.cardZoom = (min(max(next, range.lowerBound), range.upperBound) * 10).rounded() / 10
+    }
+
+    /// Sets the card size to `zoom`, kept within 70% to 160% in steps of ten, and keeps it for the next launch.
+    static func set(_ zoom: Float) {
+        let theme = Theme.current
+        theme.cardZoom = (min(max(zoom, range.lowerBound), range.upperBound) * 10).rounded() / 10
         UserDefaults.standard.set(Double(theme.cardZoom), forKey: key)
     }
 }

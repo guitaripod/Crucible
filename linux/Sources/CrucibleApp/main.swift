@@ -24,9 +24,7 @@ func runCrucible() -> Int32 {
     }
     LinuxSetup.install()
     DemoMode.shared.install(DemoLibraryProvider())
-    Theme.current.density = arguments.contains("--couch") ? .couch : .desk
-    Theme.current.cardZoom = CardZoom.saved
-    Theme.current.palette = arguments.contains("--light") ? .light : .dark
+    LinuxDisplay.restore(arguments: arguments)
     let loop = EventLoop()
     let links = AppInstance.links(in: arguments)
     let activationToken = AppInstance.takeActivationToken()
