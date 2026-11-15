@@ -12,6 +12,7 @@ package enum StatsFormat {
     /// An hour of the day (0 to 23) as the reader's clock writes it: "8 PM" with a 12-hour clock, "20" or "20 Uhr" with a 24-hour one.
     package static func hour(_ hour: Int) -> String {
         let formatter = DateFormatter()
+        formatter.locale = Formatters.displayLocale
         formatter.setLocalizedDateFormatFromTemplate("j")
         let date = Calendar(identifier: .gregorian).date(from: DateComponents(hour: hour % 24)) ?? Date()
         return formatter.string(from: date)

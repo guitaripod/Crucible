@@ -111,7 +111,7 @@ package enum HomeFormat {
         let start = position ?? item.resumeSecs
         let left = start > 0 ? remainingSeconds(item, position: start) : (item.durationSecs > 0 ? item.durationSecs : nil)
         guard let left else { return nil }
-        let time = now.addingTimeInterval(left).formatted(date: .omitted, time: .shortened)
+        let time = now.addingTimeInterval(left).formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(Formatters.displayLocale))
         return String(localized: "Ends at \(time)", comment: "When an item that starts playing now would finish, e.g. Ends at 9:41 PM")
     }
 

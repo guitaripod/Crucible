@@ -218,7 +218,7 @@ final class LibraryScreen: ScreenView {
     private func countText() -> String? {
         guard model.pager.hasLoaded else { return nil }
         let total = model.pager.totalSize
-        let count = total.formatted(.number)
+        let count = total.formatted(.number.locale(Formatters.displayLocale))
         let summary: String
         switch (kind == .movie, total == 1) {
         case (true, true): summary = String(localized: "\(count) movie")

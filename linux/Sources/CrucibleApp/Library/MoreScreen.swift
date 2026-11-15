@@ -54,7 +54,7 @@ final class MoreScreen: ScreenView {
         guard let key = directory.key else { return nil }
         let kind = LibraryGridKind(sectionType: directory.type)
         let subtitle = counts[key].map { count -> String in
-            let formatted = count.formatted(.number)
+            let formatted = count.formatted(.number.locale(Formatters.displayLocale))
             switch (kind == .show, count == 1) {
             case (true, true): return String(localized: "\(formatted) show")
             case (true, false): return String(localized: "\(formatted) shows")

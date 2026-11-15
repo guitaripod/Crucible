@@ -3,7 +3,22 @@ import Foundation
 package enum Formatters {
     /// The locale of the language the interface runs in, so a decimal reads "19,8" beside German words and "19.8" beside English ones.
     package static var interfaceLocale: Locale {
+        #if canImport(Darwin)
         Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+        #else
+        displayLocale
+        #endif
+    }
+
+    /// The locale dates, times and numbers are written in: the system's on Apple platforms; on Linux, where Foundation's
+    /// current locale ignores the desktop, the interface language with the desktop's region (`DesktopLocale`).
+    package static var displayLocale: Locale {
+        #if canImport(Darwin)
+        .current
+        #else
+        Locale(identifier: DesktopLocale.identifier(language: LocalizationCatalog.shared.currentLanguage,
+                                                    environment: ProcessInfo.processInfo.environment))
+        #endif
     }
 
     package static func duration(_ seconds: Double?) -> String {
@@ -105,6 +120,7 @@ package enum Formatters {
 
     private static let dateTimeFormatter: DateFormatter = {
         let f = DateFormatter()
+        f.locale = displayLocale
         f.dateStyle = .medium
         f.timeStyle = .short
         return f
@@ -119,8 +135,13 @@ package enum Formatters {
     package static func plexDate(_ dateString: String?) -> String? {
         guard let dateString else { return nil }
         let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
         guard let date = f.date(from: dateString) else { return nil }
-        return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+        let display = DateFormatter()
+        display.locale = displayLocale
+        display.dateStyle = .medium
+        display.timeStyle = .none
+        return display.string(from: date)
     }
 }

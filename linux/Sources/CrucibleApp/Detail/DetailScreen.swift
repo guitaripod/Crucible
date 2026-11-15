@@ -223,7 +223,7 @@ class DetailScreen: ScreenView {
     /// Asks whether to replace the check-in to something else that runs until `until`.
     private func offerReplacingCheckIn(until: Date?, replace: @escaping () -> Void) {
         guard let window else { return }
-        let time = until.map { $0.formatted(date: .omitted, time: .shortened) }
+        let time = until.map { $0.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(Formatters.displayLocale)) }
         AlertView.confirm(title: TraktCopy.checkIn, message: TraktCopy.alreadyCheckedIn(until: time), confirm: TraktCopy.replaceCheckIn,
                           in: window, action: replace)
     }

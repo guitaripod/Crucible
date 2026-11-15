@@ -116,7 +116,7 @@ extension PlayerScreen {
     }
 
     static func speedTitle(_ value: Double) -> String {
-        let number = value.formatted(.number.precision(.fractionLength(0...2)))
+        let number = value.formatted(.number.precision(.fractionLength(0...2)).locale(Formatters.displayLocale))
         return "\(number)×"
     }
 

@@ -1,4 +1,5 @@
 import Foundation
+import CrucibleCore
 
 /// The sections of a statistics page that carry data, in the order the screens show them. A section is
 /// only listed when it has something to draw.
@@ -175,7 +176,7 @@ package struct StatsPage: Equatable, Sendable {
         let seconds = session.endViewedAt - session.startViewedAt
         guard seconds >= 60 else { return nil }
         let value = seconds >= 3600 ? String(localized: "\(Int((Double(seconds) / 3600).rounded())) h") : String(localized: "\(seconds / 60) min")
-        let date = Date(timeIntervalSince1970: TimeInterval(session.startViewedAt)).formatted(.dateTime.month(.abbreviated).day())
+        let date = Date(timeIntervalSince1970: TimeInterval(session.startViewedAt)).formatted(.dateTime.month(.abbreviated).day().locale(Formatters.displayLocale))
         return LongestBinge(value: value, date: date)
     }
 
@@ -208,6 +209,7 @@ package struct StatsPage: Equatable, Sendable {
         }
         guard let since = snapshot.overview.memberSinceViewedAt else { return String(localized: "Your viewing, visualized") }
         let formatter = DateFormatter()
+        formatter.locale = Formatters.displayLocale
         formatter.setLocalizedDateFormatFromTemplate("yMMMM")
         return String(localized: "Watching since \(formatter.string(from: Date(timeIntervalSince1970: TimeInterval(since))))")
     }

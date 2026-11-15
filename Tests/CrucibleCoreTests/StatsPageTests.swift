@@ -1,3 +1,4 @@
+@testable import CrucibleCore
 import Foundation
 import Testing
 @testable import CrucibleStats
@@ -98,7 +99,7 @@ struct StatsPageTests {
         ]
         let binge = try #require(F.page(snapshot).longestBinge)
         #expect(binge.value == "9 h")
-        #expect(binge.date == Date(timeIntervalSince1970: TimeInterval(start)).formatted(.dateTime.month(.abbreviated).day()))
+        #expect(binge.date == Date(timeIntervalSince1970: TimeInterval(start)).formatted(.dateTime.month(.abbreviated).day().locale(Formatters.displayLocale)))
         let tile = try #require(F.page(snapshot).tiles.last)
         #expect(tile.key == "binge")
         #expect(tile.caption == binge.date)

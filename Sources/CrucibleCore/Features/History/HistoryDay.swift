@@ -8,6 +8,7 @@ package struct HistoryDayGroup: Hashable, Sendable {
 package enum HistoryDay {
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = Formatters.displayLocale
         formatter.timeStyle = .short
         formatter.dateStyle = .none
         return formatter
@@ -15,12 +16,14 @@ package enum HistoryDay {
 
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = Formatters.displayLocale
         formatter.setLocalizedDateFormatFromTemplate("EEEMMMd")
         return formatter
     }()
 
     private static let dayWithYearFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = Formatters.displayLocale
         formatter.setLocalizedDateFormatFromTemplate("EEEMMMdy")
         return formatter
     }()

@@ -491,6 +491,7 @@ package struct StatsStore: Sendable {
         let acct = scope.clause()
         var cards = [Superlative]()
         let dateFormatter = DateFormatter()
+        dateFormatter.locale = Formatters.displayLocale
         dateFormatter.dateStyle = .medium
 
         if let row = try Row.fetchOne(db, sql: "SELECT dayEpoch, COUNT(*) AS c FROM \(scope.table) WHERE viewedAt >= ?\(acct) GROUP BY dayEpoch ORDER BY c DESC LIMIT 1", arguments: [lowerBound]) {

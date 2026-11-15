@@ -30,7 +30,7 @@ package enum PortableFormat {
             anchor: date,
             presentation: named ? .named : .numeric,
             unitsStyle: units,
-            locale: locale ?? .current,
+            locale: locale ?? Formatters.displayLocale,
             calendar: .current,
             capitalizationContext: beginningOfSentence ? .beginningOfSentence : .unknown
         ).format(reference)
@@ -44,7 +44,7 @@ package enum PortableFormat {
         if let locale { formatter.locale = locale }
         return formatter.string(from: items) ?? items.joined(separator: ", ")
         #else
-        return items.formatted(.list(type: .and).locale(locale ?? .current))
+        return items.formatted(.list(type: .and).locale(locale ?? Formatters.displayLocale))
         #endif
     }
 
@@ -71,7 +71,8 @@ package enum PortableFormat {
         case .abbreviated: .narrow
         }
         let minutes = Int64((clamped / 60).rounded(.down))
-        return Duration.seconds(minutes * 60).formatted(.units(allowed: units, width: style, zeroValueUnits: dropZeros ? .hide : .show(length: 1)))
+        return Duration.seconds(minutes * 60).formatted(.units(allowed: units, width: style, zeroValueUnits: dropZeros ? .hide : .show(length: 1))
+            .locale(Formatters.displayLocale))
         #endif
     }
 }
