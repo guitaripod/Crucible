@@ -92,6 +92,23 @@ public final class BackdropView: View {
     }
 }
 
+/// A score drawn after the facts under its source's mark (`RatingLine`): Plex's star, or a service's mark from
+/// `BrandMarks` (`imdb`, `rottentomatoes-fresh`).
+public struct HeroRating: Hashable, Sendable {
+    public enum Mark: Hashable, Sendable {
+        case star
+        case brand(String, isWordmark: Bool)
+    }
+
+    public var mark: Mark?
+    public var text: String
+
+    public init(mark: Mark?, text: String) {
+        self.mark = mark
+        self.text = text
+    }
+}
+
 /// What the hero block shows (`TVHeroInfo`).
 public struct HeroInfo: Hashable, Sendable {
     public enum TitleStyle: Sendable { case title2, title1 }
@@ -99,16 +116,18 @@ public struct HeroInfo: Hashable, Sendable {
     public var eyebrow: String?
     public var title: String
     public var metaParts: [String]
+    public var ratings: [HeroRating]
     public var badges: [String]
     public var synopsis: String?
     public var progress: Double?
     public var titleStyle: TitleStyle
 
-    public init(eyebrow: String? = nil, title: String, metaParts: [String] = [], badges: [String] = [], synopsis: String? = nil,
-                progress: Double? = nil, titleStyle: TitleStyle = .title2) {
+    public init(eyebrow: String? = nil, title: String, metaParts: [String] = [], ratings: [HeroRating] = [], badges: [String] = [],
+                synopsis: String? = nil, progress: Double? = nil, titleStyle: TitleStyle = .title2) {
         self.eyebrow = eyebrow
         self.title = title
         self.metaParts = metaParts
+        self.ratings = ratings
         self.badges = badges
         self.synopsis = synopsis
         self.progress = progress
@@ -156,7 +175,7 @@ public final class HeroInfoView: View {
     }
 
     private struct Block {
-        enum Kind { case text(TextLayout, Color), badges([TextLayout]), progress(Float) }
+        enum Kind { case text(TextLayout, Color), meta(TextLayout?, [(HeroRating.Mark?, TextLayout)], Font), badges([TextLayout]), progress(Float) }
         let kind: Kind
         let height: Float
         let spacingAfter: Float
@@ -179,9 +198,11 @@ public final class HeroInfoView: View {
         let title = TextLayout(info.title, font: titleFont, maxWidth: width, maxLines: titleLines, scale: scale)
         result.append(Block(kind: .text(title, palette.label), height: title.size.height, spacingAfter: spacing + metrics.tv(6)))
         let meta = info.metaParts.filter { !$0.isEmpty }.joined(separator: "  ·  ")
-        if !meta.isEmpty {
-            let layout = TextLayout(meta, font: type.callout, maxWidth: width, scale: scale)
-            result.append(Block(kind: .text(layout, palette.labelSecondary), height: layout.size.height, spacingAfter: spacing))
+        if !meta.isEmpty || !info.ratings.isEmpty {
+            let layout = meta.isEmpty ? nil : TextLayout(meta, font: type.callout, maxWidth: width, scale: scale)
+            let ratings = info.ratings.map { ($0.mark, TextLayout($0.text, font: type.callout, scale: scale)) }
+            let height = max(layout?.size.height ?? 0, ratings.map(\.1.size.height).max() ?? 0)
+            result.append(Block(kind: .meta(layout, ratings, type.callout), height: height, spacingAfter: spacing))
         }
         if !info.badges.isEmpty {
             let layouts = info.badges.map { TextLayout($0, font: type.badge, scale: scale) }
@@ -227,6 +248,8 @@ public final class HeroInfoView: View {
             switch block.kind {
             case .text(let layout, let color):
                 context.text(layout, at: Point(x: 0, y: y), color: color)
+            case .meta(let layout, let ratings, let font):
+                drawMeta(layout, ratings: ratings, font: font, at: y, context: &context)
             case .badges(let layouts):
                 var x: Float = 0
                 for layout in layouts {
@@ -240,6 +263,55 @@ public final class HeroInfoView: View {
                 ProgressBarStyle.draw(progress: progress, in: Rect(x: 0, y: y, width: metrics.tv(420), height: block.height), onArt: true, context: &context)
             }
             y += block.height + block.spacingAfter
+        }
+    }
+
+    /// The fact line, then each score under its mark, joined by the line's middle dots; scores that would run past the
+    /// text column are left out rather than clipped.
+    private func drawMeta(_ layout: TextLayout?, ratings: [(HeroRating.Mark?, TextLayout)], font: Font, at y: Float, context: inout DrawContext) {
+        guard let scale = window?.scale else { return }
+        let palette = Theme.current.palette
+        let column = min(frame.width, Theme.current.metrics.heroTextColumn)
+        let separator = TextLayout("  ·  ", font: font, scale: scale)
+        let capHeight = font.size * 0.727
+        var x: Float = 0
+        if let layout {
+            context.text(layout, at: Point(x: 0, y: y), color: palette.labelSecondary)
+            x = layout.size.width
+        }
+        for (index, (mark, text)) in ratings.enumerated() {
+            let markSize = markSize(mark, capHeight: capHeight)
+            let gap = mark == nil ? 0 : font.size * 0.28
+            let leading = index == 0 && layout == nil ? 0 : separator.size.width
+            guard x + leading + markSize.width + gap + text.size.width <= column else { break }
+            if leading > 0 { context.text(separator, at: Point(x: x, y: y), color: palette.labelSecondary) }
+            x += leading
+            let markRect = Rect(x: x, y: y + text.baseline - capHeight / 2 - markSize.height / 2, width: markSize.width, height: markSize.height)
+            switch mark {
+            case .star:
+                context.symbol("star.fill", in: markRect, color: palette.accent)
+            case .brand(let name, _):
+                if let gpu = window?.gpu, let texture = BrandMarks.texture(name, gpu: gpu) { context.image(texture, in: markRect) }
+            case nil:
+                break
+            }
+            x += markSize.width + gap
+            context.text(text, at: Point(x: x, y: y), color: palette.labelSecondary)
+            x += text.size.width
+        }
+    }
+
+    /// A mark sized to the line's capitals: Plex's star a little taller, a wordmark (IMDb) a little shorter than a logo.
+    private func markSize(_ mark: HeroRating.Mark?, capHeight: Float) -> Size {
+        switch mark {
+        case nil:
+            return Size(width: 0, height: 0)
+        case .star:
+            return Size(width: (capHeight * 1.3).rounded(), height: (capHeight * 1.3).rounded())
+        case .brand(let name, let isWordmark):
+            let height = (capHeight * (isWordmark ? 1.35 : 1.5)).rounded()
+            guard let gpu = window?.gpu, let texture = BrandMarks.texture(name, gpu: gpu), texture.height > 0 else { return Size(width: height, height: height) }
+            return Size(width: (height * Float(texture.width) / Float(texture.height)).rounded(), height: height)
         }
     }
 }
