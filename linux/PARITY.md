@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 51 | 3 | 2 | 1 |
+| Sign in, launch, tabs and navigation | 52 | 2 | 2 | 1 |
 | Home and libraries | 76 | 2 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
@@ -15,7 +15,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 75 | 7 | 21 | 0 |
-| **All** | 637 | 16 | 33 | 16 |
+| **All** | 638 | 15 | 33 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -29,7 +29,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-switch-server-entry` (S) Switch Server (from You, from the gate failure state) opens the saved account's server list, or Welcome when no token is saved; Back cancels without changes and a chosen server relaunches the app against it. _Apple TV: Sources/CrucibleTV/App/TVAppCoordinator.swift:switchServer, presentOnboarding_
 - [x] `shell-reauthenticate-start` (S) Sign In Again (expired Plex sign-in) opens directly on the Plex link code, keeping the saved server, and Back dismisses without changes. _Apple TV: Sources/CrucibleTV/Onboarding/TVOnboardingFlow.swift:24-25 (makeRoot .reauthenticate starts at TVLinkViewController)_
 - [x] `shell-welcome-screen` (S) First-run Welcome shows the crystal glyph, the Crucible title, a tagline, and Sign in with Plex as the focused primary action. _Apple TV: Sources/CrucibleTV/Onboarding/TVWelcomeViewController.swift:11, 89-107 (glyph, title, tagline), :26-29 (breathing), :19 (focus on sign-in)_
-- [ ] `shell-plex-pin-link` (S) **partial** Link your Plex account screen requests a PIN, shows the code as one tile per letter with numbered steps and a QR code, shows status lines, advances by itself once approved, and offers Get a New Code or Try Again on expiry or failure. Gap: The steps are one prose sentence (Onboarding.swift:225-227), not numbered steps with badges (TVLinkViewController.swift:144-148, 233-258). The code tiles and QR do not dim on expiry as they do on the Apple TV (TVLinkViewController.swift:131-133). Code tiles, QR, status lines, auto-advance and Get a New Code or Try Again all work. _Apple TV: Sources/CrucibleTV/Onboarding/TVLinkViewController.swift:144-148 (numbered steps), :233-258 (stepRow badges), :131-133 (code and QR dim on expiry)_
+- [x] `shell-plex-pin-link` (S) Link your Plex account screen requests a PIN, shows the code as one tile per letter with numbered steps and a QR code, shows status lines, advances by itself once approved, and offers Get a New Code or Try Again on expiry or failure. _Apple TV: Sources/CrucibleTV/Onboarding/TVLinkViewController.swift:144-148 (numbered steps), :233-258 (stepRow badges), :131-133 (code and QR dim on expiry)_
 - [x] `shell-link-back-after-approval` (S) After the account is approved, Back from the server list returns to Welcome, because the link screen is replaced and the unfinished sign-in is abandoned, so no dead code is left on screen. _Apple TV: Sources/CrucibleTV/Onboarding/TVOnboardingFlow.swift:40-46 (didSignIn replaces link screen)_
 - [x] `shell-server-list` (S) Choose Server lists each account server with its name, status line, route value and a reachability symbol, disables offline rows, fills in as each route is measured, and settles selection on the fastest server. _Apple TV: Sources/CrucibleTV/Onboarding/TVChooseServerViewController.swift:215-223 (probingFinished moves focus to fastest), :392-400 (symbol(for:)), :435-437 (preferred focus)_
 - [x] `shell-single-server-auto-connect` (S) With one server on the account, Crucible connects to it without showing the list; with several, it continues by itself once exactly one answers. _Apple TV: Sources/CrucibleTV/Onboarding/TVChooseServerViewController.swift:114-116 (.single), :206-212 (continueAutomaticallyIfDecided)_
