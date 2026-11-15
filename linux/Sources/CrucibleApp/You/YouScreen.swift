@@ -55,7 +55,10 @@ final class YouScreen: ScreenView {
             window?.background = theme.palette.canvas
             window?.relayoutEverything()
         case "settings": navigation?.push(SettingsScreen(api: payload.api))
-        case "signout": onSignOut?()
+        case "signout":
+            guard let window else { return }
+            AlertView.confirm(title: String(localized: "Sign Out"), message: String(localized: "Are you sure you want to sign out?"),
+                              confirm: String(localized: "Sign Out"), in: window) { [weak self] in self?.onSignOut?() }
         default: break
         }
         refresh()

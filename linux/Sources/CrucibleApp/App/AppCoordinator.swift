@@ -63,7 +63,7 @@ final class AppCoordinator: WindowDelegate {
         gate.onRetry = { [weak self] in self?.reconnect() }
         gate.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
         gate.onSignInAgain = { [weak self] in self?.showOnboarding(.reauthenticate) }
-        gate.onSignOut = { [weak self] in self?.signOut() }
+        gate.onSignOut = { [weak self] in self?.confirmSignOut() }
         install(gate)
         gate.showLoading(String(localized: "Connecting to \(connection.serverName)…"))
         launchTask = Task { [weak self, weak gate] in
@@ -116,6 +116,12 @@ final class AppCoordinator: WindowDelegate {
         }
         onboarding = flow
         install(flow)
+    }
+
+    /// The expired-sign-in gate's Sign Out, which removes the account, asks first.
+    private func confirmSignOut() {
+        AlertView.confirm(title: String(localized: "Sign Out?"), message: String(localized: "This removes your Plex account from this computer."),
+                          confirm: String(localized: "Sign Out"), in: window) { [weak self] in self?.signOut() }
     }
 
     func signOut() {

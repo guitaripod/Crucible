@@ -20,8 +20,10 @@ final class OnboardingView: View {
     init(mode: Mode) {
         self.mode = mode
         switch mode {
-        case .signIn, .reauthenticate:
+        case .signIn:
             navigation = NavigationView(root: WelcomeScreen())
+        case .reauthenticate:
+            navigation = NavigationView(root: LinkScreen())
         case .switchServer:
             navigation = NavigationView(root: ServersScreen(token: ServerBootstrap.accountToken ?? ""))
         }
@@ -48,11 +50,13 @@ final class OnboardingView: View {
         navigation.push(link)
     }
 
+    /// The account token is saved: the link screen is replaced by the server list, so Back from the list returns to where
+    /// sign-in started and never to a dead code.
     private func signedIn(token: String) {
         PlexSignIn.complete(token: token)
         let servers = ServersScreen(token: token)
         configure(servers)
-        navigation.push(servers)
+        navigation.replaceTop(with: servers)
     }
 
     /// Escape walks back through the steps; at the first one it cancels a server switch or sign-in again.
