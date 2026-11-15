@@ -3,7 +3,7 @@
 //! it is one of theirs. A list is trusted for ten minutes from when plex.tv gave it; someone missing from it makes the
 //! server ask again, at most once a minute, and while plex.tv cannot be asked the last list it gave stands in.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -14,6 +14,8 @@ use crate::store::hash_token;
 const FRESH_FOR: Duration = Duration::from_secs(600);
 /// How soon after any ask, answered or not, the server asks again.
 const RETRY_AFTER: Duration = Duration::from_secs(60);
+/// How long the plex.tv account behind a Plex token is trusted once plex.tv named it.
+const ACCOUNT_FOR: Duration = Duration::from_secs(3600);
 
 pub struct Home {
     plextv: PlexTv,
@@ -21,6 +23,22 @@ pub struct Home {
     machine_identifier: String,
     known: Mutex<Known>,
     asking: tokio::sync::Mutex<()>,
+    accounts: Mutex<HashMap<String, Looked>>,
+}
+
+/// The plex.tv account a Plex token belongs to, as plex.tv answered, and when: none when it could not say.
+#[derive(Clone)]
+struct Looked {
+    account: Option<String>,
+    at: Instant,
+}
+
+impl Looked {
+    /// The account while the answer still stands: a named account for an hour, a failed ask for a minute.
+    fn standing(&self) -> Option<Option<String>> {
+        let keep = if self.account.is_some() { ACCOUNT_FOR } else { RETRY_AFTER };
+        (self.at.elapsed() < keep).then(|| self.account.clone())
+    }
 }
 
 #[derive(Default)]
@@ -48,7 +66,35 @@ impl Known {
 
 impl Home {
     pub fn new(plextv: PlexTv, owner_token: Option<String>, machine_identifier: String) -> Self {
-        Home { plextv, owner_token, machine_identifier, known: Mutex::default(), asking: tokio::sync::Mutex::new(()) }
+        Home { plextv, owner_token, machine_identifier, known: Mutex::default(), asking: tokio::sync::Mutex::new(()), accounts: Mutex::default() }
+    }
+
+    /// Whether a request's Plex token is the owner's. Plex gives each of the owner's devices a token of its own, so
+    /// besides the token setup signed in with, any token plex.tv names the owner's own account for is the owner's.
+    pub async fn is_owner(&self, token: &str) -> bool {
+        let Some(owner) = self.owner_token.as_deref() else { return false };
+        if hash_token(token) == hash_token(owner) {
+            return true;
+        }
+        match (self.account_of(owner).await, self.account_of(token).await) {
+            (Some(owner), Some(caller)) => owner == caller,
+            _ => false,
+        }
+    }
+
+    /// The plex.tv account behind a Plex token, asked of plex.tv once and then kept by the token's hash.
+    async fn account_of(&self, token: &str) -> Option<String> {
+        let hashed = hash_token(token);
+        if let Some(account) = self.accounts().get(&hashed).and_then(Looked::standing) {
+            return account;
+        }
+        let account = self.plextv.account(token).await.ok().map(|account| account.uuid).filter(|uuid| !uuid.is_empty());
+        self.accounts().insert(hashed, Looked { account: account.clone(), at: Instant::now() });
+        account
+    }
+
+    fn accounts(&self) -> std::sync::MutexGuard<'_, HashMap<String, Looked>> {
+        self.accounts.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     /// Whether the person whose Plex token has this hash is in the owner's Plex Home. A request the list already
@@ -81,11 +127,6 @@ impl Home {
                 }
             }
         }
-    }
-
-    /// The hash that names the owner's own Plex token.
-    pub fn owner_token_hash(&self) -> Option<String> {
-        self.owner_token.as_deref().map(hash_token)
     }
 
     /// How many people besides the owner are in the Plex Home with access to this server, for `doctor`.
@@ -129,6 +170,15 @@ mod tests {
     fn a_failed_ask_does_not_keep_a_stale_list_fresh() {
         assert!(matches!(known(&["robin"], 700, 30).answer("robin"), Some(Ok(true))));
         assert!(known(&["robin"], 700, 90).answer("robin").is_none());
+    }
+
+    #[test]
+    fn an_account_is_kept_for_an_hour_and_a_failed_ask_for_a_minute() {
+        let ago = |seconds: u64| Instant::now().checked_sub(Duration::from_secs(seconds)).unwrap();
+        assert_eq!(Looked { account: Some("owner".into()), at: ago(3000) }.standing(), Some(Some("owner".into())));
+        assert_eq!(Looked { account: Some("owner".into()), at: ago(3700) }.standing(), None);
+        assert_eq!(Looked { account: None, at: ago(30) }.standing(), Some(None));
+        assert_eq!(Looked { account: None, at: ago(90) }.standing(), None);
     }
 
     #[test]

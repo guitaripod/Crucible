@@ -39,7 +39,6 @@ pub struct AppState {
     pub plex: Plex,
     pub writer: Option<Arc<Writer>>,
     pub jobs: Jobs,
-    pub owner_token_hash: Option<String>,
     pub home: Home,
     pub sports: Option<Arc<Sports>>,
     accepted: Mutex<HashMap<String, Instant>>,
@@ -55,19 +54,7 @@ impl AppState {
         writer: Option<Arc<Writer>>,
         home: Home,
     ) -> Self {
-        AppState {
-            config,
-            store,
-            pairings,
-            fingerprint,
-            plex,
-            writer,
-            jobs: Jobs::default(),
-            owner_token_hash: home.owner_token_hash(),
-            home,
-            sports: None,
-            accepted: Mutex::new(HashMap::new()),
-        }
+        AppState { config, store, pairings, fingerprint, plex, writer, jobs: Jobs::default(), home, sports: None, accepted: Mutex::new(HashMap::new()) }
     }
 }
 
@@ -190,7 +177,7 @@ async fn admit(state: &AppState, headers: &HeaderMap) -> Result<(String, String)
         .ok_or_else(|| ApiError::new(StatusCode::UNAUTHORIZED, "no_plex_token", "The request carries no Plex token."))?
         .to_string();
     let hashed = hash_token(&plex_token);
-    let owner = state.owner_token_hash.as_deref() == Some(hashed.as_str());
+    let owner = !matches!(state.config.policy, Policy::Everyone) && state.home.is_owner(&plex_token).await;
     match state.config.policy {
         Policy::OnlyMe if !owner => {
             return Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "The owner keeps Crucible Server to themselves."));
@@ -312,13 +299,10 @@ async fn devices(State(state): State<Shared>, headers: HeaderMap) -> Result<Json
 async fn remove_device(State(state): State<Shared>, headers: HeaderMap, Path(id): Path<String>) -> Result<StatusCode, ApiError> {
     let me = device_of(&state, &headers)?;
     if me.id != id {
-        caller(&state, &headers).await.and_then(|caller| {
-            if state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str()) {
-                Ok(())
-            } else {
-                Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "Only the owner can unpair another device."))
-            }
-        })?;
+        let caller = caller(&state, &headers).await?;
+        if !state.home.is_owner(&caller.plex_token).await {
+            return Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "Only the owner can unpair another device."));
+        }
     }
     match state.store.remove_device(&id) {
         Ok(true) => {
@@ -453,7 +437,7 @@ fn sports(state: &AppState) -> Result<Arc<Sports>, ApiError> {
 /// A caller who is the server's owner, for the routes that change what the server writes into Plex.
 async fn owner(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiError> {
     let caller = caller(state, headers).await?;
-    if state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str()) {
+    if state.home.is_owner(&caller.plex_token).await {
         Ok(caller)
     } else {
         Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "Only the owner of this Plex server can change sports research."))
@@ -464,7 +448,7 @@ async fn owner(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiError
 async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
     let caller = caller(&state, &headers).await?;
     let sports = sports(&state)?;
-    let is_owner = state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str());
+    let is_owner = state.home.is_owner(&caller.plex_token).await;
     let settings = sports.settings();
     let mut checks = sports.checks(false).await;
     let ready = crate::sports::checks::ready(&checks);
