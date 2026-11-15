@@ -239,7 +239,7 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 | --- | --- |
 | Media keys and desktop media controls | MPRIS over sd-bus: metadata, artwork, position, seek |
 | Keep the screen awake | `zwp_idle_inhibit_v1` on the window while playing, with `org.freedesktop.ScreenSaver.Inhibit` as fallback (gamescope lacks idle inhibit) |
-| Find servers | Plex GDM over UDP (multicast 239.0.0.250:32414, broadcast 32412) beside plex.tv resources and the tailnet routes Core already probes |
+| Find servers | Plex GDM over UDP (an `M-SEARCH` to the multicast group 239.0.0.250 and the broadcast address on port 32414; 32412 is where players answer, not servers) beside plex.tv resources and the tailnet routes Core already probes, and on their own when plex.tv cannot be reached |
 | `crucible://` links and one instance | A desktop entry with `MimeType=x-scheme-handler/crucible;` and the D-Bus name `org.guitaripod.Crucible`, which hands a second launch's link to the running app and Core's deep-link parser |
 | Notifications | `org.freedesktop.Notifications` for `LibraryNews` while the app runs; a systemd user timer for background refresh can follow |
 | Output HDR and refresh rate | `kde_output_management_v2` (§7.4) |

@@ -5,7 +5,8 @@ import Kiln
 import MidgarCore
 
 /// Everything Core needs from Linux before the first read: the Secret Service for tokens, pinned HTTPS for Crucible Server,
-/// the string catalog the Apple apps compile, and the design system's own strings looked up in it.
+/// GDM for servers on the local network, the string catalog the Apple apps compile, and the design system's own strings
+/// looked up in it.
 @MainActor
 enum LinuxSetup {
     static func install() {
@@ -13,6 +14,7 @@ enum LinuxSetup {
         let fallback = FileSecretStore(url: AppPlatform.persistentDirectory.appendingPathComponent("secrets.json"))
         KeychainHelper.install(SecretServiceStore(fallback: fallback))
         CompanionTransport.install(CurlPinnedTransport())
+        LocalServerFinder.install()
         loadStrings()
         Strings.lookup = { key in String(localized: String.LocalizationValue(stringLiteral: key)) }
         AppInfo.override = (CrucibleLinux.version, CrucibleLinux.build)
