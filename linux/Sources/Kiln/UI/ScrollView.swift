@@ -195,11 +195,18 @@ open class ScrollView: View {
         }
         let fading = indicator.advance(dt)
         if fading { setNeedsDisplay() }
-        return moving || dragging || fading || indicator.target > 0
+        return moving || dragging || fading || (indicator.target > 0 && !isHovered)
     }
 
     open override func pointerEntered() {
         if maximumOffset > 0 { wake() }
+    }
+
+    /// The pointer left: the indicator's idle fade starts counting.
+    open override func pointerExited() {
+        guard indicator.target > 0 else { return }
+        indicatorIdle = 0
+        startAnimating()
     }
 
     open override var isPointerInteractive: Bool { true }

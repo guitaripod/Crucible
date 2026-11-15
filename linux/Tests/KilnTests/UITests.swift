@@ -165,6 +165,17 @@ final class Ticker: View {
         #expect(shelf.offset > 0)
     }
 
+    @Test func aPointerRestingOnTheShelfLetsTheWindowGoIdle() {
+        window.handlePointerMoved(to: Point(x: 500, y: 200))
+        window.handleScroll(ScrollEvent(dx: 15, dy: 0, notchesX: 1, source: .wheel))
+        window.advance(by: 2)
+        #expect(!window.isAnimating, "the indicator stays up while hovered without drawing every frame")
+        window.handlePointerMoved(to: Point(x: 500, y: 380))
+        #expect(window.isAnimating, "leaving the shelf starts the indicator's fade")
+        window.advance(by: 2)
+        #expect(!window.isAnimating)
+    }
+
     @Test func wheelNotchesGlideByASteppedDistanceAndStopAtTheEnd() {
         window.handlePointerMoved(to: Point(x: 500, y: 200))
         window.handleScroll(ScrollEvent(dx: 15, dy: 0, notchesX: 1, source: .wheel))
