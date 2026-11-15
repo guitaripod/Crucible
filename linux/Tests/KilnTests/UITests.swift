@@ -454,6 +454,16 @@ final class Ticker: View {
         window.advance(by: 0.1)
         #expect(ticker.ticks > resting)
     }
+
+    @Test func anAnimationStartedBeforeTheViewIsInAWindowRunsOnceItIs() throws {
+        let window = try Window(offscreen: Size(width: 200, height: 200), gpu: TestGPU.shared)
+        let ticker = Ticker(frame: Rect(x: 0, y: 0, width: 50, height: 50))
+        ticker.startAnimating()
+        window.contentView.addSubview(ticker)
+        #expect(window.isAnimating)
+        window.advance(by: 0.1)
+        #expect(ticker.ticks > 0)
+    }
 }
 
 @Suite struct AnimationTests {

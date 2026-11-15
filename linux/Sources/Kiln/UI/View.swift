@@ -111,9 +111,17 @@ open class View {
         didSet {
             guard window !== oldValue else { return }
             for subview in subviews { subview.window = window }
-            if window != nil { didMoveToWindow() }
+            guard let window else { return }
+            if animationPending {
+                animationPending = false
+                window.startAnimating(self)
+            }
+            didMoveToWindow()
         }
     }
+
+    /// `startAnimating` was asked for before the view was in a window; the animation starts when it joins one.
+    private var animationPending = false
 
     public func addSubview(_ view: View) {
         insertSubview(view, at: subviews.count)
@@ -212,7 +220,11 @@ open class View {
     open func advanceAnimations(_ dt: Float) -> Bool { false }
 
     public func startAnimating() {
-        window?.startAnimating(self)
+        guard let window else {
+            animationPending = true
+            return
+        }
+        window.startAnimating(self)
         setNeedsDisplay()
     }
 
