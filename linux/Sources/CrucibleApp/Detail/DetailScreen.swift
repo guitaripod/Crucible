@@ -226,8 +226,12 @@ enum DetailMapping {
     }
 
     static func person(_ role: PlexRole, index: Int) -> CardItem {
-        CardItem(id: "cast.\(index)", artwork: role.thumb.flatMap(URL.init(string:)).map { .url($0) }, title: role.tag ?? "", subtitle: role.role,
-                 placeholderSymbol: "person")
+        let name = role.tag ?? ""
+        var card = CardItem(id: "cast.\(index)", artwork: role.thumb.flatMap(URL.init(string:)).map { .url($0) }, title: name, subtitle: role.role,
+                            placeholderSymbol: "person")
+        let gradient = CastAvatar.gradient(for: name)
+        card.monogram = CardItem.Monogram(initials: DetailFormat.initials(name), top: Color(hex: gradient.start), bottom: Color(hex: gradient.end))
+        return card
     }
 
     static func related(_ items: [PlexMetadata]) -> [CardItem] {

@@ -18,6 +18,20 @@ public struct CardItem: Hashable, Sendable {
     public var placeholderSymbol: Symbol = "film"
     /// UTF-16 ranges of the title tinted in the accent (a search query's match).
     public var titleHighlights: [Range<Int>] = []
+    /// Initials on a gradient drawn while the card has no picture (a person without a photo), in place of the symbol.
+    public var monogram: Monogram?
+
+    public struct Monogram: Hashable, Sendable {
+        public var initials: String
+        public var top: Color
+        public var bottom: Color
+
+        public init(initials: String, top: Color, bottom: Color) {
+            self.initials = initials
+            self.top = top
+            self.bottom = bottom
+        }
+    }
 
     public init(id: String, artwork: ArtworkSource? = nil, title: String, subtitle: String? = nil, detail: String? = nil, eyebrow: String? = nil,
                 progress: Double? = nil, isUnwatched: Bool = false, isWatched: Bool = false, isDimmed: Bool = false, badgeText: String? = nil,
@@ -271,7 +285,7 @@ public final class CardView: View {
         let scale = artworkScale
         let parallax = Point(x: tiltX.value * art.width * 0.012 * lift.value, y: tiltY.value * art.height * 0.012 * lift.value)
         let radius = style.shape == .circle ? art.width / 2 : metrics.cardCornerRadius
-        let dimming: Float = item.isDimmed ? metrics.watchedDimming : 1
+        let dimming: Float = item.isDimmed ? metrics.watchedDimming + (1 - metrics.watchedDimming) * lift.value : 1
 
         context.transformed(scale: scale, about: art.center, translation: parallax) { inner in
             if lift.value > 0.001 {
@@ -295,7 +309,9 @@ public final class CardView: View {
     private func drawArtwork(in art: Rect, radius: Float, context: inout DrawContext) {
         let palette = Theme.current.palette
         let opacity = artwork.texture == nil ? 0 : artwork.opacity
-        if opacity < 1 {
+        if opacity < 1, let monogram = item.monogram {
+            drawMonogram(monogram, in: art, radius: radius, opacity: 1 - opacity, context: &context)
+        } else if opacity < 1 {
             context.fill(art, radius: radius, color: palette.surfaceRaised)
             let glyph = min(art.width, art.height) * 0.22
             let glyphRect = Rect(x: art.midX - glyph / 2, y: art.midY - glyph / 2, width: glyph, height: glyph)
@@ -303,6 +319,17 @@ public final class CardView: View {
         }
         if let texture = artwork.texture, opacity > 0 {
             context.image(texture, in: art, radius: radius, opacity: opacity, circle: style.shape == .circle)
+        }
+    }
+
+    /// A person without a photo (`MonogramView`): their initials on their own gradient, from the top left corner down.
+    private func drawMonogram(_ monogram: CardItem.Monogram, in art: Rect, radius: Float, opacity: Float, context: inout DrawContext) {
+        context.faded(opacity) { faded in
+            faded.gradient(art, axis: .diagonal, stops: [(0, monogram.top), (1, monogram.bottom)], radius: radius)
+            let text = monogram.initials.isEmpty ? "?" : monogram.initials
+            let layout = TextLayout(text, font: Font(size: (art.height * 0.34).rounded(), weight: .semibold), scale: window?.scale ?? 1)
+            faded.text(layout, at: Point(x: (art.midX - layout.size.width / 2).rounded(), y: (art.midY - layout.size.height / 2).rounded()),
+                       color: Theme.current.palette.onArt)
         }
     }
 
