@@ -129,6 +129,7 @@ public final class Window {
         repeatTask?.cancel()
         contentView.window = nil
         gpu.finish()
+        gpu.releaseSurface()
         surface?.close()
     }
 

@@ -196,6 +196,11 @@ public final class GPU {
         kiln_gpu_finish(handle)
     }
 
+    /// Lets go of the window surface before its Wayland connection closes.
+    public func releaseSurface() {
+        kiln_gpu_release_surface(handle)
+    }
+
     isolated deinit {
         kiln_gpu_destroy(handle)
     }

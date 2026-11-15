@@ -106,10 +106,10 @@ public final class Painter {
 
     /// A coverage mask (text or a symbol) tinted with `color`, drawn into `rect`. A mask drawn at its own size on whole
     /// pixels is sampled exactly; a scaled one (on a lifting card) is filtered.
-    public func mask(_ mask: Texture, in rect: Rect, color: Color) {
+    public func mask(_ mask: Texture, in rect: Rect, color: Color, nearest: Bool = false) {
         guard color.alpha > 0 else { return }
-        let exact = abs(rect.width - Float(mask.width)) < 0.01 && abs(rect.height - Float(mask.height)) < 0.01
-        let placed = exact ? Rect(x: rect.x.rounded(), y: rect.y.rounded(), width: rect.width, height: rect.height) : rect
+        let exact = nearest || (abs(rect.width - Float(mask.width)) < 0.01 && abs(rect.height - Float(mask.height)) < 0.01)
+        let placed = exact ? Rect(x: rect.x.rounded(), y: rect.y.rounded(), width: rect.width.rounded(), height: rect.height.rounded()) : rect
         guard let area = bounds(placed, outset: exact ? 0 : 1) else { return }
         gpu.pass(into: target, body: PainterShaders.mask, samplers: [.init("mask", mask, nearest: exact)], uniforms: [
             .init("origin", placed.x, placed.y, placed.width, placed.height),

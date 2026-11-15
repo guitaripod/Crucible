@@ -75,6 +75,12 @@ public struct DrawContext {
         renderer.painter.mask(texture, in: Rect(x: placed.x, y: placed.y, width: pixelWidth, height: pixelHeight), color: color.multipliedAlpha(alpha))
     }
 
+    /// A coverage texture (a QR code, a mark) tinted into `rect`; `nearest` keeps hard module edges when scaled.
+    public func mask(_ texture: Texture, in rect: Rect, color: Color, nearest: Bool = false) {
+        applyClip()
+        renderer.painter.mask(texture, in: transform.apply(rect), color: color.multipliedAlpha(alpha), nearest: nearest)
+    }
+
     /// Draws a symbol's mask into `rect`, tinted.
     public func symbol(_ symbol: Symbol, in rect: Rect, color: Color) {
         let pixels = transform.apply(rect)

@@ -45,6 +45,9 @@ typedef struct {
  * Wayland surface is given, an FP16 swapchain on it hinted as scRGB. Writes a reason into `error` on failure. */
 kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface, char *error, size_t error_size);
 void kiln_gpu_destroy(kiln_gpu *gpu);
+/** Destroys the swapchain and the Vulkan surface, so the Wayland connection under them can close while the device
+ * lives on until its last texture goes. Presenting afterwards does nothing. */
+void kiln_gpu_release_surface(kiln_gpu *gpu);
 const char *kiln_gpu_device_name(kiln_gpu *gpu);
 kiln_vulkan_handles kiln_gpu_vulkan_handles(kiln_gpu *gpu);
 

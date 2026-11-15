@@ -191,6 +191,17 @@ void kiln_gpu_destroy(kiln_gpu *g) {
     free(g);
 }
 
+void kiln_gpu_release_surface(kiln_gpu *g) {
+    if (!g) return;
+    if (g->gpu) pl_gpu_finish(g->gpu);
+    pl_swapchain_destroy(&g->swapchain);
+    if (g->surface && g->instance) {
+        PFN_vkDestroySurfaceKHR destroy_surface = (PFN_vkDestroySurfaceKHR) g->instance->get_proc_addr(g->instance->instance, "vkDestroySurfaceKHR");
+        if (destroy_surface) destroy_surface(g->instance->instance, g->surface, NULL);
+        g->surface = VK_NULL_HANDLE;
+    }
+}
+
 const char *kiln_gpu_device_name(kiln_gpu *g) {
     static char name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
     VkPhysicalDeviceProperties properties;
