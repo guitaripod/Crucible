@@ -34,6 +34,8 @@ actor DemoLibrary {
     var nextEntryID = 1000
     /// How often the stand-in Trakt was asked whether its device code was approved; the second ask approves it.
     var traktPolls = 0
+    /// What the viewer wrote, liked, reacted to, followed and blocked in the stand-in Trakt's community.
+    var traktCommunity = DemoTraktCommunityState()
     /// The stand-in Seerr's requests and the id its next one gets.
     var seerrRequests: [DemoSeerrRequest] = []
     var nextSeerrRequestID = 20

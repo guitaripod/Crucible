@@ -56,7 +56,69 @@ extension DemoRouter {
         case ("DELETE", ["checkin"]):
             return .empty(204)
         default:
-            return .notFound()
+            return await communityResponse(parts, request)
+        }
+    }
+
+    /// The stand-in Trakt's community: comments and their replies, likes and reactions, what people say, who is watching, and
+    /// members' profiles, follows and blocks.
+    private func communityResponse(_ parts: [String], _ request: DemoRequest) async -> DemoResponse {
+        let page = request.int("page") ?? 1
+        let limit = request.int("limit") ?? 10
+        switch (request.method, parts) {
+        case ("POST", ["comments"]):
+            return await library.traktPostComment(request.body)
+        case ("GET", ["users", "me", "following"]):
+            return await library.traktFollowing()
+        case ("GET", ["users", "blocked"]):
+            return await library.traktBlocked()
+        case ("GET", ["users", "likes", "comments"]):
+            return await library.traktLikedComments()
+        case ("GET", ["users", "reactions", "comments"]):
+            return await library.traktReactedComments()
+        default:
+            break
+        }
+        if parts.first == "comments", parts.count >= 2, let id = Int(parts[1]) {
+            switch (request.method, Array(parts.dropFirst(2))) {
+            case ("GET", []): return await library.traktComment(id)
+            case ("PUT", []): return await library.traktEditComment(id, request.body)
+            case ("DELETE", []): return await library.traktDeleteComment(id)
+            case ("GET", ["replies"]): return await library.traktReplies(id, page: page, limit: limit)
+            case ("POST", ["replies"]): return await library.traktPostReply(to: id, request.body)
+            case ("POST", ["like"]): return await library.traktLike(id, on: true)
+            case ("DELETE", ["like"]): return await library.traktLike(id, on: false)
+            case ("GET", ["reactions", "summary"]): return await library.traktReactionSummary(id)
+            case ("GET", ["reactions"]): return await library.traktReactions(id)
+            case ("POST", let rest) where rest.count == 2 && rest[0] == "reactions": return await library.traktReact(id, rest[1], on: true)
+            case ("DELETE", let rest) where rest.count == 2 && rest[0] == "reactions": return await library.traktReact(id, rest[1], on: false)
+            case ("POST", ["report"]): return .empty(201)
+            default: return .notFound()
+            }
+        }
+        if parts.first == "users", parts.count >= 2 {
+            let handle = parts[1]
+            switch (request.method, Array(parts.dropFirst(2))) {
+            case ("GET", []): return await library.traktProfile(handle)
+            case ("GET", ["watching"]): return await library.traktUserWatching(handle)
+            case ("GET", let rest) where rest.count == 3 && rest[0] == "comments": return await library.traktUserComments(handle, page: page, limit: limit)
+            case ("POST", ["follow"]): return await library.traktFollow(handle, on: true)
+            case ("DELETE", ["follow"]): return await library.traktFollow(handle, on: false)
+            case ("POST", ["block"]): return await library.traktBlock(handle, on: true)
+            case ("DELETE", ["block"]): return await library.traktBlock(handle, on: false)
+            case ("POST", ["report"]): return .empty(201)
+            default: return .notFound()
+            }
+        }
+        guard request.method == "GET", parts.first == "movies" || parts.first == "shows", let last = parts.last else { return .notFound() }
+        if parts.count >= 2, parts[parts.count - 2] == "comments" {
+            return await library.traktComments(Array(parts.dropLast(2)), sort: last, page: page, limit: limit)
+        }
+        switch last {
+        case "sentiments": return await library.traktSentiments(Array(parts.dropLast()))
+        case "stats": return await library.traktStats(Array(parts.dropLast()))
+        case "watching": return await library.traktWatching(Array(parts.dropLast()))
+        default: return .notFound()
         }
     }
 }

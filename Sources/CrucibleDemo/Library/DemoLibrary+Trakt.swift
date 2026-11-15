@@ -52,8 +52,12 @@ extension DemoLibrary {
         guard let item = items[key] else { return .notFound() }
         let audience = item.fields.double("audienceRating") ?? item.show.flatMap { items[$0]?.fields.double("audienceRating") } ?? 7.5
         let seed = (Int(key) ?? 1) % 97
+        let votes = 1_800 + seed * 137
         var ratings: DemoJSON = [
-            "trakt": ["rating": min(9.8, audience + 0.4), "votes": 1_800 + seed * 137] as DemoJSON,
+            "trakt": [
+                "rating": min(9.8, audience + 0.4), "votes": votes,
+                "distribution": Self.traktDistribution(audience: min(9.8, audience + 0.4), votes: votes, seed: seed),
+            ] as DemoJSON,
             "imdb": ["rating": audience, "votes": 40_000 + seed * 2_311, "link": "https://www.imdb.com/"] as DemoJSON,
             "tmdb": ["rating": max(1, audience - 0.2), "votes": 900 + seed * 41] as DemoJSON,
         ]
