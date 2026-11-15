@@ -282,6 +282,16 @@ public final class CardGridView: View {
 
     private var margin: Float { Theme.current.metrics.sideMargin }
 
+    /// The card showing the item at `index` in the grid's order.
+    public func card(at index: Int) -> CardView? {
+        order.indices.contains(index) ? cards[order[index]] : nil
+    }
+
+    /// The index of the item a card shows, for the focus to report where in the grid it is.
+    public func index(of id: String) -> Int? {
+        order.firstIndex(of: id)
+    }
+
     /// The grid's height for `width`.
     public func height(for width: Float) -> Float {
         let metrics = Theme.current.metrics

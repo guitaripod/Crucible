@@ -316,6 +316,11 @@ public final class ChipRowView: View {
         chips.first(where: \.isSelected).flatMap { buttons[$0.id] } ?? chips.first.flatMap { buttons[$0.id] }
     }
 
+    /// Where a chip sits in the window, for a menu to open from it.
+    public func frameInWindow(of id: String) -> Rect? {
+        buttons[id]?.frameInWindow
+    }
+
     public func setChips(_ newChips: [Chip]) {
         chips = newChips
         var next: [String: ButtonView] = [:]

@@ -27,6 +27,9 @@ final class RootView: View {
             guard let key = directory.key, let title = directory.title else { continue }
             tabs.append(.init(id: "library-\(key)", title: title))
         }
+        if libraryLayout.hasMore {
+            tabs.append(.init(id: "more", title: String(localized: "More", comment: "Tab bar title")))
+        }
         tabs.append(.init(id: "search", title: String(localized: "Search")))
         tabs.append(.init(id: "you", title: String(localized: "You")))
         tabBar.tabs = tabs
@@ -42,6 +45,8 @@ final class RootView: View {
         let screen: ScreenView
         if id.hasPrefix("library-"), let directory = libraryLayout.tabs.first(where: { "library-\($0.key ?? "")" == id }) {
             screen = LibraryScreen(api: payload.api, directory: directory)
+        } else if id == "more" {
+            screen = MoreScreen(api: payload.api, libraries: libraryLayout.overflow)
         } else if id == "search" {
             screen = SearchScreen(api: payload.api)
         } else if id == "you" {

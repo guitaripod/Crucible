@@ -18,6 +18,19 @@ final class TitleGridScreen: ScreenView {
     var summary: ([PlexMetadata]) -> String? = { items in
         items.count == 1 ? String(localized: "1 title") : String(localized: "\(items.count) titles")
     }
+    /// What a card shows; titles by default.
+    var card: (PlexMetadata) -> CardItem = { TitleCards.card($0) }
+    /// What selecting a card does; opening the title's page by default.
+    var onSelect: ((PlexMetadata) -> Void)?
+    /// The menu a right click or the Menu key opens; every poster's menu by default.
+    var onMenu: ((PlexMetadata, Point?) -> Void)?
+    /// The Play/Pause key on a card; returns whether it played.
+    var onPlay: ((PlexMetadata) -> Bool)?
+    /// How tall the cards' artwork is for its width.
+    var aspect: Float {
+        get { grid.aspect }
+        set { grid.aspect = newValue }
+    }
 
     private let api: APIClient
     private let empty: Empty
@@ -30,7 +43,8 @@ final class TitleGridScreen: ScreenView {
     private var hasLoaded = false
     private var loadTask: Task<Void, Never>?
 
-    init(api: APIClient, title: String, empty: Empty = Empty(), load: @escaping () async throws -> [PlexMetadata]) {
+    /// `initial` shows at once while the full list loads (a shelf's items before its See All arrives).
+    init(api: APIClient, title: String, empty: Empty = Empty(), initial: [PlexMetadata]? = nil, load: @escaping () async throws -> [PlexMetadata]) {
         self.api = api
         self.empty = empty
         self.load = load
@@ -41,13 +55,29 @@ final class TitleGridScreen: ScreenView {
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
         grid.onActivate = { [weak self] card in
             guard let self, let item = self.items[card.id] else { return }
-            self.rootView?.push(DetailScreen.make(api: self.api, item: item))
+            if let onSelect = self.onSelect {
+                onSelect(item)
+            } else {
+                self.rootView?.push(DetailScreen.make(api: self.api, item: item))
+            }
         }
         grid.onContextMenu = { [weak self] card, point in
             guard let self, let item = self.items[card.id] else { return }
-            ItemActions.present(for: item, api: self.api, at: point, in: self) { [weak self] in self?.reload() }
+            if let onMenu = self.onMenu {
+                onMenu(item, point)
+            } else {
+                ItemActions.present(for: item, api: self.api, at: point, in: self) { [weak self] in self?.reload() }
+            }
+        }
+        grid.onPlay = { [weak self] card in
+            guard let self, let item = self.items[card.id] else { return false }
+            return self.onPlay?(item) ?? false
         }
         state.show(.loading(title: nil))
+        if let initial, !initial.isEmpty {
+            hasLoaded = true
+            display(initial)
+        }
     }
 
     override var preferredFocusView: View? { state.isHidden ? grid : state }
@@ -82,9 +112,15 @@ final class TitleGridScreen: ScreenView {
         }
     }
 
-    private func display(_ loaded: [PlexMetadata]) {
+    private func display(_ all: [PlexMetadata]) {
+        var seen = Set<String>()
+        let loaded = all.filter { seen.insert($0.entryID).inserted }
         items = Dictionary(loaded.map { ($0.entryID, $0) }, uniquingKeysWith: { first, _ in first })
-        grid.setItems(loaded.map(TitleCards.card))
+        grid.setItems(loaded.map { item in
+            var shown = card(item)
+            shown.id = item.entryID
+            return shown
+        })
         heading.summary = summary(loaded)
         if loaded.isEmpty {
             state.isHidden = false

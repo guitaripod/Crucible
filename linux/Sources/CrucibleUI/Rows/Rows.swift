@@ -190,6 +190,8 @@ public final class RowListView: View {
     public private(set) var items: [RowItem] = []
     public var onSelect: ((RowItem) -> Void)?
     public var columnWidth: Float?
+    /// Starts the column at the screen's margin, in line with a grid below it, instead of centring it.
+    public var isLeadingAligned = false { didSet { setNeedsLayout() } }
     private var rows: [String: RowView] = [:]
 
     public override var remembersFocus: Bool { true }
@@ -213,7 +215,8 @@ public final class RowListView: View {
     private var column: Rect {
         let metrics = Theme.current.metrics
         let width = min(columnWidth ?? metrics.wideColumn, frame.width - metrics.sideMargin * 2)
-        return Rect(x: ((frame.width - width) / 2).rounded(), y: 0, width: width, height: frame.height)
+        let x = isLeadingAligned ? metrics.sideMargin : ((frame.width - width) / 2).rounded()
+        return Rect(x: x, y: 0, width: width, height: frame.height)
     }
 
     public override func sizeThatFits(_ size: Size) -> Size {

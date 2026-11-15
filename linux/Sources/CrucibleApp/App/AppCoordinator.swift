@@ -9,6 +9,12 @@ import MidgarCore
 enum LinuxSession {
     static var imageCacheDirectory: URL { AppPlatform.cachesDirectory.appendingPathComponent("images") }
 
+    /// Where the measured artwork shapes of one server are kept between launches.
+    static func artworkShapesFile(machineIdentifier: String) -> URL {
+        let name = machineIdentifier.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(String.init).joined()
+        return AppPlatform.cachesDirectory.appendingPathComponent("artwork-shapes").appendingPathComponent("\(name.isEmpty ? "server" : name).json")
+    }
+
     static var collaborators: AccountSessionCollaborators {
         AccountSessionCollaborators(
             resetStats: {},
@@ -80,6 +86,7 @@ final class AppCoordinator: WindowDelegate {
     private func showMain(_ payload: LaunchPayload) {
         Artwork.pipeline = PlexArtworkPipeline(baseURL: payload.connection.serverURI)
         window.useImages(diskDirectory: LinuxSession.imageCacheDirectory, fetch: PlexArtworkPipeline.fetcher(token: payload.connection.authToken))
+        ArtworkShapes.shared.use(file: LinuxSession.artworkShapesFile(machineIdentifier: payload.connection.machineIdentifier))
         let main = RootView(payload: payload)
         main.onSignOut = { [weak self] in self?.signOut() }
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
