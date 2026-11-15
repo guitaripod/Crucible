@@ -8,7 +8,17 @@ import Kiln
 /// its keys; Ctrl+? shows every shortcut at once.
 extension RootView {
     var commandGroups: [AppCommandGroup] {
-        [goCommands, viewCommands, mediaCommands, settingsCommands]
+        [goCommands, viewCommands, mediaCommands, textCommands, settingsCommands]
+    }
+
+    /// The keys for selected text and fields, in the shortcut list only: they work where the text is.
+    private var textCommands: AppCommandGroup {
+        AppCommandGroup(title: String(localized: "Text"), commands: [
+            AppCommand(String(localized: "Copy"), keys: [KeyName.chord(KeyName.ctrl, "C")]),
+            AppCommand(String(localized: "Cut"), keys: [KeyName.chord(KeyName.ctrl, "X")]),
+            AppCommand(String(localized: "Paste"), keys: [KeyName.chord(KeyName.ctrl, "V")]),
+            AppCommand(String(localized: "Select All"), keys: [KeyName.chord(KeyName.ctrl, "A")]),
+        ], inMenu: false)
     }
 
     private var goCommands: AppCommandGroup {
