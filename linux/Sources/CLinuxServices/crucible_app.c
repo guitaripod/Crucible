@@ -89,6 +89,21 @@ crucible_app *crucible_app_claim(crucible_app_handler handler, void *context, bo
     return app;
 }
 
+bool crucible_app_is_running(void) {
+    sd_bus *bus = NULL;
+    if (sd_bus_open_user(&bus) < 0) return false;
+    sd_bus_message *reply = NULL;
+    sd_bus_error error = SD_BUS_ERROR_NULL;
+    int owned = 0;
+    if (sd_bus_call_method(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner", &error, &reply, "s", APP_NAME) >= 0) {
+        sd_bus_message_read(reply, "b", &owned);
+    }
+    sd_bus_error_free(&error);
+    sd_bus_message_unref(reply);
+    sd_bus_flush_close_unref(bus);
+    return owned;
+}
+
 /** Appends platform data carrying `token` (an empty dictionary without one). */
 static int append_platform_data(sd_bus_message *message, const char *token) {
     int r = sd_bus_message_open_container(message, 'a', "{sv}");

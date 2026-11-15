@@ -15,6 +15,8 @@ crucible_app *crucible_app_claim(crucible_app_handler handler, void *context, bo
 /** Hands `uris` and the activation token to the instance that owns the name (Open, or Activate when there are none). */
 bool crucible_app_forward(const char *const *uris, int count, const char *activation_token);
 void crucible_app_destroy(crucible_app *app);
+/** Whether an instance owns org.guitaripod.Crucible on the session bus, asked without claiming the name. */
+bool crucible_app_is_running(void);
 /** Readable when the bus has messages; then call `crucible_app_process`. */
 int crucible_app_fd(crucible_app *app);
 void crucible_app_process(crucible_app *app);
