@@ -15,9 +15,11 @@ public struct RowItem: Hashable, Sendable {
     public var isDestructive: Bool
     public var isEnabled: Bool
     public var isStatic: Bool
+    /// A service's official mark (`trakt`, `seerr`) filling the icon well in place of the symbol.
+    public var brand: String?
 
     public init(id: String, title: String, subtitle: String? = nil, value: String? = nil, symbol: Symbol? = nil, accessory: Accessory = .none,
-                isDestructive: Bool = false, isEnabled: Bool = true, isStatic: Bool = false) {
+                isDestructive: Bool = false, isEnabled: Bool = true, isStatic: Bool = false, brand: String? = nil) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
@@ -27,6 +29,7 @@ public struct RowItem: Hashable, Sendable {
         self.isDestructive = isDestructive
         self.isEnabled = isEnabled
         self.isStatic = isStatic
+        self.brand = brand
     }
 }
 
@@ -59,7 +62,7 @@ public final class RowView: View {
     private var textWidth: Float {
         let metrics = Theme.current.metrics
         var width = frame.width - metrics.rowInset * 2
-        if item.symbol != nil { width -= metrics.rowIconWell + metrics.tv(32) }
+        if item.symbol != nil || item.brand != nil { width -= metrics.rowIconWell + metrics.tv(32) }
         if item.accessory != .none || item.value != nil { width -= metrics.symbolAccessory + metrics.tv(32) }
         if let value = item.value { width -= TextLayout(value, font: Theme.current.type.callout, scale: rasterScale).size.width + metrics.tv(32) }
         return max(width, 40)
@@ -157,12 +160,16 @@ public final class RowView: View {
                 let primary = (item.isDestructive ? palette.destructive : palette.label).mixed(with: palette.onFocusFill, amount: focus.value)
                 let secondary = palette.labelSecondary.mixed(with: palette.onFocusFillSecondary, amount: focus.value)
                 var x = metrics.rowInset
-                if let symbol = item.symbol {
+                if item.symbol != nil || item.brand != nil {
                     let well = Rect(x: x, y: rect.midY - metrics.rowIconWell / 2, width: metrics.rowIconWell, height: metrics.rowIconWell)
-                    inner.fill(well, radius: metrics.radiusS, color: palette.accentTint.mixed(with: palette.onFocusFill.withAlpha(0.08), amount: focus.value))
-                    let glyph = metrics.symbolRow
-                    inner.symbol(symbol, in: Rect(x: well.midX - glyph / 2, y: well.midY - glyph / 2, width: glyph, height: glyph),
-                                 color: item.isDestructive ? palette.destructive : palette.accentText)
+                    if let brand = item.brand, let gpu = window?.gpu, let mark = BrandMarks.texture(brand, gpu: gpu) {
+                        inner.image(mark, in: well, radius: metrics.radiusS, fit: true)
+                    } else if let symbol = item.symbol {
+                        inner.fill(well, radius: metrics.radiusS, color: palette.accentTint.mixed(with: palette.onFocusFill.withAlpha(0.08), amount: focus.value))
+                        let glyph = metrics.symbolRow
+                        inner.symbol(symbol, in: Rect(x: well.midX - glyph / 2, y: well.midY - glyph / 2, width: glyph, height: glyph),
+                                     color: item.isDestructive ? palette.destructive : palette.accentText)
+                    }
                     x = well.maxX + metrics.tv(32)
                 }
                 let title = TextLayout(item.title, font: type.rowTitle, maxWidth: textWidth, scale: rasterScale)

@@ -24,3 +24,19 @@ public enum BrandMarks {
         return texture
     }
 }
+
+/// A service's mark, fitted into the view (`BrandMark` in an icon well).
+@MainActor
+public final class BrandMarkView: View {
+    private let name: String
+
+    public init(_ name: String) {
+        self.name = name
+        super.init()
+    }
+
+    public override func draw(_ context: inout DrawContext) {
+        guard let gpu = window?.gpu, let mark = BrandMarks.texture(name, gpu: gpu) else { return }
+        context.image(mark, in: bounds, radius: Theme.current.metrics.radiusL, fit: true)
+    }
+}
