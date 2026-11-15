@@ -27,9 +27,12 @@ if [ ! -f /usr/include/vulkan/vulkan.h ] || [ ! -f "$registry" ]; then
 fi
 
 cd "$work/mpv"
-CFLAGS="-I$headers" meson setup build --prefix="$prefix" -Dbuildtype=release -Dlibmpv=true -Dcplayer=false \
-    -Dlibplacebo:vulkan-registry="$registry" -Dlibplacebo:demos=false > "$work/setup.log"
+CFLAGS="-I$headers" LDFLAGS="-Wl,-rpath,\$ORIGIN" meson setup build --prefix="$prefix" -Dbuildtype=release -Dlibmpv=true -Dcplayer=false \
+    -Dlibplacebo:vulkan-registry="$registry" -Dlibplacebo:demos=false -Dlibplacebo:default_library=shared > "$work/setup.log"
 ninja -C build > "$work/build.log"
 rm -rf "$prefix"
 ninja -C build install > /dev/null
+if [ "$headers" != "/usr/include" ]; then
+    cp -r "$headers/vulkan" "$headers/vk_video" "$prefix/include/"
+fi
 echo "$prefix/lib/libmpv.so.2 (mpv $MPV_TAG with $(ls "$vendor"/patches/mpv | wc -l) patches, libplacebo ${LIBPLACEBO_COMMIT:0:8})"

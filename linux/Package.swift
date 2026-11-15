@@ -7,22 +7,19 @@ let package = Package(
     products: [
         .library(name: "Kiln", targets: ["Kiln"]),
         .executable(name: "kiln-spike", targets: ["KilnSpike"]),
-        .executable(name: "kiln-video-spike", targets: ["KilnVideoSpike"]),
     ],
     targets: [
         .target(
             name: "CKiln",
             linkerSettings: [
                 .linkedLibrary("wayland-client"),
-                .linkedLibrary("wayland-egl"),
-                .linkedLibrary("EGL"),
-                .linkedLibrary("OpenGL"),
             ]
         ),
         .systemLibrary(name: "CMPV", pkgConfig: "mpv"),
-        .target(name: "Kiln", dependencies: ["CKiln"]),
+        .systemLibrary(name: "CPlacebo", pkgConfig: "libplacebo"),
+        .target(name: "CKilnGPU", dependencies: ["CPlacebo"], linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
+        .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU"]),
         .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"]),
-        .executableTarget(name: "KilnVideoSpike", dependencies: ["Kiln", "CKiln", "CMPV"]),
         .testTarget(name: "KilnTests", dependencies: ["Kiln"]),
     ],
     swiftLanguageModes: [.v6]

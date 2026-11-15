@@ -6,18 +6,15 @@ import Kiln
 /// the main actor driven by Kiln's loop, and readbacks written as PPM files for review.
 @MainActor
 final class Spike: WaylandWindowDelegate {
-    let referenceWhite: Float = 2.5375
     let highlightNits: Float = 1000
     let frameLimit: Int
     let outputDirectory: String
     let loop = EventLoop()
     var window: WaylandWindow?
-    var context: EGLWindowContext?
+    var gpu: GPU?
     var glass: LiquidGlassRenderer?
-    var scene: ShaderProgram?
-    var sceneTarget: RenderTarget?
-    var finalTarget: RenderTarget?
-    var timer: GPUTimer?
+    var sceneTarget: Texture?
+    var finalTarget: Texture?
     var width = 0
     var height = 0
     var frame = 0
@@ -46,31 +43,35 @@ final class Spike: WaylandWindowDelegate {
         }
         for _ in 0..<20 { loop.runOnce(timeoutMilliseconds: 10) }
         report["colorSupport"] = String(window.colorSupport.rawValue, radix: 2)
-        report["scRGBDescribed"] = String(window.describeAsScRGB())
-        guard let display = window.display, let surface = window.surface,
-              let context = EGLWindowContext(wlDisplay: display, wlSurface: surface, width: width, height: height)
-        else { throw SpikeError("EGL context failed") }
-        self.context = context
-        report["eglVendor"] = context.vendor
-        report["glRenderer"] = context.renderer
-        report["surfaceFormat"] = "\(context.format)"
-        report["size"] = "\(width)x\(height)"
-        glass = try LiquidGlassRenderer(width: width, height: height)
-        scene = try ShaderProgram(vertex: ShaderSources.fullscreenVertex, fragment: SpikeScene.fragment)
-        sceneTarget = try RenderTarget(width: width, height: height)
-        finalTarget = try RenderTarget(width: width, height: height)
-        timer = GPUTimer()
+        try setUpRendering(on: window)
         scheduleMainActorTick()
         let started = Date()
         loop.run { [unowned self] in
             if !self.waitingForFrame && self.frame < self.frameLimit { self.renderFrame() }
-            return self.finished || (self.frame >= self.frameLimit && self.presentations.count >= self.frameLimit - 2) || Date().timeIntervalSince(started) > 60
+            return self.finished || (self.frame >= self.frameLimit && self.presentations.count >= self.frameLimit - 3) || Date().timeIntervalSince(started) > 60
         }
         report["frames"] = String(frame)
         report["seconds"] = String(format: "%.2f", Date().timeIntervalSince(started))
         report["mainActorTicks"] = String(mainActorTicks)
         summarizeTimings()
+        gpu?.finish()
+        glass = nil
+        sceneTarget = nil
+        finalTarget = nil
+        gpu = nil
         window.close()
+    }
+
+    /// The GPU lives only in `self.gpu`, so tearing it down before the Wayland connection closes is explicit.
+    func setUpRendering(on window: WaylandWindow) throws {
+        let gpu = try GPU(display: window.display, surface: window.surface)
+        self.gpu = gpu
+        report["device"] = gpu.deviceName
+        if let size = gpu.resize(width: width, height: height) { report["swapchain"] = "\(size.width)x\(size.height)" }
+        report["size"] = "\(width)x\(height)"
+        glass = try LiquidGlassRenderer(gpu: gpu, width: width, height: height)
+        sceneTarget = try gpu.texture(width: width, height: height, format: .rgba16f, renderable: true)
+        finalTarget = try gpu.texture(width: width, height: height, format: .rgba16f, renderable: true)
     }
 
     func scheduleMainActorTick() {
@@ -81,26 +82,22 @@ final class Spike: WaylandWindowDelegate {
     }
 
     func renderFrame() {
-        guard let context, let glass, let scene, let sceneTarget, let finalTarget, let timer, let window else { return }
+        guard let gpu, let glass, let sceneTarget, let finalTarget, let window else { return }
         let time = Float(frame) / 144 + 4.65
-        timer.begin()
-        sceneTarget.bindForDrawing()
-        scene.use()
-        scene.set("size", Float(width), Float(height))
-        scene.set("time", time)
-        scene.set("referenceWhite", referenceWhite)
-        scene.set("highlightNits", highlightNits)
-        glass.drawFullscreen()
+        gpu.pass(into: sceneTarget, header: SpikeScene.header, body: SpikeScene.body, uniforms: [
+            .init("size", Float(width), Float(height)),
+            .init("time", time),
+            .init("highlight", highlightNits / 203),
+        ])
         glass.blur(sceneTarget)
-        glass.composite(scene: sceneTarget, into: finalTarget, element: tabBar(at: time), referenceWhite: referenceWhite)
-        glass.present(finalTarget, width: width, height: height)
-        timer.end()
-        if let milliseconds = timer.lastMilliseconds { gpuTimes.append(milliseconds) }
+        glass.composite(scene: sceneTarget, into: finalTarget, element: tabBar(at: time))
         if frame == 90 || frame == frameLimit - 1 { capture(finalTarget, name: "frame-\(frame)") }
         window.requestFrame()
         waitingForFrame = true
-        context.swap()
+        gpu.present(finalTarget)
         window.flush()
+        let milliseconds = gpu.takeGPUMilliseconds()
+        if milliseconds > 0 { gpuTimes.append(milliseconds) }
         frame += 1
     }
 
@@ -112,11 +109,11 @@ final class Spike: WaylandWindowDelegate {
         let barHalfWidth = w * 0.20
         let barHalfHeight = h * 0.032
         let barX = w * 0.5
-        let barY = h * 0.91
+        let barY = h * 0.09
         var element = LiquidGlass(
             primary: .init(centerX: barX, centerY: barY, halfWidth: barHalfWidth, halfHeight: barHalfHeight, radius: barHalfHeight),
             lightX: barX + cos(time * 1.4) * barHalfWidth * 1.2,
-            lightY: barY + sin(time * 1.4) * barHalfHeight * 3
+            lightY: barY - sin(time * 1.4) * barHalfHeight * 3
         )
         let slots: Float = 5
         let slotWidth = (barHalfWidth * 2 - barHalfHeight) / slots
@@ -129,7 +126,7 @@ final class Spike: WaylandWindowDelegate {
         element.blend = barHalfHeight * 0.9
         element.rimWidth = barHalfHeight * 0.55
         element.refraction = h * 0.011
-        element.shadowOffsetY = -h * 0.008
+        element.shadowOffsetY = h * 0.008
         element.shadowRadius = h * 0.024
         return element
     }
@@ -150,26 +147,19 @@ final class Spike: WaylandWindowDelegate {
         report["presented"] = String(presentations.count)
     }
 
-    /// Writes the target as an 8-bit PPM (white at `referenceWhite`, highlights clipped) and records the HDR value
-    /// read back at the sun's centre.
-    func capture(_ target: RenderTarget, name: String) {
-        let pixels = target.readPixels()
+    /// Writes the target as an 8-bit PPM (reference white as white, highlights clipped) and records the HDR value read
+    /// back at the sun's centre.
+    func capture(_ target: Texture, name: String) {
+        let pixels = target.download()
         let sunX = Int(Float(target.width) * 0.64)
-        let sunY = Int(Float(target.height) * 0.53)
+        let sunY = Int(Float(target.height) * 0.47)
         let sunIndex = (sunY * target.width + sunX) * 4
-        report["\(name).sunScRGB"] = String(format: "%.3f,%.3f,%.3f", pixels[sunIndex], pixels[sunIndex + 1], pixels[sunIndex + 2])
-        var bytes = [UInt8]()
-        bytes.reserveCapacity(target.width * target.height * 3)
-        for row in stride(from: target.height - 1, through: 0, by: -1) {
-            for column in 0..<target.width {
-                let index = (row * target.width + column) * 4
-                for channel in 0..<3 {
-                    bytes.append(Self.encode(pixels[index + channel] / referenceWhite))
-                }
-            }
-        }
+        report["\(name).sunLinear"] = String(format: "%.3f,%.3f,%.3f", pixels[sunIndex], pixels[sunIndex + 1], pixels[sunIndex + 2])
         var data = Data("P6\n\(target.width) \(target.height)\n255\n".utf8)
-        data.append(contentsOf: bytes)
+        data.reserveCapacity(target.width * target.height * 3 + 32)
+        for index in stride(from: 0, to: pixels.count, by: 4) {
+            for channel in 0..<3 { data.append(Self.encode(pixels[index + channel])) }
+        }
         let path = "\(outputDirectory)/\(name).ppm"
         try? data.write(to: URL(fileURLWithPath: path))
         report["\(name).path"] = path
@@ -185,7 +175,6 @@ final class Spike: WaylandWindowDelegate {
         self.width = width
         self.height = height
         report["fullscreen"] = String(fullscreen)
-        context?.resize(width: width, height: height)
     }
 
     func windowClosed(_ window: WaylandWindow) { finished = true }

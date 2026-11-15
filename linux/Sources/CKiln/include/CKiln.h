@@ -4,12 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <wayland-client.h>
-#include <wayland-egl.h>
-#define EGL_EGLEXT_PROTOTYPES 1
-#define GL_GLEXT_PROTOTYPES 1
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <GL/glcorearb.h>
 
 #include "../protocols/xdg-shell-client-protocol.h"
 #include "../protocols/xdg-decoration-unstable-v1-client-protocol.h"
@@ -75,7 +69,9 @@ uint32_t kiln_wl_color_features(kiln_wl *wl);
 /** Describes the window surface as Windows-scRGB (BT.709 primaries, extended linear, 1.0 = 80 cd/m2). */
 bool kiln_wl_describe_scrgb(kiln_wl *wl);
 
-/** Asks for presentation feedback and a frame callback for the next commit. */
+/** Asks for presentation feedback and a frame callback for the next commit. The colour description and FIFO barrier are
+ * opt-in: a Vulkan swapchain creates its own wp_fifo_v1 and colour-management surface, and a second one is a protocol
+ * error. */
 void kiln_wl_request_frame(kiln_wl *wl);
 void kiln_wl_set_fifo_barrier(kiln_wl *wl);
 

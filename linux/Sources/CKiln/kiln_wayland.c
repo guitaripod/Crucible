@@ -334,8 +334,6 @@ bool kiln_wl_create_window(kiln_wl *wl, const char *title, const char *app_id, k
         wp_fractional_scale_v1_add_listener(wl->fractional, &fractional_listener, wl);
         wl->viewport = wp_viewporter_get_viewport(wl->viewporter, wl->surface);
     }
-    if (wl->fifo_manager) wl->fifo = wp_fifo_manager_v1_get_fifo(wl->fifo_manager, wl->surface);
-    if (wl->color_manager) wl->color_surface = wp_color_manager_v1_get_surface(wl->color_manager, wl->surface);
     wl_surface_commit(wl->surface);
     while (!wl->configured) {
         if (wl_display_dispatch(wl->display) < 0) return false;
@@ -378,7 +376,8 @@ static const struct wp_image_description_v1_listener description_listener = {
 };
 
 bool kiln_wl_describe_scrgb(kiln_wl *wl) {
-    if (!wl->color_surface || !(wl->color_features & KILN_COLOR_SCRGB)) return false;
+    if (!wl->color_manager || !(wl->color_features & KILN_COLOR_SCRGB)) return false;
+    if (!wl->color_surface) wl->color_surface = wp_color_manager_v1_get_surface(wl->color_manager, wl->surface);
     struct wp_image_description_v1 *description = wp_color_manager_v1_create_windows_scrgb(wl->color_manager);
     wl->description_state = 0;
     wp_image_description_v1_add_listener(description, &description_listener, wl);
@@ -433,6 +432,7 @@ void kiln_wl_request_frame(kiln_wl *wl) {
 }
 
 void kiln_wl_set_fifo_barrier(kiln_wl *wl) {
+    if (!wl->fifo && wl->fifo_manager) wl->fifo = wp_fifo_manager_v1_get_fifo(wl->fifo_manager, wl->surface);
     if (!wl->fifo) return;
     wp_fifo_v1_wait_barrier(wl->fifo);
     wp_fifo_v1_set_barrier(wl->fifo);
