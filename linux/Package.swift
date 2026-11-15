@@ -6,7 +6,9 @@ let package = Package(
     name: "CrucibleLinux",
     products: [
         .library(name: "Kiln", targets: ["Kiln"]),
+        .library(name: "CrucibleUI", targets: ["CrucibleUI"]),
         .executable(name: "kiln-spike", targets: ["KilnSpike"]),
+        .executable(name: "crucible-gallery", targets: ["CrucibleGallery"]),
     ],
     targets: [
         .target(
@@ -25,7 +27,10 @@ let package = Package(
         .target(name: "CKilnGPU", dependencies: ["CPlacebo"], linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
         .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText", "CKilnImage"], resources: [.copy("Resources/Fonts"), .copy("Resources/Symbols")]),
         .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"]),
+        .target(name: "CrucibleUI", dependencies: ["Kiln"]),
+        .executableTarget(name: "CrucibleGallery", dependencies: ["CrucibleUI", "Kiln"]),
         .testTarget(name: "KilnTests", dependencies: ["Kiln"], exclude: ["Fixtures"]),
+        .testTarget(name: "CrucibleUITests", dependencies: ["CrucibleUI", "Kiln"]),
     ],
     swiftLanguageModes: [.v6]
 )

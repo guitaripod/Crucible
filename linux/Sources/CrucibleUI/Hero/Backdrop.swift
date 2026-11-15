@@ -1,0 +1,245 @@
+import Foundation
+import Kiln
+
+/// Full-screen artwork behind a screen (`TVBackdropView`) with the three canvas-tinted scrims that keep text, shelves and
+/// the tab bar legible over any picture. `show` waits out rapid focus changes and cross-fades; `dimming` pushes the
+/// picture back as content scrolls over it.
+@MainActor
+public final class BackdropView: View {
+    private struct Layer {
+        let source: ArtworkSource
+        let texture: Texture
+        var opacity: Animated
+    }
+
+    public var dimming: Float = 0 { didSet { if dimming != oldValue { setNeedsDisplay() } } }
+
+    private var layers: [Layer] = []
+    private var fadingOut: [Layer] = []
+    private var requested: ArtworkSource?
+    private var pending: Task<Void, Never>?
+
+    /// Cross-fades to `source` after the debounce (or at once when `immediate`); nil fades to the canvas.
+    public func show(_ source: ArtworkSource?, immediate: Bool = false) {
+        guard source != requested else { return }
+        requested = source
+        pending?.cancel()
+        pending = Task { [weak self] in
+            if !immediate {
+                try? await Task.sleep(nanoseconds: UInt64(Durations.backdropDebounce * 1_000_000_000))
+            }
+            guard !Task.isCancelled, let self else { return }
+            await self.load(source)
+        }
+    }
+
+    private func load(_ source: ArtworkSource?) async {
+        guard let source else {
+            fadingOut += layers
+            layers.removeAll()
+            for index in fadingOut.indices { fadingOut[index].opacity.set(0, animation: .backdrop) }
+            startAnimating()
+            return
+        }
+        if layers.last?.source == source { return }
+        guard let window, let store = window.images else { return }
+        let pixelWidth = Int((max(frame.width, 1) * window.scale).rounded(.up))
+        let pixelHeight = Int((max(frame.height, 1) * window.scale).rounded(.up))
+        guard let request = source.request(pixelWidth: pixelWidth, pixelHeight: pixelHeight), let texture = await store.load(request) else {
+            if requested == source { requested = nil }
+            return
+        }
+        guard !Task.isCancelled, requested == source else { return }
+        var opacity = Animated(0)
+        opacity.set(1, animation: .backdrop)
+        layers.append(Layer(source: source, texture: texture, opacity: opacity))
+        startAnimating()
+    }
+
+    public override func advanceAnimations(_ dt: Float) -> Bool {
+        var moving = false
+        for index in layers.indices where layers[index].opacity.advance(dt) { moving = true }
+        for index in fadingOut.indices where fadingOut[index].opacity.advance(dt) { moving = true }
+        fadingOut.removeAll { $0.opacity.value <= 0.001 }
+        if let top = layers.last, top.opacity.value >= 0.999, layers.count > 1 {
+            layers.removeFirst(layers.count - 1)
+        }
+        setNeedsDisplay()
+        return moving
+    }
+
+    public override func draw(_ context: inout DrawContext) {
+        let palette = Theme.current.palette
+        let metrics = Theme.current.metrics
+        let canvas = palette.canvas
+        context.fill(bounds, color: canvas)
+        for layer in fadingOut + layers {
+            context.image(layer.texture, in: bounds, opacity: layer.opacity.value)
+        }
+        let textScrim = Rect(x: 0, y: 0, width: bounds.width * 0.78, height: bounds.height)
+        context.gradient(textScrim, vertical: false, stops: [
+            (0, canvas.overlay(0.96)), (0.42 / 0.78, canvas.overlay(0.78)), (1, canvas.overlay(0)),
+        ])
+        let bottom = Rect(x: 0, y: bounds.height * 0.35, width: bounds.width, height: bounds.height * 0.65)
+        context.gradient(bottom, vertical: true, stops: [
+            (0, canvas.overlay(0)), ((0.72 - 0.35) / 0.65, canvas.overlay(0.7)), (1, canvas.overlay(1)),
+        ])
+        let top = Rect(x: 0, y: 0, width: bounds.width, height: metrics.backdropTopScrim)
+        context.gradient(top, vertical: true, stops: [(0, canvas.overlay(0.85)), (1, canvas.overlay(0))])
+        if dimming > 0 {
+            context.fill(bounds, color: canvas.overlay(min(max(dimming, 0), 1) * metrics.backdropMaximumDimming))
+        }
+    }
+}
+
+/// What the hero block shows (`TVHeroInfo`).
+public struct HeroInfo: Hashable, Sendable {
+    public enum TitleStyle: Sendable { case title2, title1 }
+
+    public var eyebrow: String?
+    public var title: String
+    public var metaParts: [String]
+    public var badges: [String]
+    public var synopsis: String?
+    public var progress: Double?
+    public var titleStyle: TitleStyle
+
+    public init(eyebrow: String? = nil, title: String, metaParts: [String] = [], badges: [String] = [], synopsis: String? = nil,
+                progress: Double? = nil, titleStyle: TitleStyle = .title2) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.metaParts = metaParts
+        self.badges = badges
+        self.synopsis = synopsis
+        self.progress = progress
+        self.titleStyle = titleStyle
+    }
+}
+
+/// The text over a backdrop (`TVHeroInfoView`): eyebrow, title, a middle-dot fact line, outlined badges, the synopsis and
+/// a thin progress bar, bottom-aligned in a fixed height. A long title and synopsis give way rather than overflow: the
+/// synopsis loses lines first (3, 2, 1), then the title drops to one line, then the synopsis goes. Changes cross-dissolve.
+@MainActor
+public final class HeroInfoView: View {
+    private var info: HeroInfo?
+    private var previous: HeroInfo?
+    private var crossfade = Animated(1)
+
+    public func configure(_ newInfo: HeroInfo?, animated: Bool) {
+        guard newInfo != info else { return }
+        previous = animated ? info : nil
+        info = newInfo
+        if animated {
+            crossfade.reset(0)
+            crossfade.set(1, animation: .timed(duration: Durations.heroText, curve: .easeInOut))
+            startAnimating()
+        } else {
+            crossfade.reset(1)
+        }
+        setNeedsDisplay()
+    }
+
+    public override func advanceAnimations(_ dt: Float) -> Bool {
+        let moving = crossfade.advance(dt)
+        if !moving { previous = nil }
+        setNeedsDisplay()
+        return moving
+    }
+
+    public override func draw(_ context: inout DrawContext) {
+        if let previous, crossfade.value < 1 {
+            context.faded(1 - crossfade.value) { inner in draw(previous, context: &inner) }
+        }
+        if let info {
+            context.faded(crossfade.value) { inner in draw(info, context: &inner) }
+        }
+    }
+
+    private struct Block {
+        enum Kind { case text(TextLayout, Color), badges([TextLayout]), progress(Float) }
+        let kind: Kind
+        let height: Float
+        let spacingAfter: Float
+    }
+
+    private func blocks(for info: HeroInfo, titleLines: Int, synopsisLines: Int) -> [Block] {
+        guard let scale = window?.scale else { return [] }
+        let theme = Theme.current
+        let type = theme.type
+        let palette = theme.palette
+        let metrics = theme.metrics
+        let width = min(frame.width, metrics.heroTextColumn)
+        let spacing = metrics.heroBlockSpacing
+        var result: [Block] = []
+        if let eyebrow = info.eyebrow, !eyebrow.isEmpty {
+            let layout = TextLayout(eyebrow.uppercased(), font: type.caption1, maxWidth: width, scale: scale)
+            result.append(Block(kind: .text(layout, palette.accentText), height: layout.size.height, spacingAfter: spacing))
+        }
+        let titleFont = info.titleStyle == .title1 ? type.title1 : type.title2
+        let title = TextLayout(info.title, font: titleFont, maxWidth: width, maxLines: titleLines, scale: scale)
+        result.append(Block(kind: .text(title, palette.label), height: title.size.height, spacingAfter: spacing + metrics.tv(6)))
+        let meta = info.metaParts.filter { !$0.isEmpty }.joined(separator: "  ·  ")
+        if !meta.isEmpty {
+            let layout = TextLayout(meta, font: type.callout, maxWidth: width, scale: scale)
+            result.append(Block(kind: .text(layout, palette.labelSecondary), height: layout.size.height, spacingAfter: spacing))
+        }
+        if !info.badges.isEmpty {
+            let layouts = info.badges.map { TextLayout($0, font: type.badge, scale: scale) }
+            let height = (layouts.map(\.size.height).max() ?? 0) + metrics.badgeInsetVertical * 2
+            result.append(Block(kind: .badges(layouts), height: height, spacingAfter: spacing))
+        }
+        if synopsisLines > 0, let synopsis = info.synopsis, !synopsis.isEmpty {
+            let layout = TextLayout(synopsis, font: type.body, maxWidth: width, maxLines: synopsisLines, scale: scale)
+            result.append(Block(kind: .text(layout, palette.labelSecondary), height: layout.size.height, spacingAfter: spacing))
+        }
+        if let progress = info.progress, progress > 0, progress < 1 {
+            result.append(Block(kind: .progress(Float(progress)), height: metrics.progressBarThickness, spacingAfter: 0))
+        }
+        return result
+    }
+
+    private func fitted(_ info: HeroInfo) -> [Block] {
+        var titleLines = 2
+        var synopsisLines = 3
+        while true {
+            let laidOut = blocks(for: info, titleLines: titleLines, synopsisLines: synopsisLines)
+            let height = laidOut.reduce(0) { $0 + $1.height } + laidOut.dropLast().reduce(0) { $0 + $1.spacingAfter }
+            if height <= frame.height + 0.5 { return laidOut }
+            if synopsisLines > 1 {
+                synopsisLines -= 1
+            } else if titleLines > 1 {
+                titleLines -= 1
+            } else if synopsisLines > 0 {
+                synopsisLines = 0
+            } else {
+                return laidOut
+            }
+        }
+    }
+
+    private func draw(_ info: HeroInfo, context: inout DrawContext) {
+        let laidOut = fitted(info)
+        let metrics = Theme.current.metrics
+        let palette = Theme.current.palette
+        let total = laidOut.reduce(0) { $0 + $1.height } + laidOut.dropLast().reduce(0) { $0 + $1.spacingAfter }
+        var y = frame.height - total
+        for block in laidOut {
+            switch block.kind {
+            case .text(let layout, let color):
+                context.text(layout, at: Point(x: 0, y: y), color: color)
+            case .badges(let layouts):
+                var x: Float = 0
+                for layout in layouts {
+                    let size = Size(width: layout.size.width + metrics.badgeInsetHorizontal * 2, height: block.height)
+                    context.stroke(Rect(x: x, y: y, width: size.width, height: size.height), radius: metrics.radiusXS,
+                                   width: max(metrics.tv(2), 1), color: palette.labelTertiary)
+                    context.text(layout, at: Point(x: x + metrics.badgeInsetHorizontal, y: y + metrics.badgeInsetVertical), color: palette.labelSecondary)
+                    x += size.width + metrics.tv(16)
+                }
+            case .progress(let progress):
+                ProgressBarStyle.draw(progress: progress, in: Rect(x: 0, y: y, width: metrics.tv(420), height: block.height), onArt: true, context: &context)
+            }
+            y += block.height + block.spacingAfter
+        }
+    }
+}

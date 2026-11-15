@@ -101,7 +101,7 @@ The Apple TV design system is about twenty components (`Sources/CrucibleTV/Desig
 | Scene | A retained layer tree: frame, 3D transform, opacity, continuous corner radius, clip, shadow, and contents (image, text, colour, gradient, video, backdrop blur). The main actor commits immutable snapshots plus animations to the render thread |
 | Layout | Pure functions from tokens and data to frames, mirroring the tvOS pieces instead of a general box model: stack, shelf (horizontal, `continuousGroupLeadingBoundary`), grid (`TVCardStyle.grid` column maths), hero, row list, overlay. Unit-tested against the tvOS numbers |
 | Animation | Timed curves with the tvOS tokens (focus 0.2 s, fade 0.25 s, backdrop 0.35 s, debounce 0.4 s, skeleton pulse 1.2 s) and springs for focus lift and parallax. Reduce Motion follows the desktop's animation setting, read through the XDG Settings portal, and collapses them exactly as `TVMotion` does |
-| Text | Pango for shaping, fallback, line breaking, line limits and tail ellipsis (the hero's 3, 2, 1 synopsis shrink order maps to Pango's height limit); glyphs rasterised by FreeType at device scale into a GPU atlas |
+| Text | Pango for shaping, fallback, line breaking, line limits and tail ellipsis (the hero's 3, 2, 1 synopsis shrink order maps to Pango's height limit); each run rasterised by Pango and Cairo at the window's scale into an 8-bit coverage texture, cached by text and style, and drawn as a tinted quad (filtered only while a lift scales it) |
 | Images | libjpeg-turbo, libpng and libwebp on the concurrency pool, the `TVImagePipeline` request rules (1.1 oversample, poster cap, backdrop sized to the output's device pixels), a disk cache in `$XDG_CACHE_HOME/crucible`. No shape baking: the GPU clips corners |
 | Renderer | libplacebo on Vulkan 1.3: Kiln creates the device with mpv's own recipe (Vulkan Video decode queues, internally synchronised queues, so Kiln, mpv and FFmpeg's decode threads share queues safely) and hands it to mpv's `gpu-next` render API. Each frame draws into an FP16 linear-light texture (BT.709, 1.0 = 203 cd/m2, libplacebo's convention), blurs with a dual-Kawase pyramid for glass, composites the video texture in the same pass and is rendered onto an FP16 scRGB swapchain by `pl_render_image`, which also handles an SDR or PQ swapchain. Passes are GLSL bodies dispatched with `pl_shader_custom`, so Kiln has no Vulkan boilerplate of its own. NVIDIA's swapchain describes the surface itself (parametric BT.709, linear, luminances 0, 80 and 203) and owns its `wp_fifo_v1`, so the Wayland layer never creates either. Measured headless at 4K: scene, blur pyramid, glass and present cost 0.16 ms of GPU, and a 1,000 cd/m2 highlight reads back exactly (4.926) |
 | Focus | §5.4 |
@@ -128,7 +128,7 @@ The desk is the main room (D4). Every screen is designed and judged with a mouse
 
 | Density | When | Values |
 | --- | --- | --- |
-| Desk (default) | Every window | The Apple TV layouts and components; type, space and radius take the iPad values that `Theme.metric(phone:tv:)` already holds (body 17, space m 16), and `TVMetrics` geometry is halved (poster 130 x 195, gutter 20) |
+| Desk (default) | Every window | The Apple TV layouts and components at 60% of the tvOS numbers, type, space, radius and geometry alike, so body text lands on the iPad's 17 points (17.5), a poster is 156 x 234 and the gutter 24; a wider window shows more of the same shelves and more grid columns, and Ctrl with the wheel zooms cards from 0.7 to 1.6 times |
 | Couch | Chosen in the View menu, `crucible --couch` (the Steam Big Picture shortcut), or offered once when a gamepad is used fullscreen on an output 40 inches or larger (from EDID) | The tvOS tokens one to one on a 1920 x 1080 point canvas scaled to the output (2x on the C5 at 4K) |
 
 Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the target poster width, list screens centre a readable column, and the hero grows with the window. Windowed mode uses KWin's server-side decorations; fullscreen (F11) and Couch hide them.
@@ -136,7 +136,7 @@ Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the ta
 ### 5.6 Type and symbols
 
 - **Type:** Inter (SIL OFL), bundled so metrics match on every distribution, with Inter Display at 30 points and above. CJK falls back through fontconfig to Noto Sans CJK, a package dependency. The tvOS sizes are kept; line heights are checked in the parity captures (§11).
-- **Symbols:** SF Symbols cannot ship. One map file names an open icon (Lucide, ISC) for every SF Symbol name Core and the Apple TV screens use, with a drawn icon where Lucide has no match; a unit test fails when Core names a symbol the map lacks. Icons are compiled into an MSDF atlas at build time, so they are sharp at every density.
+- **Symbols:** SF Symbols cannot ship. One map file names an open icon (Lucide, ISC) for every SF Symbol name Core and the Apple TV screens use, with a drawn icon where Lucide has no match; a unit test fails when Core names a symbol the map lacks. librsvg rasterises each icon at the pixel size it is drawn at into a cached coverage texture, so it is sharp at every density; `.fill` names fill the outline and `.circle.fill` names cut their glyph out of a solid disc.
 
 ### 5.7 Liquid Glass
 
@@ -147,7 +147,7 @@ Glass is a layer content type with a shape (rounded rectangle or capsule, as a s
 | Lensing | Behind-content is sampled through a refraction offset along the shape's distance-field normal, strongest in a rim band (about 14 points at Desk density), so edges bend the picture as a thick lens does; a slight colour dispersion at the rim |
 | Frost | The sample comes from the dual-Kawase pyramid at a radius set by the variant; clear glass keeps the picture almost sharp and adds a dimming layer for legibility |
 | Light | A specular rim from the normal and a light direction that follows the pointer (or focus, or the right stick), plus a soft inner highlight on the top edge; pressing brightens the area under the pointer |
-| Adaptivity | The behind-content's mean luminance under the shape (read from the pyramid's smallest level) picks light or dark glass and the label colour, with hysteresis so text never flickers over moving video |
+| Adaptivity | The behind-content's mean luminance under the shape picks light or dark glass and the label colour, with hysteresis so text never flickers over moving video: the pyramid's smallest level is copied to the host asynchronously once a frame and read a frame or two later, and each glass element flips its tone (glass and label together, on a fade) when the luminance crosses 0.42 going up or 0.28 going down |
 | Shadow | A soft contact shadow under floating glass (tab bar, player transport, menus), absent on flush controls |
 | Morphing | Shapes in one glass container blend with a smooth minimum of their distance fields, so the tab bar's selection slides as a liquid drop and menus grow out of the button that opened them, on springs |
 | Focus | A focused glass button becomes the light pill with dark text that tvOS 26 draws (`TVButton` legibility rules) |
@@ -256,7 +256,7 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 
 - **Core:** the Linux CI job and `linux/scripts/linux.sh core-test`.
 - **Kiln:** unit tests for layout (shelf and grid maths equal `TVCardStyle`), the focus engine (directional search cases), text limits and ellipsis, and the colour pipeline (sRGB to scRGB, PQ decode within tolerance).
-- **Gallery:** `CRUCIBLE_GALLERY=1` shows every Kiln component, as on the Apple TV, and each has a golden image.
+- **Gallery:** `crucible-gallery` shows every component with the Apple TV gallery's fixture titles and runtime-drawn art (Home, cards, controls over dark and bright art, a library grid), in a window or with `--capture DIR` offscreen to PNG at any size, scale, density and appearance, each page also in its focused and hovered states.
 - **Screens:** headless EGL renders every screen against `marketing/mock/server.py`, driven by a scripted remote over a debug socket (press, select, back), the way XCUITest drives `XCUIRemote`. Captures go beside the Apple TV UI-test captures of the same mock library in a contact sheet, and every image is looked at; a passing count is never trusted on its own (the store-capture lesson).
 - **Playback:** HDR10, HLG, Dolby Vision 5 and 8.1, and 23.976 fps SDR samples; the FP16 texture is read back to check PQ code values; KWin's own screenshot with the output in HDR checks the end; `pw-dump` confirms the IEC958 format on the C5 path.
 - **Episode flow:** `CrucibleBench` against `MPVPlaybackEngine` headless.
