@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 53 | 2 | 1 | 1 |
+| Sign in, launch, tabs and navigation | 54 | 2 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
@@ -15,7 +15,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 78 | 7 | 18 | 0 |
-| **All** | 645 | 12 | 29 | 16 |
+| **All** | 646 | 12 | 28 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -55,7 +55,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-tab-bar-autohide` (S) The tab bar slides away while content scrolls down, returns at the top or when focus reaches it, and stays visible on Search.
 - [x] `shell-deep-links` (S) crucible:// links open an item's detail or start playback from anywhere, closing any presented player or modal first, resolve unknown types by lookup, wait for the main UI if they arrive early (only the latest is kept), and ignore unknown URLs with a log line. _Apple TV: Sources/CrucibleTV/App/TVSceneDelegate.swift:29-31 (openURLContexts)_
 - [x] `shell-single-instance-handoff` (S) A second launch hands its link to the running app over the org.guitaripod.Crucible D-Bus name and exits.
-- [ ] `shell-relaunch-tab-restore` (M) Each window restores its tab and screen after a relaunch (Linux-only requirement in docs/LINUX.md section 6). Gap: Nothing is persisted, so every launch lands on Home. Linux-only requirement.
+- [x] `shell-relaunch-tab-restore` (M) Each window restores its tab and screen after a relaunch (Linux-only requirement in docs/LINUX.md section 6).
 - [ ] `shell-multi-window` (L) **partial** Ctrl+N opens a new window that shares the connection and restores its own tab; a title can open in a new window from its context menu or a middle click (docs/LINUX.md section 6). Gap: A second window exists only as a separate process through the --new-instance flag. Missing: Ctrl+N (no binding), middle-click or context-menu open in a new window, and a per-window tab restore. Linux-only requirement.
 - [x] `shell-command-menu` (M) A menu button in the tab bar and F10 open a Go, View, Media and Settings menu with each item's shortcut, and Ctrl+? shows the full shortcut list (docs/LINUX.md section 6).
 - [x] `shell-shortcuts-refresh-settings-zoom` (S) Ctrl+R refreshes, Ctrl+comma opens Settings, and Ctrl+plus and Ctrl+minus change poster size (docs/LINUX.md section 6).
