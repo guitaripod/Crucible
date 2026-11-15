@@ -33,8 +33,10 @@ extension String {
                 key.reserveCapacity(literalCapacity + interpolationCount * 4)
             }
 
+            /// A literal `%` between interpolations is `%%` in the key, as Xcode writes it into the catalog for a string
+            /// with values in it ("%lld%% match"); a plain literal keeps its `%` as is.
             package mutating func appendLiteral(_ literal: String) {
-                key += literal
+                key += literal.replacingOccurrences(of: "%", with: "%%")
             }
 
             package mutating func appendInterpolation(_ value: String) {
