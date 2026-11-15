@@ -35,6 +35,16 @@ package enum AppPlatform {
         #endif
     }
 
+    /// Where re-fetchable data goes (artwork): `$XDG_CACHE_HOME/crucible` on Linux, Caches on Apple platforms.
+    package static var cachesDirectory: URL {
+        #if os(Linux)
+        return xdgDirectory("XDG_CACHE_HOME", fallback: ".cache")
+        #else
+        return (try? FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
+            ?? FileManager.default.temporaryDirectory
+        #endif
+    }
+
     package static var logsDirectory: URL {
         #if os(Linux)
         return xdgDirectory("XDG_STATE_HOME", fallback: ".local/state")

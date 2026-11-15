@@ -15,7 +15,7 @@ package protocol SecretStoring: Sendable {
     func deleteAll()
 }
 
-enum KeychainHelper {
+package enum KeychainHelper {
     private static let installed = OSAllocatedUnfairLock<(any SecretStoring)?>(initialState: nil)
 
     /// Replaces the platform's default store, before anything is read.
