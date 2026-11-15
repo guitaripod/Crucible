@@ -198,6 +198,29 @@ public final class Window {
         surface?.activate(token: token) ?? false
     }
 
+    /// The focused view when it takes text from the input method.
+    public private(set) weak var textInputClient: (any TextInputClient)?
+
+    /// The focus moved: the input method turns on for a text field that took it, with that field's state, and off when
+    /// focus left text fields.
+    func textInputFocusChanged() {
+        let client = focus.focusedView as? any TextInputClient
+        guard client !== textInputClient else { return }
+        textInputClient = client
+        if let client, let view = client as? View { sendTextInputState(client.textInputState, of: view) }
+        surface?.setTextInputEnabled(client != nil)
+    }
+
+    /// A text field's text or caret changed: the input method hears the new state when the field has the focus.
+    public func textInputChanged(_ client: any TextInputClient) {
+        guard client === textInputClient, let view = client as? View else { return }
+        sendTextInputState(client.textInputState, of: view)
+    }
+
+    private func sendTextInputState(_ state: TextInputState, of view: View) {
+        surface?.updateTextInput(state, caret: view.transformToWindow.apply(state.caret))
+    }
+
     /// Makes `owner`'s selection the window's, clearing the one another view held.
     public func claimSelection(_ owner: any TextSelecting) {
         if let previous = selectionOwner, previous !== owner { previous.clearSelection() }
@@ -664,6 +687,10 @@ public final class Window {
         func windowRepeatInfo(_ surface: WaylandWindow, rate: Int32, delay: Int32) {
             window?.repeatRate = rate
             window?.repeatDelay = delay
+        }
+
+        func windowTextInput(_ surface: WaylandWindow, event: TextInputEvent) {
+            window?.textInputClient?.applyTextInput(event)
         }
 
         func windowKeyboardFocusChanged(_ surface: WaylandWindow, focused: Bool) {

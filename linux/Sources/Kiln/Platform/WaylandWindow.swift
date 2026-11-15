@@ -19,12 +19,14 @@ public protocol WaylandWindowDelegate: AnyObject {
     func windowModifiersChanged(_ window: WaylandWindow, modifiers: Modifiers)
     func windowRepeatInfo(_ window: WaylandWindow, rate: Int32, delay: Int32)
     func windowKeyboardFocusChanged(_ window: WaylandWindow, focused: Bool)
+    func windowTextInput(_ window: WaylandWindow, event: TextInputEvent)
 }
 
 extension WaylandWindowDelegate {
     public func windowModifiersChanged(_ window: WaylandWindow, modifiers: Modifiers) {}
     public func windowRepeatInfo(_ window: WaylandWindow, rate: Int32, delay: Int32) {}
     public func windowKeyboardFocusChanged(_ window: WaylandWindow, focused: Bool) {}
+    public func windowTextInput(_ window: WaylandWindow, event: TextInputEvent) {}
 }
 
 /// One xdg toplevel on its own Wayland connection, with the colour, timing and scale protocols Kiln relies on.
@@ -107,6 +109,21 @@ public final class WaylandWindow {
         guard let raw = kiln_wl_clipboard_text(connection) else { return nil }
         defer { free(raw) }
         return String(cString: raw)
+    }
+
+    /// Turns the input method on for a focused text field, or off.
+    public func setTextInputEnabled(_ enabled: Bool) {
+        kiln_wl_text_input_enable(connection, enabled)
+    }
+
+    /// Tells the input method the focused field's text, caret and purpose; `caret` is in surface points.
+    public func updateTextInput(_ state: TextInputState, caret: Rect) {
+        let type = state.contentType
+        let shown = state.purpose == .password ? "" : state.text
+        let cursor = state.purpose == .password ? 0 : state.cursor
+        let anchor = state.purpose == .password ? 0 : state.anchor
+        kiln_wl_text_input_update(connection, shown, Int32(cursor), Int32(anchor), Int32(caret.minX.rounded()), Int32(caret.minY.rounded()),
+                                  Int32(max(caret.width.rounded(), 1)), Int32(max(caret.height.rounded(), 1)), type.hint, type.purpose)
     }
 
     /// Raises and focuses the window with a launcher's xdg-activation token.
@@ -219,6 +236,12 @@ public final class WaylandWindow {
         keyboard_focus: { context, focused in
             WaylandWindow.on(context) { window in
                 window.delegate?.windowKeyboardFocusChanged(window, focused: focused)
+            }
+        },
+        text_input: { context, raw in
+            let event = TextInputEvent(raw)
+            WaylandWindow.on(context) { window in
+                window.delegate?.windowTextInput(window, event: event)
             }
         }
     )

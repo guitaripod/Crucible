@@ -16,6 +16,7 @@
 #include "../protocols/idle-inhibit-unstable-v1-client-protocol.h"
 #include "../protocols/cursor-shape-v1-client-protocol.h"
 #include "../protocols/xdg-activation-v1-client-protocol.h"
+#include "../protocols/text-input-unstable-v3-client-protocol.h"
 
 typedef struct kiln_wl kiln_wl;
 
@@ -75,6 +76,18 @@ typedef struct {
     bool repeats;
 } kiln_wl_key;
 
+/** One `done` of the input method (text-input-v3), to apply in this order: the composition shown so far goes, the bytes
+ * around the caret are deleted, `commit` is inserted, then `preedit` shows at the caret with its cursor at byte offsets
+ * `preedit_cursor_begin` to `preedit_cursor_end` (both -1 to hide the caret). Strings are NULL for none. */
+typedef struct {
+    const char *preedit;
+    int32_t preedit_cursor_begin;
+    int32_t preedit_cursor_end;
+    const char *commit;
+    uint32_t delete_before;
+    uint32_t delete_after;
+} kiln_wl_text_input_event;
+
 typedef struct {
     void (*configure)(void *context, int32_t width, int32_t height, uint32_t states);
     void (*close)(void *context);
@@ -90,6 +103,7 @@ typedef struct {
     void (*modifiers)(void *context, uint32_t modifiers);
     void (*repeat_info)(void *context, int32_t rate, int32_t delay);
     void (*keyboard_focus)(void *context, bool focused);
+    void (*text_input)(void *context, kiln_wl_text_input_event event);
 } kiln_wl_callbacks;
 
 /** Connects to the named Wayland display (NULL for $WAYLAND_DISPLAY) and binds every global Kiln uses. */
@@ -136,6 +150,15 @@ bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text);
 /** The clipboard as UTF-8 text, to free, or NULL when it holds none; another app's clipboard is read for up to half a
  * second without an answer. */
 char *kiln_wl_clipboard_text(kiln_wl *wl);
+
+/** Turns the input method on for a focused text field (text-input-v3), or off when no field has the focus. Each newly
+ * focused field enables it again; while the window lacks the keyboard the wish waits for it. */
+void kiln_wl_text_input_enable(kiln_wl *wl, bool enabled);
+/** Tells the input method about the focused field: the text around the caret, the caret and the selection's other end as
+ * byte offsets into it, the caret's rectangle in surface points, and the field's content hint and purpose
+ * (ZWP_TEXT_INPUT_V3_CONTENT_*). */
+void kiln_wl_text_input_update(kiln_wl *wl, const char *surrounding, int32_t cursor, int32_t anchor, int32_t x, int32_t y, int32_t width,
+                               int32_t height, uint32_t hint, uint32_t purpose);
 
 /** Hands libdispatch's main-queue handle to the event loop, as CoreFoundation's run loop does. */
 int kiln_dispatch_main_queue_handle(void);

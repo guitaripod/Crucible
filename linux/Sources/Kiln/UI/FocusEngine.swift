@@ -37,6 +37,7 @@ public final class FocusEngine {
             superview.reveal(resolved.frame, of: resolved, animated: animated)
         }
         onChange?(old, resolved)
+        window?.textInputFocusChanged()
         window?.setNeedsDisplay()
         return resolved != nil
     }
@@ -262,6 +263,7 @@ public final class FocusEngine {
         }
         if let replacement { focus(replacement, animated: false, reveal: false) }
         onChange?(focused, focusedView)
+        window.textInputFocusChanged()
     }
 
     private func distance(_ a: Rect, _ b: Rect) -> Float {

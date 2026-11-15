@@ -41,6 +41,25 @@ struct kiln_wl {
     /** The clipboard this app set, answered from memory while it holds the selection. */
     struct wl_data_source *own_source;
     char *own_text;
+    struct zwp_text_input_manager_v3 *text_input_manager;
+    struct zwp_text_input_v3 *text_input;
+    /** Whether the seat's text-input focus is on the window, and whether a text field there wants the input method. */
+    bool text_input_entered;
+    bool text_input_wanted;
+    /** The field's state as last told, sent again on every enable. */
+    char *text_input_surrounding;
+    int32_t text_input_cursor;
+    int32_t text_input_anchor;
+    int32_t text_input_rect[4];
+    uint32_t text_input_hint;
+    uint32_t text_input_purpose;
+    /** What the input method sent since its last done. */
+    char *pending_preedit;
+    int32_t pending_cursor_begin;
+    int32_t pending_cursor_end;
+    char *pending_commit;
+    uint32_t pending_delete_before;
+    uint32_t pending_delete_after;
     uint32_t cursor_shape;
     struct xkb_context *xkb;
     struct xkb_keymap *xkb_keymap;
@@ -338,6 +357,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
         wl->cursor_manager = wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, 1);
     } else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
         wl->activation = wl_registry_bind(registry, name, &xdg_activation_v1_interface, 1);
+    } else if (strcmp(interface, zwp_text_input_manager_v3_interface.name) == 0) {
+        wl->text_input_manager = wl_registry_bind(registry, name, &zwp_text_input_manager_v3_interface, 1);
     } else if (strcmp(interface, wl_data_device_manager_interface.name) == 0) {
         wl->data_manager = wl_registry_bind(registry, name, &wl_data_device_manager_interface, kiln_min(version, 3));
     } else if (strcmp(interface, wl_seat_interface.name) == 0 && !wl->seat) {
@@ -505,6 +526,128 @@ char *kiln_wl_clipboard_text(kiln_wl *wl) {
     return text;
 }
 
+/** Sends the field's state and commits it. The state goes out as it changes rather than after the input method's next
+ * done, as GTK and Chromium do, because a compositor sends done only when the input method acts and the caret's
+ * rectangle must follow arrow keys too. */
+static void text_input_send_state(kiln_wl *wl) {
+    if (wl->text_input_surrounding) {
+        zwp_text_input_v3_set_surrounding_text(wl->text_input, wl->text_input_surrounding, wl->text_input_cursor, wl->text_input_anchor);
+    }
+    zwp_text_input_v3_set_content_type(wl->text_input, wl->text_input_hint, wl->text_input_purpose);
+    zwp_text_input_v3_set_cursor_rectangle(wl->text_input, wl->text_input_rect[0], wl->text_input_rect[1], wl->text_input_rect[2], wl->text_input_rect[3]);
+    zwp_text_input_v3_commit(wl->text_input);
+    wl_display_flush(wl->display);
+}
+
+static void text_input_clear_pending(kiln_wl *wl) {
+    free(wl->pending_preedit);
+    free(wl->pending_commit);
+    wl->pending_preedit = NULL;
+    wl->pending_commit = NULL;
+    wl->pending_cursor_begin = 0;
+    wl->pending_cursor_end = 0;
+    wl->pending_delete_before = 0;
+    wl->pending_delete_after = 0;
+}
+
+static void text_input_enter(void *data, struct zwp_text_input_v3 *input, struct wl_surface *surface) {
+    kiln_wl *wl = data;
+    if (surface != wl->surface) return;
+    wl->text_input_entered = true;
+    if (!wl->text_input_wanted) return;
+    zwp_text_input_v3_enable(input);
+    text_input_send_state(wl);
+}
+
+/** The text-input focus left: the composition on screen goes, as the protocol asks. */
+static void text_input_leave(void *data, struct zwp_text_input_v3 *input, struct wl_surface *surface) {
+    kiln_wl *wl = data;
+    wl->text_input_entered = false;
+    text_input_clear_pending(wl);
+    if (wl->callbacks.text_input) wl->callbacks.text_input(wl->context, (kiln_wl_text_input_event) { 0 });
+}
+
+static void text_input_preedit(void *data, struct zwp_text_input_v3 *input, const char *text, int32_t begin, int32_t end) {
+    kiln_wl *wl = data;
+    free(wl->pending_preedit);
+    wl->pending_preedit = text && *text ? strdup(text) : NULL;
+    wl->pending_cursor_begin = begin;
+    wl->pending_cursor_end = end;
+}
+
+static void text_input_commit_string(void *data, struct zwp_text_input_v3 *input, const char *text) {
+    kiln_wl *wl = data;
+    free(wl->pending_commit);
+    wl->pending_commit = text && *text ? strdup(text) : NULL;
+}
+
+static void text_input_delete(void *data, struct zwp_text_input_v3 *input, uint32_t before, uint32_t after) {
+    kiln_wl *wl = data;
+    wl->pending_delete_before = before;
+    wl->pending_delete_after = after;
+}
+
+static void text_input_done(void *data, struct zwp_text_input_v3 *input, uint32_t serial) {
+    kiln_wl *wl = data;
+    kiln_wl_text_input_event event = {
+        .preedit = wl->pending_preedit,
+        .preedit_cursor_begin = wl->pending_cursor_begin,
+        .preedit_cursor_end = wl->pending_cursor_end,
+        .commit = wl->pending_commit,
+        .delete_before = wl->pending_delete_before,
+        .delete_after = wl->pending_delete_after,
+    };
+    if (wl->callbacks.text_input) wl->callbacks.text_input(wl->context, event);
+    text_input_clear_pending(wl);
+}
+
+static void text_input_action(void *data, struct zwp_text_input_v3 *input, uint32_t action, uint32_t serial) {}
+static void text_input_language(void *data, struct zwp_text_input_v3 *input, const char *language) {}
+static void text_input_preedit_hint(void *data, struct zwp_text_input_v3 *input, uint32_t begin, uint32_t end, uint32_t hint) {}
+
+static const struct zwp_text_input_v3_listener text_input_listener = {
+    .enter = text_input_enter,
+    .leave = text_input_leave,
+    .preedit_string = text_input_preedit,
+    .commit_string = text_input_commit_string,
+    .delete_surrounding_text = text_input_delete,
+    .done = text_input_done,
+    .action = text_input_action,
+    .language = text_input_language,
+    .preedit_hint = text_input_preedit_hint,
+};
+
+void kiln_wl_text_input_enable(kiln_wl *wl, bool enabled) {
+    if (!wl->text_input) return;
+    bool was = wl->text_input_wanted;
+    wl->text_input_wanted = enabled;
+    if (!wl->text_input_entered || (!enabled && !was)) return;
+    if (enabled) {
+        zwp_text_input_v3_enable(wl->text_input);
+        text_input_send_state(wl);
+    } else {
+        zwp_text_input_v3_disable(wl->text_input);
+        zwp_text_input_v3_commit(wl->text_input);
+        wl_display_flush(wl->display);
+    }
+}
+
+void kiln_wl_text_input_update(kiln_wl *wl, const char *surrounding, int32_t cursor, int32_t anchor, int32_t x, int32_t y, int32_t width,
+                               int32_t height, uint32_t hint, uint32_t purpose) {
+    if (!wl->text_input) return;
+    free(wl->text_input_surrounding);
+    wl->text_input_surrounding = surrounding ? strdup(surrounding) : NULL;
+    wl->text_input_cursor = cursor;
+    wl->text_input_anchor = anchor;
+    wl->text_input_rect[0] = x;
+    wl->text_input_rect[1] = y;
+    wl->text_input_rect[2] = width;
+    wl->text_input_rect[3] = height;
+    wl->text_input_hint = hint;
+    wl->text_input_purpose = purpose;
+    if (wl->text_input_entered && wl->text_input_wanted) text_input_send_state(wl);
+}
+
 static const struct wl_registry_listener registry_listener = { .global = registry_global, .global_remove = registry_remove };
 
 kiln_wl *kiln_wl_connect(const char *name) {
@@ -521,6 +664,10 @@ kiln_wl *kiln_wl_connect(const char *name) {
     if (wl->data_manager && wl->seat) {
         wl->data_device = wl_data_device_manager_get_data_device(wl->data_manager, wl->seat);
         wl_data_device_add_listener(wl->data_device, &device_listener, wl);
+    }
+    if (wl->text_input_manager && wl->seat) {
+        wl->text_input = zwp_text_input_manager_v3_get_text_input(wl->text_input_manager, wl->seat);
+        zwp_text_input_v3_add_listener(wl->text_input, &text_input_listener, wl);
     }
     if (!wl->compositor || !wl->wm_base) {
         kiln_wl_disconnect(wl);
@@ -551,6 +698,10 @@ void kiln_wl_disconnect(kiln_wl *wl) {
         else wl_data_device_destroy(wl->data_device);
     }
     if (wl->data_manager) wl_data_device_manager_destroy(wl->data_manager);
+    if (wl->text_input) zwp_text_input_v3_destroy(wl->text_input);
+    if (wl->text_input_manager) zwp_text_input_manager_v3_destroy(wl->text_input_manager);
+    free(wl->text_input_surrounding);
+    text_input_clear_pending(wl);
     if (wl->pointer) wl_pointer_release(wl->pointer);
     if (wl->keyboard) wl_keyboard_release(wl->keyboard);
     if (wl->xkb_state) xkb_state_unref(wl->xkb_state);
