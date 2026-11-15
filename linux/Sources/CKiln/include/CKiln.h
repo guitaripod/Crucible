@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-compose.h>
 
 #include "../protocols/xdg-shell-client-protocol.h"
 #include "../protocols/xdg-decoration-unstable-v1-client-protocol.h"
@@ -105,6 +106,10 @@ typedef struct {
     void (*keyboard_focus)(void *context, bool focused);
     void (*text_input)(void *context, kiln_wl_text_input_event event);
 } kiln_wl_callbacks;
+
+/** Runs a pressed key through the compose state, for dead keys and the Compose key: false while a sequence is being typed
+ * or once it is cancelled, when the key does nothing, and a finished sequence's character and keysym written into `key`. */
+bool kiln_compose_key(struct xkb_compose_state *state, kiln_wl_key *key);
 
 /** Connects to the named Wayland display (NULL for $WAYLAND_DISPLAY) and binds every global Kiln uses. */
 kiln_wl *kiln_wl_connect(const char *name);

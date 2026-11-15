@@ -63,6 +63,9 @@ struct kiln_wl {
     uint32_t cursor_shape;
     struct xkb_context *xkb;
     struct xkb_keymap *xkb_keymap;
+    struct xkb_compose_table *compose_table;
+    struct xkb_compose_state *compose_state;
+    bool compose_loaded;
     struct xkb_state *xkb_state;
     struct {
         double value[2];
@@ -278,6 +281,37 @@ static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t se
 
 /** Translates an evdev key through the keymap into a keysym, the text it types and the modifiers held, and says whether
  * the keymap lets it repeat. */
+bool kiln_compose_key(struct xkb_compose_state *state, kiln_wl_key *key) {
+    if (xkb_compose_state_feed(state, key->keysym) != XKB_COMPOSE_FEED_ACCEPTED) return true;
+    switch (xkb_compose_state_get_status(state)) {
+    case XKB_COMPOSE_COMPOSING:
+        return false;
+    case XKB_COMPOSE_COMPOSED: {
+        xkb_compose_state_get_utf8(state, key->text, sizeof key->text);
+        xkb_keysym_t composed = xkb_compose_state_get_one_sym(state);
+        if (composed != XKB_KEY_NoSymbol) key->keysym = composed;
+        xkb_compose_state_reset(state);
+        return true;
+    }
+    case XKB_COMPOSE_CANCELLED:
+        xkb_compose_state_reset(state);
+        return false;
+    default:
+        return true;
+    }
+}
+
+/** The compose sequences of the user's locale, as GTK and Qt read them (~/.XCompose included). */
+static void load_compose(kiln_wl *wl) {
+    wl->compose_loaded = true;
+    const char *locale = getenv("LC_ALL");
+    if (!locale || !*locale) locale = getenv("LC_CTYPE");
+    if (!locale || !*locale) locale = getenv("LANG");
+    if (!locale || !*locale) locale = "C";
+    wl->compose_table = xkb_compose_table_new_from_locale(wl->xkb, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+    if (wl->compose_table) wl->compose_state = xkb_compose_state_new(wl->compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
+}
+
 static void keyboard_key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
     kiln_wl *wl = data;
     if (state == WL_KEYBOARD_KEY_STATE_PRESSED) wl->input_serial = serial;
@@ -289,6 +323,8 @@ static void keyboard_key(void *data, struct wl_keyboard *keyboard, uint32_t seri
         xkb_state_key_get_utf8(wl->xkb_state, code, event.text, sizeof event.text);
         event.modifiers = keyboard_modifier_mask(wl);
         event.repeats = xkb_keymap_key_repeats(wl->xkb_keymap, code);
+        if (!wl->compose_loaded) load_compose(wl);
+        if (event.pressed && wl->compose_state && !kiln_compose_key(wl->compose_state, &event)) return;
     }
     wl->callbacks.key(wl->context, event);
 }
@@ -706,6 +742,8 @@ void kiln_wl_disconnect(kiln_wl *wl) {
     if (wl->keyboard) wl_keyboard_release(wl->keyboard);
     if (wl->xkb_state) xkb_state_unref(wl->xkb_state);
     if (wl->xkb_keymap) xkb_keymap_unref(wl->xkb_keymap);
+    if (wl->compose_state) xkb_compose_state_unref(wl->compose_state);
+    if (wl->compose_table) xkb_compose_table_unref(wl->compose_table);
     if (wl->xkb) xkb_context_unref(wl->xkb);
     wl_display_flush(wl->display);
     wl_display_disconnect(wl->display);
