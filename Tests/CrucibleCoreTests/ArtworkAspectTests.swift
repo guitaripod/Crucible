@@ -58,14 +58,6 @@ struct ArtworkAspectTests {
         #expect(ArtworkAspect.dominant([4]) == 1.8)
     }
 
-    @Test func artworkFillsACardOnlyWhenItsShapeIsClose() {
-        #expect(ArtworkAspect.fills(40.0 / 27.0, card: ArtworkAspect.poster))
-        #expect(ArtworkAspect.fills(1 / 1.85, card: ArtworkAspect.still))
-        #expect(!ArtworkAspect.fills(1 / 2.39, card: ArtworkAspect.still))
-        #expect(!ArtworkAspect.fills(ArtworkAspect.still, card: ArtworkAspect.poster))
-        #expect(!ArtworkAspect.fills(1280.0 / 720.0, card: ArtworkAspect.still))
-    }
-
     @Test func libraryPosterCarriesItsArtworksShape() throws {
         let clip = try LibraryFixtures.item(#"{"ratingKey":"6","type":"movie","title":"Wide Clip","guid":"tv.plex.agents.none://6","thumb":"/t","Media":[{"width":1280,"height":720}]}"#)
         #expect(LibraryPoster(grid: clip, kind: .movie).aspect == 0.5625)

@@ -254,6 +254,22 @@ final class LibraryTests: TVTestCase {
         XCTAssertTrue(focusedIdentifier(app).hasPrefix(Self.recentPrefix) || focusedIdentifier(app).hasPrefix(Self.mediaPrefix))
     }
 
+    /// An Other Videos library whose clips mostly carry a 16:9 frame and sometimes an uploaded poster lays out in the shape most of
+    /// its artwork has, and every card is filled edge to edge, the odd poster cropped to the card instead of boxed inside it.
+    func testMixedArtworkFillsEveryCardInTheShapeMostOfItHas() {
+        let app = openTab("Clips", mock: ["MOCK_MIXED_ARTWORK": "1"])
+        waitForPosters(in: app)
+        enterContent(app)
+        TVTest.settle(2.5)
+        TVTest.capture("18-mixed-artwork-grid", in: self)
+        let cards = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", Self.mediaPrefix)).allElementsBoundByIndex
+        let shapes = Set(cards.prefix(8).map { ($0.frame.height / $0.frame.width * 50).rounded() / 50 })
+        XCTAssertEqual(shapes.count, 1, "every card of the grid has one shape (the focused one is only larger), got \(shapes)")
+        if let card = cards.first {
+            XCTAssertGreaterThan(card.frame.width, card.frame.height, "a library of mostly 16:9 frames lays out in 16:9 cards")
+        }
+    }
+
     func testFilterWithNoMatchesOffersClearFilters() {
         let app = openTab("TV Shows")
         waitForPosters(in: app)

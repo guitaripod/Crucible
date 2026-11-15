@@ -26,9 +26,6 @@ package enum ArtworkAspect {
     /// How many of a grid's cards need a measured shape before only measurements count.
     private static let measuredQuorum = 4
 
-    /// How far apart artwork and card may be for the artwork to fill the card by cropping, as a fraction of the card's shape.
-    private static let cropTolerance = 0.1
-
     /// The shape of `path` drawn for `item`: the item's own thumb or composite has the item's shape, and a parent's or
     /// grandparent's thumb (the show's poster on an episode) is a poster.
     package static func of(_ item: PlexMetadata, path: String?) -> Double {
@@ -71,14 +68,11 @@ package enum ArtworkAspect {
     /// A shape moved onto the standard one it is within cropping distance of (a 27×40 poster is a poster, a 1.85:1 frame a 16:9
     /// still), so a grid of measured images lays out exactly like one of guessed shapes.
     package static func snapped(_ aspect: Double) -> Double {
-        [poster, still, square].first { fills(aspect, card: $0) } ?? aspect
+        [poster, still, square].first { abs(aspect - $0) <= $0 * snapTolerance } ?? aspect
     }
 
-    /// Whether artwork `imageAspect` tall for its width can fill a card `cardAspect` tall by cropping: within a tenth, as a 27×40
-    /// poster in a 2:3 card or a 1.85:1 frame in a 16:9 one. Further apart a crop would cut the picture away, so it is shown whole.
-    package static func fills(_ imageAspect: Double, card cardAspect: Double) -> Bool {
-        abs(imageAspect - cardAspect) <= cardAspect * cropTolerance
-    }
+    /// How far a shape may be from a standard one to count as it, as a fraction of the standard shape.
+    private static let snapTolerance = 0.1
 
     private static func own(_ item: PlexMetadata) -> Double {
         switch item.mediaType {

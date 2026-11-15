@@ -356,6 +356,8 @@ def padded(items, count):
 
 
 def section_items(section_id):
+    if section_id == library.CLIPS_SECTION:
+        return list(LIB.clips)
     kind = library.SECTIONS[section_id][1]
     pool = LIB.movies if kind == "movie" else LIB.shows
     items = [i for i in pool if str(i["librarySectionID"]) == section_id]
@@ -465,7 +467,9 @@ def resolve_image(path):
             return None
         if kind == "art":
             owner = LIB.items[it["_show"]] if it["_kind"] in ("season", "episode") else it
-            name = f"backdrop_{owner['ratingKey']}.jpg"
+            name = f"backdrop_{owner.get('_art_owner', owner['ratingKey'])}.jpg"
+        elif it.get("_image"):
+            name = it["_image"]
         elif it["_kind"] == "episode":
             name = f"still_{rk}.jpg"
         else:
@@ -817,10 +821,14 @@ class Handler(BaseHTTPRequestHandler):
             if delay_ms:
                 time.sleep(delay_ms / 1000)
             hidden = env_sections("MOCK_HIDDEN_SECTIONS")
-            dirs = [{"key": k, "type": t, "title": n, "agent": f"tv.plex.agents.{t}", "language": "en-US",
-                     "refreshing": False, "uuid": f"0000{k}-aaaa-4bbb-8ccc-000000000{k}",
+            mixed = env("MOCK_MIXED_ARTWORK", "0") == "1"
+            listed = [(k, v) for k, v in library.SECTIONS.items() if k != library.CLIPS_SECTION]
+            if mixed:
+                listed.insert(0, (library.CLIPS_SECTION, library.SECTIONS[library.CLIPS_SECTION]))
+            dirs = [{"key": k, "type": t, "title": n, "agent": "tv.plex.agents.none" if k == library.CLIPS_SECTION else f"tv.plex.agents.{t}",
+                     "language": "en-US", "refreshing": False, "uuid": f"0000{k}-aaaa-4bbb-8ccc-000000000{k}",
                      "hidden": 1 if k in hidden else 0}
-                    for k, (n, t) in library.SECTIONS.items()]
+                    for k, (n, t) in listed]
             if env("MOCK_SECTIONS_EMPTY", "0") == "1":
                 dirs = []
             return self.send_json(container(size=len(dirs), allowLibraryOrder=True, title1="Plex Library", Directory=dirs))

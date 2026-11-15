@@ -17,14 +17,8 @@ final class TVArtworkView: UIImageView {
     private var placeholderSymbol: String
     private let cornerRadius: CGFloat
     private var loadTask: Task<Void, Never>?
-    private var redrawTask: Task<Void, Never>?
     private var loadedPath: String?
     private var isShowingPlaceholder = true
-    private var artwork: UIImage?
-
-    /// Whether artwork far from the view's shape is shown whole, centred on the placeholder's surface, instead of cropped to
-    /// fill: a vertical phone video among landscape ones, a still where a poster was expected.
-    var showsOffShapeArtworkWhole = false
 
     /// `cornerRadius` is the radius of a rounded view, baked into every picture it shows.
     init(
@@ -51,8 +45,6 @@ final class TVArtworkView: UIImageView {
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: TVArtworkView, _: UITraitCollection) in
             if view.isShowingPlaceholder {
                 view.showPlaceholder()
-            } else if let artwork = view.artwork {
-                view.redraw(artwork)
             }
         }
     }
@@ -62,7 +54,6 @@ final class TVArtworkView: UIImageView {
 
     deinit {
         loadTask?.cancel()
-        redrawTask?.cancel()
     }
 
     /// Shows `path`'s artwork, or the placeholder when it is nil. Setting the path already on screen is a no-op.
@@ -88,7 +79,7 @@ final class TVArtworkView: UIImageView {
             }
             let shown = await framing.render(image)
             guard !Task.isCancelled else { return }
-            self.display(image, shown: shown, drawnWith: framing)
+            self.display(shown)
         }
     }
 
@@ -108,7 +99,7 @@ final class TVArtworkView: UIImageView {
             }
             let shown = await framing.render(image)
             guard !Task.isCancelled else { return }
-            self.display(image, shown: shown, drawnWith: framing)
+            self.display(shown)
         }
     }
 
@@ -116,15 +107,12 @@ final class TVArtworkView: UIImageView {
     func reset() {
         loadTask?.cancel()
         loadTask = nil
-        redrawTask?.cancel()
-        redrawTask = nil
         loadedPath = nil
         showPlaceholder()
     }
 
     private func showPlaceholder() {
         isShowingPlaceholder = true
-        artwork = nil
         image = TVPlaceholder.image(
             symbol: placeholderSymbol,
             size: nominalSize,
@@ -134,13 +122,10 @@ final class TVArtworkView: UIImageView {
         )
     }
 
-    /// Shows `shown`, the picture `used` drew in the view's shape. The original is kept only when its drawing depends on the
-    /// appearance (the letterbox of an off-shape picture), so a grid holds one bitmap per card; if the appearance changed
-    /// while it was drawn, it is drawn again.
-    private func display(_ artwork: UIImage, shown: UIImage, drawnWith used: TVArtworkFraming) {
+    /// Shows `shown`, the picture drawn in the view's shape.
+    private func display(_ shown: UIImage) {
         isShowingPlaceholder = false
         loadTask = nil
-        self.artwork = used.letterboxes(artwork) ? artwork : nil
         if UIAccessibility.isReduceMotionEnabled {
             image = shown
         } else {
@@ -148,43 +133,20 @@ final class TVArtworkView: UIImageView {
                 self.image = shown
             }
         }
-        if self.artwork != nil, !used.letterbox.isEqual(framing.letterbox) {
-            redraw(artwork)
-        }
     }
 
-    /// Draws a letterboxed picture again for the current appearance, away from the main thread.
-    private func redraw(_ artwork: UIImage) {
-        redrawTask?.cancel()
-        let framing = framing
-        redrawTask = Task { [weak self] in
-            let shown = await framing.render(artwork)
-            guard !Task.isCancelled, let self, self.artwork === artwork else { return }
-            self.image = shown
-            self.redrawTask = nil
-        }
-    }
-
-    /// How a picture is drawn for this view right now; the letterbox colour depends on the appearance.
+    /// How a picture is drawn for this view.
     private var framing: TVArtworkFraming {
-        TVArtworkFraming(
-            shape: shape,
-            nominalSize: nominalSize,
-            showsOffShapeWhole: showsOffShapeArtworkWhole,
-            letterbox: Theme.Color.surfaceRaised.resolvedColor(with: traitCollection),
-            cornerRadius: cornerRadius
-        )
+        TVArtworkFraming(shape: shape, nominalSize: nominalSize, cornerRadius: cornerRadius)
     }
 }
 
-/// Draws a picture in the shape of the artwork view that shows it: cropped to a circle; or, for a rounded card, cropped from
-/// its centre to the card's aspect with the corners cut out, after being centred whole on the placeholder's surface when its
-/// shape is too far from the card's to crop (the focus effect forbids clipping, so the letterbox is part of the image).
+/// Draws a picture in the shape of the artwork view that shows it: cropped to a circle, or for a rounded card cropped from
+/// its centre to fill the card's aspect with the corners cut out, so every card of a grid is filled edge to edge whatever
+/// shape its picture has (the focus effect forbids clipping, so the crop is part of the image).
 struct TVArtworkFraming: @unchecked Sendable {
     let shape: TVCardStyle.Shape
     let nominalSize: CGSize
-    let showsOffShapeWhole: Bool
-    let letterbox: UIColor
     let cornerRadius: CGFloat
 
     private var aspect: CGFloat { nominalSize.height / nominalSize.width }
@@ -192,14 +154,7 @@ struct TVArtworkFraming: @unchecked Sendable {
     func draw(_ artwork: UIImage) -> UIImage {
         if shape == .circle { return artwork.circularCrop() }
         guard artwork.size.width > 0, nominalSize.width > 0 else { return artwork }
-        let filled = letterboxes(artwork) ? artwork.centered(onAspect: aspect, background: letterbox) : artwork
-        return filled.shaped(toAspect: aspect, cornerRadius: cornerRadius, pointWidth: nominalSize.width)
-    }
-
-    /// Whether `artwork` is drawn whole on the letterbox, whose colour follows the appearance.
-    func letterboxes(_ artwork: UIImage) -> Bool {
-        guard shape == .rounded, showsOffShapeWhole, artwork.size.width > 0, nominalSize.width > 0 else { return false }
-        return !ArtworkAspect.fills(artwork.size.height / artwork.size.width, card: aspect)
+        return artwork.shaped(toAspect: aspect, cornerRadius: cornerRadius, pointWidth: nominalSize.width)
     }
 
     /// `draw(_:)` away from the main thread, so a grid filling with artwork never stalls the focus animation.

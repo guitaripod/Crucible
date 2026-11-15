@@ -64,21 +64,6 @@ enum TVPlaceholder {
 }
 
 extension UIImage {
-    /// The image drawn whole and centred on a `background` canvas `aspect` tall for its width, as large as the image itself.
-    func centered(onAspect aspect: CGFloat, background: UIColor) -> UIImage {
-        let canvas = size.height / size.width > aspect
-            ? CGSize(width: (size.height / aspect).rounded(), height: size.height)
-            : CGSize(width: size.width, height: (size.width * aspect).rounded())
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = scale
-        format.opaque = true
-        return UIGraphicsImageRenderer(size: canvas, format: format).image { context in
-            background.setFill()
-            context.fill(CGRect(origin: .zero, size: canvas))
-            draw(at: CGPoint(x: (canvas.width - size.width) / 2, y: (canvas.height - size.height) / 2))
-        }
-    }
-
     /// The image cropped from its centre to `aspect` (height over width) and drawn with corners of `cornerRadius` points on a
     /// view `pointWidth` wide, on a transparent surround, at the image's own resolution. The system focus effect zooms the
     /// image it is given; one already in the card's shape looks the same at rest and while it grows, where an image of another

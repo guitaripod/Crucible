@@ -10,7 +10,9 @@ SECTIONS = {
     "4": ("Anime", "show"),
     "5": ("Kids", "movie"),
     "6": ("Home Videos", "movie"),
+    "7": ("Clips", "movie"),
 }
+CLIPS_SECTION = "7"
 
 GENRES = ["Action", "Adventure", "Animation", "Comedy", "Documentary", "Drama", "Mystery", "Sci-Fi", "Thriller"]
 GENRE_ID = {g: str(i + 1) for i, g in enumerate(GENRES)}
@@ -378,6 +380,7 @@ class Library:
         self.items = {}
         self.movies = []
         self.shows = []
+        self.clips = []
         self.on_deck = []
         self.hidden_continue = set()
         self.history = []
@@ -394,6 +397,7 @@ class Library:
         self._build_playlists()
         self._build_extras()
         self._build_watchlist()
+        self._build_clips()
 
     def _rk(self, kind):
         v = self._next[kind]
@@ -529,6 +533,23 @@ class Library:
                 item["lastViewedAt"] = self.now - 26 * 3600
             self.items[rk] = item
             self.movies.append(item)
+
+    def _build_clips(self):
+        """An Other Videos library of clips: most carry only the frame Plex grabbed from the file, a 16:9 still, and every
+        fourth a poster someone uploaded, so its grid shows artwork of two shapes. Kept apart from the films, so it shows
+        only when MOCK_MIXED_ARTWORK asks for it."""
+        for index, source in enumerate(self.movies[:12]):
+            rk = str(9001 + index)
+            item = {key: value for key, value in source.items() if key not in ("viewCount", "viewOffset", "lastViewedAt")}
+            shape = "poster" if index % 4 == 0 else "backdrop"
+            item.update({
+                "ratingKey": rk, "key": f"/library/metadata/{rk}", "guid": f"local://{rk}", "title": f"{source['title']} Clip",
+                "titleSort": f"{source['titleSort']} clip", "librarySectionID": int(CLIPS_SECTION),
+                "librarySectionTitle": SECTIONS[CLIPS_SECTION][0], "thumb": self._poster(rk, "thumb"), "art": self._poster(rk, "art"),
+                "_image": f"{shape}_{source['ratingKey']}.jpg", "_art_owner": source["ratingKey"],
+            })
+            self.items[rk] = item
+            self.clips.append(item)
 
     def _build_shows(self):
         for show in SHOWS:

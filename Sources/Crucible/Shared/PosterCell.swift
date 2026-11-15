@@ -311,7 +311,7 @@ final class PosterContentView: UIView, UIContentView {
         }
     }
 
-    /// Gives the card `aspect`, keeping the constraint when the shape is unchanged, and refits any artwork already shown.
+    /// Gives the card `aspect`, keeping the constraint when the shape is unchanged; the artwork always fills the card.
     private func shapeCard(_ aspect: CGFloat) {
         if artworkAspectConstraint?.multiplier != aspect {
             artworkAspectConstraint?.isActive = false
@@ -320,19 +320,10 @@ final class PosterContentView: UIView, UIContentView {
             constraint.isActive = true
             artworkAspectConstraint = constraint
         }
-        if let image = imageView.image { fit(image, aspect: aspect) }
-    }
-
-    /// Fills the card with artwork close to its shape and shows any other artwork whole, centred on the card's surface.
-    private func fit(_ image: UIImage, aspect: CGFloat) {
-        guard image.size.width > 0 else { return }
-        let fills = ArtworkAspect.fills(image.size.height / image.size.width, card: aspect)
-        imageView.contentMode = fills ? .scaleAspectFill : .scaleAspectFit
     }
 
     private func show(_ image: UIImage) {
         placeholderView.isHidden = true
-        fit(image, aspect: (configuration as? PosterContentConfiguration)?.artworkAspect ?? Theme.Size.posterAspect)
         guard !UIAccessibility.isReduceMotionEnabled, imageView.image == nil else {
             imageView.image = image
             return

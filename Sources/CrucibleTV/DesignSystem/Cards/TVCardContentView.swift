@@ -45,7 +45,6 @@ final class TVCardContentView: UIView, UIContentView {
             placeholderSymbol: configuration.item.placeholderSymbol
         )
         super.init(frame: .zero)
-        artwork.showsOffShapeArtworkWhole = style.shape == .rounded
         buildHierarchy()
         apply()
     }
