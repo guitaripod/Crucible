@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Crucible
+GenericName=Plex Client
+Comment=Your Plex library, beautifully on Linux
+Exec=crucible %U
+Icon=org.guitaripod.Crucible
+Terminal=false
+Categories=AudioVideo;Video;Player;TV;
+Keywords=Plex;Movies;TV;Media;
+StartupWMClass=org.guitaripod.Crucible
+Actions=Couch;
+
+[Desktop Action Couch]
+Name=Open on the TV (Couch)
+Exec=crucible --couch
