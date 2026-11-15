@@ -16,6 +16,15 @@ enum ItemActions {
         }
     }
 
+    /// The Play/Pause key on a card: starts what Home's tap policy lets it start; false for anything else (a show), so the
+    /// key passes on.
+    @discardableResult
+    static func playPause(_ media: PlexMetadata, api: APIClient, from view: View) -> Bool {
+        guard HomeTapPolicy.playPauseAction(for: media) == .play else { return false }
+        play(media, api: api, from: view)
+        return true
+    }
+
     /// Plays `media`, or opens its page when it cannot play.
     static func play(_ media: PlexMetadata, restarting: Bool = false, api: APIClient, from view: View) {
         guard HomeTapPolicy.playOrDetail(for: media) == .play else {

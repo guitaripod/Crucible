@@ -210,6 +210,10 @@ final class HomeScreen: ScreenView {
             self.feature(media, bucket: bucket, animated: true)
         }
         shelf.onActivate = { [weak self] item in self?.activate(item.id, in: row) }
+        shelf.onPlay = { [weak self] item in
+            guard let self, Self.bucket(row) != nil, let media = self.feed.item(id: item.id) else { return false }
+            return ItemActions.playPause(media, api: self.payload.api, from: self)
+        }
         shelf.onContextMenu = { [weak self] item, point in self?.presentMenu(for: item.id, in: row, at: point) }
         shelves[row] = shelf
         return shelf
@@ -471,6 +475,12 @@ final class HomeSeeAllScreen: ScreenView {
     private let grid = CardGridView()
     private let state = StateView()
     private var byID: [String: PlexMetadata] = [:]
+    private var shown: [PlexMetadata] = []
+    private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
+        self?.artworkSamples() ?? []
+    } onChange: { [weak self] in
+        self?.applyArtworkShape()
+    }
 
     init(api: APIClient, bucket: HomeBucket, title: String, items: @escaping () -> [PlexMetadata], onChange: @escaping () -> Void) {
         self.api = api
@@ -486,6 +496,10 @@ final class HomeSeeAllScreen: ScreenView {
         grid.onActivate = { [weak self] card in
             guard let self, let media = self.byID[card.id] else { return }
             ItemActions.select(media, in: self.bucket, api: self.api, from: self)
+        }
+        grid.onPlay = { [weak self] card in
+            guard let self, let media = self.byID[card.id] else { return false }
+            return ItemActions.playPause(media, api: self.api, from: self)
         }
         grid.onContextMenu = { [weak self] card, point in
             guard let self, let media = self.byID[card.id] else { return }
@@ -503,9 +517,29 @@ final class HomeSeeAllScreen: ScreenView {
         refresh()
     }
 
+    /// Recently Added takes the shape most of its artwork has (posters, or the frames of videos without one); the other rows
+    /// stay landscape stills.
+    private func artworkSamples() -> [ArtworkAspect.Sample] {
+        shown.map { item in
+            let path = HomeCardModel(item: item, bucket: bucket, layout: .poster).imagePath
+            return ArtworkAspect.Sample(path: path, guess: ArtworkAspect.of(item, path: path))
+        }
+    }
+
+    private func applyArtworkShape() {
+        guard bucket == .recentlyAdded else { return }
+        grid.aspect = Float(artworkShape.aspect)
+        page.setNeedsLayout()
+    }
+
     private func refresh() {
         let current = items()
+        shown = current
         byID = Dictionary(current.map { ($0.id, $0) }, uniquingKeysWith: { _, latest in latest })
+        if bucket == .recentlyAdded {
+            artworkShape.update()
+            grid.aspect = Float(artworkShape.aspect)
+        }
         let layout: HomeCardModel.Layout = bucket == .recentlyAdded ? .poster : .landscape
         grid.setItems(current.map { media in
             let model = HomeCardModel(item: media, bucket: bucket, layout: layout)
