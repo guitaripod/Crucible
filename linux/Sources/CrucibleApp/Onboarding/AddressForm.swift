@@ -14,48 +14,49 @@ final class AddressForm: View {
 
     private let field = TextFieldView(placeholder: AddressForm.placeholder, symbol: nil)
     private let connect = ButtonView(style: .primary, title: String(localized: "Connect", comment: "Button that connects to the entered server address"))
-    private var error: String?
-    private var status: String?
+    private let errorLine = StatusLineView()
+    private let statusLine = StatusLineView()
     private var isBusy = false
 
     init(initialText: String?) {
         super.init()
         field.setText(initialText ?? "", notify: false)
         field.onChange = { [weak self] _ in
-            guard self?.error != nil else { return }
-            self?.error = nil
-            self?.superview?.setNeedsLayout()
-            self?.setNeedsLayout()
+            guard let self, !self.errorLine.text.isEmpty else { return }
+            self.errorLine.show(nil)
+            self.superview?.setNeedsLayout()
+            self.setNeedsLayout()
         }
         field.onSubmit = { [weak self] _ in self?.submit() }
         connect.onPress = { [weak self] in self?.submit() }
-        [field, connect].forEach(addSubview)
+        for line in [errorLine, statusLine] { line.isCentered = true }
+        [field, errorLine, statusLine, connect].forEach(addSubview)
     }
 
     override var preferredFocusView: View? { isBusy ? connect : field }
     override var remembersFocus: Bool { true }
 
-    /// Busy disables the field and shows the step under way; Connect stays focusable so Escape still has somewhere to start.
+    /// Busy disables the field and shows the step under way with a spinner; Connect stays focusable so Escape still has
+    /// somewhere to start.
     func setBusy(_ busy: Bool, status: String? = nil) {
         isBusy = busy
-        self.status = busy ? status : nil
+        statusLine.show(busy ? status : nil, busy: busy)
         connect.title = busy ? String(localized: "Connecting…") : String(localized: "Connect", comment: "Button that connects to the entered server address")
         if busy, field.isFocused { window?.focus.focus(connect, animated: false) }
         superview?.setNeedsLayout()
         setNeedsLayout()
-        setNeedsDisplay()
     }
 
     func showError(_ message: String) {
-        error = message
+        errorLine.show(message, tone: .error)
         superview?.setNeedsLayout()
         setNeedsLayout()
-        setNeedsDisplay()
     }
 
     func updateStatus(_ text: String) {
-        status = text
-        setNeedsDisplay()
+        statusLine.show(text, busy: isBusy)
+        superview?.setNeedsLayout()
+        setNeedsLayout()
     }
 
     private func submit() {
@@ -63,40 +64,32 @@ final class AddressForm: View {
         onSubmit?(field.text)
     }
 
-    private func line(_ text: String?, width: Float) -> TextLayout? {
-        guard let text, !text.isEmpty else { return nil }
-        return TextLayout(text, font: Theme.current.type.callout, maxWidth: width, maxLines: 3, alignment: .center, scale: window?.scale ?? 1)
+    /// The lines under the field with the room after each, or nothing for a line that is empty.
+    private func linesHeight(width: Float) -> Float {
+        let gap = Theme.current.metrics.tv(16)
+        return [errorLine, statusLine].reduce(0) { total, line in
+            let height = line.sizeThatFits(Size(width: width, height: 0)).height
+            return total + (height > 0 ? height + gap : 0)
+        }
     }
-
-    private var errorHeight: Float { line(error, width: frame.width).map { $0.size.height + Theme.current.metrics.tv(16) } ?? 0 }
-    private var statusHeight: Float { line(status, width: frame.width).map { $0.size.height + Theme.current.metrics.tv(16) } ?? 0 }
 
     override func sizeThatFits(_ size: Size) -> Size {
         let metrics = Theme.current.metrics
-        let errorLine = line(error, width: size.width).map { $0.size.height + metrics.tv(16) } ?? 0
-        let statusLine = line(status, width: size.width).map { $0.size.height + metrics.tv(16) } ?? 0
-        return Size(width: size.width, height: metrics.primaryControlHeight + metrics.tv(24) + errorLine + statusLine + metrics.primaryControlHeight)
+        return Size(width: size.width, height: metrics.primaryControlHeight + metrics.tv(24) + linesHeight(width: size.width) + metrics.primaryControlHeight)
     }
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
         field.frame = Rect(x: 0, y: 0, width: frame.width, height: metrics.primaryControlHeight)
-        let size = connect.sizeThatFits(Size(width: frame.width, height: metrics.primaryControlHeight))
-        let y = field.frame.maxY + metrics.tv(24) + errorHeight + statusHeight
-        connect.frame = Rect(x: ((frame.width - size.width) / 2).rounded(), y: y, width: size.width, height: size.height)
-    }
-
-    override func draw(_ context: inout DrawContext) {
-        let metrics = Theme.current.metrics
-        let palette = Theme.current.palette
         var y = field.frame.maxY + metrics.tv(16)
-        if let layout = line(error, width: frame.width) {
-            context.text(layout, at: Point(x: ((frame.width - layout.size.width) / 2).rounded(), y: y), color: palette.destructive)
-            y += layout.size.height + metrics.tv(16)
+        for line in [errorLine, statusLine] {
+            let height = line.sizeThatFits(Size(width: frame.width, height: 0)).height
+            line.frame = Rect(x: 0, y: y, width: frame.width, height: height)
+            if height > 0 { y += height + metrics.tv(16) }
         }
-        if let layout = line(status, width: frame.width) {
-            context.text(layout, at: Point(x: ((frame.width - layout.size.width) / 2).rounded(), y: y), color: palette.labelSecondary)
-        }
+        let size = connect.sizeThatFits(Size(width: frame.width, height: metrics.primaryControlHeight))
+        let top = field.frame.maxY + metrics.tv(24) + linesHeight(width: frame.width)
+        connect.frame = Rect(x: ((frame.width - size.width) / 2).rounded(), y: top, width: size.width, height: size.height)
     }
 }
 

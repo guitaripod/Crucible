@@ -137,8 +137,7 @@ final class LinkScreen: ScreenView {
     var onToken: ((String) -> Void)?
     private var task: Task<Void, Never>?
     private var codes: PlexLinkCodes?
-    private var status = String(localized: "Requesting a code…")
-    private var failed = false
+    private let status = StatusLineView()
     private var openedBrowser = false
     private let openButton = ButtonView(style: .primary, title: String(localized: "Open plex.tv"), symbol: "arrow.up.right.circle")
     private let retryButton = ButtonView(style: .glass, title: String(localized: "Get a New Code"), symbol: "arrow.clockwise")
@@ -153,7 +152,7 @@ final class LinkScreen: ScreenView {
         retryButton.onPress = { [weak self] in self?.start() }
         retryButton.isHidden = true
         openButton.isEnabled = false
-        [openButton, retryButton, qr].forEach(addSubview)
+        [openButton, retryButton, qr, status].forEach(addSubview)
     }
 
     override var preferredFocusView: View? { retryButton.isHidden ? openButton : retryButton }
@@ -170,12 +169,11 @@ final class LinkScreen: ScreenView {
     private func start() {
         task?.cancel()
         codes = nil
-        failed = false
         openedBrowser = false
         retryButton.isHidden = true
         openButton.isEnabled = false
         qr.text = nil
-        status = String(localized: "Requesting a code…")
+        status.show(String(localized: "Requesting a code…"), busy: true)
         setNeedsDisplay()
         task = Task { [weak self] in
             for await state in PlexLinkSession().states() {
@@ -188,26 +186,26 @@ final class LinkScreen: ScreenView {
     private func apply(_ state: PlexLinkState) {
         switch state {
         case .requesting:
-            status = String(localized: "Requesting a code…")
+            status.show(String(localized: "Requesting a code…"), busy: true)
         case .waiting(let newCodes):
             codes = newCodes
             qr.text = newCodes.authURL.absoluteString
             openButton.isEnabled = true
-            status = String(localized: "Waiting for approval…")
+            status.show(String(localized: "Waiting for approval…"), busy: true)
             if !openedBrowser {
                 openedBrowser = true
                 Browser.open(newCodes.authURL)
             }
             window?.focus.focus(openButton, animated: false)
         case .claimed(let token):
-            status = String(localized: "Signed in. Finding your servers…")
+            status.show(String(localized: "Signed in. Finding your servers…"), busy: true)
             task = nil
             onToken?(token)
         case .expired:
-            status = String(localized: "This code has expired.")
+            status.show(String(localized: "This code has expired."), tone: .error)
             showRetry(String(localized: "Get a New Code"))
         case .failed(let message):
-            status = message
+            status.show(message, tone: .error)
             showRetry(String(localized: "Try Again"))
         }
         setNeedsLayout()
@@ -215,7 +213,6 @@ final class LinkScreen: ScreenView {
     }
 
     private func showRetry(_ title: String) {
-        failed = true
         retryButton.title = title
         retryButton.isHidden = false
         openButton.isEnabled = false
@@ -230,6 +227,9 @@ final class LinkScreen: ScreenView {
         openButton.frame = Rect(x: metrics.sideMargin * 2, y: frame.height * 0.62, width: size.width, height: size.height)
         let retrySize = retryButton.sizeThatFits(Size(width: 600, height: 200))
         retryButton.frame = Rect(x: openButton.frame.maxX + metrics.tv(32), y: openButton.frame.y, width: retrySize.width, height: retrySize.height)
+        let column = frame.width * 0.62 - metrics.sideMargin * 2 - metrics.tv(80)
+        let statusHeight = status.sizeThatFits(Size(width: column, height: 0)).height
+        status.frame = Rect(x: metrics.sideMargin * 2, y: openButton.frame.maxY + metrics.tv(32), width: column, height: statusHeight)
     }
 
     override func draw(_ context: inout DrawContext) {
@@ -251,8 +251,6 @@ final class LinkScreen: ScreenView {
         if let code = codes?.shortCode {
             drawCode(code, at: Point(x: left, y: y), context: &context)
         }
-        let line = TextLayout(status, font: theme.type.callout, maxWidth: column, scale: scale)
-        context.text(line, at: Point(x: left, y: openButton.frame.maxY + metrics.tv(32)), color: failed ? palette.destructive : palette.labelSecondary)
         if qr.text != nil {
             let caption = TextLayout(String(localized: "Or scan with your phone's camera"), font: theme.type.callout, maxWidth: qr.frame.width * 1.8,
                                      alignment: .center, scale: scale)
