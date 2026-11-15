@@ -36,6 +36,7 @@ final class PlayerScreen: View {
     private var lastReportedState: String?
     private var lastClick: Date?
     private var closed = false
+    private var controls: MediaControls?
 
     init(source: Source) {
         self.source = source
@@ -77,6 +78,8 @@ final class PlayerScreen: View {
             videoView = view
             player.onStateChange = { [weak self] state in self?.stateChanged(state) }
             player.onEvent = { [weak self] event in self?.handle(event) }
+            controls = MediaControls(loop: loop)
+            controls?.onCommand = { [weak self] command in self?.perform(command) }
         } catch {
             fail(String(describing: error))
             return
@@ -131,6 +134,8 @@ final class PlayerScreen: View {
         transport.update(position: position, duration: duration, buffered: playerState.cachedSeconds, paused: playerState.isPaused,
                          buffering: playerState.isBuffering)
         updateSkip()
+        controls?.update(playing: !playerState.isPaused, title: transport.title, show: showTitle, artURL: nil, duration: duration, position: position,
+                         canGoNext: false)
         let reportState = playerState.isPaused ? "paused" : "playing"
         if reportState != lastReportedState { report(reportState) }
         if playerState.isPaused { showChrome(autoHide: false) }
@@ -160,9 +165,28 @@ final class PlayerScreen: View {
         seek(to: Double(fraction) * duration)
     }
 
+    private var showTitle: String? {
+        if case .plex(_, let item, _) = source { return item.grandparentTitle }
+        return nil
+    }
+
+    private func perform(_ command: MediaControls.Command) {
+        guard let player else { return }
+        switch command {
+        case .playPause: player.togglePause()
+        case .play: player.setPaused(false)
+        case .pause: player.setPaused(true)
+        case .stop: close()
+        case .seek(let offset): seek(to: position + offset)
+        case .setPosition(let target): seek(to: target)
+        case .next, .previous, .raise: break
+        }
+    }
+
     private func seek(to absolute: Double) {
         let target = min(max(absolute, 0), max(duration - 1, 0))
         player?.seek(to: target - streamOffset)
+        controls?.seeked(to: target)
         showChrome(autoHide: true)
     }
 
@@ -230,6 +254,8 @@ final class PlayerScreen: View {
         player?.stop()
         player?.shutDown()
         player = nil
+        controls?.close()
+        controls = nil
         window?.inhibitIdle(false)
         window?.setCursor(.default)
         onClose?()

@@ -1,0 +1,5 @@
+module CLinuxServices {
+    header "crucible_linux.h"
+    header "crucible_mpris.h"
+    export *
+}
