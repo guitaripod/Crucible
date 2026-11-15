@@ -122,7 +122,7 @@ final class SportsItemViewController: UIViewController {
             poster.widthAnchor.constraint(equalToConstant: width),
             poster.heightAnchor.constraint(equalTo: poster.widthAnchor, multiplier: Theme.Size.posterAspect),
         ])
-        poster.show(path: item.showsArtwork ? item.posterPath : nil, width: width, words: item.posterWords)
+        poster.show(path: item.showsArtwork ? item.posterPath : nil, width: width, words: item.posterWords, kind: item.kind)
         let stacked = traitCollection.preferredContentSizeCategory.isAccessibilityCategory || traitCollection.horizontalSizeClass == .compact
         let matched = item.state == "matched" || item.state == "edited"
         let transform = SportsTransformView()

@@ -10,6 +10,7 @@ struct SportsHeroConfiguration: UIContentConfiguration {
     var meta: String
     var posterPath: String?
     var posterWords: SportsPosterWords?
+    var kind: SportsKind = .sports
     var isExample: Bool
     var playsChange: Bool
 
@@ -82,7 +83,7 @@ final class SportsHeroView: UIView, UIContentView {
         change.show(file: configuration.file, title: configuration.title, titleFont: Theme.Font.title3)
         metaLabel.text = configuration.meta
         metaLabel.isHidden = configuration.meta.isEmpty
-        poster.show(path: configuration.posterPath, width: posterWidth, words: configuration.posterWords)
+        poster.show(path: configuration.posterPath, width: posterWidth, words: configuration.posterWords, kind: configuration.kind)
         accessibilityElements = [chip, change, metaLabel]
         let key = configuration.isExample ? "example" : configuration.title
         if configuration.playsChange, !Self.played.contains(key) {

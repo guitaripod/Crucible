@@ -8,6 +8,7 @@ struct SportsLiveConfiguration: UIContentConfiguration {
     var name: String
     var file: String
     var posterPath: String?
+    var kind: SportsKind = .sports
     var model: String?
     var elapsed: Int
     var receivedAt: Date
@@ -139,7 +140,7 @@ final class SportsLiveView: UIView, UIContentView {
         fileLabel.isHidden = configuration.file.isEmpty || configuration.file == configuration.name
         modelLabel.text = configuration.model.map(SportsCopy.model)
         modelLabel.isHidden = configuration.model == nil
-        poster.show(path: configuration.posterPath, width: 56)
+        poster.show(path: configuration.posterPath, width: 56, kind: configuration.kind)
         let footer = [configuration.waiting, configuration.lastLooked].compactMap { $0 }
         footerLabel.text = footer.joined(separator: " · ")
         footerLabel.isHidden = footer.isEmpty

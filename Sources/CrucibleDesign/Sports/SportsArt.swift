@@ -76,8 +76,10 @@ package final class SportsPosterView: UIView {
     }
 
     /// Shows the poster at `path` (a Plex library path), loading it at `width` points, and again when it is later shown
-    /// much wider; until it arrives, or when there is none, an ember poster with `words` on it, or the court symbol alone.
-    package func show(path: String?, width: CGFloat, words: SportsPosterWords? = nil) {
+    /// much wider; until it arrives, or when there is none, an ember poster with `words` on it, or the symbol of the
+    /// file's `kind` alone.
+    package func show(path: String?, width: CGFloat, words: SportsPosterWords? = nil, kind: SportsKind = .sports) {
+        placeholder.image = UIImage(systemName: kind.posterSymbol)
         eyebrowLabel.text = words?.eyebrow.uppercased(with: .current)
         captionLabel.text = words?.caption
         eyebrowLabel.isHidden = words == nil || width < 70

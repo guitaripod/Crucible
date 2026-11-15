@@ -10,6 +10,7 @@ struct TVSportsStageContent {
         var title: String
         var words: SportsPosterWords?
         var posterPath: String?
+        var kind: SportsKind = .sports
     }
 
     struct Line {
@@ -135,7 +136,7 @@ final class TVSportsStage: TVReadOnlyPanel {
         headingLabel.text = content.heading
         Self.setShown(headingLabel, content.heading != nil)
         if let art = content.art {
-            poster.show(path: art.posterPath, width: Self.posterWidth, words: art.words)
+            poster.show(path: art.posterPath, width: Self.posterWidth, words: art.words, kind: art.kind)
             change.show(file: art.file, title: art.title, titleFont: Theme.Font.scaled(.title3, 38, .bold, maximum: 50), fileFont: TVFont.mono(size: 21))
         }
         Self.setShown(artRow, content.art != nil)

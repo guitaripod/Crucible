@@ -375,7 +375,7 @@ extension SportsResearchViewController {
             return SportsPillConfiguration(symbol: "wifi.exclamationmark", tint: .systemOrange, title: SportsCopy.unreachableTitle, detail: failure ?? SportsCopy.unreachableBody, progress: nil, working: false, action: String(localized: "Try Again"))
         case .hero:
             if let hero = board.hero {
-                return SportsHeroConfiguration(label: SportsCopy.latest, file: hero.fileName, title: SportsItemLabel.title(hero), meta: SportsCopy.meta(hero), posterPath: hero.posterPath, posterWords: hero.posterWords, isExample: false, playsChange: true)
+                return SportsHeroConfiguration(label: SportsCopy.latest, file: hero.fileName, title: SportsItemLabel.title(hero), meta: SportsCopy.meta(hero), posterPath: hero.posterPath, posterWords: hero.posterWords, kind: hero.kind, isExample: false, playsChange: true)
             }
             let words = SportsPosterWords(event: SportsCopy.exampleTitle, part: nil, headline: "")
             return SportsHeroConfiguration(label: SportsCopy.example, file: SportsCopy.exampleFile, title: SportsCopy.exampleTitle, meta: SportsCopy.transformationLine, posterPath: nil, posterWords: words, isExample: true, playsChange: true)
@@ -388,6 +388,7 @@ extension SportsResearchViewController {
                 name: current.name,
                 file: current.file,
                 posterPath: current.kind == .adult ? nil : "/library/metadata/\(current.ratingKey)/thumb",
+                kind: current.kind,
                 model: report.model?.name,
                 elapsed: current.elapsed,
                 receivedAt: receivedAt,

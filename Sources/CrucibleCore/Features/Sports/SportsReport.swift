@@ -90,6 +90,15 @@ package enum SportsKind: String, CaseIterable, Sendable {
     case sports
     case adult
     case general
+
+    /// The symbol a drawn poster carries for a file of this kind until its own poster arrives, or when it has none.
+    package var posterSymbol: String {
+        switch self {
+        case .sports: "sportscourt"
+        case .adult: "film"
+        case .general: "play.rectangle.on.rectangle"
+        }
+    }
 }
 
 /// An Other Videos library on the Plex server, whether research reads it, what it holds, and how many of its files

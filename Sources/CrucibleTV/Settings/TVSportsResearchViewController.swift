@@ -242,7 +242,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
     private func heroContent(_ board: SportsBoard) -> TVSportsStageContent {
         var content: TVSportsStageContent
         if let hero = board.hero {
-            content = TVSportsStageContent(eyebrow: SportsCopy.latest, art: .init(file: hero.fileName, title: SportsItemLabel.title(hero), words: hero.posterWords, posterPath: hero.posterPath), body: SportsCopy.meta(hero))
+            content = TVSportsStageContent(eyebrow: SportsCopy.latest, art: .init(file: hero.fileName, title: SportsItemLabel.title(hero), words: hero.posterWords, posterPath: hero.posterPath, kind: hero.kind), body: SportsCopy.meta(hero))
         } else {
             let words = SportsPosterWords(event: SportsCopy.exampleTitle, part: nil, headline: "")
             content = TVSportsStageContent(eyebrow: SportsCopy.example, art: .init(file: SportsCopy.exampleFile, title: SportsCopy.exampleTitle, words: words), body: SportsCopy.transformationLine)
@@ -313,7 +313,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             eyebrow: SportsCopy.itemState(item.state),
             eyebrowTint: attention ? .systemOrange : item.state == "matched" ? Theme.Color.statusOK : Theme.Color.labelSecondary,
             heading: matched ? nil : item.fileName,
-            art: matched ? .init(file: item.fileName, title: SportsItemLabel.title(item), words: item.posterWords, posterPath: item.showsArtwork ? item.posterPath : nil) : nil,
+            art: matched ? .init(file: item.fileName, title: SportsItemLabel.title(item), words: item.posterWords, posterPath: item.showsArtwork ? item.posterPath : nil, kind: item.kind) : nil,
             body: body.filter { !$0.isEmpty }.joined(separator: "\n"),
             lines: bouts.isEmpty ? Array(cast) : Array(bouts)
         )
