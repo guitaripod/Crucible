@@ -48,6 +48,7 @@ func runCrucible() -> Int32 {
     TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
     let coordinator = AppCoordinator(window: window)
     let memoryPressure = MemoryPressure(loop: loop, window: window)
+    ServerRouteMonitor.shared.start()
     var running = true
     coordinator.onQuit = { running = false }
     MediaControls.onQuit = { coordinator.onQuit?() }

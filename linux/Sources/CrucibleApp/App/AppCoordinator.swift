@@ -90,6 +90,10 @@ final class AppCoordinator: WindowDelegate {
         let main = RootView(payload: payload)
         main.onSignOut = { [weak self] in self?.signOut() }
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
+        APIClient.onBaseURLChanged.withLock { handler in
+            handler = { url in Task { @MainActor in Artwork.pipeline = PlexArtworkPipeline(baseURL: url) } }
+        }
+        ServerRouteMonitor.shared.mainAppReady()
         root = main
         install(main)
         router.activate(main)
@@ -103,6 +107,7 @@ final class AppCoordinator: WindowDelegate {
 
     private func showOnboarding(_ mode: OnboardingView.Mode) {
         launchTask?.cancel()
+        APIClient.onBaseURLChanged.withLock { $0 = nil }
         router.deactivate()
         root = nil
         let flow = OnboardingView(mode: mode)
@@ -177,7 +182,13 @@ final class AppCoordinator: WindowDelegate {
 
     /// Coming back to the window refreshes what is shared across screens, as the Apple TV does on returning to the foreground.
     func window(_ window: Window, keyboardFocusChanged focused: Bool) {
-        guard focused, root != nil else { return }
+        guard focused else {
+            ServerRouteMonitor.shared.appResignedActive()
+            return
+        }
+        ServerRouteMonitor.shared.appBecameActive()
+        onboarding?.windowBecameActive()
+        guard root != nil else { return }
         Task { _ = await GuideStore.shared.refresh() }
     }
 
