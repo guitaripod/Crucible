@@ -75,7 +75,11 @@ final class AppCoordinator: WindowDelegate {
             switch outcome {
             case .success(let payload):
                 UserDefaults.standard.synchronize()
-                self.showMain(payload)
+                gate.playSuccess { [weak self] in
+                    guard let self else { return }
+                    self.showMain(payload)
+                    if let root = self.root { self.dissolve(gate, over: root) }
+                }
             case .failure(.signInExpired):
                 gate.showSignInExpired()
             case .failure(let failure):
@@ -101,6 +105,13 @@ final class AppCoordinator: WindowDelegate {
         root = main
         install(main)
         router.activate(main)
+    }
+
+    /// The launch gate stays a moment over the app it hands to, fading out (`TVAppCoordinator`'s 0.4 s cross-dissolve).
+    private func dissolve(_ gate: LaunchView, over root: RootView) {
+        root.addSubview(gate)
+        gate.frame = root.bounds
+        gate.dissolveAway()
     }
 
     /// Links a later launch handed over: the window comes to the front with the launcher's token and each link opens.

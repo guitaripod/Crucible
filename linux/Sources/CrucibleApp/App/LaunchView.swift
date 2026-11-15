@@ -3,9 +3,9 @@ import CrucibleUI
 import Foundation
 import Kiln
 
-/// The gate shown from the first frame until the main UI is loaded (`TVLaunchViewController`): the wordmark and a status
-/// line while the launch pipeline runs, and the error state with its two actions when the server cannot be reached or
-/// the Plex sign-in expired.
+/// The gate shown from the first frame until the main UI is loaded (`TVLaunchViewController`): the breathing crystal and
+/// a status line while the launch pipeline runs, and the error state with its two actions when the server cannot be
+/// reached or the Plex sign-in expired. Success flares the crystal, then the gate dissolves over the app.
 @MainActor
 final class LaunchView: View {
     var onRetry: (() -> Void)?
@@ -14,15 +14,18 @@ final class LaunchView: View {
     var onSignOut: (() -> Void)?
 
     private let state = StateView()
-    private var status: String?
+    private let glyph = CrystalGlyphView()
+    private let status = StatusLineView()
     private var showsFailure = false
-    private let spinner = SpinnerView()
+    private var dissolve = Animated(1)
+    private var isDissolving = false
 
     override init(frame: Rect = .zero) {
         super.init(frame: frame)
-        addSubview(spinner)
-        addSubview(state)
+        status.isCentered = true
+        [glyph, status, state].forEach(addSubview)
         state.isHidden = true
+        glyph.startBreathing()
     }
 
     override var preferredFocusView: View? { showsFailure ? state : nil }
@@ -30,10 +33,12 @@ final class LaunchView: View {
     func showLoading(_ text: String) {
         guard !showsFailure || text.isEmpty == false else { return }
         showsFailure = false
-        status = text
+        status.show(text, busy: true)
         state.isHidden = true
-        spinner.isHidden = false
-        spinner.startAnimating()
+        glyph.isHidden = false
+        status.isHidden = false
+        glyph.setDimmed(false)
+        setNeedsLayout()
         setNeedsDisplay()
     }
 
@@ -63,10 +68,37 @@ final class LaunchView: View {
         ))
     }
 
+    /// Flares the crystal so the hand-off reads as ignition rather than a cut, then runs `completion`; at once under Reduce
+    /// Motion.
+    func playSuccess(completion: @escaping () -> Void) {
+        status.show(nil)
+        glyph.flare(completion: completion)
+    }
+
+    /// Fades the gate out over whatever now lies under it and takes it away, or at once under Reduce Motion.
+    func dissolveAway() {
+        isDissolving = true
+        dissolve.set(0, animation: .timed(duration: 0.4, curve: .easeInOut))
+        if !dissolve.isAnimating { removeFromSuperview() }
+        startAnimating()
+    }
+
+    override func hitTest(_ point: Point) -> View? {
+        isDissolving ? nil : super.hitTest(point)
+    }
+
+    override func advanceAnimations(_ dt: Float) -> Bool {
+        let moving = dissolve.advance(dt)
+        alpha = dissolve.value
+        if isDissolving, !moving { removeFromSuperview() }
+        return moving
+    }
+
     private func show(_ newState: StateView.State) {
         showsFailure = true
-        status = nil
-        spinner.isHidden = true
+        status.show(nil)
+        glyph.isHidden = true
+        glyph.stopBreathing()
         state.isHidden = false
         state.show(newState)
         window?.focus.focus(state, animated: false)
@@ -74,25 +106,19 @@ final class LaunchView: View {
     }
 
     override func layoutSubviews() {
+        let metrics = Theme.current.metrics
         state.frame = bounds
-        let size = Theme.current.metrics.tv(56)
-        spinner.frame = Rect(x: (frame.width - size) / 2, y: frame.height * 0.58, width: size, height: size)
+        let side = metrics.tv(300)
+        let column = min(metrics.messageColumn, frame.width - metrics.sideMargin * 2)
+        let statusHeight = max(status.sizeThatFits(Size(width: column, height: 0)).height, metrics.tv(36))
+        let top = ((frame.height - side - metrics.tv(48) - statusHeight) / 2).rounded()
+        glyph.frame = Rect(x: ((frame.width - side) / 2).rounded(), y: top, width: side, height: side)
+        status.frame = Rect(x: ((frame.width - column) / 2).rounded(), y: glyph.frame.maxY + metrics.tv(48), width: column, height: statusHeight)
     }
 
     override func draw(_ context: inout DrawContext) {
-        let theme = Theme.current
-        let canvas = theme.palette.canvas
-        context.fill(bounds, color: canvas)
-        context.glow(in: bounds, radius: 0, center: Point(x: bounds.midX, y: bounds.height * 0.42), glowRadius: bounds.width * 0.5,
+        context.fill(bounds, color: Theme.current.palette.canvas)
+        context.glow(in: bounds, radius: 0, center: Point(x: bounds.midX, y: bounds.midY), glowRadius: bounds.width * 0.5,
                      color: Color(srgbRed: 0.16, green: 0.10, blue: 0.05).withAlpha(0.9))
-        guard !showsFailure, let scale = window?.scale else { return }
-        let wordmark = TextLayout("Crucible", font: Font(size: theme.type.largeTitle.size * 1.2, weight: .heavy), scale: scale)
-        context.text(wordmark, at: Point(x: ((bounds.width - wordmark.size.width) / 2).rounded(), y: (bounds.height * 0.42 - wordmark.size.height / 2).rounded()),
-                     color: theme.palette.label)
-        if let status {
-            let line = TextLayout(status, font: theme.type.callout, maxWidth: bounds.width * 0.8, alignment: .center, scale: scale)
-            context.text(line, at: Point(x: ((bounds.width - line.size.width) / 2).rounded(), y: spinner.frame.maxY + theme.metrics.tv(28)),
-                         color: theme.palette.labelSecondary)
-        }
     }
 }
