@@ -114,7 +114,7 @@ func captureKey(_ character: Character) -> KeyEvent? {
     if character == ";" { return KeyEvent(key: .character(","), modifiers: .control) }
     if character == "!" { return KeyEvent(key: .f10) }
     if character == "?" { return KeyEvent(key: .character("?"), text: "?", modifiers: [.control, .shift]) }
-    if character.isNumber || character == "+" || character == "-" {
+    if character.isASCII && character.isNumber || character == "+" || character == "-" {
         return KeyEvent(key: .character(character == "+" ? "=" : character), modifiers: .control)
     }
     return KeyEvent(key: .character(character), text: String(character))
