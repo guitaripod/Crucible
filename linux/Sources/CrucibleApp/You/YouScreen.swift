@@ -1,11 +1,13 @@
 import CrucibleCore
+import CrucibleStats
 import CrucibleUI
 import Foundation
 import Kiln
 
-/// You (`TVYouViewController`): the account with its server's live status on the left; Watch History, the server's
-/// activity, the settings pages, the desk's interface size and appearance, About and Sign Out on the right. It refreshes
-/// on every appearance, with the slower remote content at most once a minute.
+/// You (`TVYouViewController`): the account with its server's live status and this year's Year in Review card on the left;
+/// Watch History, Statistics, Playlists, the server's activity, the settings pages, the desk's interface size and
+/// appearance, About and Sign Out on the right. It refreshes on every appearance, with the slower remote content at most
+/// once a minute.
 @MainActor
 final class YouScreen: SettingsScaffold {
     var onSignOut: (() -> Void)?
@@ -13,6 +15,7 @@ final class YouScreen: SettingsScaffold {
     private enum RowID {
         static let switchProfile = "you.switchProfile"
         static let history = "you.history"
+        static let statistics = "you.statistics"
         static let playlists = "you.playlists"
         static let activity = "you.activity"
         static let dashboard = "you.dashboard"
@@ -31,6 +34,7 @@ final class YouScreen: SettingsScaffold {
 
     private let payload: LaunchPayload
     private let panel = ContextPanel(content: .init(symbol: "person.crop.circle", title: ""))
+    private let yearCard = YearInReviewCardView()
     private var accountName = PlexAccountName.stored
     private var historySubtitle: String?
     private var remoteThrottle = ReloadThrottle(interval: 60)
@@ -39,7 +43,9 @@ final class YouScreen: SettingsScaffold {
     init(payload: LaunchPayload) {
         self.payload = payload
         super.init(title: String(localized: "You"))
-        installContext(panel)
+        installContext(ContextColumn(panel: panel, card: yearCard))
+        yearCard.isHidden = true
+        yearCard.onSelect = { [weak self] in self?.openStatistics() }
         YouConnectionStatus.shared.onChange = { [weak self] _ in self?.refreshProfile() }
         refreshProfile()
     }
@@ -55,12 +61,27 @@ final class YouScreen: SettingsScaffold {
     private func loadRemoteContent() async {
         let api = payload.api
         async let headline = YouHistoryHeadline.latest(api: api)
+        async let summary = YearInReviewSummary.load()
         async let profiles: Void = refreshHomeProfiles()
-        let (newHeadline, _) = await (headline, profiles)
+        let (newHeadline, newSummary, _) = await (headline, summary, profiles)
         guard !Task.isCancelled else { return }
         historySubtitle = newHeadline
+        applyYear(newSummary)
         remoteThrottle.markLoaded()
         refreshRows()
+    }
+
+    private func applyYear(_ summary: YearInReviewSummary?) {
+        if let summary {
+            yearCard.configure(caption: summary.caption, primary: summary.primary, unit: summary.unit, detail: summary.detail, strip: summary.strip)
+        }
+        yearCard.isHidden = summary == nil
+        yearCard.superview?.setNeedsLayout()
+        setNeedsLayout()
+    }
+
+    private func openStatistics() {
+        navigation?.push(StatisticsScreen(api: payload.api))
     }
 
     /// Asks plex.tv how many profiles the account's Home has, which decides whether Switch Profile shows.
@@ -93,6 +114,7 @@ final class YouScreen: SettingsScaffold {
         let state = YouConnectionStatus.shared.state
         var items = [
             RowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
+            RowItem(id: RowID.statistics, title: String(localized: "Statistics"), symbol: "chart.bar", accessory: .chevron),
             RowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
             RowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
             RowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .linux), value: SettingsCatalog.summary(of: .playback, on: .linux),
@@ -132,6 +154,7 @@ final class YouScreen: SettingsScaffold {
         case RowID.switchProfile:
             navigation?.push(ProfilesScreen(machineIdentifier: payload.connection.machineIdentifier) { [weak self] in self?.rootView?.onReconnect?() })
         case RowID.history: navigation?.push(HistoryScreen(api: api))
+        case RowID.statistics: openStatistics()
         case RowID.playlists: navigation?.push(PlaylistScreens.playlists(api: api))
         case RowID.activity: navigation?.push(OwnerScreens.activity(api: api))
         case RowID.dashboard: navigation?.push(ServerDashboardScreen(api: api))
@@ -158,5 +181,34 @@ final class YouScreen: SettingsScaffold {
             break
         }
         refreshRows()
+    }
+}
+
+/// You's left column: the profile panel with the Year in Review card under it while there is a year to show.
+@MainActor
+private final class ContextColumn: View {
+    private let panel: View
+    private let card: View
+
+    init(panel: View, card: View) {
+        self.panel = panel
+        self.card = card
+        super.init()
+        [panel, card].forEach(addSubview)
+    }
+
+    private var spacing: Float { Theme.current.metrics.tv(40) }
+
+    override func sizeThatFits(_ size: Size) -> Size {
+        var height = panel.sizeThatFits(size).height
+        if !card.isHidden { height += spacing + card.sizeThatFits(size).height }
+        return Size(width: size.width, height: height)
+    }
+
+    override func layoutSubviews() {
+        let panelHeight = panel.sizeThatFits(Size(width: frame.width, height: 0)).height
+        panel.frame = Rect(x: 0, y: 0, width: frame.width, height: panelHeight)
+        let cardHeight = card.sizeThatFits(Size(width: frame.width, height: 0)).height
+        card.frame = Rect(x: 0, y: panelHeight + spacing, width: frame.width, height: cardHeight)
     }
 }

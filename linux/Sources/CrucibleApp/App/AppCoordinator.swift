@@ -1,10 +1,11 @@
 import CrucibleCore
+import CrucibleStats
 import CrucibleUI
 import Foundation
 import Kiln
 import MidgarCore
 
-/// What a sign-out or a server change resets above Core on Linux: the image cache.
+/// What a sign-out or a server change resets above Core on Linux: the statistics mirror and the image cache.
 @MainActor
 enum LinuxSession {
     static var imageCacheDirectory: URL { AppPlatform.cachesDirectory.appendingPathComponent("images") }
@@ -17,7 +18,7 @@ enum LinuxSession {
 
     static var collaborators: AccountSessionCollaborators {
         AccountSessionCollaborators(
-            resetStats: {},
+            resetStats: { StatsManager.shared.handleSignOut() },
             clearImageCache: { try? FileManager.default.removeItem(at: imageCacheDirectory) }
         )
     }
@@ -84,6 +85,8 @@ final class AppCoordinator: WindowDelegate {
     }
 
     private func showMain(_ payload: LaunchPayload) {
+        StatsManager.shared.configure(api: payload.api)
+        StatsManager.shared.kickBackgroundSync()
         Artwork.pipeline = PlexArtworkPipeline(baseURL: payload.connection.serverURI)
         window.useImages(diskDirectory: LinuxSession.imageCacheDirectory, fetch: PlexArtworkPipeline.fetcher(token: payload.connection.authToken))
         ArtworkShapes.shared.use(file: LinuxSession.artworkShapesFile(machineIdentifier: payload.connection.machineIdentifier))
