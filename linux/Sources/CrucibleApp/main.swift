@@ -111,10 +111,26 @@ func captureKey(_ character: Character) -> KeyEvent? {
     return KeyEvent(key: .character(character), text: String(character))
 }
 
+/// Presses a capture's keys in order, moving the pointer for each `{X,Y}` among them.
+@MainActor
+func performCaptureInput(_ keys: String, in window: Window) {
+    var rest = Substring(keys)
+    while let character = rest.first {
+        if character == "{", let close = rest.firstIndex(of: "}") {
+            let numbers = rest[rest.index(after: rest.startIndex)..<close].split(separator: ",").compactMap { Float($0) }
+            if numbers.count == 2 { window.handlePointerMoved(to: Point(x: numbers[0], y: numbers[1])) }
+            rest = rest[rest.index(after: close)...]
+            continue
+        }
+        if let event = captureKey(character) { window.handleKey(event) }
+        rest = rest.dropFirst()
+    }
+}
+
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
-/// Ctrl with it, `+` and `-` Ctrl with them, any other character itself, in order),
-/// waits a moment and writes the window to PATH; the app quits after the last.
+/// Ctrl with it, `+` and `-` Ctrl with them, `{X,Y}` moves the pointer to that point of the window, any other character
+/// itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }
@@ -123,9 +139,7 @@ func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoo
         let parts = spec.split(separator: ":", maxSplits: 2, omittingEmptySubsequences: false).map(String.init)
         guard parts.count == 3, let seconds = Double(parts[0]) else { continue }
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
-            MainActor.assumeIsolated {
-                for character in parts[1] { if let event = captureKey(character) { window.handleKey(event) } }
-            }
+            MainActor.assumeIsolated { performCaptureInput(parts[1], in: window) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 MainActor.assumeIsolated {
                     let capture = window.capture()
