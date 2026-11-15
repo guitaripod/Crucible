@@ -134,6 +134,7 @@ final class AppCoordinator: WindowDelegate {
         root = main
         install(main)
         router.activate(main)
+        main.restoreWindow()
         newsWatcher?.start()
         NewsTimer.sync()
     }
@@ -186,6 +187,7 @@ final class AppCoordinator: WindowDelegate {
         MidgarLog.notice("Signing out", category: .lifecycle)
         launchTask?.cancel()
         AccountSessionReset.signOut(LinuxSession.collaborators)
+        WindowRestoration.forget()
         NewsTimer.sync()
         root = nil
         showOnboarding(.signIn)

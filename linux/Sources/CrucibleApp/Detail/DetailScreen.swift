@@ -31,13 +31,18 @@ class DetailScreen: ScreenView {
     }
 
     static func make(api: APIClient, route: DetailRoute, placeholder: PlexMetadata? = nil) -> DetailScreen {
-        switch route {
+        let screen: DetailScreen = switch route {
         case .show(let ratingKey, let season):
             ShowDetailScreen(api: api, ratingKey: ratingKey, initialSeasonKey: season, placeholder: placeholder)
         case .item(let ratingKey, _, let showKey, let seasonKey):
             MediaDetailScreen(api: api, ratingKey: ratingKey, showRatingKey: showKey, seasonRatingKey: seasonKey, placeholder: placeholder)
         }
+        screen.route = route
+        return screen
     }
+
+    /// The title this page shows, which a relaunch reopens (`WindowRestoration`).
+    private(set) var route: DetailRoute?
 
     init(api: APIClient, placeholder: PlexMetadata?) {
         self.api = api

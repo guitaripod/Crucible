@@ -46,6 +46,23 @@ final class RootView: View {
         select("home")
     }
 
+    /// Opens the tab and title the window showed when Crucible last ran on this server.
+    func restoreWindow() {
+        defer { remembersWindow = true }
+        guard !DemoMode.shared.isActive, let state = WindowRestoration.restore(), tabBar.tabs.contains(where: { $0.id == state.tab }) else { return }
+        select(state.tab)
+        if let route = state.route { push(DetailScreen.make(api: payload.api, route: route)) }
+    }
+
+    /// Off until the last launch's window is back, so opening on Home does not overwrite it first.
+    private var remembersWindow = false
+
+    /// Remembers the tab and the title on top of it for the next launch.
+    private func rememberWindow() {
+        guard remembersWindow, !DemoMode.shared.isActive else { return }
+        WindowRestoration.save(.init(tab: currentID, route: (current?.top as? DetailScreen)?.route))
+    }
+
     override var preferredFocusView: View? { current }
 
     private func makeStack(for id: String) -> NavigationView {
@@ -86,6 +103,7 @@ final class RootView: View {
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
         if existed { stack.top?.screenDidAppear() }
+        rememberWindow()
     }
 
     /// Opens the first library's tab, or More when every library is there (the demo tour's Browse a library).
@@ -96,6 +114,7 @@ final class RootView: View {
 
     private func navigationChanged() {
         tabBar.setHidden(false, animated: true)
+        rememberWindow()
     }
 
     /// Escape: back out of a pushed screen, or from a root screen up to the tab bar.
