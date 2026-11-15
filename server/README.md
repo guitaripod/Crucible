@@ -58,9 +58,10 @@ Needs ffmpeg for subtitles.
 
 ## The model
 
-Recaps and answers come from any OpenAI-compatible endpoint. `setup` looks for llama-swap, Ollama and LM Studio on
-this machine; `crucible-server model` changes the choice later without signing in to Plex again, asks the model a
-tiny question to see that it answers, and restarts the service this user installed (restart a container yourself).
+Recaps, answers and Sports Research come from any OpenAI-compatible endpoint. `setup` looks for llama-swap, Ollama and
+LM Studio on this machine and lists their models by name, a loaded one with a large enough window first;
+`crucible-server model` changes the choice later without signing in to Plex again, asks the model a tiny question to
+see that it answers, and restarts the service this user installed (restart a container yourself).
 
 ```sh
 crucible-server model --url http://gamingpc:8081/v1 --name NAME                           # a model server on your tailnet
@@ -102,13 +103,14 @@ Plex has no agent for sports, so a recording in an Other Videos library shows up
 the event's artwork, and does it again on its own whenever a new file arrives.
 
 It is for people who run a capable model: one that calls tools, thinks before it answers and has a context window of
-32K tokens or more. Each file is researched by the model itself: it searches the web, reads the league's own event
-page and Wikipedia, and hands in a record. The server checks the record before anything reaches Plex: the date must
-be real and before the file arrived, an event number in the file name must match, the sources must be pages the model
-actually saw, and nothing may give away a result. Then it writes the title, sort title, date, summary, studio,
-genre, collection and artwork through Plex's own API, every field locked so Plex's agents leave it alone. The media
-files are never opened, moved or renamed, so a torrent client can keep seeding them. Change a field by hand in Plex
-and the server leaves that item to you from then on.
+32K tokens or more. In practice that is a model of about 20 billion parameters or more on a graphics card with 16 GB
+of memory (24 GB is comfortable), or on an Apple silicon Mac with 32 GB or more. Each file is researched by the model
+itself: it searches the web, reads the league's own event page and Wikipedia, and hands in a record. The server checks
+the record before anything reaches Plex: the date must be real and before the file arrived, an event number in the
+file name must match, the sources must be pages the model actually saw, and nothing may give away a result. Then it
+writes the title, sort title, date, summary, studio, genre, collection and artwork through Plex's own API, every field
+locked so Plex's agents leave it alone. The media files are never opened, moved or renamed, so a torrent client can
+keep seeding them. Change a field by hand in Plex and the server leaves that item to you from then on.
 
 ```sh
 crucible-server sports                                                   # every requirement, checked live
@@ -123,8 +125,8 @@ public addresses, checked again on every redirect.
 
 Crucible on iPhone, iPad and Apple TV shows every requirement with whether it is met and how to meet it, lets the
 owner choose libraries, agree and switch research on, shows the file being researched and the step the model is on,
-and lists what it made of each file. With Nemotron 3.5 Bolt on llama.cpp, a UFC event takes 15 to 60 seconds;
-the other parts of the same event reuse it.
+and lists what it made of each file. With Nemotron 3.5 Bolt on llama.cpp, a UFC event takes about a minute and the
+other parts of the same event reuse it; with a model on your own machines, four events are researched at once.
 
 ## How it keeps you safe
 

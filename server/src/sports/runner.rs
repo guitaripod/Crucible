@@ -171,7 +171,7 @@ fn web_for(paths: &Paths, settings: &Settings) -> Option<Web> {
     Some(Web::new(engine, key))
 }
 
-/// How many files are researched at once: several on a model on the owner's own machines, which serves requests side by
+/// How many events are researched at once: several on a model on the owner's own machines, which serves requests side by
 /// side, and one at a time on a hosted model, which bills and rate-limits each request.
 fn research_at_once(model: &Model) -> usize {
     match crate::net::model_place(&model.url) {
