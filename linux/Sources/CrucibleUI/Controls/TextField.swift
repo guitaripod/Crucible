@@ -3,7 +3,7 @@ import Kiln
 
 /// A one-line text field in a glass capsule (the desk's Search field): typing inserts at the caret, Backspace and Delete
 /// remove a character or with Ctrl a word, Left and Right move the caret, Home and End jump, Ctrl+A selects everything so
-/// the next key replaces it, Escape clears and then lets go. The caret blinks while the field has focus.
+/// the next key replaces it, Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste, Escape clears and then lets go. The caret blinks while the field has focus.
 @MainActor
 public final class TextFieldView: View {
     public var text = "" { didSet { if text != oldValue { caret = min(caret, text.count); setNeedsDisplay() } } }
@@ -64,6 +64,30 @@ public final class TextFieldView: View {
         setNeedsDisplay()
     }
 
+    /// Copy and Cut take the whole text once Ctrl+A selected it (never a secure field's) and otherwise pass the key on, so
+    /// the window copies text selected elsewhere; Paste inserts at the caret, or replaces the selection, with line breaks
+    /// turned into spaces.
+    private func perform(_ command: ClipboardCommand) -> Bool {
+        switch command {
+        case .copy, .cut:
+            guard selectAll, !isSecure else { return false }
+            window?.copy(text)
+            if command == .cut { edit { _, _ in } }
+        case .paste:
+            guard let pasted = window?.pasteboardText().map(TextFieldView.oneLine), !pasted.isEmpty else { return true }
+            edit { characters, caret in
+                characters.insert(contentsOf: Array(pasted), at: caret)
+                caret += pasted.count
+            }
+        }
+        return true
+    }
+
+    /// Pasted text as one line: surrounding whitespace dropped, breaks and tabs inside it made spaces.
+    private static func oneLine(_ text: String) -> String {
+        String(text.trimmingCharacters(in: .whitespacesAndNewlines).map { $0.isNewline || $0 == "\t" ? " " : $0 })
+    }
+
     /// Where a word ends going left from `index`.
     private func wordStart(_ characters: [Character], from index: Int) -> Int {
         var position = index
@@ -81,6 +105,7 @@ public final class TextFieldView: View {
     }
 
     public override func keyPressed(_ event: KeyEvent) -> Bool {
+        if let command = event.clipboardCommand { return perform(command) }
         let control = event.modifiers.contains(.control)
         switch event.key {
         case .backspace:

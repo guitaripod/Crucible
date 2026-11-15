@@ -131,6 +131,11 @@ bool kiln_wl_raise(kiln_wl *wl);
 
 /** Sets the pointer's cursor over the window (a link hand over clickable content, hidden while video plays). */
 void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor);
+/** Makes `text` the clipboard, as of the latest key or button press. */
+bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text);
+/** The clipboard as UTF-8 text, to free, or NULL when it holds none; another app's clipboard is read for up to half a
+ * second without an answer. */
+char *kiln_wl_clipboard_text(kiln_wl *wl);
 
 /** Hands libdispatch's main-queue handle to the event loop, as CoreFoundation's run loop does. */
 int kiln_dispatch_main_queue_handle(void);

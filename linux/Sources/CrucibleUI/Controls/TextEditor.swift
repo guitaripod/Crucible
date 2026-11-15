@@ -4,8 +4,8 @@ import Kiln
 /// A multi-line text editor (a comment or a review): text wraps to the width and the editor grows with it up to
 /// `maximumLines`, then scrolls to keep the caret in view. Typing inserts at the caret, Return starts a new line and
 /// Ctrl+Return submits, Backspace and Delete remove a character or with Ctrl a word, the arrows move the caret by
-/// character, word (Ctrl) and visual line, Home and End go to the line's ends (with Ctrl, the text's), and Ctrl+A selects
-/// everything so the next key replaces it. Up on the first line and Down on the last let the focus move on.
+/// character, word (Ctrl) and visual line, Home and End go to the line's ends (with Ctrl, the text's), Ctrl+A selects
+/// everything so the next key replaces it, and Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste. Up on the first line and Down on the last let the focus move on.
 @MainActor
 public final class TextEditorView: View {
     public private(set) var text = ""
@@ -152,6 +152,7 @@ public final class TextEditorView: View {
     }
 
     public override func keyPressed(_ event: KeyEvent) -> Bool {
+        if let command = event.clipboardCommand { return perform(command) }
         let control = event.modifiers.contains(.control)
         switch event.key {
         case .return, .keypadEnter:
@@ -226,6 +227,24 @@ public final class TextEditorView: View {
         edit { characters, caret in
             characters.insert(contentsOf: Array(typed), at: caret)
             caret += typed.count
+        }
+        return true
+    }
+
+    /// Copy and Cut take the whole text once Ctrl+A selected it and otherwise pass the key on, so the window copies text
+    /// selected elsewhere; Paste inserts at the caret, or replaces the selection, with Windows line ends made plain.
+    private func perform(_ command: ClipboardCommand) -> Bool {
+        switch command {
+        case .copy, .cut:
+            guard selectAll else { return false }
+            window?.copy(text)
+            if command == .cut { edit { _, _ in } }
+        case .paste:
+            guard let pasted = window?.pasteboardText()?.replacingOccurrences(of: "\r\n", with: "\n"), !pasted.isEmpty else { return true }
+            edit { characters, caret in
+                characters.insert(contentsOf: Array(pasted), at: caret)
+                caret += pasted.count
+            }
         }
         return true
     }

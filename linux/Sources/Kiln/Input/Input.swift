@@ -30,6 +30,31 @@ public struct KeyEvent: Sendable {
         guard let scalar = text.unicodeScalars.first, scalar.value >= 0x20, scalar.value != 0x7F else { return nil }
         return text
     }
+
+    /// The clipboard command the key asks for: Ctrl+C, Ctrl+X and Ctrl+V, with or without Shift, and the older
+    /// Ctrl+Insert, Shift+Delete and Shift+Insert.
+    public var clipboardCommand: ClipboardCommand? {
+        let control = modifiers.contains(.control)
+        let shift = modifiers.contains(.shift)
+        guard modifiers.isDisjoint(with: [.alt, .super]) else { return nil }
+        switch key {
+        case .insert where control && !shift: return .copy
+        case .insert where shift && !control: return .paste
+        case .delete where shift && !control: return .cut
+        default: break
+        }
+        guard control, let letter = Unicode.Scalar(key.rawValue).map({ Character($0).lowercased() }) else { return nil }
+        switch letter {
+        case "c": return .copy
+        case "x": return .cut
+        case "v": return .paste
+        default: return nil
+        }
+    }
+}
+
+public enum ClipboardCommand: Sendable {
+    case copy, cut, paste
 }
 
 /// An X keysym, with names for the keys Kiln and Crucible bind.
@@ -52,6 +77,7 @@ public struct Key: Hashable, Sendable {
     public static let leftTab = Key(0xFE20)
     public static let backspace = Key(0xFF08)
     public static let delete = Key(0xFFFF)
+    public static let insert = Key(0xFF63)
     public static let space = Key(0x0020)
     public static let menu = Key(0xFF67)
     public static let f1 = Key(0xFFBE)

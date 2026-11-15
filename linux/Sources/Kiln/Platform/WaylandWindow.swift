@@ -1,4 +1,7 @@
 import CKiln
+#if canImport(Glibc)
+import Glibc
+#endif
 
 /// What the window reports back to its owner, on the main actor.
 @MainActor
@@ -91,6 +94,19 @@ public final class WaylandWindow {
     @discardableResult
     public func inhibitIdle(_ inhibit: Bool) -> Bool {
         kiln_wl_inhibit_idle(connection, inhibit)
+    }
+
+    /// Makes `text` the clipboard.
+    @discardableResult
+    public func setClipboard(_ text: String) -> Bool {
+        kiln_wl_set_clipboard(connection, text)
+    }
+
+    /// The clipboard's text, or nil when it holds none.
+    public func clipboardText() -> String? {
+        guard let raw = kiln_wl_clipboard_text(connection) else { return nil }
+        defer { free(raw) }
+        return String(cString: raw)
     }
 
     /// Raises and focuses the window with a launcher's xdg-activation token.

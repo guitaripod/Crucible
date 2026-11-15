@@ -191,6 +191,20 @@ public final class Window {
         surface?.activate(token: token) ?? false
     }
 
+    /// Puts `text` on the desktop's clipboard (Ctrl+C, a menu's Copy). Headless windows keep it to themselves.
+    public func copy(_ text: String) {
+        localClipboard = text
+        surface?.setClipboard(text)
+    }
+
+    /// The desktop clipboard's text (Ctrl+V), or what this window copied when it has no desktop.
+    public func pasteboardText() -> String? {
+        guard let surface else { return localClipboard }
+        return surface.clipboardText()
+    }
+
+    private var localClipboard: String?
+
     /// Brings the window forward on a request that came with no token (the desktop's media controls).
     @discardableResult
     public func raise() -> Bool {

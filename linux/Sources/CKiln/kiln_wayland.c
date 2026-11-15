@@ -1,7 +1,10 @@
 #include "CKiln.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -28,6 +31,16 @@ struct kiln_wl {
     struct wl_keyboard *keyboard;
     struct wp_cursor_shape_device_v1 *cursor_device;
     uint32_t pointer_serial;
+    /** The latest key or button press, which a clipboard change must name. */
+    uint32_t input_serial;
+    struct wl_data_device_manager *data_manager;
+    struct wl_data_device *data_device;
+    /** What other clients offer as the clipboard, and the drag offered while one is over the window. */
+    struct wl_data_offer *selection_offer;
+    struct wl_data_offer *drag_offer;
+    /** The clipboard this app set, answered from memory while it holds the selection. */
+    struct wl_data_source *own_source;
+    char *own_text;
     uint32_t cursor_shape;
     struct xkb_context *xkb;
     struct xkb_keymap *xkb_keymap;
@@ -124,6 +137,7 @@ static void pointer_motion(void *data, struct wl_pointer *pointer, uint32_t time
 
 static void pointer_button(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
     kiln_wl *wl = data;
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED) wl->input_serial = serial;
     if (wl->callbacks.pointer_button) wl->callbacks.pointer_button(wl->context, button, state == WL_POINTER_BUTTON_STATE_PRESSED);
 }
 
@@ -234,6 +248,7 @@ static uint32_t keyboard_modifier_mask(kiln_wl *wl) {
 
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface, struct wl_array *keys) {
     kiln_wl *wl = data;
+    wl->input_serial = serial;
     if (wl->callbacks.keyboard_focus) wl->callbacks.keyboard_focus(wl->context, true);
 }
 
@@ -246,6 +261,7 @@ static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t se
  * the keymap lets it repeat. */
 static void keyboard_key(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) {
     kiln_wl *wl = data;
+    if (state == WL_KEYBOARD_KEY_STATE_PRESSED) wl->input_serial = serial;
     if (!wl->callbacks.key) return;
     kiln_wl_key event = { .code = key, .pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED };
     if (wl->xkb_state) {
@@ -322,6 +338,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
         wl->cursor_manager = wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, 1);
     } else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
         wl->activation = wl_registry_bind(registry, name, &xdg_activation_v1_interface, 1);
+    } else if (strcmp(interface, wl_data_device_manager_interface.name) == 0) {
+        wl->data_manager = wl_registry_bind(registry, name, &wl_data_device_manager_interface, kiln_min(version, 3));
     } else if (strcmp(interface, wl_seat_interface.name) == 0 && !wl->seat) {
         wl->seat = wl_registry_bind(registry, name, &wl_seat_interface, kiln_min(version, 9));
         wl_seat_add_listener(wl->seat, &seat_listener, wl);
@@ -329,6 +347,163 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
 }
 
 static void registry_remove(void *data, struct wl_registry *registry, uint32_t name) {}
+
+enum { OFFER_UTF8 = 1, OFFER_UTF8_STRING = 2, OFFER_PLAIN = 4 };
+
+static void offer_offer(void *data, struct wl_data_offer *offer, const char *mime) {
+    uintptr_t kinds = (uintptr_t) wl_data_offer_get_user_data(offer);
+    if (strcmp(mime, "text/plain;charset=utf-8") == 0) kinds |= OFFER_UTF8;
+    else if (strcmp(mime, "UTF8_STRING") == 0) kinds |= OFFER_UTF8_STRING;
+    else if (strcmp(mime, "text/plain") == 0) kinds |= OFFER_PLAIN;
+    wl_data_offer_set_user_data(offer, (void *) kinds);
+}
+
+static void offer_source_actions(void *data, struct wl_data_offer *offer, uint32_t actions) {}
+static void offer_action(void *data, struct wl_data_offer *offer, uint32_t action) {}
+
+static const struct wl_data_offer_listener offer_listener = {
+    .offer = offer_offer,
+    .source_actions = offer_source_actions,
+    .action = offer_action,
+};
+
+static void device_data_offer(void *data, struct wl_data_device *device, struct wl_data_offer *offer) {
+    wl_data_offer_set_user_data(offer, (void *) 0);
+    wl_data_offer_add_listener(offer, &offer_listener, (void *) 0);
+}
+
+static void device_enter(void *data, struct wl_data_device *device, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y,
+                         struct wl_data_offer *offer) {
+    kiln_wl *wl = data;
+    if (wl->drag_offer) wl_data_offer_destroy(wl->drag_offer);
+    wl->drag_offer = offer;
+}
+
+static void device_leave(void *data, struct wl_data_device *device) {
+    kiln_wl *wl = data;
+    if (wl->drag_offer) wl_data_offer_destroy(wl->drag_offer);
+    wl->drag_offer = NULL;
+}
+
+static void device_motion(void *data, struct wl_data_device *device, uint32_t time, wl_fixed_t x, wl_fixed_t y) {}
+static void device_drop(void *data, struct wl_data_device *device) {}
+
+static void device_selection(void *data, struct wl_data_device *device, struct wl_data_offer *offer) {
+    kiln_wl *wl = data;
+    if (wl->selection_offer && wl->selection_offer != offer) wl_data_offer_destroy(wl->selection_offer);
+    wl->selection_offer = offer;
+}
+
+static const struct wl_data_device_listener device_listener = {
+    .data_offer = device_data_offer,
+    .enter = device_enter,
+    .leave = device_leave,
+    .motion = device_motion,
+    .drop = device_drop,
+    .selection = device_selection,
+};
+
+static void source_target(void *data, struct wl_data_source *source, const char *mime) {}
+
+/** Writes `text` into a pipe another client reads: never raising the SIGPIPE that would end the app when the reader has
+ * gone, and giving up after half a second without progress rather than stalling the window. */
+static void write_to_reader(int fd, const char *text, size_t left) {
+    sigset_t pipe_signal, previous;
+    sigemptyset(&pipe_signal);
+    sigaddset(&pipe_signal, SIGPIPE);
+    pthread_sigmask(SIG_BLOCK, &pipe_signal, &previous);
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+    bool broken = false;
+    struct pollfd writer = { .fd = fd, .events = POLLOUT };
+    while (left > 0) {
+        ssize_t written = write(fd, text, left);
+        if (written > 0) {
+            text += written;
+            left -= (size_t) written;
+        } else if (written < 0 && (errno == EAGAIN || errno == EINTR)) {
+            if (errno == EAGAIN && poll(&writer, 1, 500) <= 0) break;
+        } else {
+            broken = written < 0 && errno == EPIPE;
+            break;
+        }
+    }
+    if (broken && !sigismember(&previous, SIGPIPE)) {
+        struct timespec now = { 0, 0 };
+        sigtimedwait(&pipe_signal, NULL, &now);
+    }
+    pthread_sigmask(SIG_SETMASK, &previous, NULL);
+}
+
+/** Answers another client's paste with this app's clipboard text. */
+static void source_send(void *data, struct wl_data_source *source, const char *mime, int32_t fd) {
+    kiln_wl *wl = data;
+    const char *text = wl->own_source == source && wl->own_text ? wl->own_text : "";
+    write_to_reader(fd, text, strlen(text));
+    close(fd);
+}
+
+static void source_cancelled(void *data, struct wl_data_source *source) {
+    kiln_wl *wl = data;
+    if (wl->own_source == source) {
+        wl->own_source = NULL;
+        free(wl->own_text);
+        wl->own_text = NULL;
+    }
+    wl_data_source_destroy(source);
+}
+
+static const struct wl_data_source_listener source_listener = { .target = source_target, .send = source_send, .cancelled = source_cancelled };
+
+bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text) {
+    if (!wl->data_device || !text) return false;
+    struct wl_data_source *source = wl_data_device_manager_create_data_source(wl->data_manager);
+    if (!source) return false;
+    wl_data_source_add_listener(source, &source_listener, wl);
+    wl_data_source_offer(source, "text/plain;charset=utf-8");
+    wl_data_source_offer(source, "UTF8_STRING");
+    wl_data_source_offer(source, "text/plain");
+    if (wl->own_source) wl_data_source_destroy(wl->own_source);
+    free(wl->own_text);
+    wl->own_source = source;
+    wl->own_text = strdup(text);
+    wl_data_device_set_selection(wl->data_device, source, wl->input_serial);
+    wl_display_flush(wl->display);
+    return true;
+}
+
+char *kiln_wl_clipboard_text(kiln_wl *wl) {
+    if (wl->own_source && wl->own_text) return strdup(wl->own_text);
+    struct wl_data_offer *offer = wl->selection_offer;
+    if (!offer) return NULL;
+    uintptr_t kinds = (uintptr_t) wl_data_offer_get_user_data(offer);
+    const char *mime = kinds & OFFER_UTF8 ? "text/plain;charset=utf-8" : kinds & OFFER_UTF8_STRING ? "UTF8_STRING" : kinds & OFFER_PLAIN ? "text/plain" : NULL;
+    if (!mime) return NULL;
+    int fds[2];
+    if (pipe(fds) != 0) return NULL;
+    fcntl(fds[0], F_SETFD, FD_CLOEXEC);
+    fcntl(fds[1], F_SETFD, FD_CLOEXEC);
+    wl_data_offer_receive(offer, mime, fds[1]);
+    close(fds[1]);
+    wl_display_flush(wl->display);
+    size_t length = 0, capacity = 4096;
+    char *text = malloc(capacity);
+    struct pollfd reader = { .fd = fds[0], .events = POLLIN };
+    while (text && poll(&reader, 1, 500) > 0) {
+        if (length + 1024 >= capacity) {
+            if (capacity >= (1 << 20)) break;
+            char *grown = realloc(text, capacity * 2);
+            if (!grown) break;
+            text = grown;
+            capacity *= 2;
+        }
+        ssize_t got = read(fds[0], text + length, capacity - length - 1);
+        if (got <= 0) break;
+        length += (size_t) got;
+    }
+    close(fds[0]);
+    if (text) text[length] = 0;
+    return text;
+}
 
 static const struct wl_registry_listener registry_listener = { .global = registry_global, .global_remove = registry_remove };
 
@@ -343,6 +518,10 @@ kiln_wl *kiln_wl_connect(const char *name) {
     wl_registry_add_listener(wl->registry, &registry_listener, wl);
     wl_display_roundtrip(display);
     wl_display_roundtrip(display);
+    if (wl->data_manager && wl->seat) {
+        wl->data_device = wl_data_device_manager_get_data_device(wl->data_manager, wl->seat);
+        wl_data_device_add_listener(wl->data_device, &device_listener, wl);
+    }
     if (!wl->compositor || !wl->wm_base) {
         kiln_wl_disconnect(wl);
         return NULL;
@@ -363,6 +542,15 @@ void kiln_wl_disconnect(kiln_wl *wl) {
     if (wl->xdg_surface) xdg_surface_destroy(wl->xdg_surface);
     if (wl->surface) wl_surface_destroy(wl->surface);
     if (wl->cursor_device) wp_cursor_shape_device_v1_destroy(wl->cursor_device);
+    if (wl->own_source) wl_data_source_destroy(wl->own_source);
+    free(wl->own_text);
+    if (wl->selection_offer) wl_data_offer_destroy(wl->selection_offer);
+    if (wl->drag_offer) wl_data_offer_destroy(wl->drag_offer);
+    if (wl->data_device) {
+        if (wl_data_device_get_version(wl->data_device) >= WL_DATA_DEVICE_RELEASE_SINCE_VERSION) wl_data_device_release(wl->data_device);
+        else wl_data_device_destroy(wl->data_device);
+    }
+    if (wl->data_manager) wl_data_device_manager_destroy(wl->data_manager);
     if (wl->pointer) wl_pointer_release(wl->pointer);
     if (wl->keyboard) wl_keyboard_release(wl->keyboard);
     if (wl->xkb_state) xkb_state_unref(wl->xkb_state);

@@ -156,6 +156,45 @@ enum SharedGPU {
         window.render()
     }
 
+    @Test func aTextFieldCopiesCutsAndPastesItsSelection() {
+        let field = TextFieldView(placeholder: "Search")
+        field.frame = Rect(x: 0, y: 0, width: 600, height: 60)
+        window.contentView.addSubview(field)
+        window.focus.focus(field, animated: false)
+        for character in "salt flats" { window.handleKey(KeyEvent(key: Key.character(character), text: String(character))) }
+        window.copy("before")
+        window.handleKey(KeyEvent(key: Key.character("c"), modifiers: .control))
+        #expect(window.pasteboardText() == "before", "Ctrl+C copies nothing until Ctrl+A selects")
+        window.handleKey(KeyEvent(key: Key.character("a"), modifiers: .control))
+        window.handleKey(KeyEvent(key: Key.character("x"), modifiers: .control))
+        #expect(window.pasteboardText() == "salt flats")
+        #expect(field.text.isEmpty)
+        window.copy("  Low\r\nTide\t2  \n")
+        window.handleKey(KeyEvent(key: Key.character("v"), modifiers: .control))
+        #expect(field.text == "Low Tide 2", "a paste is one line, trimmed")
+        window.handleKey(KeyEvent(key: .insert, modifiers: .shift))
+        #expect(field.text == "Low Tide 2Low Tide 2")
+        field.isSecure = true
+        window.handleKey(KeyEvent(key: Key.character("a"), modifiers: .control))
+        window.handleKey(KeyEvent(key: Key.character("c"), modifiers: .control))
+        #expect(window.pasteboardText() == "  Low\r\nTide\t2  \n", "a secure field never copies")
+        field.removeFromSuperview()
+    }
+
+    @Test func aTextEditorPastesLinesAsTheyAre() {
+        let editor = TextEditorView(placeholder: "Comment")
+        editor.frame = Rect(x: 0, y: 0, width: 600, height: 200)
+        window.contentView.addSubview(editor)
+        window.focus.focus(editor, animated: false)
+        window.copy("First line\r\nSecond line")
+        window.handleKey(KeyEvent(key: Key.character("v"), modifiers: .control))
+        #expect(editor.text == "First line\nSecond line")
+        window.handleKey(KeyEvent(key: Key.character("a"), modifiers: .control))
+        window.handleKey(KeyEvent(key: Key.character("c"), modifiers: .control))
+        #expect(window.pasteboardText() == "First line\nSecond line")
+        editor.removeFromSuperview()
+    }
+
     @Test func closingAMenuOrAlertHandsFocusStraightBack() {
         let anchor = ButtonView(style: .glass, title: "Manage")
         let neighbour = ButtonView(style: .glass, title: "Neighbour")
