@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 52 | 2 | 2 | 1 |
+| Sign in, launch, tabs and navigation | 53 | 2 | 1 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 75 | 7 | 21 | 0 |
-| **All** | 641 | 12 | 33 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 76 | 7 | 20 | 0 |
+| **All** | 643 | 12 | 31 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -74,7 +74,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-server-change-reset` (S) When the saved server's machine identifier changes, server-scoped state is reconciled before the app launches on it. _Apple TV: Sources/CrucibleTV/App/TVAppCoordinator.swift:175 (AccountSessionReset.reconcileServer)_
 - [x] `shell-server-connect-failure-keeps-list` (S) A connection that fails for a chosen server keeps the server list on screen with the error line above it, and an unreachable address leads to Add by Address with the message. _Apple TV: Sources/CrucibleTV/Onboarding/TVChooseServerViewController.swift:236-247 (connect outcomes: failed shows inline error, needsAddress opens Add by Address)_
 - [x] `shell-forward-navigation` (M) Forward works from Alt+Right and the mouse forward button, re-pushing the screen that Back popped (docs/LINUX.md section 6). Linux-only requirement; the Apple TV has no forward history.
-- [ ] `shell-gdm-discovery` (M) Server discovery on Linux also finds Plex servers on the local network with GDM over UDP (multicast 239.0.0.250:32414, broadcast 32412), beside plex.tv resources and the tailnet routes (docs/LINUX.md section 9). Linux-only requirement. Gap: No GDM client exists; server discovery on Linux relies on plex.tv resources only, so a server that is not on plex.tv's list cannot be found on the LAN.
+- [x] `shell-gdm-discovery` (M) Server discovery on Linux also finds Plex servers on the local network with GDM over UDP (multicast 239.0.0.250 and broadcast on UDP 32414), beside plex.tv resources and the tailnet routes (docs/LINUX.md section 9). Linux-only requirement.
 - [ ] `shell-couch-launch-flag` (S) **partial** crucible --couch starts the app in the couch density and fullscreen, for use as a non-Steam shortcut in Big Picture with a Steam Input template (docs/LINUX.md section 9). Gap: The flag works, but the Steam Input template is not in the repo: no Steam Input template exists under linux/ or docs/ beyond the design line.
 
 ## Home and libraries
@@ -703,7 +703,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `mpris-raise-quit` (S) MPRIS Raise brings the window forward and Quit quits the app _Apple TV: docs/LINUX.md §9 Media keys and desktop media controls_
 - [x] `idle-inhibit-wayland` (S) The screen stays awake while a video plays (zwp_idle_inhibit on the window) _Apple TV: docs/LINUX.md §9 Keep the screen awake_
 - [x] `idle-inhibit-screensaver-fallback` (S) Screen stays awake through org.freedesktop.ScreenSaver.Inhibit where idle inhibit is unavailable, such as gamescope _Apple TV: docs/LINUX.md §9 Keep the screen awake_
-- [ ] `gdm-server-discovery` (M) Plex GDM discovery over UDP (multicast 239.0.0.250:32414, broadcast 32412) finds servers on the LAN Gap: No GDM code: nothing in linux/ or Sources/ uses 32414, 32412 or 239.0.0.250. Onboarding discovery uses only plex.tv resources and route probing (Onboarding.swift:289-345). _Apple TV: docs/LINUX.md §9 Find servers_
+- [x] `gdm-server-discovery` (M) Plex GDM discovery over UDP (multicast 239.0.0.250 and broadcast on UDP 32414) finds servers on the LAN _Apple TV: docs/LINUX.md §9 Find servers_
 - [x] `plex-tv-resource-discovery` (S) Server discovery from plex.tv resources and the tailnet routes Core already probes _Apple TV: docs/LINUX.md §9 Find servers_
 - [x] `crucible-uri-registration` (S) crucible:// links open Crucible through the desktop's scheme handler (MimeType x-scheme-handler/crucible) _Apple TV: docs/LINUX.md §9 crucible:// links and one instance_
 - [x] `crucible-link-open` (S) A crucible:// link opens its item or starts playback (crucible://item/... and crucible://play/...) _Apple TV: docs/LINUX.md §9 crucible:// links and one instance_
