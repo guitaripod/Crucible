@@ -26,6 +26,7 @@ final class YouScreen: SettingsScaffold {
         static let homeRows = "you.homeRows"
         static let libraries = "you.libraries"
         static let server = "you.server"
+        static let crucibleServer = "you.crucibleServer"
         static let trakt = "you.trakt"
         static let seerr = "you.seerr"
         static let requests = "you.requests"
@@ -166,6 +167,7 @@ final class YouScreen: SettingsScaffold {
                     symbol: Symbol(SettingsCatalog.symbol(.homeRows)), accessory: .chevron),
             RowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             RowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
+            RowItem(id: RowID.crucibleServer, title: CompanionCopy.title, value: CrucibleServerCopy.rowValue, symbol: Symbol(SettingsCatalog.symbol(.crucibleServer)), accessory: .chevron),
             RowItem(id: RowID.trakt, title: TraktCopy.name, subtitle: TraktCopy.tagline, value: TraktAccount.shared.rowStatus, symbol: Symbol(SettingsCatalog.symbol(.trakt)),
                     accessory: .chevron, brand: "trakt"),
             RowItem(id: RowID.seerr, title: SeerrCopy.name, subtitle: SeerrCopy.tagline,
@@ -200,7 +202,7 @@ final class YouScreen: SettingsScaffold {
     /// While the demo runs: the quiet way into the tour at the top, no server to manage, and Sign Out becomes Leave the
     /// Demo, since there is no account to sign out of.
     private func adaptForDemo(_ items: inout [RowItem]) {
-        items.removeAll { $0.id == RowID.server }
+        items.removeAll { $0.id == RowID.server || $0.id == RowID.crucibleServer }
         if let signOut = items.firstIndex(where: { $0.id == RowID.signOut }) {
             items[signOut] = RowItem(id: RowID.leaveDemo, title: String(localized: "Leave the Demo"), symbol: "rectangle.portrait.and.arrow.right",
                                      isDestructive: true)
@@ -225,6 +227,7 @@ final class YouScreen: SettingsScaffold {
         case RowID.homeRows: navigation?.push(HomeRowsScreen())
         case RowID.libraries: navigation?.push(LibrariesScreen(api: api))
         case RowID.server: navigation?.push(ServerConnectionScreen())
+        case RowID.crucibleServer: navigation?.push(CrucibleServerScreen())
         case RowID.trakt: navigation?.push(TraktSettingsScreen())
         case RowID.seerr: navigation?.push(SeerrSettingsScreen(api: api))
         case RowID.requests: navigation?.push(SeerrRequestsScreen(api: api))

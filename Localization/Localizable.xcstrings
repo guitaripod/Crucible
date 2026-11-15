@@ -114413,6 +114413,102 @@
         }
       }
     },
+    "On an iPhone or iPad already paired with Crucible Server, scan this code with the Camera. This computer finishes pairing on its own." : {
+      "comment" : "Shown beside the QR code a Linux computer shows for pairing with Crucible Server",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "På en iPhone eller iPad, der allerede er parret med Crucible Server, scan denne kode med kameraet. Denne computer fuldfører parringen selv."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanne diesen Code mit der Kamera auf einem iPhone oder iPad, das bereits mit Crucible Server gekoppelt ist. Dieser Computer schließt die Kopplung selbstständig ab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escanea este código con la Cámara en un iPhone o iPad ya vinculado con Crucible Server. Este equipo completa la vinculación por sí solo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun iPhone tai iPad on jo paritettu Crucible Serverin kanssa, skannaa tämä koodi kameralla. Tämä tietokone viimeistelee parin muodostamisen itse."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannez ce code avec l’appareil photo sur un iPhone ou un iPad déjà appairé avec Crucible Server. Cet ordinateur termine l’appairage tout seul."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Á iPhone eða iPad sem þegar er tengdur við Crucible Server skaltu skanna þennan kóða með myndavélinni. Þessi tölva lýkur pörun sjálfkrafa."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inquadra questo codice con la Fotocamera da un iPhone o iPad già abbinato a Crucible Server. Questo computer completa l’abbinamento da solo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server とペアリング済みの iPhone または iPad のカメラで、このコードをスキャンしてください。このコンピュータはペアリングを自動的に完了します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Server와 페어링된 iPhone 또는 iPad에서 카메라로 이 코드를 스캔하세요. 이 컴퓨터가 페어링을 자동으로 마쳐요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "På en iPhone eller iPad som allerede er koblet sammen med Crucible Server, skann denne koden med kameraet. Denne datamaskinen fullfører paringen av seg selv."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeskanuj ten kod aparatem na iPhonie lub iPadzie, który jest już sparowany z Crucible Server. Ten komputer dokończy parowanie sam."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escaneie este código com a Câmera em um iPhone ou iPad já pareado com o Crucible Server. Este computador conclui o pareamento sozinho."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "På en iPhone eller iPad som redan är ihopkopplad med Crucible Server, skanna den här koden med Kameran. Den här datorn slutför ihopkopplingen själv."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在已与 Crucible Server 配对的 iPhone 或 iPad 上，用相机扫描此代码。此电脑会自行完成配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在已與 Crucible Server 配對的 iPhone 或 iPad 上，用相機掃描此代碼。此電腦會自行完成配對。"
+          }
+        }
+      }
+    },
     "On any device at home, open Seerr in a browser:" : {
       "comment" : "Seerr guide: open Seerr",
       "localizations" : {

@@ -25,6 +25,10 @@ final class SettingsScreen: ScreenView {
                 self.navigation?.push(OwnModelSettingsScreen())
                 return
             }
+            if item.id == Self.crucibleServerID {
+                self.navigation?.push(CrucibleServerScreen())
+                return
+            }
             guard let category = SettingsCategory(rawValue: item.id) else { return }
             if category == .appearance {
                 self.navigation?.push(AppearanceSettingsScreen())
@@ -38,6 +42,7 @@ final class SettingsScreen: ScreenView {
     override var preferredFocusView: View? { rows }
 
     private static let ownModelID = "linux.ownModel"
+    private static let crucibleServerID = "linux.crucibleServer"
 
     override func screenDidAppear() {
         render()
@@ -67,6 +72,12 @@ final class SettingsScreen: ScreenView {
                                value: OwnModel.model ?? OwnModelCopy.notSet, symbol: "sparkles", accessory: .chevron)
         let after = items.firstIndex { $0.id == SettingsCategory.integrations.rawValue }.map { $0 + 1 } ?? items.count
         items.insert(ownModel, at: after)
+        if !DemoMode.shared.isActive {
+            let server = RowItem(id: Self.crucibleServerID, title: CompanionCopy.title, subtitle: CompanionCopy.pitch, value: CrucibleServerCopy.rowValue,
+                                 symbol: Symbol(SettingsCatalog.symbol(.crucibleServer)), accessory: .chevron)
+            let connection = items.firstIndex { $0.id == SettingsCategory.connection.rawValue }.map { $0 + 1 } ?? items.count
+            items.insert(server, at: connection)
+        }
         rows.setItems(items)
         setNeedsLayout()
     }
