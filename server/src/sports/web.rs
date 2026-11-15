@@ -229,6 +229,9 @@ fn is_public(ip: IpAddr) -> bool {
         }
         IpAddr::V6(v6) => {
             let segments = v6.segments();
+            if segments[..3] == [0x64, 0xff9b, 1] || segments[..6] == [0, 0, 0, 0, 0, 0] {
+                return false;
+            }
             if segments[..6] == [0x64, 0xff9b, 0, 0, 0, 0] {
                 return is_public(IpAddr::V4(std::net::Ipv4Addr::from(((segments[6] as u32) << 16) | segments[7] as u32)));
             }
@@ -481,6 +484,8 @@ mod tests {
             "http://[fec0::1]/",
             "http://[2001:0:4136:e378::1]/",
             "http://[::ffff:192.168.1.1]/",
+            "http://[64:ff9b:1::a00:1]/",
+            "http://[::c0a8:101]/",
         ] {
             let url = reqwest::Url::parse(address).unwrap();
             assert!(matches!(public_address(&url).await, Err(WebError::NotPublic)), "{address}");
