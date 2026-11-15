@@ -43,6 +43,7 @@ final class ArtworkSlot {
     private(set) var source: ArtworkSource?
     private var task: Task<Void, Never>?
     private(set) var fade = Animated(0)
+    private var failedSource: ArtworkSource?
     private weak var owner: View?
 
     init(owner: View) {
@@ -51,7 +52,7 @@ final class ArtworkSlot {
 
     /// Shows `source` at `pixelSize`; the same source again is a no-op.
     func show(_ source: ArtworkSource?, pixelWidth: Int, pixelHeight: Int) {
-        guard source != self.source || (texture == nil && task == nil && source != nil) else { return }
+        guard source != self.source || (texture == nil && task == nil && source != nil && failedSource != source) else { return }
         task?.cancel()
         task = nil
         self.source = source
@@ -72,7 +73,10 @@ final class ArtworkSlot {
             let texture = await store.load(request)
             guard !Task.isCancelled, let self, self.source == source else { return }
             self.task = nil
-            guard let texture else { return }
+            guard let texture else {
+                self.failedSource = source
+                return
+            }
             self.texture = texture
             self.fade.set(1, animation: .timed(duration: Durations.fade, curve: .easeInOut))
             self.owner?.startAnimating()

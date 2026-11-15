@@ -58,6 +58,7 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .library(name: "CrucibleUI", targets: ["CrucibleUI"]),
         .executable(name: "kiln-spike", targets: ["KilnSpike"]),
         .executable(name: "crucible-gallery", targets: ["CrucibleGallery"]),
+        .executable(name: "crucible", targets: ["CrucibleApp"]),
     ]
     let targets: [Target] = [
         .target(name: "CKiln", path: "linux/Sources/CKiln", linkerSettings: [.linkedLibrary("wayland-client"), .linkedLibrary("xkbcommon")]),
@@ -74,6 +75,10 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"], path: "linux/Sources/KilnSpike"),
         .target(name: "CrucibleUI", dependencies: ["Kiln"], path: "linux/Sources/CrucibleUI"),
         .executableTarget(name: "CrucibleGallery", dependencies: ["CrucibleUI", "Kiln"], path: "linux/Sources/CrucibleGallery"),
+        .systemLibrary(name: "CLinuxLibs", path: "linux/Sources/CLinuxLibs", pkgConfig: "libsecret-1 libqrencode"),
+        .target(name: "CLinuxServices", dependencies: ["CLinuxLibs"], path: "linux/Sources/CLinuxServices"),
+        .executableTarget(name: "CrucibleApp", dependencies: ["CrucibleCore", "CrucibleUI", "Kiln", "CLinuxServices", midgarCore],
+                          path: "linux/Sources/CrucibleApp", resources: [.copy("Resources/Localizable.xcstrings")]),
         .testTarget(name: "KilnTests", dependencies: ["Kiln"], path: "linux/Tests/KilnTests", exclude: ["Fixtures"]),
         .testTarget(name: "CrucibleUITests", dependencies: ["CrucibleUI", "Kiln"], path: "linux/Tests/CrucibleUITests"),
     ]

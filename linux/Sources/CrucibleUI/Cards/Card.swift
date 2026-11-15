@@ -115,7 +115,7 @@ public struct CardStyle: Hashable, Sendable {
 @MainActor
 public final class CardView: View {
     public var item: CardItem { didSet { if item != oldValue { apply(oldValue) } } }
-    public var style: CardStyle { didSet { if style != oldValue { setNeedsLayout(); loadArtwork() } } }
+    public var style: CardStyle { didSet { if style != oldValue { setNeedsLayout(); setNeedsDisplay() } } }
 
     public var onActivate: ((CardItem) -> Void)?
     public var onContextMenu: ((CardItem, Point?) -> Void)?
@@ -140,14 +140,10 @@ public final class CardView: View {
     public override var overdraw: Float { Theme.current.metrics.focusShadowRadius * 2 + style.artworkSize.height * 0.1 }
 
     private func apply(_ old: CardItem) {
-        if item.artwork != old.artwork { loadArtwork() }
         setNeedsDisplay()
     }
 
-    public override func didMoveToWindow() {
-        loadArtwork()
-    }
-
+    /// Artwork loads the first time the card is drawn, so a grid of thousands fetches only what comes on screen.
     private func loadArtwork() {
         guard let window else { return }
         let metrics = Theme.current.metrics
@@ -255,6 +251,7 @@ public final class CardView: View {
     }
 
     public override func draw(_ context: inout DrawContext) {
+        if artwork.source != item.artwork || (artwork.texture == nil && item.artwork != nil) { loadArtwork() }
         let palette = Theme.current.palette
         let metrics = Theme.current.metrics
         let type = Theme.current.type
