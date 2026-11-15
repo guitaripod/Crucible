@@ -8,6 +8,12 @@ public struct DecodedImage: Sendable {
     public let pixels: [UInt8]
 }
 
+/// An image off the decoding worker: already a texture when the device takes uploads from any thread, else pixels.
+private enum LoadedImage: Sendable {
+    case uploaded(DetachedTexture)
+    case decoded(DecodedImage)
+}
+
 public enum ImageError: Error, CustomStringConvertible {
     case decode(String)
     case upload
@@ -133,25 +139,42 @@ public final class ImageStore {
     private func fetchDecodeAndUpload(_ request: ImageRequest) async -> Texture? {
         let diskURL = diskDirectory?.appendingPathComponent(Self.cacheName(for: request.url))
         let fetch = self.fetch
-        let decoded: DecodedImage? = await Task.detached(priority: .userInitiated) {
+        let uploader = gpu.uploader
+        let loaded: LoadedImage? = await Task.detached(priority: .userInitiated) {
             var data: Data?
             if let diskURL { data = try? Data(contentsOf: diskURL) }
             if data == nil {
                 data = try? await fetch(request.url)
                 if let data, let diskURL { try? data.write(to: diskURL, options: .atomic) }
             }
-            guard let data else { return nil }
-            return try? ImageDecoder.decode(data, minimumWidth: request.pixelWidth, minimumHeight: request.pixelHeight)
+            guard let data, let decoded = try? ImageDecoder.decode(data, minimumWidth: request.pixelWidth, minimumHeight: request.pixelHeight) else {
+                return nil
+            }
+            guard let uploader else { return .decoded(decoded) }
+            let detached = decoded.pixels.withUnsafeBytes {
+                uploader.rgba8(width: decoded.width, height: decoded.height, pixels: $0.baseAddress!, rowBytes: decoded.width * 4)
+            }
+            return detached.map(LoadedImage.uploaded)
         }.value
-        guard let decoded, let texture = try? gpu.texture(width: decoded.width, height: decoded.height, format: .rgba8, renderable: false) else { return nil }
-        let uploaded = decoded.pixels.withUnsafeBytes { texture.upload($0.baseAddress!, rowBytes: decoded.width * 4) }
-        guard uploaded else { return nil }
+        guard let texture = loaded.flatMap(adopt) else { return nil }
         clock += 1
         let entry = Entry(texture: texture, lastUse: clock)
         entries[request] = entry
         residentBytes += entry.bytes
         evictIfNeeded()
         return texture
+    }
+
+    /// The texture for a loaded image: adopted when the worker already uploaded it, uploaded here otherwise.
+    private func adopt(_ loaded: LoadedImage) -> Texture? {
+        switch loaded {
+        case .uploaded(let detached):
+            return gpu.adopt(detached)
+        case .decoded(let decoded):
+            guard let texture = try? gpu.texture(width: decoded.width, height: decoded.height, format: .rgba8, renderable: false) else { return nil }
+            let uploaded = decoded.pixels.withUnsafeBytes { texture.upload($0.baseAddress!, rowBytes: decoded.width * 4) }
+            return uploaded ? texture : nil
+        }
     }
 
     /// Drops the least recently used textures past the budget. A view still holding one keeps it alive until it lets go.

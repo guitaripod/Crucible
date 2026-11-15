@@ -68,6 +68,27 @@ public final class Texture {
     }
 }
 
+/// Creates and fills sampled textures on any thread of a thread-safe device.
+public struct TextureUploader: @unchecked Sendable {
+    let gpu: OpaquePointer
+
+    /// An sRGB RGBA8 texture holding `pixels`, ready to adopt on the main thread.
+    public func rgba8(width: Int, height: Int, pixels: UnsafeRawPointer, rowBytes: Int) -> DetachedTexture? {
+        guard let raw = kiln_tex_create(gpu, Int32(width), Int32(height), KILN_FORMAT_RGBA8, false) else { return nil }
+        guard kiln_tex_upload(gpu, raw, pixels, rowBytes) else {
+            kiln_tex_destroy(gpu, raw)
+            return nil
+        }
+        return DetachedTexture(handle: raw, format: .rgba8)
+    }
+}
+
+/// A texture an uploader made off the main thread, owned by nobody until `GPU.adopt` takes it.
+public struct DetachedTexture: @unchecked Sendable {
+    let handle: OpaquePointer
+    let format: Texture.Format
+}
+
 /// A texture copy on its way to the host.
 @MainActor
 public final class Readback {
@@ -144,6 +165,15 @@ public final class GPU {
         var h = Int32(height)
         guard kiln_gpu_resize(handle, &w, &h) else { return nil }
         return (Int(w), Int(h))
+    }
+
+    /// Makes sampled textures on other threads when the device allows it (Vulkan does), so decoded artwork is uploaded
+    /// beside decoding instead of on the main thread.
+    public var uploader: TextureUploader? { kiln_gpu_thread_safe(handle) ? TextureUploader(gpu: handle) : nil }
+
+    /// Takes over a texture an uploader made; it is drawn and released on the main thread from here on.
+    public func adopt(_ detached: DetachedTexture) -> Texture {
+        Texture(handle: detached.handle, gpu: self, format: detached.format)
     }
 
     public func texture(width: Int, height: Int, format: Texture.Format, renderable: Bool) throws(RenderError) -> Texture {

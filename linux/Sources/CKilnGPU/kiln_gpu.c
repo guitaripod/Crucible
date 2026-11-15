@@ -185,6 +185,10 @@ void kiln_gpu_release_surface(kiln_gpu *g) {
     }
 }
 
+bool kiln_gpu_thread_safe(kiln_gpu *g) {
+    return g && g->gpu && g->gpu->limits.thread_safe;
+}
+
 const char *kiln_gpu_device_name(kiln_gpu *g) {
     static char name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
     VkPhysicalDeviceProperties properties;

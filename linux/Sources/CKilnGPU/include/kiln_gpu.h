@@ -50,6 +50,9 @@ void kiln_gpu_destroy(kiln_gpu *gpu);
  * lives on until its last texture goes. Presenting afterwards does nothing. */
 void kiln_gpu_release_surface(kiln_gpu *gpu);
 const char *kiln_gpu_device_name(kiln_gpu *gpu);
+
+/** Whether textures may be created, uploaded and destroyed from any thread (true on Vulkan). */
+bool kiln_gpu_thread_safe(kiln_gpu *gpu);
 kiln_vulkan_handles kiln_gpu_vulkan_handles(kiln_gpu *gpu);
 
 /** Resizes the swapchain; width and height come back as the swapchain chose them. */
