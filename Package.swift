@@ -47,9 +47,48 @@ if benchOnly {
     targets.append(.executableTarget(name: "CrucibleBench", dependencies: ["CrucibleCore"]))
 }
 
+/// The Linux client (docs/LINUX.md): Kiln, the design system on it, the gallery and the app, in this package so they
+/// reach Core's package-level API. Their sources live under `linux/`. Building them needs the vendored libmpv and
+/// libplacebo (`linux/scripts/build-mpv.sh`, then `PKG_CONFIG_PATH=linux/.build/mpv/lib/pkgconfig`).
+func linuxClient() -> (products: [Product], targets: [Target]) {
+    let products: [Product] = [
+        .library(name: "CrucibleCore", targets: ["CrucibleCore"]),
+        .library(name: "CrucibleStats", targets: ["CrucibleStats"]),
+        .library(name: "Kiln", targets: ["Kiln"]),
+        .library(name: "CrucibleUI", targets: ["CrucibleUI"]),
+        .executable(name: "kiln-spike", targets: ["KilnSpike"]),
+        .executable(name: "crucible-gallery", targets: ["CrucibleGallery"]),
+    ]
+    let targets: [Target] = [
+        .target(name: "CKiln", path: "linux/Sources/CKiln", linkerSettings: [.linkedLibrary("wayland-client"), .linkedLibrary("xkbcommon")]),
+        .systemLibrary(name: "CMPV", path: "linux/Sources/CMPV", pkgConfig: "mpv"),
+        .systemLibrary(name: "CPlacebo", path: "linux/Sources/CPlacebo", pkgConfig: "libplacebo"),
+        .systemLibrary(name: "CPangoCairo", path: "linux/Sources/CPangoCairo", pkgConfig: "pangocairo fontconfig"),
+        .target(name: "CKilnText", dependencies: ["CPangoCairo"], path: "linux/Sources/CKilnText"),
+        .systemLibrary(name: "CImageLibs", path: "linux/Sources/CImageLibs", pkgConfig: "libturbojpeg libpng libwebp librsvg-2.0"),
+        .target(name: "CKilnImage", dependencies: ["CImageLibs"], path: "linux/Sources/CKilnImage"),
+        .target(name: "CKilnGPU", dependencies: ["CPlacebo"], path: "linux/Sources/CKilnGPU",
+                linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
+        .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText", "CKilnImage"], path: "linux/Sources/Kiln",
+                resources: [.copy("Resources/Fonts"), .copy("Resources/Symbols")]),
+        .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"], path: "linux/Sources/KilnSpike"),
+        .target(name: "CrucibleUI", dependencies: ["Kiln"], path: "linux/Sources/CrucibleUI"),
+        .executableTarget(name: "CrucibleGallery", dependencies: ["CrucibleUI", "Kiln"], path: "linux/Sources/CrucibleGallery"),
+        .testTarget(name: "KilnTests", dependencies: ["Kiln"], path: "linux/Tests/KilnTests", exclude: ["Fixtures"]),
+        .testTarget(name: "CrucibleUITests", dependencies: ["CrucibleUI", "Kiln"], path: "linux/Tests/CrucibleUITests"),
+    ]
+    return (products, targets)
+}
+
 if coreOnly {
     targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats", linuxCrypto]))
 } else {
+    #if os(Linux)
+    let client = linuxClient()
+    products += client.products
+    targets += client.targets
+    targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats", linuxCrypto]))
+    #else
     products += [
         .library(name: "Crucible", targets: ["Crucible"]),
         .library(name: "CrucibleWidgets", targets: ["CrucibleWidgets"]),
@@ -102,6 +141,7 @@ if coreOnly {
         ),
         .target(name: "CrucibleTopShelf", dependencies: ["CrucibleCore", midgarCore]),
     ]
+    #endif
     #endif
 }
 
