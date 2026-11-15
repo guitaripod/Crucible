@@ -99,3 +99,15 @@ What's New covers only what changed after tag `2.11.0`.
   the Midgar monorepo): it opens on the demo's lighthouse the way the app opens on its Resume hero, then one scene
   per idea with this build's captures framed by the frames CLI. Its FAQ, pricing and install steps still come from
   `src/data/landing/crucible.json`, which also carries What to Watch, Trakt Community and Library Research now.
+
+## Submitted (2026-11-15)
+
+- 2.12.0 took 2.11.0's place: both 2.11.0 submissions (iPhone e0470e64, Apple TV fa638da8, already in review) were
+  cancelled, the records renamed 2.12.0 (iPhone 562122b6, Apple TV bff3595b) and given build 202611152010 on both
+  platforms. 2.11.0 never reached the store, so its notes (Out Now on Your Watchlist, the aired seasons a server lacks)
+  are folded into 2.12.0's What's New in every language, and Library Research is introduced as new.
+- Listing, privacy text and review notes pushed with `asc metadata apply` and `asc review details-update`; every
+  screenshot set and the Header and Search Results images uploaded; a read-only audit read all of it back.
+- Submitted 2026-11-15T21:10Z, release on approval: iPhone submission eef63ba6, Apple TV 62880b47. Tag `2.12.0`
+  (965307f, the commit the builds came from). `asc validate`: no errors; the one warning is the annual subscription's
+  missing promotional image.
