@@ -23,6 +23,9 @@ class TVDetailViewController: TVScreenViewController {
         case episodes
         case extras
         case cast
+        case communityPulse
+        case communityAspects
+        case communityComments
         case related
         case information
     }
@@ -40,6 +43,10 @@ class TVDetailViewController: TVScreenViewController {
         case emptyEpisodes
         case episodePlaceholder(Int)
         case episodesFailed
+        case communityPulse
+        case communityAspect(String)
+        case communityComment(Int)
+        case communityAction(String)
     }
 
     static let heroHeight: CGFloat = 400
@@ -52,6 +59,13 @@ class TVDetailViewController: TVScreenViewController {
     private let skeleton = TVDetailSkeletonView()
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private lazy var loadSlot = makeTaskSlot()
+    /// The title's Trakt community, once Trakt answered; the page shows it after Cast & Crew.
+    private(set) var community: TraktCommunity.Snapshot?
+    private var revealedComments = Set<Int>()
+    private var communityBarsAnimated = false
+    private lazy var communitySlot = makeTaskSlot()
+    nonisolated(unsafe) private var communityObserver: (any NSObjectProtocol)?
+    nonisolated(unsafe) private var communityProObserver: UUID?
 
     init(env: TVAppEnvironment) {
         self.env = env
@@ -80,6 +94,16 @@ class TVDetailViewController: TVScreenViewController {
         configureDataSource()
         adopt(dataSource)
         showLoading()
+        communityObserver = NotificationCenter.default.addObserver(forName: .traktCommunityChanged, object: nil, queue: .main) { [weak self] note in
+            guard let change = note.object as? TraktCommunity.Change else { return }
+            MainActor.assumeIsolated { self?.communityChanged(change) }
+        }
+        communityProObserver = ProAccess.shared.observe { [weak self] _ in self?.refreshCommunity() }
+    }
+
+    deinit {
+        if let communityObserver { NotificationCenter.default.removeObserver(communityObserver) }
+        if let communityProObserver { Task { @MainActor in ProAccess.shared.stopObserving(communityProObserver) } }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -88,6 +112,9 @@ class TVDetailViewController: TVScreenViewController {
     }
 
     func fetch() async {}
+
+    /// The rating key whose Trakt community the page shows, or nil for a page without one.
+    var communityKey: String? { nil }
 
     func didSelect(_ item: Item) {}
 
@@ -99,6 +126,7 @@ class TVDetailViewController: TVScreenViewController {
     func reload() {
         loadSlot.run { [weak self] in
             await self?.fetch()
+            self?.loadCommunity()
         }
     }
 
@@ -239,6 +267,10 @@ class TVDetailViewController: TVScreenViewController {
             snapshot.appendSections([.cast])
             snapshot.appendItems(Self.unique(content.cast.map { .person($0.id) }), toSection: .cast)
         }
+        for (section, items) in communitySections() {
+            snapshot.appendSections([section])
+            snapshot.appendItems(items, toSection: section)
+        }
         if !content.related.isEmpty {
             snapshot.appendSections([.related])
             snapshot.appendItems(Self.unique(content.related.map { .related($0.id) }), toSection: .related)
@@ -284,6 +316,9 @@ class TVDetailViewController: TVScreenViewController {
             case .seasons: return TVShelf.chips()
             case .episodes, .extras: return TVShelf.episode()
             case .cast: return TVShelf.person()
+            case .communityPulse: return Self.communityPulseSection(header: self?.communityHeadedSection == .communityPulse)
+            case .communityAspects: return TVShelf.chips(header: self?.communityHeadedSection == .communityAspects)
+            case .communityComments: return Self.communityCommentsSection(header: self?.communityHeadedSection == .communityComments)
             case .related: return TVShelf.poster()
             case .information: return Self.informationSection()
             }
@@ -352,6 +387,10 @@ class TVDetailViewController: TVScreenViewController {
             cell.configure(index: index)
         }
         let failed = TVDetailEpisodesFailedCell.registration { [weak self] in self?.retryEpisodes() }
+        let communityHost = UICollectionView.CellRegistration<TVHostCell, Item> { [weak self] cell, _, item in
+            self?.configureCommunity(cell, item: item)
+        }
+        let aspect = TVChipCell.registration { [weak self] chip in self?.selectAspect(chip.id) }
         let empty = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
             var configuration = UIListContentConfiguration.cell()
             configuration.text = String(localized: "No episodes in this season")
@@ -393,6 +432,10 @@ class TVDetailViewController: TVScreenViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: placeholder, for: indexPath, item: index)
             case .episodesFailed:
                 return collectionView.dequeueConfiguredReusableCell(using: failed, for: indexPath, item: 0)
+            case .communityPulse, .communityComment, .communityAction:
+                return collectionView.dequeueConfiguredReusableCell(using: communityHost, for: indexPath, item: item)
+            case .communityAspect(let id):
+                return collectionView.dequeueConfiguredReusableCell(using: aspect, for: indexPath, item: self?.aspectChip(id) ?? TVChipItem(id: id, title: ""))
             }
         }
 
@@ -417,6 +460,8 @@ class TVDetailViewController: TVScreenViewController {
         case .cast: return TVSectionHeader(title: String(localized: "Cast & Crew"))
         case .related: return TVSectionHeader(title: String(localized: "More Like This"))
         case .information: return TVSectionHeader(title: String(localized: "Information"))
+        case .communityPulse, .communityAspects, .communityComments:
+            return section == communityHeadedSection ? TVSectionHeader(title: TraktCommunityCopy.title) : nil
         default: return nil
         }
     }
@@ -461,5 +506,221 @@ class TVDetailViewController: TVScreenViewController {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === collectionView else { return }
         backdrop.dimming = scrollView.contentOffset.y / Self.heroHeight
+    }
+
+    // MARK: - Trakt community
+
+    /// Loads the title's Trakt community after the page's own data, from the cache at once when it is fresh.
+    private func loadCommunity() {
+        guard let key = communityKey, TraktCommunity.shared.isAvailable else {
+            if community != nil {
+                community = nil
+                refreshCommunity()
+            }
+            return
+        }
+        if community == nil, let cached = TraktCommunity.shared.cachedSnapshot(ratingKey: key) {
+            community = cached
+            communityBarsAnimated = true
+            refreshCommunity()
+        }
+        let api = env.api
+        communitySlot.run { [weak self] in
+            let loaded = await TraktCommunity.shared.snapshot(ratingKey: key, api: api)
+            guard let self, let loaded, loaded != self.community else { return }
+            self.community = loaded
+            self.refreshCommunity()
+        }
+    }
+
+    private func refreshCommunity() {
+        guard let content else { return }
+        easeIn { self.applySnapshot(for: content) }
+    }
+
+    private func communityChanged(_ change: TraktCommunity.Change) {
+        guard let current = community, let result = current.applying(change, isBlocked: TraktCommunity.shared.isBlocked) else { return }
+        community = result.snapshot
+        guard let content else { return }
+        applySnapshot(for: content)
+    }
+
+    private var communityTitle: String { content?.header.title ?? "" }
+
+    private var hasPulse: Bool {
+        guard let community else { return false }
+        return community.score != nil || community.distribution != nil || !(community.stats?.isEmpty ?? true) || !community.watching.isEmpty
+    }
+
+    /// The community's sections with their items, each only when it has something to show.
+    private func communitySections() -> [(Section, [Item])] {
+        guard let community, TraktCommunity.shared.isAvailable else { return [] }
+        var sections: [(Section, [Item])] = []
+        if hasPulse { sections.append((.communityPulse, [.communityPulse])) }
+        if let sentiments = community.sentiments, !sentiments.isEmpty {
+            let aspects = sentiments.good.indices.map { Item.communityAspect("good.\($0)") } + sentiments.bad.indices.map { Item.communityAspect("bad.\($0)") }
+            sections.append((.communityAspects, aspects))
+        }
+        var cards: [Item]
+        let unlocked = TraktCommunity.shared.isUnlocked
+        if unlocked {
+            cards = community.comments.map { .communityComment($0.id) }
+            if community.commentCount > community.comments.count { cards.append(.communityAction("more")) }
+        } else {
+            cards = community.comments.prefix(TraktCommunity.freeCommentCount).map { .communityComment($0.id) }
+            if community.commentCount > cards.count { cards.append(.communityAction("more")) }
+        }
+        cards.append(.communityAction("write"))
+        sections.append((.communityComments, Self.unique(cards)))
+        return sections
+    }
+
+    /// The first community section, which carries the Community heading.
+    private var communityHeadedSection: Section? {
+        communitySections().first?.0
+    }
+
+    private static func communityPulseSection(header: Bool) -> NSCollectionLayoutSection {
+        let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(340))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [NSCollectionLayoutItem(layoutSize: size)])
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = NSDirectionalEdgeInsets(top: TVMetrics.shelfTopInset, leading: 0, bottom: TVMetrics.shelfTopInset, trailing: 0)
+        if header { section.boundarySupplementaryItems = [communityHeader()] }
+        return section
+    }
+
+    private static func communityCommentsSection(header: Bool) -> NSCollectionLayoutSection {
+        let size = NSCollectionLayoutSize(widthDimension: .absolute(TVCommentCardView.size.width), heightDimension: .absolute(TVCommentCardView.size.height))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [NSCollectionLayoutItem(layoutSize: size)])
+        let section = NSCollectionLayoutSection(group: group)
+        section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
+        section.interGroupSpacing = TVMetrics.gutter
+        section.contentInsets = NSDirectionalEdgeInsets(top: TVMetrics.shelfTopInset, leading: 0, bottom: TVMetrics.shelfBottomInset, trailing: 0)
+        if header { section.boundarySupplementaryItems = [communityHeader()] }
+        return section
+    }
+
+    private static func communityHeader() -> NSCollectionLayoutBoundarySupplementaryItem {
+        NSCollectionLayoutBoundarySupplementaryItem(
+            layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(TVMetrics.shelfHeaderHeight)),
+            elementKind: TVShelf.headerKind,
+            alignment: .top
+        )
+    }
+
+    private func aspect(_ id: String) -> TraktSentiments.Aspect? {
+        guard let sentiments = community?.sentiments else { return nil }
+        let parts = id.split(separator: ".")
+        guard parts.count == 2, let index = Int(parts[1]) else { return nil }
+        let list = parts[0] == "good" ? sentiments.good : sentiments.bad
+        return list.indices.contains(index) ? list[index] : nil
+    }
+
+    private func aspectChip(_ id: String) -> TVChipItem {
+        let good = id.hasPrefix("good.")
+        let text = aspect(id)?.text ?? ""
+        return TVChipItem(
+            id: id,
+            title: "\(good ? "\u{1F44D}" : "\u{1F44E}")  \(text)",
+            accessibilityLabel: "\(good ? TraktCommunityCopy.theGood : TraktCommunityCopy.theBad), \(text)"
+        )
+    }
+
+    private func selectAspect(_ id: String) {
+        guard let aspect = aspect(id), let subject = community?.subject else { return }
+        TVCommunityScreens.openAspect(aspect, on: subject, titleName: communityTitle, from: self)
+    }
+
+    /// Fills a community cell, updating the view it already hosts when it is the same card, so a refresh never takes the focus
+    /// off a focused card.
+    private func configureCommunity(_ cell: TVHostCell, item: Item) {
+        guard let community else { return }
+        switch item {
+        case .communityPulse:
+            let pulse: TVCommunityPulseView
+            if let existing = cell.hosted as? TVCommunityPulseView {
+                pulse = existing
+            } else {
+                pulse = TVCommunityPulseView()
+                pulse.addAction(UIAction { [weak self] _ in
+                    guard let self, let watching = self.community?.watching, !watching.isEmpty else { return }
+                    TVCommunityScreens.openWatching(watching, titleName: self.communityTitle, from: self)
+                }, for: .primaryActionTriggered)
+                cell.host(pulse)
+            }
+            pulse.apply(community, animatesBars: !communityBarsAnimated)
+            communityBarsAnimated = true
+        case .communityComment(let id):
+            guard let comment = community.comments.first(where: { $0.id == id }) else { return }
+            let card: TVCommentCardView
+            if let existing = cell.hosted as? TVCommentCardView, existing.commentID == id {
+                card = existing
+            } else {
+                card = TVCommentCardView(commentID: id)
+                card.addAction(UIAction { [weak self] _ in self?.selectComment(id) }, for: .primaryActionTriggered)
+                card.contextMenuProvider = { [weak self] in
+                    guard let self, let current = self.community?.comments.first(where: { $0.id == id }) else { return nil }
+                    return TVCommunityScreens.menu(for: current, from: self)
+                }
+                cell.host(card)
+            }
+            let shared = TraktCommunity.shared
+            card.apply(comment: comment, isRevealed: revealedComments.contains(id), isLiked: shared.isLiked(id), summary: shared.cachedSummary(id), mine: shared.reactions(of: id), isMine: shared.isMine(comment))
+            guard shared.cachedSummary(id) == nil else { return }
+            Task { [weak self] in
+                guard await shared.summary(for: id) != nil, let self else { return }
+                self.reconfigureCommunity([.communityComment(id)])
+            }
+        case .communityAction(let kind):
+            let shown: TVCommunityActionCard.Kind
+            if kind == "more" {
+                shown = TraktCommunity.shared.isUnlocked ? .seeAll(community.commentCount) : .unlock(community.commentCount)
+            } else {
+                shown = .write
+            }
+            if let existing = cell.hosted as? TVCommunityActionCard, existing.slot == kind {
+                existing.apply(shown)
+            } else {
+                let card = TVCommunityActionCard(shown)
+                card.slot = kind
+                card.addAction(UIAction { [weak self] _ in self?.selectCommunityAction(kind) }, for: .primaryActionTriggered)
+                cell.host(card)
+            }
+        default:
+            break
+        }
+    }
+
+    private func reconfigureCommunity(_ items: [Item]) {
+        var snapshot = dataSource.snapshot()
+        let present = items.filter { snapshot.indexOfItem($0) != nil }
+        guard !present.isEmpty else { return }
+        snapshot.reconfigureItems(present)
+        dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    private func selectComment(_ id: Int) {
+        guard let comment = community?.comments.first(where: { $0.id == id }) else { return }
+        if comment.isSpoiler || TraktCommentText(comment.text).hasInlineSpoilers, !revealedComments.contains(id) {
+            revealedComments.insert(id)
+            reconfigureCommunity([.communityComment(id)])
+            return
+        }
+        let isFree = community?.comments.prefix(TraktCommunity.freeCommentCount).contains { $0.id == id } ?? false
+        TVCommunityScreens.openThread(comment, subject: community?.subject, titleName: communityTitle, isFree: isFree, from: self)
+    }
+
+    private func selectCommunityAction(_ kind: String) {
+        guard let subject = community?.subject else { return }
+        switch kind {
+        case "more":
+            if TraktCommunity.shared.isUnlocked {
+                TVCommunityScreens.openComments(on: subject, titleName: communityTitle, from: self)
+            } else {
+                ProAccess.shared.requestUnlock(.traktCommunity)
+            }
+        default:
+            TVCommunityScreens.compose(.new(subject, titleName: communityTitle), from: self)
+        }
     }
 }

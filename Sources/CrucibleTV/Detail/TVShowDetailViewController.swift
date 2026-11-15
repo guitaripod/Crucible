@@ -35,6 +35,8 @@ final class TVShowDetailViewController: TVDetailViewController {
         failed: { [weak self] in self?.presentAlert(title: String(localized: "Couldn\u{2019}t Update"), message: String(localized: "Your rating was not saved.")) }
     )
 
+    override var communityKey: String? { showKey }
+
     init(env: TVAppEnvironment, ratingKey: String, initialSeasonKey: String?) {
         showKey = ratingKey
         self.initialSeasonKey = initialSeasonKey

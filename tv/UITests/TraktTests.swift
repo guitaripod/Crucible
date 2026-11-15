@@ -165,4 +165,43 @@ final class TraktTests: TVTestCase {
         let checkIn = AppNavigation.element(app, "detail.action.checkIn")
         XCTAssertTrue(checkIn.waitForExistence(timeout: 10), "the action row has no Check In")
     }
+
+    /// A connected title's page gains its Trakt community after Cast & Crew: the pulse, what people loved and didn't, and the
+    /// comments shelf; a comment opens as a thread whose rows like and react, and See All lists every comment with the focused
+    /// one read in full.
+    func testATitlesCommunityOpensAsThreadsAndAList() {
+        let app = launchIntoDemo()
+        connect(app)
+        AppNavigation.openFromOutside("crucible://item/1001?type=movie", in: self)
+        XCTAssertTrue(AppNavigation.detailPrimary(app).waitForExistence(timeout: 30), "the detail screen never appeared")
+        TVTest.settle(2)
+        XCTAssertTrue(AppNavigation.move(app, .down, untilFocusHasPrefix: "trakt.community.pulse", limit: 16), "focus never reached the Community pulse")
+        TVTest.settle(1.5)
+        TVTest.capture("10-community-pulse", in: self)
+        XCTAssertTrue(AppNavigation.move(app, .down, untilFocusHasPrefix: "trakt.comment.", limit: 4), "focus never reached a comment card")
+        TVTest.settle(1.5)
+        TVTest.capture("11-community-comments", in: self)
+
+        TVTest.remote.press(.select)
+        XCTAssertTrue(YouNavigation.row(app, "thread.like").waitForExistence(timeout: 20), "a comment card did not open its thread")
+        TVTest.settle(1.5)
+        TVTest.capture("12-thread", in: self)
+        YouNavigation.moveFocus(app, to: "thread.like")
+        let before = YouNavigation.row(app, "thread.like").value as? String
+        TVTest.remote.press(.select)
+        TVTest.settle(1.5)
+        XCTAssertNotEqual(YouNavigation.row(app, "thread.like").value as? String, before, "Like did not count")
+        TVTest.remote.press(.menu)
+        TVTest.settle(1.5)
+
+        XCTAssertTrue(AppNavigation.move(app, .right, untilFocusHasPrefix: "trakt.community.seeAll", limit: 14), "the comments shelf has no See All")
+        TVTest.remote.press(.select)
+        XCTAssertTrue(YouNavigation.row(app, "comments.sort").waitForExistence(timeout: 20), "See All did not open the comments")
+        TVTest.settle(1)
+        TVTest.remote.press(.down)
+        TVTest.remote.press(.down)
+        TVTest.settle(1.5)
+        TVTest.capture("13-all-comments", in: self)
+    }
 }
+

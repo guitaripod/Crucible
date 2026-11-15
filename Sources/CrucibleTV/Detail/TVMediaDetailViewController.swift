@@ -41,6 +41,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    override var communityKey: String? { ratingKey }
+
     override func fetch() async {
         let isFirst = model == nil
         let scoresTask = isFirst ? startScores() : nil
