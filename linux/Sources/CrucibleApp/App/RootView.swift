@@ -69,6 +69,10 @@ final class RootView: View {
 
     /// Escape: back out of a pushed screen, or from a root screen up to the tab bar.
     func handleBack() -> Bool {
+        if let player {
+            player.close()
+            return true
+        }
         guard let current else { return false }
         if let top = current.top, top.handleBack() { return true }
         if current.pop() { return true }
@@ -90,10 +94,22 @@ final class RootView: View {
         return false
     }
 
-    /// Plays `item` in the player.
-    func play(item: PlexMetadata, api: APIClient) {
-        // TODO: P4 opens the libmpv player here.
-        MidgarLog.notice("Playback of \(item.id) waits for the player", category: .playback)
+    private var player: PlayerScreen?
+
+    /// Plays `item` over everything, from where the viewer left it; focus returns where it was when the player closes.
+    func play(item: PlexMetadata, api: APIClient, from position: Double? = nil) {
+        guard player == nil else { return }
+        let returnFocus = window?.focusedView
+        let screen = PlayerScreen(source: .plex(api, item, resume: position ?? item.resumeSecs))
+        screen.onClose = { [weak self, weak screen] in
+            screen?.removeFromSuperview()
+            self?.player = nil
+            if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
+        }
+        player = screen
+        addSubview(screen)
+        screen.frame = bounds
+        window?.focus.focus(screen, animated: false)
     }
 
     /// Pushes a screen on the current tab's stack.
@@ -109,6 +125,7 @@ final class RootView: View {
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
         current?.frame = bounds
+        player?.frame = bounds
         tabBar.frame = Rect(x: 0, y: 0, width: frame.width, height: metrics.tabBarTop + metrics.tabBarHeight + metrics.tv(20))
     }
 }

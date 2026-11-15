@@ -24,7 +24,15 @@ func runCrucible() -> Int32 {
     let coordinator = AppCoordinator(window: window)
     var running = true
     coordinator.onQuit = { running = false }
-    coordinator.start()
+    if let file = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_FILE"] {
+        let player = PlayerScreen(source: .file(URL(fileURLWithPath: file), title: URL(fileURLWithPath: file).deletingPathExtension().lastPathComponent))
+        player.onClose = { running = false }
+        window.contentView = player
+        window.background = .black
+        window.focus.focus(player, animated: false)
+    } else {
+        coordinator.start()
+    }
     scheduleCaptures(arguments, window: window, coordinator: coordinator) { running = false }
     loop.run { !running }
     window.close()
