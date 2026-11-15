@@ -68,7 +68,7 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .target(name: "CKilnText", dependencies: ["CPangoCairo"], path: "linux/Sources/CKilnText"),
         .systemLibrary(name: "CImageLibs", path: "linux/Sources/CImageLibs", pkgConfig: "libturbojpeg libpng libwebp librsvg-2.0"),
         .target(name: "CKilnImage", dependencies: ["CImageLibs"], path: "linux/Sources/CKilnImage"),
-        .target(name: "CKilnGPU", dependencies: ["CPlacebo"], path: "linux/Sources/CKilnGPU",
+        .target(name: "CKilnGPU", dependencies: ["CPlacebo", "CMPV"], path: "linux/Sources/CKilnGPU",
                 linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
         .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText", "CKilnImage"], path: "linux/Sources/Kiln",
                 resources: [.copy("Resources/Fonts"), .copy("Resources/Symbols")]),

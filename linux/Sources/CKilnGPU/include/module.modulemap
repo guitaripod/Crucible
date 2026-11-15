@@ -1,0 +1,5 @@
+module CKilnGPU {
+    header "kiln_gpu.h"
+    header "kiln_video.h"
+    export *
+}

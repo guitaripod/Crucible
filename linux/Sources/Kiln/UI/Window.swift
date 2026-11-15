@@ -25,6 +25,8 @@ public final class Window {
     let renderer: SceneRenderer
     private let surface: WaylandWindow?
     public let focus = FocusEngine()
+    /// The loop the window's Wayland connection runs on (nil offscreen); players and timers attach to it.
+    public private(set) weak var loop: EventLoop?
     public private(set) var images: ImageStore?
 
     /// The root of the tree, filling the window.
@@ -91,6 +93,7 @@ public final class Window {
         guard surface.open(title: title, appID: appID, delegate: listener) else { throw .device("window") }
         self.surface = surface
         self.listener = listener
+        self.loop = loop
         _ = surface.pump(readable: false)
         size = Size(width: Float(surface.width), height: Float(surface.height))
         scale = Float(surface.scale)

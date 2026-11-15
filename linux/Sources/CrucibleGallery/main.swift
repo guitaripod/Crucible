@@ -169,10 +169,41 @@ struct Gallery {
         GalleryArt.preload(GalleryFixtures.allArt, into: window.images!, gpu: window.gpu, scale: window.scale)
         let host = GalleryHost(window: window, gallery: self)
         window.delegate = host
-        host.show(value("--page") ?? "home")
+        if let file = value("--video") {
+            let player = try VideoPlayer(gpu: window.gpu, loop: loop)
+            let view = VideoView(player: player)
+            window.contentView = view
+            window.background = .black
+            player.load(URL(fileURLWithPath: file), start: Double(value("--start") ?? "0") ?? 0)
+            player.setPaused(false)
+            player.onStateChange = { state in
+                if ProcessInfo.processInfo.environment["GALLERY_VIDEO_LOG"] != nil {
+                    print(String(format: "video t=%.2f/%.2f %dx%d hwdec=%@ paused=%d", state.position, state.duration, state.videoWidth,
+                                 state.videoHeight, state.hardwareDecoder, state.isPaused ? 1 : 0))
+                }
+            }
+            host.player = player
+        } else {
+            host.show(value("--page") ?? "home")
+        }
+        if let spec = value("--capture-after") {
+            let parts = spec.split(separator: ":", maxSplits: 1).map(String.init)
+            if parts.count == 2, let seconds = Double(parts[0]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+                    MainActor.assumeIsolated {
+                        let capture = window.capture()
+                        let peak = stride(from: 0, to: capture.pixels.count, by: 4).map { max(capture.pixels[$0], capture.pixels[$0 + 1], capture.pixels[$0 + 2]) }.max() ?? 0
+                        print("capture peak=\(peak)")
+                        _ = PNGWriter.write(linear: capture.pixels, width: capture.width, height: capture.height, to: parts[1])
+                        host.onClose?()
+                    }
+                }
+            }
+        }
         var running = true
         host.onClose = { running = false }
         loop.run { !running }
+        host.player?.shutDown()
         window.close()
     }
 }
@@ -182,6 +213,7 @@ struct Gallery {
 final class GalleryHost: WindowDelegate {
     let window: Window
     let gallery: Gallery
+    var player: VideoPlayer?
     var onClose: (() -> Void)?
 
     init(window: Window, gallery: Gallery) {

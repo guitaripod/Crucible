@@ -39,6 +39,7 @@ typedef struct {
     const void *features;
     const char *const *extensions;
     int num_extensions;
+    uint32_t graphics_queue_flags;
 } kiln_vulkan_handles;
 
 /** Creates the Vulkan device (mpv's recipe: Vulkan Video decode queues, internally synchronised queues) and, when a

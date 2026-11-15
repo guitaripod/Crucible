@@ -14,30 +14,7 @@
 #include <libplacebo/swapchain.h>
 #include <libplacebo/vulkan.h>
 
-#define KILN_MAX_TIMERS 64
-
-struct kiln_tex {
-    pl_tex tex;
-    VkImageView view;
-    VkSemaphore semaphore;
-    uint64_t semaphore_value;
-};
-
-struct kiln_gpu {
-    pl_log log;
-    pl_vk_inst instance;
-    VkSurfaceKHR surface;
-    pl_vulkan vulkan;
-    pl_gpu gpu;
-    pl_swapchain swapchain;
-    pl_dispatch dispatch;
-    pl_renderer renderer;
-    pl_timer timers[KILN_MAX_TIMERS];
-    int timer_count;
-    int pass_index;
-    double pending_ms;
-    VkQueue graphics_queue;
-};
+#include "kiln_gpu_internal.h"
 
 static void fail(char *error, size_t size, const char *message) {
     if (error && size) snprintf(error, size, "%s", message);
@@ -171,6 +148,12 @@ kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface
     };
     PFN_vkGetDeviceQueue2 get_queue = (PFN_vkGetDeviceQueue2) g->instance->get_proc_addr(g->instance->instance, "vkGetDeviceQueue2");
     if (get_queue) get_queue(g->vulkan->device, &queue_info, &g->graphics_queue);
+    if (!g->graphics_queue) {
+        queue_info.flags = 0;
+        if (get_queue) get_queue(g->vulkan->device, &queue_info, &g->graphics_queue);
+    }
+    if (getenv("KILN_VIDEO_TRACE")) fprintf(stderr, "kiln_gpu: graphics queue %p family %u flags %u\n", (void *) g->graphics_queue,
+                                           g->vulkan->queue_graphics.index, (unsigned) queue_info.flags);
     return g;
 }
 
@@ -222,6 +205,9 @@ kiln_vulkan_handles kiln_gpu_vulkan_handles(kiln_gpu *g) {
         .features = g->vulkan->features,
         .extensions = g->vulkan->extensions,
         .num_extensions = g->vulkan->num_extensions,
+#ifdef VK_KHR_internally_synchronized_queues
+        .graphics_queue_flags = g->vulkan->queue_graphics.flags,
+#endif
     };
 }
 
