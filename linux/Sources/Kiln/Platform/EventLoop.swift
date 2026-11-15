@@ -9,6 +9,7 @@ public final class EventLoop {
 
     private struct Source {
         let fd: Int32
+        let events: Int16
         let handler: Handler
     }
 
@@ -24,7 +25,12 @@ public final class EventLoop {
     }
 
     public func add(fd: Int32, handler: @escaping Handler) {
-        sources.append(Source(fd: fd, handler: handler))
+        sources.append(Source(fd: fd, events: Int16(POLLIN), handler: handler))
+    }
+
+    /// Listens for urgent data on `fd` (POLLPRI), as pressure-stall triggers signal.
+    public func add(urgentFD fd: Int32, handler: @escaping Handler) {
+        sources.append(Source(fd: fd, events: Int16(POLLPRI), handler: handler))
     }
 
     /// Runs `handler` after every turn's sources, so work queued while handling them (a frame to draw) sees all of it.
@@ -43,11 +49,11 @@ public final class EventLoop {
     /// Waits up to `timeoutMilliseconds` for any source and runs the handlers of those that became readable; a handler
     /// with nothing to read still runs once per turn so it can flush what it queued.
     public func runOnce(timeoutMilliseconds: Int32) {
-        var descriptors = sources.map { pollfd(fd: $0.fd, events: Int16(POLLIN), revents: 0) }
+        var descriptors = sources.map { pollfd(fd: $0.fd, events: $0.events, revents: 0) }
         let ready = poll(&descriptors, nfds_t(descriptors.count), timeoutMilliseconds)
         let snapshot = sources
         for (index, source) in snapshot.enumerated() {
-            let readable = ready > 0 && (descriptors[index].revents & Int16(POLLIN)) != 0
+            let readable = ready > 0 && (descriptors[index].revents & source.events) != 0
             source.handler(readable)
         }
         for handler in turnEnds { handler() }

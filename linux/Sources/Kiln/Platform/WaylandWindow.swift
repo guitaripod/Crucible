@@ -88,7 +88,8 @@ public final class WaylandWindow {
         kiln_wl_set_cursor(connection, cursor.raw)
     }
 
-    public func inhibitIdle(_ inhibit: Bool) {
+    @discardableResult
+    public func inhibitIdle(_ inhibit: Bool) -> Bool {
         kiln_wl_inhibit_idle(connection, inhibit)
     }
 

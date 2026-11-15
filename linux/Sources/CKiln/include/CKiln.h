@@ -120,7 +120,8 @@ bool kiln_wl_describe_scrgb(kiln_wl *wl);
 void kiln_wl_request_frame(kiln_wl *wl);
 void kiln_wl_set_fifo_barrier(kiln_wl *wl);
 
-void kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit);
+/** Holds the screen awake over the window (idle-inhibit-unstable-v1); false when the compositor lacks the protocol. */
+bool kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit);
 
 /** Raises and focuses the window with an xdg-activation token (one a launcher handed a second launch); false when the
  * compositor has no xdg_activation_v1. */

@@ -7,12 +7,15 @@ public protocol WindowDelegate: AnyObject {
     func window(_ window: Window, unhandledKey event: KeyEvent) -> Bool
     /// A mouse button no view handled (the back and forward buttons walk history).
     func window(_ window: Window, unhandledButton button: MouseButton) -> Bool
+    /// The window gained or lost the keyboard: the app came back to it, or went elsewhere.
+    func window(_ window: Window, keyboardFocusChanged focused: Bool)
     func windowShouldClose(_ window: Window)
 }
 
 extension WindowDelegate {
     public func window(_ window: Window, unhandledKey event: KeyEvent) -> Bool { false }
     public func window(_ window: Window, unhandledButton button: MouseButton) -> Bool { false }
+    public func window(_ window: Window, keyboardFocusChanged focused: Bool) {}
     public func windowShouldClose(_ window: Window) {}
 }
 
@@ -161,8 +164,15 @@ public final class Window {
         surface?.setCursor(cursor)
     }
 
-    public func inhibitIdle(_ inhibit: Bool) {
-        surface?.inhibitIdle(inhibit)
+    /// Keeps the screen awake over the window; false when the compositor cannot (gamescope), for a fallback to take over.
+    @discardableResult
+    public func inhibitIdle(_ inhibit: Bool) -> Bool {
+        surface?.inhibitIdle(inhibit) ?? false
+    }
+
+    /// Drops the decoded artwork nothing on screen holds, for when memory runs short.
+    public func purgeImageMemory() {
+        images?.purgeMemory()
     }
 
     /// Brings the window to the front with an xdg-activation token a launcher handed a later launch of the app.
@@ -562,7 +572,9 @@ public final class Window {
 
         func windowKeyboardFocusChanged(_ surface: WaylandWindow, focused: Bool) {
             guard let window else { return }
+            let changed = window.hasKeyboardFocus != focused
             window.hasKeyboardFocus = focused
+            if changed { window.delegate?.window(window, keyboardFocusChanged: focused) }
             if !focused {
                 window.repeatTask?.cancel()
                 window.repeatTask = nil

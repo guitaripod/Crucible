@@ -113,6 +113,12 @@ public final class ImageStore {
     }
 
     /// The texture if it is resident; marks it used.
+    /// Forgets every decoded texture it holds; the ones views still show stay alive with them and the rest are freed.
+    public func purgeMemory() {
+        entries.removeAll()
+        residentBytes = 0
+    }
+
     public func cached(_ request: ImageRequest) -> Texture? {
         if let texture = preloaded[request.url] { return texture }
         guard var entry = entries[request] else { return nil }

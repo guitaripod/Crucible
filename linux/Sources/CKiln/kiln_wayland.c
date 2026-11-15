@@ -570,14 +570,16 @@ void kiln_wl_set_fifo_barrier(kiln_wl *wl) {
     wp_fifo_v1_set_barrier(wl->fifo);
 }
 
-void kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit) {
-    if (!wl->idle_manager) return;
+bool kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit) {
+    if (!wl->idle_manager || !wl->surface) return false;
     if (inhibit && !wl->inhibitor) {
         wl->inhibitor = zwp_idle_inhibit_manager_v1_create_inhibitor(wl->idle_manager, wl->surface);
     } else if (!inhibit && wl->inhibitor) {
         zwp_idle_inhibitor_v1_destroy(wl->inhibitor);
         wl->inhibitor = NULL;
     }
+    wl_display_flush(wl->display);
+    return true;
 }
 
 bool kiln_wl_activate(kiln_wl *wl, const char *token) {
