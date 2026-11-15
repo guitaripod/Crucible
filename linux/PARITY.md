@@ -10,12 +10,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Home and libraries | 72 | 3 | 3 | 0 |
 | Title pages, collections, playlists and server activity | 70 | 0 | 8 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
-| Search, Pro features (free on Linux) and demo | 48 | 0 | 7 | 8 |
+| Search, Pro features (free on Linux) and demo | 49 | 0 | 6 | 8 |
 | You, profiles, history, statistics and manage | 80 | 1 | 3 | 3 |
 | Settings and integrations | 57 | 1 | 9 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 64 | 7 | 32 | 0 |
-| **All** | 582 | 20 | 84 | 16 |
+| **All** | 583 | 20 | 83 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -355,7 +355,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `search-dedupe-order` (S) Results are de-duplicated by id and ordered as the server’s hubs return them; the top result is the first visible match in the chosen scope. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Search/SearchModels.swift:49-95_
 - [ ] `pro-what-to-watch` (L) What to Watch: say what you feel like and get picks from your own library, each with a reason, from your own model (D1). Gap: No Watch screen and no OwnModelBrain on Linux (rg for HostedBrain, WatchSession, CompanionStore under linux/ is empty). Core Features/Watch, Hosted and Companion import no UIKit, so they are shareable. HostedBrain.isAvailable is current != nil (HostedBrain.swift:60), so an OwnModelBrain must set it. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:6,17,30,43,56-61_
 - [ ] `pro-previously-on` (M) Previously On: a recap of the last episodes written before you press play, from dialogue, on your own model (D1). Gap: No recap in the Linux player or anywhere under linux/. Gated on HostedBrain like What to Watch (ProFeature.swift:61). Depends on the same own-model brain. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:7,18,31,44,58-61_
-- [ ] `pro-full-statistics` (L) Full Statistics: every range, library filter, patterns, binges and taste from Plex history plus Trakt (D1). Gap: No Statistics tab or screen. CrucibleStats is a target in Package.swift but is not imported anywhere under linux/Sources, and the You screen has no Statistics row. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:9,20,33,64_
+- [x] `pro-full-statistics` (L) Full Statistics: every range, library filter, patterns, binges and taste from Plex history plus Trakt (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:9,20,33,64_
 - [ ] `pro-year-in-review` (M) Year in Review poster: preview and share your year as a Story or Square poster (D1). Gap: No Year in Review on Linux; depends on Statistics data and a share surface. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:10,34,64_
 - [x] `pro-manage-requests` (L) Manage Requests: approve, decline and retry everyone’s Seerr requests, listed only when the connected Seerr manages requests (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:12,23,36,65_
 - [ ] `pro-sports-research` (L) Sports Research: your own model looks up the events in your sports recordings and fills in titles, dates, cards and posters; listed when paired with a Crucible Server (D1). Gap: No Sports screen and no Crucible Server pairing on Linux (rg for CompanionStore and SportsCopy under linux/ is empty). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:13,24,37,57,66_
