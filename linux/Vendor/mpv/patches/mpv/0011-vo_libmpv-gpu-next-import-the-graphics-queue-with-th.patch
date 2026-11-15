@@ -1,0 +1,50 @@
+From f3b2fadf47c83da9dd5d16708eb8f8a3f77234c9 Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Sun, 15 Nov 2026 12:11:57 +0200
+Subject: [PATCH] vo_libmpv/gpu-next: import the graphics queue with the flags
+ it was created with
+
+A device that shares its graphics queue between threads creates it with
+VK_DEVICE_QUEUE_CREATE_INTERNALLY_SYNCHRONIZED_BIT_KHR, and vkGetDeviceQueue2
+returns that queue only when asked with the same flags. Importing it with none
+handed libplacebo a null queue, and the first submit crashed. Take the flags
+in mpv_vulkan_init_params and pass them to pl_vulkan_import.
+---
+ include/mpv/render_vk.h      | 8 ++++++++
+ video/out/gpu_next/context.c | 1 +
+ 2 files changed, 9 insertions(+)
+
+diff --git a/include/mpv/render_vk.h b/include/mpv/render_vk.h
+index 229ed07..95f06b3 100644
+--- a/include/mpv/render_vk.h
++++ b/include/mpv/render_vk.h
+@@ -132,6 +132,14 @@ typedef struct mpv_vulkan_init_params {
+      * Number of extensions in the extensions array.
+      */
+     int num_extensions;
++
++    /**
++     * Optional: the VkDeviceQueueCreateFlags the graphics queue was created
++     * with (VK_DEVICE_QUEUE_CREATE_INTERNALLY_SYNCHRONIZED_BIT_KHR, when the
++     * device shares the queue between threads). A queue created with flags is
++     * only returned by vkGetDeviceQueue2 asked with the same flags.
++     */
++    uint32_t graphics_queue_flags;
+ } mpv_vulkan_init_params;
+ 
+ /**
+diff --git a/video/out/gpu_next/context.c b/video/out/gpu_next/context.c
+index 9810264..ade18d6 100644
+--- a/video/out/gpu_next/context.c
++++ b/video/out/gpu_next/context.c
+@@ -505,6 +505,7 @@ static int libmpv_gpu_next_init_vk(struct libmpv_gpu_next_context *ctx, mpv_rend
+         .queue_graphics = {
+             .index = vk_params->graphics_queue_family,
+             .count = 1,
++            .flags = vk_params->graphics_queue_flags,
+         },
+         .features = vk_params->features,
+         .extensions = vk_params->extensions,
+-- 
+2.56.1
+
