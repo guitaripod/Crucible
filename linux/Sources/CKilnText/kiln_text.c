@@ -44,7 +44,7 @@ static PangoLayout *make_layout(const char *utf8, const kiln_text_style *style) 
     }
     pango_layout_set_font_description(layout, font);
     pango_font_description_free(font);
-    if (style->letter_spacing_px != 0 || style->visible_ranges) {
+    if (!style->markup && (style->letter_spacing_px != 0 || style->visible_ranges)) {
         PangoAttrList *attributes = pango_attr_list_new();
         if (style->letter_spacing_px != 0) {
             pango_attr_list_insert(attributes, pango_attr_letter_spacing_new((int) lround(style->letter_spacing_px * PANGO_SCALE)));
@@ -70,7 +70,11 @@ static PangoLayout *make_layout(const char *utf8, const kiln_text_style *style) 
         pango_layout_set_height(layout, -style->max_lines);
         pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
     }
-    pango_layout_set_text(layout, utf8, -1);
+    if (style->markup) {
+        pango_layout_set_markup(layout, utf8, -1);
+    } else {
+        pango_layout_set_text(layout, utf8, -1);
+    }
     return layout;
 }
 
@@ -101,5 +105,40 @@ bool kiln_text_render(const char *utf8, const kiln_text_style *style, uint8_t *a
     cairo_destroy(cr);
     cairo_surface_flush(surface);
     cairo_surface_destroy(surface);
+    return true;
+}
+
+bool kiln_text_render_color(const char *utf8, const kiln_text_style *style, double red, double green, double blue, uint8_t *rgba, int width,
+                            int height, int stride) {
+    if (width <= 0 || height <= 0 || stride < width * 4) return false;
+    memset(rgba, 0, (size_t) stride * height);
+    cairo_surface_t *surface = cairo_image_surface_create_for_data(rgba, CAIRO_FORMAT_ARGB32, width, height, stride);
+    cairo_t *cr = cairo_create(surface);
+    cairo_set_source_rgb(cr, red, green, blue);
+    PangoLayout *layout = make_layout(utf8, style);
+    pango_cairo_update_layout(cr, layout);
+    pango_cairo_show_layout(cr, layout);
+    g_object_unref(layout);
+    cairo_destroy(cr);
+    cairo_surface_flush(surface);
+    cairo_surface_destroy(surface);
+    for (int y = 0; y < height; y++) {
+        uint32_t *row = (uint32_t *) (rgba + (size_t) y * stride);
+        for (int x = 0; x < width; x++) {
+            uint32_t pixel = row[x];
+            uint32_t a = pixel >> 24;
+            uint32_t r = (pixel >> 16) & 0xFF, g = (pixel >> 8) & 0xFF, b = pixel & 0xFF;
+            if (a > 0 && a < 255) {
+                r = (r * 255 + a / 2) / a;
+                g = (g * 255 + a / 2) / a;
+                b = (b * 255 + a / 2) / a;
+            }
+            uint8_t *out = (uint8_t *) &row[x];
+            out[0] = (uint8_t) (r > 255 ? 255 : r);
+            out[1] = (uint8_t) (g > 255 ? 255 : g);
+            out[2] = (uint8_t) (b > 255 ? 255 : b);
+            out[3] = (uint8_t) a;
+        }
+    }
     return true;
 }

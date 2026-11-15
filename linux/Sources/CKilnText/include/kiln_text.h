@@ -18,6 +18,9 @@ typedef struct {
      * mask lines up with the full text's and tints just the matched words. NULL draws all of it. */
     const int *visible_ranges;
     int visible_range_count;
+    /** The text is Pango markup (`<b>`, `<i>`, `<s>`, `<tt>`, `<span background=…>`), escaped by the caller; letter spacing
+     * and visible ranges do not apply to it. */
+    bool markup;
 } kiln_text_style;
 
 typedef struct {
@@ -36,5 +39,10 @@ kiln_text_metrics kiln_text_measure(const char *utf8, const kiln_text_style *sty
 
 /** Rasterises the laid-out text as 8-bit coverage into `alpha` (`stride` bytes per row), top left at the origin. */
 bool kiln_text_render(const char *utf8, const kiln_text_style *style, uint8_t *alpha, int width, int height, int stride);
+
+/** Rasterises the laid-out text in colour into `rgba` (straight-alpha RGBA, 8 bits a channel, `stride` bytes per row): the
+ * glyphs in the sRGB colour `red`, `green`, `blue` (0 to 1) and colour glyphs (emoji) in their own colours. */
+bool kiln_text_render_color(const char *utf8, const kiln_text_style *style, double red, double green, double blue, uint8_t *rgba, int width,
+                            int height, int stride);
 
 #endif

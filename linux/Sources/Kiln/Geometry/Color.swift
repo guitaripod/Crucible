@@ -50,6 +50,15 @@ public struct Color: Hashable, Sendable {
         self.alpha = alpha
     }
 
+    /// The colour's red, green and blue as 8-bit sRGB values.
+    public var srgbComponents: [UInt8] {
+        [red, green, blue].map { value in
+            let clamped = min(max(value, 0), 1)
+            let encoded = clamped <= 0.0031308 ? clamped * 12.92 : 1.055 * Float(pow(Double(clamped), 1 / 2.4)) - 0.055
+            return UInt8((encoded * 255).rounded())
+        }
+    }
+
     private static func linear(_ value: Float) -> Float {
         value <= 0.04045 ? value / 12.92 : Float(pow(Double((value + 0.055) / 1.055), 2.4))
     }

@@ -71,12 +71,27 @@ public struct DrawContext {
 
     /// Draws `layout` with its top left at `origin`.
     public func text(_ layout: TextLayout, at origin: Point, color: Color) {
+        if layout.isInColor {
+            colorText(layout, at: origin, color: color)
+            return
+        }
         guard let texture = layout.texture(renderer: renderer.text) else { return }
         applyClip()
         let placed = transform.apply(Rect(origin: origin, size: layout.size))
         let pixelWidth = Float(texture.width) * transform.scale / renderer.scale
         let pixelHeight = Float(texture.height) * transform.scale / renderer.scale
         renderer.painter.mask(texture, in: Rect(x: placed.x, y: placed.y, width: pixelWidth, height: pixelHeight), color: color.multipliedAlpha(alpha))
+    }
+
+    /// A layout drawn in colour: its glyphs in `color`, its emoji in their own colours, at `color`'s opacity.
+    private func colorText(_ layout: TextLayout, at origin: Point, color: Color) {
+        guard let texture = layout.colorTexture(renderer: renderer.text, color: color.withAlpha(1)) else { return }
+        applyClip()
+        let placed = transform.apply(Rect(origin: origin, size: layout.size))
+        let pixelWidth = Float(texture.width) * transform.scale / renderer.scale
+        let pixelHeight = Float(texture.height) * transform.scale / renderer.scale
+        renderer.painter.image(texture, in: Rect(x: placed.x, y: placed.y, width: pixelWidth, height: pixelHeight), opacity: color.alpha * alpha,
+                               srgb: true)
     }
 
     /// `path`, drawn in a box of `rect.size` points placed at `rect`'s origin, tinted with `color`: each fill and stroke adds

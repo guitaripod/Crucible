@@ -37,8 +37,9 @@ public struct TextLayout {
     let metrics: TextMetrics
 
     /// Lays out `text` no wider than `maxWidth` points (0 for unbounded) in at most `maxLines` lines (0 for any), ending
-    /// in an ellipsis when cut.
-    public init(_ text: String, font: Font, maxWidth: Float = 0, maxLines: Int = 1, alignment: TextStyle.Alignment = .leading, scale: Float) {
+    /// in an ellipsis when cut. `markup` reads `text` as Pango markup; `inColor` draws its emoji in their own colours.
+    public init(_ text: String, font: Font, maxWidth: Float = 0, maxLines: Int = 1, alignment: TextStyle.Alignment = .leading, scale: Float,
+                markup: Bool = false, inColor: Bool = false) {
         self.text = text
         self.font = font
         self.maxWidth = maxWidth
@@ -49,6 +50,8 @@ public struct TextLayout {
                               maxWidthPixels: maxWidth > 0 ? Int((maxWidth * scale).rounded(.down)) : 0, maxLines: maxLines, alignment: alignment)
         style.italic = font.italic
         style.letterSpacingPixels = Double(font.letterSpacing * scale)
+        style.markup = markup
+        style.inColor = inColor
         self.style = style
         metrics = text.isEmpty ? TextMetrics(width: 0, height: 0, lines: 0, baseline: 0, truncated: false) : TextRenderer.measure(text, style: style)
     }
@@ -79,9 +82,34 @@ public struct TextLayout {
 
     public var isTruncated: Bool { metrics.truncated }
 
+    /// Whether the layout draws in colour (`inColor`) rather than as a coverage mask.
+    public var isInColor: Bool { style.inColor }
+
     func texture(renderer: TextRenderer) -> Texture? {
         guard !text.isEmpty else { return nil }
         return (try? renderer.texture(for: text, style: style))?.texture
+    }
+
+    func colorTexture(renderer: TextRenderer, color: Color) -> Texture? {
+        guard !text.isEmpty else { return nil }
+        return try? renderer.colorTexture(for: text, style: style, color: color)
+    }
+
+    /// `text` with the characters Pango markup gives meaning to (`&`, `<`, `>`, quotes) written as entities.
+    public static func escapingMarkup(_ text: String) -> String {
+        var escaped = ""
+        escaped.reserveCapacity(text.utf8.count)
+        for character in text {
+            switch character {
+            case "&": escaped += "&amp;"
+            case "<": escaped += "&lt;"
+            case ">": escaped += "&gt;"
+            case "\"": escaped += "&quot;"
+            case "'": escaped += "&#39;"
+            default: escaped.append(character)
+            }
+        }
+        return escaped
     }
 
 }

@@ -17,6 +17,10 @@ public struct TextStyle: Hashable, Sendable {
     public var opticalSize: Double
     /// UTF-8 byte ranges of the only text drawn, the rest laid out but transparent (a search match to tint); empty draws all.
     public var visibleByteRanges: [Range<Int>] = []
+    /// The text is Pango markup (bold, italic, struck, code and covered runs), escaped by whoever built it.
+    public var markup = false
+    /// The text is drawn in colour, its colour glyphs (emoji) in their own colours, instead of as a tinted coverage mask.
+    public var inColor = false
 
     public init(sizePixels: Double, weight: Int, opticalSize: Double, maxWidthPixels: Int = 0, maxLines: Int = 0, alignment: Alignment = .leading) {
         self.sizePixels = sizePixels
@@ -148,11 +152,47 @@ public final class TextRenderer {
         return (texture, metrics)
     }
 
+    private struct ColorKey: Hashable {
+        let text: String
+        let style: TextStyle
+        let color: [UInt8]
+    }
+
+    private var colorCache: [ColorKey: (texture: Texture, frame: Int)] = [:]
+
+    /// The text drawn in `color` with its emoji in their own colours, as an sRGB texture with straight alpha, from the cache
+    /// when this text, style and colour were drawn recently.
+    public func colorTexture(for text: String, style: TextStyle, color: Color) throws(RenderError) -> Texture? {
+        let srgb = color.srgbComponents
+        let key = ColorKey(text: text, style: style, color: srgb)
+        if let cached = colorCache[key] {
+            colorCache[key]?.frame = frame
+            return cached.texture
+        }
+        let metrics = Self.measure(text, style: style)
+        guard metrics.width > 0, metrics.height > 0 else { return nil }
+        FrameTrace.rasterised += 1
+        let stride = metrics.width * 4
+        var pixels = [UInt8](repeating: 0, count: stride * metrics.height)
+        let rendered = Self.withRawStyle(style) { raw in
+            text.withCString {
+                kiln_text_render_color($0, &raw, Double(srgb[0]) / 255, Double(srgb[1]) / 255, Double(srgb[2]) / 255, &pixels,
+                                       Int32(metrics.width), Int32(metrics.height), Int32(stride))
+            }
+        }
+        guard rendered else { return nil }
+        let texture = try gpu.texture(width: metrics.width, height: metrics.height, format: .rgba8, renderable: false)
+        _ = pixels.withUnsafeBytes { texture.upload($0.baseAddress!, rowBytes: stride) }
+        colorCache[key] = (texture, frame)
+        return texture
+    }
+
     /// Drops labels not drawn for a few seconds of frames; called once per frame.
     public func endFrame() {
         frame += 1
         guard frame % 600 == 0 else { return }
         cache = cache.filter { frame - $0.value.frame < 600 }
+        colorCache = colorCache.filter { frame - $0.value.frame < 600 }
     }
 
     private static func withRawStyle<R>(_ style: TextStyle, _ body: (inout kiln_text_style) -> R) -> R {
@@ -171,7 +211,8 @@ public final class TextRenderer {
                     alignment: style.alignment.rawValue,
                     letter_spacing_px: style.letterSpacingPixels,
                     visible_ranges: ranges.isEmpty ? nil : visible.baseAddress,
-                    visible_range_count: Int32(style.visibleByteRanges.count)
+                    visible_range_count: Int32(style.visibleByteRanges.count),
+                    markup: style.markup
                 )
                 return body(&raw)
             }

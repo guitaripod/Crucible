@@ -96,7 +96,8 @@ import CKilnText
             let sample = "Continue Watching 0123456789"
             let cut = TextRenderer.measure(sample, style: style)
             var raw = kiln_text_style(family: nil, size_px: style.sizePixels, optical_size: opsz, weight: Int32(style.weight), italic: false,
-                                      max_width_px: 0, max_lines: 0, alignment: 0, letter_spacing_px: 0, visible_ranges: nil, visible_range_count: 0)
+                                      max_width_px: 0, max_lines: 0, alignment: 0, letter_spacing_px: 0, visible_ranges: nil, visible_range_count: 0,
+                                      markup: false)
             let variable = "Inter Variable".withCString { family in
                 raw.family = family
                 return sample.withCString { kiln_text_measure($0, &raw) }
@@ -104,6 +105,39 @@ import CKilnText
             #expect(cut.width == Int(variable.width), "the static cut sets text exactly as the variable font at its coordinates")
             #expect(cut.height == Int(variable.height))
         }
+    }
+
+    @Test func markupSetsRunsBoldAndEscapedTextReadsAsWritten() {
+        var style = TextStyle(sizePixels: 30, weight: 400, opticalSize: 14)
+        let plain = TextRenderer.measure("Bold & plain", style: style)
+        style.markup = true
+        let escaped = TextRenderer.measure(TextLayout.escapingMarkup("Bold & plain"), style: style)
+        #expect(escaped.width == plain.width, "escaped markup lays out exactly as the plain text")
+        let bold = TextRenderer.measure("<b>Bold</b> &amp; plain", style: style)
+        #expect(bold.width > plain.width, "the bold run is wider")
+        #expect(TextLayout.escapingMarkup("<a href=\"x\">'&'</a>") == "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;")
+    }
+
+    @Test func colourTextDrawsItsGlyphsInTheColourAndEmojiInTheirOwn() throws {
+        let text = TextRenderer(gpu: gpu)
+        var style = TextStyle(sizePixels: 64, weight: 400, opticalSize: 14)
+        style.inColor = true
+        let texture = try #require(try text.colorTexture(for: "I 😀", style: style, color: Color(linearRed: 1, green: 1, blue: 1)))
+        #expect(texture.isSRGB)
+        painter.clear(.black)
+        painter.image(texture, in: Rect(x: 20, y: 20, width: Float(texture.width), height: Float(texture.height)), srgb: true)
+        let pixels = target.download()
+        var white = 0
+        var yellow = 0
+        for y in 20..<(20 + texture.height) {
+            for x in 20..<(20 + texture.width) {
+                let (red, green, blue, _) = pixel(pixels, x, y)
+                if red > 0.9, green > 0.9, blue > 0.9 { white += 1 }
+                if red > 0.5, green > 0.3, blue < 0.15 { yellow += 1 }
+            }
+        }
+        #expect(white > 20, "the letter is drawn in the colour asked for")
+        #expect(yellow > 200, "the emoji keeps its own yellow instead of turning into a white silhouette")
     }
 
     @Test func aHighlightKeepsTheLayoutAndMapsUTF16ToBytes() {
