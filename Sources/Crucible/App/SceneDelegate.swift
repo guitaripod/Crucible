@@ -34,7 +34,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         traktObserver = TraktToast.observeWatched(in: window)
 
-        pendingActivity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
+        pendingActivity = connectionOptions.userActivities.first ?? (PhoneDebugSession.startsFresh ? nil : session.stateRestorationActivity)
         pendingInvite = connectionOptions.urlContexts.lazy.compactMap { CompanionInvite(url: $0.url) }.first
         pendingDevice = connectionOptions.urlContexts.lazy.compactMap { CompanionDeviceInvite(url: $0.url) }.first
         CompanionAdvertiser.shared.refresh()

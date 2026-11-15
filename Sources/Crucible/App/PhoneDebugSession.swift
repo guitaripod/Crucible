@@ -7,6 +7,17 @@ import UIKit
 
 /// Launch-time switches for simulator runs and UI tests. Everything that changes the session only exists in DEBUG builds.
 enum PhoneDebugSession {
+    /// Whether this launch starts as a new install (`CRUCIBLE_FRESH=1`), which also means no window comes back as it was:
+    /// the system keeps a scene's restored state apart from the app's data, so a test that left the Library tab open
+    /// would otherwise open the next test's new install on it. Always false outside DEBUG builds.
+    static var startsFresh: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["CRUCIBLE_FRESH"] == "1"
+        #else
+        false
+        #endif
+    }
+
     #if DEBUG
     private static let mockMachineIdentifier = "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b"
 
