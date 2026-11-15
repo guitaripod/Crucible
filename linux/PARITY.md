@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 49 | 4 | 3 | 1 |
+| Sign in, launch, tabs and navigation | 50 | 4 | 2 | 1 |
 | Home and libraries | 76 | 2 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 82 | 1 | 1 | 3 |
 | Settings and integrations | 59 | 1 | 7 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 71 | 7 | 25 | 0 |
-| **All** | 623 | 18 | 45 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 74 | 7 | 22 | 0 |
+| **All** | 627 | 18 | 41 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -57,7 +57,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-single-instance-handoff` (S) A second launch hands its link to the running app over the org.guitaripod.Crucible D-Bus name and exits.
 - [ ] `shell-relaunch-tab-restore` (M) Each window restores its tab and screen after a relaunch (Linux-only requirement in docs/LINUX.md section 6). Gap: Nothing is persisted, so every launch lands on Home. Linux-only requirement.
 - [ ] `shell-multi-window` (L) **partial** Ctrl+N opens a new window that shares the connection and restores its own tab; a title can open in a new window from its context menu or a middle click (docs/LINUX.md section 6). Gap: A second window exists only as a separate process through the --new-instance flag. Missing: Ctrl+N (no binding), middle-click or context-menu open in a new window, and a per-window tab restore. Linux-only requirement.
-- [ ] `shell-command-menu` (M) A menu button in the tab bar and F10 open a Go, View, Media and Settings menu with each item's shortcut, and Ctrl+? shows the full shortcut list (docs/LINUX.md section 6). Gap: No menu button, no F10 menu and no shortcut overlay. Linux-only requirement.
+- [x] `shell-command-menu` (M) A menu button in the tab bar and F10 open a Go, View, Media and Settings menu with each item's shortcut, and Ctrl+? shows the full shortcut list (docs/LINUX.md section 6).
 - [x] `shell-shortcuts-refresh-settings-zoom` (S) Ctrl+R refreshes, Ctrl+comma opens Settings, and Ctrl+plus and Ctrl+minus change poster size (docs/LINUX.md section 6).
 - [x] `shell-fullscreen-quit-keys` (S) F11 toggles fullscreen and Ctrl+Q quits.
 - [x] `shell-you-account-header` (M) You tab header shows a profile panel (account name and connection status) and a Year in Review card that opens Statistics. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:36-38, 149-178 (profile panel, year card, context column)_
@@ -642,8 +642,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 ## Linux-only requirements (docs/LINUX.md)
 
-- [ ] `linux-menu-bar` (M) Menu button in the tab bar and F10 open Go, View, Media and Settings menus, each item showing its shortcut Gap: No menu button in TabBar.swift (pointer select only, lines 164-170) and no Go, View, Media or Settings menu. F10 is defined (Input.swift:58) but nothing matches it. The .menu key (FocusEngine.swift:186) only opens the focused view's context menu. _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
-- [ ] `linux-shortcut-overlay` (S) Ctrl+? shows the full list of keyboard shortcuts, as the iPad's Command-key overlay does Gap: No overlay and no ? binding in RootView.handleCommand or AppCoordinator.window(_:unhandledKey:) (AppCoordinator.swift:130-148). _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
+- [x] `linux-menu-bar` (M) Menu button in the tab bar and F10 open Go, View, Media and Settings menus, each item showing its shortcut _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
+- [x] `linux-shortcut-overlay` (S) Ctrl+? shows the full list of keyboard shortcuts, as the iPad's Command-key overlay does _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `linux-kb-ctrl-digit-tabs` (S) Ctrl+1 to Ctrl+9 select the tab at that position _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `linux-kb-search-ctrl-f-slash` (S) Ctrl+F or / opens Search _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `linux-kb-typing-opens-search` (S) Typing a letter outside a text field opens Search with that letter _Apple TV: docs/LINUX.md §5.4 Keyboard_
@@ -684,7 +684,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `density-couch-flag` (S) crucible --couch starts in Couch density and fullscreen _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `density-couch-desktop-action` (S) Desktop entry action Open on the TV (Couch) runs crucible --couch _Apple TV: docs/LINUX.md §9 Couch_
 - [ ] `density-couch-tokens-canvas` (M) **partial** Couch draws the tvOS tokens one to one on a 1920 by 1080 canvas scaled to the output Gap: Couch sets the density factor to 1 (Tokens.swift:9-13) and draws in the output's points. No code scales a fixed 1920 by 1080 canvas to the output, so the design matches only where the output's points are 1920 by 1080 (the C5 at 4K with scale 2). _Apple TV: docs/LINUX.md §5.5 Two densities_
-- [ ] `density-view-menu-couch` (S) Couch density is chosen from the View menu Gap: No View menu exists (see linux-menu-bar). Couch is toggled only by the Interface Size row on the You tab (YouScreen.swift:35-37, 50-51). _Apple TV: docs/LINUX.md §5.5 Two densities_
+- [x] `density-view-menu-couch` (S) Couch density is chosen from the View menu _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `density-settings-entry` (S) Density is a Linux-only Settings entry (Interface Size) _Apple TV: docs/LINUX.md §6 Settings_
 - [ ] `density-couch-offer-gamepad-40in` (M) Couch is offered once when a gamepad is used fullscreen on an output 40 inches or larger (EDID) Gap: No gamepad input and no output-size or EDID read: kiln_wayland.c has no wl_output geometry handling (wl_output appears only as a callback parameter, :527). _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `windowed-ssd-fullscreen-hide` (S) Windowed mode uses the desktop's server-side decorations; fullscreen and Couch hide them _Apple TV: docs/LINUX.md §5.5 Two densities_
