@@ -587,6 +587,27 @@ bool kiln_wl_activate(kiln_wl *wl, const char *token) {
     return true;
 }
 
+static void activation_token_done(void *data, struct xdg_activation_token_v1 *token, const char *value) {
+    kiln_wl *wl = data;
+    if (wl->activation && wl->surface && value && *value) xdg_activation_v1_activate(wl->activation, value, wl->surface);
+    xdg_activation_token_v1_destroy(token);
+    wl_display_flush(wl->display);
+}
+
+static const struct xdg_activation_token_v1_listener activation_token_listener = { .done = activation_token_done };
+
+bool kiln_wl_raise(kiln_wl *wl) {
+    if (!wl->activation || !wl->surface) return false;
+    struct xdg_activation_token_v1 *token = xdg_activation_v1_get_activation_token(wl->activation);
+    if (!token) return false;
+    xdg_activation_token_v1_add_listener(token, &activation_token_listener, wl);
+    xdg_activation_token_v1_set_surface(token, wl->surface);
+    if (wl->seat && wl->pointer_serial) xdg_activation_token_v1_set_serial(token, wl->pointer_serial, wl->seat);
+    xdg_activation_token_v1_commit(token);
+    wl_display_flush(wl->display);
+    return true;
+}
+
 extern int _dispatch_get_main_queue_handle_4CF(void);
 extern void _dispatch_main_queue_callback_4CF(void *message);
 

@@ -171,6 +171,12 @@ public final class Window {
         surface?.activate(token: token) ?? false
     }
 
+    /// Brings the window forward on a request that came with no token (the desktop's media controls).
+    @discardableResult
+    public func raise() -> Bool {
+        surface?.raise() ?? false
+    }
+
     // MARK: Drawing
 
     /// Asks for a frame; it is drawn at the end of the event-loop turn, after every pending input has been handled.

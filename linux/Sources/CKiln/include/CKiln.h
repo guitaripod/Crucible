@@ -125,6 +125,8 @@ void kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit);
 /** Raises and focuses the window with an xdg-activation token (one a launcher handed a second launch); false when the
  * compositor has no xdg_activation_v1. */
 bool kiln_wl_activate(kiln_wl *wl, const char *token);
+/** Asks the compositor for an activation token for the window itself and activates with it, for a raise nobody launched. */
+bool kiln_wl_raise(kiln_wl *wl);
 
 /** Sets the pointer's cursor over the window (a link hand over clickable content, hidden while video plays). */
 void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor);

@@ -98,6 +98,12 @@ public final class WaylandWindow {
         kiln_wl_activate(connection, token)
     }
 
+    /// Raises and focuses the window without a launcher's token, as far as the compositor's focus rules allow.
+    @discardableResult
+    public func raise() -> Bool {
+        kiln_wl_raise(connection)
+    }
+
     public func close() {
         kiln_wl_disconnect(connection)
     }
