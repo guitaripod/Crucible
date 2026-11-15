@@ -243,7 +243,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.allowRelayConnection), category: .connection, section: nil, platforms: all),
             Spec(item: .privacyStatement, category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.clearSearchHistory), category: .privacy, section: nil, platforms: all),
-            Spec(item: .action(.forgetFinishedTitles), category: .privacy, section: nil, platforms: both),
+            Spec(item: .action(.forgetFinishedTitles), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.clearImageCache), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.shareLogs), category: .help, section: nil, platforms: phone),
             Spec(item: .destination(.diagnostics), category: .help, section: nil, platforms: [.tv, .linux]),

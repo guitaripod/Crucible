@@ -46,14 +46,16 @@ final class SettingsScreen: ScreenView {
     }
 }
 
-/// One category of settings, its rows grouped by section.
+/// One category of settings, its rows grouped by section, ending with Restore Defaults when any of its settings changed.
 @MainActor
 final class SettingsCategoryScreen: ScreenView {
     private let category: SettingsCategory
     private let api: APIClient
     private let page = PageView()
     private let title: ScreenTitleView
+    private static let restoreID = "settings.restoreDefaults"
     private var lists: [RowListView] = []
+    private let restore = RowListView()
     private var entries: [String: SettingsEntry] = [:]
 
     init(category: SettingsCategory, api: APIClient) {
@@ -64,6 +66,7 @@ final class SettingsCategoryScreen: ScreenView {
         title.columnWidth = Theme.current.metrics.wideColumn
         addSubview(page)
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
+        restore.onSelect = { [weak self] _ in self?.confirmRestoreDefaults() }
         reload()
     }
 
@@ -87,6 +90,13 @@ final class SettingsCategoryScreen: ScreenView {
             list.setItems(group.entries.map(row))
             for entry in group.entries { entries[entry.id] = entry }
             sections.append(list)
+        }
+        if SettingsCatalog.preferences(in: category, on: .linux).contains(where: \.isChanged) {
+            restore.setItems([RowItem(id: Self.restoreID, title: String(localized: "Restore Defaults", comment: "Button at the end of a settings category that resets its settings"),
+                                      symbol: "arrow.counterclockwise")])
+            sections.append(restore)
+        } else if restore.containsFocus, let first = lists.first {
+            window?.focus.focus(first, animated: false)
         }
         page.setSections(sections)
         setNeedsLayout()
@@ -153,29 +163,42 @@ final class SettingsCategoryScreen: ScreenView {
         }
     }
 
-    /// Runs an action, after a confirmation menu when it cannot be undone.
+    /// Runs an action, after a confirmation when it cannot be undone, and says when it is done.
     private func perform(_ action: SettingsAction, anchor: Rect) {
         let run = { [weak self] in
             switch action {
             case .clearImageCache:
                 try? FileManager.default.removeItem(at: LinuxSession.imageCacheDirectory)
+                self?.window?.purgeImageMemory()
             case .clearSearchHistory:
                 SearchRecentsStore.preferences.update { $0.clear() }
-            case .forgetFinishedTitles, .shareLogs:
-                break
+            case .forgetFinishedTitles:
+                FinishedTitlesLedger.shared.reset()
+            case .shareLogs:
+                return
             }
             self?.reload()
+            if let window = self?.window { AlertView.notice(title: String(localized: "Done", comment: "Alert after a settings action finished"), in: window) }
         }
         guard action.needsConfirmation, let window else {
             run()
             return
         }
-        let menu = MenuView(title: action.confirmationTitle + " " + action.confirmationMessage, items: [
-            .init(id: "confirm", title: action.confirmTitle, isDestructive: true),
-            .init(id: "cancel", title: String(localized: "Cancel")),
-        ], anchor: Rect(x: anchor.minX, y: anchor.maxY, width: 1, height: 1))
-        menu.onSelect = { item in if item.id == "confirm" { run() } }
-        menu.present(in: window)
+        AlertView.confirm(title: action.confirmationTitle, message: action.confirmationMessage, confirm: action.confirmTitle, in: window, action: run)
+    }
+
+    private func confirmRestoreDefaults() {
+        guard let window else { return }
+        AlertView.confirm(title: String(localized: "Restore Defaults?", comment: "Confirmation title for resetting a settings category"),
+                          message: String(localized: "Every setting in \(category.title(on: .linux)) goes back to how Crucible starts out.",
+                                          comment: "Confirmation message for resetting a settings category"),
+                          confirm: String(localized: "Restore", comment: "Button that confirms resetting a settings category"), in: window) { [weak self] in
+            guard let self else { return }
+            for setting in SettingsCatalog.preferences(in: self.category, on: .linux) where setting.isChanged {
+                setting.restoreDefault()
+            }
+            self.reload()
+        }
     }
 
     override func layoutSubviews() {
