@@ -108,6 +108,8 @@ final class ArtworkSlot {
 public final class ArtworkView: View {
     public var source: ArtworkSource? { didSet { if source != oldValue { load() } } }
     public var cornerRadius: Float = 0 { didSet { setNeedsDisplay() } }
+    /// Whether the raised surface shows until the picture arrives; off where something drawn underneath stands in for it.
+    public var fillsUntilLoaded = true { didSet { setNeedsDisplay() } }
     private lazy var slot = ArtworkSlot(owner: self)
 
     public init(source: ArtworkSource? = nil) {
@@ -131,7 +133,7 @@ public final class ArtworkView: View {
     }
 
     public override func draw(_ context: inout DrawContext) {
-        if slot.opacity < 1 { context.fill(bounds, radius: cornerRadius, color: Theme.current.palette.surfaceRaised) }
+        if fillsUntilLoaded, slot.opacity < 1 { context.fill(bounds, radius: cornerRadius, color: Theme.current.palette.surfaceRaised) }
         if let texture = slot.texture { context.image(texture, in: bounds, radius: cornerRadius, opacity: slot.opacity) }
     }
 }
