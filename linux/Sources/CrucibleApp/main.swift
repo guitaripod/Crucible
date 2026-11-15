@@ -105,6 +105,8 @@ func captureKey(_ character: Character) -> KeyEvent? {
                                   "<": .back, ">": .forward]
     if let key = keys[character] { return KeyEvent(key: key) }
     if character == ";" { return KeyEvent(key: .character(","), modifiers: .control) }
+    if character == "!" { return KeyEvent(key: .f10) }
+    if character == "?" { return KeyEvent(key: .character("?"), text: "?", modifiers: [.control, .shift]) }
     if character.isNumber || character == "+" || character == "-" {
         return KeyEvent(key: .character(character == "+" ? "=" : character), modifiers: .control)
     }
@@ -129,8 +131,8 @@ func performCaptureInput(_ keys: String, in window: Window) {
 
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
-/// Ctrl with it, `+` and `-` Ctrl with them, `{X,Y}` moves the pointer to that point of the window, any other character
-/// itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
+/// Ctrl with it, `+` and `-` Ctrl with them, `!` F10, `?` Ctrl+?, `{X,Y}` moves the pointer to that point of the window, any
+/// other character itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }
