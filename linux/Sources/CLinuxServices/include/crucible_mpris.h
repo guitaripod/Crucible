@@ -16,6 +16,7 @@ enum crucible_mpris_command {
     CRUCIBLE_MPRIS_SEEK,
     CRUCIBLE_MPRIS_SET_POSITION,
     CRUCIBLE_MPRIS_RAISE,
+    CRUCIBLE_MPRIS_QUIT,
 };
 
 /** `value` is microseconds for SEEK (relative) and SET_POSITION (absolute). */

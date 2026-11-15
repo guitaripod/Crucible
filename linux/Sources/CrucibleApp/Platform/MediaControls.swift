@@ -7,7 +7,7 @@ import Kiln
 @MainActor
 final class MediaControls {
     enum Command {
-        case playPause, play, pause, stop, next, previous, raise
+        case playPause, play, pause, stop, next, previous, raise, quit
         case seek(by: Double)
         case setPosition(Double)
     }
@@ -28,6 +28,9 @@ final class MediaControls {
         MediaControls.current = self
     }
 
+    /// Quits the app for the desktop's media controls (MPRIS Quit).
+    static var onQuit: (() -> Void)?
+
     /// The controls the bus callbacks reach; one player plays at a time.
     private static weak var current: MediaControls?
 
@@ -43,9 +46,11 @@ final class MediaControls {
             case CRUCIBLE_MPRIS_STOP: mapped = .stop
             case CRUCIBLE_MPRIS_NEXT: mapped = .next
             case CRUCIBLE_MPRIS_PREVIOUS: mapped = .previous
+            case CRUCIBLE_MPRIS_RAISE: mapped = .raise
+            case CRUCIBLE_MPRIS_QUIT: mapped = .quit
             case CRUCIBLE_MPRIS_SEEK: mapped = .seek(by: Double(micros) / 1_000_000)
             case CRUCIBLE_MPRIS_SET_POSITION: mapped = .setPosition(Double(micros) / 1_000_000)
-            default: mapped = .raise
+            default: return
             }
             controls.onCommand?(mapped)
         }

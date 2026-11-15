@@ -32,7 +32,7 @@ static int reply_command(sd_bus_message *message, void *userdata, enum crucible_
 }
 
 static int method_raise(sd_bus_message *message, void *userdata, sd_bus_error *error) { return reply_command(message, userdata, CRUCIBLE_MPRIS_RAISE, 0); }
-static int method_quit(sd_bus_message *message, void *userdata, sd_bus_error *error) { return sd_bus_reply_method_return(message, ""); }
+static int method_quit(sd_bus_message *message, void *userdata, sd_bus_error *error) { return reply_command(message, userdata, CRUCIBLE_MPRIS_QUIT, 0); }
 static int method_play_pause(sd_bus_message *message, void *userdata, sd_bus_error *error) { return reply_command(message, userdata, CRUCIBLE_MPRIS_PLAY_PAUSE, 0); }
 static int method_play(sd_bus_message *message, void *userdata, sd_bus_error *error) { return reply_command(message, userdata, CRUCIBLE_MPRIS_PLAY, 0); }
 static int method_pause(sd_bus_message *message, void *userdata, sd_bus_error *error) { return reply_command(message, userdata, CRUCIBLE_MPRIS_PAUSE, 0); }

@@ -49,6 +49,7 @@ func runCrucible() -> Int32 {
     let coordinator = AppCoordinator(window: window)
     var running = true
     coordinator.onQuit = { running = false }
+    MediaControls.onQuit = { coordinator.onQuit?() }
     instance?.onOpen = { urls, token in coordinator.open(urls, activationToken: token) }
     let signals = quitOnSignals(coordinator)
     if let file = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_FILE"] {
