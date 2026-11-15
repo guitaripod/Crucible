@@ -10,8 +10,28 @@ public final class PageView: ScrollView {
     public var topInset: Float = 0 { didSet { setNeedsLayout() } }
     public var bottomInset: Float = 0 { didSet { setNeedsLayout() } }
 
+    private var appearance = Animated(1)
+
     public init() {
         super.init(axis: .vertical)
+    }
+
+    /// Fades the page in where it takes over from a loading or empty state while the screen is up (`TVScreenViewController`'s
+    /// 0.25 s dissolve); at once under Reduce Motion or before the page is in a window. It starts just above invisible, so
+    /// focus can land in it at once.
+    public func fadeIn() {
+        guard window != nil else { return }
+        appearance.reset(0.02)
+        appearance.set(1, animation: .fade)
+        alpha = appearance.value
+        startAnimating()
+    }
+
+    public override func advanceAnimations(_ dt: Float) -> Bool {
+        let scrolling = super.advanceAnimations(dt)
+        let fading = appearance.advance(dt)
+        alpha = appearance.value
+        return scrolling || fading
     }
 
     public func setSections(_ views: [View]) {
