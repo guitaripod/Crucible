@@ -52,6 +52,19 @@ final class MediaDetailScreen: DetailScreen {
             guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return }
             ItemActions.present(for: item, api: self.api, at: point, in: self) { [weak self] in self?.reload() }
         }
+        extras.onPlay = { [weak self] card in
+            guard let self, let extra = self.model?.extras.first(where: { "extra.\($0.id)" == card.id }) else { return false }
+            self.rootView?.play(item: extra, api: self.api, from: 0)
+            return true
+        }
+        related.onPlay = { [weak self] card in
+            guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return false }
+            return ItemActions.playPause(item, api: self.api, from: self)
+        }
+    }
+
+    override func playFromKey() {
+        play(from: nil)
     }
 
     override func fetch() async {

@@ -74,6 +74,15 @@ class DetailScreen: ScreenView {
     /// Loads the title; subclasses fetch and then call `present`.
     func fetch() async {}
 
+    /// The Play/Pause key anywhere on the page a focused card did not take: subclasses play the page's title.
+    func playFromKey() {}
+
+    override func keyPressed(_ event: KeyEvent) -> Bool {
+        guard event.key == .mediaPlay || event.key == .mediaPause, hasContent else { return super.keyPressed(event) }
+        playFromKey()
+        return true
+    }
+
     func reload() {
         loadTask?.cancel()
         loadTask = Task { [weak self] in await self?.fetch() }
