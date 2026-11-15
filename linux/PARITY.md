@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 43 | 5 | 8 | 1 |
 | Home and libraries | 70 | 3 | 5 | 0 |
-| Title pages, collections, playlists and server activity | 54 | 4 | 20 | 1 |
+| Title pages, collections, playlists and server activity | 57 | 2 | 19 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 75 | 2 | 7 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
 | Design system | 90 | 3 | 4 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 513 | 31 | 142 | 16 |
+| **All** | 516 | 29 | 141 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -198,11 +198,11 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `detail-artwork-pickers` (L) Poster and background chooser for a title (artworkPicker), applying the chosen artwork with a reload _Apple TV: Sources/CrucibleTV/Manage/TVManageMenus.swift:51-54_
 - [x] `detail-show-settings` (M) Show Settings screen for a show (owner tool, pushed from the Manage menu) _Apple TV: Sources/CrucibleTV/Manage/TVShowSettingsViewController.swift:1-151_
 - [x] `detail-delete-title` (S) Delete title with a confirmation sheet; on a title page it pops the screen, in a list it reloads; failure alert Couldn’t Delete style _Apple TV: Sources/CrucibleTV/Manage/TVManageMenus.swift:55-79_
-- [ ] `detail-title-context-menu` (S) **partial** Title right-click or Menu-key menu on posters: Play or Resume, Play from the Beginning, Mark Watched or Unwatched, Go to Details, Go to Show, Add to Playlist, Rate, Remove from Continue Watching Gap: Linux menu has Play or Resume, Play from the Beginning, Watched and Go to Details only; missing Go to Show (needs detail-go-to-show), Add to Playlist (needs detail-add-to-playlist), Rate (needs detail-rate) and Remove from Continue Watching (Linux has the Continue Watching shelf in HomeScreen but no removal) _Apple TV: Sources/CrucibleTV/Home/TVHomeActions.swift:68-100_
+- [x] `detail-title-context-menu` (S) Title right-click or Menu-key menu on posters: Play or Resume, Play from the Beginning, Mark Watched or Unwatched, Go to Details, Go to Show, Add to Playlist, Rate, Remove from Continue Watching _Apple TV: Sources/CrucibleTV/Home/TVHomeActions.swift:68-100_
 - [x] `detail-unavailable-state` (S) Not Available state for a title that cannot be loaded, with a Go Back action _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift:112-124_
 - [x] `detail-error-retry` (S) Couldn’t Load error with Try Again on a movie page, Failed to load with Retry on a show page; both reload the page _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift:126-133_
-- [ ] `detail-page-loading-state` (S) **partial** Loading skeleton on first open, labelled Loading for accessibility, replaced by the page when data arrives Gap: Backdrop, title and synopsis from the list item show at once, but there is no skeleton or spinner while the detail loads; StateView.loading exists in CrucibleUI but is not used here _Apple TV: Sources/CrucibleTV/Detail/TVDetailSkeletonView.swift:1-57_
-- [ ] `detail-play-focused-remote` (S) Play/Pause on the focused item plays it: Play on a movie page, the episode under focus on a show page, Up Next on a show with none focused Gap: Detail pages have no play-focused key handling; Space and K work only in the player (PlayerScreen.swift:11) _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:74-77_
+- [x] `detail-page-loading-state` (S) Loading skeleton on first open, labelled Loading for accessibility, replaced by the page when data arrives _Apple TV: Sources/CrucibleTV/Detail/TVDetailSkeletonView.swift:1-57_
+- [x] `detail-play-focused-remote` (S) Play/Pause on the focused item plays it: Play on a movie page, the episode under focus on a show page, Up Next on a show with none focused _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:74-77_
 - [x] `detail-show-primary-up-next` (S) Show primary button plays the Up Next episode or Continues, labelled from the show model, disabled when nothing is playable _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:415-426,572-575_
 - [x] `detail-show-watched-menu` (S) Watched menu on a show: Mark Show Watched or Unwatched and per-season Mark Season Watched or Unwatched, with checkmark states _Apple TV: Sources/CrucibleCore/Features/Detail/ShowDetailModel.swift:314-317_
 - [x] `detail-season-chips` (S) Season chips with season title and watched text, selected state, dimmed chips for seasons the server lacks; selecting a chip loads it, and reselecting a failed season retries _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:205-207 (chip titles)_
