@@ -16,6 +16,10 @@ use crate::net::{classify, Peer};
 pub const RESULTS: usize = 8;
 /// Characters of a page's text the model reads.
 pub const PAGE_TEXT: usize = 9000;
+/// Characters of a page's title the model reads.
+const PAGE_TITLE: usize = 200;
+/// The longest image address a page may offer as artwork.
+const LONGEST_IMAGE_ADDRESS: usize = 2048;
 /// The most a page or an image may weigh.
 const LARGEST_DOWNLOAD: usize = 12 * 1024 * 1024;
 const REDIRECTS: usize = 5;
@@ -167,7 +171,10 @@ pub fn read_html(url: &reqwest::Url, html: &str) -> Page {
             push_image(&mut images, url, &source);
         }
     }
-    let title = TITLE.captures(html).map(|found| RUNS.replace_all(unescape(found[1].trim()).as_str(), " ").trim().to_string()).unwrap_or_default();
+    let title: String = TITLE
+        .captures(html)
+        .map(|found| RUNS.replace_all(unescape(found[1].trim()).as_str(), " ").trim().chars().take(PAGE_TITLE).collect())
+        .unwrap_or_default();
     let body = SCRIPTS.replace_all(html, " ");
     let body = CHROME.replace_all(&body, " ");
     let body = BREAKS.replace_all(&body, "\n");
@@ -183,7 +190,10 @@ pub fn read_html(url: &reqwest::Url, html: &str) -> Page {
 
 fn push_image(images: &mut Vec<String>, base: &reqwest::Url, source: &str) {
     let Ok(resolved) = base.join(source.trim()) else { return };
-    if matches!(resolved.scheme(), "http" | "https") && !images.iter().any(|known| known == resolved.as_str()) {
+    if matches!(resolved.scheme(), "http" | "https")
+        && resolved.as_str().len() <= LONGEST_IMAGE_ADDRESS
+        && !images.iter().any(|known| known == resolved.as_str())
+    {
         images.push(resolved.to_string());
     }
 }
@@ -199,10 +209,35 @@ async fn public_address(url: &reqwest::Url) -> Result<SocketAddr, WebError> {
         Ok(ip) => vec![SocketAddr::new(ip, port)],
         Err(_) => tokio::net::lookup_host((host.as_str(), port)).await.map_err(|_| WebError::NotPublic)?.collect(),
     };
-    if addresses.is_empty() || addresses.iter().any(|address| classify(address.ip()) != Peer::Outside || address.ip().is_unspecified()) {
+    if addresses.is_empty() || addresses.iter().any(|address| !is_public(address.ip())) {
         return Err(WebError::NotPublic);
     }
     Ok(addresses[0])
+}
+
+/// Whether an address is on the public internet: outside the owner's own networks, and none of the ranges that are
+/// never a web server or that carry a private address inside them (NAT64, 6to4, Teredo, site-local, reserved).
+fn is_public(ip: IpAddr) -> bool {
+    let ip = ip.to_canonical();
+    if classify(ip) != Peer::Outside || ip.is_unspecified() || ip.is_multicast() {
+        return false;
+    }
+    match ip {
+        IpAddr::V4(v4) => {
+            let [first, second, third, _] = v4.octets();
+            !(first == 0 || first >= 240 || (first, second, third) == (192, 0, 0))
+        }
+        IpAddr::V6(v6) => {
+            let segments = v6.segments();
+            if segments[..6] == [0x64, 0xff9b, 0, 0, 0, 0] {
+                return is_public(IpAddr::V4(std::net::Ipv4Addr::from(((segments[6] as u32) << 16) | segments[7] as u32)));
+            }
+            if segments[0] == 0x2002 {
+                return is_public(IpAddr::V4(std::net::Ipv4Addr::from(((segments[1] as u32) << 16) | segments[2] as u32)));
+            }
+            !(segments[0] & 0xffc0 == 0xfec0 || (segments[0], segments[1]) == (0x2001, 0) || segments[0] == 0x0100)
+        }
+    }
 }
 
 impl Web {
@@ -235,17 +270,18 @@ impl Web {
         match &self.engine {
             Engine::Searxng { url } => {
                 let endpoint = format!("{}/search", url.trim_end_matches('/'));
+                let shown = shown_address(url);
                 let response = self
                     .http
                     .get(&endpoint)
                     .query(&[("q", query), ("format", "json")])
                     .send()
                     .await
-                    .map_err(|error| WebError::Unreachable(url.clone(), error.to_string()))?;
+                    .map_err(|error| WebError::Unreachable(shown.clone(), error.without_url().to_string()))?;
                 if !response.status().is_success() {
-                    return Err(WebError::Status(url.clone(), response.status().as_u16()));
+                    return Err(WebError::Status(shown, response.status().as_u16()));
                 }
-                let body: Value = response.json().await.map_err(|_| WebError::Shape(url.clone()))?;
+                let body: Value = response.json().await.map_err(|_| WebError::Shape(shown))?;
                 let found = Self::found(&body["results"], "content");
                 match throttled(&body) {
                     Some(engines) if found.is_empty() => Err(WebError::Busy(engines)),
@@ -263,7 +299,7 @@ impl Web {
                     .header("X-Subscription-Token", key)
                     .send()
                     .await
-                    .map_err(|error| WebError::Unreachable(host.clone(), error.to_string()))?;
+                    .map_err(|error| WebError::Unreachable(host.clone(), error.without_url().to_string()))?;
                 if response.status().as_u16() == 429 {
                     return Err(WebError::Busy(host));
                 }
@@ -284,7 +320,7 @@ impl Web {
                     .iter()
                     .filter_map(|result| {
                         let url = result["url"].as_str()?.to_string();
-                        let title = TAGS.replace_all(result["title"].as_str().unwrap_or(""), "").trim().to_string();
+                        let title: String = TAGS.replace_all(result["title"].as_str().unwrap_or(""), "").trim().chars().take(PAGE_TITLE).collect();
                         let snippet: String = TAGS.replace_all(result[snippet_field].as_str().unwrap_or(""), "").trim().chars().take(320).collect();
                         Some(Found { title: unescape(&title), url, snippet: unescape(&snippet) })
                     })
@@ -309,9 +345,13 @@ impl Web {
                 .resolve(&host, pinned)
                 .no_proxy()
                 .build()
-                .map_err(|error| WebError::Unreachable(host.clone(), error.to_string()))?;
-            let mut response =
-                client.get(url.clone()).header("Accept-Language", "en").send().await.map_err(|error| WebError::Unreachable(host.clone(), error.to_string()))?;
+                .map_err(|error| WebError::Unreachable(host.clone(), error.without_url().to_string()))?;
+            let mut response = client
+                .get(url.clone())
+                .header("Accept-Language", "en")
+                .send()
+                .await
+                .map_err(|error| WebError::Unreachable(host.clone(), error.without_url().to_string()))?;
             if response.status().is_redirection() {
                 let next = response.headers().get(reqwest::header::LOCATION).and_then(|location| location.to_str().ok()).ok_or(WebError::Shape(host))?;
                 url = url.join(next).map_err(|_| WebError::NotPublic)?;
@@ -325,7 +365,7 @@ impl Web {
             }
             let kind = response.headers().get(reqwest::header::CONTENT_TYPE).and_then(|kind| kind.to_str().ok()).unwrap_or("").to_lowercase();
             let mut bytes = Vec::new();
-            while let Some(chunk) = response.chunk().await.map_err(|error| WebError::Unreachable(host.clone(), error.to_string()))? {
+            while let Some(chunk) = response.chunk().await.map_err(|error| WebError::Unreachable(host.clone(), error.without_url().to_string()))? {
                 bytes.extend_from_slice(&chunk);
                 if bytes.len() > LARGEST_DOWNLOAD {
                     return Err(WebError::TooLarge(host));
@@ -434,6 +474,13 @@ mod tests {
             "ftp://example.com/",
             "http://10.0.0.1/",
             "http://localhost/",
+            "http://0.1.2.3/",
+            "http://240.0.0.1/",
+            "http://[64:ff9b::a00:1]/",
+            "http://[2002:c0a8:101::]/",
+            "http://[fec0::1]/",
+            "http://[2001:0:4136:e378::1]/",
+            "http://[::ffff:192.168.1.1]/",
         ] {
             let url = reqwest::Url::parse(address).unwrap();
             assert!(matches!(public_address(&url).await, Err(WebError::NotPublic)), "{address}");
@@ -442,6 +489,8 @@ mod tests {
         assert!(matches!(public_address(&odd_port).await, Err(WebError::NotPublic)));
         let public = reqwest::Url::parse("https://93.184.215.14/").unwrap();
         assert!(public_address(&public).await.is_ok());
+        let public_through_nat64 = reqwest::Url::parse("https://[64:ff9b::5db8:d70e]/").unwrap();
+        assert!(public_address(&public_through_nat64).await.is_ok());
     }
 
     #[test]
