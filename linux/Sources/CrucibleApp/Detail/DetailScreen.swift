@@ -23,6 +23,7 @@ final class DetailScreen: ScreenView {
     private let related = ShelfView(header: SectionHeader(title: String(localized: "More Like This")), style: .poster)
     private let state = StateView()
     private var loadTask: Task<Void, Never>?
+    private var watchedInFlight = false
 
     init(api: APIClient, item: PlexMetadata) {
         self.api = api
@@ -165,16 +166,22 @@ final class DetailScreen: ScreenView {
         rootView?.play(item: movie?.item ?? item, api: api)
     }
 
+    /// Flips the button the moment it is pressed, then tells the server and reloads; a failure flips it back.
     private func toggleWatched() {
-        let watched = movie.map { !$0.item.isWatched } ?? !(show?.isWatched ?? false)
+        guard !watchedInFlight else { return }
+        let wasWatched = movie?.item.isWatched ?? show?.isWatched ?? false
         let key = movie?.item.id ?? item.id
+        watchedInFlight = true
+        actions.setWatchedTitle(WatchedService.title(isWatched: !wasWatched))
         Task { [weak self] in
             guard let self else { return }
+            defer { self.watchedInFlight = false }
             do {
-                try await WatchedService.setWatched(watched, ratingKey: key, api: api)
+                try await WatchedService.setWatched(!wasWatched, ratingKey: key, api: api)
                 load()
             } catch {
                 MidgarLog.error("Watched toggle failed: \(error)", category: .networking)
+                actions.setWatchedTitle(WatchedService.title(isWatched: wasWatched))
             }
         }
     }
@@ -206,6 +213,11 @@ final class ActionRowView: View {
 
     override var preferredFocusView: View? { play }
     override var remembersFocus: Bool { true }
+
+    func setWatchedTitle(_ title: String) {
+        watched.title = title
+        setNeedsLayout()
+    }
 
     func configure(play title: String, watched watchedTitle: String, onPlay: @escaping () -> Void, onWatched: @escaping () -> Void) {
         play.title = title
