@@ -5,10 +5,12 @@ import Kiln
 /// `maximumLines`, then scrolls to keep the caret in view. Typing inserts at the caret, Return starts a new line and
 /// Ctrl+Return submits, Backspace and Delete remove a character or with Ctrl a word, the arrows move the caret by
 /// character, word (Ctrl) and visual line, Home and End go to the line's ends (with Ctrl, the text's), Ctrl+A selects
-/// everything so the next key replaces it, and Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste. Up on the first line and Down on the last let the focus move on.
+/// everything so the next key replaces it, and Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste. Up on the first line and
+/// Down on the last let the focus move on. The desktop's input method composes into it (text-input-v3), its composition
+/// underlined at the caret until committed.
 @MainActor
-public final class TextEditorView: View {
-    public private(set) var text = ""
+public final class TextEditorView: View, TextInputClient {
+    public private(set) var text = "" { didSet { if text != oldValue { reportTextInput() } } }
     public var placeholder: String { didSet { setNeedsDisplay() } }
     public var onChange: ((String) -> Void)?
     /// Ctrl+Return.
@@ -16,9 +18,12 @@ public final class TextEditorView: View {
     public var minimumLines = 5 { didSet { superview?.setNeedsLayout() } }
     public var maximumLines = 12 { didSet { superview?.setNeedsLayout() } }
 
-    private var caret = 0
+    private var caret = 0 { didSet { if caret != oldValue { reportTextInput() } } }
     private var stickyX: Float?
-    private var selectAll = false
+    private var selectAll = false { didSet { if selectAll != oldValue { reportTextInput() } } }
+    /// The input method's composition, shown at the caret, with its cursor as UTF-8 offsets into it (nil hides the caret).
+    private var composition: (text: String, cursor: Range<Int>?)?
+    private var textInputReported = false
     private var scrollY: Float = 0
     private var blinkStart = Window.now()
     private var caretFlip: DispatchWorkItem?
@@ -109,6 +114,44 @@ public final class TextEditorView: View {
         guard end, found > 0, found <= text.count else { return found }
         let character = text[text.index(text.startIndex, offsetBy: found - 1)]
         return character == "\n" ? found - 1 : found
+    }
+
+    // MARK: Input method
+
+    public var textInputState: TextInputState {
+        let rect = caretRect(layout(width: contentWidth))
+        let cursor = utf8Offset(caret)
+        return TextInputState(text: text, cursor: selectAll ? text.utf8.count : cursor, anchor: selectAll ? 0 : cursor,
+                              caret: Rect(x: inset + rect.minX, y: inset + rect.minY - scrollY, width: max(metrics.tv(3), 1.5), height: rect.height),
+                              multiline: true)
+    }
+
+    /// The protocol's order: the composition goes, the deletion and the commit edit the text (a selection gives way to
+    /// them, or to a new composition), and the new composition shows at the caret.
+    public func applyTextInput(_ event: TextInputEvent) {
+        composition = nil
+        if event.commit != nil || event.deleteBefore > 0 || event.deleteAfter > 0 || (event.preedit != nil && selectAll) {
+            edit { characters, caret in
+                let result = event.applied(to: String(characters), caret: caret)
+                characters = Array(result.text)
+                caret = result.caret
+            }
+        }
+        composition = event.preedit.map { ($0, event.preeditCursor) }
+        moved()
+    }
+
+    /// Tells the window the text or caret changed, once for everything one event changed, so the input method follows.
+    private func reportTextInput() {
+        guard !textInputReported else { return }
+        textInputReported = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.textInputReported = false
+                self.window?.textInputChanged(self)
+            }
+        }
     }
 
     // MARK: Editing
@@ -283,6 +326,7 @@ public final class TextEditorView: View {
     // MARK: Focus and blink
 
     public override func focusDidChange(focused: Bool, animated: Bool) {
+        if !focused { composition = nil }
         focus.set(focused ? 1 : 0, animation: .focus)
         restartBlink()
         startAnimating()
@@ -328,6 +372,10 @@ public final class TextEditorView: View {
         }
         guard let scale = window?.scale else { return }
         let area = Rect(x: inset, y: inset, width: contentWidth, height: visibleHeight)
+        if let composition {
+            drawComposing(composition, in: area, scale: scale, context: &context)
+            return
+        }
         if text.isEmpty {
             let hint = TextLayout(placeholder, font: font, maxWidth: area.width, maxLines: 0, scale: scale)
             context.text(hint, at: area.origin, color: palette.labelTertiary)
@@ -345,6 +393,27 @@ public final class TextEditorView: View {
             if caretShown {
                 let rect = caretRect(laidOut)
                 inner.fill(Rect(x: origin.x + rect.minX, y: origin.y + rect.minY, width: max(metrics.tv(3), 1.5), height: rect.height), color: palette.accent)
+            }
+        }
+    }
+
+    /// The text with the input method's composition at the caret, underlined line by line, and the caret inside it.
+    private func drawComposing(_ composition: (text: String, cursor: Range<Int>?), in area: Rect, scale: Float, context: inout DrawContext) {
+        let palette = Theme.current.palette
+        let start = utf8Offset(caret)
+        let shown = String(text.prefix(caret)) + composition.text + String(text.dropFirst(caret))
+        let laidOut = TextLayout(shown, font: font, maxWidth: area.width, maxLines: 0, scale: scale)
+        let origin = Point(x: area.x, y: area.y - scrollY)
+        let thickness = max(metrics.tv(3), 1.5)
+        context.clipped(to: area) { inner in
+            inner.text(laidOut, at: origin, color: palette.label)
+            for line in laidOut.rects(forUTF8: start..<(start + composition.text.utf8.count)) {
+                inner.fill(Rect(x: origin.x + line.minX, y: origin.y + line.maxY - thickness, width: line.width, height: thickness), radius: thickness / 2,
+                           color: palette.label.withAlpha(0.8))
+            }
+            if caretShown, let cursor = composition.cursor {
+                let rect = laidOut.caret(atUTF8: start + cursor.lowerBound)
+                inner.fill(Rect(x: origin.x + rect.minX, y: origin.y + rect.minY, width: thickness, height: rect.height), color: palette.accent)
             }
         }
     }

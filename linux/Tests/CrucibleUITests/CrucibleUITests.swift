@@ -195,6 +195,45 @@ enum SharedGPU {
         editor.removeFromSuperview()
     }
 
+    @Test func aTextFieldShowsACompositionUntilTheInputMethodCommitsIt() {
+        let field = TextFieldView(placeholder: "Search")
+        var changes: [String] = []
+        field.onChange = { changes.append($0) }
+        field.frame = Rect(x: 0, y: 0, width: 600, height: 60)
+        window.contentView.addSubview(field)
+        window.focus.focus(field, animated: false)
+        #expect(window.textInputClient === field)
+        for character in "ab" { window.handleKey(KeyEvent(key: Key.character(character), text: String(character))) }
+        field.applyTextInput(TextInputEvent(preedit: "にほ", preeditCursor: 6..<6))
+        #expect(field.text == "ab", "a composition is not text yet")
+        window.render()
+        field.applyTextInput(TextInputEvent(commit: "日本"))
+        #expect(field.text == "ab日本")
+        #expect(field.textInputState.cursor == "ab日本".utf8.count)
+        window.handleKey(KeyEvent(key: Key.character("a"), modifiers: .control))
+        field.applyTextInput(TextInputEvent(preedit: "x"))
+        #expect(field.text.isEmpty, "a composition replaces the selection")
+        field.isSecure = true
+        #expect(field.textInputState.purpose == .password)
+        #expect(changes == ["a", "ab", "ab日本", ""])
+        field.removeFromSuperview()
+    }
+
+    @Test func aTextEditorTakesCommitsAcrossLines() {
+        let editor = TextEditorView(placeholder: "Comment")
+        editor.frame = Rect(x: 0, y: 0, width: 600, height: 200)
+        window.contentView.addSubview(editor)
+        window.focus.focus(editor, animated: false)
+        editor.applyTextInput(TextInputEvent(preedit: "かんじ", preeditCursor: 9..<9))
+        window.render()
+        editor.applyTextInput(TextInputEvent(commit: "漢字\n二行目"))
+        #expect(editor.text == "漢字\n二行目")
+        #expect(editor.textInputState.multiline)
+        editor.applyTextInput(TextInputEvent(commit: "", deleteBefore: "目".utf8.count))
+        #expect(editor.text == "漢字\n二行")
+        editor.removeFromSuperview()
+    }
+
     @Test func aSynopsisSelectsWithThePointerAndCopiesWithControlC() {
         let synopsis = SynopsisView(text: "A retired salvage pilot is hired to find what its crew left behind.")
         let button = ButtonView(style: .glass, title: "Play")
