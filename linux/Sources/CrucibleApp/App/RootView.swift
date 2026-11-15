@@ -10,6 +10,8 @@ import MidgarCore
 final class RootView: View {
     let payload: LaunchPayload
     var onSignOut: (() -> Void)?
+    /// Leaves the demo (You's Leave the Demo, the tour).
+    var onLeaveDemo: (() -> Void)?
     var onSwitchServer: (() -> Void)?
     /// Connects again from the saved server (after Add Server by Address).
     var onReconnect: (() -> Void)?
@@ -54,6 +56,7 @@ final class RootView: View {
         } else if id == "you" {
             let you = YouScreen(payload: payload)
             you.onSignOut = { [weak self] in self?.onSignOut?() }
+            you.onLeaveDemo = { [weak self] in self?.onLeaveDemo?() }
             screen = you
         } else {
             screen = HomeScreen(payload: payload)
@@ -79,6 +82,12 @@ final class RootView: View {
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
         if existed { stack.top?.screenDidAppear() }
+    }
+
+    /// Opens the first library's tab, or More when every library is there (the demo tour's Browse a library).
+    func selectFirstLibrary() {
+        guard let tab = tabBar.tabs.first(where: { $0.id.hasPrefix("library-") || $0.id == "more" }) else { return }
+        select(tab.id)
     }
 
     private func navigationChanged() {
@@ -190,6 +199,11 @@ final class RootView: View {
         select("home")
         stacks["home"]?.popToRoot()
         push(DetailScreen.make(api: payload.api, item: item))
+    }
+
+    /// Whether nothing covers the tabs: no player, alert, menu, sheet or launch gate on its way out.
+    var isUnobstructed: Bool {
+        player == nil && subviews.allSatisfy { $0 === tabBar || $0 === current }
     }
 
     /// Ends playback if a player is up; the server hears where it stopped.

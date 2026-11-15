@@ -33,23 +33,30 @@ final class AppCoordinator: WindowDelegate {
     var onQuit: (() -> Void)?
     let router = Router()
     private var launchTask: Task<Void, Never>?
+    private var finaleTask: Task<Void, Never>?
     private var root: RootView?
     private var onboarding: OnboardingView?
+
+    private static let finaleSettleDelay: Duration = .milliseconds(1200)
+    private static let finaleRetryInterval: Duration = .milliseconds(800)
 
     init(window: Window) {
         self.window = window
         window.delegate = self
+        DemoTour.shared.onFinale = { [weak self] in self?.scheduleFinale() }
     }
 
     func start() {
         reconnect()
     }
 
-    /// A saved server launches; a Plex sign-in without a saved server goes straight to choosing one; nothing starts at
-    /// the welcome screen.
+    /// A demo that was running when the app last quit comes back first; otherwise a saved server launches, a Plex sign-in
+    /// without a saved server goes straight to choosing one, and nothing starts at the welcome screen.
     func reconnect() {
         launchTask?.cancel()
-        if let connection = ServerBootstrap.connection() {
+        if DemoMode.shared.isActive {
+            resumeDemo()
+        } else if let connection = ServerBootstrap.connection() {
             launch(connection)
         } else if ServerBootstrap.accountToken != nil {
             showOnboarding(.switchServer)
@@ -58,14 +65,23 @@ final class AppCoordinator: WindowDelegate {
         }
     }
 
-    private func launch(_ connection: PlexConnection) {
-        AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, LinuxSession.collaborators)
+    /// The launch gate, its failure buttons wired: in the demo Switch Server is Leave the Demo.
+    private func makeGate() -> LaunchView {
         let gate = LaunchView()
         gate.onRetry = { [weak self] in self?.reconnect() }
-        gate.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
+        gate.onSwitchServer = { [weak self] in
+            if DemoMode.shared.isActive { self?.leaveDemo() } else { self?.showOnboarding(.switchServer) }
+        }
         gate.onSignInAgain = { [weak self] in self?.showOnboarding(.reauthenticate) }
         gate.onSignOut = { [weak self] in self?.confirmSignOut() }
-        install(gate)
+        return gate
+    }
+
+    /// Connects to `connection` behind the launch gate, `existing` when one already shows (a demo starting again).
+    private func launch(_ connection: PlexConnection, gate existing: LaunchView? = nil) {
+        AccountSessionReset.reconcileServer(machineIdentifier: connection.machineIdentifier, LinuxSession.collaborators)
+        let gate = existing ?? makeGate()
+        if existing == nil || gate.window == nil { install(gate) }
         gate.showLoading(String(localized: "Connecting to \(connection.serverName)…"))
         launchTask = Task { [weak self, weak gate] in
             let outcome = await AppLaunchSession.run(connection: connection) { message in
@@ -79,6 +95,7 @@ final class AppCoordinator: WindowDelegate {
                     guard let self else { return }
                     self.showMain(payload)
                     if let root = self.root { self.dissolve(gate, over: root) }
+                    self.presentDemoIntroIfPending()
                 }
             case .failure(.signInExpired):
                 gate.showSignInExpired()
@@ -96,6 +113,7 @@ final class AppCoordinator: WindowDelegate {
         ArtworkShapes.shared.use(file: LinuxSession.artworkShapesFile(machineIdentifier: payload.connection.machineIdentifier))
         let main = RootView(payload: payload)
         main.onSignOut = { [weak self] in self?.signOut() }
+        main.onLeaveDemo = { [weak self] in self?.leaveDemo() }
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
         main.onReconnect = { [weak self] in self?.reconnect() }
         APIClient.onBaseURLChanged.withLock { handler in
@@ -122,11 +140,17 @@ final class AppCoordinator: WindowDelegate {
 
     private func showOnboarding(_ mode: OnboardingView.Mode) {
         launchTask?.cancel()
+        finaleTask?.cancel()
         APIClient.onBaseURLChanged.withLock { $0 = nil }
         router.deactivate()
         root = nil
         let flow = OnboardingView(mode: mode)
         flow.onConnected = { [weak self] connection in
+            self?.onboarding = nil
+            self?.launch(connection)
+        }
+        flow.onDemo = { [weak self] connection in
+            LinuxDemoState.markIntroPending()
             self?.onboarding = nil
             self?.launch(connection)
         }
@@ -150,6 +174,90 @@ final class AppCoordinator: WindowDelegate {
         AccountSessionReset.signOut(LinuxSession.collaborators)
         root = nil
         showOnboarding(.signIn)
+    }
+
+    // MARK: Demo
+
+    /// Starts the demo library again behind the launch gate: it answers on a new port, so the saved address moves to it.
+    /// When it cannot start, the session it left behind points at a library that is gone, so it is forgotten and the
+    /// welcome screen returns.
+    private func resumeDemo() {
+        router.deactivate()
+        root = nil
+        let gate = makeGate()
+        install(gate)
+        gate.showLoading(String(localized: "Starting the demo…"))
+        launchTask = Task { [weak self, weak gate] in
+            let resumed = await DemoMode.shared.resume()
+            guard !Task.isCancelled, let self else { return }
+            guard resumed, let connection = ServerBootstrap.connection() else {
+                self.forgetDemoThatCouldNotResume()
+                return
+            }
+            self.launch(connection, gate: gate)
+        }
+    }
+
+    private func forgetDemoThatCouldNotResume() {
+        DemoTour.shared.reset()
+        LinuxDemoState.clearIntro()
+        AccountSessionReset.signOut(LinuxSession.collaborators)
+        showOnboarding(.signIn)
+    }
+
+    /// Leaves the demo, from You, the tour, the finale or the launch gate: playback ends, the library stops, its session,
+    /// statistics and tour are forgotten like a sign-out, and the welcome screen returns.
+    func leaveDemo() {
+        guard DemoMode.shared.isActive else { return }
+        MidgarLog.notice("Leaving the demo", category: .lifecycle)
+        finaleTask?.cancel()
+        launchTask?.cancel()
+        router.deactivate()
+        root?.closePlayer()
+        APIClient.onBaseURLChanged.withLock { $0 = nil }
+        Task { [weak self] in
+            await DemoMode.shared.exit(LinuxSession.collaborators)
+            LinuxDemoState.clearIntro()
+            self?.root = nil
+            self?.showOnboarding(.signIn)
+        }
+    }
+
+    /// Shows the demo's welcome once, over the main UI, the first time a demo session reaches it.
+    private func presentDemoIntroIfPending() {
+        guard DemoMode.shared.isActive, LinuxDemoState.isIntroPending, root != nil else { return }
+        LinuxDemoState.clearIntro()
+        DemoSheetView(title: DemoCopy.introTitle, message: DemoCopy.introBody, steps: DemoTour.shared.steps,
+                      actions: [.init(title: DemoCopy.introStart, isPrimary: true) {}], quietest: 0).present(in: window)
+    }
+
+    /// The finale never covers the player, an alert, a menu or another sheet: it waits, a little after the step that earned
+    /// it, until the main UI is free, and gives up if the demo ends first.
+    private func scheduleFinale() {
+        MidgarLog.notice("Demo finale scheduled", category: .lifecycle)
+        finaleTask?.cancel()
+        finaleTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.finaleSettleDelay)
+            while !Task.isCancelled, let self, DemoMode.shared.isActive {
+                if let root = self.root, root.isUnobstructed {
+                    MidgarLog.notice("Demo finale presented", category: .lifecycle)
+                    self.presentFinale()
+                    return
+                }
+                try? await Task.sleep(for: Self.finaleRetryInterval)
+            }
+        }
+    }
+
+    /// "Enjoying the demo?": connect a Plex server (after the same question Leave the Demo asks) or keep exploring. Crucible
+    /// Pro is not on Linux, so where the Apple TV sells it the finale says how to use Crucible with one's own library.
+    private func presentFinale() {
+        let connect = DemoSheetView.Action(title: DemoCopy.connectTitle, isPrimary: true) { [weak self] in
+            guard let self else { return }
+            DemoLeave.confirm(connecting: true, in: self.window) { [weak self] in self?.leaveDemo() }
+        }
+        DemoSheetView(title: DemoCopy.finaleTitle, message: DemoCopy.connectBody,
+                      actions: [connect, .init(title: DemoCopy.finaleKeepExploring, isPrimary: false) {}], quietest: 1).present(in: window)
     }
 
     private func install(_ view: View) {

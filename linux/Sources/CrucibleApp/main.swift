@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleDemo
 import CrucibleUI
 import Foundation
 import Kiln
@@ -22,6 +23,7 @@ func runCrucible() -> Int32 {
         return 0
     }
     LinuxSetup.install()
+    DemoMode.shared.install(DemoLibraryProvider())
     Theme.current.density = arguments.contains("--couch") ? .couch : .desk
     Theme.current.cardZoom = CardZoom.saved
     Theme.current.palette = arguments.contains("--light") ? .light : .dark

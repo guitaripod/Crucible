@@ -58,13 +58,15 @@ final class LaunchView: View {
         ))
     }
 
+    /// The server did not answer: Try Again, and Switch Server, which the demo calls Leave the Demo.
     func showFailure(title: String, message: String) {
+        let secondary = DemoMode.shared.isActive ? String(localized: "Leave the Demo") : String(localized: "Switch Server")
         show(.error(
             title: title,
             message: message,
             retryTitle: String(localized: "Try Again"),
             retry: { [weak self] in self?.onRetry?() },
-            secondary: StateView.Action(title: String(localized: "Switch Server")) { [weak self] in self?.onSwitchServer?() }
+            secondary: StateView.Action(title: secondary) { [weak self] in self?.onSwitchServer?() }
         ))
     }
 

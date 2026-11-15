@@ -37,6 +37,9 @@ final class SearchScreen: ScreenView {
     private var watchedOverrides: [String: Bool] = [:]
     private var pendingWatched = Set<String>()
     private var lastState: SearchState?
+    private var tourSearchTask: Task<Void, Never>?
+    private var isTourSearchPending = false
+    private static let tourSearchSettle: Duration = .seconds(2)
 
     init(api: APIClient) {
         self.api = api
@@ -75,7 +78,10 @@ final class SearchScreen: ScreenView {
     override var preferredFocusView: View? { field }
 
     override func screenDidAppear() { session.resume() }
-    override func screenWillDisappear() { session.suspend() }
+    override func screenWillDisappear() {
+        recordTourSearchIfPending()
+        session.suspend()
+    }
 
     /// Starts a search with `text` typed somewhere else.
     func begin(with text: String) {
@@ -94,6 +100,7 @@ final class SearchScreen: ScreenView {
 
     private func render(_ searchState: SearchState) {
         lastState = searchState
+        if case .results = searchState { scheduleTourSearch() } else { cancelTourSearch() }
         switch searchState {
         case .idle(let content):
             discardOverrides(for: "idle")
@@ -115,6 +122,30 @@ final class SearchScreen: ScreenView {
             showState(.error(title: SearchCopy.failureTitle, message: message, retryTitle: SearchCopy.retry,
                              retry: { [weak self] in self?.session.retry(failedQuery) }))
         }
+    }
+
+    /// Ticks the demo tour's Search step once results have stayed on screen two seconds without another keystroke, or when
+    /// the screen is left with results showing: ticking on the first partial query would earn the finale mid-word.
+    private func scheduleTourSearch() {
+        isTourSearchPending = true
+        tourSearchTask?.cancel()
+        tourSearchTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.tourSearchSettle)
+            guard !Task.isCancelled else { return }
+            self?.recordTourSearchIfPending()
+        }
+    }
+
+    private func cancelTourSearch() {
+        isTourSearchPending = false
+        tourSearchTask?.cancel()
+    }
+
+    private func recordTourSearchIfPending() {
+        guard isTourSearchPending else { return }
+        isTourSearchPending = false
+        tourSearchTask?.cancel()
+        DemoTour.shared.record(.search)
     }
 
     /// A watched mark just made stands in for the server's answer until the next query brings fresh data.

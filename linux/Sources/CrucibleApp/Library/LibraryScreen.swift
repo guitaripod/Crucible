@@ -159,6 +159,7 @@ final class LibraryScreen: ScreenView {
         hasRevealedContent = true
         shelfInserted = model.hasLoadedRecents
         revealTask?.cancel()
+        DemoTour.shared.record(.browse)
     }
 
     private func startRevealDeadline() {

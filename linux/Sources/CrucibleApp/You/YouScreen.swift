@@ -11,6 +11,7 @@ import Kiln
 @MainActor
 final class YouScreen: SettingsScaffold {
     var onSignOut: (() -> Void)?
+    var onLeaveDemo: (() -> Void)?
 
     private enum RowID {
         static let switchProfile = "you.switchProfile"
@@ -31,6 +32,8 @@ final class YouScreen: SettingsScaffold {
         static let density = "you.density"
         static let appearance = "you.appearance"
         static let signOut = "you.signOut"
+        static let demo = "you.demo"
+        static let leaveDemo = "you.leaveDemo"
     }
 
     private let payload: LaunchPayload
@@ -147,7 +150,20 @@ final class YouScreen: SettingsScaffold {
             items.insert(RowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron),
                          at: activity + 1)
         }
+        if DemoMode.shared.isActive { adaptForDemo(&items) }
         setRows(items)
+    }
+
+    /// While the demo runs: the quiet way into the tour at the top, no server to manage, and Sign Out becomes Leave the
+    /// Demo, since there is no account to sign out of.
+    private func adaptForDemo(_ items: inout [RowItem]) {
+        items.removeAll { $0.id == RowID.server }
+        if let signOut = items.firstIndex(where: { $0.id == RowID.signOut }) {
+            items[signOut] = RowItem(id: RowID.leaveDemo, title: String(localized: "Leave the Demo"), symbol: "rectangle.portrait.and.arrow.right",
+                                     isDestructive: true)
+        }
+        items.insert(RowItem(id: RowID.demo, title: DemoCopy.bannerTitle, subtitle: LinuxDemoState.progressText(), symbol: "testtube.2", accessory: .chevron),
+                     at: 0)
     }
 
     override func rowSelected(_ id: String) {
@@ -177,6 +193,10 @@ final class YouScreen: SettingsScaffold {
             theme.palette = theme.palette.appearance == .dark ? .light : .dark
             window?.background = theme.palette.canvas
             window?.relayoutEverything()
+        case RowID.demo: navigation?.push(DemoTourScreen(payload: payload))
+        case RowID.leaveDemo:
+            guard let window else { return }
+            DemoLeave.confirm(connecting: false, in: window) { [weak self] in self?.onLeaveDemo?() }
         case RowID.signOut:
             guard let window else { return }
             AlertView.confirm(title: String(localized: "Sign Out"), message: String(localized: "Are you sure you want to sign out?"),

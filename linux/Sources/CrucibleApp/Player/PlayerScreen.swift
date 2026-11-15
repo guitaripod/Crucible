@@ -206,6 +206,7 @@ final class PlayerScreen: View {
         player?.setPaused(paused)
         ScreenAwake.hold(true, in: window)
         MidgarLog.notice("Playing \(item.id) \(resolved.isDirectPlay ? "directly" : "converted") from \(Int(start)) s", category: .playback)
+        DemoTour.shared.record(.play)
         startReporting()
         infoPanel?.update(infoContent)
     }

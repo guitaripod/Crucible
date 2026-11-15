@@ -13,6 +13,8 @@ final class OnboardingView: View {
 
     let mode: Mode
     var onConnected: ((PlexConnection) -> Void)?
+    /// The demo started from the welcome screen and the app is signed in to its library.
+    var onDemo: ((PlexConnection) -> Void)?
     var onCancel: (() -> Void)?
 
     private let navigation: NavigationView
@@ -37,6 +39,7 @@ final class OnboardingView: View {
     private func configure(_ screen: ScreenView) {
         if let welcome = screen as? WelcomeScreen {
             welcome.onSignIn = { [weak self] in self?.showLink() }
+            welcome.onDemo = { [weak self] connection in self?.onDemo?(connection) }
         } else if let link = screen as? LinkScreen {
             link.onToken = { [weak self] token in self?.signedIn(token: token) }
         } else if let servers = screen as? ServersScreen {
@@ -95,28 +98,78 @@ final class OnboardingView: View {
     }
 }
 
-/// The first screen: the breathing crystal, the wordmark, a line about the app and Sign in with Plex.
+/// The first screen: the breathing crystal, the wordmark, a line about the app, Sign in with Plex and, when the build
+/// carries the demo library, Try the demo with a line about it.
 @MainActor
 final class WelcomeScreen: ScreenView {
     var onSignIn: (() -> Void)?
+    var onDemo: ((PlexConnection) -> Void)?
     private let signIn = ButtonView(style: .primary, title: String(localized: "Sign in with Plex"))
+    private let demo = ButtonView(style: .glass, title: DemoCopy.welcomeButton)
     private let glyph = CrystalGlyphView()
+    private var isEnteringDemo = false
 
     override init(frame: Rect = .zero) {
         super.init(frame: frame)
         signIn.onPress = { [weak self] in self?.onSignIn?() }
+        demo.onPress = { [weak self] in self?.startDemo() }
         addSubview(glyph)
         addSubview(signIn)
+        if offersDemo { addSubview(demo) }
         glyph.startBreathing()
     }
 
     override var preferredFocusView: View? { signIn }
 
+    private var offersDemo: Bool { DemoMode.shared.isAvailable }
+
+    /// Starts the demo library and signs in to it, the button saying so meanwhile; a second press while it starts does
+    /// nothing. When the library cannot start nothing has changed, and an alert says so.
+    private func startDemo() {
+        guard !isEnteringDemo else { return }
+        setEnteringDemo(true)
+        Task { [weak self] in
+            do {
+                try await DemoMode.shared.enter()
+                guard let connection = ServerBootstrap.connection() else { throw DemoError.unavailable }
+                self?.onDemo?(connection)
+            } catch {
+                MidgarLog.error("The demo could not start: \(String(describing: error))", category: .lifecycle)
+                guard let self else { return }
+                self.setEnteringDemo(false)
+                guard let window = self.window else { return }
+                AlertView.notice(title: String(localized: "Couldn’t Start the Demo"),
+                                 message: String(localized: "The demo library didn't start. Try again, or sign in with Plex to use your own library."),
+                                 in: window)
+            }
+        }
+    }
+
+    private func setEnteringDemo(_ entering: Bool) {
+        isEnteringDemo = entering
+        demo.title = entering ? String(localized: "Starting the demo…") : DemoCopy.welcomeButton
+        demo.isDimmed = entering
+    }
+
+    private var demoGap: Float { Theme.current.metrics.tv(20) }
+
+    private func captionLayout(scale: Float) -> TextLayout {
+        TextLayout(DemoCopy.welcomeCaption, font: Theme.current.type.callout, maxWidth: frame.width * 0.8, maxLines: 2, alignment: .center, scale: scale)
+    }
+
     override func layoutSubviews() {
-        let size = signIn.sizeThatFits(Size(width: 600, height: 200))
-        signIn.frame = Rect(x: ((frame.width - size.width) / 2).rounded(), y: (frame.height * 0.66).rounded(), width: size.width, height: size.height)
-        let side = Theme.current.metrics.tv(220)
-        glyph.frame = Rect(x: ((frame.width - side) / 2).rounded(), y: (frame.height * 0.16).rounded(), width: side, height: side)
+        let metrics = Theme.current.metrics
+        var width = signIn.sizeThatFits(Size(width: 600, height: 200)).width
+        if offersDemo {
+            let widest = ButtonView(style: .glass, title: String(localized: "Starting the demo…")).sizeThatFits(Size(width: 600, height: 200)).width
+            width = max(width, demo.sizeThatFits(Size(width: 600, height: 200)).width, widest)
+        }
+        let x = ((frame.width - width) / 2).rounded()
+        let top = (frame.height * (offersDemo ? 0.6 : 0.66)).rounded()
+        signIn.frame = Rect(x: x, y: top, width: width, height: metrics.primaryControlHeight)
+        demo.frame = Rect(x: x, y: top + metrics.primaryControlHeight + demoGap, width: width, height: metrics.primaryControlHeight)
+        let side = metrics.tv(220)
+        glyph.frame = Rect(x: ((frame.width - side) / 2).rounded(), y: (frame.height * (offersDemo ? 0.12 : 0.16)).rounded(), width: side, height: side)
     }
 
     override func draw(_ context: inout DrawContext) {
@@ -131,6 +184,10 @@ final class WelcomeScreen: ScreenView {
         let tagline = TextLayout(String(localized: "Your Plex library, beautifully on Linux."), font: theme.type.title3, maxWidth: bounds.width * 0.8,
                                  alignment: .center, scale: scale)
         context.text(tagline, at: Point(x: ((bounds.width - tagline.size.width) / 2).rounded(), y: (bounds.height * 0.42 + wordmark.size.height / 2 + theme.metrics.tv(24)).rounded()),
+                     color: theme.palette.labelSecondary)
+        guard offersDemo else { return }
+        let caption = captionLayout(scale: scale)
+        context.text(caption, at: Point(x: ((bounds.width - caption.size.width) / 2).rounded(), y: demo.frame.maxY + theme.metrics.tv(20)),
                      color: theme.palette.labelSecondary)
     }
 }

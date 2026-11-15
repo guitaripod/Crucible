@@ -46,9 +46,9 @@ package enum DemoTourStep: String, CaseIterable, Sendable {
         }
     }
 
-    /// The steps that exist on the current platform: downloads and the poster are iPhone features, and What to Watch
-    /// is there where the demo has its prepared answers.
-    package static func listed(isTV: Bool = AppPlatform.isTV, includingHosted: Bool = HostedBrain.isAvailable) -> [DemoTourStep] {
+    /// The steps that exist on the current platform: downloads and the poster are iPhone features (Linux has neither, as
+    /// the Apple TV has neither), and What to Watch is there where the demo has its prepared answers.
+    package static func listed(isTV: Bool = AppPlatform.isTV || AppPlatform.isLinux, includingHosted: Bool = HostedBrain.isAvailable) -> [DemoTourStep] {
         allCases.filter { step in
             switch step {
             case .download, .poster: return !isTV
@@ -97,7 +97,7 @@ package final class DemoTour {
     private let isTV: Bool
     private var observers: [UUID: Observer] = [:]
 
-    package init(defaults: UserDefaults = .standard, isTV: Bool = AppPlatform.isTV) {
+    package init(defaults: UserDefaults = .standard, isTV: Bool = AppPlatform.isTV || AppPlatform.isLinux) {
         self.defaults = defaults
         self.isTV = isTV
     }
