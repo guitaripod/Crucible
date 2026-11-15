@@ -26,6 +26,8 @@ final class TitleGridScreen: ScreenView {
     var onMenu: ((PlexMetadata, Point?) -> Void)?
     /// The Play/Pause key on a card; returns whether it played.
     var onPlay: ((PlexMetadata) -> Bool)?
+    /// Every load's titles in their order, for actions that need the whole list (a playlist's queue).
+    var onLoaded: (([PlexMetadata]) -> Void)?
     /// Loads again this often while the screen is up (Server Activity's live list).
     var refreshInterval: Duration?
     /// Loads again when the server reports events that match (playback starting or stopping elsewhere).
@@ -145,6 +147,7 @@ final class TitleGridScreen: ScreenView {
             return shown
         })
         heading.summary = summary(loaded)
+        onLoaded?(loaded)
         if loaded.isEmpty {
             state.isHidden = false
             state.show(.empty(title: empty.title, message: empty.message, symbol: empty.symbol, action: nil))

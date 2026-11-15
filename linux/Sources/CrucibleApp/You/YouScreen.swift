@@ -13,6 +13,7 @@ final class YouScreen: SettingsScaffold {
     private enum RowID {
         static let switchProfile = "you.switchProfile"
         static let history = "you.history"
+        static let playlists = "you.playlists"
         static let activity = "you.activity"
         static let dashboard = "you.dashboard"
         static let playback = "you.playback"
@@ -92,6 +93,7 @@ final class YouScreen: SettingsScaffold {
         let state = YouConnectionStatus.shared.state
         var items = [
             RowItem(id: RowID.history, title: String(localized: "Watch History"), subtitle: historySubtitle, symbol: "clock", accessory: .chevron),
+            RowItem(id: RowID.playlists, title: String(localized: "Playlists"), symbol: "list.bullet.rectangle", accessory: .chevron),
             RowItem(id: RowID.activity, title: ServerActivity.title, symbol: "dot.radiowaves.left.and.right", accessory: .chevron),
             RowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .linux), value: SettingsCatalog.summary(of: .playback, on: .linux),
                     symbol: Symbol(SettingsCategory.playback.symbol), accessory: .chevron),
@@ -130,6 +132,7 @@ final class YouScreen: SettingsScaffold {
         case RowID.switchProfile:
             navigation?.push(ProfilesScreen(machineIdentifier: payload.connection.machineIdentifier) { [weak self] in self?.rootView?.onReconnect?() })
         case RowID.history: navigation?.push(HistoryScreen(api: api))
+        case RowID.playlists: navigation?.push(PlaylistScreens.playlists(api: api))
         case RowID.activity: navigation?.push(OwnerScreens.activity(api: api))
         case RowID.dashboard: navigation?.push(ServerDashboardScreen(api: api))
         case RowID.playback: navigation?.push(SettingsCategoryScreen(category: .playback, api: api))
