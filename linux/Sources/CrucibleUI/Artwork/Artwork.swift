@@ -70,6 +70,7 @@ final class ArtworkSlot {
         }
         if let resident = store.cached(request) {
             texture = resident
+            ArtworkShapes.shared.record(resident, for: source)
             fade.reset(1)
             if redraw { owner.setNeedsDisplay() }
             return
@@ -83,6 +84,7 @@ final class ArtworkSlot {
                 return
             }
             self.texture = texture
+            ArtworkShapes.shared.record(texture, for: source)
             self.fade.set(1, animation: .timed(duration: Durations.fade, curve: .easeInOut))
             self.owner?.startAnimating()
         }
