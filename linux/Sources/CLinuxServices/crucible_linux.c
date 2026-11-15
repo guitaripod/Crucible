@@ -158,10 +158,18 @@ bool crucible_portal_setting(const char *namespace_name, const char *key, double
     }
     const char *methods[] = {"ReadOne", "Read"};
     for (int index = 0; index < 2; index++) {
+        sd_bus_message *call = NULL;
+        if (sd_bus_message_new_method_call(portal_bus, &call, "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
+                                           "org.freedesktop.portal.Settings", methods[index]) < 0) return false;
+        sd_bus_message_set_auto_start(call, 0);
+        if (sd_bus_message_append(call, "ss", namespace_name, key) < 0) {
+            sd_bus_message_unref(call);
+            return false;
+        }
         sd_bus_message *reply = NULL;
         sd_bus_error error = SD_BUS_ERROR_NULL;
-        int result = sd_bus_call_method(portal_bus, "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
-                                        "org.freedesktop.portal.Settings", methods[index], &error, &reply, "ss", namespace_name, key);
+        int result = sd_bus_call(portal_bus, call, 300 * 1000, &error, &reply);
+        sd_bus_message_unref(call);
         bool unknownMethod = result < 0 && sd_bus_error_has_name(&error, SD_BUS_ERROR_UNKNOWN_METHOD);
         sd_bus_error_free(&error);
         if (result < 0) {

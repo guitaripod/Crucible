@@ -56,21 +56,40 @@ final class MemoryPressure {
 
 /// The desktop's Reduce Motion and contrast settings, read through the settings portal (docs/LINUX.md section 5): reduced
 /// motion (the portal's own key, GNOME's animations switch or KDE's animation speed at instant) makes every change apply at
-/// once, and high contrast turns glass into the opaque raised surface, as Reduce Transparency does on the Apple TV.
+/// once, and high contrast turns glass into the opaque raised surface, as Reduce Transparency does on the Apple TV. The
+/// portal is asked on a queue of its own, so a slow or missing portal never holds the window.
 /// `CRUCIBLE_REDUCE_MOTION` and `CRUCIBLE_REDUCE_TRANSPARENCY` set to 1 or 0 override them, for headless checks.
 @MainActor
 enum DesktopAccessibility {
+    private struct Settings: Sendable {
+        var reducesMotion: Bool
+        var reducesTransparency: Bool
+    }
+
+    private static let portal = DispatchQueue(label: "crucible.portal-settings")
+
     static func apply(to window: Window?) {
-        let motion = reducesMotion
-        let transparency = reducesTransparency
-        guard motion != Animation.reduceMotion || transparency != Theme.current.reduceTransparency else { return }
-        Animation.reduceMotion = motion
-        if transparency != Theme.current.reduceTransparency { Theme.current.reduceTransparency = transparency }
-        MidgarLog.notice("Desktop settings: reduce motion \(motion), reduce transparency \(transparency)", category: .lifecycle)
+        portal.async {
+            let settings = read()
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { use(settings, in: window) }
+            }
+        }
+    }
+
+    private static func use(_ settings: Settings, in window: Window?) {
+        guard settings.reducesMotion != Animation.reduceMotion || settings.reducesTransparency != Theme.current.reduceTransparency else { return }
+        Animation.reduceMotion = settings.reducesMotion
+        if settings.reducesTransparency != Theme.current.reduceTransparency { Theme.current.reduceTransparency = settings.reducesTransparency }
+        MidgarLog.notice("Desktop settings: reduce motion \(settings.reducesMotion), reduce transparency \(settings.reducesTransparency)", category: .lifecycle)
         window?.setNeedsDisplay()
     }
 
-    private static var reducesMotion: Bool {
+    private nonisolated static func read() -> Settings {
+        Settings(reducesMotion: reducesMotion, reducesTransparency: reducesTransparency)
+    }
+
+    private nonisolated static var reducesMotion: Bool {
         if let forced = override("CRUCIBLE_REDUCE_MOTION") { return forced }
         if setting("org.freedesktop.appearance", "reduced-motion") == 1 { return true }
         if setting("org.gnome.desktop.interface", "enable-animations") == 0 { return true }
@@ -78,16 +97,16 @@ enum DesktopAccessibility {
         return false
     }
 
-    private static var reducesTransparency: Bool {
+    private nonisolated static var reducesTransparency: Bool {
         if let forced = override("CRUCIBLE_REDUCE_TRANSPARENCY") { return forced }
         return setting("org.freedesktop.appearance", "contrast") == 1
     }
 
-    private static func override(_ name: String) -> Bool? {
+    private nonisolated static func override(_ name: String) -> Bool? {
         ProcessInfo.processInfo.environment[name].map { $0 == "1" }
     }
 
-    private static func setting(_ namespace: String, _ key: String) -> Double? {
+    private nonisolated static func setting(_ namespace: String, _ key: String) -> Double? {
         var value = 0.0
         return crucible_portal_setting(namespace, key, &value) ? value : nil
     }
