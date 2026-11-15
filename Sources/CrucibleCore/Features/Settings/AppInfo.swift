@@ -18,9 +18,12 @@ package enum AppInfo {
         Acknowledgement(name: "GRDB.swift", license: "MIT", url: URL(string: "https://github.com/groue/GRDB.swift")!),
     ]
 
-    package static var versionText: String { versionText(from: Bundle.main.infoDictionary) }
+    /// The version and build an app without an Info.plist (the Linux client) reports in place of the bundle's.
+    nonisolated(unsafe) package static var override: (version: String, build: String)?
 
-    package static var buildText: String { buildText(from: Bundle.main.infoDictionary) }
+    package static var versionText: String { override?.version ?? versionText(from: Bundle.main.infoDictionary) }
+
+    package static var buildText: String { override?.build ?? buildText(from: Bundle.main.infoDictionary) }
 
     /// "2.0.1 (7)", the form the You tab and the Settings footer print.
     package static var versionSummary: String { "\(versionText) (\(buildText))" }

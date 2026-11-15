@@ -4,6 +4,7 @@ import Foundation
 package enum SettingsPlatform: Sendable {
     case phone
     case tv
+    case linux
 }
 
 /// A screen a setting row opens.
@@ -109,9 +110,12 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
     package func explanation(on platform: SettingsPlatform) -> String {
         switch self {
         case .playback: return String(localized: "Quality, Up Next, skipping and subtitles.")
-        case .controls: return platform == .tv
-            ? String(localized: "What the Siri Remote's clickpad does while a video plays.")
-            : String(localized: "How far the skip buttons on the Lock Screen, in Control Center and on headphones go.")
+        case .controls:
+            switch platform {
+            case .tv: return String(localized: "What the Siri Remote's clickpad does while a video plays.")
+            case .linux: return String(localized: "How far Left and Right, J and L, and the media keys skip while a video plays.")
+            case .phone: return String(localized: "How far the skip buttons on the Lock Screen, in Control Center and on headphones go.")
+            }
         case .home: return String(localized: "Which rows Home shows, in what order, and which libraries count.")
         case .downloads: return String(localized: "Quality, cellular data and storage for offline viewing.")
         case .notifications: return String(localized: "Rating reminders, new episodes, watchlist arrivals and your weekly recap.")
@@ -182,12 +186,14 @@ package enum SettingsCatalog {
         let section: String?
         let platforms: Set<Platform>
 
-        enum Platform { case phone, tv }
+        enum Platform { case phone, tv, linux }
     }
 
     private static let both: Set<Spec.Platform> = [.phone, .tv]
     private static let phone: Set<Spec.Platform> = [.phone]
     private static let tv: Set<Spec.Platform> = [.tv]
+    /// Everywhere, the Linux desk client included.
+    private static let all: Set<Spec.Platform> = [.phone, .tv, .linux]
 
     private static var specs: [Spec] {
         let quality = String(localized: "Streaming Quality", comment: "Settings section for the three streaming quality settings")
@@ -197,19 +203,19 @@ package enum SettingsCatalog {
         let reminders = String(localized: "Reminders", comment: "Settings section for rating reminders")
         let news = String(localized: "From Your Server", comment: "Settings section for new-episode, watchlist, recap and Year in Review notifications")
         return [
-            Spec(item: .preference(.streamingQuality), category: .playback, section: quality, platforms: both),
-            Spec(item: .preference(.remoteQuality), category: .playback, section: quality, platforms: both),
+            Spec(item: .preference(.streamingQuality), category: .playback, section: quality, platforms: all),
+            Spec(item: .preference(.remoteQuality), category: .playback, section: quality, platforms: all),
             Spec(item: .preference(.cellularQuality), category: .playback, section: quality, platforms: phone),
-            Spec(item: .preference(.autoplayNextEpisode), category: .playback, section: upNext, platforms: both),
-            Spec(item: .preference(.upNextCountdown), category: .playback, section: upNext, platforms: both),
+            Spec(item: .preference(.autoplayNextEpisode), category: .playback, section: upNext, platforms: all),
+            Spec(item: .preference(.upNextCountdown), category: .playback, section: upNext, platforms: all),
             Spec(item: .preference(.stillWatching), category: .playback, section: upNext, platforms: both),
             Spec(item: .preference(.postPlaySuggestions), category: .playback, section: upNext, platforms: both),
             Spec(item: .preference(.rewindAfterBreak), category: .playback, section: upNext, platforms: both),
-            Spec(item: .preference(.skipIntro), category: .playback, section: skipping, platforms: both),
-            Spec(item: .preference(.skipOutro), category: .playback, section: skipping, platforms: both),
-            Spec(item: .preference(.subtitleSize), category: .playback, section: subtitles, platforms: both),
-            Spec(item: .preference(.skipBack), category: .controls, section: nil, platforms: both),
-            Spec(item: .preference(.skipForward), category: .controls, section: nil, platforms: both),
+            Spec(item: .preference(.skipIntro), category: .playback, section: skipping, platforms: all),
+            Spec(item: .preference(.skipOutro), category: .playback, section: skipping, platforms: all),
+            Spec(item: .preference(.subtitleSize), category: .playback, section: subtitles, platforms: all),
+            Spec(item: .preference(.skipBack), category: .controls, section: nil, platforms: all),
+            Spec(item: .preference(.skipForward), category: .controls, section: nil, platforms: all),
             Spec(item: .preference(.holdLeft), category: .controls, section: nil, platforms: tv),
             Spec(item: .preference(.holdRight), category: .controls, section: nil, platforms: tv),
             Spec(item: .destination(.homeRows), category: .home, section: nil, platforms: both),
@@ -233,21 +239,25 @@ package enum SettingsCatalog {
             Spec(item: .preference(.libraryGrid), category: .appearance, section: nil, platforms: phone),
             Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: both),
             Spec(item: .destination(.crucibleServer), category: .connection, section: nil, platforms: both),
-            Spec(item: .preference(.preferLocalConnection), category: .connection, section: nil, platforms: both),
-            Spec(item: .preference(.allowRelayConnection), category: .connection, section: nil, platforms: both),
-            Spec(item: .privacyStatement, category: .privacy, section: nil, platforms: both),
-            Spec(item: .action(.clearSearchHistory), category: .privacy, section: nil, platforms: both),
+            Spec(item: .preference(.preferLocalConnection), category: .connection, section: nil, platforms: all),
+            Spec(item: .preference(.allowRelayConnection), category: .connection, section: nil, platforms: all),
+            Spec(item: .privacyStatement, category: .privacy, section: nil, platforms: all),
+            Spec(item: .action(.clearSearchHistory), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.forgetFinishedTitles), category: .privacy, section: nil, platforms: both),
-            Spec(item: .action(.clearImageCache), category: .privacy, section: nil, platforms: both),
+            Spec(item: .action(.clearImageCache), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.shareLogs), category: .help, section: nil, platforms: phone),
             Spec(item: .destination(.diagnostics), category: .help, section: nil, platforms: tv),
             Spec(item: .destination(.sourceCode), category: .help, section: nil, platforms: phone),
-            Spec(item: .destination(.about), category: .help, section: nil, platforms: both),
+            Spec(item: .destination(.about), category: .help, section: nil, platforms: all),
         ]
     }
 
     private static func includes(_ spec: Spec, on platform: SettingsPlatform) -> Bool {
-        spec.platforms.contains(platform == .phone ? .phone : .tv)
+        switch platform {
+        case .phone: spec.platforms.contains(.phone)
+        case .tv: spec.platforms.contains(.tv)
+        case .linux: spec.platforms.contains(.linux)
+        }
     }
 
     package static func entries(on platform: SettingsPlatform) -> [SettingsEntry] {
