@@ -147,6 +147,21 @@ pub fn brief(release: &Release, added: &str) -> String {
     lines.join("\n")
 }
 
+/// Whether research saw the page `source` names: an address its searches returned or a page it read, or the same page
+/// written with another query string, fragment, `www.` or trailing slash, which models often add or drop when they
+/// copy an address.
+pub fn seen_source(known: &BTreeSet<String>, source: &str) -> bool {
+    let source = source.trim();
+    known.contains(source) || page_of(source).is_some_and(|page| known.iter().any(|seen| page_of(seen).as_ref() == Some(&page)))
+}
+
+/// A page address as host (without `www.`) and path (without a trailing slash), in lower case.
+fn page_of(address: &str) -> Option<String> {
+    let url = reqwest::Url::parse(address).ok()?;
+    let host = url.host_str()?.trim_start_matches("www.").to_lowercase();
+    Some(format!("{host}{}", url.path().trim_end_matches('/').to_lowercase()))
+}
+
 pub fn folded(query: &str) -> String {
     query.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -157,16 +172,18 @@ pub struct Seen {
     pub known: BTreeSet<String>,
     pub images: BTreeSet<String>,
     pub page_images: Vec<(String, Vec<String>)>,
-    /// The text of every page read, for checks that look at what the pages said.
-    pub texts: Vec<String>,
+    /// The address and text of every page read, for checks that look at what the pages said.
+    pub texts: Vec<(String, String)>,
 }
 
-/// What a research took.
+/// What a research took, and the pages it read by address and text.
+#[derive(Default)]
 pub struct Took {
     pub turns: usize,
     pub searches: usize,
     pub reads: usize,
     pub seconds: u64,
+    pub texts: Vec<(String, String)>,
 }
 
 /// The research loop every kind of file shares: the model thinks, searches and reads within the budget until it calls
@@ -233,7 +250,7 @@ pub async fn investigate<T>(
                                 seen.known.insert(page.url.clone());
                                 seen.images.extend(page.images.iter().cloned());
                                 seen.page_images.push((page.url.clone(), page.images.clone()));
-                                seen.texts.push(format!("{} {}", page.title, page.text));
+                                seen.texts.push((page.url.clone(), format!("{} {}", page.title, page.text)));
                                 json!(page)
                             }
                             Err(error) => json!({"error": error.to_string()}),
@@ -244,7 +261,8 @@ pub async fn investigate<T>(
                     step(Step::Checking);
                     match check(call, &seen, sent_back) {
                         Ok(record) => {
-                            return Ok((record, Took { turns: turn + 1, searches, reads, seconds: started.elapsed().as_secs() }));
+                            let texts = std::mem::take(&mut seen.texts);
+                            return Ok((record, Took { turns: turn + 1, searches, reads, seconds: started.elapsed().as_secs(), texts }));
                         }
                         Err(problems) if !sent_back => {
                             sent_back = true;
@@ -358,6 +376,15 @@ mod tests {
             "part": "Prelims", "date": "2026-11-14", "venue": "Madison Square Garden", "headline": "Gane vs. Hokit", "summary": summary,
             "lineup": [{"matchup": "Stephen Thompson vs. Charles Radtke", "detail": "Welterweight", "part": "Prelims"}],
             "poster_url": "https://invented.example/poster.jpg", "sources": ["https://en.wikipedia.org/wiki/UFC_334"], "confidence": "high"})
+    }
+
+    #[test]
+    fn a_source_is_the_page_research_saw_whatever_its_query_string() {
+        let known: BTreeSet<String> = ["https://fantasyhd.com/video/poolboy-seduction?stan=ST12Cj3cVZuqejBx6imEvePrvJP1".to_string()].into();
+        assert!(seen_source(&known, "https://fantasyhd.com/video/poolboy-seduction?stan=ST12Cj3"));
+        assert!(seen_source(&known, "https://www.fantasyhd.com/video/poolboy-seduction/"));
+        assert!(!seen_source(&known, "https://fantasyhd.com/video/another-scene"));
+        assert!(!seen_source(&known, "not an address"));
     }
 
     #[tokio::test]

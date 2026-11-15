@@ -181,15 +181,7 @@ pub struct Outcome {
 /// Writes `desired` to the item and uploads its artwork when it is new. Artwork the owner set in Plex is left alone,
 /// and artwork that cannot be fetched, is not an image or that Plex turns away is skipped with a note: once the fields
 /// are written the write counts, so what research wrote is always known.
-pub async fn apply(
-    plex: &Plex,
-    web: &Web,
-    token: &str,
-    section: &str,
-    item: &Item,
-    desired: &Desired,
-    before: Option<&Desired>,
-) -> Result<Outcome, PlexError> {
+pub async fn apply(plex: &Plex, web: &Web, token: &str, section: &str, item: &Item, desired: &Desired, before: Option<&Desired>) -> Result<Outcome, PlexError> {
     let rating_key = item.rating_key.as_str();
     plex.edit(section, rating_key, &edit_pairs(desired, before), token).await?;
     let mut outcome = Outcome::default();

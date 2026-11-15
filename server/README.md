@@ -105,9 +105,11 @@ the event's artwork, and does it again on its own whenever a new file arrives. Y
 
 - **Sports**: each file is researched as an event, with its card, and every part of an event is titled alike.
 - **Adult**: each film or scene is researched for its title, studio, performers, release date and cover, through your
-  own model and the search engine you chose. The summary is a neutral, non-graphic listing. A file whose name, record
-  or any page the model read says or suggests someone under 18 is not researched or written, and the same check covers
-  a file in another library whose name or sources mark it as adult. The apps never show this artwork on their research
+  own model and the search engine you chose. The summary is a neutral, non-graphic listing. A file whose name
+  suggests someone under 18 is not researched; after research, every sentence of the record and of the pages read that
+  mentions a young age, minors, school or a birth date is judged by your model against the work's cast and date (a
+  site's age gate is not counted), and a work any sentence counts against is not written. The same check covers a file
+  in another library whose name or sources mark it as adult. The apps never show this artwork on their research
   screens, and only the owner sees these files there.
 - **General**: anything else, such as game cinematics, concerts, documentaries or clips; the model works out what each
   file is, with its series, maker and the people in it.

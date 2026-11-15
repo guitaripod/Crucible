@@ -251,7 +251,7 @@ impl Record {
         if self.sources.is_empty() {
             problems.push("sources is empty: list the pages that confirm the event and its date.".into());
         }
-        let unseen: Vec<&String> = self.sources.iter().filter(|source| !known.contains(source.trim())).collect();
+        let unseen: Vec<&String> = self.sources.iter().filter(|source| !super::research::seen_source(known, source)).collect();
         if !unseen.is_empty() && unseen.len() == self.sources.len() {
             problems.push("none of the sources is a page you saw in search results or read: cite those pages.".into());
         }

@@ -3,6 +3,7 @@
 //! writes a proper title, date, description, people and artwork into Plex, locked, without ever touching the files,
 //! and can take it all back.
 
+pub mod ages;
 pub mod apply;
 pub mod checks;
 pub mod cli;

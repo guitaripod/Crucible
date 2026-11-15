@@ -33,36 +33,20 @@ static TECHNICAL: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b(\d{3,4}p|4k|web[\s-]?dl|web[\s-]?rip|webrip|hdtv|dvdrip|bdrip|bluray|blu-ray|x26[45]|h[\s.]?26[45]|hevc|avc|xvid|divx|aac|ac3|dts|mp4|split\s+scenes?)\b").expect("technical pattern")
 });
 /// Tags that are also words in titles ("A Proper Lady", "xXx"), so they count as technical only in capitals.
-static SHOUTED: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\b(XXX|PROPER|REPACK|HD|SD|UHD|FHD|INTERNAL|REMUX)\b").expect("shouted pattern"));
+static SHOUTED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\b(XXX|PROPER|REPACK|HD|SD|UHD|FHD|INTERNAL|REMUX)\b").expect("shouted pattern"));
 /// The release group a scene name ends with after its technical words: "x265-GROUP", "H264-FBB".
 static GROUP: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)\b(\d{3,4}p|x26[45]|h\.?26[45]|hevc|avc|xvid|divx|aac|ac3|dts|web-?dl|webrip|hdtv|bluray|dvdrip|bdrip|xxx)-[a-z0-9]+$").expect("group pattern")
+    Regex::new(r"(?i)\b(\d{3,4}p|x26[45]|h\.?26[45]|hevc|avc|xvid|divx|aac|ac3|dts|web-?dl|webrip|hdtv|bluray|dvdrip|bdrip|xxx)-[a-z0-9]+$")
+        .expect("group pattern")
 });
 static BRACKETS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[[^\]]*\]|\{[^}]*\}").expect("brackets pattern"));
 static SPACES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").expect("spaces pattern"));
-/// Words that say or suggest someone is under 18, on their own.
-static UNDERAGE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"(?i)\bunder[\s-]*(?:the\s+age\s+of\s+)?(?:18|eighteen)\b|\bunder-?age(?:d)?\b|\bminors\b|\bchild(?:ren)?\b|\bpre-?teens?\b|\bjail-?bait\b|\blol(?:i|ita)\b|\bschool\s?girls?\b|\bschool\s?boys?\b|\bhigh[\s-]school(?:ers?)?\b|\bjunior[\s-]high\b|\bmiddle[\s-]school\b",
-    )
-    .expect("underage pattern")
-});
-/// An age under 18 before "years old" or after "aged" or "age of", or a teenage age after "was", "is" or "turned"
-/// ("was seventeen at the time"), with the word after it so a count ("was 15 minutes long") is told apart.
-static YOUNG_AGE: LazyLock<Regex> = LazyLock::new(|| {
-    let age = r"(?:1[0-7]|[1-9]|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)";
-    let teen = r"(?:1[0-7]|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)";
-    Regex::new(&format!(
-        r"(?i)\b{age}\s*(?:-|\s)?(?:years?|yrs?)[\s-]*old\b|\b{age}\s*(?:yo|y/o)\b|\b(?:aged?|at\s+age|age\s+of)\s+{age}\b|\b(?:was|were|is|being|turned|only|just)\s+(?:only\s+|just\s+)?{teen}(?:\s*$|[\s,.;)!?]+(\w*)(?:\s+(\w+))?)"
-    ))
-    .expect("young age pattern")
-});
-/// "a minor" as a person, with the word after it, which tells "a minor at the time" from "a minor discrepancy".
-static A_MINOR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\b(?:a|the)\s+minor\b(?:\s+(\w+))?").expect("a minor pattern"));
+/// How the note of a file research refused to touch begins.
+pub const REFUSED: &str = "Not researched, since something suggests someone in it is under 18";
 /// Names and sources that mark a file in a general library as adult, so it is held to the same check.
 static ADULT_MARK: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?i)\bxxx\b|iafd\.com|data18\.com|adultempire\.com|aebn\.(?:com|net)|adultfilmdatabase\.com|freeones\.com|pornhub\.com|brazzers\.com").expect("adult mark pattern")
+    Regex::new(r"(?i)\bxxx\b|iafd\.com|data18\.com|adultempire\.com|aebn\.(?:com|net)|adultfilmdatabase\.com|freeones\.com|pornhub\.com|brazzers\.com")
+        .expect("adult mark pattern")
 });
 
 /// This year, by the clock.
@@ -74,7 +58,11 @@ fn this_year() -> i32 {
 /// The full year of a two-digit one in a release name: this century unless that would be in the future.
 fn century(two_digits: &str, this_year: i32) -> i32 {
     let year = 2000 + two_digits.parse::<i32>().unwrap_or(0);
-    if year > this_year { year - 100 } else { year }
+    if year > this_year {
+        year - 100
+    } else {
+        year
+    }
 }
 
 /// Whether a scene or part mark comes after some of the name, so a name that starts with one ("SC2 - 01 - The Deal",
@@ -82,27 +70,6 @@ fn century(two_digits: &str, this_year: i32) -> i32 {
 fn follows_a_title(text: &str, found: &regex::Captures) -> bool {
     let start = found.get(0).map_or(0, |whole| whole.start());
     text[..start].chars().any(char::is_alphanumeric)
-}
-
-/// Whether words say or suggest someone is under 18: an age under 18 ("aged 16", "17 years old", "was seventeen at the
-/// time"), "a minor" as a person, or words that only fit someone young. A teenage number followed by a unit or a count
-/// ("was 15 minutes long", "is 12 out of 20") is not an age.
-pub fn suggests_minors(text: &str) -> bool {
-    const COUNTS: [&str; 25] = [
-        "minutes", "minute", "min", "mins", "seconds", "hours", "days", "weeks", "months", "scenes", "times", "parts", "episodes", "videos",
-        "clips", "photos", "pictures", "pics", "stars", "points", "percent", "out", "of", "gb", "inches",
-    ];
-    const YEARS: [&str; 4] = ["years", "year", "yrs", "yr"];
-    const PERSON_FOLLOWS: [&str; 16] =
-        ["", "at", "when", "who", "was", "were", "is", "and", "or", "in", "during", "then", "appearing", "performing", "aged", "under"];
-    let next = |found: &regex::Captures| found.get(1).map(|word| word.as_str().to_lowercase());
-    UNDERAGE.is_match(text)
-        || YOUNG_AGE.captures_iter(text).any(|found| match next(&found) {
-            Some(word) if YEARS.contains(&word.as_str()) => found.get(2).is_some_and(|after| after.as_str().eq_ignore_ascii_case("old")),
-            Some(word) => !COUNTS.contains(&word.as_str()),
-            None => true,
-        })
-        || A_MINOR.captures_iter(text).any(|found| next(&found).is_none_or(|word| PERSON_FOLLOWS.contains(&word.as_str())))
 }
 
 /// A file name read for what it gives away.
@@ -178,11 +145,6 @@ impl Work {
         ADULT_MARK.is_match(&self.file_name) || self.folder.as_deref().is_some_and(|folder| ADULT_MARK.is_match(folder))
     }
 
-    /// Whether the file's name or folder says or suggests someone in it is under 18.
-    pub fn suggests_minors(&self) -> bool {
-        suggests_minors(&format!("{} {}", self.file_name.replace(['.', '_'], " "), self.folder.as_deref().unwrap_or("")))
-    }
-
     /// What the model is told about the file before it starts.
     pub fn brief(&self, library: &str, added: &str) -> String {
         let mut lines = vec![format!("File name: {}", self.file_name), format!("Name without technical words: {}", self.cleaned)];
@@ -248,7 +210,7 @@ Rules:
 const ADULT: &str = "You identify adult films and scenes in a private Plex library that belongs to an adult, and research them on the web, so the library can show proper titles, studios, performers, release dates, descriptions and artwork. This is ordinary catalog work, like a film database's.
 
 You get one file name with the library and folder it is in. Work like a careful researcher:
-1. Read the name. Release names carry the studio or site, the release date (often as YY.MM.DD), performers' names, the scene's or movie's title, a scene number and technical words you ignore.
+1. Read the name. Release names carry the studio or site, the release date (often as YY.MM.DD), performers' names, the scene's or movie's title, a scene number and technical words you ignore. A site is often written as its initials or run together: btaw is Big Tits At Work, BigTitsInSports is Big Tits In Sports. Spell it out before you search, and search the performer with the site when the name has no title.
 2. Search to identify the exact scene or movie. Prefer the studio's own site and adult film databases: IAFD, Data18, Adult Empire, AEBN, Adult Film Database, FreeOnes.
 3. Read a page that confirms the title, the studio, the performers and the release date.
 4. Artwork: take the scene's or movie's cover or still from a page you read. Give an image address only if that page lists it.
@@ -330,20 +292,9 @@ impl WorkRecord {
         .into();
     }
 
-    /// Takes back an adult record when its words, or any page the research read, say or suggest someone in it was
-    /// under 18: it is not identified, and nothing about it is kept.
-    pub fn refuse_minors(&mut self, pages: &[String]) -> bool {
-        let words = format!("{} {} {} {} {} {}", self.title, self.series, self.studio, self.genres.join(" "), self.summary, self.notes);
-        if !suggests_minors(&words) && !pages.iter().any(|page| suggests_minors(page)) {
-            return false;
-        }
-        *self = WorkRecord::refused();
-        true
-    }
-
-    /// The record of a file that is not researched because something suggests someone in it is under 18.
-    pub fn refused() -> WorkRecord {
-        WorkRecord { notes: "Something suggests someone in it was under 18, so it is not researched.".into(), ..WorkRecord::default() }
+    /// The record of a file that is not researched because something suggests someone in it is under 18, saying what.
+    pub fn refused(hint: &str) -> WorkRecord {
+        WorkRecord { notes: format!("{REFUSED}: {hint}."), ..WorkRecord::default() }
     }
 
     /// Whether the record's sources are adult film sites, for a file in a library that is not set to adult.
@@ -364,7 +315,7 @@ impl WorkRecord {
         if self.sources.is_empty() {
             problems.push("Name the pages that confirm the facts in sources.".to_string());
         }
-        let unseen: Vec<&String> = self.sources.iter().filter(|source| !known.contains(source.trim())).collect();
+        let unseen: Vec<&String> = self.sources.iter().filter(|source| !super::research::seen_source(known, source)).collect();
         if !unseen.is_empty() {
             problems.push(format!(
                 "These sources were not in any search result or page you read: {}. Use only addresses you saw.",
@@ -432,26 +383,26 @@ pub async fn research_work(
     step: &(dyn Fn(Step) + Send + Sync),
 ) -> Result<(WorkRecord, Took), super::research::ResearchError> {
     let adult = kind == Kind::Adult || work.looks_adult();
-    if adult && work.suggests_minors() {
-        return Ok((WorkRecord::refused(), Took { turns: 0, searches: 0, reads: 0, seconds: 0 }));
+    if adult {
+        let name = format!("{} {}", work.file_name.replace(['.', '_'], " "), work.folder.as_deref().unwrap_or(""));
+        if let Some(hint) = super::ages::name_hint(&name) {
+            return Ok((WorkRecord::refused(&format!("its name says \"{hint}\"")), Took::default()));
+        }
     }
     let system = if adult { ADULT } else { GENERAL };
-    investigate(brain, web, system, work.brief(library, added), &submit(), step, |call: &ToolCall, seen, sent_back| {
+    let (mut record, took) = investigate(brain, web, system, work.brief(library, added), &submit(), step, |call: &ToolCall, seen, sent_back| {
         let mut record: WorkRecord =
             serde_json::from_value(call.arguments.clone()).map_err(|error| vec![format!("The record does not match the schema: {error}.")])?;
         record.settle(work);
         if record.poster_url.as_ref().is_some_and(|url| !seen.images.contains(url)) {
             record.poster_url = None;
         }
-        if (adult || record.looks_adult()) && record.refuse_minors(&seen.texts) {
-            return Ok(record);
-        }
         let problems = record.problems(&seen.known, newest);
         if problems.is_empty() {
             return Ok(record);
         }
         if sent_back {
-            record.sources.retain(|source| seen.known.contains(source.trim()));
+            record.sources.retain(|source| super::research::seen_source(&seen.known, source));
             if record.problems(&seen.known, newest).is_empty() {
                 record.confidence = "low".into();
                 return Ok(record);
@@ -459,7 +410,16 @@ pub async fn research_work(
         }
         Err(problems)
     })
-    .await
+    .await?;
+    if record.identified && (adult || record.looks_adult()) {
+        step(Step::Checking);
+        let mentions = super::ages::mentions(&record, &took.texts);
+        tracing::info!(file = %work.file_name, sentences = mentions.len(), "checking what the pages say of ages");
+        if let Some(hint) = super::ages::judged(brain, &record, &mentions).await.map_err(super::research::ResearchError::Model)? {
+            record = WorkRecord::refused(&hint);
+        }
+    }
+    Ok((record, took))
 }
 
 #[cfg(test)]
@@ -505,32 +465,9 @@ mod tests {
     }
 
     #[test]
-    fn tells_ages_under_18_from_counts_and_ordinary_words() {
-        for young in [
-            "One performer was 17 years old at the time.",
-            "filmed when she was 17 at the time",
-            "aged 16",
-            "she was seventeen when it was shot",
-            "was a minor at the time",
-            "a 15yo",
-            "schoolgirl",
-            "under-age",
-            "Starring two minors.",
-        ] {
-            assert!(suggests_minors(young), "{young}");
-        }
-        for adult in [
-            "Minor date discrepancy between IAFD and the studio site; used IAFD.",
-            "a minor character in the story",
-            "The scene was 15 minutes long.",
-            "Jane Doe, 19 years old, and Mary Major, 18 years old.",
-            "Aspect ratio is 16:9.",
-            "It is 12 out of 20 scenes.",
-        ] {
-            assert!(!suggests_minors(adult), "{adult}");
-        }
+    fn marks_files_of_general_libraries_that_look_adult() {
         assert!(Work::read("/media/Other/XXX/Some Scene 720p.mp4").looks_adult());
-        assert!(Work::read("/media/Holy Grail/Schoolgirl Scene 720p.mp4").suggests_minors());
+        assert!(!Work::read("/media/Games/StarCraft II/The Deal.mkv").looks_adult());
     }
 
     fn record() -> WorkRecord {
@@ -567,18 +504,14 @@ mod tests {
     }
 
     #[test]
-    fn checks_sources_and_dates_and_refuses_minors() {
+    fn checks_sources_and_dates_and_keeps_nothing_of_a_refused_work() {
         let mut found = record();
         found.settle(&Work::read("x.mp4"));
         let known: BTreeSet<String> = ["https://www.iafd.com/title.rme/id=1".to_string()].into();
         assert!(found.problems(&known, super::super::record::days_from_civil(2026, 1, 1)).is_empty());
         assert!(!found.problems(&BTreeSet::new(), i64::MAX).is_empty());
         assert!(!found.problems(&known, super::super::record::days_from_civil(2008, 1, 1)).is_empty());
-        let mut young = record();
-        young.notes = "One performer was 17 years old at the time.".into();
-        assert!(young.refuse_minors(&[]));
-        assert!(!young.identified && young.people.is_empty() && young.summary.is_empty());
-        assert!(!record().refuse_minors(&[]));
-        assert!(record().refuse_minors(&["Performer bio: she was 16 at the time of filming.".to_string()]));
+        let refused = WorkRecord::refused("iafd.com says \"She was 16\"");
+        assert!(!refused.identified && refused.people.is_empty() && refused.notes.starts_with(REFUSED));
     }
 }

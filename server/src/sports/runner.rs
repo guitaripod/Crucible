@@ -756,6 +756,7 @@ impl Sports {
                 }
                 Ok((record, Effort { seconds: took.seconds as i64, searches: took.searches as i64, reads: took.reads as i64 }))
             }
+            Ok((record, _)) if record.notes.starts_with(super::work::REFUSED) => Err(("attention", record.notes, 365 * 86_400)),
             Ok((record, _)) => Err(("attention", unidentified(&record.notes), 3 * 86_400)),
             Err(error) => Err(self.failed(error)),
         }
@@ -1105,11 +1106,7 @@ mod tests {
 
     #[test]
     fn copies_of_a_work_go_together_and_scenes_apart() {
-        let items = [
-            item("1", "/h/Movie X - sc1 720p.mp4"),
-            item("2", "/h/Movie X - sc2 720p.mp4"),
-            item("3", "/h/Movie X - sc1 1080p.mkv"),
-        ];
+        let items = [item("1", "/h/Movie X - sc1 720p.mp4"), item("2", "/h/Movie X - sc2 720p.mp4"), item("3", "/h/Movie X - sc1 1080p.mkv")];
         let due: Vec<&(String, Item)> = items.iter().collect();
         let groups: Vec<Vec<&str>> =
             grouped(&due, |_| Kind::Adult).iter().map(|group| group.iter().map(|entry| entry.1.rating_key.as_str()).collect()).collect();
