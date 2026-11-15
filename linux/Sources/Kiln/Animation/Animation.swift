@@ -53,8 +53,8 @@ public enum Animation: Sendable, Equatable {
     public static let backdrop = Animation.timed(duration: 0.35, curve: .easeInOut)
     public static let press = Animation.timed(duration: 0.12, curve: .easeOut)
 
-    /// Reduce Motion: the desktop's "animation speed" set to instant, read through the settings portal. Movement
-    /// collapses to its end state; fades stay, shortened, as `TVMotion` keeps them.
+    /// Reduce Motion: the desktop's reduced-motion setting, read through the settings portal. Every change applies at once,
+    /// as `TVMotion` applies its animations when motion is off.
     nonisolated(unsafe) public static var reduceMotion = false
 }
 
@@ -79,21 +79,11 @@ public struct Animated: Sendable {
     public mutating func set(_ newTarget: Float, animation newAnimation: Animation?) {
         guard newTarget != target || (newAnimation == nil && value != newTarget) else { return }
         target = newTarget
-        guard var chosen = newAnimation else {
+        guard let chosen = newAnimation, !Animation.reduceMotion else {
             value = newTarget
             velocity = 0
             animation = nil
             return
-        }
-        if Animation.reduceMotion {
-            if case .timed(let duration, let curve) = chosen, duration > 0 {
-                chosen = .timed(duration: min(duration, 0.15), curve: curve)
-            } else {
-                value = newTarget
-                velocity = 0
-                animation = nil
-                return
-            }
         }
         if case .timed = chosen { velocity = 0 }
         animation = chosen
