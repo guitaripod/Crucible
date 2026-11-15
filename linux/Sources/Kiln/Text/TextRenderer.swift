@@ -126,6 +126,16 @@ public final class TextRenderer {
         }
     }
 
+    static func caret(_ text: String, style: TextStyle, byteIndex: Int) -> kiln_text_caret {
+        registerFonts()
+        return withRawStyle(style) { raw in text.withCString { kiln_text_caret_at($0, &raw, Int32(byteIndex)) } }
+    }
+
+    static func index(_ text: String, style: TextStyle, x: Int, y: Int) -> Int {
+        registerFonts()
+        return withRawStyle(style) { raw in Int(text.withCString { kiln_text_index_at($0, &raw, Int32(x), Int32(y)) }) }
+    }
+
     /// The text's coverage texture and metrics, from the cache when this text and style were drawn recently.
     public func texture(for text: String, style: TextStyle) throws(RenderError) -> (texture: Texture, metrics: TextMetrics)? {
         let key = Key(text: text, style: style)

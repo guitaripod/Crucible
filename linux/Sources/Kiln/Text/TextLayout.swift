@@ -82,6 +82,18 @@ public struct TextLayout {
 
     public var isTruncated: Bool { metrics.truncated }
 
+    /// Where the caret stands before the character at `index` of `text` (a UTF-8 byte offset): its top left and height, in
+    /// points from the layout's top left.
+    public func caret(atUTF8 index: Int) -> Rect {
+        let caret = TextRenderer.caret(text, style: style, byteIndex: index)
+        return Rect(x: Float(caret.x) / scale, y: Float(caret.y) / scale, width: 0, height: Float(caret.height) / scale)
+    }
+
+    /// The UTF-8 byte offset into `text` of the character boundary nearest `point` (in points from the layout's top left).
+    public func utf8Index(at point: Point) -> Int {
+        TextRenderer.index(text, style: style, x: Int((point.x * scale).rounded()), y: Int((point.y * scale).rounded()))
+    }
+
     /// Whether the layout draws in colour (`inColor`) rather than as a coverage mask.
     public var isInColor: Bool { style.inColor }
 

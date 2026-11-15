@@ -31,6 +31,12 @@ typedef struct {
     bool truncated;
 } kiln_text_metrics;
 
+typedef struct {
+    int x;
+    int y;
+    int height;
+} kiln_text_caret;
+
 /** Makes a font file available to Pango for this process (bundled Inter). */
 bool kiln_text_register_font(const char *path);
 
@@ -44,5 +50,11 @@ bool kiln_text_render(const char *utf8, const kiln_text_style *style, uint8_t *a
  * glyphs in the sRGB colour `red`, `green`, `blue` (0 to 1) and colour glyphs (emoji) in their own colours. */
 bool kiln_text_render_color(const char *utf8, const kiln_text_style *style, double red, double green, double blue, uint8_t *rgba, int width,
                             int height, int stride);
+
+/** Where the caret before the byte at `byte_index` stands in the laid-out text, in pixels from the top left. */
+kiln_text_caret kiln_text_caret_at(const char *utf8, const kiln_text_style *style, int byte_index);
+
+/** The byte index of the character boundary nearest `x`, `y` (pixels from the top left) in the laid-out text. */
+int kiln_text_index_at(const char *utf8, const kiln_text_style *style, int x, int y);
 
 #endif

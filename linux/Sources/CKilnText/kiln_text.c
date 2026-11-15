@@ -171,3 +171,29 @@ bool kiln_text_render_color(const char *utf8, const kiln_text_style *style, doub
     }
     return true;
 }
+
+kiln_text_caret kiln_text_caret_at(const char *utf8, const kiln_text_style *style, int byte_index) {
+    PangoLayout *layout = make_layout(utf8, style);
+    PangoRectangle strong;
+    pango_layout_get_cursor_pos(layout, byte_index, &strong, NULL);
+    kiln_text_caret caret = {
+        .x = PANGO_PIXELS(strong.x),
+        .y = PANGO_PIXELS(strong.y),
+        .height = PANGO_PIXELS(strong.height),
+    };
+    g_object_unref(layout);
+    return caret;
+}
+
+int kiln_text_index_at(const char *utf8, const kiln_text_style *style, int x, int y) {
+    PangoLayout *layout = make_layout(utf8, style);
+    int index = 0;
+    int trailing = 0;
+    pango_layout_xy_to_index(layout, x * PANGO_SCALE, y * PANGO_SCALE, &index, &trailing);
+    const char *text = pango_layout_get_text(layout);
+    const char *position = text + index;
+    for (int step = 0; step < trailing && *position; step++) position = g_utf8_next_char(position);
+    int result = (int) (position - text);
+    g_object_unref(layout);
+    return result;
+}

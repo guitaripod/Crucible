@@ -151,6 +151,19 @@ import CKilnText
     }
 
 
+    @Test func theCaretFollowsTheTextAndAPointFindsItsCharacter() {
+        let layout = TextLayout("Night Ferry\nLow Tide", font: Font(size: 20), maxWidth: 400, maxLines: 0, scale: 1)
+        let start = layout.caret(atUTF8: 0)
+        let afterNight = layout.caret(atUTF8: 5)
+        let secondLine = layout.caret(atUTF8: 12)
+        #expect(start.minX == 0 && start.minY == 0 && start.height > 10)
+        #expect(afterNight.minX > start.minX && afterNight.minY == start.minY)
+        #expect(secondLine.minY >= start.maxY - 1 && secondLine.minX == 0, "the second paragraph starts its own line")
+        #expect(layout.utf8Index(at: Point(x: afterNight.minX + 1, y: afterNight.midY)) == 5)
+        #expect(layout.utf8Index(at: Point(x: 0, y: secondLine.midY)) == 12)
+    }
+
+
     @Test func aHighlightKeepsTheLayoutAndMapsUTF16ToBytes() {
         let layout = TextLayout("Café Noir", font: Font(size: 20), scale: 1)
         let match = layout.showingOnly(utf16: [(location: 5, length: 4)])
