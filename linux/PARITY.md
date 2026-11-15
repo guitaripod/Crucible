@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 41 | 7 | 8 | 1 |
 | Home and libraries | 70 | 3 | 5 | 0 |
-| Title pages, collections, playlists and server activity | 49 | 4 | 18 | 1 |
-| Player and What to Watch | 51 | 0 | 17 | 1 |
+| Title pages, collections, playlists and server activity | 54 | 4 | 13 | 1 |
+| Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
-| You, profiles, history, statistics and manage | 52 | 2 | 30 | 3 |
+| You, profiles, history, statistics and manage | 53 | 2 | 29 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
 | Design system | 62 | 20 | 15 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 454 | 50 | 175 | 16 |
+| **All** | 461 | 50 | 168 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -221,12 +221,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `detail-previously-on` (M) Previously On action: paired Crucible Server recap, or the last finished episodes' descriptions, or an AI recap written after a sending disclosure; Cancel while writing Gap: No Previously On on Linux; under D1 the AI write path must be free on Linux and run on the person's own model, so the Pro gate at TVShowDetailViewController.swift:352 does not apply _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:336-412,427-429_
 - [x] `detail-downloads-markers` (S) n/a: Downloading eyebrow and download badges on episodes and the download actions on the episode menu _Apple TV: Sources/CrucibleCore/Features/Detail/EpisodeStatus.swift:40-41,73_
 - [x] `detail-keyboard-escape-back` (S) Escape or Alt+Left returns from the detail page; focus returns to the item that opened it _Apple TV: Sources/CrucibleTV/Detail/TVDetailNavigation.swift:1-10 (Menu back)_
-- [ ] `collections-library-entry` (M) Collections entry in a movie or show library opens the library's collections grid, with count summary and No Collections empty state Gap: Library screen has chips, Genre, Sort and Browse Folders only; no Collections entry or screen _Apple TV: Sources/CrucibleTV/Library/TVLibraryViewController.swift:456-457_
+- [x] `collections-library-entry` (M) Collections entry in a movie or show library opens the library's collections grid, with count summary and No Collections empty state _Apple TV: Sources/CrucibleTV/Library/TVLibraryViewController.swift:456-457_
 - [x] `collection-items-grid` (M) Collection page: its titles in a poster grid, Empty Collection empty state, Select opens detail, right-click offers title actions _Apple TV: Sources/CrucibleTV/Navigation/Screens+Collections.swift:26-40_
-- [ ] `playlists-screen` (M) Playlists screen with playlist covers, subtitle line, No Playlists empty state, count summary, Select opens its entries, Play/Pause plays the whole playlist Gap: No Playlists screen anywhere in the Linux tabs (Home, libraries, Search, You) or the You screen; Core PlaylistService (PlaylistsFeed.swift:37) unused _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:4-35_
-- [ ] `playlist-play-shuffle-delete` (S) Playlist menu: Play, Shuffle, and Delete Playlist with confirmation; This playlist has nothing to play alert Gap: No playlist queue playback or delete on Linux (PlaybackQueue exists in Core) _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:34-49_
-- [ ] `playlist-entries-grid` (M) Playlist entries grid: Empty Playlist state, Play From Here and Shuffle from an entry, Remove from Playlist; smart playlists read-only Gap: No playlist entries screen _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:63-124_
-- [ ] `playlist-reorder` (M) Move to Top and Move to End on playlist entries (not on smart playlists) Gap: No reorder on Linux _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:75-82 (moveAction)_
+- [x] `playlists-screen` (M) Playlists screen with playlist covers, subtitle line, No Playlists empty state, count summary, Select opens its entries, Play/Pause plays the whole playlist _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:4-35_
+- [x] `playlist-play-shuffle-delete` (S) Playlist menu: Play, Shuffle, and Delete Playlist with confirmation; This playlist has nothing to play alert _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:34-49_
+- [x] `playlist-entries-grid` (M) Playlist entries grid: Empty Playlist state, Play From Here and Shuffle from an entry, Remove from Playlist; smart playlists read-only _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:63-124_
+- [x] `playlist-reorder` (M) Move to Top and Move to End on playlist entries (not on smart playlists) _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:75-82 (moveAction)_
 - [x] `activity-streams-screen` (M) Server Activity screen: live list of playback sessions with episode series name, subtitle and progress, refresh every 10 s and on playback events, N streams summary, empty state _Apple TV: Sources/CrucibleTV/Navigation/Screens+Activity.swift:16-35_
 - [x] `activity-stop-stream` (S) Stop Stream menu on a session with stop reasons (destructive) and failure alert _Apple TV: Sources/CrucibleTV/Navigation/Screens+Activity.swift:36-50_
 - [x] `dashboard-load-and-tasks` (M) Server dashboard: CPU and memory load row, Nothing running state, one row per background task with progress, refresh every 5 s and on activity events _Apple TV: Sources/CrucibleTV/Activity/TVServerDashboardViewController.swift:1-140 (render, refresh)_
@@ -291,7 +291,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `player-settings-upnext-rows` (S) Settings rows for Up Next and playback: Still Watching, Post-Play Suggestions, Rewind After a Break _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:211-213_
 - [x] `player-skipping-settings` (S) Settings for Skip Intro and Skip Credits modes (Off, Show, Automatic) and the Up Next countdown length _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:209-215_
 - [ ] `player-match-content` (L) Match the display to the content while the player is full screen (refresh rate and range), restored afterwards Gap: No output-management or refresh-rate switching in linux/Sources; the vendored KDE protocol is unbound, and the doc's HDR switch and restore are not implemented. _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:117 (appliesPreferredDisplayCriteriaAutomatically)_
-- [ ] `player-playlist-queue` (M) Play a playlist from the player: Play or Shuffle the playlist, the next entry plays in the same player, and the queue ends where the playlist ends Gap: No playlist playback on Linux: no Play or Shuffle for playlists and no queue-driven next entry in the player. The playlist screen itself belongs to another area, but the queue behaviour is the player's. _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:56, 86-97 (Play, Shuffle, play one entry)_
+- [x] `player-playlist-queue` (M) Play a playlist from the player: Play or Shuffle the playlist, the next entry plays in the same player, and the queue ends where the playlist ends _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:56, 86-97 (Play, Shuffle, play one entry)_
 - [x] `player-return-refresh` (S) After playback ends, the screen underneath reloads its watched and resume state, so Continue Watching and the title's progress are current _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:380-388 (finish dismisses so the screen beneath reloads fresh watched state)_
 - [ ] `watch-entry-home-tile` (M) What to Watch tile on Home, shown only when the AI is available Gap: No What to Watch entry on the Linux Home screen or anywhere else. The gate depends on the Linux brain (watch-ai-backend). _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:288-293 (tile with WatchCopy.tileSubtitle)_
 - [ ] `watch-ask-screen` (M) Ask screen: heading, one-paragraph explanation of what is sent and where, four example requests, and Say or Type Your Own when a free request is allowed Gap: No Ask screen, explanation text or example buttons on Linux. _Apple TV: Sources/CrucibleTV/Watch/TVWhatToWatchViewController.swift:113-172 (TVWhatToWatchAskViewController; the auditor's file TVWhatToWatchAskViewController.swift does not exist)_
@@ -379,7 +379,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `you-switch-profile-row` (S) Switch Profile row (title from HomeProfiles, value = account name) appears only when the account's Plex Home has more than one profile _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:241-243_
 - [x] `you-watch-history-row` (S) Watch History row opens the watch history screen _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:220_
 - [ ] `you-statistics-row` (S) Statistics row opens the Statistics screen Gap: No Statistics row on the Linux You screen _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:221_
-- [ ] `you-playlists-row` (M) Playlists row opens playlists (graded in the Playlists area too) Gap: No Playlists row or screen on Linux (no Playlist code in linux/Sources) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:222_
+- [x] `you-playlists-row` (M) Playlists row opens playlists (graded in the Playlists area too) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:222_
 - [ ] `you-watchlist-row` (M) Watchlist row with a value line of shows that have new releases ('N new') and opens the watchlist (graded in the Watchlist area too) Gap: No Watchlist row, no release count, no WatchlistReleases observer on Linux (no Watchlist code in linux/Sources) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:223_
 - [x] `you-server-activity-row` (M) Server Activity row opens the live activity screen (graded in the Activity area too) _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:224_
 - [x] `you-server-dashboard-row` (M) Server Dashboard row (owner only, placed after Activity) opens the server dashboard _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:247-249_
