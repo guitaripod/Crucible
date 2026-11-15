@@ -459,7 +459,9 @@ final class PlayerScreen: View {
         case .play: player.setPaused(false)
         case .pause: player.setPaused(true)
         case .stop: close()
-        case .seek(let offset): seek(to: playhead + offset)
+        case .seek(let offset):
+            guard offset != 0 else { return }
+            seek(to: playhead + Double(offset > 0 ? Preferences.skipForwardSeconds : -Preferences.skipBackSeconds))
         case .setPosition(let target): seek(to: target)
         case .next: offerNext(.requested)
         case .previous: startOver()
