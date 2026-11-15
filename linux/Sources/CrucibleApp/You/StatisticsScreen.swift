@@ -173,12 +173,12 @@ final class StatisticsScreen: ScreenView {
             ChipRowView.Chip(id: Control.range(candidate), title: candidate.title, isSelected: candidate == range)
         }
         if StatsManager.shared.offersEverything {
-            chips.append(ChipRowView.Chip(id: Control.source, title: source.title, symbol: "line.3.horizontal.decrease"))
+            chips.append(ChipRowView.Chip(id: Control.source, title: source.title, opensMenu: true))
         }
         let filter = StatsLibraryFilter.current()
         if filter.isAvailable {
             chips.append(ChipRowView.Chip(id: Control.libraries, title: filter.isCustomized ? String(localized: "Libraries · Filtered") : String(localized: "Libraries"),
-                                          symbol: Symbol(filter.symbol), isSelected: filter.isCustomized))
+                                          symbol: Symbol(filter.symbol), isSelected: filter.isCustomized, opensMenu: true))
         }
         controls.setChips(chips)
     }

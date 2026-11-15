@@ -43,7 +43,13 @@ final class DetailActionRow: View {
             let button = buttons[action.id] ?? ButtonView(style: style, title: action.title, symbol: action.symbol)
             button.style = style
             button.title = action.title
-            button.symbol = action.symbol
+            if case .menu = action.behaviour {
+                button.symbol = "chevron.down"
+                button.symbolTrailing = true
+            } else {
+                button.symbol = action.symbol
+                button.symbolTrailing = false
+            }
             button.isEnabled = action.isEnabled
             button.onPress = { [weak self, weak button] in
                 guard let self, let button else { return }

@@ -289,16 +289,16 @@ final class LibraryScreen: ScreenView {
         }
         if !model.genres.isEmpty {
             chips.append(.init(id: Control.genre, title: options.genre == nil ? String(localized: "Genre") : options.genreTitle(in: model.genres),
-                               symbol: "theatermasks", isSelected: options.genre != nil))
+                               symbol: "theatermasks", isSelected: options.genre != nil, opensMenu: true))
         }
         chips.append(.init(id: Control.sort, title: String(localized: "Sort", comment: "Button that opens the sort menu, not the verb"),
-                           symbol: "arrow.up.arrow.down"))
+                           symbol: "arrow.up.arrow.down", opensMenu: true))
         if !model.availableFacets.isEmpty {
             chips.append(.init(id: Control.filters, title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"),
-                               symbol: "line.3.horizontal.decrease", isSelected: !options.facets.isEmpty))
+                               symbol: "line.3.horizontal.decrease", isSelected: !options.facets.isEmpty, opensMenu: true))
         }
         if ServerOwnership.isOwner() {
-            chips.append(.init(id: Control.manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver"))
+            chips.append(.init(id: Control.manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver", opensMenu: true))
         }
         chips.append(.init(id: Control.collections, title: String(localized: "Collections"), symbol: "rectangle.stack"))
         chips.append(.init(id: Control.folders, title: String(localized: "Folders", comment: "Short name of the button that browses a library by its folders"),

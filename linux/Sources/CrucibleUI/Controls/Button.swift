@@ -290,13 +290,16 @@ public final class ChipRowView: View {
         public var symbol: Symbol?
         public var isSelected: Bool
         public var isDimmed: Bool
+        /// A chip that opens a menu carries a trailing chevron as its only image (`TVButton.menuButton`).
+        public var opensMenu: Bool
 
-        public init(id: String, title: String, symbol: Symbol? = nil, isSelected: Bool = false, isDimmed: Bool = false) {
+        public init(id: String, title: String, symbol: Symbol? = nil, isSelected: Bool = false, isDimmed: Bool = false, opensMenu: Bool = false) {
             self.id = id
             self.title = title
             self.symbol = symbol
             self.isSelected = isSelected
             self.isDimmed = isDimmed
+            self.opensMenu = opensMenu
         }
     }
 
@@ -330,7 +333,8 @@ public final class ChipRowView: View {
             let button = buttons[chip.id] ?? ButtonView(style: .chip(selected: chip.isSelected), title: chip.title, symbol: chip.symbol)
             button.style = .chip(selected: chip.isSelected)
             button.title = chip.title
-            button.symbol = chip.symbol
+            button.symbol = chip.opensMenu ? "chevron.down" : chip.symbol
+            button.symbolTrailing = chip.opensMenu
             button.isDimmed = chip.isDimmed
             button.onPress = { [weak self] in self?.onSelect?(chip) }
             button.onContextMenu = onContextMenu == nil ? nil : { [weak self, weak button] point in
