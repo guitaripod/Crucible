@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 75 | 2 | 7 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
-| Design system | 87 | 5 | 5 | 0 |
+| Design system | 89 | 4 | 4 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 510 | 33 | 143 | 16 |
+| **All** | 512 | 32 | 142 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -570,7 +570,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-shelf-skeleton` (S) Pulsing grey placeholder shelves while Home and Detail load (four landscape cards per shelf on Home, eight person cards on Detail) _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVSkeletonView.swift:4-56_
 - [x] `design-grid-poster` (S) Vertical poster grid with 40pt gutters and 50pt row spacing, columns fitted to the width _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVShelf.swift:63-88_
 - [x] `design-chip-row` (S) Chip row: capsules that select on press (never on focus), a dimmed chip for something the server lacks, and in-place updates that keep focus _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVChipRow.swift:7-70_
-- [ ] `design-chip-long-press-menu` (S) Long-press menu on a chip (season, History filter, search result filter) that offers actions for that chip Gap: ButtonView already has an onContextMenu hook and showContextMenu (Button.swift, ButtonView from line 73), but ChipRowView (Button.swift:282-353) has no menu parameter and never forwards that hook to its chips; no season, history or search-filter chip menus exist. _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVChipCell.swift:60-63_
+- [x] `design-chip-long-press-menu` (S) Long-press menu on a chip (season, History filter, search result filter) that offers actions for that chip _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVChipCell.swift:60-63_
 - [x] `design-hero-text-block` (S) Hero text block: eyebrow, title (title1 or title2), middle-dot fact line, badges, a three-two-one synopsis shrink, and bottom alignment in a fixed-height block _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:5-58_
 - [x] `design-hero-ratings-line` (M) Scores on the hero meta line, each drawn under its source's official mark (star for Plex, brand marks for the others) _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:16_
 - [x] `design-hero-badges` (S) Outlined technical badges (4K, HDR, Atmos) in a row under the meta line _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:196-211_
@@ -625,7 +625,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `design-state-content-dissolve` (S) **partial** Content and state swap cross-dissolve (0.25s) while the screen is up, and apply at once before it appears or under Reduce Motion Gap: StateView.show swaps at once with no dissolve, and screens hide or show their content themselves (LibraryScreen.swift:126-138). No Linux equivalent of TVScreenViewController's dissolve exists. _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVScreenViewController.swift:104-133_
 - [x] `design-image-pipeline` (S) Artwork requests sized to the point width times scale with a 1.1 oversample, capped at 720 pixels for posters and 1920 for backdrops, with a disk cache _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVImagePipeline.swift:7-27_
 - [x] `design-artwork-remote-url` (S) Artwork from a full URL outside the Plex server (a request-service poster), loaded as is _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVArtworkView.swift:96-113_
-- [ ] `design-typography` (S) **partial** Type recipes: control 31 semibold, card title 29 semibold, subtitle 25, eyebrow 23 bold, art caption 23 semibold, screen title title2, screen summary callout, detail body, mono for codes; sizes scale to a Dynamic Type ceiling Gap: The recipes match (Tokens.swift:166-175: control 31 semibold, cardTitle 29 semibold, subtitle 25, eyebrow 23 bold, artCaption 23 semibold), but nothing scales them to a text-size setting or Dynamic Type; sizes change only with density (Tokens.swift:7-25). _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVFont.swift:4-37_
+- [x] `design-typography` (S) Type recipes: control 31 semibold, card title 29 semibold, subtitle 25, eyebrow 23 bold, art caption 23 semibold, screen title title2, screen summary callout, detail body, mono for codes; sizes scale to a Dynamic Type ceiling _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVFont.swift:4-37_
 - [x] `design-line-truncation` (S) Titles and captions truncate at the tail after a set number of lines (card title 1 or 2 lines, hero title 2 then 1) _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVCardContentView.swift:77-84_
 - [x] `design-palette-tokens` (S) Colour tokens: canvas, surface and raised, label levels, accent ember, and a light focus fill that stays light in both appearances _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVColor.swift:1-13_
 - [x] `design-appearance-light-dark` (S) Light and Dark appearance across all components, with artwork placeholders and scrims re-resolved on change _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVArtworkView.swift:51-57_
