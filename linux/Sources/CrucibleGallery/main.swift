@@ -128,6 +128,40 @@ struct Gallery {
         report.append("\(ok ? "wrote" : "FAILED") \(path) \(capture.width)x\(capture.height)")
     }
 
+    /// Times Home at the window size while focus walks the shelves: CPU per frame (layout, animation, pass encoding) and
+    /// the GPU time the passes took.
+    func bench() throws {
+        let window = try Window(offscreen: size, scale: scale)
+        window.useImages(diskDirectory: nil) { url in try Data(contentsOf: url) }
+        GalleryArt.preload(GalleryFixtures.allArt, into: window.images!, gpu: window.gpu, scale: scale / 2)
+        let home = GalleryHome()
+        window.contentView = home
+        window.render()
+        settle(window)
+        window.focus.setVisible(true)
+        window.focus.focus(home.continueShelf, animated: false)
+        var cpu: [Double] = []
+        var gpu: [Double] = []
+        let keys: [Key] = [.right, .right, .right, .down, .down, .right, .right, .down, .up, .up, .left, .up]
+        for frame in 0..<600 {
+            if frame % 25 == 0 { window.handleKey(KeyEvent(key: keys[(frame / 25) % keys.count])) }
+            let start = ContinuousClock.now
+            window.advance(by: 1.0 / 120)
+            let elapsed = ContinuousClock.now - start
+            cpu.append(Double(elapsed.components.attoseconds) / 1e15 + Double(elapsed.components.seconds) * 1000)
+            let milliseconds = window.gpu.takeGPUMilliseconds()
+            if milliseconds > 0 { gpu.append(milliseconds) }
+        }
+        func describe(_ values: [Double]) -> String {
+            let sorted = values.sorted()
+            guard !sorted.isEmpty else { return "none" }
+            return String(format: "median %.2f ms, p95 %.2f ms, max %.2f ms", sorted[sorted.count / 2], sorted[Int(Double(sorted.count) * 0.95)], sorted.last!)
+        }
+        print("frames \(cpu.count) at \(Int(size.width * scale))x\(Int(size.height * scale))")
+        print("cpu \(describe(cpu))")
+        print("gpu \(describe(gpu))")
+    }
+
     func runWindow() throws {
         let loop = EventLoop()
         let window = try Window(title: "Crucible Gallery", appID: "org.guitaripod.Crucible.Gallery", loop: loop)
@@ -187,7 +221,9 @@ MainActor.assumeIsolated {
     let gallery = Gallery()
     gallery.configureTheme()
     do {
-        if let directory = gallery.value("--capture") {
+        if gallery.arguments.contains("--bench") {
+            try gallery.bench()
+        } else if let directory = gallery.value("--capture") {
             try gallery.capture(into: directory)
         } else {
             try gallery.runWindow()
