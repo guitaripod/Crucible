@@ -1,0 +1,30 @@
+From eba8a26aaae6b9a8c9f92f4c3a5a46bc68159443 Mon Sep 17 00:00:00 2001
+From: Andrew Rabert <ar@nullsum.net>
+Date: Sat, 21 Mar 2026 02:48:40 -0400
+Subject: [PATCH 09/10] fix: use 0x0 initial swapchain size to match surface
+ extent
+
+Hardcoded 1920x1080 forced an unnecessary resize on first frame.
+Passing 0x0 lets pl_swapchain_resize use the surface's current extent.
+---
+ video/out/gpu_next/context.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/video/out/gpu_next/context.c b/video/out/gpu_next/context.c
+index 260a9527c..981026492 100644
+--- a/video/out/gpu_next/context.c
++++ b/video/out/gpu_next/context.c
+@@ -554,8 +554,8 @@ static int libmpv_gpu_next_init_vk(struct libmpv_gpu_next_context *ctx, mpv_rend
+             }
+             pl_swapchain_colorspace_hint(p->swapchain, &hdr_hint);
+ 
+-            // Initial resize
+-            int w = 1920, h = 1080;
++            // Initial resize (0 = use surface's current extent)
++            int w = 0, h = 0;
+             pl_swapchain_resize(p->swapchain, &w, &h);
+ 
+             // Probe actual format by doing a test frame
+-- 
+2.56.1
+

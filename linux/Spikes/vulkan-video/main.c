@@ -78,8 +78,13 @@ static bool create_device(host *h) {
     vkGetPhysicalDeviceQueueFamilyProperties(h->physical, &families, NULL);
     VkQueueFamilyProperties *family = calloc(families, sizeof(*family));
     vkGetPhysicalDeviceQueueFamilyProperties(h->physical, &families, family);
+    int decode_family = -1;
+    uint32_t decode_count = 0;
     for (uint32_t i = 0; i < families; i++) {
         if (family[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) { h->graphics_family = i; break; }
+    }
+    for (uint32_t i = 0; i < families; i++) {
+        if ((family[i].queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR) && i != h->graphics_family) { decode_family = (int)i; decode_count = family[i].queueCount; break; }
     }
     free(family);
     uint32_t available_count = 0;
@@ -100,10 +105,14 @@ static bool create_device(host *h) {
     h->features = (VkPhysicalDeviceFeatures2){ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &h->v11 };
     vkGetPhysicalDeviceFeatures2(h->physical, &h->features);
     h->features.features.robustBufferAccess = VK_FALSE;
-    float priority = 1.0f;
-    VkDeviceQueueCreateInfo queue = { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = h->graphics_family, .queueCount = 1, .pQueuePriorities = &priority };
+    float priorities[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+    VkDeviceQueueCreateInfo queues[2] = {
+        { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = h->graphics_family, .queueCount = 1, .pQueuePriorities = priorities },
+        { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, .queueFamilyIndex = (uint32_t)decode_family, .queueCount = decode_count > 16 ? 16 : decode_count, .pQueuePriorities = priorities },
+    };
+    printf("decodeFamily=%d queues=%u\n", decode_family, decode_count);
     VkDeviceCreateInfo device_info = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, .pNext = &h->features, .queueCreateInfoCount = 1, .pQueueCreateInfos = &queue,
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, .pNext = &h->features, .queueCreateInfoCount = decode_family >= 0 ? 2 : 1, .pQueueCreateInfos = queues,
         .enabledExtensionCount = (uint32_t)h->extension_count, .ppEnabledExtensionNames = h->extensions,
     };
     if (vkCreateDevice(h->physical, &device_info, NULL, &h->device) != VK_SUCCESS) return false;

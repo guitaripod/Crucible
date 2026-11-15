@@ -1,0 +1,433 @@
+From c1068a82ab79281c2723bd079dc1b200c249f8fd Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Sun, 15 Nov 2026 10:18:44 +0200
+Subject: [PATCH 10/10] vo_libmpv/gpu-next: hardware decoding through ra_hwdec
+
+The gpu-next render backend created hwdec devices but never loaded an
+interop, so every hwdec mode fell back to software. Load the interops on
+an ra_pl over the backend's pl_gpu, map hardware frames through a
+ra_hwdec_mapper slot as vo_gpu_next does, and let hwdec_vulkan take its
+device from pl_vulkan when there is no mpv Vulkan swapchain (an imported
+host device).
+---
+ video/out/gpu_next/libmpv_gpu_next.c |   3 +-
+ video/out/gpu_next/video.c           | 173 ++++++++++++++++++++++++++-
+ video/out/gpu_next/video.h           |   3 +
+ video/out/hwdec/hwdec_vulkan.c       |  63 +++++-----
+ 4 files changed, 206 insertions(+), 36 deletions(-)
+
+diff --git a/video/out/gpu_next/libmpv_gpu_next.c b/video/out/gpu_next/libmpv_gpu_next.c
+index 07bd6b5ec..a34ad0966 100644
+--- a/video/out/gpu_next/libmpv_gpu_next.c
++++ b/video/out/gpu_next/libmpv_gpu_next.c
+@@ -96,6 +96,7 @@ static int init(struct render_backend *ctx, mpv_render_param *params)
+ 
+     // Create hardware decoder devices.
+     ctx->hwdec_devs = hwdec_devices_create();
++    pl_video_init_hwdecs(p->video_engine, ctx->global, ctx->hwdec_devs);
+     ctx->driver_caps = VO_CAP_ROTATE90 | VO_CAP_VFLIP;
+     return 0;
+ }
+@@ -109,8 +110,8 @@ static void destroy(struct render_backend *ctx)
+     struct priv *p = ctx->priv;
+     if (!p) return;
+ 
+-    hwdec_devices_destroy(ctx->hwdec_devs);
+     pl_video_uninit(&p->video_engine);
++    hwdec_devices_destroy(ctx->hwdec_devs);
+     if (p->context) {
+         p->context->fns->destroy(p->context); // This destroys the RA
+         talloc_free(p->context);
+diff --git a/video/out/gpu_next/video.c b/video/out/gpu_next/video.c
+index c5bbfb70e..ea6d115c2 100644
+--- a/video/out/gpu_next/video.c
++++ b/video/out/gpu_next/video.c
+@@ -22,6 +22,10 @@
+ #include "video/out/gpu_next/ra.h"         // for ra_next_find_fmt, ra_next_...
+ #include "video/out/gpu/video.h"           // for gl_video_opts, gl_video_conf
+ #include "video/out/vo.h"                  // for vo_frame
++#include "video/hwdec.h"
++#include "video/out/gpu/context.h"
++#include "video/out/gpu/hwdec.h"
++#include "video/out/placebo/ra_pl.h"
+ 
+ // Forward declarations
+ struct mp_log;
+@@ -59,6 +63,15 @@ struct pl_video_osd_state {
+  * and OSD elements using libplacebo. It includes the frame queue, current
+  * video parameters, OSD resources, and color adjustment state.
+  */
++struct pl_video_hwdec {
++    struct ra_ctx *ra_ctx;
++    struct ra_hwdec_ctx ctx;
++    struct ra_hwdec_mapper *mapper;
++    struct mp_image *owner;
++    pl_tex tex[4];
++    bool acquired;
++};
++
+ struct pl_video {
+     struct mp_log *log;
+     struct ra_next *ra;    // The libplacebo rendering abstraction
+@@ -85,6 +98,8 @@ struct pl_video {
+     // Color adjustment state
+     struct mp_csp_equalizer_state *video_eq; // Manages brightness, contrast, hue, etc.
+ 
++    struct pl_video_hwdec hw;
++
+     // Scaler configs storage (for map_scaler)
+     struct pl_filter_config scalers[SCALER_COUNT];
+ 
+@@ -98,8 +113,10 @@ struct pl_video {
+  */
+ struct frame_priv {
+     struct pl_video *p; // A pointer back to the main pl_video engine struct.
++    struct ra_hwdec *hwdec;
+ };
+ 
++
+ /**
+  * @brief Callback to map an mp_image to a pl_frame for rendering.
+  *
+@@ -111,6 +128,103 @@ struct frame_priv {
+  * @param frame The destination `pl_frame` to be populated with GPU texture info.
+  * @return True on success, false on failure.
+  */
++static void hwdec_unmap(struct pl_video *p)
++{
++    struct pl_video_hwdec *hw = &p->hw;
++    hw->acquired = false;
++    memset(hw->tex, 0, sizeof(hw->tex));
++    if (hw->mapper)
++        ra_hwdec_mapper_unmap(hw->mapper);
++    hw->owner = NULL;
++}
++
++static bool hwdec_reconfig(struct pl_video *p, struct ra_hwdec *hwdec,
++                           const struct mp_image_params *par)
++{
++    struct pl_video_hwdec *hw = &p->hw;
++    if (hw->mapper) {
++        if (mp_image_params_static_equal(par, &hw->mapper->src_params)) {
++            hw->mapper->src_params.repr.dovi = par->repr.dovi;
++            hw->mapper->dst_params.repr.dovi = par->repr.dovi;
++            hw->mapper->src_params.color.hdr = par->color.hdr;
++            hw->mapper->dst_params.color.hdr = par->color.hdr;
++            return true;
++        }
++        hwdec_unmap(p);
++        ra_hwdec_mapper_free(&hw->mapper);
++    }
++    hw->mapper = ra_hwdec_mapper_create(hwdec, par);
++    if (!hw->mapper) {
++        mp_msg(p->log, MSGL_ERR, "Initializing texture for hardware decoding failed.\n");
++        return false;
++    }
++    return true;
++}
++
++static bool hwdec_acquire(pl_gpu gpu, struct pl_frame *frame)
++{
++    struct mp_image *mpi = frame->user_data;
++    struct frame_priv *fp = mpi->priv;
++    struct pl_video *p = fp->p;
++    struct pl_video_hwdec *hw = &p->hw;
++    if (!hwdec_reconfig(p, fp->hwdec, &mpi->params))
++        return false;
++    if (hw->owner != mpi) {
++        if (hw->acquired) {
++            mp_msg(p->log, MSGL_ERR, "Hardware frame is still in use.\n");
++            return false;
++        }
++        hwdec_unmap(p);
++        if (ra_hwdec_mapper_map(hw->mapper, mpi) < 0) {
++            mp_msg(p->log, MSGL_ERR, "Mapping hardware decoded surface failed.\n");
++            return false;
++        }
++        hw->owner = mpi;
++    }
++    if (ra_hwdec_mapper_begin_access(hw->mapper) < 0)
++        return false;
++    hw->acquired = true;
++    for (int n = 0; n < frame->num_planes; n++) {
++        if (!hw->tex[n])
++            hw->tex[n] = (pl_tex) hw->mapper->tex[n]->priv;
++        if (!hw->tex[n])
++            return false;
++        frame->planes[n].texture = hw->tex[n];
++    }
++    return true;
++}
++
++static void hwdec_release(pl_gpu gpu, struct pl_frame *frame)
++{
++    struct mp_image *mpi = frame->user_data;
++    struct frame_priv *fp = mpi->priv;
++    struct pl_video_hwdec *hw = &fp->p->hw;
++    if (!hw->acquired)
++        return;
++    ra_hwdec_mapper_end_access(hw->mapper);
++    hw->acquired = false;
++}
++
++static void hwdec_plane_mapping(struct pl_frame *frame, const struct mp_imgfmt_desc *desc)
++{
++    frame->num_planes = desc->num_planes;
++    for (int n = 0; n < frame->num_planes; n++) {
++        struct pl_plane *plane = &frame->planes[n];
++        int *map = plane->component_mapping;
++        for (int c = 0; c < mp_imgfmt_desc_get_num_comps(desc); c++) {
++            if (desc->comps[c].plane != n)
++                continue;
++            uint8_t offset = desc->comps[c].offset;
++            int index = plane->components++;
++            while (index > 0 && desc->comps[map[index - 1]].offset > offset) {
++                map[index] = map[index - 1];
++                index--;
++            }
++            map[index] = c;
++        }
++    }
++}
++
+ static bool map_frame(pl_gpu gpu, pl_tex *tex, const struct pl_source_frame *src,
+                       struct pl_frame *frame)
+ {
+@@ -118,6 +232,28 @@ static bool map_frame(pl_gpu gpu, pl_tex *tex, const struct pl_source_frame *src
+     struct frame_priv *fp = mpi->priv;
+     struct pl_video *p = fp->p;
+ 
++    fp->hwdec = p->hw.ra_ctx ? ra_hwdec_get(&p->hw.ctx, mpi->imgfmt) : NULL;
++    if (fp->hwdec) {
++        if (!hwdec_reconfig(p, fp->hwdec, &mpi->params)) {
++            talloc_free(mpi);
++            return false;
++        }
++        struct mp_image_params par = p->hw.mapper->dst_params;
++        mp_image_params_guess_csp(&par);
++        *frame = (struct pl_frame) {
++            .color = par.color,
++            .repr = par.repr,
++            .rotation = par.rotate / 90,
++            .user_data = mpi,
++            .acquire = hwdec_acquire,
++            .release = hwdec_release,
++        };
++        struct mp_imgfmt_desc desc = mp_imgfmt_get_desc(par.imgfmt);
++        hwdec_plane_mapping(frame, &desc);
++        pl_frame_set_chroma_location(frame, par.chroma_location);
++        return true;
++    }
++
+     // Use the RA helper to upload the mp_image data to a new set of textures
+     // and populate the pl_frame struct with the result.
+     if (!ra_upload_mp_image(p->ra, frame, mpi)) {
+@@ -150,8 +286,12 @@ static void unmap_frame(pl_gpu gpu, struct pl_frame *frame,
+     struct frame_priv *fp = mpi->priv;
+     struct pl_video *p = fp->p;
+ 
+-    // Use the RA helper to destroy the GPU textures associated with the frame.
+-    ra_cleanup_pl_frame(p->ra, frame);
++    if (fp->hwdec) {
++        if (p->hw.owner == mpi)
++            hwdec_unmap(p);
++    } else {
++        ra_cleanup_pl_frame(p->ra, frame);
++    }
+     // Free the mp_image reference itself.
+     talloc_free(mpi);
+ }
+@@ -200,11 +340,36 @@ struct pl_video *pl_video_init(struct mpv_global *global, struct mp_log *log, st
+  * @brief Shuts down and destroys the rendering engine and its resources.
+  * @param p_ptr A pointer to the pl_video engine pointer to be freed.
+  */
++void pl_video_init_hwdecs(struct pl_video *p, struct mpv_global *global,
++                          struct mp_hwdec_devices *devs)
++{
++    struct ra *ra = ra_create_pl(p->ra->gpu, p->log);
++    if (!ra)
++        return;
++    p->hw.ra_ctx = talloc_zero(p, struct ra_ctx);
++    p->hw.ra_ctx->ra = ra;
++    p->hw.ra_ctx->global = global;
++    p->hw.ra_ctx->log = p->log;
++    p->hw.ctx = (struct ra_hwdec_ctx) {
++        .log = p->log,
++        .global = global,
++        .ra_ctx = p->hw.ra_ctx,
++    };
++    ra_hwdec_ctx_init(&p->hw.ctx, devs, NULL, true);
++}
++
+ void pl_video_uninit(struct pl_video **p_ptr) {
+     struct pl_video *p = *p_ptr;
+     if (!p) return;
+ 
+     ra_next_queue_destroy(&p->queue);
++    if (p->hw.ra_ctx) {
++        hwdec_unmap(p);
++        ra_hwdec_mapper_free(&p->hw.mapper);
++        ra_hwdec_ctx_uninit(&p->hw.ctx);
++        p->hw.ra_ctx->ra->fns->destroy(p->hw.ra_ctx->ra);
++        p->hw.ra_ctx->ra = NULL;
++    }
+ 
+     // Clean up all allocated OSD GPU resources
+     for (int i = 0; i < MP_ARRAY_SIZE(p->osd_state_storage.entries); i++) {
+@@ -755,7 +920,7 @@ void pl_video_reset(struct pl_video *p) {
+  * @return True if the format is likely supported, false otherwise.
+  */
+ bool pl_video_check_format(struct pl_video *p, int imgfmt) {
+-    // For simplicity, we assume libplacebo can handle it.
+-    // A more robust implementation might query libplacebo's capabilities.
++    if (IMGFMT_IS_HWACCEL(imgfmt))
++        return p->hw.ra_ctx && ra_hwdec_get(&p->hw.ctx, imgfmt);
+     return true;
+ }
+diff --git a/video/out/gpu_next/video.h b/video/out/gpu_next/video.h
+index 5f1dafaf4..b92c1a8fc 100644
+--- a/video/out/gpu_next/video.h
++++ b/video/out/gpu_next/video.h
+@@ -22,6 +22,9 @@ struct pl_video *pl_video_init(struct mpv_global *global, struct mp_log *log, st
+ /**
+  * Shuts down and destroys the rendering engine.
+  */
++struct mp_hwdec_devices;
++void pl_video_init_hwdecs(struct pl_video *p, struct mpv_global *global,
++                          struct mp_hwdec_devices *devs);
+ void pl_video_uninit(struct pl_video **p_ptr);
+ 
+ /**
+diff --git a/video/out/hwdec/hwdec_vulkan.c b/video/out/hwdec/hwdec_vulkan.c
+index 94998a34c..be82d4063 100644
+--- a/video/out/hwdec/hwdec_vulkan.c
++++ b/video/out/hwdec/hwdec_vulkan.c
+@@ -59,18 +59,19 @@ static int vulkan_init(struct ra_hwdec *hw)
+     struct vulkan_hw_priv *p = hw->priv;
+     int level = hw->probing ? MSGL_V : MSGL_ERR;
+ 
+-    struct mpvk_ctx *vk = ra_vk_ctx_get(hw->ra_ctx);
+-    if (!vk) {
+-        MP_MSG(hw, level, "This is not a libplacebo vulkan gpu api context.\n");
+-        return 0;
+-    }
+-
+     p->gpu = ra_pl_get(hw->ra_ctx->ra);
+     if (!p->gpu) {
+         MP_MSG(hw, level, "Failed to obtain pl_gpu.\n");
+         return 0;
+     }
+ 
++    struct mpvk_ctx *vk = ra_vk_ctx_get(hw->ra_ctx);
++    pl_vulkan vulkan = vk ? vk->vulkan : pl_vulkan_get(p->gpu);
++    if (!vulkan) {
++        MP_MSG(hw, level, "This is not a libplacebo vulkan gpu api context.\n");
++        return 0;
++    }
++
+     /*
+      * libplacebo initialises all queues, but we still need to discover which
+      * one is the decode queue.
+@@ -78,7 +79,7 @@ static int vulkan_init(struct ra_hwdec *hw)
+     uint32_t num_qf = 0;
+     VkQueueFamilyProperties2 *qf = NULL;
+     VkQueueFamilyVideoPropertiesKHR *qf_vid = NULL;
+-    vkGetPhysicalDeviceQueueFamilyProperties2(vk->vulkan->phys_device, &num_qf, NULL);
++    vkGetPhysicalDeviceQueueFamilyProperties2(vulkan->phys_device, &num_qf, NULL);
+     if (!num_qf)
+         goto error;
+ 
+@@ -94,7 +95,7 @@ static int vulkan_init(struct ra_hwdec *hw)
+         };
+     }
+ 
+-    vkGetPhysicalDeviceQueueFamilyProperties2(vk->vulkan->phys_device, &num_qf, qf);
++    vkGetPhysicalDeviceQueueFamilyProperties2(vulkan->phys_device, &num_qf, qf);
+ 
+     hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_VULKAN);
+     if (!hw_device_ctx)
+@@ -103,7 +104,7 @@ static int vulkan_init(struct ra_hwdec *hw)
+     AVHWDeviceContext *device_ctx = (void *)hw_device_ctx->data;
+     AVVulkanDeviceContext *device_hwctx = device_ctx->hwctx;
+ 
+-    device_ctx->user_opaque = (void *)vk->vulkan;
++    device_ctx->user_opaque = (void *)vulkan;
+     // libavutil deprecated AVVulkanDeviceContext.lock/unlock_queue in favour
+     // of `VK_KHR_internally_synchronized_queues`. Set the callbacks as long as
+     // they exist. They are no-ops in libplacebo when mppl_create_vulkan
+@@ -117,37 +118,37 @@ static int vulkan_init(struct ra_hwdec *hw)
+     AV_NOWARN_DEPRECATED(device_hwctx->lock_queue = lock_queue;)
+     AV_NOWARN_DEPRECATED(device_hwctx->unlock_queue = unlock_queue;)
+ #endif
+-    device_hwctx->get_proc_addr = vk->vkinst->get_proc_addr;
+-    device_hwctx->inst = vk->vkinst->instance;
+-    device_hwctx->phys_dev = vk->vulkan->phys_device;
+-    device_hwctx->act_dev = vk->vulkan->device;
+-    device_hwctx->device_features = *vk->vulkan->features;
+-    device_hwctx->enabled_inst_extensions = vk->vkinst->extensions;
+-    device_hwctx->nb_enabled_inst_extensions = vk->vkinst->num_extensions;
+-    device_hwctx->enabled_dev_extensions = vk->vulkan->extensions;
+-    device_hwctx->nb_enabled_dev_extensions = vk->vulkan->num_extensions;
++    device_hwctx->get_proc_addr = vk ? vk->vkinst->get_proc_addr : vulkan->get_proc_addr;
++    device_hwctx->inst = vk ? vk->vkinst->instance : vulkan->instance;
++    device_hwctx->phys_dev = vulkan->phys_device;
++    device_hwctx->act_dev = vulkan->device;
++    device_hwctx->device_features = *vulkan->features;
++    device_hwctx->enabled_inst_extensions = vk ? vk->vkinst->extensions : NULL;
++    device_hwctx->nb_enabled_inst_extensions = vk ? vk->vkinst->num_extensions : 0;
++    device_hwctx->enabled_dev_extensions = vulkan->extensions;
++    device_hwctx->nb_enabled_dev_extensions = vulkan->num_extensions;
+ 
+ #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(60, 32, 100)
+     // libplacebo uses the same flags for all queues, so grab them from the
+     // queue we know we'll have
+-    device_hwctx->queue_flags = vk->vulkan->queue_graphics.flags;
++    device_hwctx->queue_flags = vulkan->queue_graphics.flags;
+ #endif
+ 
+ #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(59, 34, 100)
+     device_hwctx->nb_qf = 0;
+     device_hwctx->qf[device_hwctx->nb_qf++] = (AVVulkanDeviceQueueFamily) {
+-        .idx = vk->vulkan->queue_graphics.index,
+-        .num = vk->vulkan->queue_graphics.count,
++        .idx = vulkan->queue_graphics.index,
++        .num = vulkan->queue_graphics.count,
+         .flags = VK_QUEUE_GRAPHICS_BIT,
+     };
+     device_hwctx->qf[device_hwctx->nb_qf++] = (AVVulkanDeviceQueueFamily) {
+-        .idx = vk->vulkan->queue_transfer.index,
+-        .num = vk->vulkan->queue_transfer.count,
++        .idx = vulkan->queue_transfer.index,
++        .num = vulkan->queue_transfer.count,
+         .flags = VK_QUEUE_TRANSFER_BIT,
+     };
+     device_hwctx->qf[device_hwctx->nb_qf++] = (AVVulkanDeviceQueueFamily) {
+-        .idx = vk->vulkan->queue_compute.index,
+-        .num = vk->vulkan->queue_compute.count,
++        .idx = vulkan->queue_compute.index,
++        .num = vulkan->queue_compute.count,
+         .flags = VK_QUEUE_COMPUTE_BIT,
+     };
+     for (int i = 0; i < num_qf; i++) {
+@@ -177,12 +178,12 @@ static int vulkan_init(struct ra_hwdec *hw)
+         if ((qf[i].queueFamilyProperties.queueFlags) & VK_QUEUE_VIDEO_DECODE_BIT_KHR)
+             decode_index = i;
+     }
+-    device_hwctx->queue_family_index = vk->vulkan->queue_graphics.index;
+-    device_hwctx->nb_graphics_queues = vk->vulkan->queue_graphics.count;
+-    device_hwctx->queue_family_tx_index = vk->vulkan->queue_transfer.index;
+-    device_hwctx->nb_tx_queues = vk->vulkan->queue_transfer.count;
+-    device_hwctx->queue_family_comp_index = vk->vulkan->queue_compute.index;
+-    device_hwctx->nb_comp_queues = vk->vulkan->queue_compute.count;
++    device_hwctx->queue_family_index = vulkan->queue_graphics.index;
++    device_hwctx->nb_graphics_queues = vulkan->queue_graphics.count;
++    device_hwctx->queue_family_tx_index = vulkan->queue_transfer.index;
++    device_hwctx->nb_tx_queues = vulkan->queue_transfer.count;
++    device_hwctx->queue_family_comp_index = vulkan->queue_compute.index;
++    device_hwctx->nb_comp_queues = vulkan->queue_compute.count;
+     device_hwctx->queue_family_decode_index = decode_index;
+     device_hwctx->nb_decode_queues = qf[decode_index].queueFamilyProperties.queueCount;
+ #endif
+-- 
+2.56.1
+

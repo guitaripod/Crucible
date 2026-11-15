@@ -1,0 +1,29 @@
+From 2d2a74fc0a61596da3b9ef80ce9f693fd5fc64d7 Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Sun, 15 Nov 2026 10:18:44 +0200
+Subject: [PATCH] vulkan: report an imported device's extensions
+
+pl_vulkan_import loaded the functions of the extensions it was given but
+left pl_vulkan.extensions empty, so users such as FFmpeg's hwcontext saw
+no enabled extensions on an imported device and refused Vulkan Video.
+---
+ src/vulkan/context.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/vulkan/context.c b/src/vulkan/context.c
+index 8d9fc3d..3d9633a 100644
+--- a/src/vulkan/context.c
++++ b/src/vulkan/context.c
+@@ -1711,6 +1711,9 @@ pl_vulkan pl_vulkan_import(pl_log log, const struct pl_vulkan_import_params *par
+     for (int i = 0; i < PL_ARRAY_SIZE(vk_dev_funs); i++)
+         load_vk_fun(vk, &vk_dev_funs[i]);
+ 
++    for (int n = 0; n < params->num_extensions; n++)
++        PL_ARRAY_APPEND(vk->alloc, vk->exts, pl_strdup0(vk->alloc, pl_str0(params->extensions[n])));
++
+     // Load all of the optional functions from the extensions enabled
+     for (int i = 0; i < PL_ARRAY_SIZE(vk_device_extensions); i++) {
+         const struct vk_ext *ext = &vk_device_extensions[i];
+-- 
+2.56.1
+

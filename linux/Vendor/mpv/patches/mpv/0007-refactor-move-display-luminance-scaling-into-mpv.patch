@@ -1,0 +1,74 @@
+From 180055ade2d600af1082fef1f6448e10935d7c87 Mon Sep 17 00:00:00 2001
+From: Andrew Rabert <ar@nullsum.net>
+Date: Fri, 20 Mar 2026 03:32:03 -0400
+Subject: [PATCH 07/10] refactor: move display luminance scaling into mpv
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Move the PL_COLOR_SDR_WHITE / ref_white scaling from the host application
+into context.c. The host now passes raw display values (max_luma, min_luma,
+ref_luma in cd/m²) via mpv_display_profile, and mpv applies the same
+scaling as wayland_common.c:info_done().
+---
+ include/mpv/render_vk.h      | 10 +++++-----
+ video/out/gpu_next/context.c | 20 +++++++++++++-------
+ 2 files changed, 18 insertions(+), 12 deletions(-)
+
+diff --git a/include/mpv/render_vk.h b/include/mpv/render_vk.h
+index f5b3b6dee..229ed078f 100644
+--- a/include/mpv/render_vk.h
++++ b/include/mpv/render_vk.h
+@@ -208,13 +208,13 @@ typedef struct mpv_vulkan_sync {
+ 
+ /**
+  * Display HDR profile passed via MPV_RENDER_PARAM_DISPLAY_PROFILE.
+- * Values are scaled to libplacebo's reference white (203 nits).
++ * Raw values from the compositor (nits). mpv handles the scaling
++ * to libplacebo's internal reference white (PL_COLOR_SDR_WHITE).
+  */
+ typedef struct mpv_display_profile {
+-    float max_luma;   // Peak luminance (scaled)
+-    float min_luma;   // Black level (scaled)
+-    float max_cll;    // Max content light level (scaled)
+-    float max_fall;   // Max frame average light level (scaled)
++    float max_luma;   // Display peak luminance (cd/m²)
++    float min_luma;   // Display black level (cd/m²)
++    float ref_luma;   // Display reference white (cd/m²), e.g. 252
+ } mpv_display_profile;
+ 
+ #ifdef __cplusplus
+diff --git a/video/out/gpu_next/context.c b/video/out/gpu_next/context.c
+index 98b119a0e..260a9527c 100644
+--- a/video/out/gpu_next/context.c
++++ b/video/out/gpu_next/context.c
+@@ -538,13 +538,19 @@ static int libmpv_gpu_next_init_vk(struct libmpv_gpu_next_context *ctx, mpv_rend
+             };
+             mpv_display_profile *dp =
+                 get_mpv_render_param(params, MPV_RENDER_PARAM_DISPLAY_PROFILE, NULL);
+-            if (dp && dp->max_luma > 0) {
+-                hdr_hint.hdr.min_luma = dp->min_luma;
+-                hdr_hint.hdr.max_luma = dp->max_luma;
+-                hdr_hint.hdr.max_cll = dp->max_cll;
+-                hdr_hint.hdr.max_fall = dp->max_fall;
+-                MP_INFO(ctx, "Display profile: peak=%.0f min=%.4f cll=%.0f fall=%.0f\n",
+-                        dp->max_luma, dp->min_luma, dp->max_cll, dp->max_fall);
++            if (dp && dp->max_luma > 0 && dp->ref_luma > 0) {
++                // Scale from display's reference white to libplacebo's
++                // PL_COLOR_SDR_WHITE (203). Matches wayland_common.c:info_done().
++                float a = dp->min_luma;
++                float b = (PL_COLOR_SDR_WHITE - PL_COLOR_HDR_BLACK) / (dp->ref_luma - a);
++                hdr_hint.hdr.min_luma = (dp->min_luma - a) * b + PL_COLOR_HDR_BLACK;
++                hdr_hint.hdr.max_luma = (dp->max_luma - a) * b + PL_COLOR_HDR_BLACK;
++                hdr_hint.hdr.max_cll = hdr_hint.hdr.max_luma;
++                hdr_hint.hdr.max_fall = hdr_hint.hdr.max_luma;
++                if (hdr_hint.hdr.min_luma < 0)
++                    hdr_hint.hdr.min_luma = 0;
++                MP_INFO(ctx, "Display: max=%.0f ref=%.0f -> scaled peak=%.0f min=%.4f\n",
++                        dp->max_luma, dp->ref_luma, hdr_hint.hdr.max_luma, hdr_hint.hdr.min_luma);
+             }
+             pl_swapchain_colorspace_hint(p->swapchain, &hdr_hint);
+ 
+-- 
+2.56.1
+

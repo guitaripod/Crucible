@@ -1,0 +1,93 @@
+From fa9a9db2a57f744f9fc605b96c3c84890be81c59 Mon Sep 17 00:00:00 2001
+From: Andrew Rabert <ar@nullsum.net>
+Date: Tue, 20 Jan 2026 20:01:37 -0500
+Subject: [PATCH 04/10] vo_libmpv/gpu-next: handle FLIP_Y render parameter
+
+Set FLIP_Y=1 when rendering to default framebuffer. Video frames are
+stored top-down but OpenGL has origin at bottom-left.
+---
+ video/out/gpu_next/libmpv_gpu_next.c |  4 ++++
+ video/out/gpu_next/video.c           | 18 +++++++++++++++++-
+ video/out/gpu_next/video.h           |  5 +++++
+ 3 files changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/video/out/gpu_next/libmpv_gpu_next.c b/video/out/gpu_next/libmpv_gpu_next.c
+index bea2a3829..cf0255ab5 100644
+--- a/video/out/gpu_next/libmpv_gpu_next.c
++++ b/video/out/gpu_next/libmpv_gpu_next.c
+@@ -132,6 +132,10 @@ static int render(struct render_backend *ctx, mpv_render_param *params,
+     struct priv *p = ctx->priv;
+     if (!p->video_engine) return MPV_ERROR_UNINITIALIZED;
+ 
++    // Handle FLIP_Y for OpenGL FBO orientation (per-frame).
++    int *flip_y = get_mpv_render_param(params, MPV_RENDER_PARAM_FLIP_Y, NULL);
++    pl_video_set_flipped(p->video_engine, flip_y && *flip_y);
++
+     // Wrap the framebuffer object (FBO) for rendering.
+     pl_tex target_tex = NULL;
+     int err = p->context->fns->wrap_fbo(p->context, params, &target_tex);
+diff --git a/video/out/gpu_next/video.c b/video/out/gpu_next/video.c
+index 4b460d324..18fc1115d 100644
+--- a/video/out/gpu_next/video.c
++++ b/video/out/gpu_next/video.c
+@@ -86,6 +86,9 @@ struct pl_video {
+ 
+     // Scaler configs storage (for map_scaler)
+     struct pl_filter_config scalers[SCALER_COUNT];
++
++    // Flip state (for OpenGL FBO orientation)
++    bool flipped;
+ };
+ 
+ /**
+@@ -214,6 +217,16 @@ void pl_video_uninit(struct pl_video **p_ptr) {
+     *p_ptr = NULL;
+ }
+ 
++/**
++ * @brief Sets whether the output should be flipped vertically.
++ * @param p The pl_video engine context.
++ * @param flipped True to flip the output (for OpenGL FBO orientation).
++ */
++void pl_video_set_flipped(struct pl_video *p, bool flipped) {
++    if (p)
++        p->flipped = flipped;
++}
++
+ /**
+  * @brief Updates the OSD overlays for the current video frame.
+  * @param p The pl_video context.
+@@ -440,10 +453,13 @@ void pl_video_render(struct pl_video *p, struct vo_frame *frame, pl_tex target_t
+     }
+ 
+     // Describe the target surface for libplacebo.
++    // When flipped (OpenGL FBO), swap y0 and y1 to flip the output vertically.
++    int crop_y0 = p->flipped ? p->current_dst.y1 : p->current_dst.y0;
++    int crop_y1 = p->flipped ? p->current_dst.y0 : p->current_dst.y1;
+     struct pl_frame target_frame = {
+         .num_planes = 1,
+         .planes[0] = { .texture = target_tex, .components = 4, .component_mapping = {0,1,2,3} },
+-        .crop = { .x0 = p->current_dst.x0, .y0 = p->current_dst.y0, .x1 = p->current_dst.x1, .y1 = p->current_dst.y1 },
++        .crop = { .x0 = p->current_dst.x0, .y0 = crop_y0, .x1 = p->current_dst.x1, .y1 = crop_y1 },
+         .color = target_color,
+         .repr = pl_color_repr_rgb,
+     };
+diff --git a/video/out/gpu_next/video.h b/video/out/gpu_next/video.h
+index 0f62ee2e9..66dfc1c5f 100644
+--- a/video/out/gpu_next/video.h
++++ b/video/out/gpu_next/video.h
+@@ -23,6 +23,11 @@ struct pl_video *pl_video_init(struct mpv_global *global, struct mp_log *log, st
+  */
+ void pl_video_uninit(struct pl_video **p_ptr);
+ 
++/**
++ * Sets whether the output should be flipped vertically (for OpenGL FBO orientation).
++ */
++void pl_video_set_flipped(struct pl_video *p, bool flipped);
++
+ /**
+  * Synchronously renders a video frame to a display target using libplacebo.
+  */
+-- 
+2.56.1
+

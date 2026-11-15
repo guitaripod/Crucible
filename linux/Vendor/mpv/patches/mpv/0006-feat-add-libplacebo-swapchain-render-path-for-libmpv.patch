@@ -1,0 +1,499 @@
+From 9825dc72a402bf9d8613f6fbafcc9ffa87698ff7 Mon Sep 17 00:00:00 2001
+From: Andrew Rabert <ar@nullsum.net>
+Date: Fri, 20 Mar 2026 03:23:13 -0400
+Subject: [PATCH 06/10] feat: add libplacebo swapchain render path for libmpv
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add MPV_RENDER_PARAM_VULKAN_SURFACE to pass a VkSurfaceKHR to mpv.
+When provided, mpv's internal libplacebo creates a pl_swapchain on the
+surface — handling format selection, Wayland color management, and
+display profile negotiation identically to standalone mpv.
+
+Add MPV_RENDER_PARAM_VULKAN_SWAPCHAIN_SIZE for dynamic resize and
+MPV_RENDER_PARAM_DISPLAY_PROFILE for passing the host's queried
+display HDR profile (scaled luminances) to the swapchain colorspace hint.
+
+New pl_video_render_to_swapchain() uses the swapchain's color_space
+as the rendering target instead of building it from options, giving
+libplacebo the full display profile for correct tone mapping of both
+HDR and SDR content.
+---
+ include/mpv/render.h                 |  27 +++++++
+ include/mpv/render_vk.h              |  11 +++
+ video/out/gpu/video.c                |   3 +
+ video/out/gpu/video.h                |   3 +
+ video/out/gpu_next/context.c         |  70 ++++++++++++++++--
+ video/out/gpu_next/libmpv_gpu_next.c |  55 +++++++++++++-
+ video/out/gpu_next/libmpv_gpu_next.h |   8 +-
+ video/out/gpu_next/video.c           | 105 ++++++++++++++++++++++++++-
+ video/out/gpu_next/video.h           |  14 +++-
+ 9 files changed, 279 insertions(+), 17 deletions(-)
+
+diff --git a/include/mpv/render.h b/include/mpv/render.h
+index cde98f443..82ec60775 100644
+--- a/include/mpv/render.h
++++ b/include/mpv/render.h
+@@ -465,6 +465,33 @@ typedef enum mpv_render_param_type {
+      * See render_vk.h header.
+      */
+     MPV_RENDER_PARAM_VULKAN_SYNC = 26,
++    /**
++     * VkSurfaceKHR (VkSurfaceKHR*): Provide a Vulkan surface for libplacebo
++     * to create and manage a swapchain on. When set during render context
++     * creation, mpv creates a pl_swapchain on this surface instead of using
++     * the FBO render path. This makes the rendering pipeline identical to
++     * standalone mpv — libplacebo handles swapchain format selection, color
++     * management, and display profile negotiation via the Wayland compositor.
++     *
++     * When a swapchain is active, mpv_render_context_render() ignores
++     * MPV_RENDER_PARAM_VULKAN_FBO and renders to the swapchain directly.
++     * The caller should NOT create their own VkSwapchainKHR on this surface.
++     */
++    MPV_RENDER_PARAM_VULKAN_SURFACE = 27,
++
++    /**
++     * int[2] (width, height): Desired swapchain dimensions in pixels.
++     * Used with MPV_RENDER_PARAM_VULKAN_SURFACE to resize the swapchain
++     * when the window size changes. Pass on each render call.
++     */
++    MPV_RENDER_PARAM_VULKAN_SWAPCHAIN_SIZE = 28,
++
++    /**
++     * mpv_display_profile*: Display HDR profile for the swapchain.
++     * Scaled luminance values (relative to PL_COLOR_SDR_WHITE = 203 nits).
++     * Queried from the Wayland compositor by the host application.
++     */
++    MPV_RENDER_PARAM_DISPLAY_PROFILE = 29,
+ } mpv_render_param_type;
+ 
+ /**
+diff --git a/include/mpv/render_vk.h b/include/mpv/render_vk.h
+index 60807c5f2..f5b3b6dee 100644
+--- a/include/mpv/render_vk.h
++++ b/include/mpv/render_vk.h
+@@ -206,6 +206,17 @@ typedef struct mpv_vulkan_sync {
+     uint64_t signal_value;
+ } mpv_vulkan_sync;
+ 
++/**
++ * Display HDR profile passed via MPV_RENDER_PARAM_DISPLAY_PROFILE.
++ * Values are scaled to libplacebo's reference white (203 nits).
++ */
++typedef struct mpv_display_profile {
++    float max_luma;   // Peak luminance (scaled)
++    float min_luma;   // Black level (scaled)
++    float max_cll;    // Max content light level (scaled)
++    float max_fall;   // Max frame average light level (scaled)
++} mpv_display_profile;
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/video/out/gpu/video.c b/video/out/gpu/video.c
+index 6122e5142..f20f41063 100644
+--- a/video/out/gpu/video.c
++++ b/video/out/gpu/video.c
+@@ -448,6 +448,9 @@ const struct m_sub_options gl_video_conf = {
+         {"target-trc", OPT_CHOICE_C(target_trc, pl_csp_trc_names)},
+         {"target-peak", OPT_CHOICE(target_peak, {"auto", 0}),
+             M_RANGE(10, 10000)},
++        {"target-min-luma", OPT_FLOAT(target_min_luma), M_RANGE(0, 1)},
++        {"target-max-cll", OPT_FLOAT(target_max_cll), M_RANGE(0, 10000)},
++        {"target-max-fall", OPT_FLOAT(target_max_fall), M_RANGE(0, 10000)},
+         {"hdr-reference-white", OPT_CHOICE(hdr_reference_white, {"auto", 0}),
+             M_RANGE(10, 10000)},
+         {"sdr-adjust-gamma", OPT_CHOICE(sdr_adjust_gamma,
+diff --git a/video/out/gpu/video.h b/video/out/gpu/video.h
+index cb4bd16fc..96e35bc3b 100644
+--- a/video/out/gpu/video.h
++++ b/video/out/gpu/video.h
+@@ -140,6 +140,9 @@ struct gl_video_opts {
+     int target_prim;
+     int target_trc;
+     int target_peak;
++    float target_min_luma;  // target display min luminance (nits)
++    float target_max_cll;   // target display max content light level (nits)
++    float target_max_fall;  // target display max frame average light level (nits)
+     int hdr_reference_white;
+     int sdr_adjust_gamma;
+     int treat_srgb_as_power22;
+diff --git a/video/out/gpu_next/context.c b/video/out/gpu_next/context.c
+index 3dad7d8c7..98b119a0e 100644
+--- a/video/out/gpu_next/context.c
++++ b/video/out/gpu_next/context.c
+@@ -445,6 +445,7 @@ struct priv_vk {
+     pl_vulkan vulkan;
+     pl_gpu gpu;
+     struct ra_next *ra;
++    pl_swapchain swapchain;  // Created when MPV_RENDER_PARAM_VULKAN_SURFACE is provided
+ };
+ 
+ /**
+@@ -478,17 +479,13 @@ static int libmpv_gpu_next_init_vk(struct libmpv_gpu_next_context *ctx, mpv_rend
+         return MPV_ERROR_INVALID_PARAMETER;
+     }
+ 
+-    // Setup libplacebo logging
++    // Setup libplacebo logging — always enabled for diagnostics
+     struct pl_log_params log_params = {
+-        .log_level = PL_LOG_DEBUG
++        .log_cb = pl_log_cb_vk,
++        .log_priv = ctx->log,
++        .log_level = PL_LOG_INFO,
+     };
+ 
+-    // Enable verbose logging if trace is enabled
+-    if (mp_msg_test(ctx->log, MSGL_TRACE)) {
+-        log_params.log_cb = pl_log_cb_vk;
+-        log_params.log_priv = ctx->log;
+-    }
+-
+     p->pl_log = pl_log_create(PL_API_VER, &log_params);
+     if (!p->pl_log) {
+         MP_ERR(ctx, "Failed to create libplacebo log\n");
+@@ -523,10 +520,62 @@ static int libmpv_gpu_next_init_vk(struct libmpv_gpu_next_context *ctx, mpv_rend
+ 
+     p->gpu = p->vulkan->gpu;
+ 
++    // If a VkSurface was provided, create a libplacebo swapchain on it.
++    // This makes the rendering path identical to standalone mpv — libplacebo
++    // handles swapchain format selection, color management, and display profile.
++    VkSurfaceKHR *surface_ptr =
++        get_mpv_render_param(params, MPV_RENDER_PARAM_VULKAN_SURFACE, NULL);
++    if (surface_ptr && *surface_ptr) {
++        struct pl_vulkan_swapchain_params sw_params = {0};
++        sw_params.surface = *surface_ptr;
++        sw_params.present_mode = VK_PRESENT_MODE_FIFO_KHR;
++        p->swapchain = pl_vulkan_create_swapchain(p->vulkan, &sw_params);
++        if (p->swapchain) {
++            // Hint HDR with display profile from host application
++            struct pl_color_space hdr_hint = {
++                .primaries = PL_COLOR_PRIM_BT_2020,
++                .transfer = PL_COLOR_TRC_PQ,
++            };
++            mpv_display_profile *dp =
++                get_mpv_render_param(params, MPV_RENDER_PARAM_DISPLAY_PROFILE, NULL);
++            if (dp && dp->max_luma > 0) {
++                hdr_hint.hdr.min_luma = dp->min_luma;
++                hdr_hint.hdr.max_luma = dp->max_luma;
++                hdr_hint.hdr.max_cll = dp->max_cll;
++                hdr_hint.hdr.max_fall = dp->max_fall;
++                MP_INFO(ctx, "Display profile: peak=%.0f min=%.4f cll=%.0f fall=%.0f\n",
++                        dp->max_luma, dp->min_luma, dp->max_cll, dp->max_fall);
++            }
++            pl_swapchain_colorspace_hint(p->swapchain, &hdr_hint);
++
++            // Initial resize
++            int w = 1920, h = 1080;
++            pl_swapchain_resize(p->swapchain, &w, &h);
++
++            // Probe actual format by doing a test frame
++            struct pl_swapchain_frame test_frame;
++            if (pl_swapchain_start_frame(p->swapchain, &test_frame)) {
++                VkFormat fmt = VK_FORMAT_UNDEFINED;
++                pl_vulkan_unwrap(p->gpu, test_frame.fbo, &fmt, NULL);
++                MP_INFO(ctx, "Created libplacebo swapchain on provided VkSurface (%dx%d)\n", w, h);
++                MP_INFO(ctx, "Swapchain format: VkFormat=%d, trc=%d, prim=%d, peak=%.0f\n",
++                        fmt, test_frame.color_space.transfer, test_frame.color_space.primaries,
++                        test_frame.color_space.hdr.max_luma);
++                pl_swapchain_submit_frame(p->swapchain);
++            } else {
++                MP_INFO(ctx, "Created libplacebo swapchain on provided VkSurface (%dx%d)\n", w, h);
++            }
++        } else {
++            MP_WARN(ctx, "Failed to create swapchain on VkSurface, falling back to FBO mode\n");
++        }
++    }
++
+     // Create the RA abstraction
+     p->ra = ra_pl_create(p->gpu, ctx->log, p->pl_log);
+     if (!p->ra) {
+         MP_ERR(ctx, "Failed to create RA from pl_gpu\n");
++        if (p->swapchain)
++            pl_swapchain_destroy(&p->swapchain);
+         pl_vulkan_destroy(&p->vulkan);
+         pl_log_destroy(&p->pl_log);
+         return MPV_ERROR_VO_INIT_FAILED;
+@@ -534,6 +583,7 @@ static int libmpv_gpu_next_init_vk(struct libmpv_gpu_next_context *ctx, mpv_rend
+ 
+     ctx->ra = p->ra;
+     ctx->gpu = p->gpu;
++    ctx->swapchain = p->swapchain;  // NULL if no surface was provided
+     return 0;
+ }
+ 
+@@ -615,6 +665,10 @@ static void libmpv_gpu_next_destroy_vk(struct libmpv_gpu_next_context *ctx)
+         ra_pl_destroy(&p->ra);
+     }
+ 
++    if (p->swapchain) {
++        pl_swapchain_destroy(&p->swapchain);
++    }
++
+     if (p->vulkan) {
+         pl_vulkan_destroy(&p->vulkan);
+     }
+diff --git a/video/out/gpu_next/libmpv_gpu_next.c b/video/out/gpu_next/libmpv_gpu_next.c
+index 803725230..07bd6b5ec 100644
+--- a/video/out/gpu_next/libmpv_gpu_next.c
++++ b/video/out/gpu_next/libmpv_gpu_next.c
+@@ -136,7 +136,42 @@ static int render(struct render_backend *ctx, mpv_render_param *params,
+     int *flip_y = get_mpv_render_param(params, MPV_RENDER_PARAM_FLIP_Y, NULL);
+     pl_video_set_flipped(p->video_engine, flip_y && *flip_y);
+ 
+-    // Wrap the framebuffer object (FBO) for rendering.
++    // Swapchain path: libplacebo owns the swapchain and handles color management.
++    // This makes the rendering pipeline identical to standalone mpv.
++    MP_INFO(ctx, "render: swapchain=%p context=%p\n",
++            (void*)p->context->swapchain, (void*)p->context);
++    if (p->context->swapchain) {
++        // Resize swapchain to match window dimensions
++        int *size = get_mpv_render_param(params, MPV_RENDER_PARAM_VULKAN_SWAPCHAIN_SIZE, NULL);
++        int sw_w = size ? size[0] : 0;
++        int sw_h = size ? size[1] : 0;
++        pl_swapchain_resize(p->context->swapchain, &sw_w, &sw_h);
++
++        struct pl_swapchain_frame sw_frame;
++        if (!pl_swapchain_start_frame(p->context->swapchain, &sw_frame)) {
++            MP_ERR(ctx, "pl_swapchain_start_frame failed\n");
++            return MPV_ERROR_GENERIC;
++        }
++
++        MP_INFO(ctx, "swapchain frame: %dx%d trc=%d prim=%d\n",
++               sw_frame.fbo->params.w, sw_frame.fbo->params.h,
++               sw_frame.color_space.transfer, sw_frame.color_space.primaries);
++
++        pl_video_render_to_swapchain(p->video_engine, frame,
++                                     sw_frame.fbo, &sw_frame.color_space);
++
++        if (!pl_swapchain_submit_frame(p->context->swapchain)) {
++            MP_ERR(ctx, "pl_swapchain_submit_frame failed\n");
++            return MPV_ERROR_GENERIC;
++        }
++
++        // Wait for previous frame to finish — provides vsync pacing and
++        // yields the render mutex so mpv's decoder/audio threads can work
++        pl_swapchain_swap_buffers(p->context->swapchain);
++        return 0;
++    }
++
++    // FBO path: user provides the render target.
+     pl_tex target_tex = NULL;
+     int err = p->context->fns->wrap_fbo(p->context, params, &target_tex);
+     if (err < 0) return err;
+@@ -228,13 +263,29 @@ static int get_target_size(struct render_backend *ctx, mpv_render_param *params,
+ {
+     struct priv *p = ctx->priv;
+     if (!p->context || !p->context->fns || !p->context->ra) return MPV_ERROR_UNINITIALIZED;
++
++    // Swapchain path: get size from params or query swapchain
++    if (p->context->swapchain) {
++        int *size = get_mpv_render_param(params, MPV_RENDER_PARAM_VULKAN_SWAPCHAIN_SIZE, NULL);
++        int w = size ? size[0] : 0;
++        int h = size ? size[1] : 0;
++        if (w <= 0 || h <= 0) {
++            // Query current swapchain size as fallback
++            if (!pl_swapchain_resize(p->context->swapchain, &w, &h) || w <= 0 || h <= 0)
++                return MPV_ERROR_GENERIC;
++        }
++        *out_w = w;
++        *out_h = h;
++        return 0;
++    }
++
++    // FBO path
+     pl_tex tex = NULL;
+     int err = p->context->fns->wrap_fbo(p->context, params, &tex);
+     if (err < 0) return err;
+     if (!tex) return MPV_ERROR_GENERIC;
+     *out_w = tex->params.w;
+     *out_h = tex->params.h;
+-    // Destroy the temporary wrapper texture via the RA.
+     ra_next_tex_destroy(p->context->ra, &tex);
+     return 0;
+ }
+diff --git a/video/out/gpu_next/libmpv_gpu_next.h b/video/out/gpu_next/libmpv_gpu_next.h
+index e07557e0e..2c9cfeace 100644
+--- a/video/out/gpu_next/libmpv_gpu_next.h
++++ b/video/out/gpu_next/libmpv_gpu_next.h
+@@ -1,7 +1,8 @@
+ #pragma once
+ 
+-#include <libplacebo/gpu.h>  // for pl_gpu, pl_tex
+-#include "mpv/render.h"      // for mpv_render_param
++#include <libplacebo/gpu.h>       // for pl_gpu, pl_tex
++#include <libplacebo/swapchain.h> // for pl_swapchain
++#include "mpv/render.h"           // for mpv_render_param
+ 
+ /**
+  * This struct represents an instance of a specific API context implementation.
+@@ -21,6 +22,9 @@ struct libmpv_gpu_next_context {
+     struct ra_next *ra;
+     // The underlying GPU object, needed by the Host for resource management.
+     pl_gpu gpu;
++    // Optional: swapchain created from MPV_RENDER_PARAM_VULKAN_SURFACE.
++    // When non-NULL, rendering uses the swapchain instead of FBO wrapping.
++    pl_swapchain swapchain;
+ };
+ 
+ /**
+diff --git a/video/out/gpu_next/video.c b/video/out/gpu_next/video.c
+index e6e7c2eec..5137764f8 100644
+--- a/video/out/gpu_next/video.c
++++ b/video/out/gpu_next/video.c
+@@ -473,10 +473,17 @@ void pl_video_render(struct pl_video *p, struct vo_frame *frame, pl_tex target_t
+             .primaries = opts->target_prim ? opts->target_prim : PL_COLOR_PRIM_BT_709,
+             .transfer = opts->target_trc ? opts->target_trc : PL_COLOR_TRC_SRGB,
+         };
+-        // For HDR outputs, set peak luminance to allow extended range
+-        if (opts->target_peak > 0) {
++        // For HDR outputs, set the full target display profile.
++        // Standalone mpv gets these from the Wayland backend; for libmpv
++        // we pass them as options from the Wayland display query.
++        if (opts->target_peak > 0)
+             target_color.hdr.max_luma = opts->target_peak;
+-        }
++        if (opts->target_min_luma > 0)
++            target_color.hdr.min_luma = opts->target_min_luma;
++        if (opts->target_max_cll > 0)
++            target_color.hdr.max_cll = opts->target_max_cll;
++        if (opts->target_max_fall > 0)
++            target_color.hdr.max_fall = opts->target_max_fall;
+     }
+ 
+     static int debug_once = 0;
+@@ -595,6 +602,98 @@ void pl_video_render(struct pl_video *p, struct vo_frame *frame, pl_tex target_t
+     }
+ }
+ 
++void pl_video_render_to_swapchain(struct pl_video *p, struct vo_frame *frame,
++                                  pl_tex target_tex,
++                                  const struct pl_color_space *target_csp)
++{
++    // Use the swapchain's color space directly as the rendering target.
++    // libplacebo's auto tone mapper handles both SDR→PQ and HDR passthrough.
++    struct pl_color_space target_color = target_csp ? *target_csp : pl_color_space_srgb;
++
++    static int debug_once_sw = 0;
++    if (!debug_once_sw) {
++        debug_once_sw = 1;
++        MP_INFO(p, "swapchain target: trc=%d prim=%d peak=%.0f min=%.4f cll=%.0f\n",
++                target_color.transfer, target_color.primaries,
++                target_color.hdr.max_luma, target_color.hdr.min_luma,
++                target_color.hdr.max_cll);
++    }
++
++    int crop_y0 = p->flipped ? p->current_dst.y1 : p->current_dst.y0;
++    int crop_y1 = p->flipped ? p->current_dst.y0 : p->current_dst.y1;
++    struct pl_frame target_frame = {
++        .num_planes = 1,
++        .planes[0] = { .texture = target_tex, .components = 4, .component_mapping = {0,1,2,3} },
++        .crop = { .x0 = p->current_dst.x0, .y0 = crop_y0, .x1 = p->current_dst.x1, .y1 = crop_y1 },
++        .color = target_color,
++        .repr = pl_color_repr_rgb,
++    };
++
++    if (frame && frame->current && frame->frame_id > p->last_frame_id) {
++        struct mp_image *mpi = mp_image_new_ref(frame->current);
++        struct frame_priv *fp = talloc_zero(mpi, struct frame_priv);
++        fp->p = p;
++        mpi->priv = fp;
++
++        ra_next_queue_push(p->queue, &(struct pl_source_frame) {
++            .pts = mpi->pts,
++            .frame_data = mpi,
++            .map = map_frame,
++            .unmap = unmap_frame,
++            .discard = discard_frame,
++        });
++        p->last_frame_id = frame->frame_id;
++    }
++
++    double target_pts = (frame && frame->current) ? frame->current->pts : p->last_pts;
++    p->last_pts = target_pts;
++
++    struct pl_frame_mix queue_mix = {0};
++    struct pl_queue_params qparams = *pl_queue_params(.pts = target_pts);
++    ra_next_queue_update(p->queue, &queue_mix, &qparams);
++
++    struct mp_image *representative_img = NULL;
++    if (queue_mix.num_frames > 0 && queue_mix.frames)
++        representative_img = queue_mix.frames[0]->user_data;
++
++    uint64_t signatures[32];
++    assert(queue_mix.num_frames < MP_ARRAY_SIZE(signatures));
++    for (int i = 0; i < queue_mix.num_frames; i++)
++        signatures[i] = (uintptr_t)queue_mix.frames[i]->user_data;
++    struct pl_frame_mix mix = queue_mix;
++    mix.signatures = signatures;
++
++    for (int i = 0; i < mix.num_frames; i++) {
++        struct pl_frame *image = (struct pl_frame *) mix.frames[i];
++        struct mp_image *mpi = image->user_data;
++        apply_crop(image, p->current_src, mpi->params.w, mpi->params.h);
++    }
++
++    update_overlays(p, p->osd_res, 0, PL_OVERLAY_COORDS_DST_FRAME,
++                   &p->osd_state_storage, &target_frame, representative_img);
++
++    mix.vsync_duration = 1.0f;
++
++    struct pl_render_params params = {
++        .upscaler = map_scaler(p, SCALER_SCALE),
++        .downscaler = map_scaler(p, SCALER_DSCALE),
++        .plane_upscaler = map_scaler(p, SCALER_CSCALE),
++    };
++
++    struct pl_color_adjustment color_adj;
++    struct mp_csp_params cparams = MP_CSP_PARAMS_DEFAULTS;
++    mp_csp_equalizer_state_get(p->video_eq, &cparams);
++    color_adj.brightness = cparams.brightness;
++    color_adj.contrast   = cparams.contrast;
++    color_adj.hue        = cparams.hue;
++    color_adj.saturation = cparams.saturation;
++    color_adj.gamma      = cparams.gamma;
++    params.color_adjustment = &color_adj;
++
++    if (!ra_next_render_image_mix(p->ra, &mix, &target_frame, &params))
++        mp_msg(p->log, MSGL_ERR, "Rendering failed.\n");
++}
++
+  /**
+   * @brief Takes a screenshot of the current video frame.
+   * @param ctx The render_backend context.
+diff --git a/video/out/gpu_next/video.h b/video/out/gpu_next/video.h
+index 0cbcb17dc..5f1dafaf4 100644
+--- a/video/out/gpu_next/video.h
++++ b/video/out/gpu_next/video.h
+@@ -1,7 +1,8 @@
+ #pragma once
+ 
+-#include "stdbool.h"         // for bool
+-#include <libplacebo/gpu.h>  // for pl_gpu, pl_tex
++#include "stdbool.h"              // for bool
++#include <libplacebo/gpu.h>       // for pl_gpu, pl_tex
++#include <libplacebo/colorspace.h> // for pl_color_space
+ 
+ // Forward declarations
+ struct mp_image_params;
+@@ -33,6 +34,15 @@ void pl_video_set_flipped(struct pl_video *p, bool flipped);
+  */
+ void pl_video_render(struct pl_video *p, struct vo_frame *frame, pl_tex target_tex);
+ 
++/**
++ * Renders a video frame to a swapchain target with the swapchain's color space.
++ * Used when libplacebo owns the swapchain (MPV_RENDER_PARAM_VULKAN_SURFACE).
++ * The color_space comes from pl_swapchain_frame and includes the full display profile.
++ */
++void pl_video_render_to_swapchain(struct pl_video *p, struct vo_frame *frame,
++                                  pl_tex target_tex,
++                                  const struct pl_color_space *target_csp);
++
+ /**
+  * Synchronously renders `frame` into an sRGB temporary and returns a newly
+  * allocated mp_image (RGBA) with the result. Caller must free the returned
+-- 
+2.56.1
+
