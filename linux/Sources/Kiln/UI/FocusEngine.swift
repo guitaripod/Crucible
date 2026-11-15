@@ -85,14 +85,17 @@ public final class FocusEngine {
         }.map(\.0)
     }
 
-    /// Moves focus one step in `direction` from the focused view; returns whether it moved.
+    /// Moves focus one step in `direction` from the focused view; returns whether it moved. Views placed since the last frame
+    /// (a menu opened by the key before) are laid out first, so their places are real.
     @discardableResult
     public func move(_ direction: Direction) -> Bool {
         guard let window else { return false }
         guard let current = focusedView, current.window === window else {
             return focus(window.contentView, animated: false)
         }
-        guard let target = Self.nearest(from: current, direction: direction, among: candidates(in: scope(of: current, in: window))) else { return false }
+        let area = scope(of: current, in: window)
+        area.layoutIfNeeded()
+        guard let target = Self.nearest(from: current, direction: direction, among: candidates(in: area)) else { return false }
         return focus(entry(into: target, from: current), animated: true)
     }
 
@@ -177,7 +180,9 @@ public final class FocusEngine {
     @discardableResult
     public func cycle(backward: Bool) -> Bool {
         guard let window else { return false }
-        let ordered = Self.readingOrder(candidates(in: focusedView.map { scope(of: $0, in: window) } ?? window.contentView))
+        let area = focusedView.map { scope(of: $0, in: window) } ?? window.contentView
+        area.layoutIfNeeded()
+        let ordered = Self.readingOrder(candidates(in: area))
         guard !ordered.isEmpty else { return false }
         guard let current = focusedView, let index = ordered.firstIndex(where: { $0 === current }) else {
             return focus(backward ? ordered.last : ordered.first)

@@ -44,6 +44,18 @@ final class FocusWatcher: View {
     }
 }
 
+/// A focus scope that stacks its tiles only when laid out, as a menu places its rows.
+@MainActor
+final class StackedOverlay: View {
+    override var isFocusScope: Bool { true }
+
+    override func layoutSubviews() {
+        for (index, tile) in subviews.enumerated() {
+            tile.frame = Rect(x: 100, y: 100 + Float(index) * 60, width: 300, height: 50)
+        }
+    }
+}
+
 /// A screen that prefers its loading tile while it shows, then its content.
 @MainActor
 final class LoadingScreen: View {
@@ -189,6 +201,18 @@ final class Ticker: View {
         tiles[1][1].removeFromSuperview()
         let focused = window.focusedView as? Tile
         #expect(focused?.name == "1,0" || focused?.name == "1,2")
+    }
+
+    @Test func arrowsRightAfterAScopeOpensMoveThroughItsLaidOutRows() {
+        let menu = StackedOverlay(frame: Rect(x: 0, y: 0, width: 1000, height: 600))
+        let rows = (0..<3).map { Tile("row \($0)", frame: .zero) }
+        rows.forEach(menu.addSubview)
+        root.addSubview(menu)
+        window.focus.setVisible(true)
+        window.focus.focus(rows[0], animated: false)
+        window.handleKey(KeyEvent(key: .down))
+        window.handleKey(KeyEvent(key: .down))
+        #expect((window.focusedView as? Tile)?.name == "row 2", "rows placed by the overlay's layout, before any frame drew")
     }
 
     @Test func hidingThePreferredLoadingViewHandsFocusToWhatTheScreenPrefersNext() {
