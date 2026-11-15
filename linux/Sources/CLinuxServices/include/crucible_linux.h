@@ -22,6 +22,11 @@ void crucible_qr_free(uint8_t *modules);
 bool crucible_screensaver_inhibit(const char *reason);
 void crucible_screensaver_uninhibit(void);
 
+/** Reads a desktop setting through the XDG settings portal (`org.freedesktop.portal.Settings`), such as
+ * `org.freedesktop.appearance` `reduced-motion`: a boolean, a number or a numeric string, as a double in `value`. False
+ * when there is no portal, no such key, or a value of another kind. */
+bool crucible_portal_setting(const char *namespace_name, const char *key, double *value);
+
 /** A pressure-stall trigger on memory (300 ms of stall within 2 s) that polls urgent when memory runs short, or -1 where
  * the kernel offers none. */
 int crucible_memory_pressure_open(void);

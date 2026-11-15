@@ -116,3 +116,61 @@ int crucible_memory_pressure_open(void) {
     }
     return fd;
 }
+
+static sd_bus *portal_bus;
+
+/** Reads the value inside the variant the reply is positioned on, unwrapping the extra variant the older `Read` adds. */
+static bool read_portal_value(sd_bus_message *reply, double *value) {
+    char type = 0;
+    const char *contents = NULL;
+    if (sd_bus_message_peek_type(reply, &type, &contents) < 0) return false;
+    if (type == 'v') {
+        if (sd_bus_message_enter_container(reply, 'v', contents) < 0) return false;
+        bool read = read_portal_value(reply, value);
+        sd_bus_message_exit_container(reply);
+        return read;
+    }
+    switch (type) {
+    case 'b': { int flag = 0; if (sd_bus_message_read_basic(reply, 'b', &flag) < 0) return false; *value = flag ? 1 : 0; return true; }
+    case 'u': { uint32_t number = 0; if (sd_bus_message_read_basic(reply, 'u', &number) < 0) return false; *value = number; return true; }
+    case 'i': { int32_t number = 0; if (sd_bus_message_read_basic(reply, 'i', &number) < 0) return false; *value = number; return true; }
+    case 'y': { uint8_t number = 0; if (sd_bus_message_read_basic(reply, 'y', &number) < 0) return false; *value = number; return true; }
+    case 'd': { double number = 0; if (sd_bus_message_read_basic(reply, 'd', &number) < 0) return false; *value = number; return true; }
+    case 's': {
+        const char *text = NULL;
+        if (sd_bus_message_read_basic(reply, 's', &text) < 0 || !text) return false;
+        char *end = NULL;
+        double number = strtod(text, &end);
+        if (end == text) return false;
+        *value = number;
+        return true;
+    }
+    default:
+        return false;
+    }
+}
+
+bool crucible_portal_setting(const char *namespace_name, const char *key, double *value) {
+    if (!namespace_name || !key || !value) return false;
+    if (!portal_bus && sd_bus_open_user(&portal_bus) < 0) {
+        portal_bus = NULL;
+        return false;
+    }
+    const char *methods[] = {"ReadOne", "Read"};
+    for (int index = 0; index < 2; index++) {
+        sd_bus_message *reply = NULL;
+        sd_bus_error error = SD_BUS_ERROR_NULL;
+        int result = sd_bus_call_method(portal_bus, "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
+                                        "org.freedesktop.portal.Settings", methods[index], &error, &reply, "ss", namespace_name, key);
+        bool unknownMethod = result < 0 && sd_bus_error_has_name(&error, SD_BUS_ERROR_UNKNOWN_METHOD);
+        sd_bus_error_free(&error);
+        if (result < 0) {
+            if (unknownMethod) continue;
+            return false;
+        }
+        bool read = read_portal_value(reply, value);
+        sd_bus_message_unref(reply);
+        return read;
+    }
+    return false;
+}

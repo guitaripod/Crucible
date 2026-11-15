@@ -1,4 +1,5 @@
 import CLinuxServices
+import CrucibleUI
 import Foundation
 import Kiln
 import MidgarCore
@@ -50,5 +51,44 @@ final class MemoryPressure {
         lastPurge = now
         MidgarLog.notice("Memory is short: purging decoded artwork", category: .lifecycle)
         window.purgeImageMemory()
+    }
+}
+
+/// The desktop's Reduce Motion and contrast settings, read through the settings portal (docs/LINUX.md section 5): reduced
+/// motion (the portal's own key, GNOME's animations switch or KDE's animation speed at instant) makes every change apply at
+/// once, and high contrast turns glass into the opaque raised surface, as Reduce Transparency does on the Apple TV.
+/// `CRUCIBLE_REDUCE_MOTION` and `CRUCIBLE_REDUCE_TRANSPARENCY` set to 1 or 0 override them, for headless checks.
+@MainActor
+enum DesktopAccessibility {
+    static func apply(to window: Window?) {
+        let motion = reducesMotion
+        let transparency = reducesTransparency
+        guard motion != Animation.reduceMotion || transparency != Theme.current.reduceTransparency else { return }
+        Animation.reduceMotion = motion
+        if transparency != Theme.current.reduceTransparency { Theme.current.reduceTransparency = transparency }
+        MidgarLog.notice("Desktop settings: reduce motion \(motion), reduce transparency \(transparency)", category: .lifecycle)
+        window?.setNeedsDisplay()
+    }
+
+    private static var reducesMotion: Bool {
+        if let forced = override("CRUCIBLE_REDUCE_MOTION") { return forced }
+        if setting("org.freedesktop.appearance", "reduced-motion") == 1 { return true }
+        if setting("org.gnome.desktop.interface", "enable-animations") == 0 { return true }
+        if setting("org.kde.kdeglobals.KDE", "AnimationDurationFactor") == 0 { return true }
+        return false
+    }
+
+    private static var reducesTransparency: Bool {
+        if let forced = override("CRUCIBLE_REDUCE_TRANSPARENCY") { return forced }
+        return setting("org.freedesktop.appearance", "contrast") == 1
+    }
+
+    private static func override(_ name: String) -> Bool? {
+        ProcessInfo.processInfo.environment[name].map { $0 == "1" }
+    }
+
+    private static func setting(_ namespace: String, _ key: String) -> Double? {
+        var value = 0.0
+        return crucible_portal_setting(namespace, key, &value) ? value : nil
     }
 }
