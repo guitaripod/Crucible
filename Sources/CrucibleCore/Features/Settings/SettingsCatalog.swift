@@ -234,7 +234,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.notifyYearInReview), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyDownloads), category: .notifications, section: news, platforms: phone),
             Spec(item: .destination(.trakt), category: .integrations, section: nil, platforms: all),
-            Spec(item: .destination(.seerr), category: .integrations, section: nil, platforms: both),
+            Spec(item: .destination(.seerr), category: .integrations, section: nil, platforms: all),
             Spec(item: .preference(.appearance), category: .appearance, section: nil, platforms: phone),
             Spec(item: .preference(.libraryGrid), category: .appearance, section: nil, platforms: phone),
             Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: all),

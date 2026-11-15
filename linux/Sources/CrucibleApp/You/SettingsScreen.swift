@@ -164,6 +164,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .homeRows: HomeRowsScreen()
         case .libraries: LibrariesScreen(api: api)
         case .trakt: TraktSettingsScreen()
+        case .seerr: SeerrSettingsScreen(api: api)
         case .serverConnection: ServerConnectionScreen()
         case .about: AboutScreen()
         case .diagnostics: DiagnosticsScreen()
@@ -174,7 +175,7 @@ final class SettingsCategoryScreen: ScreenView {
     /// Whether the Linux client has a screen for `destination`; the others show as plain text.
     private static func opens(_ destination: SettingsDestination) -> Bool {
         switch destination {
-        case .homeRows, .libraries, .trakt, .serverConnection, .about, .diagnostics: true
+        case .homeRows, .libraries, .trakt, .seerr, .serverConnection, .about, .diagnostics: true
         default: false
         }
     }
@@ -194,6 +195,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .homeRows: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows")
         case .libraries: LibrariesSettings.summary
         case .trakt: TraktAccount.shared.rowStatus
+        case .seerr: SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected")
         case .about: AppInfo.versionSummary
         default: nil
         }

@@ -26,6 +26,8 @@ final class YouScreen: SettingsScaffold {
         static let libraries = "you.libraries"
         static let server = "you.server"
         static let trakt = "you.trakt"
+        static let seerr = "you.seerr"
+        static let requests = "you.requests"
         static let privacy = "you.privacy"
         static let diagnostics = "you.diagnostics"
         static let about = "you.about"
@@ -131,6 +133,9 @@ final class YouScreen: SettingsScaffold {
             RowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
             RowItem(id: RowID.trakt, title: TraktCopy.name, subtitle: TraktCopy.tagline, value: TraktAccount.shared.rowStatus, symbol: Symbol(SettingsCatalog.symbol(.trakt)),
                     accessory: .chevron, brand: "trakt"),
+            RowItem(id: RowID.seerr, title: SeerrCopy.name, subtitle: SeerrCopy.tagline,
+                    value: SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected"),
+                    symbol: Symbol(SettingsCatalog.symbol(.seerr)), accessory: .chevron, brand: "seerr"),
             RowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .linux), value: SettingsCatalog.summary(of: .privacy, on: .linux),
                     symbol: Symbol(SettingsCategory.privacy.symbol), accessory: .chevron),
             RowItem(id: RowID.density, title: String(localized: "Interface Size"),
@@ -145,6 +150,9 @@ final class YouScreen: SettingsScaffold {
         if HomeProfiles.knownCount > 1 {
             items.insert(RowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron),
                          at: 0)
+        }
+        if SeerrAccount.shared.isConnected, let playlists = items.firstIndex(where: { $0.id == RowID.playlists }) {
+            items.insert(RowItem(id: RowID.requests, title: SeerrCopy.requests, symbol: "tray.full", accessory: .chevron), at: playlists + 1)
         }
         if ServerOwnership.isOwner(), let activity = items.firstIndex(where: { $0.id == RowID.activity }) {
             items.insert(RowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron),
@@ -183,6 +191,8 @@ final class YouScreen: SettingsScaffold {
         case RowID.libraries: navigation?.push(LibrariesScreen(api: api))
         case RowID.server: navigation?.push(ServerConnectionScreen())
         case RowID.trakt: navigation?.push(TraktSettingsScreen())
+        case RowID.seerr: navigation?.push(SeerrSettingsScreen(api: api))
+        case RowID.requests: navigation?.push(SeerrRequestsScreen(api: api))
         case RowID.privacy: navigation?.push(SettingsCategoryScreen(category: .privacy, api: api))
         case RowID.diagnostics: navigation?.push(DiagnosticsScreen())
         case RowID.about: navigation?.push(AboutScreen())
