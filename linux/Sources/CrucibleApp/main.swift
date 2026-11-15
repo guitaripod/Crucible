@@ -3,12 +3,20 @@ import CrucibleUI
 import Foundation
 import Kiln
 
+enum CrucibleLinux {
+    static let version = "0.1.0"
+}
+
 /// Crucible for Linux.
 ///
 ///     crucible [--couch] [--light] [--fullscreen]
 @MainActor
 func runCrucible() -> Int32 {
     let arguments = CommandLine.arguments
+    if arguments.contains("--version") {
+        print("crucible \(CrucibleLinux.version)")
+        return 0
+    }
     LinuxSetup.install()
     Theme.current.density = arguments.contains("--couch") ? .couch : .desk
     Theme.current.palette = arguments.contains("--light") ? .light : .dark

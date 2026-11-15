@@ -1,0 +1,60 @@
+#!/bin/bash
+# Builds Crucible for Linux in release and installs it for the current user:
+#   ~/.local/lib/crucible/      the executable, its resource bundles, and the vendored libmpv and libplacebo
+#   ~/.local/bin/crucible       a link to it
+#   ~/.local/share/applications/org.guitaripod.Crucible.desktop and the icon in hicolor
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
+prefix="${PREFIX:-$HOME/.local}"
+lib="$prefix/lib/crucible"
+mpv="$repo/linux/.build/mpv"
+
+[ -f "$mpv/lib/libmpv.so.2" ] || "$repo/linux/scripts/build-mpv.sh"
+
+cd "$repo"
+PKG_CONFIG_PATH="$mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib
+built="$(PKG_CONFIG_PATH="$mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib --show-bin-path)"
+
+staging="$(mktemp -d "$prefix/lib/.crucible-install.XXXXXX" 2>/dev/null || mktemp -d)"
+chmod 755 "$staging"
+trap 'rm -rf "$staging"' EXIT
+install -m 755 "$built/crucible" "$staging/crucible"
+for bundle in "$built"/*.resources "$built"/*.bundle; do
+    [ -e "$bundle" ] && cp -rL "$bundle" "$staging/"
+done
+cp -P "$mpv"/lib/libmpv.so* "$mpv"/lib/libplacebo.so* "$staging/"
+patchelf --set-rpath '$ORIGIN' "$staging/crucible"
+
+mkdir -p "$prefix/lib" "$prefix/bin"
+rm -rf "$lib"
+mv "$staging" "$lib"
+trap - EXIT
+ln -sf "$lib/crucible" "$prefix/bin/crucible"
+
+for size in 64 128 256 512; do
+    dir="$prefix/share/icons/hicolor/${size}x${size}/apps"
+    mkdir -p "$dir"
+    magick "$repo/linux/Resources/org.guitaripod.Crucible.png" -resize "${size}x${size}" "$dir/org.guitaripod.Crucible.png"
+done
+mkdir -p "$prefix/share/applications"
+cat > "$prefix/share/applications/org.guitaripod.Crucible.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Crucible
+GenericName=Plex Client
+Comment=Your Plex library, beautifully on Linux
+Exec=$lib/crucible %U
+Icon=org.guitaripod.Crucible
+Terminal=false
+Categories=AudioVideo;Video;Player;TV;
+Keywords=Plex;Movies;TV;Media;
+StartupWMClass=org.guitaripod.Crucible
+Actions=Couch;
+
+[Desktop Action Couch]
+Name=Open on the TV (Couch)
+Exec=$lib/crucible --couch
+DESKTOP
+command -v update-desktop-database >/dev/null && update-desktop-database -q "$prefix/share/applications" || true
+command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t "$prefix/share/icons/hicolor" 2>/dev/null || true
+"$lib/crucible" --version

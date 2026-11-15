@@ -8,6 +8,10 @@ reach CrucibleCore's package-level API. Design and plan: `../docs/LINUX.md`.
   focus, animation, scrolling and Liquid Glass.
 - `CrucibleUI`: the Apple TV design system on Kiln: tokens, cards, shelves, grids, backdrop, hero, buttons, chips, the
   glass tab bar, rows and states.
+- `crucible`: the app. Sign-in through plex.tv in the browser (code and QR code for another device), server choice,
+  Home, the libraries, title pages, Search, You and the player (libmpv's gpu-next on Kiln's Vulkan device).
+  `linux/scripts/install.sh` builds it in release with a static Swift runtime and installs it to `~/.local/lib/crucible`
+  with `~/.local/bin/crucible`, a desktop entry and the icon.
 - `crucible-gallery`: every component with fixture content, in a window (keys 1 to 5 switch pages) or captured to PNG.
 - `kiln-spike`: the P0 spike, an FP16 scRGB window with a glass tab bar over a moving HDR scene, printing timings.
 - `Spikes/vulkan-video`: libmpv's `gpu-next` Vulkan render API on a Kiln-style device, with zero-copy decode.
