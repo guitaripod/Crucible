@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <libsecret/secret.h>
+#include <systemd/sd-bus.h>
+#include <unistd.h>
 #include <qrencode.h>
 
 static const SecretSchema *schema(void) {
@@ -72,3 +75,44 @@ uint8_t *crucible_qr_encode(const char *text, int *width) {
 }
 
 void crucible_qr_free(uint8_t *modules) { free(modules); }
+
+static sd_bus *screensaver_bus;
+static uint32_t screensaver_cookie;
+
+bool crucible_screensaver_inhibit(const char *reason) {
+    if (screensaver_cookie) return true;
+    if (!screensaver_bus && sd_bus_open_user(&screensaver_bus) < 0) {
+        screensaver_bus = NULL;
+        return false;
+    }
+    sd_bus_message *reply = NULL;
+    sd_bus_error error = SD_BUS_ERROR_NULL;
+    int result = sd_bus_call_method(screensaver_bus, "org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver",
+                                    "org.freedesktop.ScreenSaver", "Inhibit", &error, &reply, "ss", "Crucible", reason ? reason : "Playing");
+    sd_bus_error_free(&error);
+    if (result < 0) return false;
+    uint32_t cookie = 0;
+    if (sd_bus_message_read(reply, "u", &cookie) >= 0) screensaver_cookie = cookie;
+    sd_bus_message_unref(reply);
+    return screensaver_cookie != 0;
+}
+
+void crucible_screensaver_uninhibit(void) {
+    if (!screensaver_bus || !screensaver_cookie) return;
+    sd_bus_error error = SD_BUS_ERROR_NULL;
+    sd_bus_call_method(screensaver_bus, "org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver",
+                       "UnInhibit", &error, NULL, "u", screensaver_cookie);
+    sd_bus_error_free(&error);
+    screensaver_cookie = 0;
+}
+
+int crucible_memory_pressure_open(void) {
+    int fd = open("/proc/pressure/memory", O_RDWR | O_NONBLOCK | O_CLOEXEC);
+    if (fd < 0) return -1;
+    const char trigger[] = "some 150000 2000000";
+    if (write(fd, trigger, sizeof trigger) < 0) {
+        close(fd);
+        return -1;
+    }
+    return fd;
+}

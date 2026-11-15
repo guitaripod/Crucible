@@ -47,6 +47,7 @@ func runCrucible() -> Int32 {
     if arguments.contains("--fullscreen") || arguments.contains("--couch") { window.setFullscreen(true) }
     TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
     let coordinator = AppCoordinator(window: window)
+    let memoryPressure = MemoryPressure(loop: loop, window: window)
     var running = true
     coordinator.onQuit = { running = false }
     MediaControls.onQuit = { coordinator.onQuit?() }
@@ -71,6 +72,7 @@ func runCrucible() -> Int32 {
     scheduleCaptures(arguments, window: window, coordinator: coordinator) { running = false }
     loop.run { !running }
     signals.forEach { $0.cancel() }
+    withExtendedLifetime(memoryPressure) {}
     PlayerScreen.active?.close()
     UserDefaults.standard.synchronize()
     window.close()

@@ -160,6 +160,12 @@ final class AppCoordinator: WindowDelegate {
         return root?.handleBack() ?? false
     }
 
+    /// Coming back to the window refreshes what is shared across screens, as the Apple TV does on returning to the foreground.
+    func window(_ window: Window, keyboardFocusChanged focused: Bool) {
+        guard focused, root != nil else { return }
+        Task { _ = await GuideStore.shared.refresh() }
+    }
+
     func windowShouldClose(_ window: Window) {
         onQuit?()
     }

@@ -17,4 +17,13 @@ void crucible_secret_free(char *value);
 uint8_t *crucible_qr_encode(const char *text, int *width);
 void crucible_qr_free(uint8_t *modules);
 
+/** Keeps the screen awake through org.freedesktop.ScreenSaver, for compositors without idle-inhibit (gamescope); the
+ * inhibit lasts while the bus connection stays open. Returns whether the service took it. */
+bool crucible_screensaver_inhibit(const char *reason);
+void crucible_screensaver_uninhibit(void);
+
+/** A pressure-stall trigger on memory (150 ms of stall within 2 s) that polls urgent when memory runs short, or -1 where
+ * the kernel offers none. */
+int crucible_memory_pressure_open(void);
+
 #endif

@@ -152,7 +152,7 @@ final class PlayerScreen: View {
             if case .file(let url, _) = source {
                 player?.load(url)
                 player?.setPaused(false)
-                window.inhibitIdle(true)
+                ScreenAwake.hold(true, in: window)
                 showDemoUpNextIfAsked()
             }
             return
@@ -201,7 +201,7 @@ final class PlayerScreen: View {
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)
         player?.setPaused(paused)
-        window?.inhibitIdle(true)
+        ScreenAwake.hold(true, in: window)
         MidgarLog.notice("Playing \(item.id) \(resolved.isDirectPlay ? "directly" : "converted") from \(Int(start)) s", category: .playback)
         startReporting()
         infoPanel?.update(infoContent)
@@ -610,7 +610,7 @@ final class PlayerScreen: View {
         player = nil
         controls?.close()
         controls = nil
-        window?.inhibitIdle(false)
+        ScreenAwake.hold(false, in: window)
         window?.setCursor(.default)
         onClose?()
     }
