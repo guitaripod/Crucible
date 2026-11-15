@@ -61,6 +61,10 @@ final class SearchScreen: ScreenView {
             self.session.rememberCurrentQuery()
             self.rootView?.push(DetailScreen(api: self.api, item: media))
         }
+        shelf.onContextMenu = { [weak self] card, point in
+            guard let self, let media = self.items[card.id] else { return }
+            ItemActions.present(for: media, api: self.api, at: point, in: self) {}
+        }
         shelves[id] = shelf
         return shelf
     }

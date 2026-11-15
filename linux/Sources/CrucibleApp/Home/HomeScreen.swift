@@ -110,6 +110,10 @@ final class HomeScreen: ScreenView {
             guard let self, let media = self.feed.item(id: item.id) else { return }
             self.open(media)
         }
+        shelf.onContextMenu = { [weak self] item, point in
+            guard let self, let media = self.feed.item(id: item.id) else { return }
+            ItemActions.present(for: media, api: self.payload.api, at: point, in: self) { [weak self] in self?.refresh() }
+        }
         shelves[bucket] = shelf
         return shelf
     }

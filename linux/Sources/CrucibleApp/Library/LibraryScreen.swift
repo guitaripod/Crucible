@@ -44,6 +44,12 @@ final class LibraryScreen: ScreenView {
             guard let self, let index = self.model.gridIds.firstIndex(of: item.id) else { return }
             self.model.loadNextPageIfNeeded(near: index)
         }
+        grid.onContextMenu = { [weak self] item, point in
+            guard let self, let media = self.model.item(withId: item.id) else { return }
+            ItemActions.present(for: media, api: self.api, at: point, in: self) { [weak self] in
+                self?.model.setWatched(ratingKey: media.id, watched: !media.isWatched)
+            }
+        }
         model.onUpdate = { [weak self] update in self?.updated(update) }
         updateChips()
     }

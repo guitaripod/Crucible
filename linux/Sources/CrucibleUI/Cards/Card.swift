@@ -118,6 +118,7 @@ public final class CardView: View {
     public var style: CardStyle { didSet { if style != oldValue { setNeedsLayout(); setNeedsDisplay() } } }
 
     public var onActivate: ((CardItem) -> Void)?
+    /// Right click or the Menu key, with where to anchor the menu in window points.
     public var onContextMenu: ((CardItem, Point?) -> Void)?
     /// Called when the card gains focus (Home's backdrop follows it).
     public var onFocus: ((CardItem) -> Void)?
@@ -199,7 +200,7 @@ public final class CardView: View {
             startAnimating()
             return true
         case .secondary:
-            onContextMenu?(item, point)
+            onContextMenu?(item, transformToWindow.apply(point))
             return onContextMenu != nil
         default:
             return false
@@ -224,9 +225,11 @@ public final class CardView: View {
         onActivate?(item)
     }
 
+    /// The context menu, anchored at the pointer (window points) or, from the keyboard, under the artwork.
     public override func showContextMenu(at point: Point?) -> Bool {
         guard let onContextMenu else { return false }
-        onContextMenu(item, point)
+        let art = transformToWindow.apply(artworkRect)
+        onContextMenu(item, point ?? Point(x: art.minX, y: art.maxY))
         return true
     }
 
