@@ -24,7 +24,8 @@ static TECHNICAL: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)\b(480|540|576|720|1080|1440|2160)[pi]\b|\b(4k|uhd|web[\s-]?dl|web[\s-]?rip|webrip|web|hdtv|pdtv|bluray|blu-ray|bdrip|dvdrip|x26[45]|h[\s.]?26[45]|hevc|avc|aac|ac3|eac3|dd[p+]?\d|satfeed|repack|proper)\b")
         .expect("technical pattern")
 });
-static UFC_EVENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bUFC\s+(?:(Fight\s+Night|PPV)\s*)?(\d{1,4})\b").expect("UFC pattern"));
+static UFC_EVENT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\bUFC\s+(?:(Fight\s+Night|PPV|Vegas|on\s+(?:ESPN\+?|ABC|FOX|FX|Fuel(?:\s+TV)?))\s*)?(\d{1,4})\b").expect("UFC pattern"));
 static EARLY_PRELIMS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bearly\s+prelim(?:s|inary|inaries)?\b|\bUFP\b").expect("early prelims pattern"));
 static PRELIMS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\bprelim(?:s|inary|inaries)?\b").expect("prelims pattern"));
 static FULL_EVENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\b(complete|full\s+event)\b").expect("full event pattern"));
@@ -36,6 +37,20 @@ pub const PRELIMS_PART: &str = "Prelims";
 pub const EARLY_PRELIMS_PART: &str = "Early prelims";
 pub const FULL_EVENT_PART: &str = "Full event";
 
+/// How a UFC event series is written: "UFC Fight Night", "UFC Vegas", "UFC on ESPN", or plain "UFC" for numbered
+/// events, pay-per-view or not.
+fn series_name(series: Option<&str>) -> String {
+    let Some(series) = series else { return "UFC".into() };
+    let words = SPACES.replace_all(series.trim(), " ").to_lowercase();
+    match words.as_str() {
+        "fight night" => "UFC Fight Night".into(),
+        "vegas" => "UFC Vegas".into(),
+        "ppv" => "UFC".into(),
+        "on fuel" | "on fuel tv" => "UFC on Fuel TV".into(),
+        network => format!("UFC on {}", network.trim_start_matches("on ").to_uppercase()),
+    }
+}
+
 impl Release {
     /// Reads a file name, or a path whose last component is the file.
     pub fn read(path: &str) -> Self {
@@ -45,10 +60,7 @@ impl Release {
         let head = TECHNICAL.find(&spaced).map_or(spaced.as_str(), |technical| &spaced[..technical.start()]);
         let cleaned = SPACES.replace_all(head.trim_matches([' ', '-']), " ").trim().to_string();
         let cleaned = if cleaned.is_empty() { SPACES.replace_all(spaced.trim(), " ").to_string() } else { cleaned };
-        let event = UFC_EVENT.captures(&spaced).map(|found| match found.get(1) {
-            Some(series) if series.as_str().to_lowercase().starts_with("fight") => format!("UFC Fight Night {}", &found[2]),
-            _ => format!("UFC {}", &found[2]),
-        });
+        let event = UFC_EVENT.captures(&spaced).map(|found| format!("{} {}", series_name(found.get(1).map(|series| series.as_str())), &found[2]));
         let part = event.as_ref().map(|_| {
             if FULL_EVENT.is_match(&spaced) {
                 FULL_EVENT_PART
@@ -63,6 +75,9 @@ impl Release {
         });
         let caution = match (&event, FIGHT_PASS.is_match(&spaced)) {
             (None, true) => Some("\"UFC Fight Pass\" names the streaming service the event was shown on, not the promotion; the promotion is named before it."),
+            (Some(event), _) if event.starts_with("UFC Vegas") => {
+                Some("\"UFC Vegas\" with a number is the informal name of a UFC Fight Night held at the UFC Apex in Las Vegas; its official name is \"UFC Fight Night: A vs. B\".")
+            }
             (Some(_), _) if EARLY_PRELIMS.is_match(&spaced) && !spaced.to_lowercase().contains("early") => {
                 Some("\"UFP\" in a UFC release name is the UFC Fight Pass feed of the early prelims.")
             }
@@ -131,6 +146,12 @@ mod tests {
         assert_eq!(read("UFC PPV 332 Silva vs Wang 1080p").1, Some("UFC 332".into()));
         assert_eq!(read("UFC.229.720p.HDTV.x264-VERUM.mkv"), ("UFC 229".into(), Some("UFC 229".into()), Some("Main card".into())));
         assert_eq!(read("UFC 332 Silva vs Wang COMPLETE 1080i FEED x264-GITA.mkv").2, Some("Full event".into()));
+        assert_eq!(read("UFC.Vegas.98.Prelims.1080p.WEB.h264-VERUM.mkv"), ("UFC Vegas 98 Prelims".into(), Some("UFC Vegas 98".into()), Some("Prelims".into())));
+        assert!(Release::read("UFC.Vegas.98.Prelims.1080p.WEB.h264-VERUM.mkv").caution.unwrap().contains("UFC Apex"));
+        assert_eq!(read("UFC.on.ESPN.60.Prelims.1080p.WEB.h264-VERUM.mkv").1, Some("UFC on ESPN 60".into()));
+        assert_eq!(read("UFC on ABC 9 Main Card 1080p").1, Some("UFC on ABC 9".into()));
+        assert_eq!(read("UFC.on.Fuel.TV.10.720p.HDTV.x264.mkv").1, Some("UFC on Fuel TV 10".into()));
+        assert_eq!(read("UFC on ESPN+ 45 1080p").1, Some("UFC on ESPN+ 45".into()));
     }
 
     #[test]
