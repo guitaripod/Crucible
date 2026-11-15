@@ -35,7 +35,8 @@ Rust's real advantage would be its UI crates, and §4 explains why none of them 
 | --- | --- | --- |
 | libmpv's render API offers OpenGL, D3D11 and software only, and `vo=libmpv` always runs the `gpu` renderer (`gl_video`), never `gpu-next` | mpv master `render.h`, `video/out/gpu/libmpv_gpu.c` (2026-11-14) | Video is rendered with OpenGL into Crucible's own texture (§7.3) |
 | A Vulkan render API was closed unmerged (PR #18258, 2026-07-13) and the follow-up issue #18343 closed as not planned | mpv GitHub | No waiting for one; the GL path is the long-term path |
-| Dolby Vision RPU mapping (profiles 5 and 8) happens in mpv's common `mp_image` layer before any renderer | `video/mp_image.c` | Dolby Vision should survive the render API; the P0 spike proves it at runtime |
+| Measured on arch (P0, 2026-11-15): upstream's render API (`gl_video`) renders HDR10 within half-float precision (a 1,000 cd/m2 patch reads 1,001) and Dolby Vision 8.1 close to `gpu-next`, but gets Dolby Vision 5 wrong (the base layer's colours, not the reshaped picture). The `gpu-next` render backend from the andrewrabert/mpv patch series renders the same profile 5 frame identical to mpv's own `gpu-next` | `linux/Sources/KilnVideoSpike`, research folder | Video goes through `gpu-next` inside Kiln (§7.3); upstream `gl_video` is not good enough |
+| That patch series (9 commits, about 2,600 lines, OpenGL and Vulkan render backends for `gpu-next`) sits 1,457 commits behind mpv master; through OpenGL it decodes only by copying frames back (`nvdec-copy`, about 4 ms of GPU per 4K frame) | `andrewrabert/mpv` branch `feat/libplacebo-swapchain` | Kiln renders with Vulkan, where `gpu-next` decodes and renders without copies; the series is rebased onto mpv 0.42, vendored and offered upstream |
 | mpv 0.42.0 (2026-11-05) adds Wayland colour management through the protocol, scRGB, and Dolby Vision profile 7 enhancement layers in `gpu-next` only; Arch ships 0.41.0 | mpv release notes | Profile 7 FEL is only in fallback B (§7.3); the base layer plays everywhere |
 | KWin 6.8 binds `wp_color_manager_v1` v3: parametric descriptions, PQ, HLG, linear, BT.2020, mastering metadata, `windows_scrgb`. It stores a description per surface and tone-maps HDR surfaces onto an SDR output | `wayland-info` on arch; KWin v6.8.3 `colormanagement_v1.cpp`, `colormanagement.glsl` | One FP16 scRGB window surface carries UI and video; KWin handles an SDR desktop |
 | Output HDR is per-output configuration that surfaces cannot request. `kde_output_management_v2` is open to non-sandboxed clients | KWin v6.8.3 `outputconfiguration.h`, `wayland_server.cpp` | Crucible switches the TV to HDR for an HDR title and back, like `hdr-game` (§7.4) |
@@ -74,7 +75,7 @@ Rust's real advantage would be its UI crates, and §4 explains why none of them 
 ### 4.2 Threads and the event loop
 
 - **Main thread:** Kiln's event loop, one `epoll` over the Wayland display fd, the libdispatch main-queue handle (so `@MainActor` work runs here, through the same `_4CF` hooks CoreFoundation uses), the sd-bus fd, the mpv wakeup eventfd and a timerfd. Screens build and update the layer tree here and commit transactions.
-- **Render thread:** owns the EGL context, the committed scene, every running animation, the frame clock (`wp_presentation` feedback and `wp_fifo_v1`) and the mpv render context. It works like Core Animation's render server: animations are committed as curves and evaluated here, so a busy main actor never drops a frame at 144 Hz. Tailscode's governor logs show why: main-loop stalls of 250 ms and more happen on this machine.
+- **Render thread:** owns the Vulkan device and queues, the committed scene, every running animation, the frame clock (`wp_presentation` feedback and `wp_fifo_v1`) and the mpv render context. It works like Core Animation's render server: animations are committed as curves and evaluated here, so a busy main actor never drops a frame at 144 Hz. Tailscode's governor logs show why: main-loop stalls of 250 ms and more happen on this machine.
 - **mpv's threads** demux, decode and output audio. **The Swift concurrency pool** does networking, JSON, image decoding and GRDB.
 
 ## 5. Kiln, the UI engine
@@ -101,11 +102,11 @@ The Apple TV design system is about twenty components (`Sources/CrucibleTV/Desig
 | Animation | Timed curves with the tvOS tokens (focus 0.2 s, fade 0.25 s, backdrop 0.35 s, debounce 0.4 s, skeleton pulse 1.2 s) and springs for focus lift and parallax. Reduce Motion follows the desktop's animation setting, read through the XDG Settings portal, and collapses them exactly as `TVMotion` does |
 | Text | Pango for shaping, fallback, line breaking, line limits and tail ellipsis (the hero's 3, 2, 1 synopsis shrink order maps to Pango's height limit); glyphs rasterised by FreeType at device scale into a GPU atlas |
 | Images | libjpeg-turbo, libpng and libwebp on the concurrency pool, the `TVImagePipeline` request rules (1.1 oversample, poster cap, backdrop sized to the output's device pixels), a disk cache in `$XDG_CACHE_HOME/crucible`. No shape baking: the GPU clips corners |
-| Renderer | OpenGL 4.6 core through EGL, in the same context family as libmpv's render API. Each frame draws into an FP16 linear-light target, blurs with a dual-Kawase pyramid at quarter resolution for glass, composites the video texture in the same pass, and presents an FP16 surface described as `windows_scrgb` |
+| Renderer | Vulkan 1.3, sharing its device with mpv's `gpu-next` render backend. Each frame draws into an FP16 linear-light image, blurs with a dual-Kawase pyramid for glass, composites the video image in the same pass, and presents an FP16 swapchain described as `windows_scrgb` (or `PASS_THROUGH` with Kiln's own description). Shaders are GLSL compiled to SPIR-V at build time with `glslc`. The P0 spike proved the whole pipeline in OpenGL first: scene, blur pyramid and glass cost 0.18 ms of GPU per 4K frame, and a 1,000 cd/m2 highlight survives exactly (12.5 in scRGB) |
 | Focus | §5.4 |
 | Accessibility | AccessKit's C API with its Unix adapter (AT-SPI). Roles and labels come from the strings Core already builds (`accessibilityText`, `spokenLabel`) |
 
-Vulkan buys nothing here: the 2D workload is small for this GPU, and mpv can only render with OpenGL into a host's context.
+Vulkan because of video, not the 2D work: `gpu-next` is libplacebo's renderer and libplacebo's first backend is Vulkan, so decoded frames (Vulkan Video, or NVDEC through CUDA and Vulkan interop) reach Kiln's image without a copy, and Dolby Vision, tone mapping and scaling run where mpv's own player runs them.
 
 ### 5.3 Colour
 
@@ -187,11 +188,11 @@ On Linux `PlaybackCapabilities` says mpv decodes every container and codec, so d
 
 ### 7.3 Video and HDR
 
-**Path A (chosen):** mpv's OpenGL render API on Kiln's render thread, in a context shared with Kiln, renders each frame into a Kiln-owned FP16 texture: PQ BT.2020 for HDR sources, so absolute luminance survives, and BT.709 for SDR. Kiln composites that texture under the player chrome in linear light, so glass panels blur the live picture as tvOS 26 does, video can shrink into a card or play behind the hero, and the window stays one scRGB surface. Desktop GL 4.6 keeps `hdr-compute-peak` working (Plezy notes GLES disables it).
+**The path (decided in P0):** mpv's `gpu-next` renders each frame through a Vulkan render API into a Kiln-owned FP16 image on Kiln's device: PQ BT.2020 for HDR sources, so absolute luminance survives, and BT.709 for SDR. Kiln composites that image under the player chrome in linear light, so glass panels blur the live picture as tvOS 26 does, video can shrink into a card or play behind the hero, and the window stays one scRGB surface. The render API is the andrewrabert/mpv `gpu-next` series rebased onto mpv 0.42 and kept in `linux/vendor/mpv` (built with libplacebo 7.387 or newer, also vendored while Arch ships 7.360) until it is accepted upstream; the P0 spike showed it renders Dolby Vision 5 identical to mpv's own player, where upstream's `gl_video` path does not. Dolby Vision 7 enhancement layers come with it, since they are a `gpu-next` feature of 0.42.
 
 **HDR metadata:** mastering primaries and luminance, MaxCLL and MaxFALL come from mpv's `video-params` and go into the surface's image description, never as zeros (§3).
 
-**Path B (fallback):** if the P0 spike shows `gl_video` losing quality or Dolby Vision on this stack, mpv runs its own `gpu-next` Wayland output, made a subsurface below Kiln's surface by a Wayland proxy (the Jellium pattern), with mpv 0.42's own colour management. The chrome then sits in a sibling surface and glass over video becomes a translucent plate without live blur. Dolby Vision profile 7 enhancement layers only exist on this path.
+**Fallback:** if the vendored series cannot follow mpv for a release, mpv runs its own `gpu-next` Wayland output, made a subsurface below Kiln's surface by a Wayland proxy (the Jellium pattern), with mpv 0.42's own colour management; the chrome then sits in a sibling surface and glass over video becomes a translucent plate without live blur. Rejected as the main path because upstream's OpenGL render API (`gl_video`) gets Dolby Vision 5 wrong (§3).
 
 ### 7.4 Match Content
 
@@ -262,6 +263,7 @@ A Linux job in CI runs `CRUCIBLE_CORE_ONLY=1 swift test` on every push, so an Ap
 | Phase | Work | Done when |
 | --- | --- | --- |
 | P0 Spikes | Kiln window with an FP16 scRGB surface on KWin 6.8 and NVIDIA 615, one glass panel blurring an image at 4K 144 Hz; mpv rendering HDR10, Dolby Vision 5 and 8 into the shared texture; output HDR switch and restore; the main actor on Kiln's loop; TrueHD passthrough to the C5 | 144 fps without a dropped frame at the 99th percentile, measured PQ values, a KWin screenshot, a receiver showing Atmos. Path A or B is decided here |
+| P0 status (2026-11-15) | Done: FP16 scRGB window on KWin 6.8 and NVIDIA 615 with Liquid Glass (OpenGL spike, `kiln-spike`), the main actor on Kiln's loop, HDR10 and Dolby Vision 5, 8.1 and 7 through mpv into Kiln's image (`kiln-video-spike`), the render-path decision. Open: the Vulkan port of the spike with the rebased `gpu-next` series and zero-copy decode, 144 Hz pacing on the C5, output HDR switching, TrueHD passthrough | |
 | P1 Core on Linux | The seams of §8, `FormatStyle`, the strings compiler, AsyncHTTPClient, `CrucibleTokens`, `CruciblePlayback` (Apple first), CI | Core tests pass on Linux and macOS; Apple TV UI tests, iPhone shots and the bench unchanged |
 | P2 Kiln components | The design system and the gallery | Golden images beside the Apple TV gallery |
 | P3 Screens | Sign in, Home, Library, Detail, Search, You, Settings | Parity contact sheets against the Apple TV captures |
@@ -275,7 +277,7 @@ Linux targets never affect the Apple builds, so every phase lands on `master` as
 
 | Risk | Answer |
 | --- | --- |
-| `gl_video` falls short of `gpu-next` on this stack | Path B, decided in P0 with measurements |
+| The vendored `gpu-next` render API drifts from mpv | Rebased each mpv release with the Dolby Vision, HDR10 and timing checks of `KilnVideoSpike` as its gate, offered upstream as a clean series; the Wayland-proxy fallback of §7.3 needs no patch |
 | NVIDIA and KWin frame pacing at 144 Hz (triple buffering is on by default for NVIDIA in Plasma 6.8) | P0 measures with `wp_presentation` feedback before any screen is built |
 | GRDB's Linux support is contributor-maintained and not in GRDB's CI | Crucible's Linux CI runs the statistics tests |
 | An engine is more code than a toolkit | It is bounded by the design system's twenty components, and the gallery plus golden images keep it honest |
