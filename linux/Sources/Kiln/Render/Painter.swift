@@ -125,13 +125,17 @@ public final class Painter {
     /// A linear gradient across `rect`, top to bottom or left to right, through up to four stops at the given positions,
     /// clipped to rounded corners.
     public func gradient(_ rect: Rect, vertical: Bool, stops: [(position: Float, color: Color)], radius: Float = 0) {
+        gradient(rect, axis: vertical ? .vertical : .horizontal, stops: stops, radius: radius)
+    }
+
+    public func gradient(_ rect: Rect, axis: GradientAxis, stops: [(position: Float, color: Color)], radius: Float = 0) {
         guard stops.count >= 2, rect.width > 0, rect.height > 0, let area = bounds(rect, outset: radius > 0 ? 1 : 0) else { return }
         let padded = Array((stops + Array(repeating: stops[stops.count - 1], count: max(0, 4 - stops.count))).prefix(4))
         gpu.pass(into: target, header: PainterShaders.header, body: PainterShaders.gradient, uniforms: [
             .init("box", rect.midX, rect.midY, rect.width / 2, rect.height / 2),
             .init("radius", min(radius, min(rect.width, rect.height) / 2)),
             .init("origin", rect.x, rect.y, rect.width, rect.height),
-            .init("vertical", vertical ? 1 : 0),
+            .init("axis", axis.vector.x, axis.vector.y),
             .init("positions", padded[0].position, padded[1].position, padded[2].position, padded[3].position),
             .init("c0", padded[0].color.red, padded[0].color.green, padded[0].color.blue, padded[0].color.alpha),
             .init("c1", padded[1].color.red, padded[1].color.green, padded[1].color.blue, padded[1].color.alpha),
@@ -210,7 +214,7 @@ enum PainterShaders {
     static let gradient = """
     float d = painterBox(gl_FragCoord.xy - box.xy, box.zw, radius);
     vec2 local = (gl_FragCoord.xy - origin.xy) / origin.zw;
-    float t = vertical > 0.5 ? local.y : local.x;
+    float t = dot(local, axis);
     vec4 c = c0;
     c = mix(c, c1, clamp((t - positions.x) / max(positions.y - positions.x, 1e-4), 0.0, 1.0));
     c = mix(c, c2, clamp((t - positions.y) / max(positions.z - positions.y, 1e-4), 0.0, 1.0));

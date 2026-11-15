@@ -56,6 +56,23 @@ final class StackedOverlay: View {
     }
 }
 
+/// A disc at full coverage and a square at a quarter, side by side.
+@MainActor
+final class ShapeCanvas: View {
+    override func draw(_ context: inout DrawContext) {
+        var path = Path()
+        path.ellipse(in: Rect(x: 10, y: 10, width: 80, height: 80))
+        path.fill()
+        path.move(to: Point(x: 120, y: 20))
+        path.line(to: Point(x: 180, y: 20))
+        path.line(to: Point(x: 180, y: 80))
+        path.line(to: Point(x: 120, y: 80))
+        path.close()
+        path.fill(coverage: 0.25)
+        context.shape(path, in: bounds, color: .white)
+    }
+}
+
 /// A screen that prefers its loading tile while it shows, then its content.
 @MainActor
 final class LoadingScreen: View {
@@ -330,6 +347,19 @@ final class Ticker: View {
         let size = label.sizeThatFits(Size(width: 380, height: 40))
         #expect(size.width > 150 && size.width < 300)
         #expect(size.height > 24 && size.height < 34)
+    }
+
+    @Test func aShapeFillsItsPathAndAddsEachPaintsCoverage() throws {
+        let window = try Window(offscreen: Size(width: 200, height: 100), scale: 2, gpu: TestGPU.shared)
+        window.background = .black
+        let canvas = ShapeCanvas(frame: Rect(x: 0, y: 0, width: 200, height: 100))
+        window.contentView.addSubview(canvas)
+        window.render()
+        let capture = window.capture()
+        func red(_ x: Int, _ y: Int) -> Float { capture.pixels[(y * capture.width + x) * 4] }
+        #expect(red(100, 100) > 0.95, "inside the full-coverage disc")
+        #expect(red(4, 4) < 0.01, "outside it")
+        #expect(red(300, 100) > 0.1 && red(300, 100) < 0.4, "a quarter-coverage square, in linear light")
     }
 
     @Test func everyMappedSymbolRendersAMask() {

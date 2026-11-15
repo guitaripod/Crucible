@@ -7,6 +7,7 @@ final class SceneRenderer {
     let gpu: GPU
     let text: TextRenderer
     let symbols: SymbolRenderer
+    let shapes: ShapeRenderer
     private(set) var target: Texture
     private(set) var painter: Painter
     private var glassRenderer: LiquidGlassRenderer?
@@ -20,6 +21,7 @@ final class SceneRenderer {
         self.gpu = gpu
         text = TextRenderer(gpu: gpu)
         symbols = SymbolRenderer(gpu: gpu)
+        shapes = ShapeRenderer(gpu: gpu)
         target = try gpu.texture(width: max(width, 1), height: max(height, 1), format: .rgba16f, renderable: true)
         painter = Painter(gpu: gpu, target: target)
     }
@@ -41,6 +43,7 @@ final class SceneRenderer {
         draw(root, in: context)
         painter.clip = nil
         text.endFrame()
+        shapes.endFrame()
     }
 
     private func draw(_ view: View, in parent: DrawContext) {

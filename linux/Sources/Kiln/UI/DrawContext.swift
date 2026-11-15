@@ -54,9 +54,13 @@ public struct DrawContext {
     }
 
     public func gradient(_ rect: Rect, vertical: Bool, stops: [(position: Float, color: Color)], radius: Float = 0) {
+        gradient(rect, axis: vertical ? .vertical : .horizontal, stops: stops, radius: radius)
+    }
+
+    public func gradient(_ rect: Rect, axis: GradientAxis, stops: [(position: Float, color: Color)], radius: Float = 0) {
         applyClip()
         let faded = stops.map { (position: $0.position, color: $0.color.multipliedAlpha(alpha)) }
-        renderer.painter.gradient(transform.apply(rect), vertical: vertical, stops: faded, radius: radius * transform.scale)
+        renderer.painter.gradient(transform.apply(rect), axis: axis, stops: faded, radius: radius * transform.scale)
     }
 
     public func glow(in rect: Rect, radius: Float, center: Point, glowRadius: Float, color: Color) {
@@ -70,6 +74,17 @@ public struct DrawContext {
         guard let texture = layout.texture(renderer: renderer.text) else { return }
         applyClip()
         let placed = transform.apply(Rect(origin: origin, size: layout.size))
+        let pixelWidth = Float(texture.width) * transform.scale / renderer.scale
+        let pixelHeight = Float(texture.height) * transform.scale / renderer.scale
+        renderer.painter.mask(texture, in: Rect(x: placed.x, y: placed.y, width: pixelWidth, height: pixelHeight), color: color.multipliedAlpha(alpha))
+    }
+
+    /// `path`, drawn in a box of `rect.size` points placed at `rect`'s origin, tinted with `color`: each fill and stroke adds
+    /// its coverage of the colour.
+    public func shape(_ path: Path, in rect: Rect, color: Color) {
+        guard let texture = renderer.shapes.texture(for: path, size: rect.size, scale: renderer.scale) else { return }
+        applyClip()
+        let placed = transform.apply(rect)
         let pixelWidth = Float(texture.width) * transform.scale / renderer.scale
         let pixelHeight = Float(texture.height) * transform.scale / renderer.scale
         renderer.painter.mask(texture, in: Rect(x: placed.x, y: placed.y, width: pixelWidth, height: pixelHeight), color: color.multipliedAlpha(alpha))
