@@ -93,11 +93,12 @@ const CALLS_IN_FLIGHT: usize = 2;
 /// not take, naming it. The request is then sent again without it, and the lesson is kept only once that request
 /// succeeds, so a refusal that merely quotes the request changes nothing for later ones.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-struct Omitted {
+pub(crate) struct Omitted {
     template_switch: bool,
     max_tokens: bool,
     temperature: bool,
     response_format: bool,
+    tool_choice: bool,
 }
 
 impl Omitted {
@@ -116,6 +117,7 @@ impl Omitted {
             max_tokens: named("max_tokens", self.max_tokens),
             temperature: named("temperature", self.temperature),
             response_format: named("response_format", self.response_format),
+            tool_choice: named("tool_choice", self.tool_choice),
         };
         (next != self).then_some(next)
     }
@@ -136,6 +138,20 @@ impl Omitted {
         }
         if !self.template_switch {
             body["chat_template_kwargs"] = json!({"enable_thinking": false});
+        }
+        body
+    }
+
+    /// One turn of a conversation that may call `tools`, with only the fields this endpoint takes. Thinking stays on:
+    /// a model that reasons before it searches researches better. `force` asks for a tool call instead of words.
+    pub(crate) fn tool_request(self, model: &str, messages: &[Value], tools: &[Value], force: bool, tokens: u32) -> Value {
+        let mut body = json!({"model": model, "messages": messages, "tools": tools});
+        body[if self.max_tokens { "max_completion_tokens" } else { "max_tokens" }] = json!(tokens);
+        if !self.temperature {
+            body["temperature"] = json!(0.2);
+        }
+        if !self.tool_choice {
+            body["tool_choice"] = json!(if force { "required" } else { "auto" });
         }
         body
     }
@@ -281,27 +297,38 @@ impl Brain {
         room as usize * 3
     }
 
-    /// One chat turn at low temperature, answered as a JSON object. A refusal that names a field is answered by
-    /// asking again without it, and a busy endpoint is given a few short waits before the turn fails; a wait never
-    /// holds a place in the queue of calls.
+    /// One chat turn at low temperature, answered as a JSON object.
     pub async fn ask_json(&self, system: &str, user: &str, max_tokens: u32) -> Result<Value, BrainError> {
-        let url = self.endpoint("chat/completions");
         let tokens = max_tokens + self.thinking_allowance();
+        let reply = self.post_chat(|omitted| omitted.request(&self.model.name, system, user, tokens)).await?;
+        Self::answer(reply)
+    }
+
+    /// Tokens a turn may spend thinking on top of what its answer needs.
+    pub(crate) fn thinking_room(&self) -> u32 {
+        self.thinking_allowance()
+    }
+
+    /// One chat request built by `build` from the fields this endpoint has refused, returning the reply as the
+    /// endpoint wrote it. A refusal that names a field is answered by asking again without it, and a busy endpoint is
+    /// given a few short waits before the request fails; a wait never holds a place in the queue of calls.
+    pub(crate) async fn post_chat(&self, build: impl Fn(Omitted) -> Value) -> Result<Value, BrainError> {
+        let url = self.endpoint("chat/completions");
         let kept = *self.omitted.lock().unwrap_or_else(PoisonError::into_inner);
         let mut omitted = kept;
         let mut waits = BUSY_WAITS.iter();
         loop {
             let permit = self.calls.acquire().await.expect("the semaphore stays open");
-            let body = omitted.request(&self.model.name, system, user, tokens);
+            let body = build(omitted);
             let response =
                 self.authorized(self.http.post(&url)).json(&body).send().await.map_err(|error| BrainError::Unreachable(url.clone(), error.to_string()))?;
             let status = response.status().as_u16();
             if response.status().is_success() {
-                let answer = Self::answer(response).await;
+                let reply: Value = response.json().await.map_err(|_| BrainError::Shape)?;
                 if omitted != kept {
                     *self.omitted.lock().unwrap_or_else(PoisonError::into_inner) = omitted;
                 }
-                return answer;
+                return Ok(reply);
             }
             let asked_wait = retry_after(&response);
             let refusal = response.text().await.unwrap_or_default();
@@ -321,8 +348,8 @@ impl Brain {
     }
 
     /// The JSON object in a successful reply.
-    async fn answer(response: reqwest::Response) -> Result<Value, BrainError> {
-        let completion: Completion = response.json().await.map_err(|_| BrainError::Shape)?;
+    fn answer(reply: Value) -> Result<Value, BrainError> {
+        let completion: Completion = serde_json::from_value(reply).map_err(|_| BrainError::Shape)?;
         let choice = completion.choices.into_iter().next().ok_or(BrainError::Shape)?;
         let content = choice.message.content.unwrap_or_default();
         first_json_object(&content).ok_or_else(|| {

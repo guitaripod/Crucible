@@ -3,6 +3,7 @@
 pub mod api;
 pub mod brain;
 pub mod config;
+pub mod converse;
 pub mod dialogue;
 pub mod doctor;
 pub mod home;
