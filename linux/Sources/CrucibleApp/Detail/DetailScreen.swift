@@ -18,6 +18,7 @@ class DetailScreen: ScreenView {
     let actions = DetailActionRow()
     let information = InformationView()
     let state = StateView()
+    private let skeleton = DetailSkeletonView()
     private(set) var hasContent = false
     private var loadTask: Task<Void, Never>?
     private var synopsisTitle = ""
@@ -39,7 +40,8 @@ class DetailScreen: ScreenView {
     init(api: APIClient, placeholder: PlexMetadata?) {
         self.api = api
         super.init()
-        [backdrop, hero, page, state].forEach(addSubview)
+        [backdrop, hero, page, state, skeleton].forEach(addSubview)
+        skeleton.isHidden = true
         page.onScroll = { [weak self] offset in
             guard let self else { return }
             self.hero.translation = Point(x: 0, y: -offset)
@@ -58,7 +60,7 @@ class DetailScreen: ScreenView {
         }
     }
 
-    override var preferredFocusView: View? { state.isHidden ? actions : state }
+    override var preferredFocusView: View? { !skeleton.isHidden ? skeleton : state.isHidden ? actions : state }
     override var remembersFocus: Bool { true }
 
     override func screenDidAppear() {
@@ -85,6 +87,7 @@ class DetailScreen: ScreenView {
         page.isHidden = false
         hero.isHidden = false
         hero.configure(info, animated: true)
+        revealFromSkeleton()
         if let path = artwork.path { backdrop.show(.path(path, artwork.isBackdrop ? .backdrop : .poster), immediate: true) }
         self.synopsisTitle = synopsisTitle
         actions.setActions(list)
@@ -99,16 +102,27 @@ class DetailScreen: ScreenView {
         setNeedsLayout()
     }
 
+    /// The skeleton holds the screen while nothing of the title is known.
     func showLoading() {
         hasContent = false
+        let hadFocus = containsFocus
+        skeleton.show()
+        if hadFocus { window?.focus.focus(skeleton, animated: false) }
         page.isHidden = true
-        state.isHidden = false
-        state.show(.loading(title: nil))
+        state.isHidden = true
+    }
+
+    /// The first page fades in under the skeleton, taking the focus it held to the actions.
+    private func revealFromSkeleton() {
+        guard !skeleton.isHidden else { return }
+        if skeleton.containsFocus { window?.focus.focus(actions, animated: false) }
+        skeleton.fadeOut()
     }
 
     /// A title that is gone or cannot be shown, with Go Back.
     func showUnavailable(_ message: String) {
         hasContent = false
+        skeleton.isHidden = true
         page.isHidden = true
         hero.isHidden = true
         state.isHidden = false
@@ -119,6 +133,7 @@ class DetailScreen: ScreenView {
 
     func showFailure(title: String, message: String) {
         hasContent = false
+        skeleton.isHidden = true
         page.isHidden = true
         hero.isHidden = true
         state.isHidden = false
@@ -188,6 +203,7 @@ class DetailScreen: ScreenView {
         backdrop.frame = bounds
         page.frame = bounds
         state.frame = bounds
+        skeleton.frame = bounds
         let heroHeight = max(metrics.heroHeight, frame.height * 0.5)
         heroRoom.height = heroHeight
         hero.frame = Rect(x: metrics.sideMargin, y: metrics.heroTopClearance, width: frame.width - metrics.sideMargin * 2,
