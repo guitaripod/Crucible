@@ -24,6 +24,7 @@ func runCrucible() -> Int32 {
     }
     LinuxSetup.install()
     DemoMode.shared.install(DemoLibraryProvider())
+    HostedBrain.installDemo(DemoBrain())
     OwnModel.install()
     LinuxDisplay.restore(arguments: arguments)
     let loop = EventLoop()

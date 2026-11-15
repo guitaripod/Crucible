@@ -37,6 +37,7 @@ final class HomeScreen: ScreenView {
     private var missingNextTask: Task<Void, Never>?
     private var observers: [() -> Void] = []
     private static let surpriseID = "home.surprise"
+    private static let watchID = "home.watch"
 
     init(payload: LaunchPayload) {
         self.payload = payload
@@ -193,8 +194,12 @@ final class HomeScreen: ScreenView {
             case .recentlyAdded where !arrangement.recent.isEmpty:
                 let surprise = CardItem(id: Self.surpriseID, title: String(localized: "Surprise Me"), subtitle: String(localized: "A random pick"),
                                         placeholderSymbol: "shuffle")
+                var tiles = [surprise]
+                if HostedBrain.isAvailable {
+                    tiles.append(CardItem(id: Self.watchID, title: WatchCopy.title, subtitle: WatchCopy.tileSubtitle, placeholderSymbol: "wand.and.stars"))
+                }
                 add(.recentlyAdded, title: arrangement.title(for: .recentlyAdded), seeAll: .recentlyAdded,
-                    items: arrangement.recent.map { card(for: $0, bucket: .recentlyAdded) } + [surprise])
+                    items: arrangement.recent.map { card(for: $0, bucket: .recentlyAdded) } + tiles)
             case .watchlistReleases where !arrangement.isEmpty:
                 add(.releases, title: WatchlistReleaseCopy.rowTitle, seeAll: nil, items: releases.map(card(for:)))
             case .rateWatched where !arrangement.isEmpty:
@@ -249,6 +254,8 @@ final class HomeScreen: ScreenView {
         default:
             if let entry = missingNext.first(where: { $0.id == id }) {
                 rootView?.push(DetailScreen.make(api: api, route: .show(ratingKey: entry.showRatingKey, initialSeasonKey: entry.initialSeasonKey)))
+            } else if id == Self.watchID {
+                rootView?.push(WhatToWatchAskScreen(api: api))
             } else if id == Self.surpriseID {
                 presentSurpriseMenu()
             } else if let bucket = Self.bucket(row), let media = feed.item(id: id) {

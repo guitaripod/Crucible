@@ -109,7 +109,9 @@ final class DemoTourScreen: SettingsScaffold {
             navigation?.push(StatisticsScreen(api: payload.api))
         case .play:
             playResumeItem()
-        case .whatToWatch, .poster, .download:
+        case .whatToWatch:
+            navigation?.push(WhatToWatchAskScreen(api: payload.api))
+        case .poster, .download:
             break
         }
     }
