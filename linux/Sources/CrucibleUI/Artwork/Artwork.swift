@@ -50,23 +50,28 @@ final class ArtworkSlot {
         self.owner = owner
     }
 
-    /// Shows `source` at `pixelSize`; the same source again is a no-op.
-    func show(_ source: ArtworkSource?, pixelWidth: Int, pixelHeight: Int) {
+    /// Shows `source` at `pixelSize`; the same source again is a no-op. `redraw` is false when called while drawing the
+    /// owner, which reads the texture straight after.
+    func show(_ source: ArtworkSource?, pixelWidth: Int, pixelHeight: Int, redraw: Bool = true) {
         guard source != self.source || (texture == nil && task == nil && source != nil && failedSource != source) else { return }
         task?.cancel()
         task = nil
         self.source = source
         texture = nil
         fade.reset(0)
-        guard let source, let owner, let store = owner.window?.images,
-              let request = source.request(pixelWidth: pixelWidth, pixelHeight: pixelHeight) else {
-            owner?.setNeedsDisplay()
+        guard let source, let owner, let store = owner.window?.images else {
+            if redraw { owner?.setNeedsDisplay() }
+            return
+        }
+        guard let request = source.request(pixelWidth: pixelWidth, pixelHeight: pixelHeight) else {
+            failedSource = source
+            if redraw { owner.setNeedsDisplay() }
             return
         }
         if let resident = store.cached(request) {
             texture = resident
             fade.reset(1)
-            owner.setNeedsDisplay()
+            if redraw { owner.setNeedsDisplay() }
             return
         }
         task = Task { [weak self] in

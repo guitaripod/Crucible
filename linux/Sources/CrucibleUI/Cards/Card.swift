@@ -150,7 +150,7 @@ public final class CardView: View {
         let metrics = Theme.current.metrics
         let width = metrics.imagePixelWidth(points: style.artworkSize.width, scale: window.scale)
         let height = Int((Float(width) * style.artworkSize.height / max(style.artworkSize.width, 1)).rounded(.up))
-        artwork.show(item.artwork, pixelWidth: width, pixelHeight: height)
+        artwork.show(item.artwork, pixelWidth: width, pixelHeight: height, redraw: false)
     }
 
     // MARK: Focus and pointer
