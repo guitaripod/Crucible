@@ -31,6 +31,11 @@ final class Row: View {
 }
 
 @MainActor
+final class Overlay: View {
+    override var isFocusScope: Bool { true }
+}
+
+@MainActor
 final class Ticker: View {
     var ticks = 0
 
@@ -122,6 +127,29 @@ final class Ticker: View {
         window.handlePointerMoved(to: Point(x: 520, y: 290))
         #expect(tiles[1][2].isHovered)
         #expect(window.focusedView === tiles[0][0])
+    }
+
+    @Test func arrowsAndTabStayInsideAFocusScope() {
+        let tiles = grid()
+        let overlay = Overlay(frame: Rect(x: 300, y: 250, width: 400, height: 100))
+        let first = Tile("a", frame: Rect(x: 0, y: 0, width: 180, height: 100))
+        let second = Tile("b", frame: Rect(x: 220, y: 0, width: 180, height: 100))
+        overlay.addSubview(first)
+        overlay.addSubview(second)
+        root.addSubview(overlay)
+        window.focus.focus(first, animated: false)
+        window.handleKey(KeyEvent(key: .up))
+        window.handleKey(KeyEvent(key: .left))
+        #expect(window.focusedView === first, "nothing outside the scope takes focus")
+        window.handleKey(KeyEvent(key: .right))
+        #expect(window.focusedView === second)
+        window.handleKey(KeyEvent(key: .tab))
+        #expect(window.focusedView === first, "Tab wraps within the scope")
+        overlay.removeFromSuperview()
+        window.focus.focus(tiles[0][0], animated: false)
+        window.focus.setVisible(true)
+        window.handleKey(KeyEvent(key: .down))
+        #expect((window.focusedView as? Tile)?.name.hasPrefix("1,") == true, "with the scope gone, arrows reach the page again")
     }
 
     @Test func removingTheFocusedViewMovesFocusToTheNearest() {

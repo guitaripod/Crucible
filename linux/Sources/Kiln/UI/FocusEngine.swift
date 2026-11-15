@@ -79,8 +79,19 @@ public final class FocusEngine {
         guard let current = focusedView, current.window === window else {
             return focus(window.contentView, animated: false)
         }
-        guard let target = Self.nearest(from: current, direction: direction, among: candidates(in: window.contentView)) else { return false }
+        guard let target = Self.nearest(from: current, direction: direction, among: candidates(in: scope(of: current, in: window))) else { return false }
         return focus(entry(into: target, from: current), animated: true)
+    }
+
+    /// Where arrows and Tab look for the next view: the innermost focus scope (a menu, an alert) holding `view`, otherwise
+    /// the whole window.
+    private func scope(of view: View, in window: Window) -> View {
+        var current: View? = view
+        while let candidate = current {
+            if candidate.isFocusScope { return candidate }
+            current = candidate.superview
+        }
+        return window.contentView
     }
 
     /// Focus moving into a container that remembers its last focus goes back there instead of to the nearest child.
@@ -153,7 +164,7 @@ public final class FocusEngine {
     @discardableResult
     public func cycle(backward: Bool) -> Bool {
         guard let window else { return false }
-        let ordered = Self.readingOrder(candidates(in: window.contentView))
+        let ordered = Self.readingOrder(candidates(in: focusedView.map { scope(of: $0, in: window) } ?? window.contentView))
         guard !ordered.isEmpty else { return false }
         guard let current = focusedView, let index = ordered.firstIndex(where: { $0 === current }) else {
             return focus(backward ? ordered.last : ordered.first)

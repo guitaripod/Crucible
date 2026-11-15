@@ -229,6 +229,9 @@ open class View {
     /// Whether focus returning into this container goes back to the child it left from (a shelf's last card).
     open var remembersFocus: Bool { false }
 
+    /// A modal overlay (a menu, an alert): while focus is inside it, arrows and Tab move only among its own views.
+    open var isFocusScope: Bool { false }
+
     /// The child focus last left this container from, while it is still in the container.
     public weak var rememberedFocus: View?
 

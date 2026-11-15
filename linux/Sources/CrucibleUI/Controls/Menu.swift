@@ -70,6 +70,7 @@ public final class MenuView: View {
     }
 
     public override var preferredFocusView: View? { rows.first }
+    public override var isFocusScope: Bool { true }
     public override var isPointerInteractive: Bool { true }
     public override var cursor: Cursor { .default }
 
