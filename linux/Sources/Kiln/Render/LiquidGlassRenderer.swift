@@ -34,6 +34,9 @@ public struct LiquidGlass: Sendable {
     public var shadowOpacity: Float = 0.28
     public var shadowOffsetY: Float = 10
     public var shadowRadius: Float = 26
+    /// Light (1) or dark (0) glass, decided by the caller from what is behind with hysteresis so labels and glass flip
+    /// together; nil lets each pixel decide from the backdrop.
+    public var tone: Float?
 
     public init(primary: Shape, lightX: Float, lightY: Float) {
         self.primary = primary
@@ -116,6 +119,7 @@ public final class LiquidGlassRenderer {
             .init("clearness", element.variant == .clear ? 1 : 0),
             .init("shadowOpacity", element.shadowOpacity * opacity),
             .init("opacity", opacity),
+            .init("tone", element.tone ?? -1),
             .init("shadowOffset", 0, element.shadowOffsetY),
             .init("shadowRadius", element.shadowRadius),
         ], rect: rect.map { area in

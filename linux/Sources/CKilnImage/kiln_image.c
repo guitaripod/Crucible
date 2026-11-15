@@ -152,3 +152,13 @@ uint8_t *kiln_svg_render_mask(const uint8_t *data, size_t size, int pixel_size, 
     *stride = row;
     return pixels;
 }
+
+bool kiln_image_write_png(const char *path, const uint8_t *rgba, int width, int height) {
+    png_image image;
+    memset(&image, 0, sizeof image);
+    image.version = PNG_IMAGE_VERSION;
+    image.width = (png_uint_32)width;
+    image.height = (png_uint_32)height;
+    image.format = PNG_FORMAT_RGBA;
+    return png_image_write_to_file(&image, path, 0, rgba, width * 4, NULL) != 0;
+}

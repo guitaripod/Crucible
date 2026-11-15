@@ -46,7 +46,7 @@ public struct DrawContext {
                                 offsetY: offsetY * transform.scale, opacity: opacity * alpha, color: color)
     }
 
-    public func image(_ texture: Texture, in rect: Rect, radius: Float = 0, opacity: Float = 1, srgb: Bool = true, fit: Bool = false,
+    public func image(_ texture: Texture, in rect: Rect, radius: Float = 0, opacity: Float = 1, srgb: Bool? = nil, fit: Bool = false,
                       circle: Bool = false) {
         applyClip()
         renderer.painter.image(texture, in: transform.apply(rect), radius: radius * transform.scale, opacity: opacity * alpha, srgb: srgb,
@@ -57,6 +57,12 @@ public struct DrawContext {
         applyClip()
         let faded = stops.map { (position: $0.position, color: $0.color.multipliedAlpha(alpha)) }
         renderer.painter.gradient(transform.apply(rect), vertical: vertical, stops: faded, radius: radius * transform.scale)
+    }
+
+    public func glow(in rect: Rect, radius: Float, center: Point, glowRadius: Float, color: Color) {
+        applyClip()
+        renderer.painter.glow(in: transform.apply(rect), radius: radius * transform.scale, center: transform.apply(center),
+                              glowRadius: glowRadius * transform.scale, color: color.multipliedAlpha(alpha))
     }
 
     /// Draws `layout` with its top left at `origin`.
@@ -77,6 +83,12 @@ public struct DrawContext {
         let side = max(pixels.width, pixels.height)
         renderer.painter.mask(texture, in: Rect(x: pixels.midX - side / 2, y: pixels.midY - side / 2, width: side, height: side),
                               color: color.multipliedAlpha(alpha))
+    }
+
+    /// The mean luminance (linear, 1.0 = reference white) of what lies under `rect` (this view's points), a frame or two
+    /// late; nil until the first glass has been drawn.
+    public func backdropLuminance(of rect: Rect) -> Float? {
+        renderer.backdropLuminance(in: transform.apply(rect))
     }
 
     /// Liquid Glass over everything drawn so far, with its shapes in this view's points.

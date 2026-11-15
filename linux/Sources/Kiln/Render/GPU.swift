@@ -20,10 +20,15 @@ public final class Texture {
     let gpu: GPU
     public let width: Int
     public let height: Int
+    public let format: Format
 
-    init(handle: OpaquePointer, gpu: GPU) {
+    /// Whether the texels are sRGB encoded (8-bit artwork) rather than linear light (render targets, video).
+    public var isSRGB: Bool { format == .rgba8 }
+
+    init(handle: OpaquePointer, gpu: GPU, format: Format) {
         self.handle = handle
         self.gpu = gpu
+        self.format = format
         width = Int(kiln_tex_width(handle))
         height = Int(kiln_tex_height(handle))
     }
@@ -49,12 +54,43 @@ public final class Texture {
         return (image, view, format, layout)
     }
 
+    /// Starts an asynchronous copy to the host; `Readback.poll` returns the pixels once it landed.
+    public func beginReadback() -> Readback? {
+        kiln_tex_readback_begin(gpu.handle, handle).map { Readback(handle: $0, gpu: gpu) }
+    }
+
     public func releaseFromVulkan(layout: UInt32) {
         kiln_tex_release_vulkan(gpu.handle, handle, layout)
     }
 
     isolated deinit {
         kiln_tex_destroy(gpu.handle, handle)
+    }
+}
+
+/// A texture copy on its way to the host.
+@MainActor
+public final class Readback {
+    let handle: OpaquePointer
+    let gpu: GPU
+    public let width: Int
+    public let height: Int
+
+    init(handle: OpaquePointer, gpu: GPU) {
+        self.handle = handle
+        self.gpu = gpu
+        width = Int(kiln_readback_width(handle))
+        height = Int(kiln_readback_height(handle))
+    }
+
+    /// Linear RGBA floats, top row first, once the copy finished; nil while it is in flight.
+    public func poll() -> [Float]? {
+        var pixels = [Float](repeating: 0, count: width * height * 4)
+        return kiln_readback_poll(gpu.handle, handle, &pixels) ? pixels : nil
+    }
+
+    isolated deinit {
+        kiln_readback_destroy(gpu.handle, handle)
     }
 }
 
@@ -114,7 +150,7 @@ public final class GPU {
         guard let raw = kiln_tex_create(handle, Int32(width), Int32(height), format.raw, renderable) else {
             throw .texture(width, height)
         }
-        return Texture(handle: raw, gpu: self)
+        return Texture(handle: raw, gpu: self, format: format)
     }
 
     @discardableResult

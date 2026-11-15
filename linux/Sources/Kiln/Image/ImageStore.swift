@@ -40,6 +40,22 @@ public enum ImageDecoder {
     }
 }
 
+/// Writes linear RGBA floats (a capture) as an 8-bit sRGB PNG, reference white as white and highlights clipped.
+public enum PNGWriter {
+    public static func write(linear pixels: [Float], width: Int, height: Int, to path: String) -> Bool {
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        for index in 0..<(width * height) {
+            for channel in 0..<3 {
+                let value = min(max(pixels[index * 4 + channel], 0), 1)
+                let encoded = value <= 0.0031308 ? value * 12.92 : 1.055 * pow(value, 1 / 2.4) - 0.055
+                bytes[index * 4 + channel] = UInt8((encoded * 255).rounded())
+            }
+            bytes[index * 4 + 3] = 255
+        }
+        return kiln_image_write_png(path, bytes, Int32(width), Int32(height))
+    }
+}
+
 /// An image to show: where it comes from and the smallest pixel size it is drawn at (the `TVImagePipeline` rule asks the
 /// server for that size, with the focus oversample).
 public struct ImageRequest: Hashable, Sendable {
@@ -72,6 +88,7 @@ public final class ImageStore {
     private let budgetBytes: Int
     private var entries: [ImageRequest: Entry] = [:]
     private var inFlight: [ImageRequest: Task<Texture?, Never>] = [:]
+    private var preloaded: [URL: Texture] = [:]
     private var clock: UInt64 = 0
     private var residentBytes = 0
 
@@ -84,8 +101,14 @@ public final class ImageStore {
         if let diskDirectory { try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true) }
     }
 
+    /// Serves `texture` for every request of `url`, whatever size it asks for (artwork drawn at runtime, fixtures).
+    public func preload(_ texture: Texture, for url: URL) {
+        preloaded[url] = texture
+    }
+
     /// The texture if it is resident; marks it used.
     public func cached(_ request: ImageRequest) -> Texture? {
+        if let texture = preloaded[request.url] { return texture }
         guard var entry = entries[request] else { return nil }
         clock += 1
         entry.lastUse = clock

@@ -59,6 +59,17 @@ bool kiln_tex_upload(kiln_gpu *gpu, kiln_tex *tex, const void *pixels, size_t ro
 /** Downloads as RGBA floats, top row first. */
 bool kiln_tex_download(kiln_gpu *gpu, kiln_tex *tex, float *rgba);
 
+typedef struct kiln_readback kiln_readback;
+
+/** Starts copying `tex` into host memory without waiting; poll until it lands. For small textures read every frame (the
+ * glass pyramid's smallest level, whose luminance picks light or dark glass). */
+kiln_readback *kiln_tex_readback_begin(kiln_gpu *gpu, kiln_tex *tex);
+/** Fills `rgba` (width * height * 4 floats) and returns true once the copy finished; false while it is in flight. */
+bool kiln_readback_poll(kiln_gpu *gpu, kiln_readback *readback, float *rgba);
+int kiln_readback_width(kiln_readback *readback);
+int kiln_readback_height(kiln_readback *readback);
+void kiln_readback_destroy(kiln_gpu *gpu, kiln_readback *readback);
+
 /** The VkImage behind a renderable texture, held for an external user (mpv) until `kiln_tex_release_vulkan`. */
 bool kiln_tex_hold_vulkan(kiln_gpu *gpu, kiln_tex *tex, void **image, void **view, uint32_t *format, uint32_t *layout);
 void kiln_tex_release_vulkan(kiln_gpu *gpu, kiln_tex *tex, uint32_t layout);

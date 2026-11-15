@@ -98,7 +98,8 @@ public final class FocusEngine {
     }
 
     /// The best candidate in `direction`: among views beyond the focused one in that direction, those overlapping its
-    /// span across the direction win; then the smallest gap along it, with the offset across it weighing in.
+    /// span across the direction win; then the smallest gap along it, with the offset across it weighing in. Left and right
+    /// stay in the focused view's row, so the end of a shelf stops focus instead of jumping to a row above or below.
     static func nearest(from current: View, direction: Direction, among views: [View]) -> View? {
         let origin = current.layoutFrameInWindow
         var best: (view: View, overlaps: Bool, score: Float)?
@@ -130,6 +131,7 @@ public final class FocusEngine {
                 across = edgeDistance(frame.minX, frame.maxX, origin.minX, origin.maxX) + abs(frame.minX - origin.minX) * 0.05
             }
             let overlaps = overlap > 0
+            if direction.isHorizontal && !overlaps { continue }
             let score = gap + across * (overlaps ? 0.5 : 2)
             if let current = best {
                 if current.overlaps && !overlaps { continue }

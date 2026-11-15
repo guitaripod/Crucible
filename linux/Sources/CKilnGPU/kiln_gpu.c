@@ -297,6 +297,58 @@ bool kiln_tex_download(kiln_gpu *g, kiln_tex *t, float *rgba) {
     return ok;
 }
 
+struct kiln_readback {
+    pl_buf buf;
+    pl_fmt fmt;
+    int w, h;
+};
+
+kiln_readback *kiln_tex_readback_begin(kiln_gpu *g, kiln_tex *t) {
+    pl_fmt fmt = t->tex->params.format;
+    int w = t->tex->params.w, h = t->tex->params.h;
+    pl_buf buf = pl_buf_create(g->gpu, pl_buf_params(.size = (size_t) w * h * fmt->texel_size, .host_readable = true));
+    if (!buf) return NULL;
+    if (!pl_tex_download(g->gpu, pl_tex_transfer_params(.tex = t->tex, .buf = buf))) {
+        pl_buf_destroy(g->gpu, &buf);
+        return NULL;
+    }
+    pl_gpu_flush(g->gpu);
+    kiln_readback *r = calloc(1, sizeof(*r));
+    r->buf = buf;
+    r->fmt = fmt;
+    r->w = w;
+    r->h = h;
+    return r;
+}
+
+bool kiln_readback_poll(kiln_gpu *g, kiln_readback *r, float *rgba) {
+    if (pl_buf_poll(g->gpu, r->buf, 0)) return false;
+    size_t texels = (size_t) r->w * r->h;
+    uint8_t *raw = malloc(texels * r->fmt->texel_size);
+    bool ok = pl_buf_read(g->gpu, r->buf, 0, raw, texels * r->fmt->texel_size);
+    if (ok) {
+        int n = r->fmt->num_components;
+        for (size_t i = 0; i < texels; i++) {
+            for (int c = 0; c < 4; c++) {
+                float v = c == 3 ? 1 : 0;
+                if (c < n) v = r->fmt->type == PL_FMT_FLOAT ? half_to_float(((uint16_t *) raw)[i * n + c]) : raw[i * n + c] / 255.0f;
+                rgba[i * 4 + c] = v;
+            }
+        }
+    }
+    free(raw);
+    return ok;
+}
+
+int kiln_readback_width(kiln_readback *r) { return r->w; }
+int kiln_readback_height(kiln_readback *r) { return r->h; }
+
+void kiln_readback_destroy(kiln_gpu *g, kiln_readback *r) {
+    if (!r) return;
+    pl_buf_destroy(g->gpu, &r->buf);
+    free(r);
+}
+
 bool kiln_tex_hold_vulkan(kiln_gpu *g, kiln_tex *t, void **image, void **view, uint32_t *format, uint32_t *layout) {
     VkFormat vk_format;
     VkImageUsageFlags usage;

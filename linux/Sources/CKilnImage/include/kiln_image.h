@@ -15,4 +15,7 @@ void kiln_image_free(uint8_t *pixels);
 /** Renders an SVG document into a `pixel_size` square of 8-bit coverage (stride `pixel_size` rounded up to 4). */
 uint8_t *kiln_svg_render_mask(const uint8_t *data, size_t size, int pixel_size, int *stride, char *error, size_t error_size);
 
+/** Writes 8-bit RGBA rows (top first) as a PNG file. */
+bool kiln_image_write_png(const char *path, const uint8_t *rgba, int width, int height);
+
 #endif

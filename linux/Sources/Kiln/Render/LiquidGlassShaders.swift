@@ -92,7 +92,7 @@ enum LiquidGlassShaders {
         float sharpness = clamp(clearness + 0.55 * bevel * bevel, 0.0, 1.0);
         vec3 seen = kilnRefracted(p, shift, sharpness);
         float backdrop = kilnLuminance(texture(tiny, shapeA.xy / size).rgb);
-        float lightGlass = smoothstep(0.32, 0.62, backdrop);
+        float lightGlass = tone >= 0.0 ? tone : smoothstep(0.32, 0.62, backdrop);
         vec3 tint = mix(vec3(0.02), vec3(1.0), lightGlass);
         float tintAmount = mix(0.07, 0.24, lightGlass) * (1.0 - 0.6 * clearness);
         vec3 glass = mix(seen * 1.12, tint, tintAmount);

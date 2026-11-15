@@ -55,6 +55,18 @@ public struct Color: Hashable, Sendable {
         )
     }
 
+    /// Black at the opacity a design tool's sRGB blending gives `alpha`: Kiln blends in linear light, where the same
+    /// alpha darkens far less, so scrims, shadows and dimming tuned on Apple platforms are converted to look the same.
+    public static func shade(_ alpha: Float) -> Color {
+        Color(linearRed: 0, green: 0, blue: 0, alpha: 1 - Float(pow(Double(1 - min(max(alpha, 0), 1)), 2.2)))
+    }
+
+    /// `self` (an opaque colour) as an overlay at `alpha` that darkens or tints as much as sRGB blending would.
+    public func overlay(_ alpha: Float) -> Color {
+        guard luminance < 0.05 else { return withAlpha(alpha) }
+        return Color(linearRed: red, green: green, blue: blue, alpha: 1 - Float(pow(Double(1 - min(max(alpha, 0), 1)), 2.2)))
+    }
+
     public static let white = Color(linearRed: 1, green: 1, blue: 1)
     public static let black = Color(linearRed: 0, green: 0, blue: 0)
     public static let clear = Color(linearRed: 0, green: 0, blue: 0, alpha: 0)

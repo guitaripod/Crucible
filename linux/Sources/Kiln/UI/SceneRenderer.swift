@@ -12,6 +12,9 @@ final class SceneRenderer {
     private var glassRenderer: LiquidGlassRenderer?
     private var backdropCopy: Texture?
     var scale: Float = 1
+    private var readback: Readback?
+    private var readbackStarted = false
+    private var luminanceMap: (width: Int, height: Int, values: [Float])?
 
     init(gpu: GPU, width: Int, height: Int) throws(RenderError) {
         self.gpu = gpu
@@ -30,6 +33,8 @@ final class SceneRenderer {
     }
 
     func render(root: View, background: Color) {
+        collectReadback()
+        readbackStarted = false
         painter.clip = nil
         painter.clear(background)
         let context = DrawContext(renderer: self, transform: Affine(scale: scale), alpha: 1, clip: nil)
@@ -71,9 +76,41 @@ final class SceneRenderer {
         let copier = Painter(gpu: gpu, target: backdropCopy)
         copier.copy(target)
         glassRenderer.blur(backdropCopy)
+        if readback == nil && !readbackStarted {
+            readback = glassRenderer.tiny.beginReadback()
+            readbackStarted = true
+        }
         var area = element.bounds
         if let clip { area = area.intersection(clip) }
         guard !area.isEmpty else { return }
         glassRenderer.composite(scene: backdropCopy, into: target, element: element, rect: area, opacity: opacity)
+    }
+
+    private func collectReadback() {
+        guard let readback, let pixels = readback.poll() else { return }
+        var values = [Float](repeating: 0, count: readback.width * readback.height)
+        for index in values.indices {
+            values[index] = 0.2126 * pixels[index * 4] + 0.7152 * pixels[index * 4 + 1] + 0.0722 * pixels[index * 4 + 2]
+        }
+        luminanceMap = (readback.width, readback.height, values)
+        self.readback = nil
+    }
+
+    /// The mean linear luminance of what was drawn under `rect` (target pixels) before the first glass of a recent frame,
+    /// from the blur pyramid's smallest level read back a frame or two late; nil before the first reading.
+    func backdropLuminance(in rect: Rect) -> Float? {
+        guard let map = luminanceMap, map.width > 0, map.height > 0 else { return nil }
+        let sx = Float(map.width) / Float(target.width)
+        let sy = Float(map.height) / Float(target.height)
+        let x0 = max(0, Int((rect.minX * sx).rounded(.down)))
+        let y0 = max(0, Int((rect.minY * sy).rounded(.down)))
+        let x1 = min(map.width, max(x0 + 1, Int((rect.maxX * sx).rounded(.up))))
+        let y1 = min(map.height, max(y0 + 1, Int((rect.maxY * sy).rounded(.up))))
+        guard x1 > x0, y1 > y0 else { return nil }
+        var sum: Float = 0
+        for y in y0..<y1 {
+            for x in x0..<x1 { sum += map.values[y * map.width + x] }
+        }
+        return sum / Float((x1 - x0) * (y1 - y0))
     }
 }

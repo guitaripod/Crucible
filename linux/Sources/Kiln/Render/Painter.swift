@@ -68,9 +68,10 @@ public final class Painter {
     }
 
     /// Artwork filling `rect` (cropped from the centre to its aspect, or fitted inside it), clipped to rounded corners or
-    /// a circle. RGBA8 images are sRGB encoded and linearised here.
-    public func image(_ texture: Texture, in rect: Rect, radius: Float = 0, opacity: Float = 1, srgb: Bool = true, fit: Bool = false,
+    /// a circle. sRGB-encoded textures (8-bit artwork) are linearised here unless `srgb` says otherwise.
+    public func image(_ texture: Texture, in rect: Rect, radius: Float = 0, opacity: Float = 1, srgb: Bool? = nil, fit: Bool = false,
                       circle: Bool = false) {
+        let srgb = srgb ?? texture.isSRGB
         guard opacity > 0, rect.width > 0, rect.height > 0 else { return }
         let imageAspect = Float(texture.width) / Float(texture.height)
         let rectAspect = rect.width / rect.height
@@ -139,6 +140,19 @@ public final class Painter {
         ], rect: area, blend: true)
     }
 
+    /// A soft radial glow of `color` centred at `center`, fading out over `glowRadius`, clipped to a rounded rectangle:
+    /// the specular sheen that follows the pointer across lifted artwork.
+    public func glow(in rect: Rect, radius: Float, center: Point, glowRadius: Float, color: Color) {
+        guard color.alpha > 0, rect.width > 0, rect.height > 0, let area = bounds(rect) else { return }
+        gpu.pass(into: target, header: PainterShaders.header, body: PainterShaders.glow, uniforms: [
+            .init("box", rect.midX, rect.midY, rect.width / 2, rect.height / 2),
+            .init("radius", min(radius, min(rect.width, rect.height) / 2)),
+            .init("glowCenter", center.x, center.y),
+            .init("glowRadius", max(glowRadius, 1)),
+            .init("fill", color.red, color.green, color.blue, color.alpha),
+        ], rect: area, blend: true)
+    }
+
     /// Copies `source` (the same size as the target) into the target inside `rect`, or everywhere.
     public func copy(_ source: Texture, rect: Rect? = nil) {
         let area = rect.flatMap { bounds($0, outset: 0) }
@@ -202,6 +216,13 @@ enum PainterShaders {
     c = mix(c, c2, clamp((t - positions.y) / max(positions.z - positions.y, 1e-4), 0.0, 1.0));
     c = mix(c, c3, clamp((t - positions.z) / max(positions.w - positions.z, 1e-4), 0.0, 1.0));
     color = vec4(c.rgb, c.a * clamp(0.5 - d, 0.0, 1.0));
+    """
+
+    static let glow = """
+    float d = painterBox(gl_FragCoord.xy - box.xy, box.zw, radius);
+    float t = length(gl_FragCoord.xy - glowCenter) / glowRadius;
+    float falloff = exp(-3.0 * t * t);
+    color = vec4(fill.rgb, fill.a * falloff * clamp(0.5 - d, 0.0, 1.0));
     """
 
     static let copy = """

@@ -64,7 +64,25 @@ public final class TextRenderer {
         _ = fontsRegistered
     }
 
+    private struct MeasureKey: Hashable {
+        let text: String
+        let style: TextStyle
+    }
+
+    private static var measured: [MeasureKey: TextMetrics] = [:]
+
+    /// Lays `text` out and returns its size, from a cache of recent layouts: views measure their text every layout and
+    /// often every frame, and Pango's shaping is the expensive part.
     public static func measure(_ text: String, style: TextStyle) -> TextMetrics {
+        let key = MeasureKey(text: text, style: style)
+        if let hit = measured[key] { return hit }
+        if measured.count > 8192 { measured.removeAll(keepingCapacity: true) }
+        let result = layOut(text, style: style)
+        measured[key] = result
+        return result
+    }
+
+    private static func layOut(_ text: String, style: TextStyle) -> TextMetrics {
         registerFonts()
         return withRawStyle(style) { raw in
             let measured = text.withCString { kiln_text_measure($0, &raw) }
