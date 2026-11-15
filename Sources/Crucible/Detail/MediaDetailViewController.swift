@@ -6,7 +6,7 @@ import MidgarCore
 
 final class MediaDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, progress, links, tracks, overview, genres, extras, cast, details, related
+        case hero, actions, progress, links, tracks, overview, genres, extras, cast, communityOverview, communityComments, communityActions, details, related
     }
 
     typealias Fact = DetailFact
@@ -23,6 +23,7 @@ final class MediaDetailViewController: UICollectionViewController {
         case castMember(PlexRole)
         case fact(Fact)
         case related(PlexMetadata)
+        case community(TraktCommunityDetailBlock.Item)
     }
 
     private let api: APIClient
@@ -62,6 +63,8 @@ final class MediaDetailViewController: UICollectionViewController {
         navigationItem: navigationItem,
         heightRatio: mediaType == "episode" ? 0.95 : 1.28
     ) { [weak self] in self?.play() }
+    /// The title's Trakt community: its pulse, what people say, the comments and Write a Review.
+    private lazy var community = TraktCommunityDetailBlock(api: api, ratingKey: ratingKey, host: self)
 
     init(api: APIClient, ratingKey: String, mediaType: String, showRatingKey: String? = nil, seasonRatingKey: String? = nil) {
         self.api = api
@@ -84,6 +87,10 @@ final class MediaDetailViewController: UICollectionViewController {
         hero.install(on: collectionView)
         navigationItem.rightBarButtonItems = [hero.chrome.playItem, moreItem]
         configureDataSource()
+        community.onStructureChange = { [weak self] in
+            Task { await self?.applySnapshot(animated: true) }
+        }
+        community.onReconfigure = { [weak self] items in self?.reconfigure(items.map { .community($0) }) }
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: MediaDetailViewController, _: UITraitCollection) in
             controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
         }
@@ -102,6 +109,7 @@ final class MediaDetailViewController: UICollectionViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
+        community.cancel()
         if let downloadObserver {
             DownloadManager.shared.removeObserver(downloadObserver)
             self.downloadObserver = nil
@@ -185,6 +193,9 @@ final class MediaDetailViewController: UICollectionViewController {
             case .genres: return DetailLayout.fullWidth(top: 16, environment: environment)
             case .extras: return DetailLayout.landscapeRail(environment)
             case .cast: return DetailLayout.castRail(environment)
+            case .communityOverview: return self?.community.layout(.overview, environment: environment)
+            case .communityComments: return self?.community.layout(.comments, environment: environment)
+            case .communityActions: return self?.community.layout(.actions, environment: environment)
             case .details: return DetailLayout.factsGrid(environment)
             case .related: return DetailLayout.posterRail(environment)
             }
@@ -246,6 +257,9 @@ final class MediaDetailViewController: UICollectionViewController {
         let relatedReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
             cell.contentConfiguration = DetailLayout.posterConfiguration(for: related)
         }
+        let communityReg = UICollectionView.CellRegistration<UICollectionViewCell, TraktCommunityDetailBlock.Item> { [weak self] cell, _, item in
+            self?.community.configure(cell, item: item)
+        }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
@@ -260,6 +274,7 @@ final class MediaDetailViewController: UICollectionViewController {
             case .castMember(let role): return cv.dequeueConfiguredReusableCell(using: castReg, for: indexPath, item: role)
             case .fact(let fact): return cv.dequeueConfiguredReusableCell(using: factReg, for: indexPath, item: fact)
             case .related(let related): return cv.dequeueConfiguredReusableCell(using: relatedReg, for: indexPath, item: related)
+            case .community(let community): return cv.dequeueConfiguredReusableCell(using: communityReg, for: indexPath, item: community)
             }
         }
 
@@ -271,6 +286,7 @@ final class MediaDetailViewController: UICollectionViewController {
             case .cast: config.title = String(localized: "Cast & Crew")
             case .details: config.title = String(localized: "Details")
             case .related: config.title = String(localized: "More Like This")
+            case .communityOverview, .communityComments, .communityActions: config.title = TraktCommunityCopy.title
             default: break
             }
             cell.contentConfiguration = config
@@ -428,6 +444,8 @@ final class MediaDetailViewController: UICollectionViewController {
                 donateActivity(loaded.item)
                 loadedFromServer = true
                 rating.loaded()
+                community.titleName = Self.communityTitle(loaded.item)
+                community.load()
                 let settled = await settleScores(scoresTask)
                 await display(loaded)
                 if !settled, let scoresTask { finishScores(scoresTask) }
@@ -565,6 +583,8 @@ final class MediaDetailViewController: UICollectionViewController {
             snapshot.appendItems(crewAndCast, toSection: .cast)
         }
 
+        appendCommunity(to: &snapshot)
+
         let factItems = model.facts.map { Item.fact($0) }
         if !factItems.isEmpty {
             snapshot.appendSections([.details])
@@ -589,10 +609,33 @@ final class MediaDetailViewController: UICollectionViewController {
         hero.scrolled(collectionView)
     }
 
+    /// The Community sections, each only when it has something to show.
+    private func appendCommunity(to snapshot: inout NSDiffableDataSourceSnapshot<Section, Item>) {
+        let parts: [(Section, TraktCommunityDetailBlock.Part)] = [(.communityOverview, .overview), (.communityComments, .comments), (.communityActions, .actions)]
+        for (section, part) in parts {
+            let items = community.items(in: part)
+            guard !items.isEmpty else { continue }
+            snapshot.appendSections([section])
+            snapshot.appendItems(items.map { .community($0) }, toSection: section)
+        }
+    }
+
+    /// What the composer and the comment screens call this title: an episode by its show and its own name.
+    private static func communityTitle(_ item: PlexMetadata) -> String {
+        guard item.type == "episode", let show = item.grandparentTitle else { return item.title }
+        let code = [item.parentIndex.map { "S\($0)" }, item.index.map { "E\($0)" }].compactMap { $0 }.joined()
+        return [show, code.isEmpty ? nil : code, item.title].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        if case .community(let item) = dataSource.itemIdentifier(for: indexPath) { community.willDisplay(item) }
+    }
+
     override func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .related, .extra: return true
         case .castMember(let role): return PersonFilmography.canOpen(role)
+        case .community(let item): return community.canSelect(item)
         default: return false
         }
     }
@@ -610,6 +653,8 @@ final class MediaDetailViewController: UICollectionViewController {
             navigationController?.pushViewController(PersonScreens.filmography(api: api, person: role), animated: true)
         case .extra(let extra):
             playExtra(extra)
+        case .community(let item):
+            community.didSelect(item)
         default:
             break
         }
@@ -625,6 +670,9 @@ final class MediaDetailViewController: UICollectionViewController {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
+        if let indexPath = indexPaths.first, case .community(let item) = dataSource.itemIdentifier(for: indexPath) {
+            return community.contextMenu(for: item)
+        }
         guard let indexPath = indexPaths.first, let related = related(at: indexPath),
               let open = WindowActivity.openInNewWindowAction(for: related) else { return nil }
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in

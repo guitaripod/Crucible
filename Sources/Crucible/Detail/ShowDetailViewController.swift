@@ -5,7 +5,7 @@ import MidgarCore
 
 final class ShowDetailViewController: UICollectionViewController {
     enum Section: Int, CaseIterable {
-        case hero, actions, offer, overview, essentials, seasonBar, episodes, related
+        case hero, actions, offer, overview, essentials, seasonBar, episodes, communityOverview, communityComments, communityActions, related
     }
 
     enum Item: Hashable {
@@ -18,6 +18,7 @@ final class ShowDetailViewController: UICollectionViewController {
         case episode(PlexMetadata)
         case missing(MissingEpisode)
         case related(PlexMetadata)
+        case community(TraktCommunityDetailBlock.Item)
     }
 
     let api: APIClient
@@ -57,6 +58,8 @@ final class ShowDetailViewController: UICollectionViewController {
     private lazy var hero = DetailHeroCoordinator(navigationItem: navigationItem, heightRatio: 1.13) { [weak self] in
         self?.playUpNext()
     }
+    /// The show's Trakt community: its pulse, what people say, the comments and Write a Review.
+    private lazy var community = TraktCommunityDetailBlock(api: api, ratingKey: showRatingKey, host: self)
 
     init(api: APIClient, showRatingKey: String, initialSeasonKey: String? = nil) {
         self.api = api
@@ -76,6 +79,10 @@ final class ShowDetailViewController: UICollectionViewController {
         collectionView.dragDelegate = mediaDrag
         hero.install(on: collectionView)
         configureDataSource()
+        community.onStructureChange = { [weak self] in
+            Task { await self?.applySnapshot(animated: true) }
+        }
+        community.onReconfigure = { [weak self] items in self?.reconfigure(items.map { .community($0) }) }
         configureMultiSelect()
         updateBarButtons()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: ShowDetailViewController, _: UITraitCollection) in
@@ -116,6 +123,7 @@ final class ShowDetailViewController: UICollectionViewController {
         loadTask?.cancel()
         seasonTask?.cancel()
         gapsTask?.cancel()
+        community.cancel()
         if let downloadObserver {
             DownloadManager.shared.removeObserver(downloadObserver)
             self.downloadObserver = nil
@@ -234,6 +242,9 @@ final class ShowDetailViewController: UICollectionViewController {
             case .essentials: return DetailLayout.fullWidth(top: 20, environment: environment, maxWidth: Self.episodeListWidth)
             case .seasonBar: return DetailLayout.fullWidth(top: 20, bottom: 4, environment: environment, maxWidth: Self.episodeListWidth)
             case .episodes: return self.episodesSection(environment)
+            case .communityOverview: return self.community.layout(.overview, environment: environment)
+            case .communityComments: return self.community.layout(.comments, environment: environment)
+            case .communityActions: return self.community.layout(.actions, environment: environment)
             case .related: return DetailLayout.posterRail(environment)
             }
         }
@@ -322,6 +333,9 @@ final class ShowDetailViewController: UICollectionViewController {
         let relatedReg = UICollectionView.CellRegistration<UICollectionViewCell, PlexMetadata> { cell, _, related in
             cell.contentConfiguration = DetailLayout.posterConfiguration(for: related)
         }
+        let communityReg = UICollectionView.CellRegistration<UICollectionViewCell, TraktCommunityDetailBlock.Item> { [weak self] cell, _, item in
+            self?.community.configure(cell, item: item)
+        }
 
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { cv, indexPath, item in
             switch item {
@@ -334,12 +348,16 @@ final class ShowDetailViewController: UICollectionViewController {
             case .episode(let e): return cv.dequeueConfiguredReusableCell(using: episodeReg, for: indexPath, item: e)
             case .missing(let m): return cv.dequeueConfiguredReusableCell(using: missingReg, for: indexPath, item: m)
             case .related(let r): return cv.dequeueConfiguredReusableCell(using: relatedReg, for: indexPath, item: r)
+            case .community(let c): return cv.dequeueConfiguredReusableCell(using: communityReg, for: indexPath, item: c)
             }
         }
 
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             var config = SectionHeaderConfiguration()
-            config.title = String(localized: "More Like This")
+            switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
+            case .communityOverview, .communityComments, .communityActions: config.title = TraktCommunityCopy.title
+            default: config.title = String(localized: "More Like This")
+            }
             cell.contentConfiguration = config
         }
         dataSource.supplementaryViewProvider = { cv, _, indexPath in
@@ -635,6 +653,8 @@ final class ShowDetailViewController: UICollectionViewController {
                 let (kept, follow) = Self.keepingGaps(of: model, in: loaded)
                 model = kept
                 rating.loaded()
+                community.titleName = kept.show.title
+                community.load()
                 contentUnavailableConfiguration = nil
                 await applySnapshot()
                 if !settled, let scoresTask { finishScores(scoresTask) }
@@ -715,6 +735,14 @@ final class ShowDetailViewController: UICollectionViewController {
             }
         }, toSection: .episodes)
 
+        let parts: [(Section, TraktCommunityDetailBlock.Part)] = [(.communityOverview, .overview), (.communityComments, .comments), (.communityActions, .actions)]
+        for (section, part) in parts {
+            let items = community.items(in: part)
+            guard !items.isEmpty else { continue }
+            snapshot.appendSections([section])
+            snapshot.appendItems(items.map { .community($0) }, toSection: section)
+        }
+
         let related = model.related
         if !related.isEmpty {
             snapshot.appendSections([.related])
@@ -727,7 +755,7 @@ final class ShowDetailViewController: UICollectionViewController {
         let dynamic = refreshed.itemIdentifiers.filter { item in
             switch item {
             case .hero, .actions, .offer, .overview, .essentials, .seasonBar, .episode, .missing: return true
-            case .related: return false
+            case .related, .community: return false
             }
         }
         if !dynamic.isEmpty {
@@ -782,9 +810,15 @@ final class ShowDetailViewController: UICollectionViewController {
             openRelated(related)
         case .missing:
             requestMissing()
+        case .community(let item):
+            community.didSelect(item)
         default:
             break
         }
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        if case .community(let item) = dataSource.itemIdentifier(for: indexPath) { community.willDisplay(item) }
     }
 
     /// Starts fetching Trakt's scores alongside the page, when Trakt is connected and none are cached.
@@ -834,6 +868,7 @@ final class ShowDetailViewController: UICollectionViewController {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .episode: return true
         case .missing, .related: return !collectionView.isEditing
+        case .community(let item): return !collectionView.isEditing && community.canSelect(item)
         default: return false
         }
     }
@@ -893,6 +928,9 @@ final class ShowDetailViewController: UICollectionViewController {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
+        if !collectionView.isEditing, let indexPath = indexPaths.first, case .community(let item) = dataSource.itemIdentifier(for: indexPath) {
+            return community.contextMenu(for: item)
+        }
         guard !collectionView.isEditing, let indexPath = indexPaths.first, let episode = episode(at: indexPath) else { return nil }
         let status = EpisodeStatus(episode: episode, isUpNext: false)
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
