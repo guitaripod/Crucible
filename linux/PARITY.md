@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 75 | 2 | 7 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
-| Design system | 86 | 6 | 5 | 0 |
+| Design system | 87 | 5 | 5 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 509 | 34 | 143 | 16 |
+| **All** | 510 | 33 | 143 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -564,7 +564,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `design-card-voiceover-state` (L) **partial** Cards read to assistive tech as label, value (percent watched, Watched, Unwatched) and hint through the platform accessibility API Gap: A spoken label exists (Card.swift:39-41, 140) but there is no spoken value (progress, watched state) and no hint, and no accessibility tree reaches the platform: no AccessKit or AT-SPI code exists under linux/Sources (the design doc names AccessKit, docs/LINUX.md section 5.2). _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVCardItem.swift:57-66_
 - [x] `design-card-search-highlight` (S) Search matches are highlighted in card titles and subtitles _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVCardContentView.swift:178-181_
 - [x] `design-tile-gradient` (M) Gradient tiles with a stable name-hashed palette, a symbol, a title and a count, used for Browse Genres and the More tab library tiles _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVTileCells.swift:4-34_
-- [ ] `design-shelf-horizontal` (S) **partial** Horizontal card shelf that scrolls sideways with continuous leading-boundary paging, keeps the focused card in view and remembers focus Gap: The scroller has free momentum but no snap to the leading boundary of a card after a flick (ScrollView.swift has momentum and no snapping); paging happens only through the edge arrows (Shelf.swift:21-180). _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVShelf.swift:18-45_
+- [x] `design-shelf-horizontal` (S) Horizontal card shelf that scrolls sideways with continuous leading-boundary paging, keeps the focused card in view and remembers focus _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVShelf.swift:18-45_
 - [x] `design-shelf-header` (S) Shelf header with a headline title and quiet secondary text, on an 84pt header band above the cards _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVSectionHeaderView.swift:28-64_
 - [x] `design-shelf-see-all` (S) See All plain text button on a shelf header that opens the full list (Home buckets, Library Recently Watched) _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVSectionHeaderView.swift:45-46_
 - [x] `design-shelf-skeleton` (S) Pulsing grey placeholder shelves while Home and Detail load (four landscape cards per shelf on Home, eight person cards on Detail) _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVSkeletonView.swift:4-56_
