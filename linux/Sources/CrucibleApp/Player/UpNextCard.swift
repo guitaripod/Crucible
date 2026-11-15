@@ -4,11 +4,14 @@ import Foundation
 import Kiln
 
 /// Up Next (`TVUpNextViewController`): a glass card over the credits with the next episode's still, its code and title,
-/// a countdown when it plays on by itself, Play Now, and Watch Credits (or Close once the episode has ended).
+/// a countdown when it plays on by itself, Play Now, and Watch Credits (or Close once the episode has ended). After a run
+/// of episodes nobody attended it asks "Still watching?" and waits; a sleep timer that stops at the end keeps it from
+/// counting.
 @MainActor
 final class UpNextCard: View {
     let offer: UpNextOffer
-    var onPlay: (() -> Void)?
+    /// Plays the next episode; true when the viewer chose to, false when the countdown ran out.
+    var onPlay: ((Bool) -> Void)?
     var onLeave: (() -> Void)?
 
     private let artwork = ArtworkView()
@@ -16,19 +19,21 @@ final class UpNextCard: View {
     private let leave: ButtonView
     private var remaining: Float
     private var counting: Bool
+    private let asksStillWatching: Bool
     private var appear = Animated(0)
     private var tone = GlassTone()
 
-    init(offer: UpNextOffer) {
+    init(offer: UpNextOffer, asksStillWatching: Bool = false, stopsAfterItem: Bool = false) {
         self.offer = offer
-        counting = offer.autoplays
+        self.asksStillWatching = asksStillWatching
+        counting = offer.autoplays && !asksStillWatching && !stopsAfterItem
         remaining = Float(UpNextOffer.countdownSeconds)
-        play = ButtonView(style: .primary, title: UpNextText.playTitle(asksStillWatching: false), symbol: "play.fill")
+        play = ButtonView(style: .primary, title: UpNextText.playTitle(asksStillWatching: asksStillWatching), symbol: "play.fill")
         leave = ButtonView(style: .glass, title: UpNextText.leaveTitle(keepsCreditsPlaying: !offer.playbackEnded))
         super.init()
         artwork.source = (offer.episode.thumb ?? offer.episode.art).map { .path($0, .backdrop) }
         artwork.cornerRadius = Theme.current.metrics.radiusS
-        play.onPress = { [weak self] in self?.onPlay?() }
+        play.onPress = { [weak self] in self?.onPlay?(true) }
         leave.onPress = { [weak self] in self?.onLeave?() }
         [artwork, play, leave].forEach(addSubview)
     }
@@ -90,7 +95,7 @@ final class UpNextCard: View {
             moving = true
             if remaining <= 0 {
                 counting = false
-                onPlay?()
+                onPlay?(false)
             }
         }
         setNeedsDisplay()
@@ -109,14 +114,14 @@ final class UpNextCard: View {
         let x = artwork.frame.maxX + metrics.tv(28)
         let width = bounds.width - x - metrics.tv(28)
         var y = metrics.tv(30)
-        let eyebrow = TextLayout(UpNextText.eyebrow(asksStillWatching: false), font: theme.type.eyebrow, maxWidth: width, scale: scale)
+        let eyebrow = TextLayout(UpNextText.eyebrow(asksStillWatching: asksStillWatching), font: theme.type.eyebrow, maxWidth: width, scale: scale)
         context.text(eyebrow, at: Point(x: x, y: y), color: theme.palette.accentText)
         y += eyebrow.size.height + metrics.tv(6)
         let title = TextLayout(offer.episode.title, font: theme.type.cardTitle, maxWidth: width, maxLines: 2, scale: scale)
         context.text(title, at: Point(x: x, y: y), color: label)
         y += title.size.height + metrics.tv(4)
         let code = DetailFormat.episodeCode(season: offer.episode.parentIndex, episode: offer.episode.index)
-        let line = UpNextText.secondary(code: code, remaining: max(Int(remaining.rounded(.up)), 0), counting: counting)
+        let line = UpNextText.secondary(code: code, remaining: max(Int(remaining.rounded(.up)), 0), counting: counting, isEpisode: code != nil)
         let detail = TextLayout(line, font: theme.type.cardSubtitle, maxWidth: width, scale: scale)
         context.text(detail, at: Point(x: x, y: y), color: secondary)
     }

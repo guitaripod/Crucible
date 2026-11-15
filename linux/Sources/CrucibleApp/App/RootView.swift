@@ -133,21 +133,31 @@ final class RootView: View {
 
     /// Plays `item` over everything, from where the viewer left it, in the audio and subtitles a title page chose;
     /// focus returns where it was when the player closes.
-    func play(item: PlexMetadata, api: APIClient, from position: Double? = nil, tracks: (audio: Int?, subtitle: Int?)? = nil) {
+    func play(item: PlexMetadata, api: APIClient, from position: Double? = nil, tracks: (audio: Int?, subtitle: Int?)? = nil,
+              run: PlayerRun = PlayerRun()) {
         guard player == nil else { return }
         let returnFocus = window?.focusedView
         let screen = PlayerScreen(source: .plex(api, item, resume: position ?? item.resumeSecs))
         screen.chosenTracks = tracks
+        screen.run = run
         screen.onClose = { [weak self, weak screen] in
             screen?.removeFromSuperview()
             self?.player = nil
             if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
             self?.current?.top?.screenDidAppear()
         }
-        screen.onPlayNext = { [weak self, weak screen] episode in
+        screen.onPlayNext = { [weak self, weak screen] episode, run in
             screen?.removeFromSuperview()
             self?.player = nil
-            self?.play(item: episode, api: api, from: 0)
+            self?.play(item: episode, api: api, from: 0, run: run)
+        }
+        screen.onPlayTitle = { [weak self, weak screen] title, run in
+            screen?.removeFromSuperview()
+            self?.player = nil
+            self?.play(item: title, api: api, run: run)
+        }
+        screen.onOpenTitle = { [weak self] title in
+            self?.push(DetailScreen.make(api: api, item: title))
         }
         player = screen
         addSubview(screen)
