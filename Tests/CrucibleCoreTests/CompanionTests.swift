@@ -90,6 +90,27 @@ struct CompanionTests {
 struct CompanionLiveTests {
     private static let environment = ProcessInfo.processInfo.environment
 
+    /// Away from home the pairing's home-network host never answers: the host that does answers at once, is asked first
+    /// from then on, and the server's own list of where it answers joins the pairing.
+    @Test(.enabled(if: environment["CRUCIBLE_SERVER_ROUTES_CODE"] != nil))
+    func aHostThatNeverAnswersHoldsNothingUp() async throws {
+        let environment = Self.environment
+        let real = environment["CRUCIBLE_SERVER_ROUTES_HOST"] ?? ""
+        let invite = try #require(CompanionInvite(code: environment["CRUCIBLE_SERVER_ROUTES_CODE"] ?? "", hosts: [real]))
+        let paired = try await CompanionPairing.pair(invite, deviceName: "Route Tests", platform: "test", machineIdentifier: nil)
+        var away = paired
+        away.hosts = ["10.255.255.1:32500", real]
+        let client = CompanionClient(server: away, plexToken: "")
+        let started = Date()
+        let hello = try await client.hello()
+        #expect(Date().timeIntervalSince(started) < 4, "the host that answers waited for one that never does")
+        #expect(hello.addresses?.isEmpty == false, "the server lists where it answers")
+        let again = Date()
+        _ = try await client.hello()
+        #expect(Date().timeIntervalSince(again) < 1, "the host that answered is asked first")
+        print("ROUTES", hello.addresses ?? [], "first", Date().timeIntervalSince(started))
+    }
+
     @Test(.enabled(if: environment["CRUCIBLE_SERVER_E2E_CODE"] != nil))
     func pairsAndGetsARecapFromARunningServer() async throws {
         let environment = Self.environment

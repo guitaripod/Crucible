@@ -276,9 +276,30 @@ package struct CompanionHello: Decodable, Sendable {
     package let plexMachineIdentifier: String?
     /// Whether the server can research sports files; a server from before Sports Research says nothing.
     package let sports: Bool?
+    /// Where the server answers now, as `host:port` on its home network and tailnet; a server from before 0.6.4 says
+    /// nothing.
+    package let addresses: [String]?
 
     enum CodingKeys: String, CodingKey {
-        case protocolVersion = "protocol", name, version, fingerprint, brain, plexMachineIdentifier, sports
+        case protocolVersion = "protocol", name, version, fingerprint, brain, plexMachineIdentifier, sports, addresses
+    }
+}
+
+/// Which of a server's hosts answered last, by the server's certificate fingerprint, so the next request goes there
+/// first instead of waiting out a host that only answers at home.
+private enum CompanionRoutes {
+    private static let answered = OSAllocatedUnfairLock<[String: String]>(initialState: [:])
+
+    static func remembered(for fingerprint: String) -> String? {
+        answered.withLock { $0[fingerprint] }
+    }
+
+    static func remember(_ host: String, for fingerprint: String) {
+        answered.withLock { $0[fingerprint] = host }
+    }
+
+    static func forget(_ fingerprint: String) {
+        answered.withLock { $0[fingerprint] = nil }
     }
 }
 
@@ -454,20 +475,74 @@ package struct CompanionClient: Sendable {
         let language: String?
     }
 
-    /// Runs `work` against the first host that answers, remembering nothing about the others.
+    /// Runs `work` against the host that answered last, or else the first of the server's hosts to answer when all are
+    /// asked at once. Away from home a host on the home network never answers, and asking the hosts in turn waited out
+    /// its whole timeout on every request before the tailnet was tried.
     private func onFirstHost<Answer: Sendable>(timeout: TimeInterval, _ work: (Connection) async throws(CompanionError) -> Answer) async throws(CompanionError) -> Answer {
         var failure = CompanionError.unreachable
-        for host in server.hosts {
-            guard let connection = Connection(host: host, expected: server.fingerprint, timeout: timeout) else { continue }
-            defer { connection.session.invalidateAndCancel() }
+        if let host = CompanionRoutes.remembered(for: server.fingerprint), server.hosts.contains(host) {
             do throws(CompanionError) {
-                return try await work(connection)
+                return try await run(on: host, timeout: timeout, work)
             } catch {
                 if error.weight == 2 { throw error }
-                if error.weight > failure.weight { failure = error }
+                failure = error
+                CompanionRoutes.forget(server.fingerprint)
             }
         }
-        throw failure
+        let (answering, refused) = await Self.answering(server)
+        guard let host = answering else { throw refused ? .wrongServer : failure }
+        CompanionRoutes.remember(host, for: server.fingerprint)
+        return try await run(on: host, timeout: timeout, work)
+    }
+
+    /// `work` over a connection to `host` that ends with it.
+    private func run<Answer: Sendable>(on host: String, timeout: TimeInterval, _ work: (Connection) async throws(CompanionError) -> Answer) async throws(CompanionError) -> Answer {
+        guard let connection = Connection(host: host, expected: server.fingerprint, timeout: timeout) else { throw .unreachable }
+        defer { connection.session.invalidateAndCancel() }
+        return try await work(connection)
+    }
+
+    /// How long a host has to answer `hello` when all of a server's hosts are asked at once: a tailnet relay and a phone
+    /// network both answer well within it, and a host that does not exist from here never answers at all.
+    private static let probeTimeout: TimeInterval = 6
+
+    /// The first of the server's hosts to answer `hello` over the pinned certificate, all asked at once, and whether
+    /// any answered with another certificate. The server's own list of where it answers now joins the pairing, so a
+    /// tailnet or a new home address it gained since pairing is tried next time.
+    private static func answering(_ server: CompanionServer) async -> (host: String?, refused: Bool) {
+        await withTaskGroup(of: (String?, Bool, [String]).self) { group in
+            for host in server.hosts {
+                group.addTask {
+                    guard let connection = Connection(host: host, expected: server.fingerprint, timeout: probeTimeout) else { return (nil, false, []) }
+                    defer { connection.session.invalidateAndCancel() }
+                    do throws(CompanionError) {
+                        let hello: CompanionHello = try await connection.send("GET", "hello", body: Nothing?.none)
+                        return (host, false, hello.addresses ?? [])
+                    } catch {
+                        return (nil, error == .wrongServer, [])
+                    }
+                }
+            }
+            var refused = false
+            for await (host, wrong, addresses) in group {
+                refused = refused || wrong
+                if let host {
+                    group.cancelAll()
+                    learn(addresses, for: server)
+                    return (host, false)
+                }
+            }
+            return (nil, refused)
+        }
+    }
+
+    /// Adds the home-network and tailnet addresses a server says it answers at to its kept pairing, after the ones it
+    /// already had; an address outside those networks is never kept, so the token is never sent there.
+    private static func learn(_ addresses: [String], for server: CompanionServer) {
+        let new = addresses.filter { CompanionInvite.isHost($0) && CompanionInvite.isNearby($0) && !server.hosts.contains($0) }
+        guard !new.isEmpty, var kept = CompanionStore.load(), kept.fingerprint == server.fingerprint else { return }
+        kept.hosts += new.filter { !kept.hosts.contains($0) }
+        CompanionStore.save(kept)
     }
 
     /// The model the server writes with, whether it answers right now, and where it is.
