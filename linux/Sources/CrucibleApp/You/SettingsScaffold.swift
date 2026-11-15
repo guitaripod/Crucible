@@ -63,8 +63,9 @@ private final class SplitSection: View {
     private var contextWidth: Float { Theme.current.metrics.tv(620) }
     private var gap: Float { Theme.current.metrics.tv(60) }
 
+    /// Without a panel the rows take the middle column; with one, both columns unless the window is too narrow.
     private func isStacked(_ width: Float) -> Bool {
-        width - Theme.current.metrics.sideMargin * 2 < contextWidth + gap + Theme.current.metrics.tv(800)
+        context == nil || width - Theme.current.metrics.sideMargin * 2 < contextWidth + gap + Theme.current.metrics.tv(800)
     }
 
     private func rowsWidth(_ width: Float) -> Float {
@@ -106,6 +107,8 @@ private final class SplitSection: View {
 final class ContextPanel: View {
     struct Content {
         var symbol: Symbol
+        /// Initials drawn in a circle in place of the symbol's well (an account).
+        var monogram: String?
         var title: String
         var subtitle: String?
         var status: String?
@@ -165,10 +168,17 @@ final class ContextPanel: View {
         let palette = theme.palette
         context.fill(bounds, radius: metrics.radiusL, color: palette.surface)
         let wellRect = Rect(x: inset, y: inset, width: well, height: well)
-        context.fill(wellRect, radius: metrics.radiusL, color: palette.accentTint)
-        let glyph = well * 0.5
-        context.symbol(content.symbol, in: Rect(x: wellRect.midX - glyph / 2, y: wellRect.midY - glyph / 2, width: glyph, height: glyph),
-                       color: palette.accentText)
+        if let monogram = content.monogram {
+            context.gradient(wellRect, vertical: true, stops: [(0, palette.emberMid), (1, palette.emberBottom)], radius: well / 2)
+            let initials = TextLayout(monogram, font: theme.type.title2, scale: scale)
+            context.text(initials, at: Point(x: (wellRect.midX - initials.size.width / 2).rounded(), y: (wellRect.midY - initials.size.height / 2).rounded()),
+                         color: palette.onArt)
+        } else {
+            context.fill(wellRect, radius: metrics.radiusL, color: palette.accentTint)
+            let glyph = well * 0.5
+            context.symbol(content.symbol, in: Rect(x: wellRect.midX - glyph / 2, y: wellRect.midY - glyph / 2, width: glyph, height: glyph),
+                           color: palette.accentText)
+        }
         var y = wellRect.maxY + metrics.tv(24)
         for line in layouts(width: bounds.width, scale: scale) {
             var x = inset

@@ -54,7 +54,6 @@ final class RootView: View {
         } else if id == "you" {
             let you = YouScreen(payload: payload)
             you.onSignOut = { [weak self] in self?.onSignOut?() }
-            you.onSwitchServer = { [weak self] in self?.onSwitchServer?() }
             screen = you
         } else {
             screen = HomeScreen(payload: payload)
