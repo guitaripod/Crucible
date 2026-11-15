@@ -387,7 +387,7 @@ extension PlayerScreen {
             closeForSleep()
             return
         }
-        let ended = PlaybackRequest(item: item)
+        let ended = PlaybackRequest(item: item, queue: run.queue)
         offerTask?.cancel()
         offerTask = Task { [weak self] in
             let suggestions = await PostPlay.suggestions(for: ended, api: api)

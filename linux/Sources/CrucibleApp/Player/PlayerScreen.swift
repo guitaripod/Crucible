@@ -194,7 +194,7 @@ final class PlayerScreen: View {
         let start = ResumeStrategy.streamStart(resumePosition: requested ?? resumePosition, isDirectPlay: resolved.isDirectPlay)
         streamOffset = resolved.isDirectPlay ? 0 : start
         upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
-                                showRatingKey: item.grandparentRatingKey, markers: resolved.markers)
+                                showRatingKey: item.grandparentRatingKey, queue: run.queue, markers: resolved.markers)
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
         player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
         player?.set("speed", String(speed))
@@ -397,7 +397,7 @@ final class PlayerScreen: View {
                 return
             }
             if reason == .requested {
-                self.playNext(offer.episode, byViewer: true)
+                self.playNext(offer, byViewer: true)
             } else {
                 self.show(offer)
             }
@@ -407,7 +407,7 @@ final class PlayerScreen: View {
     private func show(_ offer: UpNextOffer) {
         card?.removeFromSuperview()
         let next = UpNextCard(offer: offer, asksStillWatching: run.asksStillWatching, stopsAfterItem: sleepTimer?.stopsAtEndOfItem == true)
-        next.onPlay = { [weak self] byViewer in self?.playNext(offer.episode, byViewer: byViewer) }
+        next.onPlay = { [weak self] byViewer in self?.playNext(offer, byViewer: byViewer) }
         next.onLeave = { [weak self] in
             self?.viewerActed()
             if offer.playbackEnded { self?.close() } else { self?.dismissCard() }
@@ -438,13 +438,14 @@ final class PlayerScreen: View {
         window?.focus.focus(self, animated: false)
     }
 
-    /// Ends this playback (the server hears it stopped) and hands the next episode on with the run it continues.
-    private func playNext(_ episode: PlexMetadata, byViewer: Bool) {
-        let next = run.advancing(byViewer: byViewer, languages: trackLanguages, sleepTimer: sleepTimer)
+    /// Ends this playback (the server hears it stopped) and hands the next episode, or the playlist's next entry, on with the
+    /// run it continues.
+    private func playNext(_ offer: UpNextOffer, byViewer: Bool) {
+        let next = run.advancing(byViewer: byViewer, languages: trackLanguages, sleepTimer: sleepTimer, queue: offer.queue)
         let hand = onPlayNext
         onClose = nil
         close()
-        hand?(episode, next)
+        hand?(offer.episode, next)
     }
 
     private var showTitle: String? {

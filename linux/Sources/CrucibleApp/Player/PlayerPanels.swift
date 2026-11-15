@@ -10,6 +10,8 @@ struct PlayerRun {
     var viewerActedThisEpisode = true
     var sleepTimer: SleepTimer?
     var trackLanguages: TrackLanguages?
+    /// The playlist being played, standing on the title on screen: what follows is its next entry, not the next episode.
+    var queue: PlaybackQueue?
 
     /// Whether the Up Next card asks "Still watching?" instead of counting down.
     var asksStillWatching: Bool {
@@ -18,11 +20,12 @@ struct PlayerRun {
 
     /// The run the next title starts with: one the viewer chose starts a new run, one that started on its own adds to the
     /// episodes nobody attended. A timer that stops at the end of an item ends with it; a timed one keeps counting.
-    func advancing(byViewer: Bool, languages: TrackLanguages?, sleepTimer: SleepTimer?) -> PlayerRun {
+    func advancing(byViewer: Bool, languages: TrackLanguages?, sleepTimer: SleepTimer?, queue: PlaybackQueue? = nil) -> PlayerRun {
         PlayerRun(unattendedEpisodes: byViewer ? 0 : (viewerActedThisEpisode ? 0 : unattendedEpisodes) + 1,
                   viewerActedThisEpisode: byViewer,
                   sleepTimer: sleepTimer.flatMap { $0.stopsAtEndOfItem ? nil : $0 },
-                  trackLanguages: languages)
+                  trackLanguages: languages,
+                  queue: queue)
     }
 }
 
