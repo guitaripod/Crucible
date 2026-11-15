@@ -51,7 +51,7 @@ final class SportsResearchTests: XCTestCase {
         TVTest.capture("sports-setup-step4", in: self)
         moveDown(to: "sports.agreement", in: app)
         TVTest.capture("sports-setup-agreement", in: self)
-        for _ in 0..<12 where focusedID(app) != "sports.summary" {
+        for _ in 0..<24 where focusedID(app) != "sports.summary" {
             TVTest.remote.press(.up)
             TVTest.settle(0.6)
         }
@@ -76,6 +76,7 @@ final class SportsResearchTests: XCTestCase {
         TVTest.capture("sports-free", in: self)
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "sports.how.0").firstMatch.waitForExistence(timeout: 5), "how it works is missing without Pro")
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "sports.step.1").firstMatch.exists, "setup shows without Pro")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "sports.need.1").firstMatch.exists, "what it needs is missing without Pro")
     }
 
     private static let setup = #"""

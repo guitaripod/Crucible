@@ -7,7 +7,7 @@ import CrucibleDesign
 /// grid with a detail sheet each, and the owner's choices once everything is ready.
 final class SportsResearchViewController: UICollectionViewController {
     private enum Section: Hashable {
-        case banner, hero, pill, live, how, setup, results, choices
+        case banner, hero, pill, live, how, setup, needs, results, choices
     }
 
     private enum Choice: Hashable {
@@ -21,6 +21,7 @@ final class SportsResearchViewController: UICollectionViewController {
         case empty
         case choice(Choice)
         case how(Int)
+        case need(Int)
     }
 
     private enum Filter: Int {
@@ -148,7 +149,7 @@ final class SportsResearchViewController: UICollectionViewController {
             switch section {
             case .results: return resultsSection(environment)
             case .choices: return choicesSection(environment)
-            case .how: return howSection(environment)
+            case .how, .needs: return howSection(environment)
             default: return cardSection(environment, spacing: section == .setup ? Theme.Space.s : 0)
             }
         }
@@ -220,7 +221,7 @@ final class SportsResearchViewController: UICollectionViewController {
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, row in
             switch row {
             case .result: collectionView.dequeueConfiguredReusableCell(using: result, for: indexPath, item: row)
-            case .choice, .empty, .how: collectionView.dequeueConfiguredReusableCell(using: list, for: indexPath, item: row)
+            case .choice, .empty, .how, .need: collectionView.dequeueConfiguredReusableCell(using: list, for: indexPath, item: row)
             default: collectionView.dequeueConfiguredReusableCell(using: card, for: indexPath, item: row)
             }
         }
@@ -229,7 +230,11 @@ final class SportsResearchViewController: UICollectionViewController {
         }
         let listHeader = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             var content = UIListContentConfiguration.groupedHeader()
-            content.text = self?.dataSource.sectionIdentifier(for: indexPath.section) == .how ? SportsCopy.howItWorks : SportsCopy.settingsHeader
+            content.text = switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
+            case .how?: SportsCopy.howItWorks
+            case .needs?: SportsCopy.whatYouNeed
+            default: SportsCopy.settingsHeader
+            }
             content.textProperties.font = Theme.Font.footnote
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content
@@ -303,6 +308,10 @@ final class SportsResearchViewController: UICollectionViewController {
             snapshot.appendSections([.setup])
             snapshot.appendItems(board.steps.map { Row.step($0.group) }, toSection: .setup)
         }
+        if mode == .notPro || showsSetup {
+            snapshot.appendSections([.needs])
+            snapshot.appendItems(SportsCopy.needs.indices.map(Row.need), toSection: .needs)
+        }
         if !board.report.items.isEmpty || mode == .ready {
             snapshot.appendSections([.results])
             let shown = filter == .needsALook ? board.needingALook : board.items
@@ -347,6 +356,7 @@ final class SportsResearchViewController: UICollectionViewController {
         case .choice(.library(let key)): "library.\(key)"
         case .choice(let choice): "\(choice)"
         case .how(let index): "how.\(index)"
+        case .need(let index): "need.\(index)"
         default: "\(row)"
         }
     }
@@ -456,6 +466,9 @@ extension SportsResearchViewController {
             return IconRowContentConfiguration(symbol: "arrow.triangle.2.circlepath", title: SportsCopy.checkAgain, subtitle: busy ? CompanionCopy.checking : nil, isActionable: true)
         case .choice(.lookNow):
             return IconRowContentConfiguration(symbol: "magnifyingglass", title: SportsCopy.lookNow, isActionable: true)
+        case .need(let index):
+            let need = SportsCopy.needs[index]
+            return IconRowContentConfiguration(symbol: need.symbol, symbolColor: Theme.Color.accent, title: need.title, subtitle: need.detail)
         case .how(let index):
             let step = SportsCopy.howSteps[index]
             return IconRowContentConfiguration(symbol: step.symbol, symbolColor: Theme.Color.accent, title: step.title, subtitle: step.detail)

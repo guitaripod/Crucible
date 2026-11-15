@@ -172,6 +172,20 @@ package enum SportsCopy {
         ]
     }
 
+    package static var whatYouNeed: String {
+        String(localized: "What you need", comment: "Sports Research: header above the computer, graphics memory and model it needs")
+    }
+
+    /// The hardware and model research needs, in four short rows: a symbol, a line and a sentence each.
+    package static var needs: [(symbol: String, title: String, detail: String)] {
+        [
+            ("desktopcomputer", String(localized: "A computer that stays on", comment: "Sports Research requirement row title: the computer running Plex"), String(localized: "The one with Plex and Crucible Server. Research runs there, never on this device.", comment: "Sports Research requirement row detail: where research runs")),
+            ("memorychip", String(localized: "16 GB of graphics memory or more", comment: "Sports Research requirement row title: GPU memory"), String(localized: "24 GB is comfortable. On a Mac with Apple silicon, 32 GB of memory or more.", comment: "Sports Research requirement row detail: GPU memory and Apple silicon")),
+            ("brain", String(localized: "A model that uses tools and thinks", comment: "Sports Research requirement row title: the kind of model"), String(localized: "About 20 billion parameters or more, with room for 32K tokens, served by llama-swap, Ollama or LM Studio. Smaller models get events wrong.", comment: "Sports Research requirement row detail: model size, context and servers")),
+            ("timer", String(localized: "About a minute a file", comment: "Sports Research requirement row title: how long research takes"), String(localized: "Several files run at once on a fast graphics card. A large library takes a while the first time; after that, only new files.", comment: "Sports Research requirement row detail: how long a library takes")),
+        ]
+    }
+
     package static var whatChanges: String { String(localized: "What changes in Plex", comment: "Sports Research: heading of the example of a file before and after research") }
     package static var transformationLine: String {
         String(localized: "Your file name becomes a real title, date, card and poster. The file stays where it is.", comment: "Sports Research: what research does to a file, under the example")

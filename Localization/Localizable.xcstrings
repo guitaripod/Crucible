@@ -18641,6 +18641,101 @@
         }
       }
     },
+    "16 GB of graphics memory or more" : {
+      "comment" : "Sports Research requirement row title: GPU memory",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB grafikhukommelse eller mere"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB Grafikspeicher oder mehr"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB de memoria gráfica o más"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vähintään 16 GB grafiikkamuistia"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 Go de mémoire graphique ou plus"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minnst 16 GB skjáminni"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB di memoria grafica o più"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グラフィックスメモリ 16 GB 以上"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그래픽 메모리 16 GB 이상"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB grafikkminne eller mer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB pamięci graficznej lub więcej"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB de memória gráfica ou mais"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minst 16 GB grafikminne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB 或以上显存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 GB 或以上顯示記憶體"
+          }
+        }
+      }
+    },
     "192.168.1.20 or https://host:32400" : {
       "localizations" : {
         "da" : {
@@ -18731,6 +18826,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "192.168.1.20 或 https://host:32400"
+          }
+        }
+      }
+    },
+    "24 GB is comfortable. On a Mac with Apple silicon, 32 GB of memory or more." : {
+      "comment" : "Sports Research requirement row detail: GPU memory and Apple silicon",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB er komfortabelt. På en Mac med Apple silicon 32 GB hukommelse eller mere."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB sind komfortabel. Auf einem Mac mit Apple silicon mindestens 32 GB Speicher."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB es lo ideal. En un Mac con Apple silicon, 32 GB de memoria o más."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB riittää hyvin. Apple silicon -Macissa vähintään 32 GB muistia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 Go, c'est confortable. Sur un Mac avec Apple silicon, 32 Go de mémoire ou plus."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB er þægilegt. Á Mac með Apple silicon, 32 GB minni eða meira."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB sono l'ideale. Su un Mac con Apple silicon, 32 GB di memoria o più."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB あれば快適です。Apple silicon 搭載の Mac では 32 GB 以上のメモリ。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB면 여유 있습니다. Apple silicon Mac에서는 메모리 32 GB 이상이면 됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB er komfortabelt. På en Mac med Apple silicon, 32 GB minne eller mer."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB to komfort. W Macu z Apple silicon 32 GB pamięci lub więcej."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB é o ideal. Em um Mac com Apple silicon, 32 GB de memória ou mais."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB är bekvämt. På en Mac med Apple silicon räcker 32 GB minne eller mer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB 更从容。搭载 Apple silicon 的 Mac 需要 32 GB 或以上内存。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 GB 較為充裕。搭載 Apple silicon 的 Mac 需要 32 GB 或以上記憶體。"
           }
         }
       }
@@ -19205,6 +19395,101 @@
         }
       }
     },
+    "A computer that stays on" : {
+      "comment" : "Sports Research requirement row title: the computer running Plex",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En computer, der er tændt hele tiden"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Computer, der immer eingeschaltet bleibt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un equipo que permanezca encendido"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tietokone, joka on jatkuvasti päällä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un ordinateur qui reste allumé"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tölva sem er alltaf í gangi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un computer sempre acceso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常時起動しているコンピュータ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계속 켜져 있는 컴퓨터"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En datamaskin som er på hele tiden"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komputer, który jest stale włączony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um computador que fica ligado"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En dator som är påslagen hela tiden"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一直开机的电脑"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一直開機的電腦"
+          }
+        }
+      }
+    },
     "A download is removed once you have watched it to the end." : {
       "localizations" : {
         "da" : {
@@ -19674,6 +19959,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "會先推理再行動的模型，會核對賽事編號、日期和卡片，而不是憑猜測。"
+          }
+        }
+      }
+    },
+    "A model that uses tools and thinks" : {
+      "comment" : "Sports Research requirement row title: the kind of model",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En model, der bruger værktøjer og tænker"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Modell, das Werkzeuge nutzt und denkt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un modelo que usa herramientas y piensa"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Malli, joka käyttää työkaluja ja pohtii"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un modèle qui utilise des outils et raisonne"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Módel sem notar verkfæri og hugsar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un modello che usa strumenti e ragiona"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールを使い、考えるモデル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도구를 사용하고 생각하는 모델"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En modell som bruker verktøy og tenker"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model, który korzysta z narzędzi i myśli"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um modelo que usa ferramentas e pensa"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En modell som använder verktyg och tänker"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "能调用工具并进行思考的模型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "能使用工具並進行思考的模型"
           }
         }
       }
@@ -20341,6 +20721,101 @@
         }
       }
     },
+    "About 20 billion parameters or more, with room for 32K tokens, served by llama-swap, Ollama or LM Studio. Smaller models get events wrong." : {
+      "comment" : "Sports Research requirement row detail: model size, context and servers",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cirka 20 milliarder parametre eller mere med plads til 32K tokens, kørt via llama-swap, Ollama eller LM Studio. Mindre modeller misser begivenheder."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwa 20 Milliarden Parameter oder mehr, mit Platz für 32K Token, bereitgestellt über llama-swap, Ollama oder LM Studio. Kleinere Modelle erkennen Ereignisse falsch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unos 20 mil millones de parámetros o más, con espacio para 32K tokens, servido por llama-swap, Ollama o LM Studio. Los modelos más pequeños se equivocan con los eventos."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noin 20 miljardia parametria tai enemmän, tilaa 32K tokenille, palvelimena llama-swap, Ollama tai LM Studio. Pienemmät mallit menevät tapahtumissa pieleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environ 20 milliards de paramètres ou plus, avec de la place pour 32K tokens, servi par llama-swap, Ollama ou LM Studio. Les modèles plus petits se trompent sur les événements."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um 20 milljarðar breyta eða fleiri, með rými fyrir 32K tóken, keyrt á llama-swap, Ollama eða LM Studio. Minni módel fara villu vegar í atburðum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Circa 20 miliardi di parametri o più, con spazio per 32K token, servito da llama-swap, Ollama o LM Studio. I modelli più piccoli sbagliano gli eventi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約 200 億パラメータ以上、32K トークン分の余裕があり、llama-swap、Ollama、LM Studio で提供されるもの。小さいモデルは出来事を取り違えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "약 200억 개 이상의 매개변수, 32K 토큰 컨텍스트, llama-swap, Ollama 또는 LM Studio로 제공. 더 작은 모델은 경기 내용을 잘못 파악합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omtrent 20 milliarder parametere eller mer, med plass til 32K tokens, kjørt via llama-swap, Ollama eller LM Studio. Mindre modeller bommer på hendelser."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Około 20 miliardów parametrów lub więcej, z miejscem na 32K tokenów, obsługiwany przez llama-swap, Ollama lub LM Studio. Mniejsze modele mylą wydarzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca de 20 bilhões de parâmetros ou mais, com espaço para 32K tokens, servido por llama-swap, Ollama ou LM Studio. Modelos menores erram os eventos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cirka 20 miljarder parametrar eller fler, med plats för 32K tokens, körs via llama-swap, Ollama eller LM Studio. Mindre modeller missar händelser."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "约 200 亿参数或以上，可容纳 32K 词元的上下文，由 llama-swap、Ollama 或 LM Studio 提供服务。较小的模型会误判赛事内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約 200 億參數或以上，可容納 32K 權杖的上下文，由 llama-swap、Ollama 或 LM Studio 提供服務。較小的模型會誤判賽事內容。"
+          }
+        }
+      }
+    },
     "About Crucible" : {
       "localizations" : {
         "da" : {
@@ -20526,6 +21001,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關於這些指南"
+          }
+        }
+      }
+    },
+    "About a minute a file" : {
+      "comment" : "Sports Research requirement row title: how long research takes",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cirka et minut pr. fil"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwa eine Minute pro Datei"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alrededor de un minuto por archivo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noin minuutti tiedostoa kohden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environ une minute par fichier"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um ein mínúta á skrá"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Circa un minuto per file"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ファイルあたり約 1 分"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "파일당 약 1분"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omtrent ett minutt per fil"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Około minuty na plik"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca de um minuto por arquivo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungefär en minut per fil"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个文件约 1 分钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每個檔案約 1 分鐘"
           }
         }
       }
@@ -137484,6 +138054,101 @@
         }
       }
     },
+    "Several files run at once on a fast graphics card. A large library takes a while the first time; after that, only new files." : {
+      "comment" : "Sports Research requirement row detail: how long a library takes",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flere filer køres samtidigt på et hurtigt grafikkort. Et stort bibliotek tager et stykke tid første gang; derefter kun nye filer."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf einer schnellen Grafikkarte laufen mehrere Dateien gleichzeitig. Eine große Bibliothek braucht beim ersten Mal etwas Zeit, danach nur noch neue Dateien."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Varios archivos se procesan a la vez en una tarjeta gráfica rápida. Una biblioteca grande tarda un rato la primera vez; después, solo los archivos nuevos."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Useita tiedostoja käsitellään samanaikaisesti nopealla näytönohjaimella. Suuri kirjasto vie ensimmäisellä kerralla aikaa, sen jälkeen vain uudet tiedostot."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plusieurs fichiers tournent en même temps sur une carte graphique rapide. Une grande bibliothèque prend du temps la première fois ; ensuite, seuls les nouveaux fichiers sont traités."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nokkrar skrár keyra samtímis á hröðu skjákorti. Stórt safn tekur tíma í fyrsta skipti; eftir það aðeins nýjar skrár."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Più file vengono elaborati contemporaneamente su una scheda grafica veloce. Una libreria grande richiede tempo la prima volta; poi solo i file nuovi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高速なグラフィックスカードで複数のファイルを同時に処理します。大きなライブラリは初回に時間がかかり、その後は新しいファイルだけを処理します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 그래픽 카드에서는 여러 파일을 동시에 처리합니다. 라이브러리가 크면 처음에는 시간이 걸리며, 이후에는 새 파일만 처리합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flere filer kjører samtidig på et raskt grafikkort. Et stort bibliotek tar litt tid første gang; deretter bare nye filer."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kilka plików jest przetwarzanych jednocześnie na szybkiej karcie graficznej. Duża biblioteka potrzebuje chwili za pierwszym razem; potem tylko nowe pliki."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vários arquivos rodam ao mesmo tempo em uma placa de vídeo rápida. Uma biblioteca grande demora na primeira vez; depois, apenas os arquivos novos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flera filer körs samtidigt på ett snabbt grafikkort. Ett stort bibliotek tar en stund första gången; därefter bara nya filer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在快速显卡上可同时处理多个文件。资料库较大时，首次需要一段时间；之后只处理新文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在快速顯示卡上可同時處理多個檔案。資料庫較大時，首次需要一段時間；之後只處理新檔案。"
+          }
+        }
+      }
+    },
     "Share" : {
       "comment" : "Button that shares the Wrapped image",
       "localizations" : {
@@ -154488,6 +155153,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "片尾開始播放時，下一集會自動開始。"
+          }
+        }
+      }
+    },
+    "The one with Plex and Crucible Server. Research runs there, never on this device." : {
+      "comment" : "Sports Research requirement row detail: where research runs",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den computer, der kører Plex og Crucible Server. Undersøgelsen kører der, aldrig på denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Computer mit Plex und Crucible Server. Die Recherche läuft dort, niemals auf diesem Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El que tiene Plex y Crucible Server. La investigación se ejecuta allí, nunca en este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tietokone, jolla on Plex ja Crucible Server. Tutkimus ajetaan siellä, ei koskaan tällä laitteella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Celui qui fait tourner Plex et Crucible Server. La recherche s'y déroule, jamais sur cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tölvan með Plex og Crucible Server. Rannsóknin fer þar fram, aldrei í þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quello con Plex e Crucible Server. La ricerca viene eseguita lì, mai su questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex と Crucible Server を動かしているコンピュータです。調査はそちらで実行され、このデバイスでは実行されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex와 Crucible Server가 있는 컴퓨터입니다. 조사는 그곳에서만 실행되며, 이 기기에서는 실행되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den som kjører Plex og Crucible Server. Undersøkingen kjører der, aldri på denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten, na którym działa Plex i Crucible Server. Analiza odbywa się tam, nigdy na tym urządzeniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que tem o Plex e o Crucible Server. A pesquisa roda lá, nunca neste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den som kör Plex och Crucible Server. Undersökningen körs där, aldrig på den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行 Plex 和 Crucible Server 的那台电脑。研究只在那台电脑上进行，绝不在本设备上运行。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行 Plex 和 Crucible Server 的那台電腦。研究只在那台電腦上進行，絕不在這台裝置上執行。"
           }
         }
       }
@@ -173791,6 +174551,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您標示為已看的內容、評分與簽到。"
+          }
+        }
+      }
+    },
+    "What you need" : {
+      "comment" : "Sports Research: header above the computer, graphics memory and model it needs",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det skal du bruge"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was du brauchst"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que necesitas"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitä tarvitset"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce qu'il vous faut"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Það sem þú þarft"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di cosa hai bisogno"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要なもの"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "필요한 것"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dette trenger du"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czego potrzebujesz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que você precisa"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det här behövs"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所需条件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所需條件"
           }
         }
       }

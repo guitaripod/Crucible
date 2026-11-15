@@ -13,6 +13,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         static let live = "sports.live"
         static let step = "sports.step."
         static let how = "sports.how."
+        static let need = "sports.need."
         static let switchedOn = "sports.on"
         static let agreement = "sports.agreement"
         static let checkAgain = "sports.checkAgain"
@@ -124,10 +125,12 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             rows += SportsCopy.howSteps.enumerated().map { index, step in
                 TVRowItem(id: ID.how + "\(index)", title: step.title, subtitle: step.detail, symbol: step.symbol, isStatic: true)
             }
+            rows += needRows()
         case .viewer:
             break
         case .setup, .onlySwitch:
             rows += board.steps.map { stepRow($0, total: board.steps.count) }
+            rows += needRows()
             rows += choiceRows(report)
         case .ready:
             rows += choiceRows(report)
@@ -165,6 +168,14 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             let detail = [status.isWorking ? nil : SportsCopy.phase(status), lastLooked].compactMap { $0 }.joined(separator: " · ")
             return TVRowItem(id: ID.summary, title: SportsCopy.allReady, subtitle: detail, symbol: "checkmark.seal.fill")
         }
+    }
+
+    /// The computer, graphics memory and model research needs, under a heading row.
+    private func needRows() -> [TVRowItem] {
+        [TVRowItem(id: ID.need + "header", title: SportsCopy.whatYouNeed, symbol: "checklist", isStatic: true)]
+            + SportsCopy.needs.enumerated().map { index, need in
+                TVRowItem(id: ID.need + "\(index)", title: need.title, subtitle: need.detail, symbol: need.symbol, isStatic: true)
+            }
     }
 
     private func stepRow(_ step: SportsSetupStep, total: Int) -> TVRowItem {

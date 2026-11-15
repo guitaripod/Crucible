@@ -89,6 +89,10 @@ final class SportsResearchTests: XCTestCase {
         XCTAssertTrue(IOSTest.element(app, "settings.sports.hero").exists)
         XCTAssertFalse(IOSTest.element(app, "settings.sports.step.1").exists, "setup shows without Pro")
         XCTAssertTrue(IOSTest.element(app, "settings.sports.how.0").exists, "how it works is missing without Pro")
+        app.swipeUp(velocity: .slow)
+        IOSTest.settle(1)
+        XCTAssertTrue(IOSTest.element(app, "settings.sports.need.1").waitForExistence(timeout: 5), "what it needs is missing without Pro")
+        IOSTest.capture("free-2", in: self)
         IOSTest.capture("free-1", in: self)
     }
 
