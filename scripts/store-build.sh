@@ -31,6 +31,25 @@ case "$PLATFORM" in
   *) usage; exit 2 ;;
 esac
 
+# The Trakt Client ID is kept out of the public repository, so a fresh clone or a git worktree lacks it and a build from
+# there ships without Trakt. Takes it from the main checkout or the midgar vault when it is missing, and refuses to
+# build without it.
+ensure_trakt_id() {
+  local file=Sources/CrucibleCore/Features/Trakt/TraktClientID.swift main source
+  [[ -s "$ROOT/$file" ]] && return 0
+  main=$(git -C "$ROOT" worktree list --porcelain | awk 'NR == 1 { print $2 }')
+  for source in "$main/$file" "$HOME/.config/midgar/crucible/TraktClientID.swift"; do
+    if [[ -s "$source" ]]; then
+      cp "$source" "$ROOT/$file"
+      echo "store-build: took $file from $source"
+      return 0
+    fi
+  done
+  echo "store-build: $file is missing, so this build would ship without Trakt; put it there or in ~/.config/midgar/crucible/ and run again" >&2
+  exit 1
+}
+
+ensure_trakt_id
 STAGE=Dev/ios/store-$NAME
 
 NAME=store-$NAME "$ROOT/scripts/mac.sh" sync
