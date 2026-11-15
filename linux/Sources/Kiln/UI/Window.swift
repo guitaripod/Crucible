@@ -81,6 +81,12 @@ public final class Window {
 
     /// Draws the frame trace's last second over the window (Ctrl+Shift+P in the app).
     public var showsPerformanceHUD = false { didSet { setNeedsDisplay() } }
+    /// Builds the label a tooltip shows; without it there are no tooltips.
+    public var makeTooltip: ((String) -> View)?
+    private var tooltip: (text: String, view: View?)?
+    private var tooltipTask: Task<Void, Never>?
+    /// How long the pointer rests before a tooltip shows.
+    private static let tooltipDelay: Duration = .milliseconds(650)
 
     /// Frames drawn (and presented, on Wayland) since the window opened.
     public private(set) var frameCount = 0
@@ -423,6 +429,7 @@ public final class Window {
     /// A key from the keymap: the focused view and its ancestors first, then focus movement, then the delegate.
     public func handleKey(_ event: KeyEvent) {
         trace.inputArrived()
+        hideTooltip()
         var responder = focus.focusedView
         while let view = responder {
             if view.keyPressed(event) { return }
@@ -445,9 +452,38 @@ public final class Window {
             surface?.setCursor(hit?.cursor ?? .default)
         }
         if let hit { hit.pointerMoved(to: hit.convert(point, from: nil)) }
+        updateTooltip(hit.flatMap { $0.tooltip(at: $0.convert(point, from: nil)) })
+    }
+
+    /// Shows `text` near the pointer once it has rested there, or takes the tooltip away when the pointer left what had one.
+    private func updateTooltip(_ text: String?) {
+        guard text != tooltip?.text else { return }
+        hideTooltip()
+        guard let text, makeTooltip != nil else { return }
+        tooltip = (text, nil)
+        tooltipTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Window.tooltipDelay)
+            guard !Task.isCancelled, let self, self.tooltip?.text == text, let pointer = self.pointer, let view = self.makeTooltip?(text) else { return }
+            let size = view.sizeThatFits(self.contentView.bounds.size)
+            let bounds = self.contentView.bounds
+            let below = pointer.y + 26
+            let y = below + size.height > bounds.height - 8 ? pointer.y - 12 - size.height : below
+            let x = min(max(pointer.x - size.width / 2, 8), bounds.width - size.width - 8)
+            view.frame = Rect(x: x.rounded(), y: y.rounded(), width: size.width, height: size.height)
+            self.contentView.addSubview(view)
+            self.tooltip = (text, view)
+        }
+    }
+
+    private func hideTooltip() {
+        tooltipTask?.cancel()
+        tooltipTask = nil
+        tooltip?.view?.removeFromSuperview()
+        tooltip = nil
     }
 
     public func handlePointerLeft() {
+        hideTooltip()
         pointer = nil
         hovered?.isHovered = false
         hovered?.pointerExited()
@@ -458,6 +494,7 @@ public final class Window {
         trace.inputArrived()
         guard let pointer else { return }
         if isPressed {
+            hideTooltip()
             focus.pointerDidClick()
             var responder = contentView.hitTest(pointer)
             while let view = responder {

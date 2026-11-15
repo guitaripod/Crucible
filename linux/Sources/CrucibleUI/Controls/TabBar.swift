@@ -180,6 +180,8 @@ final class TabItemView: View {
     override var canBecomeFocused: Bool { true }
     override var accessibilityLabel: String? { tab.title }
 
+    override func tooltip(at point: Point) -> String? { isCompact ? tab.title : nil }
+
     private var rasterScale: Float { window?.scale ?? 1 }
 
     private var layout: TextLayout { TextLayout(tab.title, font: Theme.current.type.control, scale: rasterScale) }

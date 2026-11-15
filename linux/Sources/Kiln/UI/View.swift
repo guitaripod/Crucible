@@ -313,4 +313,7 @@ open class View {
 
     /// A short label for accessibility and tooltips.
     open var accessibilityLabel: String? { nil }
+
+    /// What a tooltip says when the pointer rests on `point` (in this view's points): the name of an icon-only control.
+    open func tooltip(at point: Point) -> String? { nil }
 }
