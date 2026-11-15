@@ -114,11 +114,13 @@ final class RootView: View {
 
     private var player: PlayerScreen?
 
-    /// Plays `item` over everything, from where the viewer left it; focus returns where it was when the player closes.
-    func play(item: PlexMetadata, api: APIClient, from position: Double? = nil) {
+    /// Plays `item` over everything, from where the viewer left it, in the audio and subtitles a title page chose;
+    /// focus returns where it was when the player closes.
+    func play(item: PlexMetadata, api: APIClient, from position: Double? = nil, tracks: (audio: Int?, subtitle: Int?)? = nil) {
         guard player == nil else { return }
         let returnFocus = window?.focusedView
         let screen = PlayerScreen(source: .plex(api, item, resume: position ?? item.resumeSecs))
+        screen.chosenTracks = tracks
         screen.onClose = { [weak self, weak screen] in
             screen?.removeFromSuperview()
             self?.player = nil
@@ -140,7 +142,7 @@ final class RootView: View {
         closePlayer()
         select("home")
         stacks["home"]?.popToRoot()
-        push(DetailScreen(api: payload.api, item: item))
+        push(DetailScreen.make(api: payload.api, item: item))
     }
 
     /// Ends playback if a player is up; the server hears where it stopped.

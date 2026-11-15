@@ -19,6 +19,8 @@ final class PlayerScreen: View {
     }
 
     var onClose: (() -> Void)?
+    /// The audio and subtitle streams a title page picked; nil plays what the server and the viewer's settings choose.
+    var chosenTracks: (audio: Int?, subtitle: Int?)?
     /// Plays the next episode in place of this one (Up Next, the media keys' Next).
     var onPlayNext: ((PlexMetadata) -> Void)?
 
@@ -112,8 +114,10 @@ final class PlayerScreen: View {
         resolveTask = Task { [weak self] in
             guard let self else { return }
             do {
+                let tracks = self.chosenTracks
                 let resolved = try await StreamResolver.resolve(api: api, ratingKey: item.id, startSecs: resumePosition,
-                                                                selectedSubtitleId: nil, selectedAudioStreamId: nil, honorsServerSelection: true)
+                                                                selectedSubtitleId: tracks?.subtitle, selectedAudioStreamId: tracks?.audio,
+                                                                honorsServerSelection: tracks == nil)
                 guard !Task.isCancelled, !closed else { return }
                 load(resolved)
             } catch {

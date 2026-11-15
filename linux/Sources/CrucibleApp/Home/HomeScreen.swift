@@ -146,7 +146,7 @@ final class HomeScreen: ScreenView {
     }
 
     private func open(_ media: PlexMetadata) {
-        rootView?.push(DetailScreen(api: payload.api, item: media))
+        rootView?.push(DetailScreen.make(api: payload.api, item: media))
     }
 
     private func scrolled(_ offset: Float) {

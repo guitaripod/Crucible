@@ -38,7 +38,7 @@ final class LibraryScreen: ScreenView {
         }
         grid.onActivate = { [weak self] item in
             guard let self, let media = self.model.item(withId: item.id) else { return }
-            self.rootView?.push(DetailScreen(api: self.api, item: media))
+            self.rootView?.push(DetailScreen.make(api: self.api, item: media))
         }
         grid.onFocus = { [weak self] item in
             guard let self, let index = self.model.gridIds.firstIndex(of: item.id) else { return }

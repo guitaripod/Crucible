@@ -4,184 +4,173 @@ import Foundation
 import Kiln
 import MidgarCore
 
-/// A title's page (`TVMediaDetailViewController`, `TVShowDetailViewController`): the backdrop, the hero, the actions, and
-/// below them the seasons and episodes of a show, the cast, and related titles.
+/// The shared body of the movie, episode and show pages (`TVDetailViewController`): the backdrop, the hero over it, the
+/// synopsis with More, the action row and the sections below. It loads every time it appears, so a page shows the new
+/// progress after playback; a refresh while the page is on screen updates it in place.
 @MainActor
-final class DetailScreen: ScreenView {
-    private let api: APIClient
-    private var item: PlexMetadata
-    private var movie: MovieDetailModel?
-    private var show: ShowDetailModel?
-    private let backdrop = BackdropView()
-    private let hero = HeroInfoView()
-    private let page = PageView()
-    private let heroRoom = SpacerView(height: 0)
-    private let actions = ActionRowView()
-    private let seasons = ChipRowView()
-    private let episodes = ShelfView(header: nil, style: .episode)
-    private let cast = ShelfView(header: SectionHeader(title: String(localized: "Cast & Crew")), style: .person)
-    private let related = ShelfView(header: SectionHeader(title: String(localized: "More Like This")), style: .poster)
-    private let state = StateView()
+class DetailScreen: ScreenView {
+    let api: APIClient
+    let backdrop = BackdropView()
+    let hero = HeroInfoView()
+    let page = PageView()
+    let heroRoom = SpacerView(height: 0)
+    let synopsis = SynopsisView(text: "")
+    let actions = DetailActionRow()
+    let information = InformationView()
+    let state = StateView()
+    private(set) var hasContent = false
     private var loadTask: Task<Void, Never>?
-    private var watchedInFlight = false
+    private var synopsisTitle = ""
 
-    init(api: APIClient, item: PlexMetadata) {
+    /// The page for a title from a card: shows open the show page, everything else the movie or episode page.
+    static func make(api: APIClient, item: PlexMetadata) -> DetailScreen {
+        make(api: api, route: .related(item), placeholder: item)
+    }
+
+    static func make(api: APIClient, route: DetailRoute, placeholder: PlexMetadata? = nil) -> DetailScreen {
+        switch route {
+        case .show(let ratingKey, let season):
+            ShowDetailScreen(api: api, ratingKey: ratingKey, initialSeasonKey: season, placeholder: placeholder)
+        case .item(let ratingKey, _, let showKey, let seasonKey):
+            MediaDetailScreen(api: api, ratingKey: ratingKey, showRatingKey: showKey, seasonRatingKey: seasonKey, placeholder: placeholder)
+        }
+    }
+
+    init(api: APIClient, placeholder: PlexMetadata?) {
         self.api = api
-        self.item = item
         super.init()
         [backdrop, hero, page, state].forEach(addSubview)
-        page.setSections([heroRoom, actions])
         page.onScroll = { [weak self] offset in
             guard let self else { return }
             self.hero.translation = Point(x: 0, y: -offset)
             self.backdrop.dimming = min(max(offset / max(self.heroRoom.height * 0.8, 1), 0), 1)
             self.rootView?.contentScrolled(offset: offset)
         }
+        synopsis.onMore = { [weak self] in self?.presentSynopsis() }
         state.isHidden = true
-        seasons.onSelect = { [weak self] chip in self?.selectSeason(chip.id) }
-        episodes.onActivate = { [weak self] card in
-            guard let self, let episode = self.show?.episodes.first(where: { $0.id == card.id }) else { return }
-            self.rootView?.push(DetailScreen(api: self.api, item: episode))
+        if let placeholder {
+            hero.configure(HeroInfo(title: placeholder.title), animated: false)
+            let art = placeholder.art ?? placeholder.grandparentArt
+            backdrop.show(art.map { .path($0, .backdrop) }, immediate: true)
+            page.setSections([heroRoom, actions])
+        } else {
+            showLoading()
         }
-        related.onActivate = { [weak self] card in
-            guard let self, let media = self.movie?.related.first(where: { $0.id == card.id }) else { return }
-            self.rootView?.push(DetailScreen(api: self.api, item: media))
-        }
-        hero.configure(HeroInfo(title: item.title, synopsis: item.summary), animated: false)
-        let art = item.art ?? item.grandparentArt
-        backdrop.show(art.map { .path($0, .backdrop) }, immediate: true)
     }
 
     override var preferredFocusView: View? { state.isHidden ? actions : state }
+    override var remembersFocus: Bool { true }
 
     override func screenDidAppear() {
-        if movie == nil && show == nil { load() }
+        reload()
     }
 
     override func screenWillDisappear() {
         loadTask?.cancel()
     }
 
-    private func load() {
+    /// Loads the title; subclasses fetch and then call `present`.
+    func fetch() async {}
+
+    func reload() {
         loadTask?.cancel()
-        loadTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                if item.mediaType == "show" {
-                    let model = try await ShowDetailLoader.load(api: api, showRatingKey: item.id, initialSeasonKey: nil,
-                                                                selectedSeasonKey: { [weak self] in self?.show?.selectedSeasonKey },
-                                                                onShow: { [weak self] show in self?.item = show })
-                    guard !Task.isCancelled else { return }
-                    guard let model else { return unavailable(DetailMessage.showUnavailable) }
-                    show = model
-                } else {
-                    let model = try await MovieDetailLoader.load(api: api, ratingKey: item.id)
-                    guard !Task.isCancelled else { return }
-                    guard let model else { return unavailable(DetailMessage.itemUnavailable) }
-                    movie = model
-                    item = model.item
-                }
-                render()
-            } catch is CancellationError {
-            } catch {
-                guard !Task.isCancelled else { return }
-                state.isHidden = false
-                state.show(.error(title: String(localized: "Couldn’t Load This Title"), message: ConnectionError.message(for: error),
-                                  retryTitle: String(localized: "Try Again"), retry: { [weak self] in self?.load() }))
-            }
-        }
+        loadTask = Task { [weak self] in await self?.fetch() }
     }
 
-    private func unavailable(_ message: String) {
-        state.isHidden = false
-        state.show(.empty(title: String(localized: "Not Available"), message: message, symbol: "exclamationmark.triangle", action: nil))
-    }
-
-    private func render() {
-        var sections: [View] = [heroRoom, actions]
-        if let movie {
-            let info = movie.heroInfo
-            hero.configure(HeroInfo(eyebrow: info.eyebrow, title: info.title, metaParts: info.meta.leading, badges: info.badges,
-                                    synopsis: movie.item.summary, progress: movie.hasProgress ? movie.progress.fraction : nil), animated: true)
-            let artwork = movie.heroArtwork
-            if let path = artwork.path { backdrop.show(.path(path, artwork.isBackdrop ? .backdrop : .poster), immediate: true) }
-            actions.configure(play: movie.playTitle, watched: movie.watchedToggleTitle, onPlay: { [weak self] in self?.play() },
-                              onWatched: { [weak self] in self?.toggleWatched() })
-            let people = movie.castAndCrew.prefix(30).enumerated().map { index, role in
-                CardItem(id: "\(index)-\(role.tag ?? "")", artwork: role.thumb.map { .url(URL(string: $0)!) }, title: role.tag ?? "",
-                         subtitle: role.role, placeholderSymbol: "person")
-            }
-            if !people.isEmpty {
-                cast.setItems(Array(people))
-                sections.append(cast)
-            }
-            let more = movie.related.prefix(20).map { media in
-                CardItem(id: media.id, artwork: (media.thumb).map { .path($0, .poster) }, title: media.title,
-                         subtitle: media.year.map(String.init), placeholderSymbol: "film")
-            }
-            if !more.isEmpty {
-                related.setItems(Array(more))
-                sections.append(related)
-            }
-        } else if let show {
-            let info = show.heroInfo
-            hero.configure(HeroInfo(eyebrow: info.eyebrow, title: info.title, metaParts: info.meta.leading, badges: info.badges,
-                                    synopsis: show.show.summary), animated: true)
-            actions.configure(play: String(localized: "Play"), watched: WatchedService.title(isWatched: show.isWatched),
-                              onPlay: { [weak self] in self?.play() }, onWatched: { [weak self] in self?.toggleWatched() })
-            seasons.setChips(show.seasonChips.map {
-                ChipRowView.Chip(id: $0.id, title: $0.title, isSelected: $0.isSelected, isDimmed: $0.isMissing)
-            })
-            sections.append(seasons)
-            episodes.header = SectionHeader(title: show.selectedSeasonTitle, secondaryText: show.selectedSeasonWatchedText)
-            episodes.setItems(show.episodeRows(showingSkipped: true).compactMap { row -> CardItem? in
-                guard case .episode(let episode) = row else { return nil }
-                let progress = episode.progressFraction
-                return CardItem(id: episode.id, artwork: episode.thumb.map { .path($0, .backdrop) },
-                                title: "\(episode.index ?? 0)  ·  \(episode.title)", subtitle: DetailFormat.runtime(episode.durationSecs),
-                                eyebrow: nil, progress: progress > 0 && progress < 1 ? progress : nil,
-                                isUnwatched: !episode.isWatched && progress <= 0, isWatched: episode.isWatched, placeholderSymbol: "tv")
-            })
-            sections.append(episodes)
+    /// Puts the loaded page on screen: hero, artwork, synopsis, actions, then `sections`.
+    func present(hero info: HeroInfo, artwork: DetailArtwork, synopsis text: String?, synopsisTitle: String, actions list: [DetailAction],
+                 sections: [View]) {
+        hasContent = true
+        state.isHidden = true
+        page.isHidden = false
+        hero.isHidden = false
+        hero.configure(info, animated: true)
+        if let path = artwork.path { backdrop.show(.path(path, artwork.isBackdrop ? .backdrop : .poster), immediate: true) }
+        self.synopsisTitle = synopsisTitle
+        actions.setActions(list)
+        var all: [View] = [heroRoom]
+        if let text, !text.isEmpty {
+            synopsis.text = text
+            all.append(synopsis)
         }
-        page.setSections(sections)
+        all.append(actions)
+        all.append(contentsOf: sections)
+        page.setSections(all)
         setNeedsLayout()
     }
 
-    private func selectSeason(_ key: String) {
-        guard let current = show else { return }
-        show = current.selectingSeason(key).loadingSeason(key)
-        render()
-        Task { [weak self] in
-            guard let self else { return }
-            let episodes = await ShowDetailLoader.episodes(inSeason: key, api: api)
-            guard let updated = self.show, updated.selectedSeasonKey == key else { return }
-            self.show = episodes.map { updated.replacingEpisodes($0) } ?? updated.failingEpisodes()
-            self.render()
-        }
+    func showLoading() {
+        hasContent = false
+        page.isHidden = true
+        state.isHidden = false
+        state.show(.loading(title: nil))
     }
 
-    private func play() {
-        MidgarLog.notice("Play requested for \(item.id)", category: .playback)
-        rootView?.play(item: movie?.item ?? item, api: api)
+    /// A title that is gone or cannot be shown, with Go Back.
+    func showUnavailable(_ message: String) {
+        hasContent = false
+        page.isHidden = true
+        hero.isHidden = true
+        state.isHidden = false
+        state.show(.empty(title: String(localized: "Not Available"), message: message, symbol: "questionmark.circle",
+                          action: StateView.Action(title: String(localized: "Go Back")) { [weak self] in _ = self?.navigation?.pop() }))
+        window?.focus.focus(state, animated: false)
     }
 
-    /// Flips the button the moment it is pressed, then tells the server and reloads; a failure flips it back.
-    private func toggleWatched() {
-        guard !watchedInFlight else { return }
-        let wasWatched = movie?.item.isWatched ?? show?.isWatched ?? false
-        let key = movie?.item.id ?? item.id
-        watchedInFlight = true
-        actions.setWatchedTitle(WatchedService.title(isWatched: !wasWatched))
+    func showFailure(title: String, message: String) {
+        hasContent = false
+        page.isHidden = true
+        hero.isHidden = true
+        state.isHidden = false
+        state.show(.error(title: title, message: message, retryTitle: String(localized: "Retry", comment: "Button that retries loading the screen"),
+                          retry: { [weak self] in
+                              self?.showLoading()
+                              self?.reload()
+                          }))
+        window?.focus.focus(state, animated: false)
+    }
+
+    func alert(_ title: String, message: String? = nil) {
+        guard let window else { return }
+        AlertView.notice(title: title, message: message, in: window)
+    }
+
+    private func presentSynopsis() {
+        guard let window else { return }
+        AlertView(title: synopsisTitle, message: synopsis.text, actions: [AlertView.Action(String(localized: "Close"), role: .cancel)]).present(in: window)
+    }
+
+    func push(_ route: DetailRoute) {
+        rootView?.push(DetailScreen.make(api: api, route: route))
+    }
+
+    /// A cast or crew member's titles in the libraries (`TVScreens.filmography`).
+    func openPerson(_ person: PlexRole) {
+        let api = api
+        let grid = TitleGridScreen(api: api, title: person.tag ?? "", empty: .init(
+            symbol: "person.crop.rectangle.stack",
+            title: String(localized: "Nothing in Your Libraries"),
+            message: String(localized: "None of this person’s titles are on your server.")
+        )) { try await PersonFilmography.titles(of: person, api: api) }
+        rootView?.push(grid)
+    }
+
+    /// The collection a title's tag names, found by name in its library (`TVScreens.openCollection`).
+    func openCollection(named name: String, sectionId: String?) {
+        guard let sectionId else { return }
+        let api = api
         Task { [weak self] in
-            guard let self else { return }
-            defer { self.watchedInFlight = false }
             do {
-                try await WatchedService.setWatched(!wasWatched, ratingKey: key, api: api)
-                load()
+                guard let collection = try await CollectionsFeed.collection(named: name, inSection: sectionId, api: api) else {
+                    self?.alert(name, message: String(localized: "This collection is no longer on the server."))
+                    return
+                }
+                let grid = TitleGridScreen(api: api, title: collection.title, empty: .init(
+                    symbol: "rectangle.stack", title: String(localized: "Empty Collection"), message: String(localized: "This collection has no titles.")
+                )) { try await CollectionsFeed.items(inCollection: collection.id, api: api) }
+                self?.rootView?.push(grid)
             } catch {
-                MidgarLog.error("Watched toggle failed: \(error)", category: .networking)
-                actions.setWatchedTitle(WatchedService.title(isWatched: wasWatched))
+                self?.alert(String(localized: "Couldn’t Load"), message: ConnectionError.message(for: error))
             }
         }
     }
@@ -191,7 +180,7 @@ final class DetailScreen: ScreenView {
         backdrop.frame = bounds
         page.frame = bounds
         state.frame = bounds
-        let heroHeight = max(metrics.heroHeight, frame.height * 0.55)
+        let heroHeight = max(metrics.heroHeight, frame.height * 0.5)
         heroRoom.height = heroHeight
         hero.frame = Rect(x: metrics.sideMargin, y: metrics.heroTopClearance, width: frame.width - metrics.sideMargin * 2,
                           height: heroHeight - metrics.heroTopClearance - metrics.heroBottomClearance)
@@ -199,45 +188,51 @@ final class DetailScreen: ScreenView {
     }
 }
 
-/// The detail actions: Play (or Resume) and the watched toggle.
+/// Core's detail values in the design system's terms.
 @MainActor
-final class ActionRowView: View {
-    private let play = ButtonView(style: .primary, title: nil, symbol: "play.fill")
-    private let watched = ButtonView(style: .glass, title: nil, symbol: "checkmark")
-
-    override init(frame: Rect = .zero) {
-        super.init(frame: frame)
-        addSubview(play)
-        addSubview(watched)
+enum DetailMapping {
+    static func hero(_ info: DetailHeroInfo, progress: Double?) -> HeroInfo {
+        HeroInfo(eyebrow: info.eyebrow, title: info.title, metaParts: info.meta.leading, ratings: info.meta.ratings.map(rating),
+                 badges: info.badges, progress: progress, titleStyle: .title1)
     }
 
-    override var preferredFocusView: View? { play }
-    override var remembersFocus: Bool { true }
-
-    func setWatchedTitle(_ title: String) {
-        watched.title = title
-        setNeedsLayout()
-    }
-
-    func configure(play title: String, watched watchedTitle: String, onPlay: @escaping () -> Void, onWatched: @escaping () -> Void) {
-        play.title = title
-        play.onPress = onPlay
-        watched.title = watchedTitle
-        watched.onPress = onWatched
-        setNeedsLayout()
-    }
-
-    override func sizeThatFits(_ size: Size) -> Size {
-        Size(width: size.width, height: Theme.current.metrics.primaryControlHeight + Theme.current.metrics.tv(48))
-    }
-
-    override func layoutSubviews() {
-        let metrics = Theme.current.metrics
-        var x = metrics.sideMargin
-        for button in [play, watched] {
-            let size = button.sizeThatFits(Size(width: 600, height: 200))
-            button.frame = Rect(x: x, y: 0, width: size.width, height: size.height)
-            x += size.width + metrics.tv(32)
+    /// A score under its source's mark, as `RatingLine` draws it: Rotten Tomatoes' rotten splat below 60%, Letterboxd's
+    /// dots in the appearance's colour.
+    static func rating(_ rating: DetailRating) -> HeroRating {
+        switch rating.mark {
+        case .none: return HeroRating(mark: nil, text: rating.text)
+        case .star: return HeroRating(mark: .star, text: rating.text)
+        case .score(let score):
+            let mark: HeroRating.Mark
+            switch score.source {
+            case .trakt: mark = .brand("trakt", isWordmark: false)
+            case .imdb: mark = .brand("imdb", isWordmark: true)
+            case .tmdb: mark = .brand("tmdb", isWordmark: true)
+            case .rottenTomatoes: mark = .brand(score.value >= 60 ? "rottentomatoes-fresh" : "rottentomatoes-rotten", isWordmark: false)
+            case .metascore: mark = .brand("metacritic", isWordmark: false)
+            case .letterboxd: mark = .brand(Theme.current.palette.appearance == .dark ? "letterboxd-dark" : "letterboxd-light", isWordmark: false)
+            case .myAnimeList: mark = .brand("myanimelist", isWordmark: true)
+            }
+            return HeroRating(mark: mark, text: rating.text)
         }
+    }
+
+    static func person(_ role: PlexRole, index: Int) -> CardItem {
+        CardItem(id: "cast.\(index)", artwork: role.thumb.flatMap(URL.init(string:)).map { .url($0) }, title: role.tag ?? "", subtitle: role.role,
+                 placeholderSymbol: "person")
+    }
+
+    static func related(_ items: [PlexMetadata]) -> [CardItem] {
+        items.map { item in
+            var card = TitleCards.card(item)
+            card.id = "related.\(item.id)"
+            return card
+        }
+    }
+
+    static func facts(_ facts: [DetailFact], genres: [String]) -> [(key: String, value: String)] {
+        var all = facts.map { (key: $0.key, value: $0.value) }
+        if !genres.isEmpty { all.insert((key: String(localized: "Genres"), value: genres.joined(separator: ", ")), at: 0) }
+        return all
     }
 }

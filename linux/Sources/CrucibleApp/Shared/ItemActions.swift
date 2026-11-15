@@ -25,7 +25,7 @@ enum ItemActions {
             switch item.id {
             case "play": root.play(item: media, api: api)
             case "restart": root.play(item: media, api: api, from: 0)
-            case "details": root.push(DetailScreen(api: api, item: media))
+            case "details": root.push(DetailScreen.make(api: api, item: media))
             case "watched":
                 Task {
                     do {
