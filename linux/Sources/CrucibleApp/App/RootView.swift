@@ -101,6 +101,20 @@ final class RootView: View {
         return false
     }
 
+    /// Forward: the screen Back last popped on this tab comes back.
+    func handleForward() -> Bool {
+        guard player == nil else { return false }
+        return current?.goForward() ?? false
+    }
+
+    /// Opens Settings on the You tab (Ctrl+comma).
+    func openSettings() {
+        select("you")
+        guard let stack = stacks["you"], !(stack.top is SettingsScreen) else { return }
+        stack.popToRoot()
+        stack.push(SettingsScreen(api: payload.api))
+    }
+
     /// The tvOS app's commands with Ctrl for Command: Ctrl+1 to Ctrl+9 pick tabs.
     func handleCommand(_ event: KeyEvent) -> Bool {
         if (event.key == Key.character("f") && event.modifiers == .control) || (event.key == Key.character("/") && event.modifiers.isEmpty) {
@@ -115,6 +129,10 @@ final class RootView: View {
         if player == nil, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
             CardZoom.apply(step)
             window?.relayoutEverything()
+            return true
+        }
+        if event.key == Key.character(",") && event.modifiers == .control, player == nil {
+            openSettings()
             return true
         }
         if event.key == Key.character("r") && event.modifiers == .control, player == nil {
@@ -184,8 +202,9 @@ final class RootView: View {
     }
 
     /// The tab bar slides away while a screen's content scrolls down, and comes back at the top or when focus reaches it.
+    /// The tab bar slides away while content scrolls down, except on Search, where it stays.
     func contentScrolled(offset: Float) {
-        tabBar.setHidden(offset > Theme.current.metrics.tv(40), animated: true)
+        tabBar.setHidden(currentID != "search" && offset > Theme.current.metrics.tv(40), animated: true)
     }
 
     override func layoutSubviews() {

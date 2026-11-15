@@ -151,13 +151,22 @@ final class AppCoordinator: WindowDelegate {
             if let onboarding { return onboarding.handleBack() }
             return root?.handleBack() ?? false
         }
+        if event.key == .forward || (event.key == .right && event.modifiers == .alt) {
+            return onboarding == nil && root?.handleForward() == true
+        }
         return root?.handleCommand(event) ?? false
     }
 
     func window(_ window: Window, unhandledButton button: MouseButton) -> Bool {
-        guard button == .back else { return false }
-        if let onboarding { return onboarding.handleBack() }
-        return root?.handleBack() ?? false
+        switch button {
+        case .back:
+            if let onboarding { return onboarding.handleBack() }
+            return root?.handleBack() ?? false
+        case .forward:
+            return onboarding == nil && root?.handleForward() == true
+        default:
+            return false
+        }
     }
 
     /// Coming back to the window refreshes what is shared across screens, as the Apple TV does on returning to the foreground.

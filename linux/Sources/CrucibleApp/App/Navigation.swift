@@ -22,7 +22,8 @@ class ScreenView: View {
 
 /// A stack of screens with the tvOS push: the new screen fades in as it settles from a little to the right, the old one
 /// fades out; popping runs it backwards. Focus moves to the new screen's preferred view, and returns to where it was on
-/// the screen below when popped.
+/// the screen below when popped. Screens Back popped wait for Forward (Alt+Right, the mouse's forward button) until a new
+/// screen is pushed.
 @MainActor
 final class NavigationView: View {
     private(set) var screens: [ScreenView] = []
@@ -30,6 +31,7 @@ final class NavigationView: View {
     private var outgoing: ScreenView?
     private var direction: Float = 1
     private var focusMemory: [ObjectIdentifier: View] = [:]
+    private var forwardScreens: [ScreenView] = []
 
     var top: ScreenView? { screens.last }
     var onChange: (() -> Void)?
@@ -40,6 +42,37 @@ final class NavigationView: View {
     }
 
     func push(_ screen: ScreenView, animated: Bool = true) {
+        forwardScreens.removeAll()
+        show(screen, animated: animated)
+    }
+
+    /// Puts `screen` in place of the top one, so Back from it skips the one it replaced.
+    func replaceTop(with screen: ScreenView, animated: Bool = true) {
+        forwardScreens.removeAll()
+        guard screens.count > 1, let leaving = screens.popLast() else {
+            show(screen, animated: animated)
+            return
+        }
+        leaving.screenWillDisappear()
+        screen.navigation = self
+        screens.append(screen)
+        addSubview(screen)
+        screen.frame = bounds
+        begin(from: leaving, forward: true, animated: animated)
+        window?.focus.focus(screen, animated: false)
+        screen.screenDidAppear()
+        onChange?()
+    }
+
+    /// Re-pushes the screen Back last popped, as it was.
+    @discardableResult
+    func goForward() -> Bool {
+        guard let screen = forwardScreens.popLast() else { return false }
+        show(screen, animated: true)
+        return true
+    }
+
+    private func show(_ screen: ScreenView, animated: Bool) {
         if let current = screens.last {
             if let focused = window?.focusedView, focused.isDescendant(of: current) { focusMemory[ObjectIdentifier(current)] = focused }
             current.screenWillDisappear()
@@ -58,6 +91,7 @@ final class NavigationView: View {
     func pop(animated: Bool = true) -> Bool {
         guard screens.count > 1, let leaving = screens.popLast() else { return false }
         leaving.screenWillDisappear()
+        forwardScreens.append(leaving)
         let revealed = screens[screens.count - 1]
         revealed.isHidden = false
         begin(from: leaving, forward: false, animated: animated)
@@ -73,6 +107,7 @@ final class NavigationView: View {
 
     func popToRoot() {
         while screens.count > 1 { pop(animated: screens.count == 2) }
+        forwardScreens.removeAll()
     }
 
     private func begin(from previous: ScreenView?, forward: Bool, animated: Bool) {
