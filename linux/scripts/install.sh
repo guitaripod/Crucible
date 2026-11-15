@@ -11,6 +11,24 @@ mpv="$repo/linux/.build/mpv"
 
 [ -f "$mpv/lib/libmpv.so.2" ] || "$repo/linux/scripts/build-mpv.sh"
 
+# Trakt's Client ID lives in a file kept out of the public repository; a build without it compiles but has no Trakt.
+# Take it from the main checkout or the vault copy, as scripts/store-build.sh does, and refuse to install without it.
+trakt_id=Sources/CrucibleCore/Features/Trakt/TraktClientID.swift
+if [ ! -s "$repo/$trakt_id" ]; then
+    main="$(git -C "$repo" worktree list --porcelain | awk 'NR == 1 { print $2 }')"
+    for source in "$main/$trakt_id" "$HOME/.config/midgar/crucible/TraktClientID.swift"; do
+        if [ -s "$source" ]; then
+            cp "$source" "$repo/$trakt_id"
+            echo "install: took $trakt_id from $source"
+            break
+        fi
+    done
+fi
+if [ ! -s "$repo/$trakt_id" ] && [ "${CRUCIBLE_ALLOW_NO_TRAKT:-0}" != 1 ]; then
+    echo "install: $trakt_id is missing, so this build would have no Trakt; put it there or in ~/.config/midgar/crucible/, or set CRUCIBLE_ALLOW_NO_TRAKT=1" >&2
+    exit 1
+fi
+
 cd "$repo"
 PKG_CONFIG_PATH="$mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib
 built="$(PKG_CONFIG_PATH="$mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib --show-bin-path)"
