@@ -5,7 +5,13 @@ import Kiln
 /// sideways row that scrolls like a card shelf, with the edge arrows on hover, and keeps the focused panel in view.
 @MainActor
 public final class PanelShelfView: View {
-    private let title: String
+    /// The headline over the row.
+    public var title: String {
+        didSet {
+            headerLabel.text = title
+            setNeedsLayout()
+        }
+    }
     private let height: Float
     private let scroller = ScrollView(axis: .horizontal)
     private let headerLabel = Label(font: Theme.current.type.headline, color: Theme.current.palette.label)

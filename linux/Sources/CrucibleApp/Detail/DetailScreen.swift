@@ -20,6 +20,8 @@ class DetailScreen: ScreenView {
     let state = StateView()
     private let skeleton = DetailSkeletonView()
     private(set) var hasContent = false
+    /// The title's Trakt community, after Cast & Crew.
+    lazy var community = CommunitySection(api: api, host: self)
     private var loadTask: Task<Void, Never>?
     private var synopsisTitle = ""
 
@@ -65,10 +67,12 @@ class DetailScreen: ScreenView {
 
     override func screenDidAppear() {
         reload()
+        community.start()
     }
 
     override func screenWillDisappear() {
         loadTask?.cancel()
+        community.stop()
     }
 
     /// Loads the title; subclasses fetch and then call `present`.

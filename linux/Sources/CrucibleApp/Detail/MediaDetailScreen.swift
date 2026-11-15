@@ -62,6 +62,7 @@ final class MediaDetailScreen: DetailScreen {
             guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return false }
             return ItemActions.playPause(item, api: self.api, from: self)
         }
+        community.onReshape = { [weak self] in self?.rebuild() }
     }
 
     override func playFromKey() {
@@ -98,7 +99,9 @@ final class MediaDetailScreen: DetailScreen {
         subtitleID = tracks.subtitleId
         selectDownloadedSubtitle(in: loaded)
         loadWatchlistState(for: loaded.item)
+        community.titleName = loaded.item.title
         rebuild()
+        community.load(ratingKey: ratingKey)
     }
 
     private func rebuild() {
@@ -114,6 +117,7 @@ final class MediaDetailScreen: DetailScreen {
         var sections: [View] = []
         if !model.extras.isEmpty { sections.append(extras) }
         if !model.castAndCrew.isEmpty { sections.append(cast) }
+        sections += community.views
         if !model.related.isEmpty { sections.append(related) }
         if !information.facts.isEmpty { sections.append(information) }
         present(hero: DetailMapping.hero(model.heroInfo(trakt: scores), progress: model.hasProgress ? model.progress.fraction : nil), artwork: model.heroArtwork,

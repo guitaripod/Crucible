@@ -62,6 +62,7 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let episode = self.episode(card.id) else { return }
             self.presentEpisodeMenu(episode, at: point, from: self.episodes.card(for: card.id))
         }
+        community.onReshape = { [weak self] in self?.rebuild() }
         episodesFailed.onRetry = { [weak self] in
             guard let key = self?.model?.selectedSeasonKey else { return }
             self?.loadSeason(key)
@@ -116,7 +117,9 @@ final class ShowDetailScreen: DetailScreen {
             let (kept, follow) = Self.keepingGaps(of: self.model, in: model)
             self.model = kept
             rating.loaded()
+            community.titleName = kept.show.title
             rebuild()
+            community.load(ratingKey: showKey)
             if let follow { loadSeason(follow) }
             loadGaps()
         } catch {
@@ -179,6 +182,7 @@ final class ShowDetailScreen: DetailScreen {
             }
         }
         if !roles.isEmpty { sections.append(cast) }
+        sections += community.views
         if !model.related.isEmpty { sections.append(related) }
         present(hero: DetailMapping.hero(model.heroInfo(trakt: scores), progress: nil), artwork: model.heroArtwork,
                 synopsis: model.hasSummary ? model.show.summary : nil, synopsisTitle: model.show.title, actions: actions(for: model), sections: sections)
