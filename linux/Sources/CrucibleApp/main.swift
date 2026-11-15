@@ -23,6 +23,7 @@ func runCrucible() -> Int32 {
     }
     LinuxSetup.install()
     Theme.current.density = arguments.contains("--couch") ? .couch : .desk
+    Theme.current.cardZoom = CardZoom.saved
     Theme.current.palette = arguments.contains("--light") ? .light : .dark
     let loop = EventLoop()
     let links = AppInstance.links(in: arguments)

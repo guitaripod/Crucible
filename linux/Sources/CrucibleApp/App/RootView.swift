@@ -112,6 +112,11 @@ final class RootView: View {
             (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
             return true
         }
+        if player == nil, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
+            CardZoom.apply(step)
+            window?.relayoutEverything()
+            return true
+        }
         if event.key == Key.character("r") && event.modifiers == .control, player == nil {
             (current?.top as? Reloadable)?.reload()
             return true

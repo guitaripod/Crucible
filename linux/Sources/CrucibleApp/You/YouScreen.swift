@@ -49,27 +49,16 @@ final class YouScreen: ScreenView {
         case "server": onSwitchServer?()
         case "density":
             theme.density = theme.density == .desk ? .couch : .desk
-            relayoutEverything()
+            window?.relayoutEverything()
         case "appearance":
             theme.palette = theme.palette.appearance == .dark ? .light : .dark
             window?.background = theme.palette.canvas
-            relayoutEverything()
+            window?.relayoutEverything()
         case "settings": navigation?.push(SettingsScreen(api: payload.api))
         case "signout": onSignOut?()
         default: break
         }
         refresh()
-    }
-
-    /// Lays every view out again after a density or appearance change.
-    private func relayoutEverything() {
-        guard let root = window?.contentView else { return }
-        func walk(_ view: View) {
-            view.setNeedsLayout()
-            view.setNeedsDisplay()
-            view.subviews.forEach(walk)
-        }
-        walk(root)
     }
 
     override func layoutSubviews() {
