@@ -97,8 +97,10 @@ func quitOnSignals(_ coordinator: AppCoordinator) -> [DispatchSourceSignal] {
 
 /// The key a `--capture` letter stands for.
 func captureKey(_ character: Character) -> KeyEvent? {
-    let keys: [Character: Key] = ["d": .down, "u": .up, "l": .left, "r": .right, "e": .return, "x": .escape, "m": .menu, "p": .mediaPlay]
+    let keys: [Character: Key] = ["d": .down, "u": .up, "l": .left, "r": .right, "e": .return, "x": .escape, "m": .menu, "p": .mediaPlay,
+                                  "<": .back, ">": .forward]
     if let key = keys[character] { return KeyEvent(key: key) }
+    if character == ";" { return KeyEvent(key: .character(","), modifiers: .control) }
     if character.isNumber || character == "+" || character == "-" {
         return KeyEvent(key: .character(character == "+" ? "=" : character), modifiers: .control)
     }
@@ -106,8 +108,8 @@ func captureKey(_ character: Character) -> KeyEvent? {
 }
 
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
-/// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, a digit Ctrl with it, `+` and `-` Ctrl with them, any other
-/// character itself, in order),
+/// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
+/// Ctrl with it, `+` and `-` Ctrl with them, any other character itself, in order),
 /// waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
