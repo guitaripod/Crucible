@@ -7,7 +7,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 48 | 5 | 3 | 1 |
-| Home and libraries | 70 | 3 | 5 | 0 |
+| Home and libraries | 72 | 3 | 3 | 0 |
 | Title pages, collections, playlists and server activity | 70 | 0 | 8 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 48 | 0 | 7 | 8 |
@@ -15,7 +15,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 57 | 1 | 9 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 64 | 7 | 32 | 0 |
-| **All** | 580 | 20 | 86 | 16 |
+| **All** | 582 | 20 | 84 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -107,9 +107,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `browse-home-this-week-tile` (M) This Week tile at the end of Home: total watch time, change against last week, seven daily bars; Select opens Statistics. Gap: No week summary or tile on Linux; Statistics is not reachable from Home (no StatsManager or HomeWeekSummary use in linux/Sources). _Apple TV: Sources/CrucibleTV/Home/TVHomeTiles.swift:1-70 (TVHomeWeekSurface)_
 - [x] `browse-home-surprise-me-tile` (M) Surprise Me tile after Recently Added; Select offers Any, Movie or Show and opens a random pick from recent titles, with alerts when nothing matches or the lookup fails. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:280-285 (makeSurpriseTile), 501-529 (presentSurpriseMenu, surprise)_
 - [ ] `browse-home-what-to-watch-tile` (M) What to Watch tile beside Surprise Me (when the AI brain is available) opens the mood question and picks from the viewer's library. Gap: No What to Watch tile on Home; no What to Watch screen on Linux (no WatchCopy or whatToWatch in linux/Sources); D1 requires it free via the person's own model. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:287-296 (makeWhatToWatchTile), 344 (HostedBrain.isAvailable gate)_
-- [ ] `browse-home-out-now-row` (M) Out Now on Your Watchlist row of new seasons and episodes of watchlisted shows; Select opens the Seerr request sheet; the menu offers Request and Remove from Watchlist. Gap: No watchlist-release row, request sheet or menu on Linux (WatchlistReleases and Seerr have no linux/Sources references). _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:345-347 (row), 546-549 (select), 599-619 (releaseMenu), 566-572 (loadReleases)_
+- [x] `browse-home-out-now-row` (M) Out Now on Your Watchlist row of new seasons and episodes of watchlisted shows; Select opens the Seerr request sheet; the menu offers Request and Remove from Watchlist. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:345-347 (row), 546-549 (select), 599-619 (releaseMenu), 566-572 (loadReleases)_
 - [x] `browse-home-rate-what-you-watched-row` (M) Rate What You Watched row of finished titles not yet rated; Select opens the half-star panel; the menu offers Rate, View Details and Not Now, and a picked card leaves at once (returns if the server refuses). _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:348-350 (row), 623-651 (asks, markPicked)_
-- [ ] `browse-home-missing-next-card` (M) Dimmed Up Next card for a caught-up show whose next aired episode is not on the server; Select opens the show, the menu offers Request through Seerr. Gap: No UpNextGaps lookup or dimmed card on Linux. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:576-590 (loadMissingNext, missingNextChanged), 244-247, 550-553, 686-693_
+- [x] `browse-home-missing-next-card` (M) Dimmed Up Next card for a caught-up show whose next aired episode is not on the server; Select opens the show, the menu offers Request through Seerr. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:576-590 (loadMissingNext, missingNextChanged), 244-247, 550-553, 686-693_
 - [x] `browse-home-rail-see-all-header` (S) Each Home rail header with a See All control (Continue Watching has none) that opens the rail as a grid. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:312-322 (sectionHeader, seeAllAction)_
 - [x] `browse-home-see-all-grid` (M) See All grid for a rail: a poster grid for Recently Added and four landscape cards across for other rails, titled with the rail name and an N titles count, live-updating with Home, with a Nothing Here empty state (This list is empty right now.) and Back button. _Apple TV: Sources/CrucibleTV/Home/TVHomeSeeAllViewController.swift:1-157 (makeLayout 96-110, countText 136-138, showEmptyState 68-80)_
 - [x] `browse-home-see-all-artwork-shape` (S) The Recently Added See All grid takes the shape most of its artwork has (posters or frames), re-laid as artwork loads. _Apple TV: Sources/CrucibleTV/Home/TVHomeSeeAllViewController.swift:80-93 (isPoster, artwork shape adoption)_

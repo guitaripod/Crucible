@@ -32,6 +32,9 @@ final class HomeScreen: ScreenView {
     private var asks: [RatingAsk] = []
     private var pendingRated = Set<String>()
     private var releases: [WatchlistRelease] = []
+    /// The next episodes the server lacks of shows the viewer is caught up on, at the end of Up Next.
+    private var missingNext: [MissingNext] = []
+    private var missingNextTask: Task<Void, Never>?
     private var observers: [() -> Void] = []
     private static let surpriseID = "home.surprise"
 
@@ -46,6 +49,7 @@ final class HomeScreen: ScreenView {
         feed.apply(container: payload.hubs)
         asks = rateFeed.current()
         releases = WatchlistReleases.shared.releases()
+        missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
         observe()
         render()
     }
@@ -65,11 +69,13 @@ final class HomeScreen: ScreenView {
             self.adoptAsks(self.rateFeed.current())
         }
         let watchlist = WatchlistReleases.shared.addObserver { [weak self] in self?.releasesChanged() }
+        let gaps = UpNextGaps.shared.addObserver { [weak self] in self?.missingNextChanged() }
         observers = [
             { LibraryVisibility.removeObserver(visibility) },
             { HomeLayout.removeObserver(layout) },
             { FinishedTitlesLedger.shared.removeObserver(ledger) },
             { WatchlistReleases.shared.removeObserver(watchlist) },
+            { UpNextGaps.shared.removeObserver(gaps) },
         ]
     }
 
@@ -85,6 +91,7 @@ final class HomeScreen: ScreenView {
     override func screenDidAppear() {
         loadAsks()
         loadReleases()
+        loadMissingNext()
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
@@ -110,7 +117,9 @@ final class HomeScreen: ScreenView {
             do {
                 try await self.feed.refresh()
                 WatchlistReleases.shared.noteOnServer(self.feed.fetchedItems)
+                self.missingNext = UpNextGaps.shared.entries(nextUp: self.feed.nextUpItems)
                 self.render()
+                self.loadMissingNext()
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("Home refresh failed: \(error)", category: .networking)
@@ -178,8 +187,9 @@ final class HomeScreen: ScreenView {
                 add(.continueWatching, title: arrangement.title(for: .continueWatching), seeAll: nil,
                     items: arrangement.shelf(for: .continueWatching).map { card(for: $0, bucket: .continueWatching) })
             case .upNext:
+                let missing = arrangement.isEmpty ? [] : missingNext.map(card(for:))
                 add(.upNext, title: arrangement.title(for: .upNext), seeAll: .upNext,
-                    items: arrangement.shelf(for: .upNext).map { card(for: $0, bucket: .upNext) })
+                    items: arrangement.shelf(for: .upNext).map { card(for: $0, bucket: .upNext) } + missing)
             case .recentlyAdded where !arrangement.recent.isEmpty:
                 let surprise = CardItem(id: Self.surpriseID, title: String(localized: "Surprise Me"), subtitle: String(localized: "A random pick"),
                                         placeholderSymbol: "shuffle")
@@ -235,9 +245,11 @@ final class HomeScreen: ScreenView {
         case .rate:
             if let ask = asks.first(where: { $0.id == id }) { rate(ask) }
         case .releases:
-            if let release = releases.first(where: { $0.id == id }) { presentReleaseMenu(release, at: nil) }
+            if let release = releases.first(where: { $0.id == id }) { SeerrRequestScreen.open(release.asMetadata, api: api, isOnServer: false, from: self) }
         default:
-            if id == Self.surpriseID {
+            if let entry = missingNext.first(where: { $0.id == id }) {
+                rootView?.push(DetailScreen.make(api: api, route: .show(ratingKey: entry.showRatingKey, initialSeasonKey: entry.initialSeasonKey)))
+            } else if id == Self.surpriseID {
                 presentSurpriseMenu()
             } else if let bucket = Self.bucket(row), let media = feed.item(id: id) {
                 ItemActions.select(media, in: bucket, api: api, from: self)
@@ -252,6 +264,7 @@ final class HomeScreen: ScreenView {
         case .releases:
             if let release = releases.first(where: { $0.id == id }) { presentReleaseMenu(release, at: point) }
         default:
+            if let entry = missingNext.first(where: { $0.id == id }) { return presentMissingNextMenu(entry, at: point) }
             guard let media = feed.item(id: id) else { return }
             ItemActions.present(for: media, bucket: Self.bucket(row), api: payload.api, at: point, in: self) { [weak self] in self?.reload() }
         }
@@ -277,6 +290,13 @@ final class HomeScreen: ScreenView {
     private func card(for ask: RatingAsk) -> CardItem {
         CardItem(id: ask.id, artwork: ask.posterPath.map { .path($0, .poster) }, title: ask.title, subtitle: ask.caption(now: Date()),
                  placeholderSymbol: ask.isShow ? "tv" : "film")
+    }
+
+    /// The next episode of a show the viewer is caught up on that aired and the server lacks: dimmed, "S3 · E5 · Not on your
+    /// server"; it opens the show on that season.
+    private func card(for entry: MissingNext) -> CardItem {
+        CardItem(id: entry.id, artwork: (entry.artPath ?? entry.posterPath).map { .path($0, .backdrop) }, title: entry.showTitle, subtitle: entry.caption,
+                 isDimmed: true, placeholderSymbol: "tv")
     }
 
     private func card(for release: WatchlistRelease) -> CardItem {
@@ -420,12 +440,20 @@ final class HomeScreen: ScreenView {
         render()
     }
 
+    /// Request (with Seerr connected) and Remove from Watchlist.
     private func presentReleaseMenu(_ release: WatchlistRelease, at point: Point?) {
         guard let window else { return }
-        let token = payload.api.token
-        let menu = MenuView(title: release.title, items: [.init(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true)],
-                            anchor: menuAnchor(point))
-        menu.onSelect = { [weak self] _ in
+        let api = payload.api, token = payload.api.token
+        var items: [MenuView.Item] = []
+        if SeerrAccount.shared.isConnected { items.append(.init(id: "request", title: SeerrCopy.request, symbol: "plus.circle")) }
+        items.append(.init(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true))
+        let menu = MenuView(title: release.title, items: items, anchor: menuAnchor(point))
+        menu.onSelect = { [weak self] chosen in
+            guard let self else { return }
+            guard chosen.id == "remove" else {
+                SeerrRequestScreen.open(release.asMetadata, api: api, isOnServer: false, from: self)
+                return
+            }
             Task { [weak self] in
                 do {
                     try await WatchlistService.remove(guid: release.guid, token: token)
@@ -433,6 +461,37 @@ final class HomeScreen: ScreenView {
                     self?.notice(String(localized: "Couldn’t Update"), message: ConnectionError.message(for: error))
                 }
             }
+        }
+        menu.present(in: window)
+    }
+
+    // MARK: Missing next episodes
+
+    /// Looks for the next episode, aired but not on the server, of the shows the viewer is caught up on, once Home's own
+    /// rows have said which shows the server has a next episode for.
+    private func loadMissingNext() {
+        guard HomeLayout.isOn(.upNext) else { return }
+        let api = payload.api
+        let candidates = UpNextGaps.candidates(followed: FollowedShows.recentlyFinished(), nextUp: feed.nextUpItems)
+        missingNextTask?.cancel()
+        missingNextTask = Task { await UpNextGaps.shared.refresh(api: api, candidates: candidates) }
+    }
+
+    private func missingNextChanged() {
+        let current = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
+        guard current != missingNext else { return }
+        missingNext = current
+        render()
+    }
+
+    /// Request through Seerr, when it is connected.
+    private func presentMissingNextMenu(_ entry: MissingNext, at point: Point?) {
+        guard SeerrAccount.shared.isConnected, let window else { return }
+        let api = payload.api
+        let menu = MenuView(title: entry.showTitle, items: [.init(id: "request", title: SeerrCopy.request, symbol: "plus.circle")], anchor: menuAnchor(point))
+        menu.onSelect = { [weak self] _ in
+            guard let self else { return }
+            SeerrRequestScreen.open(entry.showMetadata, api: api, isOnServer: true, from: self)
         }
         menu.present(in: window)
     }
