@@ -32,12 +32,25 @@ public final class FocusEngine {
         focusedView = resolved
         old?.focusDidChange(focused: false, animated: animated)
         resolved?.focusDidChange(focused: true, animated: animated)
+        notifyAncestors(of: old, and: resolved)
         if reveal, let resolved, let superview = resolved.superview {
             superview.reveal(resolved.frame, of: resolved, animated: animated)
         }
         onChange?(old, resolved)
         window?.setNeedsDisplay()
         return resolved != nil
+    }
+
+    /// Tells every container the focus left or entered that it moved, once each, innermost first.
+    private func notifyAncestors(of old: View?, and new: View?) {
+        var told: Set<ObjectIdentifier> = []
+        for start in [old?.superview, new?.superview] {
+            var container = start
+            while let current = container {
+                if told.insert(ObjectIdentifier(current)).inserted { current.descendantFocusDidChange(to: new) }
+                container = current.superview
+            }
+        }
     }
 
     /// The view focus lands on when asked to focus `view`: itself when focusable, otherwise its remembered or preferred

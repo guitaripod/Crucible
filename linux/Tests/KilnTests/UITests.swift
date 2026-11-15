@@ -36,6 +36,15 @@ final class Overlay: View {
 }
 
 @MainActor
+final class FocusWatcher: View {
+    var moves: [String?] = []
+
+    override func descendantFocusDidChange(to view: View?) {
+        moves.append((view as? Tile)?.name)
+    }
+}
+
+@MainActor
 final class Ticker: View {
     var ticks = 0
 
@@ -150,6 +159,19 @@ final class Ticker: View {
         window.focus.setVisible(true)
         window.handleKey(KeyEvent(key: .down))
         #expect((window.focusedView as? Tile)?.name.hasPrefix("1,") == true, "with the scope gone, arrows reach the page again")
+    }
+
+    @Test func containersHearWhenTheFocusEntersOrLeavesThem() {
+        let tiles = grid()
+        let watcher = FocusWatcher(frame: Rect(x: 0, y: 620, width: 1000, height: 180))
+        let inside = Tile("inside", frame: Rect(x: 20, y: 0, width: 220, height: 180))
+        watcher.addSubview(inside)
+        root.addSubview(watcher)
+        window.focus.focus(tiles[0][0], animated: false)
+        #expect(watcher.moves.isEmpty, "a move elsewhere is not reported")
+        window.focus.focus(inside, animated: false)
+        window.focus.focus(tiles[1][0], animated: false)
+        #expect(watcher.moves == ["inside", "1,0"], "entering and leaving are each reported once")
     }
 
     @Test func removingTheFocusedViewMovesFocusToTheNearest() {

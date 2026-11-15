@@ -241,6 +241,9 @@ open class View {
     /// Called on every view when the keyboard starts or stops showing focus (the focus-visible rule).
     open func focusVisibilityDidChange(_ visible: Bool) {}
 
+    /// Called on every container the focus left or entered, with the view that has it now.
+    open func descendantFocusDidChange(to view: View?) {}
+
     /// Scrolls ancestors so `rect` (in this view's points) is in view; scroll containers override it.
     open func reveal(_ rect: Rect, of view: View, animated: Bool) {
         superview?.reveal(transformToSuperview.apply(rect), of: view, animated: animated)
