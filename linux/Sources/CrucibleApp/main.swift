@@ -120,7 +120,8 @@ func captureKey(_ character: Character) -> KeyEvent? {
     return KeyEvent(key: .character(character), text: String(character))
 }
 
-/// Presses a capture's keys in order, moving the pointer for each `{X,Y}` among them.
+/// Presses a capture's keys in order, moving the pointer for each `{X,Y}` among them, pressing and releasing the primary
+/// button for `[` and `]`, clicking the secondary for `#`, and holding Ctrl for the letter after a `^`.
 @MainActor
 func performCaptureInput(_ keys: String, in window: Window) {
     var rest = Substring(keys)
@@ -131,15 +132,29 @@ func performCaptureInput(_ keys: String, in window: Window) {
             rest = rest[rest.index(after: close)...]
             continue
         }
-        if let event = captureKey(character) { window.handleKey(event) }
+        if character == "^", let letter = rest.dropFirst().first {
+            window.handleKey(KeyEvent(key: .character(letter), modifiers: .control))
+            rest = rest.dropFirst(2)
+            continue
+        }
+        switch character {
+        case "[": window.handlePointerButton(.primary, pressed: true)
+        case "]": window.handlePointerButton(.primary, pressed: false)
+        case "#":
+            window.handlePointerButton(.secondary, pressed: true)
+            window.handlePointerButton(.secondary, pressed: false)
+        default:
+            if let event = captureKey(character) { window.handleKey(event) }
+        }
         rest = rest.dropFirst()
     }
 }
 
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
-/// Ctrl with it, `+` and `-` Ctrl with them, `!` F10, `?` Ctrl+?, `{X,Y}` moves the pointer to that point of the window, any
-/// other character itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
+/// Ctrl with it, `+` and `-` Ctrl with them, `!` F10, `?` Ctrl+?, `^` and a letter Ctrl with it, `{X,Y}` moves the pointer to
+/// that point of the window, `[` and `]` press and release the primary button, `#` clicks the secondary, any other character
+/// itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }
