@@ -135,7 +135,7 @@ Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the ta
 
 ### 5.6 Type and symbols
 
-- **Type:** Inter (SIL OFL), bundled so metrics match on every distribution, with Inter Display at 30 points and above. CJK falls back through fontconfig to Noto Sans CJK, a package dependency. The tvOS sizes are kept; line heights are checked in the parity captures (§11).
+- **Type:** Inter (SIL OFL), bundled so metrics match on every distribution, as static cuts: Inter Display from an optical size of 23 points, the middle of Inter's 14 to 32 axis (SF moves from Text to Display at 20), and Inter below it; on the TV the optical size follows the reading distance, so 29 point body text stays Text. CJK and other scripts Inter lacks fall back through fontconfig, to Noto Sans CJK when it is installed (an optional dependency of the package) or any CJK font the system has. The tvOS sizes are kept; line heights are checked in the parity captures (§11).
 - **Symbols:** SF Symbols cannot ship. One map file names an open icon (Lucide, ISC) for every SF Symbol name Core and the Apple TV screens use, with a drawn icon where Lucide has no match; a unit test fails when Core names a symbol the map lacks. librsvg rasterises each icon at the pixel size it is drawn at into a cached coverage texture, so it is sharp at every density; `.fill` names fill the outline and `.circle.fill` names cut their glyph out of a solid disc.
 
 ### 5.7 Liquid Glass
