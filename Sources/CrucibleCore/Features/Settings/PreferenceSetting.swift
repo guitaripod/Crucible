@@ -43,6 +43,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case ratingReminderTiming
     case notifyNewEpisodes
     case notifyWatchlistArrivals
+    /// Linux: a systemd timer checks the server while Crucible is closed.
+    case notifyWhileClosed
     case notifyWeeklyRecap
     case notifyYearInReview
     case notifyDownloads
@@ -84,6 +86,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .ratingReminderTiming: return String(localized: "Remind Me", comment: "Setting: when a rating reminder arrives")
         case .notifyNewEpisodes: return NotificationKind.newEpisodes.title
         case .notifyWatchlistArrivals: return NotificationKind.watchlistArrivals.title
+        case .notifyWhileClosed: return String(localized: "While Crucible Is Closed", comment: "Linux notification setting: check the server for news while the app is not running")
         case .notifyWeeklyRecap: return NotificationKind.weeklyRecap.title
         case .notifyYearInReview: return NotificationKind.yearInReview.title
         case .notifyDownloads: return NotificationKind.downloads.title
@@ -117,6 +120,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .ratingReminderTiming: return String(localized: "When a rating reminder arrives after you finish something.")
         case .notifyNewEpisodes: return NotificationKind.newEpisodes.explanation
         case .notifyWatchlistArrivals: return NotificationKind.watchlistArrivals.explanation
+        case .notifyWhileClosed:
+            return String(localized: "Every half hour, a quick look at your server announces what arrived while Crucible was closed.", comment: "Explanation of the Linux setting that checks for news while the app is closed")
         case .notifyWeeklyRecap: return NotificationKind.weeklyRecap.explanation
         case .notifyYearInReview: return NotificationKind.yearInReview.explanation
         case .notifyDownloads: return NotificationKind.downloads.explanation
@@ -152,6 +157,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .ratingReminderTiming: return "clock"
         case .notifyNewEpisodes: return NotificationKind.newEpisodes.symbol
         case .notifyWatchlistArrivals: return NotificationKind.watchlistArrivals.symbol
+        case .notifyWhileClosed: return "clock.arrow.circlepath"
         case .notifyWeeklyRecap: return NotificationKind.weeklyRecap.symbol
         case .notifyYearInReview: return NotificationKind.yearInReview.symbol
         case .notifyDownloads: return NotificationKind.downloads.symbol
@@ -231,6 +237,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .toggle(isOn: notificationKind.map { Preferences.notifies($0) } ?? false)
         case .quietHours:
             return .toggle(isOn: Preferences.quietHours)
+        case .notifyWhileClosed:
+            return .toggle(isOn: Preferences.notifiesWhileClosed)
         case .preferLocalConnection:
             return .toggle(isOn: Preferences.preferLocalConnection)
         case .allowRelayConnection:
@@ -325,6 +333,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .downloadOverCellular: Preferences.downloadOverCellular = isOn
         case .deleteWatchedDownloads: Preferences.deleteWatchedDownloads = isOn
         case .quietHours: Preferences.quietHours = isOn
+        case .notifyWhileClosed: Preferences.notifiesWhileClosed = isOn
         case .preferLocalConnection: Preferences.preferLocalConnection = isOn
         case .allowRelayConnection: Preferences.allowRelayConnection = isOn
         case .notifyRatingReminders, .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads:
@@ -382,6 +391,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         .notifyRatingReminders: .toggle(isOn: true),
         .notifyNewEpisodes: .toggle(isOn: true),
         .notifyWatchlistArrivals: .toggle(isOn: true),
+        .notifyWhileClosed: .toggle(isOn: true),
         .notifyWeeklyRecap: .toggle(isOn: true),
         .notifyYearInReview: .toggle(isOn: true),
         .notifyDownloads: .toggle(isOn: true),

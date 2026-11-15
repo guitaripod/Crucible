@@ -79,6 +79,12 @@ extension Preferences {
     private static let ratingReminderTimingKey = "notify.ratingReminderTiming"
     private static let quietHoursKey = "notify.quietHours"
 
+    /// Linux: whether the systemd timer checks the server for news while Crucible is closed.
+    package static var notifiesWhileClosed: Bool {
+        get { UserDefaults.standard.object(forKey: "notifyWhileClosed") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "notifyWhileClosed") }
+    }
+
     package static func notifies(_ kind: NotificationKind, defaults: UserDefaults = .standard) -> Bool {
         defaults.object(forKey: notificationKey(kind)) as? Bool ?? true
     }

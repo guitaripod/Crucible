@@ -232,6 +232,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.quietHours), category: .notifications, section: reminders, platforms: phone),
             Spec(item: .preference(.notifyNewEpisodes), category: .notifications, section: news, platforms: [.phone, .linux]),
             Spec(item: .preference(.notifyWatchlistArrivals), category: .notifications, section: news, platforms: [.phone, .linux]),
+            Spec(item: .preference(.notifyWhileClosed), category: .notifications, section: news, platforms: [.linux]),
             Spec(item: .preference(.notifyWeeklyRecap), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyYearInReview), category: .notifications, section: news, platforms: phone),
             Spec(item: .preference(.notifyDownloads), category: .notifications, section: news, platforms: phone),
@@ -463,7 +464,7 @@ package enum SettingsCatalog {
                 return String(localized: "posters, grid, columns, bigger", comment: "Search keywords for the poster size setting, comma separated")
             case .notifyRatingReminders, .ratingReminderTiming:
                 return String(localized: "rate, stars, reminder, push, alert", comment: "Search keywords for rating reminders, comma separated")
-            case .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads, .quietHours:
+            case .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads, .quietHours, .notifyWhileClosed:
                 return String(localized: "push, alert, notify, badge, quiet, night", comment: "Search keywords for notification settings, comma separated")
             case .preferLocalConnection, .allowRelayConnection:
                 return String(localized: "network, LAN, remote, relay, Tailscale, wifi", comment: "Search keywords for connection settings, comma separated")

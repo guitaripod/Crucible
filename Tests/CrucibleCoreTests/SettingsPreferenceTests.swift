@@ -269,7 +269,8 @@ struct LinuxNotificationSettingsTests {
     @Test func linuxOffersTheServersNewsAndCountsOnlyThat() {
         #expect(NotificationKind.offered(on: .linux) == [.newEpisodes, .watchlistArrivals])
         #expect(NotificationKind.offered(on: .phone) == NotificationKind.allCases)
-        #expect(SettingsCatalog.preferences(in: .notifications, on: .linux) == [.notifyNewEpisodes, .notifyWatchlistArrivals])
+        #expect(SettingsCatalog.preferences(in: .notifications, on: .linux) == [.notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWhileClosed])
+        #expect(!SettingsCatalog.preferences(in: .notifications, on: .phone).contains(.notifyWhileClosed))
         #expect(SettingsCategory.notifications.explanation(on: .linux) != SettingsCategory.notifications.explanation(on: .phone))
     }
 }

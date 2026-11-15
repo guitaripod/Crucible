@@ -68087,6 +68087,102 @@
         }
       }
     },
+    "Every half hour, a quick look at your server announces what arrived while Crucible was closed." : {
+      "comment" : "Explanation of the Linux setting that checks for news while the app is closed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hver halve time tjekker Crucible kort din server og fortæller, hvad der er kommet, mens Crucible var lukket."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede halbe Stunde wirft Crucible einen kurzen Blick auf deinen Server und meldet, was angekommen ist, während Crucible geschlossen war."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada media hora, un vistazo rápido a tu servidor te avisa de lo que llegó mientras Crucible estaba cerrado."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puolen tunnin välein lyhyt tarkistus palvelimeltasi kertoo, mitä on tullut sillä aikaa, kun Crucible oli suljettuna."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les demi-heures, un rapide coup d’œil à votre serveur vous signale ce qui est arrivé pendant que Crucible était fermé."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Á hálftíma fresti lítur Crucible stuttlega á þjóninn þinn og lætur vita hvað kom á meðan Crucible var lokað."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni mezz’ora, un rapido controllo del tuo server ti segnala cosa è arrivato mentre Crucible era chiuso."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30分ごとにサーバーを手早く確認し、Crucibleを閉じている間に届いたものをお知らせします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30분마다 서버를 잠깐 확인해 Crucible이 닫혀 있는 동안 도착한 항목을 알려 줍니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hver halvtime ser Crucible raskt på serveren din og varsler om det som kom mens Crucible var lukket."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co pół godziny krótkie sprawdzenie serwera informuje, co pojawiło się, gdy Crucible był zamknięty."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A cada meia hora, uma olhada rápida no seu servidor avisa o que chegou enquanto o Crucible estava fechado."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Varje halvtimme tittar Crucible snabbt på din server och meddelar vad som kommit medan Crucible var stängt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每半小时快速查看一次你的服务器，告诉你 Crucible 关闭期间新增的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每半小時快速查看一次你的伺服器，告訴你 Crucible 關閉期間新增的內容。"
+          }
+        }
+      }
+    },
     "Every library is in the tab bar." : {
       "localizations" : {
         "da" : {
@@ -198306,6 +198402,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crucible 使用哪一台伺服器、所有連線路徑，以及每條路徑的回應速度。"
+          }
+        }
+      }
+    },
+    "While Crucible Is Closed" : {
+      "comment" : "Linux notification setting: check the server for news while the app is not running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mens Crucible er lukket"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Während Crucible geschlossen ist"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Crucible cerrado"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun Crucible on suljettu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quand Crucible est fermé"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þegar Crucible er lokað"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con Crucible chiuso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucibleを閉じているとき"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible이 닫혀 있을 때"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når Crucible er lukket"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy Crucible jest zamknięty"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com o Crucible fechado"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "När Crucible är stängt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 关闭时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 關閉時"
           }
         }
       }
