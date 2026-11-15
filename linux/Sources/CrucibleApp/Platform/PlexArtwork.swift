@@ -33,17 +33,24 @@ final class PlexArtworkPipeline: ArtworkPipeline {
         return components.url
     }
 
-    /// Fetches artwork with the Plex headers (the token travels as a header, never in the cached URL).
+    /// Fetches artwork, with the Plex headers for the server's own (the token travels as a header, never in the cached URL).
     static func fetcher(token: String) -> ImageStore.Fetch {
         { url in
             var request = URLRequest(url: url)
             request.timeoutInterval = 12
-            if url.host.map({ !$0.hasSuffix("plex.tv") && !$0.hasSuffix("image.tmdb.org") }) ?? true {
+            if isServerArtwork(url) {
                 for (key, value) in PlexHeaders.allHeaders(token: token) { request.setValue(value, forHTTPHeaderField: key) }
             }
             let (data, response) = try await HTTPSession.current.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw URLError(.badServerResponse) }
             return data
         }
+    }
+
+    /// Whether `url` is the Plex server's own artwork (its photo transcoder or a library image), the only images that carry
+    /// the account's token: Seerr's image proxy, TMDB, plex.tv and every other host never see it.
+    nonisolated static func isServerArtwork(_ url: URL) -> Bool {
+        guard let host = url.host, !host.hasSuffix("plex.tv"), !host.hasSuffix("image.tmdb.org") else { return false }
+        return url.path.hasPrefix("/photo/") || url.path.hasPrefix("/library/")
     }
 }
