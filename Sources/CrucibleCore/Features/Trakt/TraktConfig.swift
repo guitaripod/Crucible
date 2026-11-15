@@ -32,7 +32,15 @@ package enum TraktConfig {
     /// The page a viewer approves a device code on.
     package static var activationURL: URL { authURL.appendingPathComponent("activate") }
 
-    package static var userAgent: String { "Crucible/\(AppInfo.versionText) (\(AppPlatform.isTV ? "tvOS" : "iOS"))" }
+    package static var userAgent: String { "Crucible/\(AppInfo.versionText) (\(platformName))" }
+
+    private static var platformName: String {
+        #if os(Linux)
+        return "Linux"
+        #else
+        return AppPlatform.isTV ? "tvOS" : "iOS"
+        #endif
+    }
 
     private static var shippedClientID: String? {
         let provider = TraktConfig.self as Any.Type as? TraktClientIDProviding.Type
