@@ -6,9 +6,10 @@ focus-driven Liquid Glass app on Apple TV.
 
 **[Crucible for Plex on the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419)**: free on iPhone,
 iPad and Apple TV. Crucible Pro (pay once or yearly; one purchase unlocks every device) adds What to Watch, Previously
-On, unlimited downloads, full Statistics, the Year in Review poster, Top Shelf, Seerr request management and Library
-Research. No server yet? Choose *Try the demo* on the welcome screen. The source is GPL-3.0, and a build from source
-unlocks every Pro feature except What to Watch and Previously On, which use Crucible's hosted model.
+On, every Trakt comment and member, unlimited downloads, full Statistics, the Year in Review poster, Top Shelf, Seerr
+request management and Library Research. No server yet? Choose *Try the demo* on the welcome screen. The source is
+GPL-3.0, and a build from source unlocks every Pro feature except What to Watch and Previously On, which use Crucible's
+hosted model.
 
 ![Screenshots](screenshots.png)
 
@@ -22,7 +23,8 @@ unlocks every Pro feature except What to Watch and Previously On, which use Cruc
   trailers, subtitle search and what your server is missing.
 - **Remember**: half-star ratings saved to Plex, Rate What You Watched, Watch History, Statistics, a Year in Review and
   share cards.
-- **Integrations**: Trakt (scrobbling, ratings, scores) and Seerr, Overseerr or Jellyseerr requests.
+- **Integrations**: Trakt (scrobbling, ratings, scores, and each title's community: reviews, replies, reactions, What
+  People Say and members to follow) and Seerr, Overseerr or Jellyseerr requests.
 - **For server owners**: Manage (Fix Match, Edit Details, artwork, refresh, delete), Stop Stream and the Server
   Dashboard, on every platform.
 - **Built right**: Swift 6, programmatic UIKit, Dynamic Type, VoiceOver, Reduce Motion, Plex Home profiles and

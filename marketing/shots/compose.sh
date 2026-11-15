@@ -6,8 +6,8 @@ RAW=${RAW:-$ROOT/marketing/shots/out/raw-dark}
 RAW_LIGHT=${RAW_LIGHT:-$ROOT/marketing/shots/out/raw-light}
 OUT=${OUT:-$ROOT/marketing/shots/out/framed}
 COLOR=${COLOR:-Silver}
-GALLERY=(01-home 02-library 03-detail 04b-show-episodes 05-search 06-downloads 07-stats 07c-share-preview 11c-libraries 09-player)
-BANNER=(01-home 02-library 03-detail 04b-show-episodes 06-downloads)
+GALLERY=(15-what-to-watch 01-home 02b-library-settled 03-detail 17-community 05b-search-request 06-downloads 07-stats 07c-share-preview 09b-skip-intro)
+BANNER=(01-home 02b-library-settled 03-detail 17-community 15-what-to-watch)
 
 rm -rf "$OUT"
 mkdir -p "$OUT/gallery" "$OUT/banner"
