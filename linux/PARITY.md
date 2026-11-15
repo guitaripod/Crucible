@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 76 | 7 | 20 | 0 |
-| **All** | 643 | 12 | 31 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 78 | 7 | 18 | 0 |
+| **All** | 645 | 12 | 29 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -708,8 +708,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `crucible-uri-registration` (S) crucible:// links open Crucible through the desktop's scheme handler (MimeType x-scheme-handler/crucible) _Apple TV: docs/LINUX.md §9 crucible:// links and one instance_
 - [x] `crucible-link-open` (S) A crucible:// link opens its item or starts playback (crucible://item/... and crucible://play/...) _Apple TV: docs/LINUX.md §9 crucible:// links and one instance_
 - [x] `single-instance-dbus` (S) A second launch hands its link and activation token to the running Crucible over D-Bus and quits, instead of opening a second window _Apple TV: docs/LINUX.md §9 crucible:// links and one instance_
-- [ ] `notifications-library-news` (M) LibraryNews notifications (org.freedesktop.Notifications) while the app runs Gap: No freedesktop notification code. Core LibraryNews.swift (Sources/CrucibleCore/Features/Notifications/LibraryNews.swift) has no Linux caller, and the Linux Settings catalogue has no notification rows (SettingsCatalog.swift:227-235 are phone-only). _Apple TV: docs/LINUX.md §9 Notifications_
-- [ ] `background-refresh-timer` (M) systemd user timer runs background library refresh (doc says it can follow) Gap: No systemd user timer or unit exists under linux/ (linux/packaging holds only the desktop entry and aur/). The doc marks it as a later step. _Apple TV: docs/LINUX.md §9 Notifications_
+- [x] `notifications-library-news` (M) LibraryNews notifications (org.freedesktop.Notifications) while the app runs _Apple TV: docs/LINUX.md §9 Notifications_
+- [x] `background-refresh-timer` (M) systemd user timer runs background library refresh (doc says it can follow) _Apple TV: docs/LINUX.md §9 Notifications_
 - [ ] `match-content-output-hdr-switch` (L) Match Content switches the player's output to HDR for an HDR title and restores it afterward, through kde_output_management_v2 Gap: The kde-output-management-v2 protocol is generated (linux/Sources/CKiln/protocols/kde-output-management-v2-protocol.c) but kiln_wayland.c never binds it (no kde_output reference in kiln_wayland.c), and no output configuration is requested. _Apple TV: docs/LINUX.md §7.4 Match Content_
 - [ ] `match-content-refresh-switch` (L) Match Content switches the refresh rate to the frame rate (23.976 and 29.97 to 119.88 Hz, 25 and 50 to 100 Hz, 24 stays on 144 Hz) Gap: No mode switching or frame-rate table exists; depends on the output-management binding. _Apple TV: docs/LINUX.md §7.4 Match Content_
 - [ ] `match-content-setting-and-guard` (M) Match Content is a Linux Settings entry, on by default in fullscreen, and restores the output if Crucible dies mid-title Gap: No Match Content entry in SettingsCatalog.swift (206-251), no default-on fullscreen behaviour, and no crash guard. _Apple TV: docs/LINUX.md §6 Settings_
