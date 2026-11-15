@@ -46,6 +46,11 @@ final class YouScreen: SettingsScaffold {
     private var historySubtitle: String?
     private var remoteThrottle = ReloadThrottle(interval: 60)
     private var remoteTask: Task<Void, Never>?
+    private var libraryObserver: UUID?
+    private var releasesObserver: UUID?
+    private var tourObserver: UUID?
+    private var traktObserver: UUID?
+    private var seerrObserver: UUID?
 
     init(payload: LaunchPayload) {
         self.payload = payload
@@ -54,7 +59,29 @@ final class YouScreen: SettingsScaffold {
         yearCard.isHidden = true
         yearCard.onSelect = { [weak self] in self?.openStatistics() }
         YouConnectionStatus.shared.onChange = { [weak self] _ in self?.refreshProfile() }
+        observeRowSources()
         refreshProfile()
+    }
+
+    deinit {
+        let (library, releases, tour, trakt, seerr) = (libraryObserver, releasesObserver, tourObserver, traktObserver, seerrObserver)
+        Task { @MainActor in
+            library.map(LibraryVisibility.removeObserver)
+            releases.map(WatchlistReleases.shared.removeObserver)
+            tour.map(DemoTour.shared.stopObserving)
+            trakt.map(TraktAccount.shared.stopObserving)
+            seerr.map(SeerrAccount.shared.stopObserving)
+        }
+    }
+
+    /// Redraws the rows whenever what they say changes while You is open (`TVYouViewController`): the libraries shown, the
+    /// watchlist's releases, the demo tour, and Trakt or Seerr connecting or leaving.
+    private func observeRowSources() {
+        libraryObserver = LibraryVisibility.addObserver { [weak self] in self?.refreshRows() }
+        releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in self?.refreshRows() }
+        tourObserver = DemoTour.shared.observe { [weak self] in self?.refreshRows() }
+        traktObserver = TraktAccount.shared.observe { [weak self] in self?.refreshRows() }
+        seerrObserver = SeerrAccount.shared.observe { [weak self] in self?.refreshRows() }
     }
 
     /// How many shows on the watchlist have something new out, when any do.
