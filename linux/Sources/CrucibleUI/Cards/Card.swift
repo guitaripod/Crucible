@@ -16,6 +16,8 @@ public struct CardItem: Hashable, Sendable {
     public var isDimmed = false
     public var badgeText: String?
     public var placeholderSymbol: Symbol = "film"
+    /// UTF-16 ranges of the title tinted in the accent (a search query's match).
+    public var titleHighlights: [Range<Int>] = []
 
     public init(id: String, artwork: ArtworkSource? = nil, title: String, subtitle: String? = nil, detail: String? = nil, eyebrow: String? = nil,
                 progress: Double? = nil, isUnwatched: Bool = false, isWatched: Bool = false, isDimmed: Bool = false, badgeText: String? = nil,
@@ -358,6 +360,9 @@ public final class CardView: View {
         }
         let title = TextLayout(item.title, font: type.cardTitle, maxWidth: width, maxLines: style.titleLines, alignment: alignment, scale: scale)
         context.text(title, at: Point(x: place(title), y: y), color: palette.label)
+        if let match = title.showingOnly(utf16: item.titleHighlights.map { (location: $0.lowerBound, length: $0.count) }) {
+            context.text(match, at: Point(x: place(title), y: y), color: palette.accentText)
+        }
         y += title.size.height + metrics.captionLabelSpacing
         if let subtitle = item.subtitle, !subtitle.isEmpty {
             let layout = TextLayout(subtitle, font: type.cardSubtitle, maxWidth: width, alignment: alignment, scale: scale)

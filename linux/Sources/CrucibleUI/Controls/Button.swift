@@ -301,6 +301,8 @@ public final class ChipRowView: View {
     }
 
     public var onSelect: ((Chip) -> Void)?
+    /// A right click or the Menu key on a chip, with where to anchor a menu; nil leaves chips without one.
+    public var onContextMenu: ((Chip, Point?) -> Void)?
     public let scroller = ScrollView(axis: .horizontal)
     private var chips: [Chip] = []
     private var buttons: [String: ButtonView] = [:]
@@ -331,6 +333,11 @@ public final class ChipRowView: View {
             button.symbol = chip.symbol
             button.isDimmed = chip.isDimmed
             button.onPress = { [weak self] in self?.onSelect?(chip) }
+            button.onContextMenu = onContextMenu == nil ? nil : { [weak self, weak button] point in
+                guard let self, let button else { return }
+                let frame = button.frameInWindow
+                self.onContextMenu?(chip, point ?? Point(x: frame.minX, y: frame.maxY))
+            }
             if button.superview == nil { scroller.addSubview(button) }
             next[chip.id] = button
         }
