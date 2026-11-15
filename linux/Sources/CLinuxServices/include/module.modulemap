@@ -3,5 +3,6 @@ module CLinuxServices {
     header "crucible_mpris.h"
     header "crucible_app.h"
     header "crucible_session.h"
+    header "crucible_pinned.h"
     export *
 }

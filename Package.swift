@@ -75,7 +75,7 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"], path: "linux/Sources/KilnSpike"),
         .target(name: "CrucibleUI", dependencies: ["Kiln"], path: "linux/Sources/CrucibleUI", resources: [.copy("Resources/Brand")]),
         .executableTarget(name: "CrucibleGallery", dependencies: ["CrucibleUI", "Kiln"], path: "linux/Sources/CrucibleGallery"),
-        .systemLibrary(name: "CLinuxLibs", path: "linux/Sources/CLinuxLibs", pkgConfig: "libsecret-1 libqrencode libsystemd"),
+        .systemLibrary(name: "CLinuxLibs", path: "linux/Sources/CLinuxLibs", pkgConfig: "libsecret-1 libqrencode libsystemd libcurl openssl"),
         .target(name: "CLinuxServices", dependencies: ["CLinuxLibs"], path: "linux/Sources/CLinuxServices"),
         .target(name: "CrucibleDemo", dependencies: ["CrucibleCore", midgarCore], resources: [.copy("Data")]),
         .testTarget(name: "CrucibleDemoTests", dependencies: ["CrucibleDemo", "CrucibleCore"]),
