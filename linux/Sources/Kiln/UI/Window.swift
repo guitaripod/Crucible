@@ -56,6 +56,7 @@ public final class Window {
     private var retryAfter: Double = 0
     private var wakeArmed: Double?
     private var animating: [ObjectIdentifier: View] = [:]
+    private var parked: [ObjectIdentifier: ParkedView] = [:]
     private var lastFrameTime: Double?
     private var hovered: View?
     private var pressed: (view: View, button: MouseButton)?
@@ -261,10 +262,33 @@ public final class Window {
         }
     }
 
+    /// Advances every animating view; a view that settled, left the window, or sits under a hidden ancestor stops (it
+    /// starts again when something changes it), so nothing invisible keeps the window drawing.
     private func advanceAnimations(_ dt: Float) {
         guard !animating.isEmpty else { return }
-        for (key, view) in animating where !view.advanceAnimations(dt) || view.window !== self {
-            animating[key] = nil
+        for (key, view) in animating {
+            if view.window !== self {
+                animating[key] = nil
+            } else if view.isUnderHiddenView {
+                animating[key] = nil
+                parked[key] = ParkedView(view: view)
+            } else if !view.advanceAnimations(dt) {
+                animating[key] = nil
+            }
+        }
+    }
+
+    /// A view was shown again: the animations parked under it pick up where they stopped.
+    func viewBecameAvailable(_ view: View) {
+        guard !parked.isEmpty else { return }
+        for (key, entry) in parked {
+            guard let parkedView = entry.view, parkedView.window === self else {
+                parked[key] = nil
+                continue
+            }
+            guard parkedView === view || parkedView.isDescendant(of: view), !parkedView.isUnderHiddenView else { continue }
+            parked[key] = nil
+            startAnimating(parkedView)
         }
     }
 
@@ -521,7 +545,22 @@ public final class Window {
     }
 }
 
+/// An animating view under a hidden ancestor, held weakly until it is shown again.
+private struct ParkedView {
+    weak var view: View?
+}
+
 extension View {
+    /// Whether this view or an ancestor is hidden (transparency does not count: a view fading in from zero still animates).
+    public var isUnderHiddenView: Bool {
+        var view: View? = self
+        while let current = view {
+            if current.isHidden { return true }
+            view = current.superview
+        }
+        return false
+    }
+
     /// The deepest view under `point` whether or not it is interactive: scrolling goes to whatever is under the pointer.
     func hitTestAny(_ point: Point) -> View? {
         guard !isHidden, alpha > 0.01 else { return nil }

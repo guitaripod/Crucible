@@ -31,6 +31,16 @@ final class Row: View {
 }
 
 @MainActor
+final class Ticker: View {
+    var ticks = 0
+
+    override func advanceAnimations(_ dt: Float) -> Bool {
+        ticks += 1
+        return true
+    }
+}
+
+@MainActor
 @Suite(.serialized) struct FocusTests {
     let window: Window
     let root = View()
@@ -282,6 +292,30 @@ final class Row: View {
         let b = ImageStore.cacheName(for: URL(string: "https://plex.example/photo?width=260&url=/library/2")!)
         #expect(a != b)
         #expect(a.count > 20)
+    }
+}
+
+@MainActor
+@Suite(.serialized) struct AnimationParkingTests {
+    @Test func anAnimationUnderAHiddenViewRestsUntilItIsShownAgain() throws {
+        let window = try Window(offscreen: Size(width: 200, height: 200), gpu: TestGPU.shared)
+        let parent = View(frame: Rect(x: 0, y: 0, width: 100, height: 100))
+        let ticker = Ticker(frame: Rect(x: 0, y: 0, width: 50, height: 50))
+        parent.addSubview(ticker)
+        window.contentView.addSubview(parent)
+        ticker.startAnimating()
+        window.advance(by: 0.1)
+        #expect(ticker.ticks > 0)
+        parent.isHidden = true
+        window.advance(by: 0.1)
+        let resting = ticker.ticks
+        window.advance(by: 0.1)
+        #expect(!window.isAnimating)
+        #expect(ticker.ticks == resting)
+        parent.isHidden = false
+        #expect(window.isAnimating)
+        window.advance(by: 0.1)
+        #expect(ticker.ticks > resting)
     }
 }
 

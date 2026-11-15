@@ -150,7 +150,8 @@ public final class FocusAnchorView: View {
     public override var isPointerInteractive: Bool { false }
 }
 
-/// The activity indicator: eight petals around a circle, the brightest one walking round once a second.
+/// The activity indicator: eight petals around a circle, the brightest one walking round once a second. It rests while it
+/// or anything around it is hidden and carries on when shown again.
 @MainActor
 public final class SpinnerView: View {
     private var phase: Float = 0
@@ -158,7 +159,7 @@ public final class SpinnerView: View {
     public override func didMoveToWindow() { startAnimating() }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
-        guard !isHidden, window != nil, !Animation.reduceMotion else { return false }
+        guard window != nil, !Animation.reduceMotion else { return false }
         phase = (phase + dt).truncatingRemainder(dividingBy: 1)
         setNeedsDisplay()
         return true

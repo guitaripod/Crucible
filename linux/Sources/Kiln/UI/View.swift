@@ -41,7 +41,11 @@ open class View {
         didSet {
             guard isHidden != oldValue else { return }
             setNeedsDisplay()
-            if isHidden { window?.viewBecameUnavailable(self, formerSuperview: superview) }
+            if isHidden {
+                window?.viewBecameUnavailable(self, formerSuperview: superview)
+            } else {
+                window?.viewBecameAvailable(self)
+            }
         }
     }
 
