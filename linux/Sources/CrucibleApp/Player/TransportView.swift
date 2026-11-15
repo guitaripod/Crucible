@@ -11,6 +11,16 @@ final class TransportView: View {
     enum Control: String, CaseIterable {
         case info, speed, sleep, audio, subtitles
 
+        var title: String {
+            switch self {
+            case .info: String(localized: "Info")
+            case .speed: String(localized: "Playback Speed")
+            case .sleep: String(localized: "Sleep Timer")
+            case .audio: String(localized: "Audio")
+            case .subtitles: String(localized: "Subtitles")
+            }
+        }
+
         var symbol: Symbol {
             switch self {
             case .info: "info.circle"
@@ -67,6 +77,12 @@ final class TransportView: View {
 
     override var isPointerInteractive: Bool { true }
     override var cursor: Cursor { .default }
+
+    /// The name of the icon under the pointer: play or pause, or one of the menu buttons.
+    override func tooltip(at point: Point) -> String? {
+        if playButton.insetBy(-8, -8).contains(point) { return paused ? String(localized: "Play") : String(localized: "Pause") }
+        return Control.allCases.first { frame(of: $0).insetBy(-6, -6).contains(point) }?.title
+    }
 
     override func sizeThatFits(_ size: Size) -> Size {
         Size(width: size.width, height: Theme.current.metrics.tv(150))

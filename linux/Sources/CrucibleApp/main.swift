@@ -49,6 +49,7 @@ func runCrucible() -> Int32 {
     if arguments.contains("--fullscreen") || arguments.contains("--couch") { window.setFullscreen(true) }
     TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
     DesktopAccessibility.apply(to: window)
+    window.makeTooltip = { TooltipView(text: $0) }
     let coordinator = AppCoordinator(window: window)
     let memoryPressure = MemoryPressure(loop: loop, window: window)
     ServerRouteMonitor.shared.start()
