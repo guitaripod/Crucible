@@ -48,6 +48,8 @@ final class PlayerScreen: View {
         }
         transport.onSeek = { [weak self] fraction in self?.seek(toFraction: fraction) }
         transport.onTogglePause = { [weak self] in self?.player?.togglePause() }
+        transport.onAudio = { [weak self] anchor in self?.showTracks(audio: true, anchor: anchor) }
+        transport.onSubtitles = { [weak self] anchor in self?.showTracks(audio: false, anchor: anchor) }
         skip.isHidden = true
         skip.onPress = { [weak self] in self?.skipSegment() }
         addSubview(transport)
@@ -108,11 +110,11 @@ final class PlayerScreen: View {
         }
     }
 
-    private func load(_ resolved: ResolvedStream) {
+    private func load(_ resolved: ResolvedStream, from requested: Double? = nil) {
         guard case .plex(let api, let item, let resumePosition) = source else { return }
         stream = resolved
         segments = resolved.segments
-        let start = ResumeStrategy.streamStart(resumePosition: resumePosition, isDirectPlay: resolved.isDirectPlay)
+        let start = ResumeStrategy.streamStart(resumePosition: requested ?? resumePosition, isDirectPlay: resolved.isDirectPlay)
         streamOffset = resolved.isDirectPlay ? 0 : start
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)
@@ -163,6 +165,67 @@ final class PlayerScreen: View {
     private func seek(toFraction fraction: Float) {
         guard duration > 0 else { return }
         seek(to: Double(fraction) * duration)
+    }
+
+    // MARK: Tracks
+
+    /// The Audio or Subtitles menu: the file's streams with the one playing checked. A file playing directly switches in
+    /// place; a converted stream is asked for again from where it is, with the new choice.
+    private func showTracks(audio: Bool, anchor: Rect) {
+        guard let window, let stream else { return }
+        let streams = audio ? stream.audioTracks : stream.subtitles
+        let chosen = audio ? stream.chosenAudioStreamId : stream.chosenSubtitleId
+        var items = streams.enumerated().map { index, track in
+            MenuView.Item(id: "\(track.id ?? -1)", title: track.displayTitle ?? track.title ?? track.language ?? "\(index + 1)",
+                          detail: track.title.flatMap { $0 == track.displayTitle ? nil : $0 }, isChecked: track.id == chosen)
+        }
+        if !audio { items.insert(MenuView.Item(id: "off", title: String(localized: "Off"), isChecked: chosen == nil), at: 0) }
+        let menu = MenuView(title: audio ? String(localized: "Audio") : String(localized: "Subtitles"), items: items, anchor: anchor)
+        menu.onSelect = { [weak self] item in self?.choose(track: item.id == "off" ? nil : Int(item.id), audio: audio) }
+        menu.present(in: window)
+        hideTask?.cancel()
+    }
+
+    private func choose(track id: Int?, audio: Bool) {
+        guard let stream, case .plex(let api, let item, _) = source else { return }
+        if stream.isDirectPlay {
+            let streams = audio ? stream.audioTracks : stream.subtitles
+            if audio {
+                if let index = streams.firstIndex(where: { $0.id == id }) { player?.setAudioTrack(index + 1) }
+            } else if let id, let track = streams.first(where: { $0.id == id }) {
+                if let key = track.key, var components = URLComponents(url: stream.url, resolvingAgainstBaseURL: false) {
+                    components.path = key
+                    components.query = nil
+                    guard let url = components.url else { return }
+                    player?.addSubtitle(url, title: track.displayTitle)
+                } else {
+                    let embedded = streams.filter { $0.key == nil }
+                    if let index = embedded.firstIndex(where: { $0.id == id }) { player?.setSubtitleTrack(index + 1) }
+                }
+            } else {
+                player?.setSubtitleTrack(nil)
+            }
+            self.stream = ResolvedStream(url: stream.url, isDirectPlay: true, sessionId: stream.sessionId, subtitles: stream.subtitles,
+                                         audioTracks: stream.audioTracks, markers: stream.markers, media: stream.media, decision: stream.decision,
+                                         chapters: stream.chapters, chosenSubtitleId: audio ? stream.chosenSubtitleId : id,
+                                         chosenAudioStreamId: audio ? id : stream.chosenAudioStreamId, segments: stream.segments)
+            return
+        }
+        let resumeAt = position
+        let subtitle = audio ? stream.chosenSubtitleId : id
+        let audioId = audio ? id : stream.chosenAudioStreamId
+        resolveTask?.cancel()
+        resolveTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let resolved = try await StreamResolver.resolve(api: api, ratingKey: item.id, startSecs: resumeAt, selectedSubtitleId: subtitle,
+                                                                selectedAudioStreamId: audioId)
+                guard !Task.isCancelled, !closed else { return }
+                load(resolved, from: resumeAt)
+            } catch {
+                MidgarLog.error("Switching tracks failed: \(error)", category: .playback)
+            }
+        }
     }
 
     private var showTitle: String? {
@@ -307,6 +370,10 @@ final class PlayerScreen: View {
             player.setMuted(!player.state.isMuted)
         case Key.character("s"), .return:
             if !skip.isHidden { skipSegment() } else { player.togglePause() }
+        case Key.character("a"):
+            showTracks(audio: true, anchor: transport.frameInWindow)
+        case Key.character("c"):
+            showTracks(audio: false, anchor: transport.frameInWindow)
         case Key.character("f"), .f11:
             if let window { window.setFullscreen(!window.isFullscreen) }
         case .escape, .back:
@@ -369,6 +436,21 @@ final class TransportView: View {
     var title = "" { didSet { setNeedsDisplay() } }
     var onSeek: ((Float) -> Void)?
     var onTogglePause: (() -> Void)?
+    var onAudio: ((Rect) -> Void)?
+    var onSubtitles: ((Rect) -> Void)?
+
+    /// The Audio and Subtitles buttons at the end of the title row, in this view's points.
+    var audioButton: Rect {
+        let metrics = Theme.current.metrics
+        let side = metrics.tv(56)
+        return Rect(x: frame.width - metrics.tv(48) - side * 2 - metrics.tv(16), y: metrics.tv(20), width: side, height: side)
+    }
+
+    var subtitlesButton: Rect {
+        let metrics = Theme.current.metrics
+        let side = metrics.tv(56)
+        return Rect(x: frame.width - metrics.tv(48) - side, y: metrics.tv(20), width: side, height: side)
+    }
     private var position: Double = 0
     private var duration: Double = 0
     private var buffered: Double = 0
@@ -429,6 +511,14 @@ final class TransportView: View {
             onTogglePause?()
             return true
         }
+        if audioButton.insetBy(-6, -6).contains(point) {
+            onAudio?(transformToWindow.apply(audioButton))
+            return true
+        }
+        if subtitlesButton.insetBy(-6, -6).contains(point) {
+            onSubtitles?(transformToWindow.apply(subtitlesButton))
+            return true
+        }
         if point.x >= bar.x - 8 {
             scrubbing = true
             onSeek?(fraction(at: point))
@@ -457,8 +547,11 @@ final class TransportView: View {
                            tone: tone.value, context: &context)
         let label = GlassStyle.label(tone: tone.value)
         let secondary = GlassStyle.secondaryLabel(tone: tone.value)
-        let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: bounds.width - metrics.tv(96), scale: scale)
+        let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: audioButton.minX - metrics.tv(72), scale: scale)
         context.text(titleLayout, at: Point(x: metrics.tv(48), y: metrics.tv(28)), color: label)
+        for (button, glyph) in [(audioButton, Symbol("waveform")), (subtitlesButton, Symbol("captions.bubble"))] {
+            context.symbol(glyph, in: button.insetBy(button.width * 0.22, button.height * 0.22), color: label)
+        }
         let symbol: Symbol = paused ? "play.fill" : "pause.fill"
         let play = playButton
         context.symbol(symbol, in: play.insetBy(play.width * 0.22, play.height * 0.22), color: label)

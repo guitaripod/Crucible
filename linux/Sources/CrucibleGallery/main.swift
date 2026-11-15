@@ -89,6 +89,17 @@ struct Gallery {
                 window.handlePointerMoved(to: Point(x: hovered.midX, y: hovered.midY))
                 settle(window)
                 write(window, to: "\(directory)/controls-focus.png", report: &report)
+                window.handlePointerLeft()
+                let menu = MenuView(title: "Audio", items: [
+                    .init(id: "1", title: "English (TrueHD Atmos 7.1)", detail: "Original", isChecked: true),
+                    .init(id: "2", title: "English (AC3 5.1)"),
+                    .init(id: "3", title: "Suomi (AC3 5.1)"),
+                    .init(id: "4", title: "Commentary (AAC Stereo)"),
+                ], anchor: controls.rows[1][3].frameInWindow)
+                menu.present(in: window)
+                window.handleKey(KeyEvent(key: .down))
+                settle(window)
+                write(window, to: "\(directory)/controls-menu.png", report: &report)
             case "states":
                 let states = page as! GalleryStates
                 window.focus.setVisible(true)
