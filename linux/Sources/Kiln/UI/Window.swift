@@ -62,6 +62,12 @@ public final class Window {
     private var closed = false
     private let listener: WaylandListener
 
+    /// Where frame time goes; `KILN_TRACE=path` writes it out, and the HUD draws it.
+    public let trace = FrameTrace()
+
+    /// Draws the frame trace's last second over the window (Ctrl+Shift+P in the app).
+    public var showsPerformanceHUD = false { didSet { setNeedsDisplay() } }
+
     /// Frames drawn (and presented, on Wayland) since the window opened.
     public private(set) var frameCount = 0
 
@@ -178,20 +184,36 @@ public final class Window {
     func renderIfNeeded(time: Double = Window.now()) {
         guard needsDisplay, !closed else { return }
         needsDisplay = false
+        var frame = trace.begin()
+        frame.animatingViews = animating.count
+        if trace.isWriting { frame.animatingNames = animating.values.map { String(describing: type(of: $0)) } }
         let dt = Float(min(max(time - (lastFrameTime ?? time), 0), 0.1))
         lastFrameTime = animating.isEmpty ? nil : time
+        var mark = Window.now()
         advanceAnimations(dt)
         if !animating.isEmpty { lastFrameTime = time }
+        frame.animate = Window.now() - mark
+        mark = Window.now()
         contentView.layoutIfNeeded()
+        frame.layout = Window.now() - mark
+        mark = Window.now()
         renderer.render(root: contentView, background: background)
+        if showsPerformanceHUD { renderer.drawHUD(trace.summary) }
+        frame.draw = Window.now() - mark
         frameCount += 1
         if let surface {
+            mark = Window.now()
             surface.requestFrame()
+            trace.frameRequested()
             waitingForFrame = true
             gpu.present(renderer.target)
             surface.flush()
+            frame.present = Window.now() - mark
+            trace.gpu(gpu.takeGPUMilliseconds())
         }
-        if !animating.isEmpty { needsDisplay = true }
+        let settled = animating.isEmpty && !showsPerformanceHUD
+        trace.end(frame, settled: settled)
+        if !settled { needsDisplay = true }
     }
 
     private func advanceAnimations(_ dt: Float) {
@@ -291,6 +313,7 @@ public final class Window {
 
     /// A key from the keymap: the focused view and its ancestors first, then focus movement, then the delegate.
     public func handleKey(_ event: KeyEvent) {
+        trace.inputArrived()
         var responder = focus.focusedView
         while let view = responder {
             if view.keyPressed(event) { return }
@@ -323,6 +346,7 @@ public final class Window {
     }
 
     public func handlePointerButton(_ button: MouseButton, pressed isPressed: Bool) {
+        trace.inputArrived()
         guard let pointer else { return }
         if isPressed {
             focus.pointerDidClick()
@@ -343,6 +367,7 @@ public final class Window {
     }
 
     public func handleScroll(_ event: ScrollEvent) {
+        trace.inputArrived()
         var scroll = event
         scroll.modifiers = modifiers
         if scroll.modifiers.contains(.shift), scroll.isDiscrete, scroll.dx == 0 {
@@ -405,6 +430,7 @@ public final class Window {
         func windowFrameDone(_ surface: WaylandWindow) {
             guard let window else { return }
             window.waitingForFrame = false
+            window.trace.frameCallbackArrived()
             if window.needsDisplay { window.renderIfNeeded() }
         }
 

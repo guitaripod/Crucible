@@ -69,6 +69,8 @@ public final class SymbolRenderer {
         guard pixelSize > 0 else { return nil }
         let key = Key(symbol: symbol, pixelSize: pixelSize)
         if let cached = cache[key] { return cached }
+        let started = Window.now()
+        defer { FrameTrace.symbolTime += Window.now() - started }
         guard let document = Self.document(for: symbol, pixelSize: pixelSize) else { return nil }
         var stride: Int32 = 0
         var error = [CChar](repeating: 0, count: 128)

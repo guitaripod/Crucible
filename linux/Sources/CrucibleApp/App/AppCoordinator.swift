@@ -121,6 +121,10 @@ final class AppCoordinator: WindowDelegate {
             window.setFullscreen(!window.isFullscreen)
             return true
         }
+        if event.key == Key.character("p") && event.modifiers == [.control, .shift] {
+            window.showsPerformanceHUD.toggle()
+            return true
+        }
         if event.key == .escape || event.key == .back || (event.key == .left && event.modifiers == .alt) {
             if let onboarding { return onboarding.handleBack() }
             return root?.handleBack() ?? false

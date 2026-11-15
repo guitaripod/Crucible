@@ -66,6 +66,7 @@ final class SceneRenderer {
     /// Blurs the frame so far into the frost pyramid and composites `element` (in target pixels) over it.
     func drawGlass(_ element: LiquidGlass, clip: Rect?, opacity: Float) {
         guard opacity > 0.001 else { return }
+        FrameTrace.glass += 1
         do {
             if glassRenderer == nil { glassRenderer = try LiquidGlassRenderer(gpu: gpu, width: target.width, height: target.height) }
             if backdropCopy == nil { backdropCopy = try gpu.texture(width: target.width, height: target.height, format: .rgba16f, renderable: true) }
@@ -112,5 +113,16 @@ final class SceneRenderer {
             for x in x0..<x1 { sum += map.values[y * map.width + x] }
         }
         return sum / Float((x1 - x0) * (y1 - y0))
+    }
+
+    /// The performance HUD: the frame trace's line on a dark plate at the top left.
+    func drawHUD(_ line: String) {
+        painter.clip = nil
+        var style = TextStyle(sizePixels: Double(13 * scale), weight: 500, opticalSize: 14, maxWidthPixels: target.width - Int(24 * scale), maxLines: 3)
+        style.alignment = .leading
+        guard let label = try? text.texture(for: line, style: style) else { return }
+        let rect = Rect(x: 8 * scale, y: 8 * scale, width: Float(label.metrics.width) + 16 * scale, height: Float(label.metrics.height) + 12 * scale)
+        painter.fill(rect, radius: 6 * scale, color: Color.black.withAlpha(0.72))
+        painter.text(label.texture, x: rect.x + 8 * scale, y: rect.y + 6 * scale, color: Color(hex: 0x7CFC9A))
     }
 }

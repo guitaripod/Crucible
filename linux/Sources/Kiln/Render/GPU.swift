@@ -35,7 +35,8 @@ public final class Texture {
     }
 
     public func upload(_ pixels: UnsafeRawPointer, rowBytes: Int) -> Bool {
-        kiln_tex_upload(gpu.handle, handle, pixels, rowBytes)
+        FrameTrace.uploads += 1
+        return kiln_tex_upload(gpu.handle, handle, pixels, rowBytes)
     }
 
     /// Linear RGBA floats, top row first.
@@ -187,6 +188,9 @@ public final class GPU {
     @discardableResult
     public func pass(into target: Texture, header: String = "", body: String, samplers: [Sampler] = [], uniforms: [Uniform] = [],
                      rect: (x0: Float, y0: Float, x1: Float, y1: Float)? = nil, blend: Bool = false) -> Bool {
+        FrameTrace.passes += 1
+        let started = Window.now()
+        defer { FrameTrace.passTime += Window.now() - started }
         let names = samplers.map { strdup($0.name) } + uniforms.map { strdup($0.name) }
         defer { names.forEach { free($0) } }
         let rawSamplers = samplers.enumerated().map { index, sampler in

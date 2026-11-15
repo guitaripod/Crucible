@@ -127,16 +127,21 @@ public final class TextRenderer {
             cache[key]?.frame = frame
             return (cached.texture, cached.metrics)
         }
+        let started = Window.now()
         let metrics = Self.measure(text, style: style)
         guard metrics.width > 0, metrics.height > 0 else { return nil }
+        FrameTrace.rasterised += 1
         let stride = (metrics.width + 3) & ~3
         var pixels = [UInt8](repeating: 0, count: stride * metrics.height)
         let rendered = Self.withRawStyle(style) { raw in
             text.withCString { kiln_text_render($0, &raw, &pixels, Int32(metrics.width), Int32(metrics.height), Int32(stride)) }
         }
+        let rasterised = Window.now()
+        FrameTrace.rasterTime += rasterised - started
         guard rendered else { return nil }
         let texture = try gpu.texture(width: metrics.width, height: metrics.height, format: .r8, renderable: false)
         _ = pixels.withUnsafeBytes { texture.upload($0.baseAddress!, rowBytes: stride) }
+        FrameTrace.textureTime += Window.now() - rasterised
         cache[key] = (texture, metrics, frame)
         return (texture, metrics)
     }
