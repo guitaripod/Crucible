@@ -14,7 +14,9 @@ extension URLSession {
     }
 
     /// Linux stand-in for `bytes(for:)`, which swift-corelibs-foundation lacks: a delegate data task that hands each
-    /// chunk on as it arrives and is cancelled when the reader stops.
+    /// chunk on as it arrives and is cancelled when the reader stops. The cancel runs on the session's serial delegate
+    /// queue and only while the task is still running: corelibs traps when a task that already completed is cancelled
+    /// from another thread.
     package func bytes(for request: URLRequest) async throws -> (StreamedBytes, URLResponse) {
         let relay = StreamRelay()
         let session = URLSession(configuration: configuration, delegate: relay, delegateQueue: nil)
@@ -22,8 +24,10 @@ extension URLSession {
         let stream = AsyncThrowingStream<UInt8, Error> { continuation in
             relay.bytes = continuation
             continuation.onTermination = { _ in
-                task.cancel()
-                session.invalidateAndCancel()
+                session.delegateQueue.addOperation {
+                    guard relay.markFinished() else { return }
+                    task.cancel()
+                }
             }
         }
         let response = try await withCheckedThrowingContinuation { continuation in
@@ -38,6 +42,15 @@ private final class StreamRelay: NSObject, URLSessionDataDelegate, @unchecked Se
     private let lock = NSLock()
     private var responseContinuation: CheckedContinuation<URLResponse, Error>?
     private var bytesContinuation: AsyncThrowingStream<UInt8, Error>.Continuation?
+    private var finished = false
+
+    /// Marks the task finished; returns whether it was still running.
+    func markFinished() -> Bool {
+        lock.withLock {
+            defer { finished = true }
+            return !finished
+        }
+    }
 
     var response: CheckedContinuation<URLResponse, Error>? {
         get { lock.withLock { responseContinuation } }
@@ -69,6 +82,7 @@ private final class StreamRelay: NSObject, URLSessionDataDelegate, @unchecked Se
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        _ = markFinished()
         if let pending = takeResponse() {
             pending.resume(throwing: error ?? URLError(.badServerResponse))
         }
