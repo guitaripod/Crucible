@@ -22,12 +22,16 @@ From the repository root:
 linux/scripts/build-mpv.sh                      # libmpv and libplacebo from linux/Vendor/mpv into linux/.build/mpv (once, about 35 s)
 export PKG_CONFIG_PATH=$PWD/linux/.build/mpv/lib/pkgconfig LD_LIBRARY_PATH=$PWD/linux/.build/mpv/lib
 swift build --product crucible-gallery
-swift test --filter 'KilnTests|CrucibleUITests'  # needs a Vulkan GPU; CRUCIBLE_CORE_ONLY=1 swift test runs Core alone, as CI does
+linux/scripts/test.sh --filter 'KilnTests|CrucibleUITests'  # needs a Vulkan GPU; with no filter it runs Core too, its defaults kept out of ~/.config
 .build/debug/crucible-gallery --capture /tmp/gallery --size 1600x900 --scale 1.5
 .build/debug/crucible-gallery --bench --size 1920x1080 --scale 2
 linux/scripts/make-test-media.sh                # HDR10 patches and a Dolby Vision 5 clip (needs ffmpeg with libx265 and dovi_tool)
 linux/scripts/headless.sh .build/debug/kiln-spike --frames 300   # a private headless KWin, 3840x2160 unless KILN_WIDTH/KILN_HEIGHT say otherwise
 ```
+
+Frame timing: `KILN_TRACE=/path/trace.txt crucible` writes a line per second of drawing and per burst of frames (CPU per
+phase, GPU, compositor waits, input latency, and the text, symbols, textures and passes behind any frame over 12 ms), and
+Ctrl+Shift+P shows the last second in a HUD. `KILN_PRESENT=fifo` swaps the mailbox swapchain for FIFO to compare.
 
 `linux/scripts/gen-protocols.sh` regenerates the Wayland protocol code in `Sources/CKiln/protocols` from `Protocols/*.xml`
 (wayland-protocols and plasma-wayland-protocols, as vendored in their Rust crates 0.32.13 and 0.3.12).
