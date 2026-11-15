@@ -41,9 +41,30 @@ final class NavigationView: View {
         push(root, animated: false)
     }
 
+    /// Pushes `screen`, unless a menu or an alert is up over the window: what opened it waits for that to close
+    /// (`TVNavigation`'s guard), so a slow load finishing under a menu does not change the screen behind it.
     func push(_ screen: ScreenView, animated: Bool = true) {
+        guard !isUnderModal else {
+            MidgarLog.notice("Push of \(type(of: screen)) refused under a menu or alert", category: .lifecycle)
+            return
+        }
         forwardScreens.removeAll()
         show(screen, animated: animated)
+    }
+
+    /// A menu or an alert is presented over the window.
+    private var isUnderModal: Bool {
+        window?.contentView.subviews.contains { $0.isFocusScope && !$0.isHidden } ?? false
+    }
+
+    /// The screen leaving during a transition takes no pointer input, so a second click on what is fading out cannot open
+    /// something again.
+    override func hitTest(_ point: Point) -> View? {
+        guard let outgoing, !isHidden, alpha > 0.01 else { return super.hitTest(point) }
+        for subview in subviews.reversed() where subview !== outgoing {
+            if let hit = subview.hitTest(subview.transformToSuperview.inverted.apply(point)) { return hit }
+        }
+        return nil
     }
 
     /// Puts `screen` in place of the top one, so Back from it skips the one it replaced.
