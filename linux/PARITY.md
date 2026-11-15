@@ -7,15 +7,15 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 48 | 5 | 3 | 1 |
-| Home and libraries | 73 | 3 | 2 | 0 |
-| Title pages, collections, playlists and server activity | 77 | 0 | 1 | 1 |
+| Home and libraries | 74 | 3 | 1 | 0 |
+| Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 62 | 0 | 6 | 1 |
-| Search, Pro features (free on Linux) and demo | 50 | 0 | 5 | 8 |
+| Search, Pro features (free on Linux) and demo | 51 | 0 | 4 | 8 |
 | You, profiles, history, statistics and manage | 80 | 1 | 3 | 3 |
 | Settings and integrations | 58 | 1 | 8 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 68 | 7 | 28 | 0 |
-| **All** | 607 | 20 | 59 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 69 | 7 | 27 | 0 |
+| **All** | 611 | 20 | 55 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -99,7 +99,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `browse-home-refresh-on-appear` (S) Home reloads its hubs every time it appears, keeping what is on screen when the reload fails. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:132-148 (viewIsAppearing calls reload, skipping only the first appearance)_
 - [x] `browse-home-live-server-refresh` (M) Home refreshes within seconds when the server reports a change to watch state or the library (ServerEventHub listener every 3 seconds, matching changesHome). _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:143-147 (ServerEventHub.shared.listen .seconds(3), changesHome)_
 - [x] `browse-home-refresh-after-playback-or-tab-return` (S) Continue Watching and Up Next update after playback and when the viewer returns to the Home tab. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:132-148 (refresh on appearance after playback)_
-- [ ] `browse-home-cold-launch-snapshot` (S) Home paints the saved snapshot from the last session instantly on launch, then refreshes it, and the snapshot is tied to the connected server. Gap: Linux saves the snapshot (HomeFeed.apply, HomeFeed.swift:102-114) but hydrateFromSnapshot is never called; launch awaits the fresh hubs (AppLaunchSession async let hubs) before the screen exists, so there is no instant first paint. _Apple TV: Sources/CrucibleCore/Features/Home/HomeFeed.swift:83-91 (hydrateFromSnapshot)_
+- [x] `browse-home-cold-launch-snapshot` (S) Home paints the saved snapshot from the last session instantly on launch, then refreshes it, and the snapshot is tied to the connected server. Matches the Apple TV: its launch gate holds until fresh hubs arrive and never paints the snapshot (TVAppCoordinator.launch: "The main UI is never on screen with a broken connection"); only the iPhone hydrates it. Linux saves the snapshot per server (HomeFeed.apply) and launches behind the same gate. _Apple TV: Sources/CrucibleTV/App/TVAppCoordinator.swift:167-196 (launch gate); iPhone: Sources/Crucible/Home/HomeViewController.swift:140,189 (hydrateFromSnapshot)_
 - [x] `browse-home-loading-skeleton` (S) While Home reloads from an empty or error state, two skeleton shelves stand in for the content, and focus returns once content loads. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:402-424 (showLoading, retry)_
 - [x] `browse-home-empty-state` (S) An empty Home explains why (filtered libraries or every content row turned off, from HomeStateCopy) with a Refresh button. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:382-393 (showEmpty with Refresh action, play.rectangle symbol)_
 - [x] `browse-home-error-state-retry` (S) When Home cannot load and has nothing to show, an error state explains the failure with a Retry button. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:395-400 (showLoadError)_
@@ -225,7 +225,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `detail-essentials-offer` (M) Essentials offer button Skip N Anime-Only · Save X that turns on the level when pressed _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:430-439,549-555_
 - [x] `detail-essentials-keep-hide` (M) Keep or Hide Again on an episode the Essentials plan hides _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:159-166_
 - [x] `detail-highlights-filter` (S) Highlights-only episode filter when no Essentials plan exists (All episodes or Highlights, with subtitle) _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:176-177,519-527_
-- [ ] `detail-previously-on` (M) Previously On action: paired Crucible Server recap, or the last finished episodes' descriptions, or an AI recap written after a sending disclosure; Cancel while writing Gap: No Previously On on Linux; under D1 the AI write path must be free on Linux and run on the person's own model, so the Pro gate at TVShowDetailViewController.swift:352 does not apply _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:336-412,427-429_
+- [x] `detail-previously-on` (M) Previously On action: paired Crucible Server recap, or the last finished episodes' descriptions, or an AI recap written after a sending disclosure; Cancel while writing _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:336-412,427-429_
 - [x] `detail-downloads-markers` (S) n/a: Downloading eyebrow and download badges on episodes and the download actions on the episode menu _Apple TV: Sources/CrucibleCore/Features/Detail/EpisodeStatus.swift:40-41,73_
 - [x] `detail-keyboard-escape-back` (S) Escape or Alt+Left returns from the detail page; focus returns to the item that opened it _Apple TV: Sources/CrucibleTV/Detail/TVDetailNavigation.swift:1-10 (Menu back)_
 - [x] `collections-library-entry` (M) Collections entry in a movie or show library opens the library's collections grid, with count summary and No Collections empty state _Apple TV: Sources/CrucibleTV/Library/TVLibraryViewController.swift:456-457_
@@ -354,7 +354,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `search-library-visibility` (S) Titles in libraries the viewer hid are left out of search results, the Recently Added shelf and the genres. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Search/SearchLoader.swift:18-33,60_
 - [x] `search-dedupe-order` (S) Results are de-duplicated by id and ordered as the server’s hubs return them; the top result is the first visible match in the chosen scope. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Search/SearchModels.swift:49-95_
 - [x] `pro-what-to-watch` (L) What to Watch: say what you feel like and get picks from your own library, each with a reason, from your own model (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:6,17,30,43,56-61_
-- [ ] `pro-previously-on` (M) Previously On: a recap of the last episodes written before you press play, from dialogue, on your own model (D1). Gap: No recap in the Linux player or anywhere under linux/. Gated on HostedBrain like What to Watch (ProFeature.swift:61). Depends on the same own-model brain. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:7,18,31,44,58-61_
+- [x] `pro-previously-on` (M) Previously On: a recap of the last episodes written before you press play, from dialogue, on your own model (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:7,18,31,44,58-61_
 - [x] `pro-full-statistics` (L) Full Statistics: every range, library filter, patterns, binges and taste from Plex history plus Trakt (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:9,20,33,64_
 - [ ] `pro-year-in-review` (M) Year in Review poster: preview and share your year as a Story or Square poster (D1). Gap: No Year in Review on Linux; depends on Statistics data and a share surface. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:10,34,64_
 - [x] `pro-manage-requests` (L) Manage Requests: approve, decline and retry everyone’s Seerr requests, listed only when the connected Seerr manages requests (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:12,23,36,65_
@@ -720,7 +720,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `ai-own-model-brain` (L) An OwnModelBrain answers AI requests against the person's model address with their key _Apple TV: docs/LINUX.md §6 What to Watch_
 - [x] `ai-bundled-prompts` (S) The alias prompts from tools/ai are bundled into the Linux build _Apple TV: docs/LINUX.md §6 What to Watch_
 - [x] `ai-what-to-watch-screen` (L) What to Watch screen with AI picks, free on Linux _Apple TV: docs/LINUX.md §6 What to Watch, described recaps_
-- [ ] `ai-described-recaps-previously-on` (M) Described recaps and Previously On, generated on the person's own model Gap: No Linux caller for the recap or Previously On features, and no brain (see ai-own-model-brain). _Apple TV: docs/LINUX.md §6 What to Watch, described recaps_
+- [x] `ai-described-recaps-previously-on` (M) Described recaps and Previously On, generated on the person's own model _Apple TV: docs/LINUX.md §6 What to Watch, described recaps_
 - [x] `d1-free-no-paywall` (S) Linux is free throughout: no paywall, no Pro surfaces, no store code _Apple TV: docs/LINUX.md §1 D1_
 - [x] `settings-screen-catalogue` (S) Settings screen lists the shared catalogue's Linux categories, with choices as menus and switches flipping in place _Apple TV: docs/LINUX.md §6 Settings_
 - [x] `linux-card-context-menu` (S) Right click and the Menu key open a title's context menu: Play or Resume, Play from the Beginning, Mark Watched or Unwatched, Go to Details _Apple TV: docs/LINUX.md §5.4 Pointer_
