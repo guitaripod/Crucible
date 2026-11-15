@@ -220,8 +220,14 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
     package var lastError: String?
     /// Files still to take back after the owner undid a library.
     package var undoing: Int
+    /// When research looks again, while the search engines have turned it away (`phase` is `paused`).
+    package var pausedUntil: Int?
+    /// The search engines that turned research away, by the names people know them by.
+    package var limited: [String]
 
-    package init(phase: String, current: Current? = nil, queued: Int = 0, lastPass: Int? = nil, lastError: String? = nil, undoing: Int = 0) {
+    package init(phase: String, current: Current? = nil, queued: Int = 0, lastPass: Int? = nil, lastError: String? = nil, undoing: Int = 0, pausedUntil: Int? = nil, limited: [String] = []) {
+        self.pausedUntil = pausedUntil
+        self.limited = limited
         self.phase = phase
         self.current = current
         self.queued = queued
@@ -230,7 +236,7 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
         self.undoing = undoing
     }
 
-    enum CodingKeys: String, CodingKey { case phase, current, queued, lastPass, lastError, undoing }
+    enum CodingKeys: String, CodingKey { case phase, current, queued, lastPass, lastError, undoing, pausedUntil, limited }
 
     package init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -240,9 +246,14 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
         lastPass = try container.decodeIfPresent(Int.self, forKey: .lastPass)
         lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
         undoing = try container.decodeIfPresent(Int.self, forKey: .undoing) ?? 0
+        pausedUntil = try container.decodeIfPresent(Int.self, forKey: .pausedUntil)
+        limited = try container.decodeIfPresent([String].self, forKey: .limited) ?? []
     }
 
     package var isWorking: Bool { phase == "looking" || phase == "researching" || phase == "writing" }
+
+    /// Whether research waits because the search engines turned it away.
+    package var isPausedForSearch: Bool { phase == "paused" }
 }
 
 /// The event research found for a file.

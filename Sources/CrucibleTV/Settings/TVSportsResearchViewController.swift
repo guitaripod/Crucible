@@ -165,6 +165,9 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             if status.undoing > 0 {
                 return TVRowItem(id: ID.summary, title: SportsCopy.undoing(status.undoing), symbol: "arrow.uturn.backward.circle")
             }
+            if status.isPausedForSearch {
+                return TVRowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: SportsCopy.searchPaused(status), symbol: "pause.circle.fill")
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return TVRowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: error, symbol: "exclamationmark.triangle.fill")
             }

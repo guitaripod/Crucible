@@ -194,6 +194,18 @@ struct SportsResearchTests {
         #expect(SportsBoard(report: report).needingALookCount == 1, "an older server's counts fall back to the items sent")
     }
 
+    @Test func aSearchPauseSaysWhoAskedForItAndWhenResearchGoesOn() throws {
+        let json = #"{"phase": "paused", "pausedUntil": 1794763800, "limited": ["Brave", "Google CSE", "Qwant"], "lastError": "Brave, Google CSE and Qwant are turning searches away for now", "queued": 0}"#
+        let status = try JSONDecoder().decode(SportsStatus.self, from: Data(json.utf8))
+        #expect(status.isPausedForSearch && !status.isWorking)
+        #expect(status.limited == ["Brave", "Google CSE", "Qwant"])
+        let line = SportsCopy.searchPaused(status)
+        #expect(line.contains("Brave") && line.contains("Qwant") && line.contains("asked for a break"))
+        let older = try JSONDecoder().decode(SportsStatus.self, from: Data(#"{"phase": "idle", "lastError": "busy"}"#.utf8))
+        #expect(!older.isPausedForSearch && older.limited.isEmpty && older.pausedUntil == nil)
+        #expect(SportsCopy.searchPaused(older) == "busy")
+    }
+
     @Test func librariesSayWhatTheyHoldAndWhatResearchTouched() throws {
         let json = """
         {"owner": true, "ready": true, "checks": [], "settings": {"on": true, "agreed": true},

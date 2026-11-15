@@ -95,12 +95,27 @@ package enum SportsCopy {
         case "researching": String(localized: "Researching", comment: "Sports Research server phase")
         case "writing": String(localized: "Writing to Plex", comment: "Sports Research server phase")
         case "waiting": String(localized: "Waiting until everything is ready", comment: "Sports Research server phase")
+        case "paused": String(localized: "Searching paused", comment: "Library Research server phase: the search engines turned research away for a while")
         default: String(localized: "Up to date", comment: "Sports Research server phase: nothing left to research")
         }
     }
 
     package static func queued(_ count: Int) -> String {
         String(localized: "Waiting: \(count)", comment: "Sports Research: how many files wait to be researched, e.g. Waiting: 3")
+    }
+
+    /// Why research waits and when it goes on: the engines that turned it away, by name, and the time it looks again.
+    package static func searchPaused(_ status: SportsStatus) -> String {
+        let time = status.pausedUntil.map { Date(timeIntervalSince1970: TimeInterval($0)).formatted(date: .omitted, time: .shortened) }
+        switch (status.limited.isEmpty, time) {
+        case (false, let time?):
+            let engines = PortableFormat.list(status.limited)
+            return String(localized: "\(engines) asked for a break from searching. Research goes on by itself at \(time).", comment: "Library Research: why research waits; the arguments are search engine names joined as a list, and a time of day")
+        case (true, let time?):
+            return String(localized: "The search engine asked for a break from searching. Research goes on by itself at \(time).", comment: "Library Research: why research waits; the argument is a time of day")
+        default:
+            return status.lastError ?? ""
+        }
     }
 
     package static func lastLooked(_ date: Date, now: Date = Date()) -> String {

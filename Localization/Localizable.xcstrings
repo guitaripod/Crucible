@@ -1319,6 +1319,107 @@
         }
       }
     },
+    "%@ asked for a break from searching. Research goes on by itself at %@." : {
+      "comment" : "Library Research: why research waits; the arguments are search engine names joined as a list, and a time of day",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ bad om en pause i søgningerne. Undersøgelsen fortsætter af sig selv kl. %2$@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ haben um eine Suchpause gebeten. Die Recherche geht um %2$@ von selbst weiter."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ asked for a break from searching. Research goes on by itself at %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ pidieron una pausa en las búsquedas. La investigación sigue sola a las %2$@."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ pyysi taukoa hakuihin. Tutkimus jatkuu itsestään klo %2$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ont demandé une pause dans les recherches. La recherche reprend d'elle-même à %2$@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ bað um hlé á leitum. Rannsóknin heldur sjálfkrafa áfram kl. %2$@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hanno chiesto una pausa dalle ricerche. La ricerca riprende da sola alle %2$@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ から検索の一時休止を求められました。調査は %2$@ に自動で再開します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@에서 검색을 잠시 멈춰 달라고 요청했습니다. 조사는 %2$@에 자동으로 다시 시작됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ba om en pause i søkene. Undersøkelsen fortsetter av seg selv kl. %2$@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ poprosiły o przerwę w wyszukiwaniu. Analiza wznowi się sama o %2$@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ pediram uma pausa nas buscas. A pesquisa continua sozinha às %2$@."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ bad om en paus i sökandet. Undersökningen fortsätter av sig själv kl. %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 要求暂停搜索。研究将在 %2$@ 自动继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 要求暫停搜尋。研究將在 %2$@ 自動繼續。"
+          }
+        }
+      }
+    },
     "%@ at %@ isn't answering. Run crucible-server doctor on the computer with Plex." : {
       "comment" : "Crucible Server status when its model at a hosted service does not answer, e.g. gemini-flash at openrouter.ai isn't answering. crucible-server doctor is a command and stays as written.",
       "localizations" : {
@@ -131881,6 +131982,101 @@
         }
       }
     },
+    "Searching paused" : {
+      "comment" : "Library Research server phase: the search engines turned research away for a while",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Søgningen er sat på pause"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche pausiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búsqueda en pausa"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haku tauolla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche web en pause"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leit í hléi"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca sul web in pausa"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索を一時停止中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 일시 중지됨"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Søket er satt på pause"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyszukiwanie wstrzymane"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Busca pausada"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sökningen pausad"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索已暂停"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋已暫停"
+          }
+        }
+      }
+    },
     "Searching…" : {
       "comment" : "Fix Match status while the server's agents are searched",
       "localizations" : {
@@ -157145,6 +157341,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "研究使用你為 Crucible Server 設定的模型執行，因此不按檔案收費。"
+          }
+        }
+      }
+    },
+    "The search engine asked for a break from searching. Research goes on by itself at %@." : {
+      "comment" : "Library Research: why research waits; the argument is a time of day",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Søgemaskinen bad om en pause i søgningerne. Undersøgelsen fortsætter af sig selv kl. %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Suchmaschine hat um eine Suchpause gebeten. Die Recherche geht um %@ von selbst weiter."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El buscador pidió una pausa en las búsquedas. La investigación sigue sola a las %@."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakukone pyysi taukoa hakuihin. Tutkimus jatkuu itsestään klo %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le moteur de recherche a demandé une pause. La recherche reprend d'elle-même à %@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leitarvélin bað um hlé á leitum. Rannsóknin heldur sjálfkrafa áfram kl. %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il motore di ricerca ha chiesto una pausa. La ricerca riprende da sola alle %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索エンジンから検索の一時休止を求められました。調査は %@ に自動で再開します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 엔진에서 검색을 잠시 멈춰 달라고 요청했습니다. 조사는 %@에 자동으로 다시 시작됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Søkemotoren ba om en pause i søkene. Undersøkelsen fortsetter av seg selv kl. %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyszukiwarka poprosiła o przerwę w wyszukiwaniu. Analiza wznowi się sama o %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O mecanismo de busca pediu uma pausa nas buscas. A pesquisa continua sozinha às %@."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sökmotorn bad om en paus i sökandet. Undersökningen fortsätter av sig själv kl. %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索引擎要求暂停搜索。研究将在 %@ 自动继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋引擎要求暫停搜尋。研究將在 %@ 自動繼續。"
           }
         }
       }

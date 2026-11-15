@@ -422,6 +422,9 @@ extension SportsResearchViewController {
             if status.undoing > 0 {
                 return SportsPillConfiguration(symbol: "arrow.uturn.backward.circle", tint: Theme.Color.accent, title: SportsCopy.undoing(status.undoing), detail: "", progress: nil, working: true, action: nil)
             }
+            if status.isPausedForSearch {
+                return SportsPillConfiguration(symbol: "pause.circle.fill", tint: .systemOrange, title: SportsCopy.phase(status), detail: SportsCopy.searchPaused(status), progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return SportsPillConfiguration(symbol: "exclamationmark.triangle.fill", tint: .systemOrange, title: SportsCopy.phase(status), detail: error, progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
             }
