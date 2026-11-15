@@ -405,13 +405,13 @@ public final class Window {
     /// Whether the keyboard (or a gamepad) has been used since the last click, so focus is drawn.
     public var isFocusVisible: Bool { focus.isVisible }
 
-    func viewBecameUnavailable(_ view: View, formerSuperview: View?) {
+    func viewBecameUnavailable(_ view: View, formerSuperview: View?, handingOn: Bool = false) {
         if let hovered, hovered.isDescendant(of: view) {
             self.hovered = nil
             hovered.isHovered = false
             hovered.pointerExited()
         }
-        focus.viewBecameUnavailable(view, formerSuperview: formerSuperview)
+        focus.viewBecameUnavailable(view, formerSuperview: formerSuperview, handingOn: handingOn)
     }
 
     // MARK: Input

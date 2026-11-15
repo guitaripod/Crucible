@@ -38,11 +38,14 @@ open class View {
     }
 
     public var isHidden = false {
+        willSet {
+            wasPreferredWhenHidden = newValue && !isHidden && containsFocus && superview?.preferredFocusView === self
+        }
         didSet {
             guard isHidden != oldValue else { return }
             setNeedsDisplay()
             if isHidden {
-                window?.viewBecameUnavailable(self, formerSuperview: superview)
+                window?.viewBecameUnavailable(self, formerSuperview: superview, handingOn: wasPreferredWhenHidden)
             } else {
                 window?.viewBecameAvailable(self)
             }
@@ -51,6 +54,9 @@ open class View {
 
     /// Clips subviews to the bounds (shelves and pages).
     public var clipsToBounds = false
+
+    /// Whether the superview preferred this view at the moment it was hidden, so focus inside goes where it prefers next.
+    private var wasPreferredWhenHidden = false
 
     public var bounds: Rect { Rect(x: 0, y: 0, width: frame.width, height: frame.height) }
 

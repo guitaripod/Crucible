@@ -166,10 +166,8 @@ final class LibrariesScreen: SettingsScaffold {
             items.append(RowItem(id: Self.resetID, title: LibrariesSettings.resetTitle, symbol: "arrow.counterclockwise"))
         }
         setRows(items)
-        let hadStateFocus = state.containsFocus
-        state.isHidden = true
         rows.isHidden = false
-        if hadStateFocus { window?.focus.focus(rows, animated: false) }
+        state.isHidden = true
     }
 
     private func show(_ newState: StateView.State) {

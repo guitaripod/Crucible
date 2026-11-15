@@ -44,6 +44,15 @@ final class FocusWatcher: View {
     }
 }
 
+/// A screen that prefers its loading tile while it shows, then its content.
+@MainActor
+final class LoadingScreen: View {
+    let loading = Tile("loading", frame: Rect(x: 700, y: 400, width: 200, height: 100))
+    let content = Row(frame: Rect(x: 0, y: 0, width: 1000, height: 600))
+
+    override var preferredFocusView: View? { loading.isHidden ? content : loading }
+}
+
 @MainActor
 final class Ticker: View {
     var ticks = 0
@@ -180,6 +189,19 @@ final class Ticker: View {
         tiles[1][1].removeFromSuperview()
         let focused = window.focusedView as? Tile
         #expect(focused?.name == "1,0" || focused?.name == "1,2")
+    }
+
+    @Test func hidingThePreferredLoadingViewHandsFocusToWhatTheScreenPrefersNext() {
+        let screen = LoadingScreen(frame: Rect(x: 0, y: 0, width: 1000, height: 600))
+        root.addSubview(screen)
+        let first = Tile("first", frame: Rect(x: 20, y: 20, width: 200, height: 100))
+        let nearLoading = Tile("near", frame: Rect(x: 700, y: 300, width: 200, height: 100))
+        [first, nearLoading].forEach(screen.content.addSubview)
+        screen.addSubview(screen.loading)
+        window.focus.focus(screen, animated: false)
+        #expect((window.focusedView as? Tile)?.name == "loading")
+        screen.loading.isHidden = true
+        #expect((window.focusedView as? Tile)?.name == "first", "the content's first tile, not the one nearest the spinner")
     }
 }
 

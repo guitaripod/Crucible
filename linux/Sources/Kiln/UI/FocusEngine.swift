@@ -236,15 +236,17 @@ public final class FocusEngine {
     }
 
     /// A view left the tree or was hidden: focus moves to the nearest focusable view in the closest container that still
-    /// has one (a removed card's neighbour in its shelf before anything in another shelf), as tvOS re-resolves it.
-    func viewBecameUnavailable(_ view: View, formerSuperview: View?) {
+    /// has one (a removed card's neighbour in its shelf before anything in another shelf), as tvOS re-resolves it. With
+    /// `handingOn`, the view was what its container preferred as it hid (a loading state giving way to the content), so focus
+    /// goes where the container prefers now instead.
+    func viewBecameUnavailable(_ view: View, formerSuperview: View?, handingOn: Bool = false) {
         guard let focused = focusedView, focused === view || focused.isDescendant(of: view) else { return }
         let lastFrame = focused.layoutFrameInWindow
         focusedView = nil
         focused.focusDidChange(focused: false, animated: false)
         guard let window else { return }
         var container = formerSuperview
-        var replacement: View?
+        var replacement = handingOn ? formerSuperview.flatMap(resolve).flatMap { $0.isDescendant(of: view) ? nil : $0 } : nil
         while replacement == nil, let current = container {
             let nearby = candidates(in: current).filter { $0 !== focused && !$0.isDescendant(of: view) }
             replacement = nearby.min { distance($0.layoutFrameInWindow, lastFrame) < distance($1.layoutFrameInWindow, lastFrame) }
