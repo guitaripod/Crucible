@@ -22,16 +22,16 @@ final class RootView: View {
         self.payload = payload
         libraryLayout = LibraryTabLayout(directories: payload.sections.Directory ?? [])
         super.init()
-        var tabs: [TabBarView.Tab] = [.init(id: "home", title: String(localized: "Home"))]
+        var tabs: [TabBarView.Tab] = [.init(id: "home", title: String(localized: "Home"), symbol: "house")]
         for directory in libraryLayout.tabs {
             guard let key = directory.key, let title = directory.title else { continue }
-            tabs.append(.init(id: "library-\(key)", title: title))
+            tabs.append(.init(id: "library-\(key)", title: title, symbol: directory.type == "show" ? "tv" : "film"))
         }
         if libraryLayout.hasMore {
-            tabs.append(.init(id: "more", title: String(localized: "More", comment: "Tab bar title")))
+            tabs.append(.init(id: "more", title: String(localized: "More", comment: "Tab bar title"), symbol: "ellipsis"))
         }
-        tabs.append(.init(id: "search", title: String(localized: "Search")))
-        tabs.append(.init(id: "you", title: String(localized: "You")))
+        tabs.append(.init(id: "search", title: String(localized: "Search"), symbol: "magnifyingglass"))
+        tabs.append(.init(id: "you", title: String(localized: "You"), symbol: "person.crop.circle"))
         tabBar.tabs = tabs
         tabBar.onSelect = { [weak self] tab in self?.select(tab.id) }
         addSubview(tabBar)

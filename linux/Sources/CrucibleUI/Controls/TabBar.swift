@@ -3,7 +3,8 @@ import Kiln
 
 /// The Apple TV's top tab bar in Liquid Glass: a floating capsule of tabs whose selection is a liquid pill that slides
 /// on a spring between them. The focused tab (keyboard) turns into the light pill with dark text; the pointer lights
-/// the glass where it rests. It slides up and away as content scrolls, except where a screen keeps it (Search).
+/// the glass where it rests. It slides up and away as content scrolls, except where a screen keeps it (Search). In a
+/// window too narrow for every title, the tabs show their symbols instead.
 @MainActor
 public final class TabBarView: View {
     public struct Tab: Hashable, Sendable {
@@ -65,6 +66,14 @@ public final class TabBarView: View {
         setNeedsLayout()
     }
 
+    /// Whether every title fits in the window beside the side margins; when not, the tabs show their symbols.
+    private func updateCompactness() {
+        let metrics = Theme.current.metrics
+        let titled = items.reduce(Float(0)) { $0 + $1.titledWidth } + metrics.tv(12) * 2
+        let compact = titled > frame.width - metrics.sideMargin * 2 && items.allSatisfy { $0.tab.symbol != nil }
+        for item in items where item.isCompact != compact { item.isCompact = compact }
+    }
+
     /// The capsule's frame, centred along the top.
     private var capsule: Rect {
         let metrics = Theme.current.metrics
@@ -74,6 +83,7 @@ public final class TabBarView: View {
     }
 
     public override func layoutSubviews() {
+        updateCompactness()
         let bar = capsule
         var x = bar.x + Theme.current.metrics.tv(12)
         let inset = Theme.current.metrics.tv(8)
@@ -131,6 +141,8 @@ public final class TabBarView: View {
 final class TabItemView: View {
     let tab: TabBarView.Tab
     var isSelected = false { didSet { setNeedsDisplay() } }
+    /// Shows the tab's symbol instead of its title, in a window too narrow for every title.
+    var isCompact = false { didSet { setNeedsDisplay() } }
     var tone: Float = 0
     var onPress: (() -> Void)?
     private var lift = Animated(0)
@@ -148,7 +160,9 @@ final class TabItemView: View {
 
     private var layout: TextLayout { TextLayout(tab.title, font: Theme.current.type.control, scale: rasterScale) }
 
-    var preferredWidth: Float { (layout.size.width + Theme.current.metrics.tabItemInset * 2).rounded(.up) }
+    var titledWidth: Float { (layout.size.width + Theme.current.metrics.tabItemInset * 2).rounded(.up) }
+
+    var preferredWidth: Float { isCompact ? (Theme.current.metrics.tabBarHeight * 1.15).rounded(.up) : titledWidth }
 
     private func update() {
         lift.set(isFocused && (window?.isFocusVisible ?? false) ? 1 : 0, animation: .focus)
@@ -192,6 +206,11 @@ final class TabItemView: View {
         }
         let base = isSelected ? GlassStyle.label(tone: tone) : GlassStyle.secondaryLabel(tone: tone)
         let color = base.mixed(with: palette.onFocusFill, amount: lift.value)
+        if isCompact, let symbol = tab.symbol {
+            let side = Theme.current.metrics.symbolRow
+            context.symbol(symbol, in: Rect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side), color: color)
+            return
+        }
         let text = layout
         let x = ((rect.width - text.size.width) / 2 * rasterScale).rounded() / rasterScale
         let y = ((rect.height - text.size.height) / 2 * rasterScale).rounded() / rasterScale
