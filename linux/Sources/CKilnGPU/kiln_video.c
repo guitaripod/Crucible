@@ -21,7 +21,7 @@ struct kiln_video {
 };
 
 enum { OBSERVE_POSITION = 1, OBSERVE_DURATION, OBSERVE_PAUSE, OBSERVE_BUFFERING, OBSERVE_CACHE, OBSERVE_WIDTH, OBSERVE_HEIGHT,
-       OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_VOLUME, OBSERVE_MUTE };
+       OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_VOLUME, OBSERVE_MUTE, OBSERVE_EOF };
 
 static void signal_wakeup(kiln_video *v) {
     uint64_t one = 1;
@@ -104,6 +104,7 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     mpv_observe_property(v->mpv, OBSERVE_HWDEC, "hwdec-current", MPV_FORMAT_STRING);
     mpv_observe_property(v->mpv, OBSERVE_VOLUME, "volume", MPV_FORMAT_DOUBLE);
     mpv_observe_property(v->mpv, OBSERVE_MUTE, "mute", MPV_FORMAT_FLAG);
+    mpv_observe_property(v->mpv, OBSERVE_EOF, "eof-reached", MPV_FORMAT_FLAG);
     return v;
 }
 
@@ -145,10 +146,16 @@ uint32_t kiln_video_poll(kiln_video *v, kiln_video_state *state) {
         mpv_event *event = mpv_wait_event(v->mpv, 0);
         if (event->event_id == MPV_EVENT_NONE) break;
         switch (event->event_id) {
-        case MPV_EVENT_PROPERTY_CHANGE:
-            apply_property(state, event->data, event->reply_userdata);
+        case MPV_EVENT_PROPERTY_CHANGE: {
+            mpv_event_property *property = event->data;
+            if (event->reply_userdata == OBSERVE_EOF) {
+                if (property->data && *(int *) property->data) happened |= KILN_VIDEO_ENDED;
+                break;
+            }
+            apply_property(state, property, event->reply_userdata);
             happened |= KILN_VIDEO_STATE;
             break;
+        }
         case MPV_EVENT_FILE_LOADED:
             happened |= KILN_VIDEO_LOADED;
             state->end_reason = -1;
