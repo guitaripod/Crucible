@@ -175,10 +175,11 @@ package enum PreviouslyOnRequest {
         return CompanionInvite(name: invite.name, hosts: hosts, secret: invite.secret, fingerprint: invite.fingerprint)
     }
 
-    /// Pairs with the secret this Apple TV shows once a paired iPhone hands it to the server, keeping the pairing.
-    package static func waitForHandOff(_ invite: CompanionInvite, deviceName: String, until deadline: Date) async throws(CompanionError) -> CompanionServer {
+    /// Pairs with the secret this Apple TV (or Linux computer, `platform` "linux") shows once a paired iPhone hands it to the
+    /// server, keeping the pairing.
+    package static func waitForHandOff(_ invite: CompanionInvite, deviceName: String, platform: String = "tvos", until deadline: Date) async throws(CompanionError) -> CompanionServer {
         let connection = ServerBootstrap.connection()
-        let server = try await CompanionPairing.waitForHandOff(invite, deviceName: deviceName, platform: "tvos", machineIdentifier: connection?.machineIdentifier, plexToken: connection?.authToken, until: deadline)
+        let server = try await CompanionPairing.waitForHandOff(invite, deviceName: deviceName, platform: platform, machineIdentifier: connection?.machineIdentifier, plexToken: connection?.authToken, until: deadline)
         CompanionStore.save(server)
         return server
     }
