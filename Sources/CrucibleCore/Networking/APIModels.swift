@@ -822,10 +822,12 @@ package struct PlexPart: Decodable, Sendable {
     package let file: String?
     package let size: Int64?
     package let duration: Int?
+    /// "sd" once the server has made the file's preview stills (video preview thumbnails), which `ScrubStills` shows.
+    package let indexes: String?
     package let Stream: [PlexStream]?
 
     enum CodingKeys: String, CodingKey {
-        case id, key, file, size, duration
+        case id, key, file, size, duration, indexes
         case Stream
     }
 }
