@@ -395,8 +395,7 @@ impl Plex {
         let mut query: Vec<(String, String)> = vec![("type".into(), "1".into()), ("id".into(), key.into())];
         query.extend(pairs.iter().cloned());
         let response = self
-            .request_with(reqwest::Method::PUT, &format!("/library/sections/{section}/all"), Some(token))
-            .query(&query)
+            .request_with(reqwest::Method::PUT, &format!("/library/sections/{section}/all?{}", edit_query(&query)), Some(token))
             .send()
             .await
             .map_err(|error| PlexError::Unreachable(self.base.clone(), error.to_string()))?;
@@ -440,6 +439,19 @@ impl Plex {
         let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
         let response = self
             .request_with(reqwest::Method::PUT, &format!("/library/metadata/{key}/{}", kind.chosen_path()), Some(token))
+            .query(&[("url", choice)])
+            .send()
+            .await
+            .map_err(|error| PlexError::Unreachable(self.base.clone(), error.to_string()))?;
+        Self::accepted(response.status())
+    }
+
+    /// Stops showing one of the item's images as its poster or background, so it shows none, as an item Plex has made
+    /// no image for does.
+    pub async fn clear_artwork(&self, rating_key: &str, kind: Artwork, choice: &str, token: &str) -> Result<(), PlexError> {
+        let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
+        let response = self
+            .request_with(reqwest::Method::DELETE, &format!("/library/metadata/{key}/{}", kind.chosen_path()), Some(token))
             .query(&[("url", choice)])
             .send()
             .await
@@ -513,6 +525,33 @@ impl Artwork {
     }
 }
 
+/// What separates the tags of one removal in an edit pair (`genre[].tag.tag-`): Plex reads the tags to remove as a
+/// list split by literal commas, each tag encoded on its own, so a comma inside a tag stays part of it.
+pub const TAG_LIST: char = '\u{1f}';
+
+/// The query of an edit: every name and value percent-encoded, and a removal's tags each encoded and joined by a
+/// literal comma, which is how Plex tells the tags of one removal apart.
+fn edit_query(pairs: &[(String, String)]) -> String {
+    pairs
+        .iter()
+        .map(|(name, value)| {
+            let value = if name.ends_with(".tag.tag-") { value.split(TAG_LIST).map(encode).collect::<Vec<_>>().join(",") } else { encode(value) };
+            format!("{}={value}", encode(name))
+        })
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+/// Text percent-encoded for a query, every byte outside letters, digits and `-._~` escaped.
+fn encode(text: &str) -> String {
+    text.bytes()
+        .map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => (byte as char).to_string(),
+            _ => format!("%{byte:02X}"),
+        })
+        .collect()
+}
+
 /// A rating key is digits; anything else never reaches a Plex URL.
 pub fn sanitize_key(key: &str) -> Option<&str> {
     (!key.is_empty() && key.len() <= 20 && key.bytes().all(|byte| byte.is_ascii_digit())).then_some(key)
@@ -521,6 +560,12 @@ pub fn sanitize_key(key: &str) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_edit_removes_each_tag_of_a_list_on_its_own() {
+        let pairs = [("title.value".to_string(), "Jump & Hump".to_string()), ("genre[].tag.tag-".to_string(), format!("Pornography{TAG_LIST}Sex, Adult"))];
+        assert_eq!(edit_query(&pairs), "title.value=Jump%20%26%20Hump&genre%5B%5D.tag.tag-=Pornography,Sex%2C%20Adult");
+    }
 
     #[test]
     fn rating_keys_are_digits_only() {

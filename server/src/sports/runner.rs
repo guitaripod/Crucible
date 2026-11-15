@@ -904,24 +904,30 @@ impl Sports {
     }
 
     /// Shows the image Plex showed before research uploaded its own, unless the owner chose another one since: the
-    /// one kept from before, or else the first image Plex made itself. An image Plex made is unlocked again; one the
-    /// owner uploaded before research stays locked.
+    /// one kept from before, or else the first image Plex made itself, or no image at all when Plex has made none, as
+    /// before research. An image Plex made, or none, is unlocked again; one the owner uploaded before research stays
+    /// locked.
     async fn restore_artwork(&self, section: &str, rating_key: &str, kind: Artwork, before: Option<&str>, token: &str) {
         let Ok(choices) = self.plex.artwork_choices(rating_key, kind, token).await else { return };
         let uploaded = |key: &str| key.starts_with("upload://");
-        if choices.iter().find(|choice| choice.selected).is_some_and(|choice| !uploaded(&choice.key)) {
+        let shown = choices.iter().find(|choice| choice.selected);
+        if shown.is_some_and(|choice| !uploaded(&choice.key)) {
             return;
         }
         let target = before
             .filter(|before| choices.iter().any(|choice| choice.key == *before))
             .or_else(|| choices.iter().map(|choice| choice.key.as_str()).find(|key| !uploaded(key)));
-        let Some(target) = target else { return };
-        if let Err(error) = self.plex.choose_artwork(rating_key, kind, target, token).await {
-            tracing::warn!(%error, rating_key, "Plex did not take back research's artwork");
-            return;
-        }
-        if !uploaded(target) {
-            let _ = self.plex.edit(section, rating_key, &[(kind.lock_field().to_string(), "0".to_string())], token).await;
+        let restored = match (target, shown) {
+            (Some(target), _) => self.plex.choose_artwork(rating_key, kind, target, token).await.map(|()| !uploaded(target)),
+            (None, Some(shown)) => self.plex.clear_artwork(rating_key, kind, &shown.key, token).await.map(|()| true),
+            (None, None) => Ok(true),
+        };
+        match restored {
+            Ok(true) => {
+                let _ = self.plex.edit(section, rating_key, &[(kind.lock_field().to_string(), "0".to_string())], token).await;
+            }
+            Ok(false) => {}
+            Err(error) => tracing::warn!(%error, rating_key, "Plex did not take back research's artwork"),
         }
     }
 

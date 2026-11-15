@@ -3,7 +3,7 @@
 
 use super::record::Desired;
 use super::web::Web;
-use crate::plex::{Artwork, Item, Plex, PlexError};
+use crate::plex::{Artwork, Item, Plex, PlexError, TAG_LIST};
 
 /// The edit parameters that write `desired` and lock it, removing the genres and collections an earlier write added
 /// that `desired` no longer has.
@@ -34,7 +34,7 @@ pub fn edit_pairs(desired: &Desired, before: Option<&Desired>) -> Vec<(String, S
         }
         let gone: Vec<&String> = earlier.map(|earlier| earlier.iter().filter(|value| !now.contains(value)).collect()).unwrap_or_default();
         if !gone.is_empty() {
-            pairs.push((format!("{tag}[].tag.tag-"), gone.iter().map(|value| value.as_str()).collect::<Vec<_>>().join(",")));
+            pairs.push((format!("{tag}[].tag.tag-"), gone.iter().map(|value| value.as_str()).collect::<Vec<_>>().join(&TAG_LIST.to_string())));
         }
         if !now.is_empty() || !gone.is_empty() {
             pairs.push((format!("{tag}.locked"), "1".to_string()));
@@ -133,7 +133,7 @@ pub fn undo_pairs(original: &Original, written: Option<&Desired>, now: &Item) ->
         let present: Vec<&String> = present.iter().collect();
         let added: Vec<&String> = wrote.iter().filter(|value| !before.contains(value) && present.contains(value)).collect();
         if !added.is_empty() {
-            pairs.push((format!("{tag}[].tag.tag-"), added.iter().map(|value| value.as_str()).collect::<Vec<_>>().join(",")));
+            pairs.push((format!("{tag}[].tag.tag-"), added.iter().map(|value| value.as_str()).collect::<Vec<_>>().join(&TAG_LIST.to_string())));
         }
         let left: Vec<&&String> = present.iter().filter(|value| !added.contains(value)).collect();
         if left.iter().all(|value| before.contains(value)) {
@@ -257,6 +257,11 @@ mod tests {
         lone.collections.clear();
         let removing = edit_pairs(&lone, Some(&desired()));
         assert!(removing.contains(&("collection[].tag.tag-".into(), "UFC 334: Gane vs. Hokit".into())));
+        let mut fewer = desired();
+        fewer.genres.clear();
+        let mut two = desired();
+        two.genres.push("Boxing, Pro".into());
+        assert!(edit_pairs(&fewer, Some(&two)).contains(&("genre[].tag.tag-".into(), format!("Mixed Martial Arts{TAG_LIST}Boxing, Pro"))));
         assert!(removing.contains(&("collection.locked".into(), "1".into())));
         assert!(!edit_pairs(&lone, None).iter().any(|(key, _)| key.starts_with("collection")));
     }
