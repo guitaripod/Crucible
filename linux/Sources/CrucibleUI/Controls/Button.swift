@@ -83,6 +83,8 @@ public final class ButtonView: View {
     /// Drawn faint while not selected (a season the server lacks).
     public var isDimmed = false { didSet { setNeedsDisplay() } }
     public var isEnabled = true { didSet { setNeedsDisplay() } }
+    /// Labelled in the destructive red (Delete, Sign Out, Stop Stream).
+    public var isDestructive = false { didSet { setNeedsDisplay() } }
     public var onPress: (() -> Void)?
     public var onContextMenu: ((Point?) -> Void)?
 
@@ -245,7 +247,7 @@ public final class ButtonView: View {
                     if focus.value > 0.01 {
                         drawn.fill(rect, radius: rect.height / 2, color: palette.focusFill.withAlpha(focus.value))
                     }
-                    foreground = GlassStyle.label(tone: tone.value).mixed(with: palette.onFocusFill, amount: focus.value)
+                    foreground = isDestructive ? palette.destructive : GlassStyle.label(tone: tone.value).mixed(with: palette.onFocusFill, amount: focus.value)
                 case .plain:
                     if lift.value > 0.01 {
                         drawn.fill(rect, radius: rect.height / 2, color: palette.label.withAlpha(0.12 * lift.value))
