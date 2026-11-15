@@ -240,6 +240,12 @@ final class ShowDetailScreen: DetailScreen {
     private func actions(for model: ShowDetailModel) -> [DetailAction] {
         var list = [DetailAction(id: "primary", title: model.primaryTitle, symbol: "play.fill", isPrimary: true, isEnabled: model.isPrimaryEnabled,
                                  behaviour: .run { [weak self] in self?.playUpNext() })]
+        if PreviouslyOnRequest.offer(model) != .none {
+            list.append(DetailAction(id: "previouslyOn", title: CompanionCopy.previouslyOn, symbol: "text.quote", behaviour: .run { [weak self] in
+                guard let self, let model = self.model else { return }
+                PreviouslyOnPresenter.present(model, from: self)
+            }))
+        }
         if let plan = model.essentials, EssentialsCopy.shouldOffer(plan) {
             let preview = plan.preview(EssentialsChoice(level: .skipAnimeOnly))
             list.append(DetailAction(id: "essentialsOffer",

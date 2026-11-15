@@ -43,6 +43,23 @@ enum OwnModelCopy {
         if case .brain(let error) = failure { return refusal(error) }
         return WatchCopy.failure(failure)
     }
+
+    static let recapSends = String(localized: "Writing a recap sends the name of the series and these descriptions to your model. Nothing else leaves this computer.", comment: "Linux: what a described Previously On sends to the person's own model")
+    static let recapSetup = String(localized: "Set up your own model in Settings to have these written into one recap.", comment: "Linux: hint under a Previously On made from descriptions when no model is set up")
+
+    /// Why the person's model wrote no recap, in place of the hosted model's reasons.
+    static func recapFailure(_ error: HostedBrainError) -> String {
+        switch error {
+        case .offline:
+            return String(localized: "Couldn't write the recap because your model isn't answering. Check that it is running and its address is right, then try again.", comment: "Linux Previously On when the person's model cannot be reached")
+        case .busy:
+            return String(localized: "Couldn't write the recap because your model is busy. Try again in a minute.", comment: "Linux Previously On when the person's model is busy")
+        case .unavailable:
+            return recapSetup
+        case .failed, .declined, .needsPro, .allowanceUsed:
+            return String(localized: "Couldn't write the recap because your model gave no usable answer. Check its name in Settings, then try again.", comment: "Linux Previously On when the person's model answered with an error or nonsense")
+        }
+    }
 }
 
 /// Settings › Your Own Model (Linux only, D1): the address, the model and the key What to Watch and recaps run on, a check

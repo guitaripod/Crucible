@@ -47685,6 +47685,294 @@
         }
       }
     },
+    "Couldn't write the recap because your model gave no usable answer. Check its name in Settings, then try again." : {
+      "comment" : "Linux Previously On when the person's model answered with an error or nonsense",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi din model gav et svar, der ikke kan bruges. Tjek dens navn i Indstillinger, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil dein Modell keine brauchbare Antwort gab. Prüfe seinen Namen in den Einstellungen und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque tu modelo no dio una respuesta utilizable. Comprueba su nombre en Configuración y vuelve a intentarlo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska mallisi ei antanut käyttökelpoista vastausta. Tarkista sen nimi Asetuksissa ja yritä uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment », car votre modèle n’a donné aucune réponse exploitable. Vérifiez son nom dans Paramètres, puis réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því líkanið skilaði engu nothæfu svari. Athugaðu nafnið á því í Stillingum og reyndu svo aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti» perché il tuo modello non ha dato una risposta utilizzabile. Controlla il suo nome nelle Impostazioni, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルから使える応答が得られなかったため、前回までのあらすじを作成できませんでした。設定でモデル名を確認してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 쓸 수 있는 응답을 주지 않아 지난 이야기를 작성하지 못했습니다. 설정에서 모델 이름을 확인한 다음 다시 시도하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi modellen din ga et svar som ikke kan brukes. Sjekk navnet i Innstillinger, og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”, bo Twój model nie dał użytecznej odpowiedzi. Sprawdź jego nazwę w Ustawieniach, a potem spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente” porque o seu modelo não deu uma resposta utilizável. Verifique o nome dele nas Configurações e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att skriva ”Tidigare i” eftersom din modell inte gav något användbart svar. Kontrollera dess namn i Inställningar och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为你的模型没有给出可用的回答。请在设置中检查它的名称，然后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為你的模型沒有給出可用的回答。請在設定中檢查它的名稱，然後再試一次。"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because your model is busy. Try again in a minute." : {
+      "comment" : "Linux Previously On when the person's model is busy",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi din model er optaget. Prøv igen om et minut."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil dein Modell beschäftigt ist. Versuche es in einer Minute erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque tu modelo está ocupado. Vuelve a intentarlo en un minuto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska mallisi on kiireinen. Yritä uudelleen minuutin kuluttua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment », car votre modèle est occupé. Réessayez dans une minute."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því líkanið er upptekið. Reyndu aftur eftir eina mínútu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti» perché il tuo modello è occupato. Riprova tra un minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが混み合っているため、前回までのあらすじを作成できませんでした。1分ほどしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 사용 중이라 지난 이야기를 작성하지 못했습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi modellen din er opptatt. Prøv igjen om et minutt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”, bo Twój model jest zajęty. Spróbuj ponownie za minutę."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente” porque o seu modelo está ocupado. Tente novamente em um minuto."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att skriva ”Tidigare i” eftersom din modell är upptagen. Försök igen om en minut."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为你的模型正忙。请一分钟后再试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為你的模型正忙。請一分鐘後再試。"
+          }
+        }
+      }
+    },
+    "Couldn't write the recap because your model isn't answering. Check that it is running and its address is right, then try again." : {
+      "comment" : "Linux Previously On when the person's model cannot be reached",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive resuméet, fordi din model ikke svarer. Tjek, at den kører, og at adressen er rigtig, og prøv igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Was bisher geschah“ kann nicht geschrieben werden, weil dein Modell nicht antwortet. Prüfe, ob es läuft und die Adresse stimmt, und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el Anteriormente porque tu modelo no responde. Comprueba que esté en marcha y que la dirección sea correcta, y vuelve a intentarlo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvetoa ei voitu kirjoittaa, koska mallisi ei vastaa. Tarkista, että se on käynnissä ja osoite on oikein, ja yritä sitten uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de rédiger le « Précédemment », car votre modèle ne répond pas. Vérifiez qu’il est lancé et que l’adresse est correcte, puis réessayez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að skrifa „Það sem gerðist áður“ því líkanið svarar ekki. Athugaðu hvort það sé í gangi og hvort vistfangið sé rétt, og reyndu svo aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere «Nelle puntate precedenti» perché il tuo modello non risponde. Controlla che sia in esecuzione e che l’indirizzo sia corretto, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが応答しないため、前回までのあらすじを作成できませんでした。モデルが起動していて、アドレスが正しいか確認してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 응답하지 않아 지난 이야기를 작성하지 못했습니다. 모델이 실행 중이고 주소가 맞는지 확인한 다음 다시 시도하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke skrive «Tidligere i serien» fordi modellen din ikke svarer. Sjekk at den kjører og at adressen er riktig, og prøv igjen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się napisać „W poprzednich odcinkach”, bo Twój model nie odpowiada. Sprawdź, czy jest uruchomiony i czy adres jest poprawny, a potem spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível escrever o “Anteriormente” porque o seu modelo não está respondendo. Verifique se ele está em execução e se o endereço está certo e tente novamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det gick inte att skriva ”Tidigare i” eftersom din modell inte svarar. Kontrollera att den körs och att adressen stämmer, och försök igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法撰写前情提要，因为你的模型没有响应。请检查它是否正在运行、地址是否正确，然后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法撰寫前情提要，因為你的模型沒有回應。請檢查它是否正在執行、位址是否正確，然後再試一次。"
+          }
+        }
+      }
+    },
     "Couldn’t Add" : {
       "localizations" : {
         "da" : {
@@ -152431,6 +152719,102 @@
         }
       }
     },
+    "Set up your own model in Settings to have these written into one recap." : {
+      "comment" : "Linux: hint under a Previously On made from descriptions when no model is set up",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurer din egen model under Indstillinger for at få disse skrevet til ét resumé."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richte in den Einstellungen dein eigenes Modell ein, damit diese zu einem Rückblick „Was bisher geschah“ zusammengefasst werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura tu propio modelo en Configuración para que estas descripciones se conviertan en un Anteriormente."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ota oma malli käyttöön Asetuksissa, niin nämä kuvaukset kootaan yhdeksi Aiemmin-yhteenvedoksi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurez votre propre modèle dans Paramètres pour que ces descriptions soient rédigées en un seul « Précédemment »."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settu upp þitt eigið líkan í Stillingum til að þessar lýsingar verði skrifaðar í eina „Það sem gerðist áður“."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura il tuo modello nelle Impostazioni per far scrivere queste descrizioni in un unico «Nelle puntate precedenti»."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらの説明を1つの前回までのあらすじにまとめるには、設定で自分のモデルを設定してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 설명들을 하나의 지난 이야기로 작성하려면 설정에서 직접 모델을 설정하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sett opp din egen modell i Innstillinger for å få disse skrevet til ett «Tidligere i serien»."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aby te opisy zostały zapisane w jednym „W poprzednich odcinkach”, skonfiguruj własny model w Ustawieniach."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure seu próprio modelo em Configurações para que estas descrições sejam escritas em um único “Anteriormente”."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurera din egen modell i Inställningar för att få dessa skrivna till ett ”Tidigare i”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在设置中配置你自己的模型，才能将这些描述整理成一段前情提要。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先在設定中設定你自己的模型，才能將這些描述整理成一段前情提要。"
+          }
+        }
+      }
+    },
     "Set up your own model in Settings to use What to Watch." : {
       "comment" : "What to Watch on Linux before a model is set up",
       "extractionState" : "manual",
@@ -197709,6 +198093,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "撰寫前情提要時，影集名稱和這些描述會傳送到 Crucible 的 AI。除此之外，不會有其他資料離開這台裝置。"
+          }
+        }
+      }
+    },
+    "Writing a recap sends the name of the series and these descriptions to your model. Nothing else leaves this computer." : {
+      "comment" : "Linux: what a described Previously On sends to the person's own model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når resuméet skrives, sendes seriens navn og disse beskrivelser til din model. Intet andet forlader denne computer."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Schreiben von „Was bisher geschah“ werden der Name der Serie und diese Beschreibungen an dein Modell gesendet. Sonst verlässt nichts diesen Computer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribir un Anteriormente envía el nombre de la serie y estas descripciones a tu modelo. Nada más sale de este equipo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aiemmin-yhteenvedon kirjoittaminen lähettää sarjan nimen ja nämä kuvaukset mallillesi. Mitään muuta ei poistu tältä tietokoneelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rédiger un « Précédemment » envoie le nom de la série et ces descriptions à votre modèle. Rien d’autre ne quitte cet ordinateur."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Með því að skrifa „Það sem gerðist áður“ eru nafn þáttaraðarinnar og þessar lýsingar sendar til líkansins þíns. Ekkert annað fer úr þessari tölvu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrivere «Nelle puntate precedenti» invia il nome della serie e queste descrizioni al tuo modello. Nient’altro lascia questo computer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回までのあらすじを作成すると、シリーズ名とこれらの説明がモデルに送信されます。それ以外のデータがこのコンピュータから送信されることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기를 작성하면 시리즈 이름과 이 설명들이 사용자의 모델로 전송됩니다. 이 컴퓨터 밖으로는 다른 정보가 전송되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når «Tidligere i serien» skrives, sendes navnet på serien og disse beskrivelsene til modellen din. Ingenting annet forlater denne datamaskinen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisanie „W poprzednich odcinkach” wysyła nazwę serialu i te opisy do Twojego modelu. Nic więcej nie opuszcza tego komputera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escrever o “Anteriormente” envia o nome da série e estas descrições para o seu modelo. Nada mais sai deste computador."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "När ”Tidigare i” skrivs skickas seriens namn och dessa beskrivningar till din modell. Inget annat lämnar den här datorn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰写前情提要时，剧集名称和这些描述会发送给你的模型。除此之外，不会有任何数据离开此电脑。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撰寫前情提要時，影集名稱和這些描述會傳送到你的模型。除此之外，不會有其他資料離開這台電腦。"
           }
         }
       }
