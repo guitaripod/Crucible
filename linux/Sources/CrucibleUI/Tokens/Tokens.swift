@@ -146,9 +146,11 @@ public struct Metrics {
 @MainActor
 public struct TypeScale {
     let metrics: Metrics
+    /// The desktop's text size, as Dynamic Type scales the Apple TV's recipes, under the ceiling `Theme.textScale` keeps.
+    var textScale: Float = 1
 
     private func font(_ tvSize: Float, _ weight: Font.Weight) -> Font {
-        Font(size: (tvSize * metrics.density.factor * 2).rounded() / 2, weight: weight)
+        Font(size: (tvSize * metrics.density.factor * textScale * 2).rounded() / 2, weight: weight)
     }
 
     public var largeTitle: Font { font(76, .bold) }
@@ -264,9 +266,12 @@ public final class Theme {
     public var palette: Palette = .dark { didSet { notify() } }
     /// Reduce Transparency: glass becomes the opaque raised surface.
     public var reduceTransparency = false { didSet { notify() } }
+    /// The desktop's text scaling, from 1 to `maximumTextScale`, applied to the type recipes.
+    public var textScale: Float = 1 { didSet { notify() } }
+    public static let maximumTextScale: Float = 1.3
 
     public var metrics: Metrics { Metrics(density: density, cardZoom: cardZoom) }
-    public var type: TypeScale { TypeScale(metrics: metrics) }
+    public var type: TypeScale { TypeScale(metrics: metrics, textScale: min(max(textScale, 1), Self.maximumTextScale)) }
 
     private var observers: [(id: ObjectIdentifier, handler: @MainActor () -> Void)] = []
 

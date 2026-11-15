@@ -58,12 +58,14 @@ final class MemoryPressure {
 /// motion (the portal's own key, GNOME's animations switch or KDE's animation speed at instant) makes every change apply at
 /// once, and high contrast turns glass into the opaque raised surface, as Reduce Transparency does on the Apple TV. The
 /// portal is asked on a queue of its own, so a slow or missing portal never holds the window.
-/// `CRUCIBLE_REDUCE_MOTION` and `CRUCIBLE_REDUCE_TRANSPARENCY` set to 1 or 0 override them, for headless checks.
+/// The text scaling factor scales the type recipes, as Dynamic Type does, up to 1.3. `CRUCIBLE_REDUCE_MOTION` and
+/// `CRUCIBLE_REDUCE_TRANSPARENCY` set to 1 or 0, and `CRUCIBLE_TEXT_SCALE`, override them, for headless checks.
 @MainActor
 enum DesktopAccessibility {
     private struct Settings: Sendable {
         var reducesMotion: Bool
         var reducesTransparency: Bool
+        var textScale: Float
     }
 
     private static let portal = DispatchQueue(label: "crucible.portal-settings")
@@ -78,15 +80,29 @@ enum DesktopAccessibility {
     }
 
     private static func use(_ settings: Settings, in window: Window?) {
-        guard settings.reducesMotion != Animation.reduceMotion || settings.reducesTransparency != Theme.current.reduceTransparency else { return }
+        let theme = Theme.current
+        guard settings.reducesMotion != Animation.reduceMotion || settings.reducesTransparency != theme.reduceTransparency
+            || settings.textScale != theme.textScale else { return }
         Animation.reduceMotion = settings.reducesMotion
-        if settings.reducesTransparency != Theme.current.reduceTransparency { Theme.current.reduceTransparency = settings.reducesTransparency }
-        MidgarLog.notice("Desktop settings: reduce motion \(settings.reducesMotion), reduce transparency \(settings.reducesTransparency)", category: .lifecycle)
+        if settings.reducesTransparency != theme.reduceTransparency { theme.reduceTransparency = settings.reducesTransparency }
+        if settings.textScale != theme.textScale {
+            theme.textScale = settings.textScale
+            window?.relayoutEverything()
+        }
+        MidgarLog.notice("Desktop settings: reduce motion \(settings.reducesMotion), reduce transparency \(settings.reducesTransparency), text \(settings.textScale)×",
+                         category: .lifecycle)
         window?.setNeedsDisplay()
     }
 
     private nonisolated static func read() -> Settings {
-        Settings(reducesMotion: reducesMotion, reducesTransparency: reducesTransparency)
+        Settings(reducesMotion: reducesMotion, reducesTransparency: reducesTransparency, textScale: textScale)
+    }
+
+    /// GNOME's text scaling factor (the portal answers it on other desktops too), within what the layouts are built for.
+    private nonisolated static var textScale: Float {
+        if let forced = ProcessInfo.processInfo.environment["CRUCIBLE_TEXT_SCALE"].flatMap(Float.init) { return forced }
+        guard let factor = setting("org.gnome.desktop.interface", "text-scaling-factor") else { return 1 }
+        return min(max(Float(factor), 1), 1.3)
     }
 
     private nonisolated static var reducesMotion: Bool {
