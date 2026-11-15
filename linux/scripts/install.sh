@@ -49,6 +49,7 @@ Terminal=false
 Categories=AudioVideo;Video;Player;TV;
 Keywords=Plex;Movies;TV;Media;
 StartupWMClass=org.guitaripod.Crucible
+MimeType=x-scheme-handler/crucible;
 Actions=Couch;
 
 [Desktop Action Couch]

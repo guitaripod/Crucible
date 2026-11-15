@@ -24,6 +24,7 @@ enum LinuxSession {
 final class AppCoordinator: WindowDelegate {
     let window: Window
     var onQuit: (() -> Void)?
+    let router = Router()
     private var launchTask: Task<Void, Never>?
     private var root: RootView?
     private var onboarding: OnboardingView?
@@ -84,10 +85,19 @@ final class AppCoordinator: WindowDelegate {
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
         root = main
         install(main)
+        router.activate(main)
+    }
+
+    /// Links a later launch handed over: the window comes to the front with the launcher's token and each link opens.
+    func open(_ urls: [URL], activationToken: String?) {
+        if let activationToken { window.activate(token: activationToken) }
+        for url in urls { router.handle(url) }
     }
 
     private func showOnboarding(_ mode: OnboardingView.Mode) {
         launchTask?.cancel()
+        router.deactivate()
+        root = nil
         let flow = OnboardingView(mode: mode)
         flow.onConnected = { [weak self] connection in
             self?.onboarding = nil

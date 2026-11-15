@@ -10,7 +10,10 @@ enum CrucibleLinux {
 
 /// Crucible for Linux.
 ///
-///     crucible [--couch] [--light] [--fullscreen]
+///     crucible [--couch] [--light] [--fullscreen] [--new-instance] [crucible://...]
+///
+/// A launch while Crucible runs hands its `crucible://` links to the running app and quits; `--new-instance` (and the
+/// headless `--capture` runs) always open their own window.
 @MainActor
 func runCrucible() -> Int32 {
     let arguments = CommandLine.arguments
@@ -22,6 +25,16 @@ func runCrucible() -> Int32 {
     Theme.current.density = arguments.contains("--couch") ? .couch : .desk
     Theme.current.palette = arguments.contains("--light") ? .light : .dark
     let loop = EventLoop()
+    let links = AppInstance.links(in: arguments)
+    let activationToken = AppInstance.takeActivationToken()
+    var instance: AppInstance?
+    if !arguments.contains("--new-instance") && !arguments.contains("--capture") {
+        switch AppInstance.claim(loop: loop, forwarding: links, activationToken: activationToken) {
+        case .forwarded: return 0
+        case .claimed(let claimed): instance = claimed
+        case .unavailable: break
+        }
+    }
     let window: Window
     do {
         window = try Window(title: "Crucible", appID: "org.guitaripod.Crucible", loop: loop,
@@ -35,6 +48,7 @@ func runCrucible() -> Int32 {
     let coordinator = AppCoordinator(window: window)
     var running = true
     coordinator.onQuit = { running = false }
+    instance?.onOpen = { urls, token in coordinator.open(urls, activationToken: token) }
     let signals = quitOnSignals(coordinator)
     if let file = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_FILE"] {
         let player = PlayerScreen(source: .file(URL(fileURLWithPath: file), title: URL(fileURLWithPath: file).deletingPathExtension().lastPathComponent))
@@ -49,6 +63,8 @@ func runCrucible() -> Int32 {
         window.focus.focus(stack, animated: false)
     } else {
         coordinator.start()
+        for url in links { coordinator.router.handle(url) }
+        if let link = ProcessInfo.processInfo.environment["CRUCIBLE_OPEN_LINK"].flatMap(URL.init(string:)) { coordinator.router.handle(link) }
     }
     scheduleCaptures(arguments, window: window, coordinator: coordinator) { running = false }
     loop.run { !running }
@@ -58,8 +74,10 @@ func runCrucible() -> Int32 {
     window.close()
     let deadline = Window.now() + 2
     loop.run { PlayerScreen.pendingStop == nil || Window.now() > deadline }
+    instance?.close()
     return 0
 }
+
 /// SIGTERM (logout, `kill`), SIGINT (Ctrl+C) and SIGHUP (the terminal closing) quit the way Ctrl+Q does: the player
 /// stops, the server hears where, and the window closes, instead of the process dying mid-title.
 @MainActor
@@ -72,7 +90,6 @@ func quitOnSignals(_ coordinator: AppCoordinator) -> [DispatchSourceSignal] {
         return source
     }
 }
-
 
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, in order), waits a moment and writes the window to PATH; the app quits after the last.

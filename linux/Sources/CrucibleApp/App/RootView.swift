@@ -135,6 +135,19 @@ final class RootView: View {
         window?.focus.focus(screen, animated: false)
     }
 
+    /// Shows `item`'s page from anywhere: the player closes, Home's stack unwinds to its root and the page goes on top.
+    func showDetail(_ item: PlexMetadata) {
+        closePlayer()
+        select("home")
+        stacks["home"]?.popToRoot()
+        push(DetailScreen(api: payload.api, item: item))
+    }
+
+    /// Ends playback if a player is up; the server hears where it stopped.
+    func closePlayer() {
+        player?.close()
+    }
+
     /// Pushes a screen on the current tab's stack.
     func push(_ screen: ScreenView) {
         current?.push(screen)
