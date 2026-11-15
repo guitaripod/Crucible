@@ -27,6 +27,8 @@ final class RootView: View {
             guard let key = directory.key, let title = directory.title else { continue }
             tabs.append(.init(id: "library-\(key)", title: title))
         }
+        tabs.append(.init(id: "search", title: String(localized: "Search")))
+        tabs.append(.init(id: "you", title: String(localized: "You")))
         tabBar.tabs = tabs
         tabBar.onSelect = { [weak self] tab in self?.select(tab.id) }
         addSubview(tabBar)
@@ -40,6 +42,13 @@ final class RootView: View {
         let screen: ScreenView
         if id.hasPrefix("library-"), let directory = libraryLayout.tabs.first(where: { "library-\($0.key ?? "")" == id }) {
             screen = LibraryScreen(api: payload.api, directory: directory)
+        } else if id == "search" {
+            screen = SearchScreen(api: payload.api)
+        } else if id == "you" {
+            let you = YouScreen(payload: payload)
+            you.onSignOut = { [weak self] in self?.onSignOut?() }
+            you.onSwitchServer = { [weak self] in self?.onSwitchServer?() }
+            screen = you
         } else {
             screen = HomeScreen(payload: payload)
         }
@@ -86,6 +95,15 @@ final class RootView: View {
 
     /// The tvOS app's commands with Ctrl for Command: Ctrl+1 to Ctrl+9 pick tabs.
     func handleCommand(_ event: KeyEvent) -> Bool {
+        if (event.key == Key.character("f") && event.modifiers == .control) || (event.key == Key.character("/") && event.modifiers.isEmpty) {
+            select("search")
+            return true
+        }
+        if let typed = event.typedText, player == nil, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+            select("search")
+            (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
+            return true
+        }
         let digit = Int(event.key.rawValue) - 0x30
         if event.modifiers == .control, digit >= 1, digit <= min(9, tabBar.tabs.count) {
             select(tabBar.tabs[digit - 1].id)

@@ -5,7 +5,7 @@ import FoundationNetworking
 
 /// Fetches the signed-in plex.tv account's display name so the You tab can greet the user.
 package enum PlexAccountName {
-    static let defaultsKey = "plex_account_name"
+    package static let defaultsKey = "plex_account_name"
 
     private struct Account: Decodable {
         let username: String?

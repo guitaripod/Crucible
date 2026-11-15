@@ -128,6 +128,29 @@ enum SharedGPU {
         #expect(presses == 2)
     }
 
+    @Test func aTextFieldEditsLikeADesktopField() {
+        let field = TextFieldView(placeholder: "Search")
+        var changes: [String] = []
+        field.onChange = { changes.append($0) }
+        field.frame = Rect(x: 0, y: 0, width: 600, height: 60)
+        window.contentView.addSubview(field)
+        window.focus.focus(field, animated: false)
+        for character in "salt flats" { window.handleKey(KeyEvent(key: Key.character(character), text: String(character))) }
+        #expect(field.text == "salt flats")
+        window.handleKey(KeyEvent(key: .backspace, modifiers: .control))
+        #expect(field.text == "salt ")
+        window.handleKey(KeyEvent(key: .left))
+        window.handleKey(KeyEvent(key: Key.character("y"), text: "y"))
+        #expect(field.text == "saltY ".replacingOccurrences(of: "Y", with: "y"))
+        window.handleKey(KeyEvent(key: Key.character("a"), text: "a", modifiers: .control))
+        window.handleKey(KeyEvent(key: Key.character("x"), text: "x"))
+        #expect(field.text == "x")
+        window.handleKey(KeyEvent(key: .escape))
+        #expect(field.text.isEmpty)
+        #expect(changes.last == "")
+        window.render()
+    }
+
     @Test func aTabBarSelectsWithThePointer() {
         let bar = TabBarView()
         bar.tabs = [.init(id: "home", title: "Home"), .init(id: "movies", title: "Movies")]
