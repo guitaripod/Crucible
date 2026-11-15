@@ -122,6 +122,7 @@ final class StatisticsScreen: ScreenView {
         let focusedID = window?.focusedView.flatMap { focused in sectionViews.first { focused.isDescendant(of: $0.view) }?.id }
         sectionViews = StatsSections.make(loaded, animate: animate, open: { [weak self] destination in self?.open(destination) })
         page.setSections([heading, controls] + sectionViews.map(\.view))
+        if !isShowingContent { page.fadeIn() }
         isShowingContent = true
         page.isHidden = false
         state.isHidden = true

@@ -124,6 +124,7 @@ final class HistoryScreen: ScreenView {
             shown.append(noMatches)
         }
         let hadFocus = state.containsFocus
+        if !state.isHidden { page.fadeIn() }
         state.isHidden = true
         page.isHidden = false
         page.setSections(shown)

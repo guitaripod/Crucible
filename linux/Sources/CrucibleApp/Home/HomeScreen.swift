@@ -158,6 +158,7 @@ final class HomeScreen: ScreenView {
             return
         }
         let hadFocus = !state.isHidden
+        if hadFocus { page.fadeIn() }
         state.isHidden = true
         page.isHidden = false
         var sections: [View] = [heroRoom]

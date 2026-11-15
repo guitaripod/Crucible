@@ -275,6 +275,7 @@ final class LibraryScreen: ScreenView {
 
     private func showContent() {
         let hadFocus = state.containsFocus
+        if !state.isHidden { page.fadeIn() }
         state.isHidden = true
         page.isHidden = false
         if hadFocus, let target = preferredFocusView { window?.focus.focus(target, animated: false) }

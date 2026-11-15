@@ -152,6 +152,7 @@ final class TitleGridScreen: ScreenView {
             state.isHidden = false
             state.show(.empty(title: empty.title, message: empty.message, symbol: empty.symbol, action: nil))
         } else {
+            if !state.isHidden { page.fadeIn() }
             state.isHidden = true
         }
         page.setNeedsLayout()

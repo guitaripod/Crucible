@@ -194,6 +194,7 @@ final class SearchScreen: ScreenView {
 
     private func showSections(_ sections: [View]) {
         let hadFocus = state.containsFocus
+        if !state.isHidden { page.fadeIn() }
         state.isHidden = true
         page.isHidden = false
         page.setSections(sections)
@@ -552,6 +553,7 @@ final class GenreScreen: ScreenView {
         case .content:
             applyItems()
             let hadFocus = state.containsFocus
+            if !state.isHidden { page.fadeIn() }
             state.isHidden = true
             page.isHidden = false
             if hadFocus { window?.focus.focus(grid, animated: false) }
