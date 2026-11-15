@@ -47,8 +47,10 @@ class SettingsScaffold: ScreenView {
     }
 
     /// Shows `newState` (loading, empty or failed) where the rows go, or the rows again for nil
-    /// (`TVSettingsScaffold.presentState`); the focus follows when it was on the side that goes away.
+    /// (`TVSettingsScaffold.presentState`); the focus follows when it was on the side that goes away, and nil while the
+    /// rows already show leaves the focus where it is.
     func presentState(_ newState: StateView.State?) {
+        guard newState != nil || !state.isHidden else { return }
         let hadFocus = containsFocus
         if let newState {
             state.show(newState)
