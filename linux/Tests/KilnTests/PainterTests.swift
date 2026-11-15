@@ -164,6 +164,14 @@ import CKilnText
     }
 
 
+    @Test func textWithEmojiDrawsInColourByItself() {
+        #expect(TextLayout("Night Ferry", font: Font(size: 20), scale: 1).isInColor == false)
+        #expect(TextLayout("😂 12", font: Font(size: 20), scale: 1).isInColor)
+        #expect(TextLayout("\u{2764}\u{FE0F} 3", font: Font(size: 20), scale: 1).isInColor, "a heart asked for as an emoji")
+        #expect(TextLayout("★ 8/10 · — “quoted”", font: Font(size: 20), scale: 1).isInColor == false, "typographic marks stay text")
+    }
+
+
     @Test func aHighlightKeepsTheLayoutAndMapsUTF16ToBytes() {
         let layout = TextLayout("Café Noir", font: Font(size: 20), scale: 1)
         let match = layout.showingOnly(utf16: [(location: 5, length: 4)])

@@ -37,7 +37,8 @@ public struct TextLayout {
     let metrics: TextMetrics
 
     /// Lays out `text` no wider than `maxWidth` points (0 for unbounded) in at most `maxLines` lines (0 for any), ending
-    /// in an ellipsis when cut. `markup` reads `text` as Pango markup; `inColor` draws its emoji in their own colours.
+    /// in an ellipsis when cut. `markup` reads `text` as Pango markup; `inColor` draws in colour, which text with emoji in
+    /// it does by itself.
     public init(_ text: String, font: Font, maxWidth: Float = 0, maxLines: Int = 1, alignment: TextStyle.Alignment = .leading, scale: Float,
                 markup: Bool = false, inColor: Bool = false) {
         self.text = text
@@ -51,7 +52,7 @@ public struct TextLayout {
         style.italic = font.italic
         style.letterSpacingPixels = Double(font.letterSpacing * scale)
         style.markup = markup
-        style.inColor = inColor
+        style.inColor = inColor || Self.hasColorGlyphs(text)
         self.style = style
         metrics = text.isEmpty ? TextMetrics(width: 0, height: 0, lines: 0, baseline: 0, truncated: false) : TextRenderer.measure(text, style: style)
     }
@@ -107,8 +108,17 @@ public struct TextLayout {
         return try? renderer.colorTexture(for: text, style: style, color: color)
     }
 
+    /// Whether `text` has a character the colour emoji font draws (an emoji shown as one, or one asked for with the emoji
+    /// variation selector), so the layout draws in colour instead of as a silhouette; plain text stays a coverage mask.
+    nonisolated static func hasColorGlyphs(_ text: String) -> Bool {
+        for scalar in text.unicodeScalars where scalar.value >= 0x2000 {
+            if scalar.value == 0xFE0F || scalar.properties.isEmojiPresentation { return true }
+        }
+        return false
+    }
+
     /// `text` with the characters Pango markup gives meaning to (`&`, `<`, `>`, quotes) written as entities.
-    public static func escapingMarkup(_ text: String) -> String {
+    public nonisolated static func escapingMarkup(_ text: String) -> String {
         var escaped = ""
         escaped.reserveCapacity(text.utf8.count)
         for character in text {
