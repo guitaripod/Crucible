@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 78 | 7 | 18 | 0 |
-| **All** | 646 | 12 | 28 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 79 | 7 | 17 | 0 |
+| **All** | 647 | 12 | 27 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -730,7 +730,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `linux-enter-activates` (S) Enter selects the focused control _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [x] `linux-focus-ring-keyboard-only` (S) The focus ring shows only once the keyboard is used, and a click hides it again _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [x] `linux-tooltips` (S) Tooltips name icon-only buttons after a short hover _Apple TV: docs/LINUX.md §5.4 Text_
-- [ ] `linux-text-select-copy` (M) Titles, synopses and cast names can be selected and copied Gap: No text selection or clipboard code in linux/Sources; text is drawn as labels only. _Apple TV: docs/LINUX.md §5.4 Text_
+- [x] `linux-text-select-copy` (M) Titles, synopses and cast names can be selected and copied _Apple TV: docs/LINUX.md §5.4 Text_
 - [ ] `linux-search-text-ime` (M) **partial** Desk Search is a real text field with IME input through text-input-v3 Gap: A plain text field exists (CrucibleUI/Controls/TextField.swift, used by SearchScreen) and typing works, but no zwp_text_input_v3 binding exists in linux/ (no text_input reference), so IME composition is not supported. _Apple TV: docs/LINUX.md §6 Search_
 - [x] `linux-reduce-transparency-motion` (S) Reduce Transparency and Reduce Motion from the desktop settings portal turn glass opaque and motion instant _Apple TV: docs/LINUX.md §5.7 Liquid Glass_
 - [ ] `linux-font-inter` (S) **partial** Inter is bundled with Inter Display at 30 points and above, and CJK falls back through fontconfig Gap: Inter static cuts are bundled (Kiln/Resources/Fonts). The Display cut switches at optical size 23 (Kiln/Text/TextRenderer.swift:46), not the 30 the doc states. fontconfig is included (CKilnText/kiln_text.c:8), but CJK fallback to Noto Sans CJK is not verified. _Apple TV: docs/LINUX.md §5.6 Type and symbols_
