@@ -46,6 +46,9 @@ final class AppCoordinator: WindowDelegate {
         self.window = window
         window.delegate = self
         DemoTour.shared.onFinale = { [weak self] in self?.scheduleFinale() }
+        PreferenceSetting.didChange = { setting in
+            if setting.notificationKind != nil || setting == .notifyWhileClosed { NewsTimer.sync() }
+        }
         if let loop = window.loop, let notifications = DesktopNotifications(loop: loop) {
             notifications.onOpen = { [weak self] link, token in self?.open([link], activationToken: token) }
             self.notifications = notifications
@@ -132,6 +135,7 @@ final class AppCoordinator: WindowDelegate {
         install(main)
         router.activate(main)
         newsWatcher?.start()
+        NewsTimer.sync()
     }
 
     /// The launch gate stays a moment over the app it hands to, fading out (`TVAppCoordinator`'s 0.4 s cross-dissolve).
@@ -182,6 +186,7 @@ final class AppCoordinator: WindowDelegate {
         MidgarLog.notice("Signing out", category: .lifecycle)
         launchTask?.cancel()
         AccountSessionReset.signOut(LinuxSession.collaborators)
+        NewsTimer.sync()
         root = nil
         showOnboarding(.signIn)
     }

@@ -12,6 +12,7 @@ enum CrucibleLinux {
 /// Crucible for Linux.
 ///
 ///     crucible [--couch] [--light] [--fullscreen] [--new-instance] [crucible://...]
+///     crucible --check-news   (the news timer: announce what arrived on the server, then quit)
 ///
 /// A launch while Crucible runs hands its `crucible://` links to the running app and quits; `--new-instance` (and the
 /// headless `--capture` runs) always open their own window.
@@ -26,6 +27,7 @@ func runCrucible() -> Int32 {
     DemoMode.shared.install(DemoLibraryProvider())
     HostedBrain.installDemo(DemoBrain())
     OwnModel.install()
+    if arguments.contains("--check-news") { return ClosedNewsCheck.run(loop: EventLoop()) }
     LinuxDisplay.restore(arguments: arguments)
     let loop = EventLoop()
     let links = AppInstance.links(in: arguments)

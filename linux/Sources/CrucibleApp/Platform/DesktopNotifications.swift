@@ -11,6 +11,8 @@ import MidgarCore
 final class DesktopNotifications {
     /// A clicked notification's link, with the token for raising the window when the notification server gave one.
     var onOpen: ((URL, String?) -> Void)?
+    /// Whether any notification was shown.
+    private(set) var hasPosted = false
 
     private let handle: OpaquePointer
     private weak var loop: EventLoop?
@@ -52,6 +54,7 @@ final class DesktopNotifications {
             return
         }
         links[id] = link
+        hasPosted = true
         if links.count > 64, let oldest = links.keys.min() { links[oldest] = nil }
     }
 
