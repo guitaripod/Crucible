@@ -54,6 +54,7 @@ final class PlayerScreen: View {
     var infoPanel: PlayerInfoPanel?
     var postPlay: PostPlayView?
     var stream: ResolvedStream?
+    var stills: ScrubStillLoader?
     var streamOffset: Double = 0
     var segments: [SkipMarker] = []
     var subtitlesTurnedOff = false
@@ -201,6 +202,7 @@ final class PlayerScreen: View {
                                 showRatingKey: item.grandparentRatingKey, queue: run.queue, markers: resolved.markers)
         startWatchers(for: item, api: api)
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
+        showStills(of: resolved, api: api)
         player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
         player?.set("speed", String(speed))
         let headers = PlexHeaders.allHeaders(token: api.token)

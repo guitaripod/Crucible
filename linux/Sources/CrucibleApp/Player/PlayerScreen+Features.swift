@@ -230,6 +230,21 @@ extension PlayerScreen {
         }
     }
 
+    /// Shows the file's preview stills above the scrubber when the server has made them, keeping the ones already
+    /// loaded when the same file is loaded again.
+    func showStills(of resolved: ResolvedStream, api: APIClient) {
+        guard let part = ScrubStills.part(of: resolved.media) else {
+            stills = nil
+            transport.still = nil
+            return
+        }
+        guard stills?.partID != part.id else { return }
+        let loader = ScrubStillLoader(partID: part.id, api: api, window: window)
+        loader.onChange = { [weak self] in self?.transport.setNeedsDisplay() }
+        stills = loader
+        transport.still = { [weak loader] time in loader?.still(at: time) }
+    }
+
     /// Saves the poster where the desktop's media controls can read it, keeping only the one playing.
     func loadArtworkForMediaControls() {
         guard case .plex(let api, let item, _) = source, let path = item.grandparentThumb ?? item.thumb,

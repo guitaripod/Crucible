@@ -27,6 +27,8 @@ final class TransportView: View {
     var chapterMarks: [Double] = [] { didSet { setNeedsDisplay() } }
     /// The name of the chapter a time falls in, for the scrubber's hover preview.
     var chapterTitle: ((Double) -> String?)?
+    /// The preview still at a time, shown above the scrubber where the pointer is.
+    var still: ((Double) -> Texture?)?
     /// A sleep timer is set, so its button is lit.
     var isSleepTimerSet = false { didSet { setNeedsDisplay() } }
     /// Playback runs at another speed than normal, so its button is lit.
@@ -181,8 +183,16 @@ final class TransportView: View {
                 let time = Double(hoverFraction) * duration
                 let text = [chapterTitle?(time), Self.clock(time)].compactMap { $0 }.joined(separator: " · ")
                 let preview = TextLayout(text, font: theme.type.caption1, scale: scale)
-                let x = min(max(track.x + track.width * hoverFraction - preview.size.width / 2, track.x), track.maxX - preview.size.width)
-                context.text(preview, at: Point(x: x, y: track.y - preview.size.height - metrics.tv(14)), color: label)
+                let anchor = track.x + track.width * hoverFraction
+                let tick = metrics.tv(4)
+                context.fill(Rect(x: (anchor - tick / 2).rounded(), y: track.y - metrics.tv(6), width: tick, height: track.height + metrics.tv(12)),
+                             radius: tick / 2, color: label.withAlpha(0.85))
+                if let texture = still?(time) {
+                    drawStill(texture, caption: preview, centeredAt: anchor, context: &context)
+                } else {
+                    let x = min(max(anchor - preview.size.width / 2, track.x), track.maxX - preview.size.width)
+                    context.text(preview, at: Point(x: x, y: track.y - preview.size.height - metrics.tv(14)), color: label)
+                }
             }
         }
         let elapsed = TextLayout(Self.clock(position), font: theme.type.caption1, scale: scale)
@@ -193,6 +203,25 @@ final class TransportView: View {
             let note = TextLayout(String(localized: "Buffering…"), font: theme.type.caption1, scale: scale)
             context.text(note, at: Point(x: track.midX - note.size.width / 2, y: track.maxY + metrics.tv(8)), color: secondary)
         }
+    }
+
+    /// The preview still as a card floating above the glass over where the pointer is, kept inside the transport's width,
+    /// with the time and chapter there on a dark pill at its foot.
+    private func drawStill(_ texture: Texture, caption: TextLayout, centeredAt anchor: Float, context: inout DrawContext) {
+        let metrics = Theme.current.metrics
+        let width = metrics.tv(440)
+        let height = (width * Float(texture.height) / Float(max(texture.width, 1))).rounded()
+        let inset = metrics.tv(24)
+        let x = min(max(anchor - width / 2, inset), bounds.width - inset - width).rounded()
+        let card = Rect(x: x, y: (-metrics.tv(20) - height).rounded(), width: width, height: height)
+        context.shadow(card, radius: metrics.radiusS, blur: metrics.tv(28), offsetY: metrics.tv(10), opacity: 0.5)
+        context.image(texture, in: card, radius: metrics.radiusS)
+        context.stroke(card, radius: metrics.radiusS, width: 1, color: Color.white.withAlpha(0.22))
+        let pillHeight = caption.size.height + metrics.tv(12)
+        let pillWidth = min(caption.size.width + metrics.tv(28), card.width - metrics.tv(16))
+        let pill = Rect(x: (card.midX - pillWidth / 2).rounded(), y: (card.maxY - metrics.tv(10) - pillHeight).rounded(), width: pillWidth, height: pillHeight)
+        context.fill(pill, radius: pillHeight / 2, color: Color.black.withAlpha(0.6))
+        context.text(caption, at: Point(x: (pill.midX - caption.size.width / 2).rounded(), y: (pill.midY - caption.size.height / 2).rounded()), color: .white)
     }
 
     override func advanceAnimations(_ dt: Float) -> Bool {
