@@ -110,6 +110,7 @@ final class IPadStoreShots: XCTestCase {
 
         open("Cold Meridian", in: app)
         IOSTest.capture("03-detail", in: self)
+        captureCommunity(app)
         press(app, "[")
 
         guard let shows = IPadDemo.libraryEntry(app, ["TV Shows", "Shows"]) else {
@@ -170,6 +171,36 @@ final class IPadStoreShots: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         IOSTest.settle(4)
         captureWhatToWatch(app)
+    }
+
+    /// Only Cold Meridian's Trakt community, for adding its screen to a set without the whole tour.
+    func testCapturesCommunity() {
+        let app = IPadDemo.enter(extraEnvironment: ["CRUCIBLE_PRO": "lifetime"])
+        XCUIDevice.shared.orientation = .landscapeLeft
+        IOSTest.settle(4)
+        connectIntegrations(app)
+        press(app, "2", settle: 5)
+        open("Cold Meridian", in: app)
+        captureCommunity(app)
+    }
+
+    /// Walks the open title down to its Trakt community and lifts the pulse to just under the top, so the screen shows Trakt's
+    /// score and how the votes spread, who is watching, what people say and the first comments.
+    private func captureCommunity(_ app: XCUIApplication) {
+        let pulse = IOSTest.element(app, "trakt.community.pulse")
+        for _ in 0..<12 where !(pulse.exists && pulse.isHittable) {
+            scrollContent(app)
+        }
+        XCTAssertTrue(pulse.waitForExistence(timeout: 30), "the title shows no Trakt community")
+        let lift = pulse.frame.minY - app.frame.height * 0.2
+        if lift > 24 {
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            let x = app.frame.width * 0.75
+            let from = origin.withOffset(CGVector(dx: x, dy: app.frame.height * 0.85))
+            from.press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: x, dy: app.frame.height * 0.85 - lift)), withVelocity: .slow, thenHoldForDuration: 0.5)
+        }
+        IOSTest.settle(3)
+        IOSTest.capture("10-community", in: self)
     }
 
     /// Asks the demo's second example on Home's What to Watch and captures its picks.

@@ -22,7 +22,7 @@ PANELS = [
     ("DemoTests.testAShowStartedInTheDemoWritesItsPreparedRecap", "recap"),
     ("DemoTests.testPaperLanternsOffersEssentialsOnceAndSkipsItsAnimeOnlyEpisodes", "17-essentials-offer"),
     ("DetailTests.testMovieDetailDark", "01-movie-primary-focused"),
-    ("HomeTests.testLongPressMenuOffersCardActions", "11-long-press-menu-continue-watching"),
+    ("TraktTests.testTheCommunityShowsItsPulseWhatPeopleSayAndCommentsTogether", "14-community-overview"),
     ("LibraryTests.testMovieLibraryLoadedFiltersAndMenus", "01-loaded-first-recent-focused"),
     ("PlayerTests.testScrubbingWithLongPressRight", "01-scrubbed-forward"),
     ("PlayerTests.testUpNextProposalAtTheCreditsAndAcceptingStartsTheNextEpisode", "02-up-next-proposal"),

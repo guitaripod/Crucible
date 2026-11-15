@@ -203,5 +203,23 @@ final class TraktTests: TVTestCase {
         TVTest.settle(1.5)
         TVTest.capture("13-all-comments", in: self)
     }
+
+    /// The App Store's community frame: the pulse, What People Say and the first comment cards on one screen. Focus on a comment
+    /// scrolls the pulse half off the top, so the capture is taken with the focus one row above the comments, on What People Say,
+    /// reached from the pulse so the page has scrolled only as far as that row needs.
+    func testTheCommunityShowsItsPulseWhatPeopleSayAndCommentsTogether() {
+        let app = launchIntoDemo()
+        connect(app)
+        AppNavigation.openFromOutside("crucible://item/1001?type=movie", in: self)
+        XCTAssertTrue(AppNavigation.detailPrimary(app).waitForExistence(timeout: 30), "the detail screen never appeared")
+        TVTest.settle(2)
+        XCTAssertTrue(AppNavigation.move(app, .down, untilFocusHasPrefix: "trakt.community.pulse", limit: 16), "focus never reached the Community pulse")
+        TVTest.settle(1)
+        TVTest.remote.press(.down)
+        TVTest.settle(2)
+        let focused = AppNavigation.focusedIdentifier(app)
+        XCTAssertFalse(focused.hasPrefix("trakt.community.pulse") || focused.hasPrefix("trakt.comment."), "Down from the pulse did not land on What People Say")
+        TVTest.capture("14-community-overview", in: self)
+    }
 }
 

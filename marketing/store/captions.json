@@ -3,25 +3,25 @@
     {"screen": "15-what-to-watch", "headline": "Ask what to watch", "subhead": "Say what you feel like, get picks from your own library"},
     {"screen": "04c-essentials-offer", "headline": "Skip the filler", "subhead": "Essentials hides the anime-only episodes of long shows"},
     {"screen": "09b-skip-recap", "headline": "Skip the recap", "subhead": "Skip Intro, Recap and Preview from your files' own chapters", "stack": ["09b-skip-intro", "09b-skip-recap"]},
+    {"screen": "17-community", "headline": "See what people say", "subhead": "Reviews, replies and reactions from Trakt on every title"},
     {"screen": "01-home", "headline": "Pick up where you left off", "subhead": "A Resume-first Home for your whole Plex library"},
     {"screen": "02b-library-settled", "headline": "Every library at your fingertips", "subhead": "Filters, sort, an A–Z index and Recently Watched"},
     {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Trakt and IMDb scores, audio and subtitles, cast and crew"},
     {"screen": "05b-search-request", "headline": "Find anything, even what's missing", "subhead": "Not on your server? Request it through Seerr"},
     {"screen": "06-downloads", "headline": "Take it offline", "subhead": "Movies, seasons or episodes in the quality you pick"},
-    {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from Plex and Trakt"},
-    {"screen": "07c-share-preview", "headline": "Your year in one poster", "subhead": "A Year in Review to share as a Story or a Square"}
+    {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from Plex and Trakt"}
   ],
   "duo": [
     {"screen": "15-what-to-watch", "state": "inner-landscape"},
     {"screen": "04c-essentials-offer", "state": "inner-landscape", "cut": 0.12},
     {"screen": "09b-skip-recap", "state": "outer-landscape", "from": "outer-portrait", "cut": 0.2},
     {"screen": "16-previously-on", "state": "outer-portrait", "cut": 0.1, "headline": "Catch up before you play", "subhead": "A recap of your last episodes, when you ask"},
-    {"screen": "05b-search-request", "state": "inner-portrait", "cut": 0.18},
+    {"screen": "17-community", "state": "inner-portrait"},
     {"screen": "03-detail", "state": "inner-landscape", "cut": 0.18},
+    {"screen": "05b-search-request", "state": "inner-portrait", "cut": 0.18},
     {"screen": "06-downloads", "state": "outer-portrait"},
     {"screen": "02b-library-settled", "state": "inner-portrait"},
-    {"screen": "07-stats", "state": "outer-portrait"},
-    {"screen": "07c-share-preview", "state": "outer-portrait", "whole": true}
+    {"screen": "07-stats", "state": "outer-portrait"}
   ],
   "ipad": [
     {"screen": "01-home", "headline": "Made for iPad", "subhead": "A sidebar for every library and a Home built for the big screen"},
@@ -29,11 +29,11 @@
     {"screen": "04c-essentials", "headline": "Skip the filler", "subhead": "Essentials hides the anime-only episodes of long shows"},
     {"screen": "02-library", "headline": "Your whole library at a glance", "subhead": "Poster grids that grow with your window"},
     {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Trakt and IMDb scores, audio and subtitles, cast and crew"},
+    {"screen": "10-community", "headline": "See what people say", "subhead": "Reviews, replies and reactions from Trakt on every title"},
     {"screen": "04-show", "headline": "Seasons at a glance", "subhead": "Watched state and downloads on every episode"},
     {"screen": "05-player", "headline": "Skip the intro", "subhead": "The system player, Picture in Picture and keyboard shortcuts"},
     {"screen": "06b-search-request", "headline": "Find anything, even what's missing", "subhead": "Not on your server? Request it through Seerr"},
-    {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from Plex and Trakt"},
-    {"screen": "08-history", "headline": "Every play, day by day", "subhead": "Watch History with posters, grouped by day"}
+    {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from Plex and Trakt"}
   ],
   "creative": {"headline": "Ask what to watch", "subline": "Picks from your own Plex library"},
   "l10n": {
@@ -51,6 +51,7 @@
       "10-history": {"headline": "Jeder Abruf, Tag für Tag", "subhead": "Wiedergabeverlauf mit Postern, nach Tagen gruppiert"},
       "15-what-to-watch": {"headline": "Frag, was du schauen willst", "subhead": "Sag, worauf du Lust hast: Tipps aus deiner Bibliothek"},
       "16-previously-on": {"headline": "Erst nachholen, dann schauen", "subhead": "Ein Rückblick auf deine letzten Folgen, auf Wunsch"},
+      "17-community": {"headline": "Sieh, was Leute sagen", "subhead": "Rezensionen, Antworten und Reaktionen von Trakt zu jedem Titel"},
       "creative": {"headline": "Frag, was du schauen willst", "subline": "Tipps aus deiner eigenen Plex-Bibliothek"}
     },
     "es-ES": {
@@ -67,6 +68,7 @@
       "10-history": {"headline": "Cada reproducción, día a día", "subhead": "Historial de visualización con pósteres, agrupado por día"},
       "15-what-to-watch": {"headline": "Pregúntale qué ver", "subhead": "Dile lo que te apetece y recibe ideas de tu biblioteca"},
       "16-previously-on": {"headline": "Ponte al día antes de ver", "subhead": "Un resumen de tus últimos episodios, cuando lo pidas"},
+      "17-community": {"headline": "Mira lo que dice la gente", "subhead": "Reseñas, respuestas y reacciones de Trakt en cada título"},
       "creative": {"headline": "Pregúntale qué ver", "subline": "Ideas de tu propia biblioteca de Plex"}
     },
     "fr-FR": {
@@ -83,6 +85,7 @@
       "10-history": {"headline": "Chaque lecture, jour après jour", "subhead": "Historique de lecture avec affiches, groupé par jour"},
       "15-what-to-watch": {"headline": "Demande quoi regarder", "subhead": "Dis ce qui te tente, reçois des idées de ta bibliothèque"},
       "16-previously-on": {"headline": "Fais le point avant de regarder", "subhead": "Un résumé de tes derniers épisodes, quand tu le demandes"},
+      "17-community": {"headline": "Découvre ce qu'en disent les gens", "subhead": "Critiques, réponses et réactions de Trakt sur chaque titre"},
       "creative": {"headline": "Demande quoi regarder", "subline": "Des idées de ta propre bibliothèque Plex"}
     },
     "it": {
@@ -99,6 +102,7 @@
       "10-history": {"headline": "Ogni riproduzione, giorno per giorno", "subhead": "Cronologia visioni con locandine, raggruppata per giorno"},
       "15-what-to-watch": {"headline": "Chiedi cosa guardare", "subhead": "Di' cosa ti va, ricevi consigli dalla tua libreria"},
       "16-previously-on": {"headline": "Fai il punto prima di guardare", "subhead": "Un riepilogo degli ultimi episodi, quando lo chiedi"},
+      "17-community": {"headline": "Scopri cosa dicono le persone", "subhead": "Recensioni, risposte e reazioni da Trakt su ogni titolo"},
       "creative": {"headline": "Chiedi cosa guardare", "subline": "Consigli dalla tua libreria Plex"}
     },
     "ja": {
@@ -115,6 +119,7 @@
       "10-history": {"headline": "毎日の再生をたどる", "subhead": "ポスター付きの視聴履歴を日別に表示"},
       "15-what-to-watch": {"headline": "何を観るか聞く", "subhead": "気分を伝えると、自分のライブラリからおすすめ"},
       "16-previously-on": {"headline": "観る前におさらい", "subhead": "頼んだときだけ、直近の数話を振り返ります"},
+      "17-community": {"headline": "みんなの声を見る", "subhead": "全作品のTraktのレビュー、返信、リアクション"},
       "creative": {"headline": "何を観るか聞く", "subline": "自分のPlexライブラリからおすすめ"}
     },
     "ko": {
@@ -131,6 +136,7 @@
       "10-history": {"headline": "매일의 재생 기록", "subhead": "포스터와 함께 날짜별로 묶은 시청 기록"},
       "15-what-to-watch": {"headline": "뭘 볼지 물어보기", "subhead": "기분을 말하면 내 라이브러리에서 골라 드려요"},
       "16-previously-on": {"headline": "보기 전에 따라잡기", "subhead": "요청하면 최근 에피소드를 요약해 드려요"},
+      "17-community": {"headline": "사람들의 의견 보기", "subhead": "모든 작품의 Trakt 리뷰, 답글, 반응"},
       "creative": {"headline": "뭘 볼지 물어보기", "subline": "내 Plex 라이브러리에서 골라 드려요"}
     },
     "pl": {
@@ -147,6 +153,7 @@
       "10-history": {"headline": "Każde odtworzenie, dzień po dniu", "subhead": "Historia oglądania z plakatami, pogrupowana dniami"},
       "15-what-to-watch": {"headline": "Zapytaj, co obejrzeć", "subhead": "Powiedz, na co masz ochotę: propozycje z twojej biblioteki"},
       "16-previously-on": {"headline": "Nadrób, zanim włączysz", "subhead": "Streszczenie ostatnich odcinków, gdy o nie poprosisz"},
+      "17-community": {"headline": "Zobacz, co mówią widzowie", "subhead": "Recenzje, odpowiedzi i reakcje z Trakt przy każdym tytule"},
       "creative": {"headline": "Zapytaj, co obejrzeć", "subline": "Propozycje z twojej biblioteki Plex"}
     },
     "pt-BR": {
@@ -163,6 +170,7 @@
       "10-history": {"headline": "Cada play, dia a dia", "subhead": "Histórico de exibição com pôsteres, agrupado por dia"},
       "15-what-to-watch": {"headline": "Pergunte o que assistir", "subhead": "Diga o que você está a fim e receba dicas da sua biblioteca"},
       "16-previously-on": {"headline": "Fique em dia antes de assistir", "subhead": "Um resumo dos últimos episódios, quando você pedir"},
+      "17-community": {"headline": "Veja o que as pessoas dizem", "subhead": "Resenhas, respostas e reações do Trakt em cada título"},
       "creative": {"headline": "Pergunte o que assistir", "subline": "Sugestões da sua própria biblioteca Plex"}
     },
     "zh-Hans": {
@@ -179,6 +187,7 @@
       "10-history": {"headline": "每一次播放，按日回顾", "subhead": "带海报的观看历史，按天分组显示"},
       "15-what-to-watch": {"headline": "问问该看什么", "subhead": "说说你现在的心情，从你的媒体库里挑出推荐"},
       "16-previously-on": {"headline": "看之前先补补前情", "subhead": "需要时，为你回顾最近几集的剧情"},
+      "17-community": {"headline": "看看大家怎么说", "subhead": "每部作品的 Trakt 影评、回复与表态"},
       "creative": {"headline": "问问该看什么", "subline": "只从你自己的 Plex 媒体库里挑选"}
     },
     "zh-Hant": {
@@ -195,6 +204,7 @@
       "10-history": {"headline": "每次播放，逐日回顧", "subhead": "附海報的觀看紀錄，依日期分組顯示"},
       "15-what-to-watch": {"headline": "問問該看什麼", "subhead": "說說你現在的心情，從你的媒體庫裡挑出推薦"},
       "16-previously-on": {"headline": "看之前先補補前情", "subhead": "需要時，為你回顧最近幾集的劇情"},
+      "17-community": {"headline": "看看大家怎麼說", "subhead": "每部作品的 Trakt 影評、回覆與表態"},
       "creative": {"headline": "問問該看什麼", "subline": "只從你自己的 Plex 媒體庫裡挑選"}
     },
     "sv": {
@@ -210,6 +220,7 @@
       "10-history": {"headline": "Varje visning, dag för dag", "subhead": "Visningshistorik med affischer, grupperad per dag"},
       "15-what-to-watch": {"headline": "Fråga vad du ska titta på", "subhead": "Säg vad du är sugen på, få tips från ditt eget bibliotek"},
       "16-previously-on": {"headline": "Hinn ikapp innan du tittar", "subhead": "En sammanfattning av dina senaste avsnitt, när du ber om det"},
+      "17-community": {"headline": "Se vad folk säger", "subhead": "Recensioner, svar och reaktioner från Trakt på varje titel"},
       "creative": {"headline": "Fråga vad du ska titta på", "subline": "Tips från ditt eget Plex-bibliotek"}
     },
     "da": {
@@ -225,6 +236,7 @@
       "10-history": {"headline": "Hver afspilning, dag for dag", "subhead": "Seerhistorik med plakater, grupperet pr. dag"},
       "15-what-to-watch": {"headline": "Spørg, hvad du skal se", "subhead": "Sig hvad du har lyst til, få forslag fra dit eget bibliotek"},
       "16-previously-on": {"headline": "Kom ajour, før du ser videre", "subhead": "Et resumé af dine seneste afsnit, når du beder om det"},
+      "17-community": {"headline": "Se, hvad folk siger", "subhead": "Anmeldelser, svar og reaktioner fra Trakt på hver titel"},
       "creative": {"headline": "Spørg, hvad du skal se", "subline": "Forslag fra dit eget Plex-bibliotek"}
     },
     "no": {
@@ -240,6 +252,7 @@
       "10-history": {"headline": "Hver avspilling, dag for dag", "subhead": "Visningslogg med plakater, gruppert etter dag"},
       "15-what-to-watch": {"headline": "Spør hva du vil se", "subhead": "Si hva du har lyst på, få forslag fra ditt eget bibliotek"},
       "16-previously-on": {"headline": "Bli oppdatert før du ser videre", "subhead": "Et sammendrag av de siste episodene, når du ber om det"},
+      "17-community": {"headline": "Se hva folk sier", "subhead": "Anmeldelser, svar og reaksjoner fra Trakt på hver tittel"},
       "creative": {"headline": "Spør hva du vil se", "subline": "Tips fra ditt eget Plex-bibliotek"}
     },
     "fi": {
@@ -255,6 +268,7 @@
       "10-history": {"headline": "Jokainen toisto, päivä kerrallaan", "subhead": "Katseluhistoria julisteineen, ryhmiteltynä päivittäin"},
       "15-what-to-watch": {"headline": "Kysy, mitä katsoa", "subhead": "Kerro mitä tekee mieli, saat ehdotuksia omasta kirjastostasi"},
       "16-previously-on": {"headline": "Kertaa ennen kuin jatkat", "subhead": "Kertaus viimeisimmistä jaksoista, kun pyydät sitä"},
+      "17-community": {"headline": "Katso, mitä ihmiset sanovat", "subhead": "Traktin arvostelut, vastaukset ja reaktiot jokaisesta nimikkeestä"},
       "creative": {"headline": "Kysy, mitä katsoa", "subline": "Ehdotukset omasta Plex-kirjastostasi"}
     },
     "ru": {
