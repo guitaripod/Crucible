@@ -101,6 +101,10 @@ The App Store build sells an optional Crucible Pro through MidgarKit's MidgarSto
 - Each app's entry point opens the log (`CrucibleLog.configure()`, MidgarLog writing `Library/Logs/crucible.log`) and installs `MidgarProAccess.live()` before `UIApplicationMain`, except in a test host; the shared launch code calls `ProAccess.shared.configureForLaunch(store: nil)` and sets the paywall presenter.
 - Products: `com.guitaripod.crucible.pro.lifetime` (non-consumable) and `com.guitaripod.crucible.pro.yearly` (auto-renewable, no free trial since 2026-10-31), one app record and one bundle id for iPhone and Apple TV, so a purchase on one covers the other. `docs/asc-products.md` records how they were created, and `scripts/asc-setup.py` and `scripts/asc-products.py` keep the listing and the review material in line.
 
+## Linux
+
+The Linux client is designed but not built: a fourth renderer of the same Core slices, drawn by a purpose-built engine (Kiln) in the Apple TV design and playing through libmpv with HDR. Design, the Core seams it needs and the delivery plan: `docs/LINUX.md`.
+
 ## Building and testing
 
 The Linux box has no Apple SDK for the app targets; the Mac is the build host.
