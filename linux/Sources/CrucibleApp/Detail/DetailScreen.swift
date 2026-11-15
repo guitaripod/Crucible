@@ -130,6 +130,14 @@ class DetailScreen: ScreenView {
         window?.focus.focus(state, animated: false)
     }
 
+    /// The owner's Manage button for `item`, last in the action row; deleting the title leaves its page.
+    func manageAction(for item: PlexMetadata) -> DetailAction? {
+        guard ManageTools.offers(item) else { return nil }
+        let tools = ManageTools.itemMenu(for: item, api: api, host: self, leavesScreenWhenDeleted: true) { [weak self] in self?.reload() }
+        return DetailAction(id: "manage", title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver",
+                            behaviour: .menu(title: ManageCopy.menuTitle, items: tools.items, choose: tools.choose))
+    }
+
     func alert(_ title: String, message: String? = nil) {
         guard let window else { return }
         AlertView.notice(title: title, message: message, in: window)

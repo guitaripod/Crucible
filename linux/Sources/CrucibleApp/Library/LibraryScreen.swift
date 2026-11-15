@@ -19,6 +19,7 @@ final class LibraryScreen: ScreenView {
         static let filters = "filters"
         static let collections = "collections"
         static let folders = "folders"
+        static let manage = "manage"
     }
 
     private let api: APIClient
@@ -296,6 +297,9 @@ final class LibraryScreen: ScreenView {
             chips.append(.init(id: Control.filters, title: String(localized: "Filters", comment: "Button that opens the menu of extra library filters"),
                                symbol: "line.3.horizontal.decrease", isSelected: !options.facets.isEmpty))
         }
+        if ServerOwnership.isOwner() {
+            chips.append(.init(id: Control.manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver"))
+        }
         chips.append(.init(id: Control.collections, title: String(localized: "Collections"), symbol: "rectangle.stack"))
         chips.append(.init(id: Control.folders, title: String(localized: "Folders", comment: "Short name of the button that browses a library by its folders"),
                            symbol: "folder"))
@@ -314,6 +318,9 @@ final class LibraryScreen: ScreenView {
         case Control.filters: presentFacets()
         case Control.collections: openCollections()
         case Control.folders: browseFolders()
+        case Control.manage:
+            ManageTools.presentLibraryMenu(sectionId: model.sectionId, api: api, host: self,
+                                           anchor: controls.frameInWindow(of: Control.manage) ?? controls.frameInWindow)
         default: break
         }
     }

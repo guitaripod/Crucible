@@ -169,6 +169,7 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let window = self.window else { return }
             PlaylistPicker.present(adding: [show], api: self.api, in: window)
         }))
+        if let manage = manageAction(for: show) { list.append(manage) }
         return list
     }
 

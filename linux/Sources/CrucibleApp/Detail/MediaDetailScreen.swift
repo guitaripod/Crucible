@@ -144,6 +144,7 @@ final class MediaDetailScreen: DetailScreen {
                                      symbol: onWatchlist ? "bookmark.slash" : "bookmark",
                                      behaviour: .run { [weak self] in self?.setOnWatchlist(!onWatchlist, guid: guid) }))
         }
+        if let manage = manageAction(for: item) { list.append(manage) }
         return list
     }
 
