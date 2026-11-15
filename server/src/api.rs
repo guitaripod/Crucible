@@ -217,6 +217,7 @@ async fn hello(State(state): State<Shared>) -> Json<Value> {
         "sports": state.sports.is_some(),
         "sportsVersion": 3,
         "plexMachineIdentifier": state.config.machine_identifier,
+        "addresses": crate::net::reachable_addresses().into_iter().map(|ip| crate::net::host_port(ip, state.config.port)).collect::<Vec<_>>(),
     }))
 }
 
