@@ -85,16 +85,45 @@ package struct SportsSettings: Decodable, Equatable, Sendable {
     }
 }
 
-/// An Other Videos library on the Plex server and whether research reads it.
+/// What a library holds, which decides how research looks its files up.
+package enum SportsKind: String, CaseIterable, Sendable {
+    case sports
+    case adult
+    case general
+}
+
+/// An Other Videos library on the Plex server, whether research reads it, what it holds, and how many of its files
+/// research has written to or looked at.
 package struct SportsLibrary: Decodable, Equatable, Hashable, Sendable {
     package var key: String
     package var title: String
     package var chosen: Bool
+    package var kind: SportsKind
+    package var researched: Int
+    /// Whether the server researches more than sports, so choosing a library asks what it holds; a server from before
+    /// Library Research sends no kind.
+    package var holdsKinds: Bool
 
-    package init(key: String, title: String, chosen: Bool) {
+    package init(key: String, title: String, chosen: Bool, kind: SportsKind = .sports, researched: Int = 0, holdsKinds: Bool = true) {
         self.key = key
         self.title = title
         self.chosen = chosen
+        self.kind = kind
+        self.researched = researched
+        self.holdsKinds = holdsKinds
+    }
+
+    enum CodingKeys: String, CodingKey { case key, title, chosen, kind, researched }
+
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        key = try container.decode(String.self, forKey: .key)
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? key
+        chosen = try container.decodeIfPresent(Bool.self, forKey: .chosen) ?? false
+        let kind = try container.decodeIfPresent(String.self, forKey: .kind)
+        self.kind = SportsKind(rawValue: kind ?? "") ?? .sports
+        holdsKinds = kind != nil
+        researched = try container.decodeIfPresent(Int.self, forKey: .researched) ?? 0
     }
 }
 
@@ -141,8 +170,11 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
         package var started: Int
         package var elapsed: Int
         package var steps: [SportsLiveStep]
+        /// What the file's library holds, so an adult video's artwork stays off the live card.
+        package var kind: SportsKind
 
-        package init(ratingKey: String, name: String, file: String = "", step: String = "", started: Int, elapsed: Int = 0, steps: [SportsLiveStep] = []) {
+        package init(ratingKey: String, name: String, file: String = "", step: String = "", started: Int, elapsed: Int = 0, steps: [SportsLiveStep] = [], kind: SportsKind = .sports) {
+            self.kind = kind
             self.ratingKey = ratingKey
             self.name = name
             self.file = file
@@ -152,7 +184,7 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
             self.steps = steps
         }
 
-        enum CodingKeys: String, CodingKey { case ratingKey, name, file, step, started, elapsed, steps }
+        enum CodingKeys: String, CodingKey { case ratingKey, name, file, step, started, elapsed, steps, kind }
 
         package init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -163,6 +195,7 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
             started = try container.decodeIfPresent(Int.self, forKey: .started) ?? 0
             elapsed = try container.decodeIfPresent(Int.self, forKey: .elapsed) ?? 0
             steps = try container.decodeIfPresent([SportsLiveStep].self, forKey: .steps) ?? []
+            kind = SportsKind(rawValue: try container.decodeIfPresent(String.self, forKey: .kind) ?? "") ?? .sports
         }
 
         /// The newest steps first, as the timeline shows them.
@@ -176,13 +209,28 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
     package var queued: Int
     package var lastPass: Int?
     package var lastError: String?
+    /// Files still to take back after the owner undid a library.
+    package var undoing: Int
 
-    package init(phase: String, current: Current? = nil, queued: Int = 0, lastPass: Int? = nil, lastError: String? = nil) {
+    package init(phase: String, current: Current? = nil, queued: Int = 0, lastPass: Int? = nil, lastError: String? = nil, undoing: Int = 0) {
         self.phase = phase
         self.current = current
         self.queued = queued
         self.lastPass = lastPass
         self.lastError = lastError
+        self.undoing = undoing
+    }
+
+    enum CodingKeys: String, CodingKey { case phase, current, queued, lastPass, lastError, undoing }
+
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        phase = try container.decodeIfPresent(String.self, forKey: .phase) ?? "idle"
+        current = try container.decodeIfPresent(Current.self, forKey: .current)
+        queued = try container.decodeIfPresent(Int.self, forKey: .queued) ?? 0
+        lastPass = try container.decodeIfPresent(Int.self, forKey: .lastPass)
+        lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
+        undoing = try container.decodeIfPresent(Int.self, forKey: .undoing) ?? 0
     }
 
     package var isWorking: Bool { phase == "looking" || phase == "researching" || phase == "writing" }
@@ -212,8 +260,18 @@ package struct SportsEventDetail: Decodable, Equatable, Hashable, Sendable {
     package var lineup: [Bout]
     package var sources: [String]
     package var posterUrl: String?
+    /// What the file is: a sports event, or another kind of work.
+    package var kind: SportsKind
+    /// For a work that is not sports: the series or movie it belongs to, its studio and the people in it.
+    package var series: String
+    package var studio: String
+    package var people: [String]
 
-    package init(event: String, part: String? = nil, date: String = "", venue: String = "", city: String = "", headline: String = "", league: String = "", sport: String = "", summary: String = "", lineup: [Bout] = [], sources: [String] = [], posterUrl: String? = nil) {
+    package init(event: String, part: String? = nil, date: String = "", venue: String = "", city: String = "", headline: String = "", league: String = "", sport: String = "", summary: String = "", lineup: [Bout] = [], sources: [String] = [], posterUrl: String? = nil, kind: SportsKind = .sports, series: String = "", studio: String = "", people: [String] = []) {
+        self.kind = kind
+        self.series = series
+        self.studio = studio
+        self.people = people
         self.event = event
         self.part = part
         self.date = date
@@ -228,7 +286,7 @@ package struct SportsEventDetail: Decodable, Equatable, Hashable, Sendable {
         self.posterUrl = posterUrl
     }
 
-    enum CodingKeys: String, CodingKey { case event, part, date, venue, city, headline, league, sport, summary, lineup, sources, posterUrl }
+    enum CodingKeys: String, CodingKey { case event, part, date, venue, city, headline, league, sport, summary, lineup, sources, posterUrl, kind, series, studio, people }
 
     package init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -244,6 +302,10 @@ package struct SportsEventDetail: Decodable, Equatable, Hashable, Sendable {
         lineup = try container.decodeIfPresent([Bout].self, forKey: .lineup) ?? []
         sources = try container.decodeIfPresent([String].self, forKey: .sources) ?? []
         posterUrl = try container.decodeIfPresent(String.self, forKey: .posterUrl)
+        kind = SportsKind(rawValue: try container.decodeIfPresent(String.self, forKey: .kind) ?? "") ?? .sports
+        series = try container.decodeIfPresent(String.self, forKey: .series) ?? ""
+        studio = try container.decodeIfPresent(String.self, forKey: .studio) ?? ""
+        people = try container.decodeIfPresent([String].self, forKey: .people) ?? []
     }
 
     /// The event's day, from the `YYYY-MM-DD` the server sends.
@@ -277,8 +339,16 @@ package struct SportsItem: Decodable, Equatable, Hashable, Sendable {
     /// Whether the server counted what the research took; files researched before it did come without the counts.
     package var measured: Bool
     package var detail: SportsEventDetail?
+    /// The library the file is in, and what that library holds.
+    package var section: String
+    package var kind: SportsKind
+    /// Whether the server can take research back; a server from before Library Research sends no kind and cannot.
+    package var takesBack: Bool
 
-    package init(ratingKey: String, file: String, state: String, title: String, note: String = "", updated: Int, seconds: Int = 0, searches: Int = 0, reads: Int = 0, measured: Bool = true, detail: SportsEventDetail? = nil) {
+    package init(ratingKey: String, file: String, state: String, title: String, note: String = "", updated: Int, seconds: Int = 0, searches: Int = 0, reads: Int = 0, measured: Bool = true, detail: SportsEventDetail? = nil, section: String = "", kind: SportsKind = .sports, takesBack: Bool = true) {
+        self.takesBack = takesBack
+        self.section = section
+        self.kind = kind
         self.ratingKey = ratingKey
         self.file = file
         self.state = state
@@ -292,7 +362,7 @@ package struct SportsItem: Decodable, Equatable, Hashable, Sendable {
         self.detail = detail
     }
 
-    enum CodingKeys: String, CodingKey { case ratingKey, file, state, title, note, updated, seconds, searches, reads, detail }
+    enum CodingKeys: String, CodingKey { case ratingKey, file, state, title, note, updated, seconds, searches, reads, detail, section, kind }
 
     package init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -312,7 +382,18 @@ package struct SportsItem: Decodable, Equatable, Hashable, Sendable {
         searches = max(0, effort[1] ?? 0)
         reads = max(0, effort[2] ?? 0)
         detail = try container.decodeIfPresent(SportsEventDetail.self, forKey: .detail)
+        section = try container.decodeIfPresent(String.self, forKey: .section) ?? ""
+        let kind = try container.decodeIfPresent(String.self, forKey: .kind)
+        self.kind = SportsKind(rawValue: kind ?? "") ?? detail?.kind ?? .sports
+        takesBack = kind != nil
     }
+
+    /// Whether the screens show the file's artwork: never for adult videos, which show a drawn poster with their title
+    /// instead, so the research screen stays safe to open anywhere.
+    package var showsArtwork: Bool { kind != .adult && (state == "matched" || state == "edited") }
+
+    /// Whether research wrote to the file, so the owner can take it back.
+    package var canTakeBack: Bool { takesBack && (state == "matched" || state == "edited" || (state == "failed" && note.hasPrefix("Plex did not take the write"))) }
 
     /// The file's own name, for an item research has not titled.
     package var fileName: String { file.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? file }
@@ -326,6 +407,10 @@ package struct SportsItem: Decodable, Equatable, Hashable, Sendable {
     /// The words a drawn poster carries until Plex's own arrives: the event's number with the part, and the main bout.
     package var posterWords: SportsPosterWords? {
         guard let detail, state == "matched" || state == "edited" else { return nil }
+        guard kind == .sports else {
+            let eyebrow = [detail.studio.isEmpty ? detail.series : detail.studio, detail.part].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+            return SportsPosterWords(eyebrow: eyebrow, caption: title.isEmpty ? detail.event : title)
+        }
         return SportsPosterWords(event: detail.event, part: detail.part, headline: detail.headline)
     }
 }
@@ -353,11 +438,13 @@ package struct SportsPosterWords: Equatable, Hashable, Sendable {
 
 extension SportsReport {
     /// The report as it will read once the owner's change lands, shown while the server takes it.
-    package func expecting(on: Bool? = nil, libraries: [String]? = nil, agree: Bool? = nil) -> SportsReport {
+    package func expecting(on: Bool? = nil, libraries: [String]? = nil, kinds: [String: SportsKind] = [:], agree: Bool? = nil) -> SportsReport {
         var report = self
         if let on { report.settings.on = on }
         if let libraries {
-            report.libraries = report.libraries.map { SportsLibrary(key: $0.key, title: $0.title, chosen: libraries.contains($0.key)) }
+            report.libraries = report.libraries.map { SportsLibrary(key: $0.key, title: $0.title, chosen: libraries.contains($0.key), kind: kinds[$0.key] ?? $0.kind, researched: $0.researched, holdsKinds: $0.holdsKinds) }
+        } else if !kinds.isEmpty {
+            report.libraries = report.libraries.map { SportsLibrary(key: $0.key, title: $0.title, chosen: $0.chosen, kind: kinds[$0.key] ?? $0.kind, researched: $0.researched, holdsKinds: $0.holdsKinds) }
         }
         if let agree { report.settings.agreed = agree }
         return report

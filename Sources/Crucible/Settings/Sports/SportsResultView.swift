@@ -81,7 +81,7 @@ final class SportsResultView: UIView, UIContentView {
     override func layoutSubviews() {
         super.layoutSubviews()
         guard let configuration = configuration as? SportsResultConfiguration else { return }
-        poster.show(path: configuration.item.state == "matched" || configuration.item.state == "edited" ? configuration.item.posterPath : nil, width: max(poster.bounds.width, 60), words: configuration.item.posterWords)
+        poster.show(path: configuration.item.showsArtwork ? configuration.item.posterPath : nil, width: max(poster.bounds.width, 60), words: configuration.item.posterWords)
     }
 
     private func apply() {
@@ -97,7 +97,7 @@ final class SportsResultView: UIView, UIContentView {
         stateLabel.text = SportsCopy.itemState(item.state).uppercased(with: .current)
         stateLabel.textColor = attention ? .systemOrange : Theme.Color.labelSecondary
         stateLabel.isHidden = item.state == "matched"
-        if poster.bounds.width > 0 { poster.show(path: matched ? item.posterPath : nil, width: poster.bounds.width, words: item.posterWords) }
+        if poster.bounds.width > 0 { poster.show(path: item.showsArtwork ? item.posterPath : nil, width: poster.bounds.width, words: item.posterWords) }
         alpha = configuration.highlighted && !UIAccessibility.isReduceMotionEnabled ? 0.7 : 1
         accessibilityLabel = matched ? SportsCopy.becomes(item.fileName, SportsItemLabel.title(item)) : item.fileName
         accessibilityValue = [SportsCopy.itemState(item.state), metaLabel.text].compactMap { $0 }.joined(separator: ", ")

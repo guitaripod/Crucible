@@ -7,10 +7,13 @@ package protocol SportsSource: Sendable {
     /// Whether the server has Sports Research at all (a server from before it answers its routes with nothing useful), or
     /// nil when the server could not be asked.
     func hasSports() async -> Bool?
-    func changeSports(on: Bool?, libraries: [String]?, agree: Bool?) async throws(CompanionError)
+    func changeSports(on: Bool?, libraries: [String]?, kinds: [String: SportsKind], agree: Bool?) async throws(CompanionError)
     func recheckSports() async throws(CompanionError)
     func runSports() async throws(CompanionError)
     func redoSports(ratingKey: String) async throws(CompanionError)
+    /// Takes research back from one file, or from every file of a library.
+    func undoSports(ratingKey: String) async throws(CompanionError)
+    func undoSports(library: String) async throws(CompanionError)
 }
 
 extension CompanionClient: SportsSource {
@@ -36,8 +39,10 @@ package struct SportsFixture: SportsSource {
     }
 
     package func hasSports() async -> Bool? { true }
-    package func changeSports(on: Bool?, libraries: [String]?, agree: Bool?) async throws(CompanionError) {}
+    package func changeSports(on: Bool?, libraries: [String]?, kinds: [String: SportsKind], agree: Bool?) async throws(CompanionError) {}
     package func recheckSports() async throws(CompanionError) {}
     package func runSports() async throws(CompanionError) {}
     package func redoSports(ratingKey: String) async throws(CompanionError) {}
+    package func undoSports(ratingKey: String) async throws(CompanionError) {}
+    package func undoSports(library: String) async throws(CompanionError) {}
 }

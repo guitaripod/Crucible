@@ -8,13 +8,15 @@ final class SportsItemViewController: UIViewController {
     private let item: SportsItem
     private let canRedo: Bool
     private let onRedo: () -> Void
+    private let onTakeBack: () -> Void
     private let stack = UIStackView()
     private var playedChange = false
 
-    init(item: SportsItem, canRedo: Bool, onRedo: @escaping () -> Void) {
+    init(item: SportsItem, canRedo: Bool, onRedo: @escaping () -> Void, onTakeBack: @escaping () -> Void) {
         self.item = item
         self.canRedo = canRedo
         self.onRedo = onRedo
+        self.onTakeBack = onTakeBack
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -66,12 +68,19 @@ final class SportsItemViewController: UIViewController {
         }
         if let detail = item.detail {
             if !detail.summary.isEmpty { sections.append(note(detail.summary, color: Theme.Color.label)) }
-            var facts: [(String, String)] = [(SportsCopy.event, detail.event)]
+            var facts: [(String, String)] = detail.kind == .sports ? [(SportsCopy.event, detail.event)] : []
+            if detail.kind != .sports {
+                if !detail.series.isEmpty { facts.append((SportsCopy.series, detail.series)) }
+                if !detail.studio.isEmpty { facts.append((SportsCopy.studio, detail.studio)) }
+            }
             if let day = detail.day { facts.append((SportsCopy.date, SportsCopy.day(day))) }
             if !detail.place.isEmpty { facts.append((SportsCopy.venue, detail.place)) }
-            sections.append(group(nil, rows: facts.map { fact($0.0, $0.1) }))
+            if !facts.isEmpty { sections.append(group(nil, rows: facts.map { fact($0.0, $0.1) })) }
             if !detail.lineup.isEmpty {
                 sections.append(group(detail.part.map { "\(SportsCopy.card) · \($0)" } ?? SportsCopy.card, rows: detail.lineup.map { bout($0) }))
+            }
+            if !detail.people.isEmpty {
+                sections.append(group(SportsCopy.cast, rows: detail.people.map { fact(nil, $0, symbol: "person") }))
             }
             if !detail.sources.isEmpty {
                 sections.append(group(SportsCopy.sources, rows: detail.sources.map { fact(nil, $0, symbol: "globe") }))
@@ -91,6 +100,16 @@ final class SportsItemViewController: UIViewController {
             let button = UIButton(configuration: configuration, primaryAction: UIAction { [weak self] _ in self?.confirmRedo() })
             button.accessibilityIdentifier = "settings.sports.item.redo"
             sections.append(button)
+            if item.canTakeBack {
+                var takeBack = UIButton.Configuration.plain()
+                takeBack.title = SportsCopy.takeBack
+                takeBack.image = UIImage(systemName: "arrow.uturn.backward")
+                takeBack.imagePadding = 8
+                takeBack.baseForegroundColor = .systemRed
+                let back = UIButton(configuration: takeBack, primaryAction: UIAction { [weak self] _ in self?.confirmTakeBack() })
+                back.accessibilityIdentifier = "settings.sports.item.takeBack"
+                sections.append(back)
+            }
         }
         return sections
     }
@@ -103,7 +122,7 @@ final class SportsItemViewController: UIViewController {
             poster.widthAnchor.constraint(equalToConstant: width),
             poster.heightAnchor.constraint(equalTo: poster.widthAnchor, multiplier: Theme.Size.posterAspect),
         ])
-        poster.show(path: item.state == "matched" || item.state == "edited" ? item.posterPath : nil, width: width, words: item.posterWords)
+        poster.show(path: item.showsArtwork ? item.posterPath : nil, width: width, words: item.posterWords)
         let stacked = traitCollection.preferredContentSizeCategory.isAccessibilityCategory || traitCollection.horizontalSizeClass == .compact
         let matched = item.state == "matched" || item.state == "edited"
         let transform = SportsTransformView()
@@ -250,6 +269,16 @@ final class SportsItemViewController: UIViewController {
         label.textColor = color
         label.numberOfLines = 0
         return label
+    }
+
+    private func confirmTakeBack() {
+        let alert = UIAlertController(title: SportsCopy.takeBack, message: SportsCopy.takeBackQuestion, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: SportsCopy.takeBack, style: .destructive) { [weak self] _ in
+            self?.onTakeBack()
+            self?.dismiss(animated: true)
+        })
+        present(alert, animated: true)
     }
 
     private func confirmRedo() {

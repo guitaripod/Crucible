@@ -6,7 +6,7 @@ focus-driven Liquid Glass app on Apple TV.
 
 **[Crucible for Plex on the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419)**: free on iPhone,
 iPad and Apple TV. Crucible Pro (pay once or yearly; one purchase unlocks every device) adds What to Watch, Previously
-On, unlimited downloads, full Statistics, the Year in Review poster, Top Shelf, Seerr request management and Sports
+On, unlimited downloads, full Statistics, the Year in Review poster, Top Shelf, Seerr request management and Library
 Research. No server yet? Choose *Try the demo* on the welcome screen. The source is GPL-3.0, and a build from source
 unlocks every Pro feature except What to Watch and Previously On, which use Crucible's hosted model.
 
@@ -31,9 +31,9 @@ unlocks every Pro feature except What to Watch and Previously On, which use Cruc
 ## Crucible Server
 
 An optional companion for the computer that runs Plex ([server/README.md](server/README.md)). Pair it once and Crucible
-gets skips from the files themselves, a Previously On recap, answers about what you're watching, and **Sports
-Research**: your own model looks up the events in your sports recordings and gives them real titles, dates, cards and
-posters in Plex, without touching the files. It uses a model you run (llama-swap, Ollama or LM Studio) or a hosted one
+gets skips from the files themselves, a Previously On recap, answers about what you're watching, and **Library
+Research**: your own model looks up the videos in your Other Videos libraries (sports, adult films or anything else)
+and gives them real titles, dates, people and posters in Plex, without touching the files, and can take it all back. It uses a model you run (llama-swap, Ollama or LM Studio) or a hosted one
 with your own key.
 
 ```sh

@@ -252,7 +252,7 @@ final class SportsStepView: UIView, UIContentView {
         if step.group == .library {
             if !configuration.libraries.isEmpty {
                 let chips = UIStackView(arrangedSubviews: configuration.libraries.map { library in
-                    chip(library.title, chosen: library.chosen, enabled: !configuration.busy) { configuration.actions.library(library) }
+                    chip(library.chosen ? "\(library.title) · \(SportsCopy.kind(library.kind))" : library.title, chosen: library.chosen, enabled: !configuration.busy) { configuration.actions.library(library) }
                 })
                 chips.axis = .vertical
                 chips.alignment = .fill

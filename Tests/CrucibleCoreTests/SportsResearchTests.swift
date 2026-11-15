@@ -33,7 +33,8 @@ struct SportsResearchTests {
         #expect(report.owner && !report.ready)
         #expect(report.status.isWorking)
         #expect(report.status.current?.step == "Reading ufc.com/event/ufc-334")
-        #expect(report.libraries == [SportsLibrary(key: "4", title: "Sports", chosen: true)])
+        #expect(report.libraries == [SportsLibrary(key: "4", title: "Sports", chosen: true, holdsKinds: false)])
+        #expect(!report.items.contains { $0.canTakeBack }, "a server from before Library Research cannot take research back")
         #expect(report.checks.first { $0.id == "someday" }?.state == .failed)
     }
 
@@ -191,5 +192,38 @@ struct SportsResearchTests {
         #expect(SportsCopy.counts(board).contains("5"))
         report.counts = ["matched": 40]
         #expect(SportsBoard(report: report).needingALookCount == 1, "an older server's counts fall back to the items sent")
+    }
+
+    @Test func librariesSayWhatTheyHoldAndWhatResearchTouched() throws {
+        let json = """
+        {"owner": true, "ready": true, "checks": [], "settings": {"on": true, "agreed": true},
+         "libraries": [{"key": "4", "title": "Sports", "chosen": true}, {"key": "3", "title": "Holy Grail", "chosen": false, "kind": "adult", "researched": 8}, {"key": "7", "title": "Game Cinematics", "chosen": true, "kind": "general", "researched": 2}],
+         "status": {"phase": "idle", "undoing": 5}, "counts": {},
+         "items": [
+           {"ratingKey": "1", "section": "7", "kind": "general", "file": "/g/01 - Wings of Liberty - The Deal.mkv", "state": "matched", "title": "The Deal", "updated": 2, "seconds": 15, "searches": 2, "reads": 1,
+            "detail": {"kind": "general", "event": "The Deal", "series": "StarCraft II: Wings of Liberty", "studio": "Blizzard Entertainment", "people": ["Neil Kaplan"], "date": "", "summary": "The opening cinematic.", "sources": ["behindthecinematic.com"]}},
+           {"ratingKey": "2", "section": "3", "kind": "adult", "file": "/a/x.mp4", "state": "matched", "title": "Tempted To Touch", "updated": 3, "seconds": 10, "searches": 2, "reads": 3,
+            "detail": {"kind": "adult", "event": "Tempted To Touch", "studio": "Reality Kings", "people": ["Rachel Starr"], "date": "2007-03-13"}},
+           {"ratingKey": "3", "section": "4", "file": "/s/UFC 334 Prelims.mp4", "state": "undone", "title": "UFC 334 Prelims", "updated": 1}
+         ]}
+        """
+        let board = SportsBoard(report: try JSONDecoder().decode(SportsReport.self, from: Data(json.utf8)))
+        let libraries = board.report.libraries
+        #expect(libraries.map(\.kind) == [.sports, .adult, .general])
+        #expect(libraries.map(\.researched) == [0, 8, 2])
+        #expect(libraries.map(\.holdsKinds) == [false, true, true])
+        #expect(board.report.status.undoing == 5)
+        let cinematic = try #require(board.report.items.first { $0.ratingKey == "1" })
+        #expect(cinematic.kind == .general && cinematic.showsArtwork && cinematic.canTakeBack)
+        #expect(cinematic.detail?.people == ["Neil Kaplan"] && cinematic.detail?.series == "StarCraft II: Wings of Liberty")
+        #expect(cinematic.posterWords == SportsPosterWords(eyebrow: "Blizzard Entertainment", caption: "The Deal"))
+        let adult = try #require(board.report.items.first { $0.ratingKey == "2" })
+        #expect(!adult.showsArtwork && adult.canTakeBack)
+        #expect(board.hero?.ratingKey == "1", "an adult video is never the hero")
+        let undone = try #require(board.report.items.first { $0.ratingKey == "3" })
+        #expect(!undone.canTakeBack && SportsCopy.itemState("undone") != SportsCopy.itemState("failed"))
+        #expect(board.items.last?.ratingKey == "3", "taken-back files list last")
+        let chosen = board.report.expecting(libraries: ["4", "3"], kinds: ["3": .adult]).libraries.first { $0.key == "3" }
+        #expect(chosen?.chosen == true && chosen?.kind == .adult)
     }
 }

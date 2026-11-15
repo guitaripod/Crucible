@@ -151,9 +151,10 @@ package struct SportsBoard: Equatable, Sendable {
     /// when an older server counts less.
     package var needingALookCount: Int { max(count("attention") + count("failed"), needingALook.count) }
 
-    /// The newest file research matched, to show off what it did.
+    /// The newest file research matched, to show off what it did; never an adult video, whose art and title stay in
+    /// the results.
     package var hero: SportsItem? {
-        report.items.filter { $0.state == "matched" && $0.detail != nil }.max { $0.updated < $1.updated }
+        report.items.filter { $0.state == "matched" && $0.detail != nil && $0.kind != .adult }.max { $0.updated < $1.updated }
     }
 }
 

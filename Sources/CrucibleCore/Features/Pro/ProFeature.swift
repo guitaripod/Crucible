@@ -34,7 +34,7 @@ package enum ProFeature: String, CaseIterable, Sendable {
         case .yearInReviewPoster: return String(localized: "Preview and share your year as a Story or Square poster.")
         case .topShelf: return String(localized: "Continue Watching and Up Next on the Apple TV Home screen.")
         case .manageRequests: return String(localized: "Approve, decline and retry everyone's Seerr requests from the couch.", comment: "Pro feature summary for managing Seerr requests")
-        case .sportsResearch: return String(localized: "Your own model looks up the events in your sports recordings and gives them real titles, dates, cards and posters.", comment: "Pro feature summary for Sports Research")
+        case .sportsResearch: return String(localized: "Your own model looks up the videos Plex has no agent for, sports, adult or anything else, and gives each a real title, date, people and poster.", comment: "Pro feature summary for Library Research")
         }
     }
 

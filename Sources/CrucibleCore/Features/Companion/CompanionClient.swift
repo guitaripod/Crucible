@@ -548,6 +548,7 @@ package struct CompanionClient: Sendable {
     private struct SportsChange: Encodable {
         let on: Bool?
         let libraries: [String]?
+        let kinds: [String: String]?
         let agree: Bool?
     }
 
@@ -556,9 +557,10 @@ package struct CompanionClient: Sendable {
     }
 
     /// The owner turns research on or off, chooses its libraries, or agrees to where searches go.
-    package func changeSports(on: Bool? = nil, libraries: [String]? = nil, agree: Bool? = nil) async throws(CompanionError) {
+    package func changeSports(on: Bool? = nil, libraries: [String]? = nil, kinds: [String: SportsKind] = [:], agree: Bool? = nil) async throws(CompanionError) {
+        let change = SportsChange(on: on, libraries: libraries, kinds: kinds.isEmpty ? nil : kinds.mapValues(\.rawValue), agree: agree)
         let _: SportsChanged = try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
-            try await connection.send("PUT", "sports", body: SportsChange(on: on, libraries: libraries, agree: agree), headers: headers)
+            try await connection.send("PUT", "sports", body: change, headers: headers)
         }
     }
 
@@ -584,6 +586,20 @@ package struct CompanionClient: Sendable {
     package func redoSports(ratingKey: String) async throws(CompanionError) {
         try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
             try await connection.sendExpectingNothing("POST", "sports/items/\(ratingKey)/redo", headers: headers)
+        }
+    }
+
+    /// The owner takes research back from one file: Plex shows it as it was.
+    package func undoSports(ratingKey: String) async throws(CompanionError) {
+        try await onFirstHost(timeout: 30) { connection throws(CompanionError) in
+            try await connection.sendExpectingNothing("POST", "sports/items/\(ratingKey)/undo", headers: headers)
+        }
+    }
+
+    /// The owner takes research back from every file of a library; the server goes on after answering.
+    package func undoSports(library: String) async throws(CompanionError) {
+        try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
+            try await connection.sendExpectingNothing("POST", "sports/libraries/\(library)/undo", headers: headers)
         }
     }
 

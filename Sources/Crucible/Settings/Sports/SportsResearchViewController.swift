@@ -11,7 +11,7 @@ final class SportsResearchViewController: UICollectionViewController {
     }
 
     private enum Choice: Hashable {
-        case on, library(String), agreement, checkAgain, lookNow
+        case on, library(String), takeBack(String), agreement, checkAgain, lookNow
     }
 
     private enum Row: Hashable {
@@ -321,6 +321,7 @@ final class SportsResearchViewController: UICollectionViewController {
             snapshot.appendSections([.choices])
             var rows: [Row] = [.choice(.on)]
             rows += board.report.libraries.map { Row.choice(.library($0.key)) }
+            rows += board.report.libraries.filter { !$0.chosen && $0.researched > 0 }.map { Row.choice(.takeBack($0.key)) }
             if board.report.settings.destination != nil { rows.append(.choice(.agreement)) }
             rows += [.choice(.checkAgain), .choice(.lookNow)]
             snapshot.appendItems(rows, toSection: .choices)
@@ -354,6 +355,7 @@ final class SportsResearchViewController: UICollectionViewController {
         switch row {
         case .step(let group): "step.\(group.rawValue + 1)"
         case .choice(.library(let key)): "library.\(key)"
+        case .choice(.takeBack(let key)): "takeBack.\(key)"
         case .choice(let choice): "\(choice)"
         case .how(let index): "how.\(index)"
         case .need(let index): "need.\(index)"
@@ -385,7 +387,7 @@ extension SportsResearchViewController {
                 phase: SportsCopy.phase(report.status),
                 name: current.name,
                 file: current.file,
-                posterPath: "/library/metadata/\(current.ratingKey)/thumb",
+                posterPath: current.kind == .adult ? nil : "/library/metadata/\(current.ratingKey)/thumb",
                 model: report.model?.name,
                 elapsed: current.elapsed,
                 receivedAt: receivedAt,
@@ -416,6 +418,9 @@ extension SportsResearchViewController {
         case .onlySwitch:
             return SportsPillConfiguration(symbol: "power", tint: Theme.Color.accent, title: SportsCopy.oneSwitch, detail: SportsCopy.progress(done: board.doneCount, of: board.total), progress: progress, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
         case .ready:
+            if status.undoing > 0 {
+                return SportsPillConfiguration(symbol: "arrow.uturn.backward.circle", tint: Theme.Color.accent, title: SportsCopy.undoing(status.undoing), detail: "", progress: nil, working: true, action: nil)
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return SportsPillConfiguration(symbol: "exclamationmark.triangle.fill", tint: .systemOrange, title: SportsCopy.phase(status), detail: error, progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
             }
@@ -459,7 +464,11 @@ extension SportsResearchViewController {
         case .choice(.on):
             return IconRowContentConfiguration(symbol: "power", title: SportsCopy.researchNewFiles, toggle: .init(isOn: report.settings.on, isEnabled: !busy) { [weak self] wanted in self?.setOn(wanted) })
         case .choice(.library(let key)):
-            return IconRowContentConfiguration(symbol: "film.stack", title: report.libraries.first { $0.key == key }?.title ?? key, isActionable: true)
+            let library = report.libraries.first { $0.key == key }
+            return IconRowContentConfiguration(symbol: "film.stack", title: library?.title ?? key, subtitle: library.flatMap { $0.chosen ? SportsCopy.kind($0.kind) : nil }, isActionable: true)
+        case .choice(.takeBack(let key)):
+            let library = report.libraries.first { $0.key == key }
+            return IconRowContentConfiguration(symbol: "arrow.uturn.backward", symbolColor: .systemRed, title: SportsCopy.takeBackLibrary(library?.title ?? key, files: library?.researched ?? 0), isActionable: true)
         case .choice(.agreement):
             return IconRowContentConfiguration(symbol: report.settings.agreed ? "hand.raised.slash" : "hand.raised", symbolColor: report.settings.agreed ? Theme.Color.labelSecondary : .systemOrange, title: report.settings.agreed ? SportsCopy.withdraw : SportsCopy.agree, isActionable: true)
         case .choice(.checkAgain):
@@ -486,7 +495,7 @@ extension SportsResearchViewController {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .result, .banner: true
         case .pill: mode != .viewer
-        case .choice(.library), .choice(.agreement), .choice(.checkAgain), .choice(.lookNow): !busy
+        case .choice(.library), .choice(.takeBack), .choice(.agreement), .choice(.checkAgain), .choice(.lookNow): !busy
         default: false
         }
     }
@@ -509,6 +518,8 @@ extension SportsResearchViewController {
         case .banner: startRefreshing()
         case .choice(.library(let key)):
             if let library = board.report.libraries.first(where: { $0.key == key }) { toggle(library) }
+        case .choice(.takeBack(let key)):
+            if let library = board.report.libraries.first(where: { $0.key == key }) { askToTakeBack(library) }
         case .choice(.agreement): board.report.settings.agreed ? change(agree: false) : askToAgree()
         case .choice(.checkAgain): perform { source throws(CompanionError) in try await source.recheckSports() }
         case .choice(.lookNow): perform { source throws(CompanionError) in try await source.runSports() }
@@ -518,14 +529,19 @@ extension SportsResearchViewController {
 
     override func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemsAt indexPaths: [IndexPath], point: CGPoint) -> UIContextMenuConfiguration? {
         guard !busy, mode == .ready || mode == .setup || mode == .onlySwitch, let indexPath = indexPaths.first, case .result(let key) = dataSource.itemIdentifier(for: indexPath) else { return nil }
-        return UIContextMenuConfiguration(actionProvider: { _ in
-            UIMenu(children: [UIAction(title: SportsCopy.researchAgain, image: UIImage(systemName: "arrow.clockwise")) { [weak self] _ in self?.redo(key) }])
+        let item = board?.report.items.first { $0.ratingKey == key }
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            var actions = [UIAction(title: SportsCopy.researchAgain, image: UIImage(systemName: "arrow.clockwise")) { _ in self?.redo(key) }]
+            if item?.canTakeBack == true {
+                actions.append(UIAction(title: SportsCopy.takeBack, image: UIImage(systemName: "arrow.uturn.backward"), attributes: .destructive) { _ in self?.askToTakeBack(key) })
+            }
+            return UIMenu(children: actions)
         })
     }
 
     private func open(_ item: SportsItem) {
         let canRedo = !busy && (mode == .ready || mode == .setup || mode == .onlySwitch)
-        let detail = SportsItemViewController(item: item, canRedo: canRedo) { [weak self] in self?.redo(item.ratingKey) }
+        let detail = SportsItemViewController(item: item, canRedo: canRedo, onRedo: { [weak self] in self?.redo(item.ratingKey) }, onTakeBack: { [weak self] in self?.takeBack(item.ratingKey) })
         let navigation = UINavigationController(rootViewController: detail)
         if let sheet = navigation.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
@@ -543,11 +559,58 @@ extension SportsResearchViewController {
         }
     }
 
+    /// Choosing a library asks what it holds; taking one out of research asks whether what it wrote stays.
     private func toggle(_ library: SportsLibrary) {
         guard let board else { return }
-        var chosen = board.report.libraries.filter(\.chosen).map(\.key)
-        if library.chosen { chosen.removeAll { $0 == library.key } } else { chosen.append(library.key) }
-        change(libraries: chosen)
+        let chosen = board.report.libraries.filter(\.chosen).map(\.key)
+        guard library.chosen else {
+            guard library.holdsKinds else { return change(libraries: chosen + [library.key]) }
+            let alert = UIAlertController(title: SportsCopy.kindQuestion(library.title), message: SportsCopy.kindExplanation, preferredStyle: .alert)
+            for kind in SportsKind.allCases {
+                alert.addAction(UIAlertAction(title: SportsCopy.kind(kind), style: .default) { [weak self] _ in
+                    self?.change(libraries: chosen + [library.key], kinds: [library.key: kind])
+                })
+            }
+            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+            present(alert, animated: true)
+            return
+        }
+        let rest = chosen.filter { $0 != library.key }
+        guard library.researched > 0 else { return change(libraries: rest) }
+        let alert = UIAlertController(title: SportsCopy.stopQuestion(library.title), message: SportsCopy.stopExplanation, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: SportsCopy.stopAndKeep, style: .default) { [weak self] _ in self?.change(libraries: rest) })
+        alert.addAction(UIAlertAction(title: SportsCopy.stopAndTakeBack, style: .destructive) { [weak self] _ in
+            guard let self, !busy else { return }
+            self.board = SportsBoard(report: board.report.expecting(libraries: rest))
+            perform { source throws(CompanionError) in
+                try await source.changeSports(on: nil, libraries: rest, kinds: [:], agree: nil)
+                try await source.undoSports(library: library.key)
+            }
+        })
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        present(alert, animated: true)
+    }
+
+    /// Asks before taking research back from every file of a library no longer researched.
+    private func askToTakeBack(_ library: SportsLibrary) {
+        let alert = UIAlertController(title: SportsCopy.takeBackLibrary(library.title, files: library.researched), message: SportsCopy.takeBackLibraryQuestion(library.researched), preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: SportsCopy.takeBack, style: .destructive) { [weak self] _ in
+            self?.perform { source throws(CompanionError) in try await source.undoSports(library: library.key) }
+        })
+        present(alert, animated: true)
+    }
+
+    /// Asks before taking research back from one file.
+    private func askToTakeBack(_ key: String) {
+        let alert = UIAlertController(title: SportsCopy.takeBack, message: SportsCopy.takeBackQuestion, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: SportsCopy.takeBack, style: .destructive) { [weak self] _ in self?.takeBack(key) })
+        present(alert, animated: true)
+    }
+
+    private func takeBack(_ key: String) {
+        perform { source throws(CompanionError) in try await source.undoSports(ratingKey: key) }
     }
 
     private func askToAgree() {
@@ -562,10 +625,10 @@ extension SportsResearchViewController {
         perform { source throws(CompanionError) in try await source.redoSports(ratingKey: key) }
     }
 
-    private func change(on: Bool? = nil, libraries: [String]? = nil, agree: Bool? = nil) {
+    private func change(on: Bool? = nil, libraries: [String]? = nil, kinds: [String: SportsKind] = [:], agree: Bool? = nil) {
         guard !busy else { return }
-        if let board { self.board = SportsBoard(report: board.report.expecting(on: on, libraries: libraries, agree: agree)) }
-        perform { source throws(CompanionError) in try await source.changeSports(on: on, libraries: libraries, agree: agree) }
+        if let board { self.board = SportsBoard(report: board.report.expecting(on: on, libraries: libraries, kinds: kinds, agree: agree)) }
+        perform { source throws(CompanionError) in try await source.changeSports(on: on, libraries: libraries, kinds: kinds, agree: agree) }
     }
 
     /// Runs one owner action, shows it as busy meanwhile, and asks the server again afterwards.

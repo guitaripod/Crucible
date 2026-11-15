@@ -19773,6 +19773,101 @@
         }
       }
     },
+    "A library to research" : {
+      "comment" : "Library Research requirement title: an Other Videos library is chosen",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Et bibliotek, der skal undersøges"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Bibliothek zur Recherche"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una biblioteca para investigar"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjasto tutkittavaksi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une bibliothèque à rechercher"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safn til rannsóknar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una libreria da cercare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査するライブラリ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "조사할 라이브러리"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Et bibliotek å undersøke"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteka do analizy"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma biblioteca para pesquisar"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ett bibliotek att undersöka"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要研究的媒体库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要研究的媒體庫"
+          }
+        }
+      }
+    },
     "A model on your computer" : {
       "comment" : "Sports Research requirement title",
       "localizations" : {
@@ -19868,97 +19963,97 @@
         }
       }
     },
-    "A model that reasons before it acts checks the event number, date and card instead of guessing." : {
-      "comment" : "Why Sports Research needs a thinking model",
+    "A model that reasons before it acts checks names, dates and numbers instead of guessing." : {
+      "comment" : "Why Library Research needs a thinking model",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En model, der tænker, før den handler, kontrollerer eventnummer, dato og kort i stedet for at gætte."
+            "value" : "En model, der ræsonnerer, før den handler, kontrollerer navne, datoer og tal i stedet for at gætte."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Modell, das vor dem Handeln nachdenkt, prüft Veranstaltungsnummer, Datum und Karte, statt zu raten."
+            "value" : "Ein Modell, das vor dem Handeln nachdenkt, prüft Namen, Daten und Zahlen, statt zu raten."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un modelo que razona antes de actuar comprueba el número del evento, la fecha y la cartelera en lugar de adivinar."
+            "value" : "Un modelo que razona antes de actuar comprueba nombres, fechas y números en lugar de adivinar."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Malli, joka harkitsee ennen toimintaansa, tarkistaa tapahtuman numeron, päivämäärän ja kortin arvaamisen sijaan."
+            "value" : "Malli, joka päättelee ennen toimintaa, tarkistaa nimet, päivämäärät ja luvut arvaamisen sijaan."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un modèle qui réfléchit avant d'agir vérifie le numéro de l'événement, la date et la carte au lieu de deviner."
+            "value" : "Un modèle qui raisonne avant d'agir vérifie les noms, les dates et les chiffres au lieu de deviner."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Módel sem hugsar áður en það aðhefst athugar númer viðburðar, dagsetningu og bardagakvöldið í stað þess að giska."
+            "value" : "Líkan sem rökstyður áður en það aðhefst athugar nöfn, dagsetningar og tölur í stað þess að giska."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un modello che ragiona prima di agire controlla numero dell'evento, data e card invece di tirare a indovinare."
+            "value" : "Un modello che ragiona prima di agire verifica nomi, date e numeri invece di indovinare."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "行動する前に推論するモデルは、推測する代わりにイベント番号、日付、カードを確認します。"
+            "value" : "行動する前に考えるモデルは、推測せず名前・日付・数字を確認します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "행동하기 전에 추론하는 모델은 추측하지 않고 이벤트 번호, 날짜, 카드를 확인합니다."
+            "value" : "행동하기 전에 추론하는 모델은 추측 대신 이름, 날짜, 숫자를 확인합니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En modell som resonerer før den handler, sjekker eventnummer, dato og kort i stedet for å gjette."
+            "value" : "En modell som resonnerer før den handler, sjekker navn, datoer og tall i stedet for å gjette."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Model, który najpierw analizuje, sprawdza numer gali, datę i kartę walk zamiast zgadywać."
+            "value" : "Model, który najpierw rozumuje, sprawdza nazwy, daty i liczby zamiast zgadywać."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um modelo que raciocina antes de agir confere o número do evento, a data e o card em vez de adivinhar."
+            "value" : "Um modelo que raciocina antes de agir confere nomes, datas e números em vez de adivinhar."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En modell som resonerar innan den agerar kontrollerar eventnumret, datumet och kortet i stället för att gissa."
+            "value" : "En modell som resonerar innan den agerar kontrollerar namn, datum och siffror i stället för att gissa."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "会先推理再行动的模型，会核对赛事编号、日期和卡片，而不是凭猜测。"
+            "value" : "会先推理再行动的模型会核对名称、日期和数字，而不是靠猜测。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "會先推理再行動的模型，會核對賽事編號、日期和卡片，而不是憑猜測。"
+            "value" : "會先推理再行動的模型會核對名稱、日期和數字，而不是靠猜測。"
           }
         }
       }
@@ -20152,97 +20247,97 @@
         }
       }
     },
-    "A real title, date, summary, card and poster, locked so Plex keeps them." : {
-      "comment" : "Sports Research how-it-works row detail: what gets written",
+    "A real title, date, description, people and poster, locked so Plex keeps them, and all of it can be taken back." : {
+      "comment" : "Library Research how-it-works row detail: what gets written",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En rigtig titel, dato, resumé, kort og plakat, låst så Plex beholder dem."
+            "value" : "En rigtig titel, dato, beskrivelse, medvirkende og plakat, låst så Plex beholder dem, og alt kan fortrydes."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein echter Titel, Datum, Zusammenfassung, Paarungen und Poster, gesperrt, damit Plex sie behält."
+            "value" : "Ein echter Titel, Datum, Beschreibung, Personen und Poster, gesperrt, damit Plex sie behält, und alles lässt sich rückgängig machen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un título, fecha, resumen, cartelera y póster reales, bloqueados para que Plex los conserve."
+            "value" : "Un título, fecha, descripción, reparto y póster reales, bloqueados para que Plex los conserve, y todo se puede revertir."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Oikea nimi, päivämäärä, yhteenveto, kortti ja juliste, lukittuna, jotta Plex säilyttää ne."
+            "value" : "Oikea nimi, päivämäärä, kuvaus, henkilöt ja juliste, lukittuna niin, että Plex säilyttää ne. Kaikki voidaan peruuttaa."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un vrai titre, une date, un résumé, le programme et une affiche, verrouillés pour que Plex les conserve."
+            "value" : "Un vrai titre, une date, une description, les personnes et l'affiche, verrouillés pour que Plex les conserve, et tout cela peut être annulé."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Raunverulegur titill, dagsetning, samantekt, spjald og veggspjald, læst svo Plex geymi þau."
+            "value" : "Raunverulegur titill, dagsetning, lýsing, fólk og veggspjald, læst svo Plex haldi þeim, og hægt er að afturkalla allt þetta."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un titolo, una data, un riassunto, il programma e un poster reali, bloccati perché Plex li conservi."
+            "value" : "Un titolo, una data, una descrizione, gli interpreti e la locandina reali, bloccati perché Plex li conservi, e tutto può essere annullato."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "実際のタイトル、日付、概要、カード、ポスターを設定し、Plex で保持されるようロックします。"
+            "value" : "実際のタイトル、日付、説明、出演者、ポスター。Plexが保持するようロックされ、すべて取り消せます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "실제 제목, 날짜, 요약, 카드, 포스터를 쓰고 잠가서 Plex가 그대로 유지하게 합니다."
+            "value" : "실제 제목, 날짜, 설명, 출연진, 포스터를 Plex가 그대로 유지하도록 잠가 두며, 이 모든 것은 되돌릴 수 있습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En ekte tittel, dato, sammendrag, kort og plakat, låst slik at Plex beholder dem."
+            "value" : "En ekte tittel, dato, beskrivelse, medvirkende og plakat, låst slik at Plex beholder dem, og alt kan angres."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prawdziwy tytuł, data, opis, zestaw spotkań i plakat, zablokowane, aby Plex je zachował."
+            "value" : "Prawdziwy tytuł, data, opis, obsada i plakat, zablokowane, by Plex je zachował, a wszystko można cofnąć."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um título, data, resumo, confrontos e pôster reais, travados para que o Plex os mantenha."
+            "value" : "Título, data, descrição, elenco e pôster reais, bloqueados para o Plex mantê-los, e tudo pode ser desfeito."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En riktig titel, datum, sammanfattning, kort och affisch, låsta så att Plex behåller dem."
+            "value" : "En riktig titel, datum, beskrivning, medverkande och affisch, låsta så att Plex behåller dem. Allt kan ångras."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "写入真实的标题、日期、简介、卡片和海报，并锁定，使 Plex 保留这些内容。"
+            "value" : "真实的标题、日期、简介、演职人员和海报，并予以锁定以便 Plex 保留，所有内容均可撤销。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "寫入真實的標題、日期、簡介、卡片和海報，並鎖定，讓 Plex 保留這些內容。"
+            "value" : "真實的標題、日期、簡介、演職員和海報，並予以鎖定以便 Plex 保留，所有內容均可撤銷。"
           }
         }
       }
@@ -20437,101 +20532,6 @@
         }
       }
     },
-    "A sports library" : {
-      "comment" : "Sports Research requirement title",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Et sportsbibliotek"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine Sportbibliothek"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una biblioteca deportiva"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Urheilukirjasto"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Une bibliothèque sportive"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Íþróttasafn"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una libreria sportiva"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スポーツのライブラリ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "스포츠 라이브러리"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Et sportsbibliotek"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Biblioteka sportowa"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uma biblioteca de esportes"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ett sportbibliotek"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "体育媒体库"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "體育媒體庫"
-          }
-        }
-      }
-    },
     "ALL TIME" : {
       "localizations" : {
         "da" : {
@@ -20721,97 +20721,97 @@
         }
       }
     },
-    "About 20 billion parameters or more, with room for 32K tokens, served by llama-swap, Ollama or LM Studio. Smaller models get events wrong." : {
-      "comment" : "Sports Research requirement row detail: model size, context and servers",
+    "About 20 billion parameters or more, with room for 32K tokens, served by llama-swap, Ollama or LM Studio. Smaller models get files wrong." : {
+      "comment" : "Library Research requirement row detail: model size, context and servers",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cirka 20 milliarder parametre eller mere med plads til 32K tokens, kørt via llama-swap, Ollama eller LM Studio. Mindre modeller misser begivenheder."
+            "value" : "Cirka 20 milliarder parametre eller mere, med plads til 32K tokens, kørt med llama-swap, Ollama eller LM Studio. Mindre modeller tager fejl af filerne."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Etwa 20 Milliarden Parameter oder mehr, mit Platz für 32K Token, bereitgestellt über llama-swap, Ollama oder LM Studio. Kleinere Modelle erkennen Ereignisse falsch."
+            "value" : "Etwa 20 Milliarden Parameter oder mehr, mit Platz für 32K Token, bereitgestellt von llama-swap, Ollama oder LM Studio. Kleinere Modelle liegen bei Dateien oft falsch."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unos 20 mil millones de parámetros o más, con espacio para 32K tokens, servido por llama-swap, Ollama o LM Studio. Los modelos más pequeños se equivocan con los eventos."
+            "value" : "Unos 20 000 millones de parámetros o más, con espacio para 32K tokens, servido por llama-swap, Ollama o LM Studio. Los modelos más pequeños se equivocan con los archivos."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noin 20 miljardia parametria tai enemmän, tilaa 32K tokenille, palvelimena llama-swap, Ollama tai LM Studio. Pienemmät mallit menevät tapahtumissa pieleen."
+            "value" : "Noin 20 miljardia parametria tai enemmän ja tilaa 32K tokenille, palveltuna llama-swapilla, Ollamalla tai LM Studiolla. Pienemmät mallit tunnistavat tiedostot väärin."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Environ 20 milliards de paramètres ou plus, avec de la place pour 32K tokens, servi par llama-swap, Ollama ou LM Studio. Les modèles plus petits se trompent sur les événements."
+            "value" : "Environ 20 milliards de paramètres ou plus, avec de la place pour 32K jetons, servi par llama-swap, Ollama ou LM Studio. Les modèles plus petits se trompent sur les fichiers."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um 20 milljarðar breyta eða fleiri, með rými fyrir 32K tóken, keyrt á llama-swap, Ollama eða LM Studio. Minni módel fara villu vegar í atburðum."
+            "value" : "Um 20 milljarðar breyta eða fleiri, með rými fyrir 32K tóka, keyrt í llama-swap, Ollama eða LM Studio. Minni líkön ranggreina skrár."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Circa 20 miliardi di parametri o più, con spazio per 32K token, servito da llama-swap, Ollama o LM Studio. I modelli più piccoli sbagliano gli eventi."
+            "value" : "Circa 20 miliardi di parametri o più, con spazio per 32K token, serviti da llama-swap, Ollama o LM Studio. I modelli più piccoli sbagliano i file."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "約 200 億パラメータ以上、32K トークン分の余裕があり、llama-swap、Ollama、LM Studio で提供されるもの。小さいモデルは出来事を取り違えます。"
+            "value" : "約200億パラメータ以上で、32Kトークン分のコンテキストに対応し、llama-swap、Ollama、LM Studioで提供されるもの。小さいモデルはファイルを誤認します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "약 200억 개 이상의 매개변수, 32K 토큰 컨텍스트, llama-swap, Ollama 또는 LM Studio로 제공. 더 작은 모델은 경기 내용을 잘못 파악합니다."
+            "value" : "파라미터 약 200억 개 이상이고 32K 토큰을 처리할 수 있어야 하며, llama-swap, Ollama 또는 LM Studio로 제공되어야 합니다. 더 작은 모델은 파일을 잘못 판단합니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Omtrent 20 milliarder parametere eller mer, med plass til 32K tokens, kjørt via llama-swap, Ollama eller LM Studio. Mindre modeller bommer på hendelser."
+            "value" : "Omtrent 20 milliarder parametere eller mer, med plass til 32K tokens, servert av llama-swap, Ollama eller LM Studio. Mindre modeller bommer på filene."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Około 20 miliardów parametrów lub więcej, z miejscem na 32K tokenów, obsługiwany przez llama-swap, Ollama lub LM Studio. Mniejsze modele mylą wydarzenia."
+            "value" : "Około 20 miliardów parametrów lub więcej, z miejscem na 32K tokenów, obsługiwany przez llama-swap, Ollama lub LM Studio. Mniejsze modele mylą pliki."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cerca de 20 bilhões de parâmetros ou mais, com espaço para 32K tokens, servido por llama-swap, Ollama ou LM Studio. Modelos menores erram os eventos."
+            "value" : "Cerca de 20 bilhões de parâmetros ou mais, com espaço para 32K tokens, servido por llama-swap, Ollama ou LM Studio. Modelos menores erram nos arquivos."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cirka 20 miljarder parametrar eller fler, med plats för 32K tokens, körs via llama-swap, Ollama eller LM Studio. Mindre modeller missar händelser."
+            "value" : "Minst cirka 20 miljarder parametrar, med plats för 32K tokens, körd i llama-swap, Ollama eller LM Studio. Mindre modeller tar fel på filerna."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "约 200 亿参数或以上，可容纳 32K 词元的上下文，由 llama-swap、Ollama 或 LM Studio 提供服务。较小的模型会误判赛事内容。"
+            "value" : "参数量约 200 亿或以上，支持 32K 令牌的上下文，由 llama-swap、Ollama 或 LM Studio 提供服务。较小的模型会判断错误。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "約 200 億參數或以上，可容納 32K 權杖的上下文，由 llama-swap、Ollama 或 LM Studio 提供服務。較小的模型會誤判賽事內容。"
+            "value" : "參數量約 200 億或以上，支援 32K 權杖的上下文，由 llama-swap、Ollama 或 LM Studio 提供服務。較小的模型會判斷錯誤。"
           }
         }
       }
@@ -23176,6 +23176,101 @@
         }
       }
     },
+    "Adult videos" : {
+      "comment" : "Library Research: a library of adult films and scenes",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voksenvideoer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videos für Erwachsene"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videos para adultos"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aikuisvideot"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéos pour adultes"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fullorðinsmyndbönd"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video per adulti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アダルト動画"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "성인 영상"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voksenvideoer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filmy dla dorosłych"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vídeos adultos"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuxenvideor"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成人视频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成人影片"
+          }
+        }
+      }
+    },
     "After %lld Episodes" : {
       "localizations" : {
         "da" : {
@@ -23954,7 +24049,7 @@
       }
     },
     "All" : {
-      "comment" : "Filter option that shows every item",
+      "comment" : "Sports Research: show every result",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -26810,6 +26905,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "任何"
+          }
+        }
+      }
+    },
+    "Anything else" : {
+      "comment" : "Library Research: a library of other videos, such as game cinematics, concerts or clips",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andet"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anderes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otros"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autre"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annað"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 밖의 영상"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outros"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他视频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他影片"
           }
         }
       }
@@ -32581,6 +32771,101 @@
         }
       }
     },
+    "Cast" : {
+      "comment" : "Library Research detail: heading above the people in a film or video",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medvirkende"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Besetzung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reparto"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esiintyjät"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distribution"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leikarar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interpreti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出演者"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "출연진"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medvirkende"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obsada"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elenco"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medverkande"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演职人员"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "演職員"
+          }
+        }
+      }
+    },
     "Cast & Crew" : {
       "localizations" : {
         "da" : {
@@ -33810,97 +34095,97 @@
         }
       }
     },
-    "Checking the event, date and card" : {
-      "comment" : "Sports Research live step: the server checks what the model found",
+    "Checking the record" : {
+      "comment" : "Library Research live step: the server checks what the model found",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tjekker begivenheden, datoen og kortet"
+            "value" : "Tjekker oplysningerne"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prüft Veranstaltung, Datum und Paarungen"
+            "value" : "Eintrag wird geprüft"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Comprobando el evento, la fecha y la cartelera"
+            "value" : "Comprobando lo encontrado"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tarkistetaan tapahtuma, päivämäärä ja kortti"
+            "value" : "Tarkistetaan tietoja"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vérification de l’événement, de la date et du programme"
+            "value" : "Vérification de la fiche"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Athuga viðburðinn, dagsetninguna og spjaldið"
+            "value" : "Yfirfer skráninguna"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verifica di evento, data e programma"
+            "value" : "Verifica della scheda"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "イベント、日付、カードを確認中"
+            "value" : "記録を照合中"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "행사, 날짜, 카드를 확인하는 중"
+            "value" : "기록 확인 중"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sjekker arrangementet, datoen og kortet"
+            "value" : "Sjekker opplysningene"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sprawdzanie wydarzenia, daty i zestawu spotkań"
+            "value" : "Sprawdzanie wyniku"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verificando o evento, a data e os confrontos"
+            "value" : "Conferindo o resultado"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kontrollerar händelsen, datumet och kortet"
+            "value" : "Kontrollerar uppgifterna"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在核对赛事、日期和卡面"
+            "value" : "正在核对记录"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在核對賽事、日期和卡面"
+            "value" : "正在核對紀錄"
           }
         }
       }
@@ -34757,97 +35042,97 @@
         }
       }
     },
-    "Choose the Other Videos libraries that hold your sports recordings." : {
-      "comment" : "Why Sports Research needs a library",
+    "Choose the Other Videos libraries to research, and say what each holds." : {
+      "comment" : "Why Library Research needs a library",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vælg de biblioteker med Andre videoer, der indeholder dine sportsoptagelser."
+            "value" : "Vælg de Other Videos-biblioteker, der skal undersøges, og angiv, hvad hvert bibliotek indeholder."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle die Bibliotheken für Andere Videos aus, in denen deine Sportaufnahmen liegen."
+            "value" : "Wähle die Other-Videos-Bibliotheken für die Recherche aus und lege fest, was jede enthält."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige las bibliotecas de Otros vídeos que contienen tus grabaciones deportivas."
+            "value" : "Elige las bibliotecas Other Videos que investigar y di qué contiene cada una."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Valitse Muut videot -kirjastot, joissa urheilutallenteesi ovat."
+            "value" : "Valitse tutkittavat Other Videos -kirjastot ja kerro, mitä kukin sisältää."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez les bibliothèques Autres vidéos qui contiennent vos enregistrements sportifs."
+            "value" : "Choisissez les bibliothèques Other Videos à rechercher et indiquez ce que contient chacune."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veldu söfnin „Önnur myndbönd“ sem geyma íþróttaupptökurnar þínar."
+            "value" : "Veldu Other Videos söfn til rannsóknar og segðu hvað hvert þeirra geymir."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli le librerie Altri video che contengono le tue registrazioni sportive."
+            "value" : "Scegli le librerie Other Videos da cercare e indica cosa contiene ciascuna."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スポーツの録画が入っている「その他のビデオ」ライブラリを選択してください。"
+            "value" : "調査するOther Videosライブラリを選び、それぞれに何が入っているかを指定してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "스포츠 녹화본이 있는 기타 동영상 라이브러리를 선택합니다."
+            "value" : "조사할 Other Videos 라이브러리를 고르고, 각 라이브러리에 무엇이 들어 있는지 알려 주세요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Velg bibliotekene med Andre videoer som inneholder sportsopptakene dine."
+            "value" : "Velg Other Videos-bibliotekene som skal undersøkes, og si hva hvert bibliotek inneholder."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wybierz biblioteki Inne wideo, w których są Twoje nagrania sportowe."
+            "value" : "Wybierz biblioteki Other Videos do analizy i określ, co zawiera każda z nich."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha as bibliotecas de Outros vídeos que guardam suas gravações de esportes."
+            "value" : "Escolha as bibliotecas Other Videos para pesquisar e diga o que cada uma contém."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Välj de bibliotek med Övriga videor som innehåller dina sportinspelningar."
+            "value" : "Välj de bibliotek i Other Videos som ska undersökas, och säg vad varje bibliotek innehåller."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择存放体育录像的“其他视频”媒体库。"
+            "value" : "选择要研究的 Other Videos 媒体库，并说明每个媒体库包含的内容。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇存放體育錄影的“其他影片”媒體庫。"
+            "value" : "選擇要研究的 Other Videos 媒體庫，並說明每個媒體庫包含的內容。"
           }
         }
       }
@@ -47308,97 +47593,97 @@
         }
       }
     },
-    "Crucible could not tell which event this is. Research it again, or rename the file so it names the event." : {
-      "comment" : "Sports Research: what to do about a file research could not identify",
+    "Crucible could not tell what this file is. Research it again, or rename the file so it names what it holds." : {
+      "comment" : "Library Research: what to do about a file research could not identify",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible kunne ikke afgøre, hvilken begivenhed det er. Undersøg igen, eller omdøb filen, så den navngiver begivenheden."
+            "value" : "Crucible kunne ikke afgøre, hvad filen er. Undersøg den igen, eller omdøb filen, så navnet siger, hvad den indeholder."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible konnte nicht erkennen, welche Veranstaltung das ist. Recherchiere erneut oder benenne die Datei so um, dass sie die Veranstaltung nennt."
+            "value" : "Crucible konnte nicht erkennen, was diese Datei ist. Recherchiere sie erneut oder benenne die Datei so, dass ihr Inhalt im Namen steht."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible no pudo identificar el evento. Vuelve a investigarlo o cambia el nombre del archivo para que incluya el nombre del evento."
+            "value" : "Crucible no pudo saber qué es este archivo. Investígalo de nuevo o cambia su nombre para que indique lo que contiene."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible ei tunnistanut, mikä tapahtuma tämä on. Tutki se uudelleen tai nimeä tiedosto uudelleen niin, että nimessä on tapahtuma."
+            "value" : "Crucible ei tunnistanut tiedostoa. Tutki se uudelleen tai nimeä tiedosto uudelleen niin, että nimi kertoo sen sisällön."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible n’a pas pu identifier l’événement. Relancez la recherche ou renommez le fichier pour qu’il indique l’événement."
+            "value" : "Crucible n'a pas pu identifier ce fichier. Relancez la recherche ou renommez le fichier pour qu'il indique ce qu'il contient."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible gat ekki greint hvaða viðburður þetta er. Rannsakaðu það aftur eða endurnefndu skrána þannig að nafnið tilgreini viðburðinn."
+            "value" : "Crucible gat ekki greint hvað þessi skrá er. Rannsakaðu hana aftur eða endurnefndu skrána þannig að nafnið segi hvað hún geymir."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible non è riuscito a capire di quale evento si tratta. Cerca di nuovo oppure rinomina il file in modo che indichi l’evento."
+            "value" : "Crucible non è riuscito a capire cosa sia questo file. Ripeti la ricerca o rinomina il file in modo che il nome indichi cosa contiene."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible はこのイベントを特定できませんでした。もう一度調査するか、イベント名が含まれるようファイル名を変更してください。"
+            "value" : "Crucibleはこのファイルが何か判別できませんでした。再調査するか、内容がわかる名前にファイル名を変更してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible이 어떤 행사인지 알아내지 못했습니다. 다시 조사하거나, 행사 이름이 들어가도록 파일 이름을 바꾸세요."
+            "value" : "Crucible이 이 파일이 무엇인지 알아내지 못했습니다. 다시 조사하거나, 파일 이름을 내용이 드러나도록 바꾸세요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible kunne ikke finne ut hvilket arrangement dette er. Undersøk på nytt, eller gi filen nytt navn slik at den angir arrangementet."
+            "value" : "Crucible kunne ikke finne ut hva denne filen er. Undersøk den på nytt, eller gi filen et nytt navn som sier hva den inneholder."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible nie mógł rozpoznać tego wydarzenia. Przeanalizuj je ponownie albo zmień nazwę pliku tak, aby zawierała nazwę wydarzenia."
+            "value" : "Crucible nie rozpoznał tego pliku. Przeanalizuj go ponownie albo zmień nazwę pliku tak, by wskazywała, co zawiera."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Crucible não conseguiu identificar este evento. Pesquise de novo ou renomeie o arquivo para que o nome mostre o evento."
+            "value" : "O Crucible não conseguiu identificar este arquivo. Pesquise de novo ou renomeie o arquivo para indicar o que ele contém."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible kunde inte avgöra vilken händelse det här är. Undersök igen, eller byt namn på filen så att den anger händelsen."
+            "value" : "Crucible kunde inte avgöra vad filen är. Undersök den igen, eller byt namn på filen så att namnet anger vad den innehåller."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible 无法识别这是哪场赛事。请重新研究，或重命名文件，使文件名包含赛事名称。"
+            "value" : "Crucible 无法识别此文件。请重新研究，或将文件重命名为能体现其内容的名称。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible 無法辨識這是哪場賽事。請重新研究，或重新命名檔案，讓檔名包含賽事名稱。"
+            "value" : "Crucible 無法辨識此檔案。請重新研究，或將檔案重新命名為能體現其內容的名稱。"
           }
         }
       }
@@ -60775,101 +61060,6 @@
         }
       }
     },
-    "Event pages are long, so the model needs a context window of at least 32K tokens." : {
-      "comment" : "Why Sports Research needs a large context window",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eventsider er lange, så modellen skal have et kontekstvindue på mindst 32K tokens."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Veranstaltungsseiten sind lang, deshalb braucht das Modell ein Kontextfenster von mindestens 32K Token."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las páginas de eventos son largas, así que el modelo necesita una ventana de contexto de al menos 32K tokens."
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tapahtumasivut ovat pitkiä, joten mallin kontekstiikkunan on oltava vähintään 32K tokenia."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les pages d'événements sont longues, le modèle a donc besoin d'une fenêtre de contexte d'au moins 32K jetons."
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Viðburðasíður eru langar, þess vegna þarf módelið samhengisglugga sem er að minnsta kosti 32K tóken."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le pagine degli eventi sono lunghe, quindi il modello ha bisogno di una finestra di contesto di almeno 32K token."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "イベントのページは長いため、モデルには少なくとも32Kトークンのコンテキストウィンドウが必要です。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이벤트 페이지는 길어서 모델의 컨텍스트 창이 최소 32K 토큰이어야 합니다."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eventsidene er lange, så modellen trenger et kontekstvindu på minst 32K tokens."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Strony wydarzeń są długie, więc model potrzebuje okna kontekstu o rozmiarze co najmniej 32K tokenów."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As páginas de eventos são longas, então o modelo precisa de uma janela de contexto de pelo menos 32K tokens."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eventsidorna är långa, så modellen behöver ett kontextfönster på minst 32K tokens."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "赛事页面较长，因此模型的上下文窗口至少需要 32K 词元。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "賽事頁面較長，因此模型的上下文視窗至少需要 32K 詞元。"
-          }
-        }
-      }
-    },
     "Every episode and film you watch is checked off on Trakt by itself, downloads too once you're back online." : {
       "comment" : "Trakt benefit detail: automatic scrobbling",
       "localizations" : {
@@ -63636,7 +63826,7 @@
       }
     },
     "File" : {
-      "comment" : "Details row label for the media file",
+      "comment" : "Sports Research detail: the file's own name",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -76538,97 +76728,97 @@
         }
       }
     },
-    "It finds the event" : {
-      "comment" : "Sports Research how-it-works row title",
+    "It finds what each file is" : {
+      "comment" : "Library Research how-it-works row title",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Den finder begivenheden"
+            "value" : "Den finder ud af, hvad hver fil er"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sie findet die Veranstaltung"
+            "value" : "Findet heraus, was jede Datei ist"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encuentra el evento"
+            "value" : "Descubre qué es cada archivo"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se löytää tapahtuman"
+            "value" : "Se selvittää, mikä kukin tiedosto on"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il trouve l’événement"
+            "value" : "Il identifie chaque fichier"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Það finnur viðburðinn"
+            "value" : "Hún finnur út hvað hver skrá er"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trova l’evento"
+            "value" : "Identifica cosa contiene ogni file"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "イベントを見つけます"
+            "value" : "各ファイルの内容を特定します"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "행사를 찾습니다"
+            "value" : "각 파일이 무엇인지 찾아냅니다"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Den finner arrangementet"
+            "value" : "Den finner ut hva hver fil er"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Znajduje wydarzenie"
+            "value" : "Ustala, czym jest każdy plik"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Encontra o evento"
+            "value" : "Descobre o que é cada arquivo"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Den hittar händelsen"
+            "value" : "Den tar reda på vad varje fil är"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查找赛事"
+            "value" : "识别每个文件的内容"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "尋找賽事"
+            "value" : "辨識每個檔案的內容"
           }
         }
       }
@@ -81087,6 +81277,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "媒體庫格狀檢視"
+          }
+        }
+      }
+    },
+    "Library Research" : {
+      "comment" : "Title of the Library Research screen and feature: the owner's own model looks up the videos in Other Videos libraries",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteksundersøgelse"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bibliotheksrecherche"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Investigación de bibliotecas"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjastotutkimus"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche de bibliothèque"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safnarannsókn"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca nelle librerie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリ調査"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "라이브러리 조사"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bibliotekundersøkelse"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analiza bibliotek"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pesquisa de bibliotecas"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteksundersökning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒体库研究"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒體庫研究"
+          }
+        }
+      }
+    },
+    "Library Research is part of Crucible Pro." : {
+      "comment" : "Library Research: the feature needs Pro",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteksundersøgelse er en del af Crucible Pro."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bibliotheksrecherche ist Teil von Crucible Pro."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La investigación de bibliotecas forma parte de Crucible Pro."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjastotutkimus kuuluu Crucible Pron ominaisuuksiin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La recherche de bibliothèque fait partie de Crucible Pro."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safnarannsókn er hluti af Crucible Pro."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ricerca nelle librerie fa parte di Crucible Pro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリ調査はCrucible Proに含まれます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "라이브러리 조사는 Crucible Pro에 포함됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bibliotekundersøkelse er en del av Crucible Pro."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analiza bibliotek jest częścią Crucible Pro."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pesquisa de bibliotecas faz parte do Crucible Pro."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteksundersökning ingår i Crucible Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒体库研究属于 Crucible Pro。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒體庫研究屬於 Crucible Pro。"
           }
         }
       }
@@ -103475,97 +103855,97 @@
         }
       }
     },
-    "Only the owner of this Plex server can change Sports Research." : {
-      "comment" : "Sports Research footer for people who are not the server owner",
+    "Only the owner of this Plex server can change Library Research." : {
+      "comment" : "Library Research footer for people who are not the server owner",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kun ejeren af denne Plex-server kan ændre Sportsopslag."
+            "value" : "Kun ejeren af denne Plex-server kan ændre Biblioteksundersøgelse."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur der Besitzer dieses Plex-Servers kann die Sport-Recherche ändern."
+            "value" : "Nur der Besitzer dieses Plex-Servers kann die Bibliotheksrecherche ändern."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo el propietario de este servidor de Plex puede cambiar la Investigación deportiva."
+            "value" : "Solo el propietario de este servidor Plex puede cambiar la investigación de bibliotecas."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vain tämän Plex-palvelimen omistaja voi muuttaa Urheilutiedot -toimintoa."
+            "value" : "Vain tämän Plex-palvelimen omistaja voi muuttaa Kirjastotutkimusta."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seul le propriétaire de ce serveur Plex peut modifier la recherche sportive."
+            "value" : "Seul le propriétaire de ce serveur Plex peut modifier la recherche de bibliothèque."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aðeins eigandi þessa Plex-þjóns getur breytt Íþróttaleit."
+            "value" : "Aðeins eigandi þessa Plex-þjóns getur breytt Safnarannsókn."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo il proprietario di questo server Plex può modificare la ricerca sportiva."
+            "value" : "Solo il proprietario di questo server Plex può modificare la ricerca nelle librerie."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このPlexサーバーの所有者だけがスポーツリサーチを変更できます。"
+            "value" : "ライブラリ調査を変更できるのは、このPlexサーバーの所有者のみです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 Plex 서버의 소유자만 스포츠 리서치를 변경할 수 있습니다."
+            "value" : "이 Plex 서버의 소유자만 라이브러리 조사를 변경할 수 있습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bare eieren av denne Plex-serveren kan endre Sportsoppslag."
+            "value" : "Bare eieren av denne Plex-serveren kan endre Bibliotekundersøkelse."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tylko właściciel tego serwera Plex może zmieniać Wyszukiwanie sportowe."
+            "value" : "Tylko właściciel tego serwera Plex może zmieniać analizę bibliotek."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Só o dono deste servidor Plex pode alterar a Pesquisa esportiva."
+            "value" : "Somente o dono deste servidor Plex pode alterar a pesquisa de bibliotecas."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Endast ägaren av den här Plex-servern kan ändra Sportuppslag."
+            "value" : "Bara ägaren av den här Plex-servern kan ändra Biblioteksundersökning."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "只有此 Plex 服务器的所有者可以更改体育资料。"
+            "value" : "只有此 Plex 服务器的所有者才能更改媒体库研究。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "只有此 Plex 伺服器的擁有者可以更改體育資料。"
+            "value" : "只有此 Plex 伺服器的擁有者才能變更媒體庫研究。"
           }
         }
       }
@@ -108956,97 +109336,97 @@
         }
       }
     },
-    "Pick the Other Videos libraries with your recordings, and switch research on." : {
-      "comment" : "Sports Research setup step 4: what to do",
+    "Pick the Other Videos libraries to research, say what each holds, and switch research on." : {
+      "comment" : "Library Research setup step 4: what to do",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vælg bibliotekerne Andre videoer med dine optagelser, og slå undersøgelse til."
+            "value" : "Vælg de Other Videos-biblioteker, der skal undersøges, angiv hvad hvert bibliotek indeholder, og slå undersøgelsen til."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle die Bibliotheken für Andere Videos mit deinen Aufnahmen und schalte die Recherche ein."
+            "value" : "Wähle die Other-Videos-Bibliotheken für die Recherche aus, lege fest, was jede enthält, und schalte die Recherche ein."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige las bibliotecas de Otros videos con tus grabaciones y activa la investigación."
+            "value" : "Elige las bibliotecas Other Videos que investigar, di qué contiene cada una y activa la investigación de bibliotecas."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Valitse Muut videot -kirjastot, joissa tallenteesi ovat, ja kytke tutkiminen päälle."
+            "value" : "Valitse tutkittavat Other Videos -kirjastot, kerro mitä kukin sisältää ja kytke tutkimus päälle."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez les bibliothèques « Autres vidéos » qui contiennent vos enregistrements, puis activez la recherche."
+            "value" : "Choisissez les bibliothèques Other Videos à rechercher, indiquez ce que contient chacune et activez la recherche."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veldu Önnur myndbönd söfnin með upptökunum þínum og kveiktu á rannsókn."
+            "value" : "Veldu Other Videos söfnin til rannsóknar, segðu hvað hvert þeirra geymir og kveiktu á rannsókninni."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli le librerie di Altri video con le tue registrazioni e attiva la ricerca."
+            "value" : "Scegli le librerie Other Videos da cercare, indica cosa contiene ciascuna e attiva la ricerca."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "録画が入っている「その他のビデオ」ライブラリを選び、調査をオンにしてください。"
+            "value" : "調査するOther Videosライブラリを選び、それぞれの内容を指定して、調査をオンにしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "녹화 파일이 있는 기타 비디오 라이브러리를 고르고 조사를 켜세요."
+            "value" : "조사할 Other Videos 라이브러리를 고르고, 각 라이브러리에 무엇이 들어 있는지 알려 준 뒤 조사를 켜세요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Velg bibliotekene Andre videoer med opptakene dine, og slå på undersøking."
+            "value" : "Velg Other Videos-bibliotekene som skal undersøkes, si hva hvert bibliotek inneholder, og slå på undersøkelsen."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wybierz biblioteki Inne wideo z nagraniami i włącz analizę."
+            "value" : "Wybierz biblioteki Other Videos do analizy, określ, co zawiera każda z nich, i włącz analizę bibliotek."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha as bibliotecas de Outros vídeos com as suas gravações e ative a pesquisa."
+            "value" : "Escolha as bibliotecas Other Videos para pesquisar, diga o que cada uma contém e ative a pesquisa de bibliotecas."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Välj biblioteken för Övriga videor med dina inspelningar och slå på undersökning."
+            "value" : "Välj de bibliotek i Other Videos som ska undersökas, säg vad varje bibliotek innehåller och slå på undersökningen."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择存放录像的“其他视频”媒体库，并开启研究。"
+            "value" : "选择要研究的 Other Videos 媒体库，说明每个媒体库的内容，然后开启研究。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇存放錄影的「其他影片」媒體庫，並開啟研究。"
+            "value" : "選擇要研究的 Other Videos 媒體庫，說明每個媒體庫的內容，然後開啟研究。"
           }
         }
       }
@@ -113509,192 +113889,192 @@
         }
       }
     },
-    "Plex has no Other Videos library. Add one for your sports recordings in Plex, then check again." : {
-      "comment" : "Sports Research: no library to choose",
+    "Plex has no Other Videos library. Add one in Plex, then check again." : {
+      "comment" : "Library Research: no library to choose",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex har ingen bibliotek med Andre videoer. Tilføj et til dine sportsoptagelser i Plex, og kontrollér derefter igen."
+            "value" : "Plex har ikke noget Other Videos-bibliotek. Tilføj et i Plex, og tjek derefter igen."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex hat keine Bibliothek für Andere Videos. Füge in Plex eine für deine Sportaufnahmen hinzu und prüfe dann erneut."
+            "value" : "Plex hat keine Other-Videos-Bibliothek. Füge in Plex eine hinzu und prüfe dann erneut."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex no tiene una biblioteca de Otros vídeos. Añade una para tus grabaciones deportivas en Plex y comprueba de nuevo."
+            "value" : "Plex no tiene ninguna biblioteca Other Videos. Añade una en Plex y vuelve a comprobarlo."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plexissä ei ole Muut videot -kirjastoa. Lisää sellainen urheilutallenteitasi varten Plexissä ja tarkista sitten uudelleen."
+            "value" : "Plexissä ei ole Other Videos -kirjastoa. Lisää sellainen Plexissä ja tarkista uudelleen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex n'a pas de bibliothèque Autres vidéos. Ajoutez-en une pour vos enregistrements sportifs dans Plex, puis vérifiez à nouveau."
+            "value" : "Plex n'a pas de bibliothèque Other Videos. Ajoutez-en une dans Plex, puis vérifiez à nouveau."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex er ekki með safnið „Önnur myndbönd“. Bættu einu slíku við fyrir íþróttaupptökurnar þínar í Plex og athugaðu svo aftur."
+            "value" : "Plex er ekki með Other Videos safn. Bættu einu við í Plex og athugaðu aftur."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex non ha una libreria Altri video. Aggiungine una per le tue registrazioni sportive in Plex, poi controlla di nuovo."
+            "value" : "Plex non ha una libreria Other Videos. Aggiungine una in Plex, poi controlla di nuovo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex に「その他のビデオ」ライブラリがありません。Plex でスポーツの録画用に追加してから、もう一度確認してください。"
+            "value" : "PlexにOther Videosライブラリがありません。Plexで追加してから、もう一度確認してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex에 기타 동영상 라이브러리가 없습니다. Plex에서 스포츠 녹화본용 라이브러리를 추가한 뒤 다시 확인하세요."
+            "value" : "Plex에 Other Videos 라이브러리가 없습니다. Plex에서 하나 추가한 뒤 다시 확인하세요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex har ingen bibliotek med Andre videoer. Legg til et for sportsopptakene dine i Plex, og sjekk deretter igjen."
+            "value" : "Plex har ikke noe Other Videos-bibliotek. Legg til et i Plex, og sjekk deretter på nytt."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex nie ma biblioteki Inne wideo. Dodaj ją dla nagrań sportowych w Plex, a potem sprawdź ponownie."
+            "value" : "Plex nie ma biblioteki Other Videos. Dodaj ją w Plex i sprawdź ponownie."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Plex não tem uma biblioteca de Outros vídeos. Adicione uma para as suas gravações de esportes no Plex e verifique de novo."
+            "value" : "O Plex não tem biblioteca Other Videos. Adicione uma no Plex e verifique de novo."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex har inget bibliotek för Övriga videor. Lägg till ett för dina sportinspelningar i Plex och kontrollera sedan igen."
+            "value" : "Plex har inget Other Videos-bibliotek. Lägg till ett i Plex och kontrollera sedan igen."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex 没有“其他视频”媒体库。请在 Plex 中为体育录像添加一个，然后重新检查。"
+            "value" : "Plex 中没有 Other Videos 媒体库。请先在 Plex 中添加一个，然后再检查。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex 沒有“其他影片”媒體庫。請在 Plex 中為體育錄影新增一個，然後重新檢查。"
+            "value" : "Plex 中沒有 Other Videos 媒體庫。請先在 Plex 中新增一個，然後再檢查。"
           }
         }
       }
     },
-    "Plex has no agent for sports, so recordings show up under their file names. Your Crucible Server's own model looks each event up on the web and gives it a real title, date, card and poster in Plex. It runs on your computer with the model you run there, and it never touches the files." : {
-      "comment" : "Sports Research explanation at the top of its screen",
+    "Plex has no agent for the videos in an Other Videos library, so they show up under their file names. Your Crucible Server's own model looks each one up on the web, a sports event, an adult film or anything else, and gives it a real title, date, description, people and poster in Plex. It runs on your computer with the model you run there, and it never touches the files." : {
+      "comment" : "Library Research explanation at the top of its screen",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex har ingen agent til sport, så optagelser vises under deres filnavne. Crucible Servers egen model slår hver begivenhed op på nettet og giver den en rigtig titel, dato, kort og plakat i Plex. Den kører på din computer med den model, du kører der, og rører aldrig filerne."
+            "value" : "Plex har ingen agent til videoerne i et Other Videos-bibliotek, så de vises under deres filnavne. Din Crucible Servers egen model slår hver enkelt op på nettet, uanset om det er en sportsbegivenhed, en voksenfilm eller noget andet, og giver den en rigtig titel, dato, beskrivelse, medvirkende og plakat i Plex. Den kører på din computer med den model, du kører der, og den rører aldrig filerne."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex hat keinen Agenten für Sport, daher erscheinen Aufnahmen unter ihren Dateinamen. Das eigene Modell deines Crucible Server sucht jede Veranstaltung im Web nach und trägt in Plex einen echten Titel, Datum, Karte und Poster ein. Es läuft auf deinem Computer mit dem Modell, das du dort betreibst, und fasst die Dateien nie an."
+            "value" : "Plex hat für die Videos in einer Other-Videos-Bibliothek keinen Agenten, daher erscheinen sie unter ihren Dateinamen. Das eigene Modell deines Crucible Servers sucht jedes Video im Web, ob Sportereignis, Erwachsenenfilm oder etwas anderes, und trägt in Plex einen echten Titel, Datum, Beschreibung, Personen und Poster ein. Es läuft auf deinem Computer mit dem Modell, das du dort betreibst, und rührt die Dateien nie an."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex no tiene un agente para deportes, así que las grabaciones aparecen con sus nombres de archivo. El modelo propio de tu Crucible Server busca cada evento en la web y le asigna en Plex un título, una fecha, una cartelera y un póster reales. Se ejecuta en tu ordenador con el modelo que tengas allí y nunca toca los archivos."
+            "value" : "Plex no tiene agente para los videos de una biblioteca Other Videos, así que aparecen con sus nombres de archivo. El propio modelo de tu Crucible Server busca cada uno en la web, sea un evento deportivo, una película para adultos o cualquier otra cosa, y le da en Plex un título, fecha, descripción, reparto y póster reales. Funciona en tu ordenador con el modelo que ejecutas allí, y nunca toca los archivos."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plexissä ei ole urheilulle metatietolähdettä, joten tallenteet näkyvät tiedostonimillään. Crucible Serverin oma malli etsii jokaisen tapahtuman verkosta ja antaa sille Plexissä oikean nimen, päivämäärän, kortin ja julisteen. Se toimii tietokoneellasi sillä mallilla, jota ajat siellä, eikä koskaan kosketa tiedostoihin."
+            "value" : "Plexillä ei ole tiedonhakijaa Other Videos -kirjaston videoille, joten ne näkyvät tiedostonimillään. Crucible Serverin oma malli etsii jokaiselle videolle tiedot verkosta, olipa kyse urheilutapahtumasta, aikuisvideosta tai muusta, ja kirjoittaa Plexiin oikean nimen, päivämäärän, kuvauksen, henkilöt ja julisteen. Se toimii tietokoneellasi sillä mallilla, jonka ajat siellä, eikä koskaan kosketa tiedostoihin."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex n'a pas d'agent pour le sport, les enregistrements s'affichent donc sous leur nom de fichier. Le modèle propre à votre Crucible Server recherche chaque événement sur le web et lui attribue un vrai titre, une date, une carte et une affiche dans Plex. Il tourne sur votre ordinateur avec le modèle que vous y exécutez, et ne touche jamais aux fichiers."
+            "value" : "Plex n'a pas d'agent pour les vidéos d'une bibliothèque Other Videos, elles s'affichent donc sous leur nom de fichier. Le modèle propre à votre Crucible Server recherche chacune sur le web, qu'il s'agisse d'un événement sportif, d'un film pour adultes ou d'autre chose, et lui attribue dans Plex un vrai titre, une date, une description, les personnes et l'affiche. Il tourne sur votre ordinateur avec le modèle que vous y exécutez, et ne touche jamais aux fichiers."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex hefur enga lýsigagnaveitu fyrir íþróttir, þess vegna birtast upptökur undir skráarnöfnum sínum. Eigið módel Crucible Server leitar uppi hvern viðburð á vefnum og gefur honum raunverulegan titil, dagsetningu, bardagakvöld og plakat í Plex. Það keyrir í tölvunni þinni með því módeli sem þú keyrir þar og snertir aldrei skrárnar."
+            "value" : "Plex hefur enga skráningarþjónustu fyrir myndbönd í Other Videos safni, svo þau birtast undir skráarnöfnum sínum. Eigið líkan Crucible Server flettir upp hverju myndbandi á vefnum, hvort sem það er íþróttaviðburður, fullorðinsmynd eða annað, og gefur því raunverulegan titil, dagsetningu, lýsingu, fólk og veggspjald í Plex. Það keyrir á tölvunni þinni með því líkani sem þú keyrir þar og snertir aldrei skrárnar."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex non ha un agente per lo sport, quindi le registrazioni compaiono con il nome del file. Il modello del tuo Crucible Server cerca ogni evento sul web e gli assegna titolo, data, card e poster reali in Plex. Gira sul tuo computer con il modello che usi lì e non tocca mai i file."
+            "value" : "Plex non ha un agente per i video di una libreria Other Videos, quindi appaiono con il nome del file. Il modello del tuo Crucible Server cerca ciascuno sul web, che si tratti di un evento sportivo, di un film per adulti o di altro, e gli assegna in Plex un titolo, una data, una descrizione, gli interpreti e la locandina reali. Funziona sul tuo computer con il modello che vi esegui e non tocca mai i file."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex にはスポーツ用のエージェントがないため、録画はファイル名のまま表示されます。Crucible Server 自身のモデルがウェブで各イベントを調べ、本物のタイトル、日付、カード、ポスターを Plex に設定します。実行はお使いのコンピューター上で、そこで動かしているモデルを使って行われ、ファイルには一切触れません。"
+            "value" : "PlexにはOther Videosライブラリの動画を扱うエージェントがないため、ファイル名のまま表示されます。Crucible Server独自のモデルが、スポーツイベント、アダルト作品、その他の動画をウェブで調べ、タイトル、日付、説明、出演者、ポスターをPlexに書き込みます。お使いのコンピューター上で、そこで動かしているモデルを使って動作し、ファイルには一切触れません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex에는 스포츠용 에이전트가 없어서 녹화본이 파일 이름으로 표시됩니다. Crucible Server의 자체 모델이 각 이벤트를 웹에서 찾아 Plex에 실제 제목, 날짜, 카드, 포스터를 넣어 줍니다. 사용자의 컴퓨터에서 실행하는 모델로 작동하며, 파일은 건드리지 않습니다."
+            "value" : "Plex에는 Other Videos 라이브러리 영상을 처리할 에이전트가 없어서 영상이 파일 이름으로 표시됩니다. Crucible Server의 자체 모델이 스포츠 경기, 성인 영상 등 각 영상을 웹에서 찾아보고, Plex에 실제 제목, 날짜, 설명, 출연진, 포스터를 넣어 줍니다. 이 모델은 사용자의 컴퓨터에서 직접 실행되며, 파일은 건드리지 않습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex har ingen agent for sport, så opptak vises under filnavnene sine. Crucible Servers egen modell slår opp hvert event på nettet og gir det en ekte tittel, dato, kort og plakat i Plex. Den kjører på datamaskinen din med modellen du kjører der, og den rører aldri filene."
+            "value" : "Plex har ingen agent for videoene i et Other Videos-bibliotek, så de vises under filnavnene sine. Din Crucible Servers egen modell slår opp hver enkelt på nettet, enten det er en sportshendelse, en voksenfilm eller noe annet, og gir den en ekte tittel, dato, beskrivelse, medvirkende og plakat i Plex. Den kjører på datamaskinen din med modellen du kjører der, og den rører aldri filene."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex nie ma agenta do sportu, więc nagrania są widoczne pod nazwami plików. Model Twojego Crucible Server sprawdza każde wydarzenie w sieci i nadaje mu w Plex prawdziwy tytuł, datę, kartę i plakat. Działa na Twoim komputerze, na modelu, który tam uruchamiasz, i nigdy nie dotyka plików."
+            "value" : "Plex nie ma agenta dla filmów w bibliotece Other Videos, więc pojawiają się pod nazwami plików. Własny model twojego Crucible Server wyszukuje każdy z nich w sieci, czy to wydarzenie sportowe, film dla dorosłych czy cokolwiek innego, i nadaje mu w Plex prawdziwy tytuł, datę, opis, obsadę i plakat. Działa na twoim komputerze, na modelu, który tam uruchamiasz, i nigdy nie rusza plików."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Plex não tem agente para esportes, então as gravações aparecem com os nomes dos arquivos. O modelo do seu Crucible Server pesquisa cada evento na web e atribui a ele, no Plex, um título, uma data, um card e um pôster reais. Ele roda no seu computador, com o modelo que você usa ali, e nunca mexe nos arquivos."
+            "value" : "O Plex não tem agente para os vídeos de uma biblioteca Other Videos, então eles aparecem com os nomes dos arquivos. O próprio modelo do seu Crucible Server pesquisa cada um na web, seja um evento esportivo, um filme adulto ou qualquer outra coisa, e dá a ele no Plex um título, data, descrição, elenco e pôster reais. Ele roda no seu computador, com o modelo que você executa ali, e nunca mexe nos arquivos."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex har ingen agent för sport, så inspelningar visas under sina filnamn. Crucible Servers egna modell slår upp varje event på webben och ger det en riktig titel, ett datum, kort och affisch i Plex. Den körs på din dator med den modell du kör där, och rör aldrig filerna."
+            "value" : "Plex har ingen agent för videorna i ett Other Videos-bibliotek, så de visas under sina filnamn. Din Crucible Servers egna modell slår upp var och en på webben, oavsett om det är en sporthändelse, en vuxenfilm eller något annat, och ger den en riktig titel, datum, beskrivning, medverkande och affisch i Plex. Den körs på din dator med den modell du kör där, och den rör aldrig filerna."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex 没有体育内容的元数据代理，因此录像会以文件名显示。你的 Crucible Server 自带的模型会在网上查找每场赛事，并在 Plex 中为其补充真实的标题、日期、卡片和海报。它使用你在电脑上运行的模型在本地工作，从不改动文件。"
+            "value" : "Plex 没有可处理 Other Videos 媒体库中视频的代理，因此这些视频会以文件名显示。Crucible Server 自己的模型会在网上查找每个视频（体育赛事、成人影片或其他任何内容），并在 Plex 中为其添加真实的标题、日期、简介、演职人员和海报。它在你的电脑上直接运行，使用你在那里运行的模型，从不改动文件。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plex 沒有體育內容的中繼資料代理，因此錄影會以檔案名稱顯示。你的 Crucible Server 自帶的模型會在網路上查找每場賽事，並在 Plex 中為其補上真實的標題、日期、卡片和海報。它使用你在電腦上執行的模型在本機運作，從不改動檔案。"
+            "value" : "Plex 沒有可處理 Other Videos 媒體庫中影片的代理，因此這些影片會以檔案名稱顯示。Crucible Server 自己的模型會在網路上查找每部影片（體育賽事、成人影片或其他任何內容），並在 Plex 中為其加上真實的標題、日期、簡介、演職員和海報。它在你的電腦上直接運行，使用你在那裡運行的模型，從不改動檔案。"
           }
         }
       }
@@ -113884,6 +114264,196 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crucible 要列出您的伺服器前，Plex 需要您重新登入。"
+          }
+        }
+      }
+    },
+    "Plex shows its %lld researched files as they were before research, keeping what you changed in Plex yourself." : {
+      "comment" : "Library Research: confirm taking research back from a whole library; the argument is how many files",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex viser sine %lld undersøgte filer, som de var før undersøgelsen, men beholder det, du selv har ændret i Plex."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex zeigt seine %lld recherchierten Dateien wieder so, wie sie vor der Recherche waren, behält aber, was du selbst in Plex geändert hast."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex muestra sus %lld archivos investigados tal como estaban antes de la investigación, conservando lo que cambiaste tú mismo en Plex."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex näyttää %lld tutkittua tiedostoaan sellaisina kuin ne olivat ennen tutkimusta, mutta säilyttää sen, mitä itse muutit Plexissä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex affiche ses %lld fichiers recherchés tels qu'ils étaient avant la recherche, en gardant ce que vous avez modifié vous-même dans Plex."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex sýnir %lld rannsakaðar skrár sínar eins og þær voru fyrir rannsókn en heldur breytingunum sem þú gerðir í Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex mostra i suoi %lld file cercati com'erano prima della ricerca, mantenendo ciò che hai modificato tu in Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plexは調査済みの%lld件のファイルを調査前の状態で表示しますが、ご自身がPlexで変更した内容はそのまま残します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex는 조사한 파일 %lld개를 조사 전 상태로 보여 주되, Plex에서 직접 바꾼 내용은 그대로 유지합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex viser sine %lld undersøkte filer slik de var før undersøkelsen, men beholder det du selv har endret i Plex."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex pokazuje %lld przeanalizowanych plików tak, jak wyglądały przed analizą, zachowując twoje własne zmiany w Plex."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Plex mostra seus %lld arquivos pesquisados como estavam antes da pesquisa, mantendo o que você mesmo mudou no Plex."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex visar sina %lld undersökta filer så som de var före undersökningen men behåller det du själv har ändrat i Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 会将其 %lld 个已研究的文件显示为研究前的状态，但保留你自己在 Plex 中所做的更改。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 會將其 %lld 個已研究的檔案顯示為研究前的狀態，但保留你自己在 Plex 中所做的變更。"
+          }
+        }
+      }
+    },
+    "Plex shows the file as it was before research, keeping what you changed in Plex yourself, and research leaves it alone until you research it again." : {
+      "comment" : "Library Research: confirm taking research back from one file",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex viser filen, som den var før undersøgelsen, men beholder det, du selv har ændret i Plex, og undersøgelsen lader den være, indtil du undersøger den igen."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex zeigt die Datei wieder so, wie sie vor der Recherche war, behält aber, was du selbst in Plex geändert hast, und die Recherche lässt sie in Ruhe, bis du erneut recherchierst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex muestra el archivo tal como estaba antes de la investigación, conservando lo que cambiaste tú mismo en Plex, y la investigación de bibliotecas no lo toca hasta que lo vuelvas a investigar."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex näyttää tiedoston sellaisena kuin se oli ennen tutkimusta, mutta säilyttää sen, mitä itse muutit Plexissä, eikä tutkimus koske siihen, ennen kuin tutkit sen uudelleen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex affiche le fichier tel qu'il était avant la recherche, en gardant ce que vous avez modifié vous-même dans Plex, et la recherche le laisse tranquille jusqu'à ce que vous la relanciez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex sýnir skrána eins og hún var fyrir rannsókn en heldur breytingunum sem þú gerðir í Plex, og rannsóknin lætur hana í friði þar til þú rannsakar hana aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex mostra il file com'era prima della ricerca, mantenendo ciò che hai modificato tu in Plex, e la ricerca lo lascia stare finché non la ripeti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plexはファイルを調査前の状態で表示しますが、ご自身がPlexで変更した内容はそのまま残します。再調査するまで調査はそのファイルに手を加えません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex는 이 파일을 조사 전 상태로 보여 주되 Plex에서 직접 바꾼 내용은 그대로 유지하며, 다시 조사하기 전까지는 조사가 이 파일을 건드리지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex viser filen slik den var før undersøkelsen, men beholder det du selv har endret i Plex, og undersøkelsen lar den være til du undersøker den på nytt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex pokazuje plik tak, jak wyglądał przed analizą, zachowując twoje własne zmiany w Plex, a analiza bibliotek nie rusza go, dopóki nie przeanalizujesz go ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Plex mostra o arquivo como estava antes da pesquisa, mantendo o que você mesmo mudou no Plex, e a pesquisa de bibliotecas não mexe nele até você pesquisar de novo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex visar filen så som den var före undersökningen men behåller det du själv har ändrat i Plex, och undersökningen lämnar den orörd tills du undersöker den igen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 会将此文件显示为研究前的状态，但保留你自己在 Plex 中所做的更改；在你重新研究之前，研究不会再改动它。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 會將此檔案顯示為研究前的狀態，但保留你自己在 Plex 中所做的變更；在你重新研究之前，研究不會再改動它。"
           }
         }
       }
@@ -123743,6 +124313,101 @@
         }
       }
     },
+    "Research looks each file up as this kind of video, through your own model and the search engine you chose. The artwork of adult videos stays out of this screen." : {
+      "comment" : "Library Research: under the question what a library holds",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undersøgelsen slår hver fil op som denne type video, gennem din egen model og den søgemaskine, du har valgt. Plakater fra voksenvideoer holdes ude af denne skærm."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Recherche sucht jede Datei unter dieser Videoart, über dein eigenes Modell und die Suchmaschine, die du gewählt hast. Die Bilder von Videos für Erwachsene bleiben aus diesem Bildschirm heraus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La investigación de bibliotecas busca cada archivo como este tipo de video, con tu propio modelo y el buscador que elegiste. Las carátulas de los videos para adultos no aparecen en esta pantalla."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutkimus etsii jokaisen tiedoston tältä videotyypiltä oman mallisi ja valitsemasi hakukoneen kautta. Aikuisvideoiden kuvitus ei näy tässä näkymässä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La recherche identifie chaque fichier comme ce type de vidéo, via votre propre modèle et le moteur de recherche que vous avez choisi. Les visuels des vidéos pour adultes restent hors de cet écran."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rannsóknin flettir upp hverri skrá sem þessari tegund myndbanda, í gegnum þitt eigið líkan og leitarvélina sem þú valdir. Myndefni fullorðinsmyndbanda birtist ekki á þessum skjá."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ricerca cerca ogni file come questo tipo di video, tramite il tuo modello e il motore di ricerca che hai scelto. Le immagini dei video per adulti restano fuori da questa schermata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査は各ファイルを、お使いのモデルと選択した検索エンジンを通じて、この種類の動画として検索します。アダルト動画のアートワークはこの画面には表示されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "조사는 사용자의 모델과 선택한 검색 엔진을 통해 각 파일을 이 종류의 영상으로 찾아봅니다. 성인 영상의 포스터는 이 화면에 나타나지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undersøkelsen slår opp hver fil som denne typen video, gjennom din egen modell og søkemotoren du valgte. Plakatene til voksenvideoer holdes utenfor denne skjermen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analiza bibliotek wyszukuje każdy plik jako ten rodzaj wideo, przez twój własny model i wybraną przez ciebie wyszukiwarkę. Grafiki filmów dla dorosłych nie pojawiają się na tym ekranie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pesquisa de bibliotecas busca cada arquivo como este tipo de vídeo, com seu próprio modelo e o mecanismo de busca que você escolheu. As imagens de vídeos adultos não aparecem nesta tela."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undersökningen slår upp varje fil som den här typen av video, med din egen modell och den sökmotor du valt. Omslagsbilder för vuxenvideor visas inte på den här skärmen."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "研究会通过你自己的模型和你选择的搜索引擎，按此类视频的类型查找每个文件。成人视频的海报不会出现在此界面中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "研究會透過你自己的模型和你選擇的搜尋引擎，依此類影片的類型查找每個檔案。成人影片的海報不會出現在此畫面中。"
+          }
+        }
+      }
+    },
     "Research new files" : {
       "comment" : "Sports Research toggle",
       "localizations" : {
@@ -126200,97 +126865,97 @@
         }
       }
     },
-    "Reused the research of another part of this event." : {
-      "comment" : "Sports Research detail: this file took no research of its own",
+    "Reused the research of another part or copy of the same work." : {
+      "comment" : "Library Research detail: this file took no research of its own",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Genbrugte undersøgelsen fra en anden del af begivenheden."
+            "value" : "Genbrugte undersøgelsen af en anden del eller kopi af samme værk."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Übernimmt die Recherche eines anderen Teils dieser Veranstaltung."
+            "value" : "Hat die Recherche eines anderen Teils oder einer anderen Kopie desselben Werks übernommen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reutilizó la investigación de otra parte de este evento."
+            "value" : "Reutilizó la investigación de otra parte o copia de la misma obra."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Käytettiin uudelleen tämän tapahtuman toisen osan tutkimusta."
+            "value" : "Käytti uudelleen saman teoksen toisen osan tai kopion tutkimusta."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réutilise la recherche d’une autre partie de cet événement."
+            "value" : "A repris la recherche d'une autre partie ou d'une autre copie de la même œuvre."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Notaði rannsókn á öðrum hluta þessa viðburðar."
+            "value" : "Notaði aftur rannsóknina á öðrum hluta eða afriti sama verks."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ha riutilizzato la ricerca di un’altra parte di questo evento."
+            "value" : "Ha riutilizzato la ricerca di un'altra parte o copia della stessa opera."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "同じイベントの別のパートの調査結果を再利用しました。"
+            "value" : "同じ作品の別のパートまたは別のコピーの調査結果を再利用しました。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "같은 행사의 다른 부분에 대한 조사 결과를 재사용했습니다."
+            "value" : "같은 작품의 다른 파트나 사본의 조사 결과를 재사용했습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gjenbrukte undersøkingen fra en annen del av dette arrangementet."
+            "value" : "Gjenbrukte undersøkelsen av en annen del eller kopi av samme verk."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wykorzystano analizę innej części tego wydarzenia."
+            "value" : "Wykorzystano analizę innej części lub kopii tego samego utworu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reaproveitou a pesquisa de outra parte deste evento."
+            "value" : "Reaproveitou a pesquisa de outra parte ou cópia da mesma obra."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Återanvände undersökningen av en annan del av den här händelsen."
+            "value" : "Återanvände undersökningen av en annan del eller kopia av samma verk."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复用了本赛事其他部分的研究结果。"
+            "value" : "沿用了同一作品其他分段或副本的研究结果。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重用了本賽事其他部分的研究結果。"
+            "value" : "沿用了同一作品其他分段或副本的研究結果。"
           }
         }
       }
@@ -130931,192 +131596,192 @@
         }
       }
     },
-    "Searches name the events in your files, such as \"UFC 334 prelims\", and go only to the search engine you set." : {
-      "comment" : "What the Sports Research agreement covers",
+    "Searches name what is in your files, such as \"UFC 334 prelims\" or a film's title, and go only to the search engine you set." : {
+      "comment" : "What the Library Research agreement covers",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Søgninger nævner begivenhederne i dine filer, for eksempel „UFC 334 prelims“, og går kun til den søgemaskine, du har valgt."
+            "value" : "Søgninger nævner, hvad der er i dine filer, f.eks. „UFC 334 prelims“ eller en films titel, og går kun til den søgemaskine, du har valgt."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suchen nennen die Veranstaltungen aus deinen Dateien, etwa „UFC 334 prelims“, und gehen nur an die Suchmaschine, die du eingestellt hast."
+            "value" : "Suchanfragen nennen, was in deinen Dateien steht, etwa „UFC 334 prelims“ oder den Titel eines Films, und gehen nur an die Suchmaschine, die du eingestellt hast."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las búsquedas nombran los eventos de tus archivos, como «UFC 334 prelims», y solo se envían al motor de búsqueda que has configurado."
+            "value" : "Las búsquedas nombran lo que hay en tus archivos, como «UFC 334 prelims» o el título de una película, y solo van al buscador que elijas."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Haut nimeävät tiedostojesi tapahtumat, kuten ”UFC 334 prelims”, ja menevät vain asettamaasi hakukoneeseen."
+            "value" : "Haut nimeävät tiedostojesi sisällön, kuten ”UFC 334 prelims” tai elokuvan nimi, ja menevät vain asettamaasi hakukoneeseen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les recherches citent les événements de vos fichiers, comme « UFC 334 prelims », et ne sont envoyées qu'au moteur de recherche que vous avez choisi."
+            "value" : "Les recherches nomment ce qui figure dans vos fichiers, comme « UFC 334 prelims » ou le titre d'un film, et ne sont envoyées qu'au moteur de recherche que vous avez choisi."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leitir nefna viðburðina í skránum þínum, eins og „UFC 334 prelims“, og fara aðeins í þá leitarvél sem þú stillir."
+            "value" : "Leitir nefna það sem er í skrám þínum, eins og „UFC 334 prelims“ eða titil kvikmyndar, og fara eingöngu til leitarvélarinnar sem þú valdir."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le ricerche citano gli eventi dei tuoi file, come “UFC 334 prelims”, e vanno solo al motore di ricerca che hai impostato."
+            "value" : "Le ricerche indicano cosa c'è nei tuoi file, come « UFC 334 prelims » o il titolo di un film, e vanno solo al motore di ricerca che hai impostato."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "検索には、ファイル内のイベント名（「UFC 334 prelims」など）が使われ、設定した検索エンジンにのみ送信されます。"
+            "value" : "検索には「UFC 334 prelims」のようなファイルの内容や映画のタイトルが含まれ、設定した検索エンジンにのみ送られます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "검색에는 파일 속 이벤트 이름(예: “UFC 334 prelims”)이 포함되며, 설정한 검색 엔진으로만 전송됩니다."
+            "value" : "검색어에는 “UFC 334 prelims”나 영화 제목처럼 파일에 담긴 내용이 포함되며, 설정한 검색 엔진으로만 전송됩니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Søk nevner eventene i filene dine, for eksempel «UFC 334 prelims», og går bare til søkemotoren du har valgt."
+            "value" : "Søk nevner det som finnes i filene dine, for eksempel «UFC 334 prelims» eller tittelen på en film, og går bare til søkemotoren du har valgt."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyszukiwania zawierają nazwy wydarzeń z Twoich plików, na przykład „UFC 334 prelims”, i trafiają tylko do wybranej przez Ciebie wyszukiwarki."
+            "value" : "Wyszukiwania podają to, co jest w twoich plikach, np. „UFC 334 prelims” albo tytuł filmu, i trafiają tylko do wyszukiwarki, którą ustawisz."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As buscas citam os eventos dos seus arquivos, como \"UFC 334 prelims\", e vão só para o mecanismo de busca que você definiu."
+            "value" : "As buscas citam o que há nos seus arquivos, como “UFC 334 prelims” ou o título de um filme, e vão apenas para o mecanismo de busca que você definir."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sökningarna anger eventen i dina filer, till exempel ”UFC 334 prelims”, och går bara till den sökmotor du har valt."
+            "value" : "Sökningar anger vad dina filer innehåller, till exempel ”UFC 334 prelims” eller en films titel, och går bara till den sökmotor du har angett."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "搜索会包含你文件中的赛事名称，例如“UFC 334 prelims”，且只发送到你设置的搜索引擎。"
+            "value" : "搜索词会包含文件中的内容，例如 “UFC 334 prelims” 或影片名称，并且只发送到你设置的搜索引擎。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "搜尋會包含你檔案中的賽事名稱，例如“UFC 334 prelims”，且只會傳送到你設定的搜尋引擎。"
+            "value" : "搜尋詞會包含檔案中的內容，例如 「UFC 334 prelims」或影片名稱，並且只會傳送到你設定的搜尋引擎。"
           }
         }
       }
     },
-    "Searches naming the events in your sports files go to %@, and public web pages are read from the computer with Plex. Your library, files and watch history are not sent." : {
-      "comment" : "Sports Research agreement text; the argument names the search engine",
+    "Searches naming what is in your files go to %@, and public web pages are read from the computer with Plex. Your library, files and watch history are not sent." : {
+      "comment" : "Library Research agreement text; the argument names the search engine",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Søgninger, der nævner begivenhederne i dine sportsfiler, går til %@, og offentlige websider læses fra computeren med Plex. Dit bibliotek, dine filer og din seerhistorik sendes ikke."
+            "value" : "Søgninger, der nævner, hvad der er i dine filer, går til %@, og offentlige websider læses fra computeren med Plex. Dit bibliotek, dine filer og din visningshistorik sendes ikke."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suchen nach den Veranstaltungen in deinen Sportdateien gehen an %@, öffentliche Webseiten werden vom Computer mit Plex gelesen. Deine Bibliothek, deine Dateien und dein Verlauf werden nicht gesendet."
+            "value" : "Suchanfragen zu den Inhalten deiner Dateien gehen an %@, und öffentliche Webseiten werden vom Computer aus mit Plex gelesen. Deine Bibliothek, deine Dateien und dein Wiedergabeverlauf werden nicht gesendet."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las búsquedas con los nombres de los eventos de tus archivos deportivos se envían a %@, y el ordenador con Plex lee las páginas web públicas. Tu biblioteca, tus archivos y tu historial de reproducción no se envían."
+            "value" : "Las búsquedas que nombran lo que hay en tus archivos van a %@, y las páginas web públicas las lee Plex desde el ordenador. Tu biblioteca, tus archivos ni tu historial de reproducción se envían."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Urheilutiedostojesi tapahtumia nimeävät haut menevät palveluun %@, ja julkiset verkkosivut luetaan Plex-tietokoneelta. Kirjastoasi, tiedostojasi tai katseluhistoriaasi ei lähetetä."
+            "value" : "Hakuja, joissa nimetään tiedostojesi sisältö, menevät palveluun %@, ja julkisia verkkosivuja luetaan tietokoneelta Plexin kautta. Mediakirjastoasi, tiedostojasi tai katseluhistoriaasi ei lähetetä."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les recherches portant sur les événements de vos fichiers sportifs sont envoyées à %@, et les pages web publiques sont lues depuis l'ordinateur avec Plex. Votre bibliothèque, vos fichiers et votre historique de visionnage ne sont pas envoyés."
+            "value" : "Les recherches portant sur le contenu de vos fichiers sont envoyées à %@, et les pages web publiques sont lues depuis l'ordinateur avec Plex. Votre bibliothèque, vos fichiers et votre historique de lecture ne sont pas envoyés."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leitir sem nefna viðburði í íþróttaskránum þínum fara til %@, og opnar vefsíður eru lesnar úr tölvunni með Plex. Safnið þitt, skrárnar þínar og áhorfssagan eru ekki send."
+            "value" : "Leitir sem nefna það sem er í skrám þínum fara til %@, og opinberar vefsíður eru lesnar úr tölvunni með Plex. Safnið þitt, skrárnar og áhorfssagan eru ekki send."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le ricerche che nominano gli eventi nei tuoi file sportivi vanno a %@, e le pagine web pubbliche vengono lette dal computer con Plex. La tua libreria, i tuoi file e la cronologia di visione non vengono inviati."
+            "value" : "Le ricerche sui contenuti dei tuoi file vanno a %@, e le pagine web pubbliche vengono lette dal computer tramite Plex. La tua libreria, i tuoi file e la cronologia di visione non vengono inviati."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スポーツのファイル内のイベントを含む検索は %@ に送信され、公開ウェブページは Plex のコンピューターから読み取られます。ライブラリ、ファイル、視聴履歴は送信されません。"
+            "value" : "ファイルの内容を含む検索は %@ に送られ、公開Webページはお使いのコンピューターからPlexが読み込みます。メディアライブラリ、ファイル、視聴履歴は送信されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "스포츠 파일의 이벤트 이름이 포함된 검색은 %@(으)로 전송되고, 공개 웹페이지는 Plex가 설치된 컴퓨터에서 읽습니다. 라이브러리, 파일, 시청 기록은 전송되지 않습니다."
+            "value" : "파일 내용을 담은 검색어는 %@로 전송되고, 공개 웹 페이지는 Plex가 있는 컴퓨터에서 읽습니다. 라이브러리, 파일, 시청 기록은 전송되지 않습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Søk som nevner eventene i sportsfilene dine går til %@, og offentlige nettsider leses fra datamaskinen med Plex. Biblioteket, filene og seerhistorikken din sendes ikke."
+            "value" : "Søk som nevner det som finnes i filene dine, går til %@, og offentlige nettsider leses fra datamaskinen med Plex. Biblioteket, filene og visningshistorikken din sendes ikke."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyszukiwania z nazwami wydarzeń z plików sportowych trafiają do usługi %@, a publiczne strony internetowe odczytuje komputer z Plex. Biblioteka, pliki i historia oglądania nie są wysyłane."
+            "value" : "Wyszukiwania podające to, co jest w twoich plikach, idą do %@, a publiczne strony są czytane z komputera przez Plex. Twoja biblioteka, pliki ani historia oglądania nie są wysyłane."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As buscas com os nomes dos eventos dos seus arquivos de esportes vão para %@, e as páginas públicas da web são lidas pelo computador com o Plex. Sua biblioteca, seus arquivos e seu histórico de exibição não são enviados."
+            "value" : "As buscas que citam o que há nos seus arquivos vão para %@, e as páginas públicas da web são lidas pelo computador com o Plex. Sua biblioteca, seus arquivos e seu histórico não são enviados."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sökningar som anger eventen i dina sportfiler går till %@, och offentliga webbsidor läses från datorn med Plex. Ditt bibliotek, dina filer och din visningshistorik skickas inte."
+            "value" : "Sökningar som anger vad dina filer innehåller går till %@, och öppna webbsidor läses från datorn med Plex. Ditt bibliotek, dina filer och din visningshistorik skickas inte."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "包含体育文件中赛事名称的搜索会发送至 %@，公开网页由运行 Plex 的电脑读取。你的媒体库、文件和观看记录不会被发送。"
+            "value" : "包含文件内容的搜索会发送到 %@，公开网页由 Plex 所在的电脑读取。你的媒体库、文件和观看历史不会被发送。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "包含體育檔案中賽事名稱的搜尋會傳送至 %@，公開網頁由執行 Plex 的電腦讀取。你的媒體庫、檔案和觀看紀錄不會被傳送。"
+            "value" : "包含檔案內容的搜尋會傳送到 %@，公開網頁由 Plex 所在的電腦讀取。你的媒體庫、檔案和觀看紀錄不會被傳送。"
           }
         }
       }
@@ -132065,7 +132730,8 @@
             "value" : "查看 Crucible Pro"
           }
         }
-      }
+      },
+      "comment" : "Sports Research: open the Crucible Pro offer"
     },
     "See Your Requests" : {
       "comment" : "Button after requesting that opens the requests screen",
@@ -136634,7 +137300,8 @@
             "value" : "影集"
           }
         }
-      }
+      },
+      "comment" : "Library Research detail: the movie, game or series a video belongs to"
     },
     "Server" : {
       "comment" : "Fallback row title for a server that is no longer listed",
@@ -145901,192 +146568,97 @@
         }
       }
     },
-    "Sports Research" : {
-      "comment" : "Title of the Sports Research screen and feature",
+    "Sports" : {
+      "comment" : "Library Research: a library of sports recordings",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sportsopslag"
+            "value" : "Sport"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sport-Recherche"
+            "value" : "Sport"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Investigación deportiva"
+            "value" : "Deportes"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Urheilutiedot"
+            "value" : "Urheilu"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recherche sportive"
+            "value" : "Sport"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Íþróttaleit"
+            "value" : "Íþróttir"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ricerca sportiva"
+            "value" : "Sport"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スポーツリサーチ"
+            "value" : "スポーツ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "스포츠 리서치"
+            "value" : "스포츠"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sportsoppslag"
+            "value" : "Sport"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wyszukiwanie sportowe"
+            "value" : "Sport"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pesquisa esportiva"
+            "value" : "Esportes"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sportuppslag"
+            "value" : "Sport"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "体育资料"
+            "value" : "体育"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "體育資料"
-          }
-        }
-      }
-    },
-    "Sports Research is part of Crucible Pro." : {
-      "comment" : "Sports Research: the feature needs Pro",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sportsopslag er en del af Crucible Pro."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Sport-Recherche gehört zu Crucible Pro."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La Investigación deportiva forma parte de Crucible Pro."
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Urheilutiedot on osa Crucible Pro -versiota."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La recherche sportive fait partie de Crucible Pro."
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Íþróttaleit er hluti af Crucible Pro."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La ricerca sportiva fa parte di Crucible Pro."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スポーツリサーチは Crucible Pro に含まれます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "스포츠 리서치는 Crucible Pro에 포함됩니다."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sportsoppslag er en del av Crucible Pro."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wyszukiwanie sportowe jest częścią Crucible Pro."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A Pesquisa esportiva faz parte do Crucible Pro."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sportuppslag ingår i Crucible Pro."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "体育资料是 Crucible Pro 的功能。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "體育資料是 Crucible Pro 的功能。"
+            "value" : "體育"
           }
         }
       }
@@ -147885,6 +148457,291 @@
         }
       }
     },
+    "Stop and keep" : {
+      "comment" : "Library Research: stop researching a library and keep what it wrote",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop og behold"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beenden und behalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener y conservar"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lopeta ja säilytä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter et garder"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hætta og halda"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi e mantieni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止して残す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중지하고 유지"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopp og behold"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatrzymaj i zachowaj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parar e manter"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluta och behåll"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止并保留"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止並保留"
+          }
+        }
+      }
+    },
+    "Stop and take back" : {
+      "comment" : "Library Research: stop researching a library and restore its files as they were",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop og fortryd"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beenden und rückgängig machen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener y revertir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lopeta ja peruuta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter et annuler"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hætta og afturkalla"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi e annulla"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止して取り消す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중지하고 되돌리기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopp og angre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatrzymaj i cofnij"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parar e desfazer"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluta och ångra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止并撤销"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止並撤銷"
+          }
+        }
+      }
+    },
+    "Stop researching %@?" : {
+      "comment" : "Library Research: asks before taking a library out of research; the argument is the library's name",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop undersøgelsen af %@?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche in %@ beenden?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Dejar de investigar %@?"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lopetetaanko kirjaston %@ tutkiminen?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter la recherche dans %@ ?"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hætta að rannsaka %@?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompere la ricerca in %@?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の調査を停止しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 조사를 중지할까요?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoppe undersøkelsen av %@?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatrzymać analizę %@?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parar de pesquisar %@?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluta undersöka %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止研究 %@？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止研究 %@？"
+          }
+        }
+      }
+    },
     "Stops this task on your server." : {
       "comment" : "Confirmation message for cancelling a server task",
       "localizations" : {
@@ -148358,7 +149215,7 @@
       }
     },
     "Studio" : {
-      "comment" : "Details row label for the studio",
+      "comment" : "Library Research detail: the studio or maker of a video",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -151947,6 +152804,386 @@
         }
       }
     },
+    "Take back" : {
+      "comment" : "Library Research: restore a file in Plex as it was before research",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortryd"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückgängig machen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revertir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peruuta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afturkalla"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "되돌리기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angre"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofnij"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desfazer"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ångra"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤销"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤銷"
+          }
+        }
+      }
+    },
+    "Take back research in %@ (%lld)" : {
+      "comment" : "Library Research: row that restores every researched file of a library no longer researched; the arguments are the library's name and how many files",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortryd undersøgelsen i %@ (%lld)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche in %@ rückgängig machen (%lld)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revertir la investigación en %@ (%lld)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peruuta tutkimus kohteessa %@ (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler la recherche dans %@ (%lld)"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afturkalla rannsókn í %@ (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla la ricerca in %@ (%lld)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の調査を取り消す (%lld)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@의 조사 되돌리기 (%lld)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angre undersøkelsen i %@ (%lld)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofnij analizę w %@ (%lld)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desfazer a pesquisa em %@ (%lld)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ångra undersökningen i %@ (%lld)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤销 %@ 中的研究 (%lld)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤銷 %@ 中的研究 (%lld)"
+          }
+        }
+      }
+    },
+    "Taken back" : {
+      "comment" : "Library Research file state: research was taken back and the file shows as it was",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortrudt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückgängig gemacht"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revertido"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peruttu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulée"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afturkallað"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annullata"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消し済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "되돌려짐"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angret"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofnięte"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desfeito"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ångrad"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已撤销"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已撤銷"
+          }
+        }
+      }
+    },
+    "Taking research back: %lld left" : {
+      "comment" : "Library Research: how many files are still being restored",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortryder undersøgelsen: %lld tilbage"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche wird rückgängig gemacht: noch %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revirtiendo la investigación: quedan %lld"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutkimuksen peruminen: %lld jäljellä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulation de la recherche : %lld restants"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verið er að afturkalla rannsókn: %lld eftir"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annullamento della ricerca: %lld rimanenti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査を取り消し中: 残り %lld 件"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "조사 되돌리는 중: %lld개 남음"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angrer undersøkelsen: %lld igjen"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cofanie analizy: pozostało %lld"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desfazendo a pesquisa: faltam %lld"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ångrar undersökningen: %lld kvar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在撤销研究：剩余 %lld 个"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在撤銷研究：剩餘 %lld 個"
+          }
+        }
+      }
+    },
     "Tap a star to rate, or slide across the stars for half stars." : {
       "comment" : "Hint above the Rate What You Watched list, whose rows each carry five stars",
       "localizations" : {
@@ -154685,97 +155922,97 @@
         }
       }
     },
-    "The model on your computer searches the web and reads event pages, checking the number, date and card." : {
-      "comment" : "Sports Research how-it-works row detail: finding the event",
+    "The model on your computer searches the web and reads the pages about each file, checking names, dates and numbers." : {
+      "comment" : "Library Research how-it-works row detail: finding what a file is",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modellen på din computer søger på nettet, læser begivenhedssider og tjekker nummer, dato og kort."
+            "value" : "Modellen på din computer søger på nettet og læser siderne om hver fil og kontrollerer navne, datoer og tal."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Modell auf deinem Computer durchsucht das Web und liest Veranstaltungsseiten, prüft Nummer, Datum und Paarungen."
+            "value" : "Das Modell auf deinem Computer sucht im Web und liest die Seiten zu jeder Datei und prüft Namen, Daten und Zahlen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El modelo de tu equipo busca en la web y lee las páginas del evento, comprobando el número, la fecha y la cartelera."
+            "value" : "El modelo de tu ordenador busca en la web y lee las páginas sobre cada archivo, comprobando nombres, fechas y números."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tietokoneesi malli etsii verkosta ja lukee tapahtumasivuja tarkistaen numeron, päivämäärän ja kortin."
+            "value" : "Tietokoneesi malli etsii verkosta tietoja jokaisesta tiedostosta, lukee sivut ja tarkistaa nimet, päivämäärät ja luvut."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le modèle de votre ordinateur cherche sur le web et lit les pages des événements, en vérifiant le numéro, la date et le programme."
+            "value" : "Le modèle de votre ordinateur cherche sur le web et lit les pages consacrées à chaque fichier, en vérifiant les noms, les dates et les chiffres."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Módelið á tölvunni þinni leitar á vefnum og les viðburðasíður, og athugar númerið, dagsetninguna og spjaldið."
+            "value" : "Líkanið á tölvunni þinni leitar á vefnum og les síðurnar um hverja skrá, og athugar nöfn, dagsetningar og tölur."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il modello sul tuo computer cerca nel web e legge le pagine degli eventi, verificando numero, data e programma."
+            "value" : "Il modello sul tuo computer cerca sul web e legge le pagine su ciascun file, verificando nomi, date e numeri."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "お使いのコンピューターのモデルがウェブを検索し、イベントのページを読んで、番号、日付、カードを確認します。"
+            "value" : "お使いのコンピューター上のモデルがウェブを検索し、各ファイルに関するページを読み、名前・日付・数字を確認します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "내 컴퓨터의 모델이 웹을 검색하고 행사 페이지를 읽어 번호, 날짜, 카드를 확인합니다."
+            "value" : "사용자의 컴퓨터에 있는 모델이 웹을 검색하고 각 파일에 관한 페이지를 읽으며, 이름, 날짜, 숫자를 확인합니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modellen på datamaskinen din søker på nettet, leser arrangementssider og sjekker nummer, dato og kort."
+            "value" : "Modellen på datamaskinen din søker på nettet og leser sidene om hver fil, og sjekker navn, datoer og tall."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Model na komputerze przeszukuje sieć i czyta strony wydarzeń, sprawdzając numer, datę i zestaw spotkań."
+            "value" : "Model na twoim komputerze przeszukuje sieć i czyta strony o każdym pliku, sprawdzając nazwy, daty i liczby."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O modelo no seu computador pesquisa na web e lê as páginas do evento, verificando o número, a data e os confrontos."
+            "value" : "O modelo do seu computador pesquisa na web e lê as páginas sobre cada arquivo, conferindo nomes, datas e números."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modellen på din dator söker på webben och läser händelsesidor och kontrollerar numret, datumet och kortet."
+            "value" : "Modellen på din dator söker på webben och läser sidorna om varje fil, och kontrollerar namn, datum och siffror."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你电脑上的模型会搜索网页并阅读赛事页面，核对场次编号、日期和卡面。"
+            "value" : "你电脑上的模型会在网上搜索并阅读每个文件相关的页面，核对名称、日期和数字。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你電腦上的模型會搜尋網頁並閱讀賽事頁面，核對場次編號、日期和卡面。"
+            "value" : "你電腦上的模型會在網路上搜尋並閱讀每個檔案相關的頁面，核對名稱、日期和數字。"
           }
         }
       }
@@ -158085,97 +159322,97 @@
         }
       }
     },
-    "This Crucible Server is from before Sports Research. Update it on the computer with Plex, then come back." : {
-      "comment" : "Sports Research: the paired server is too old",
+    "This Crucible Server is from before Library Research. Update it on the computer with Plex, then come back." : {
+      "comment" : "Library Research: the paired server is too old",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Denne Crucible Server er fra før Sportsopslag. Opdater den på computeren med Plex, og kom så tilbage."
+            "value" : "Denne Crucible Server er fra før Biblioteksundersøgelse. Opdater den på computeren med Plex, og kom så tilbage."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Crucible Server ist älter als die Sport-Recherche. Aktualisiere ihn auf dem Computer mit Plex und komm dann zurück."
+            "value" : "Dieser Crucible Server stammt von vor der Bibliotheksrecherche. Aktualisiere ihn auf dem Computer mit Plex und komm dann zurück."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este Crucible Server es anterior a la Investigación deportiva. Actualízalo en el ordenador con Plex y vuelve."
+            "value" : "Este Crucible Server es anterior a la investigación de bibliotecas. Actualízalo en el ordenador con Plex y vuelve."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tämä Crucible Server on vanhempi kuin Urheilutiedot. Päivitä se tietokoneella, jossa Plex on, ja palaa sitten takaisin."
+            "value" : "Tämä Crucible Server on vanhempi kuin Kirjastotutkimus. Päivitä se Plexin kanssa käytettävällä tietokoneella ja palaa sitten takaisin."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce Crucible Server est antérieur à la Recherche sportive. Mettez-le à jour sur l’ordinateur où tourne Plex, puis revenez."
+            "value" : "Ce Crucible Server est antérieur à la recherche de bibliothèque. Mettez-le à jour sur l'ordinateur avec Plex, puis revenez."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Þessi Crucible Server er eldri en Íþróttaleit. Uppfærðu hann á tölvunni með Plex og komdu svo aftur."
+            "value" : "Þessi Crucible Server er eldri en Safnarannsókn. Uppfærðu hann í tölvunni með Plex og komdu svo aftur."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questo Crucible Server è precedente alla Ricerca sportiva. Aggiornalo sul computer con Plex, poi torna qui."
+            "value" : "Questo Crucible Server è precedente alla ricerca nelle librerie. Aggiornalo sul computer con Plex, poi torna qui."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この Crucible Server はスポーツリサーチより前のバージョンです。Plex のあるコンピュータでアップデートしてから戻ってきてください。"
+            "value" : "このCrucible Serverはライブラリ調査の導入前のバージョンです。Plexのあるコンピューターで更新してから、戻ってきてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 Crucible Server는 스포츠 리서치 이전 버전입니다. Plex가 있는 컴퓨터에서 업데이트한 다음 다시 오세요."
+            "value" : "이 Crucible Server는 라이브러리 조사 이전 버전입니다. Plex가 있는 컴퓨터에서 업데이트한 뒤 다시 오세요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Denne Crucible Server er fra før Sportsoppslag. Oppdater den på datamaskinen med Plex, og kom så tilbake."
+            "value" : "Denne Crucible Server er fra før Bibliotekundersøkelse. Oppdater den på datamaskinen med Plex, og kom tilbake."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ten Crucible Server pochodzi sprzed Wyszukiwania sportowego. Zaktualizuj go na komputerze z Plexem i wróć tutaj."
+            "value" : "Ten Crucible Server jest starszy niż analiza bibliotek. Zaktualizuj go na komputerze z Plex i wróć tutaj."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este Crucible Server é anterior à Pesquisa esportiva. Atualize-o no computador com o Plex e volte aqui."
+            "value" : "Este Crucible Server é anterior à pesquisa de bibliotecas. Atualize-o no computador com o Plex e volte."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Den här Crucible Server är från före Sportuppslag. Uppdatera den på datorn med Plex och kom sedan tillbaka."
+            "value" : "Den här Crucible Server är från före Biblioteksundersökning. Uppdatera den på datorn med Plex och kom sedan tillbaka."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此 Crucible Server 早于体育资料功能。请在运行 Plex 的电脑上更新它，然后再回来。"
+            "value" : "此 Crucible Server 早于媒体库研究功能。请在运行 Plex 的电脑上将其更新，然后再回来。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此 Crucible Server 早於體育資料功能。請在執行 Plex 的電腦上更新它，然後再回來。"
+            "value" : "此 Crucible Server 早於媒體庫研究功能。請在運行 Plex 的電腦上將其更新，然後再回來。"
           }
         }
       }
@@ -173044,6 +174281,101 @@
         }
       }
     },
+    "Web pages are long, so the model needs a context window of at least 32K tokens." : {
+      "comment" : "Why Library Research needs a large context window",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Websider er lange, så modellen har brug for et kontekstvindue på mindst 32K tokens."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webseiten sind lang, daher braucht das Modell ein Kontextfenster von mindestens 32K Token."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las páginas web son largas, así que el modelo necesita una ventana de contexto de al menos 32K tokens."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkkosivut ovat pitkiä, joten mallin kontekstiikkunan on oltava vähintään 32K tokenia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les pages web sont longues, le modèle a donc besoin d'une fenêtre de contexte d'au moins 32K jetons."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vefsíður eru langar, svo líkanið þarf samhengisglugga upp á að minnsta kosti 32K tóka."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le pagine web sono lunghe, quindi il modello ha bisogno di una finestra di contesto di almeno 32K token."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webページは長いため、モデルのコンテキストウィンドウは少なくとも32Kトークン必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹 페이지는 길기 때문에 모델에는 최소 32K 토큰의 컨텍스트 창이 필요합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettsider er lange, så modellen trenger et kontekstvindu på minst 32K tokens."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strony internetowe są długie, więc model potrzebuje okna kontekstu co najmniej 32K tokenów."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Páginas da web são longas, então o modelo precisa de uma janela de contexto de pelo menos 32K tokens."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webbsidor är långa, så modellen behöver ett kontextfönster på minst 32K tokens."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网页内容较长，因此模型的上下文窗口至少需要 32K 令牌。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "網頁內容較長，因此模型的上下文視窗至少需要 32K 權杖。"
+          }
+        }
+      }
+    },
     "Web search" : {
       "comment" : "Sports Research requirement title",
       "localizations" : {
@@ -173988,6 +175320,101 @@
         }
       }
     },
+    "What is in %@?" : {
+      "comment" : "Library Research: asks what an Other Videos library holds before researching it; the argument is the library's name",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hvad er i %@?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was ist in %@?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Qué contiene %@?"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitä kohteessa %@ on?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Que contient %@ ?"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hvað er í %@?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa contiene %@?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ には何が入っていますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에는 무엇이 들어 있나요?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hva finnes i %@?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co zawiera %@?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que há em %@?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vad finns i %@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 中有什么内容？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 中有什麼內容？"
+          }
+        }
+      }
+    },
     "What is kept on this device, and how to clear it." : {
       "localizations" : {
         "da" : {
@@ -174173,6 +175600,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所需條件"
+          }
+        }
+      }
+    },
+    "What research wrote stays in Plex unless you take it back." : {
+      "comment" : "Library Research: under the question about stopping a library",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det undersøgelsen skrev, bliver i Plex, medmindre du fortryder det."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was die Recherche geschrieben hat, bleibt in Plex, solange du es nicht rückgängig machst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo que escribió la investigación de bibliotecas se queda en Plex, a menos que lo reviertas."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutkimuksen kirjoittamat tiedot pysyvät Plexissä, ellet peru niitä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que la recherche a écrit reste dans Plex, sauf si vous l'annulez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Það sem rannsóknin skrifaði helst í Plex nema þú afturkallir það."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciò che la ricerca ha scritto resta in Plex finché non lo annulli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り消さない限り、調査で書き込まれた内容はPlexに残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "되돌리지 않는 한, 조사가 쓴 내용은 Plex에 남습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det undersøkelsen skrev, blir værende i Plex med mindre du angrer det."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To, co zapisała analiza bibliotek, zostaje w Plex, chyba że to cofniesz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que a pesquisa de bibliotecas escreveu fica no Plex, a menos que você desfaça."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det som undersökningen skrev finns kvar i Plex om du inte ångrar det."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除非你撤销，否则研究写入的内容将保留在 Plex 中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除非你撤銷，否則研究寫入的內容會保留在 Plex 中。"
           }
         }
       }
@@ -177300,7 +178822,7 @@
       }
     },
     "Writing to Plex" : {
-      "comment" : "Sports Research server phase",
+      "comment" : "Sports Research live step: writing the title and poster into Plex",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -181553,97 +183075,97 @@
         }
       }
     },
-    "Your file name becomes a real title, date, card and poster. The file stays where it is." : {
-      "comment" : "Sports Research: what research does to a file, under the example",
+    "Your file name becomes a real title, date, description and poster. The file stays where it is." : {
+      "comment" : "Library Research: what research does to a file, under the example",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dit filnavn bliver til en rigtig titel, dato, kort og plakat. Filen bliver, hvor den er."
+            "value" : "Dit filnavn bliver til en rigtig titel, dato, beskrivelse og plakat. Filen bliver, hvor den er."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Dateiname wird zu einem echten Titel, Datum, Paarungen und Poster. Die Datei bleibt, wo sie ist."
+            "value" : "Dein Dateiname wird zu einem echten Titel, Datum, einer Beschreibung und einem Poster. Die Datei bleibt, wo sie ist."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El nombre del archivo pasa a ser un título, fecha, cartelera y póster reales. El archivo se queda donde está."
+            "value" : "El nombre de tu archivo se convierte en un título, fecha, descripción y póster reales. El archivo sigue donde está."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tiedostonimestäsi tulee oikea nimi, päivämäärä, kortti ja juliste. Tiedosto pysyy paikallaan."
+            "value" : "Tiedostonimesi muuttuu oikeaksi nimeksi, päivämääräksi, kuvaukseksi ja julisteeksi. Tiedosto pysyy paikallaan."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le nom de votre fichier devient un vrai titre, une date, un programme et une affiche. Le fichier reste à son emplacement."
+            "value" : "Le nom de votre fichier devient un vrai titre, une date, une description et une affiche. Le fichier reste à sa place."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skráarnafnið þitt verður að raunverulegum titli, dagsetningu, spjaldi og veggspjaldi. Skráin helst þar sem hún er."
+            "value" : "Skráarnafnið þitt verður að raunverulegum titli, dagsetningu, lýsingu og veggspjaldi. Skráin helst þar sem hún er."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il nome del file diventa un titolo, una data, un programma e un poster reali. Il file resta dov’è."
+            "value" : "Il nome del tuo file diventa un titolo, una data, una descrizione e una locandina reali. Il file resta dov'è."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ファイル名が、実際のタイトル、日付、カード、ポスターになります。ファイルは元の場所に残ります。"
+            "value" : "ファイル名は実際のタイトル、日付、説明、ポスターになります。ファイルは元の場所に残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "파일 이름이 실제 제목, 날짜, 카드, 포스터가 됩니다. 파일은 원래 위치에 그대로 있습니다."
+            "value" : "파일 이름이 실제 제목, 날짜, 설명, 포스터가 됩니다. 파일은 그대로 그 자리에 남습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filnavnet ditt blir en ekte tittel, dato, kort og plakat. Filen blir liggende der den er."
+            "value" : "Filnavnet ditt blir en ekte tittel, dato, beskrivelse og plakat. Filen blir der den er."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nazwa pliku staje się prawdziwym tytułem, datą, zestawem spotkań i plakatem. Plik zostaje tam, gdzie był."
+            "value" : "Nazwa pliku staje się prawdziwym tytułem, datą, opisem i plakatem. Plik zostaje tam, gdzie jest."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O nome do arquivo vira um título, data, confrontos e pôster reais. O arquivo continua onde está."
+            "value" : "O nome do arquivo vira um título, data, descrição e pôster reais. O arquivo continua onde está."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ditt filnamn blir en riktig titel, datum, kort och affisch. Filen ligger kvar där den är."
+            "value" : "Ditt filnamn blir en riktig titel, ett datum, en beskrivning och en affisch. Filen ligger kvar där den är."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文件名会变成真实的标题、日期、卡面和海报。文件保持原位。"
+            "value" : "文件名会变成真实的标题、日期、简介和海报。文件保持原位。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "檔名會變成真實的標題、日期、卡面和海報。檔案維持原位。"
+            "value" : "檔案名稱會變成真實的標題、日期、簡介和海報。檔案保持原位。"
           }
         }
       }
@@ -182215,97 +183737,97 @@
         }
       }
     },
-    "Your own model looks up the events in your sports recordings and gives them real titles, dates, cards and posters." : {
-      "comment" : "Pro feature summary for Sports Research",
+    "Your own model looks up the videos Plex has no agent for, sports, adult or anything else, and gives each a real title, date, people and poster." : {
+      "comment" : "Pro feature summary for Library Research",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Din egen model slår begivenhederne i dine sportsoptagelser op og giver dem rigtige titler, datoer, kort og plakater."
+            "value" : "Din egen model slår videoer op, som Plex ikke har en agent til, sport, voksen eller andet, og giver hver en rigtig titel, dato, medvirkende og plakat."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein eigenes Modell sucht die Veranstaltungen in deinen Sportaufnahmen und gibt ihnen echte Titel, Daten, Karten und Poster."
+            "value" : "Dein eigenes Modell sucht die Videos, für die Plex keinen Agenten hat, Sport, Erwachsenes oder anderes, und gibt jedem einen echten Titel, ein Datum, Personen und ein Poster."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu propio modelo busca los eventos de tus grabaciones deportivas y les asigna títulos, fechas, carteleras y pósters reales."
+            "value" : "Tu propio modelo busca los videos para los que Plex no tiene agente, de deportes, para adultos o de cualquier otro tipo, y le da a cada uno un título, fecha, reparto y póster reales."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Oma mallisi etsii urheilutallenteidesi tapahtumat ja antaa niille oikeat nimet, päivämäärät, kortit ja julisteet."
+            "value" : "Oma mallisi etsii videot, joille Plexissä ei ole tiedonhakijaa, urheilua, aikuisvideoita tai muuta, ja antaa kullekin oikean nimen, päivämäärän, henkilöt ja julisteen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Votre propre modèle recherche les événements de vos enregistrements sportifs et leur attribue de vrais titres, dates, cartes et affiches."
+            "value" : "Votre propre modèle recherche les vidéos pour lesquelles Plex n'a pas d'agent, sport, adulte ou autre, et attribue à chacune un vrai titre, une date, les personnes et l'affiche."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eigið módel þitt leitar uppi viðburðina í íþróttaupptökunum þínum og gefur þeim raunverulega titla, dagsetningar, bardagakvöld og plaköt."
+            "value" : "Þitt eigið líkan flettir upp myndböndum sem Plex hefur enga skráningarþjónustu fyrir, íþróttum, fullorðinsefni eða öðru, og gefur hverju þeirra raunverulegan titil, dagsetningu, fólk og veggspjald."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il tuo modello cerca gli eventi nelle tue registrazioni sportive e assegna titoli, date, card e poster reali."
+            "value" : "Il tuo modello cerca i video per cui Plex non ha un agente, sport, per adulti o altro, e assegna a ciascuno un titolo, una data, gli interpreti e la locandina reali."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "お使いのモデルが、スポーツの録画内のイベントを調べ、本物のタイトル、日付、カード、ポスターを付けます。"
+            "value" : "お使いのモデルが、Plexにエージェントがない動画（スポーツ、アダルト、その他）を検索し、それぞれに実際のタイトル、日付、出演者、ポスターを付けます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "내 모델이 스포츠 녹화본의 이벤트를 찾아 실제 제목, 날짜, 카드, 포스터를 붙여 줍니다."
+            "value" : "Plex에 에이전트가 없는 영상(스포츠, 성인 영상 등 무엇이든)을 사용자의 모델이 찾아보고, 각각에 실제 제목, 날짜, 출연진, 포스터를 넣어 줍니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Din egen modell slår opp eventene i sportsopptakene dine og gir dem ekte titler, datoer, kort og plakater."
+            "value" : "Din egen modell slår opp videoene Plex ikke har agent for, sport, voksen eller annet, og gir hver en ekte tittel, dato, medvirkende og plakat."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Własny model wyszukuje wydarzenia w nagraniach sportowych i nadaje im prawdziwe tytuły, daty, karty i plakaty."
+            "value" : "Twój własny model wyszukuje filmy, dla których Plex nie ma agenta: sportowe, dla dorosłych lub inne, i nadaje każdemu prawdziwy tytuł, datę, obsadę i plakat."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seu próprio modelo busca os eventos das suas gravações de esportes e atribui a eles títulos, datas, cards e pôsteres reais."
+            "value" : "Seu próprio modelo busca os vídeos sem agente no Plex, de esportes, adultos ou outros, e dá a cada um título, data, elenco e pôster reais."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Din egen modell slår upp eventen i dina sportinspelningar och ger dem riktiga titlar, datum, kort och affischer."
+            "value" : "Din egen modell slår upp videorna som Plex saknar agent för, sport, vuxen eller annat, och ger var och en en riktig titel, ett datum, medverkande och en affisch."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你自己的模型会查找体育录像中的赛事，并为其补充真实的标题、日期、卡片和海报。"
+            "value" : "Plex 没有代理的视频（体育、成人或其他任何内容）由你自己的模型查找，并为每个视频添加真实的标题、日期、演职人员和海报。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你自己的模型會查找體育錄影中的賽事，並為其補上真實的標題、日期、卡片和海報。"
+            "value" : "Plex 沒有代理的影片（體育、成人或其他任何內容）由你自己的模型查找，並為每部影片加上真實的標題、日期、演職員和海報。"
           }
         }
       }

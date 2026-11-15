@@ -21,6 +21,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         static let results = "sports.results"
         static let nothingYet = "sports.nothingYet"
         static let library = "sports.library."
+        static let takeBack = "sports.takeBack."
         static let item = "sports.item."
     }
 
@@ -161,6 +162,9 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         case .onlySwitch:
             return TVRowItem(id: ID.summary, title: SportsCopy.oneSwitch, subtitle: progress, symbol: "power")
         case .ready:
+            if status.undoing > 0 {
+                return TVRowItem(id: ID.summary, title: SportsCopy.undoing(status.undoing), symbol: "arrow.uturn.backward.circle")
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return TVRowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: error, symbol: "exclamationmark.triangle.fill")
             }
@@ -191,7 +195,10 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
     private func choiceRows(_ report: SportsReport) -> [TVRowItem] {
         var rows = [TVRowItem(id: ID.switchedOn, title: SportsCopy.researchNewFiles, value: report.settings.on ? String(localized: "On") : String(localized: "Off"), symbol: "power", isEnabled: !busy)]
         rows += report.libraries.map { library in
-            TVRowItem(id: ID.library + library.key, title: library.title, value: library.chosen ? String(localized: "On") : String(localized: "Off"), symbol: "film.stack", isEnabled: !busy)
+            TVRowItem(id: ID.library + library.key, title: library.title, value: library.chosen ? SportsCopy.kind(library.kind) : String(localized: "Off"), symbol: "film.stack", isEnabled: !busy)
+        }
+        rows += report.libraries.filter { !$0.chosen && $0.researched > 0 }.map { library in
+            TVRowItem(id: ID.takeBack + library.key, title: SportsCopy.takeBackLibrary(library.title, files: library.researched), symbol: "arrow.uturn.backward", isDestructive: true, isEnabled: !busy)
         }
         if report.settings.destination != nil {
             rows.append(TVRowItem(id: ID.agreement, title: report.settings.agreed ? SportsCopy.withdraw : SportsCopy.agree, symbol: report.settings.agreed ? "hand.raised.slash" : "hand.raised", isEnabled: !busy))
@@ -292,17 +299,23 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         let matched = item.state == "matched" || item.state == "edited"
         let attention = item.state == "attention" || item.state == "failed"
         var body = [SportsCopy.meta(item)]
+        if let detail = item.detail, detail.kind != .sports {
+            body.append([detail.series, detail.studio].filter { !$0.isEmpty }.joined(separator: " · "))
+        }
         if let summary = item.detail?.summary, !summary.isEmpty { body.append(summary) }
         let bouts = (item.detail?.lineup ?? []).prefix(3).map { bout in
             TVSportsStageContent.Line(symbol: "person.2", tint: Theme.Color.labelSecondary, title: bout.matchup, detail: bout.detail, emphasized: true)
+        }
+        let cast = (item.detail?.people ?? []).prefix(4).map { person in
+            TVSportsStageContent.Line(symbol: "person", tint: Theme.Color.labelSecondary, title: person, emphasized: true)
         }
         return TVSportsStageContent(
             eyebrow: SportsCopy.itemState(item.state),
             eyebrowTint: attention ? .systemOrange : item.state == "matched" ? Theme.Color.statusOK : Theme.Color.labelSecondary,
             heading: matched ? nil : item.fileName,
-            art: matched ? .init(file: item.fileName, title: SportsItemLabel.title(item), words: item.posterWords, posterPath: item.posterPath) : nil,
+            art: matched ? .init(file: item.fileName, title: SportsItemLabel.title(item), words: item.posterWords, posterPath: item.showsArtwork ? item.posterPath : nil) : nil,
             body: body.filter { !$0.isEmpty }.joined(separator: "\n"),
-            lines: Array(bouts)
+            lines: bouts.isEmpty ? Array(cast) : Array(bouts)
         )
     }
 
@@ -321,15 +334,29 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         case ID.checkAgain: perform { source throws(CompanionError) in try await source.recheckSports() }
         case ID.lookNow: perform { source throws(CompanionError) in try await source.runSports() }
         case _ where id.hasPrefix(ID.library):
-            let key = String(id.dropFirst(ID.library.count))
-            var chosen = report.libraries.filter(\.chosen).map(\.key)
-            if chosen.contains(key) { chosen.removeAll { $0 == key } } else { chosen.append(key) }
-            change(libraries: chosen)
+            if let library = report.libraries.first(where: { ID.library + $0.key == id }) { toggle(library, in: report) }
+        case _ where id.hasPrefix(ID.takeBack):
+            guard let library = report.libraries.first(where: { ID.takeBack + $0.key == id }) else { return }
+            presentConfirmation(title: SportsCopy.takeBackLibrary(library.title, files: library.researched), message: SportsCopy.takeBackLibraryQuestion(library.researched), confirmTitle: SportsCopy.takeBack) { [weak self] in
+                self?.perform { source throws(CompanionError) in try await source.undoSports(library: library.key) }
+            }
         case _ where id.hasPrefix(ID.item):
             let key = String(id.dropFirst(ID.item.count))
-            presentConfirmation(title: SportsCopy.researchAgain, message: SportsCopy.redoQuestion, confirmTitle: SportsCopy.researchAgain) { [weak self] in
-                self?.perform { source throws(CompanionError) in try await source.redoSports(ratingKey: key) }
+            guard report.items.first(where: { $0.ratingKey == key })?.canTakeBack == true else {
+                presentConfirmation(title: SportsCopy.researchAgain, message: SportsCopy.redoQuestion, confirmTitle: SportsCopy.researchAgain) { [weak self] in
+                    self?.perform { source throws(CompanionError) in try await source.redoSports(ratingKey: key) }
+                }
+                return
             }
+            let alert = UIAlertController(title: report.items.first { $0.ratingKey == key }.map(SportsItemLabel.title), message: nil, preferredStyle: .actionSheet)
+            alert.addAction(UIAlertAction(title: SportsCopy.researchAgain, style: .default) { [weak self] _ in
+                self?.perform { source throws(CompanionError) in try await source.redoSports(ratingKey: key) }
+            })
+            alert.addAction(UIAlertAction(title: SportsCopy.takeBack, style: .destructive) { [weak self] _ in
+                self?.perform { source throws(CompanionError) in try await source.undoSports(ratingKey: key) }
+            })
+            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+            present(alert, animated: true)
         case _ where id.hasPrefix(ID.step):
             let web = board?.steps.first { $0.group == .web && ID.step + "\($0.number)" == id }
             if web != nil, !report.settings.agreed { askToAgree() }
@@ -352,10 +379,41 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         }
     }
 
-    private func change(on: Bool? = nil, libraries: [String]? = nil, agree: Bool? = nil) {
+    /// Choosing a library asks what it holds; taking one out of research asks whether what it wrote stays.
+    private func toggle(_ library: SportsLibrary, in report: SportsReport) {
+        let chosen = report.libraries.filter(\.chosen).map(\.key)
+        guard library.chosen else {
+            guard library.holdsKinds else { return change(libraries: chosen + [library.key]) }
+            let alert = UIAlertController(title: SportsCopy.kindQuestion(library.title), message: SportsCopy.kindExplanation, preferredStyle: .actionSheet)
+            for kind in SportsKind.allCases {
+                alert.addAction(UIAlertAction(title: SportsCopy.kind(kind), style: .default) { [weak self] _ in
+                    self?.change(libraries: chosen + [library.key], kinds: [library.key: kind])
+                })
+            }
+            alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+            present(alert, animated: true)
+            return
+        }
+        let rest = chosen.filter { $0 != library.key }
+        guard library.researched > 0 else { return change(libraries: rest) }
+        let alert = UIAlertController(title: SportsCopy.stopQuestion(library.title), message: SportsCopy.stopExplanation, preferredStyle: .actionSheet)
+        alert.addAction(UIAlertAction(title: SportsCopy.stopAndKeep, style: .default) { [weak self] _ in self?.change(libraries: rest) })
+        alert.addAction(UIAlertAction(title: SportsCopy.stopAndTakeBack, style: .destructive) { [weak self] _ in
+            guard let self, !busy else { return }
+            board = SportsBoard(report: report.expecting(libraries: rest))
+            perform { source throws(CompanionError) in
+                try await source.changeSports(on: nil, libraries: rest, kinds: [:], agree: nil)
+                try await source.undoSports(library: library.key)
+            }
+        })
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        present(alert, animated: true)
+    }
+
+    private func change(on: Bool? = nil, libraries: [String]? = nil, kinds: [String: SportsKind] = [:], agree: Bool? = nil) {
         guard !busy else { return }
-        if let board { self.board = SportsBoard(report: board.report.expecting(on: on, libraries: libraries, agree: agree)) }
-        perform { source throws(CompanionError) in try await source.changeSports(on: on, libraries: libraries, agree: agree) }
+        if let board { self.board = SportsBoard(report: board.report.expecting(on: on, libraries: libraries, kinds: kinds, agree: agree)) }
+        perform { source throws(CompanionError) in try await source.changeSports(on: on, libraries: libraries, kinds: kinds, agree: agree) }
     }
 
     private func perform(_ action: @escaping @Sendable (any SportsSource) async throws(CompanionError) -> Void) {
