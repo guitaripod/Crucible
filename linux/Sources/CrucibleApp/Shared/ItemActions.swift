@@ -72,6 +72,7 @@ enum ItemActions {
         if ManageTools.offers(media) {
             items.append(.init(id: "manage", title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver"))
         }
+        items.append(.init(id: "copy", title: String(localized: "Copy Title"), symbol: "doc.on.doc"))
         items += extras.map(\.item)
         let frame = window.focusedView?.frameInWindow ?? view.frameInWindow
         let anchor = Rect(x: point.map { $0.x } ?? frame.minX, y: point.map { $0.y } ?? frame.maxY, width: 1, height: 1)
@@ -106,6 +107,8 @@ enum ItemActions {
                 PlaylistPicker.present(adding: [media], api: api, in: window)
             case "manage":
                 ManageTools.presentItemMenu(for: media, api: api, host: view, anchor: anchor, reload: afterChange)
+            case "copy":
+                window.copy(media.title)
             default:
                 extras.first { $0.item.id == item.id }?.run()
             }

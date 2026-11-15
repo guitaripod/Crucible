@@ -45,6 +45,7 @@ final class MediaDetailScreen: DetailScreen {
             guard let self, let person = self.person(card.id) else { return }
             self.openPerson(person)
         }
+        cast.onContextMenu = { [weak self] card, point in self?.presentPersonMenu(card, at: point) }
         related.onActivate = { [weak self] card in
             guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return }
             self.push(.related(item))

@@ -246,6 +246,16 @@ class DetailScreen: ScreenView {
         rootView?.push(DetailScreen.make(api: api, route: route))
     }
 
+    /// A cast or crew card's right click or menu key: Copy Name.
+    func presentPersonMenu(_ card: CardItem, at point: Point?) {
+        guard let window, !card.title.isEmpty else { return }
+        let frame = window.focusedView?.frameInWindow ?? frameInWindow
+        let anchor = Rect(x: point.map { $0.x } ?? frame.minX, y: point.map { $0.y } ?? frame.maxY, width: 1, height: 1)
+        let menu = MenuView(title: card.title, items: [.init(id: "copy", title: String(localized: "Copy Name"), symbol: "doc.on.doc")], anchor: anchor)
+        menu.onSelect = { [weak window] _ in window?.copy(card.title) }
+        menu.present(in: window)
+    }
+
     /// The page sits over the hero, which shows through its top: a point on the hero's text there goes to the hero, so the
     /// title can be selected.
     override func hitTest(_ point: Point) -> View? {
