@@ -120,7 +120,7 @@ pub fn long_date(year: i32, month: u32, day: u32) -> String {
     format!("{weekday} {day} {} {year}", MONTHS[(month - 1) as usize])
 }
 
-fn domain(url: &str) -> Option<String> {
+pub(crate) fn domain(url: &str) -> Option<String> {
     let host = reqwest::Url::parse(url).ok()?.host_str()?.to_lowercase();
     Some(host.strip_prefix("www.").unwrap_or(&host).to_string())
 }

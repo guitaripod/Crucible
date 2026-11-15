@@ -99,6 +99,10 @@ pub struct SportsItem {
     pub tries: i64,
     pub next_try: i64,
     pub updated: i64,
+    /// What the research of this file took; all zero when it reused the research of another part of the same event.
+    pub seconds: i64,
+    pub searches: i64,
+    pub reads: i64,
 }
 
 pub fn now() -> i64 {
@@ -122,6 +126,14 @@ impl Store {
     fn with(connection: Connection) -> rusqlite::Result<Self> {
         connection.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         connection.execute_batch(SCHEMA)?;
+        for column in ["seconds", "searches", "reads"] {
+            let added = connection.execute(&format!("ALTER TABLE sports_items ADD COLUMN {column} INTEGER NOT NULL DEFAULT {UNMEASURED}"), []);
+            if let Err(error) = added {
+                if !error.to_string().contains("duplicate column") {
+                    return Err(error);
+                }
+            }
+        }
         Ok(Store { connection: Mutex::new(connection) })
     }
 
@@ -202,8 +214,8 @@ impl Store {
 
     pub fn save_sports_item(&self, item: &SportsItem) -> rusqlite::Result<()> {
         self.lock().execute(
-            "INSERT OR REPLACE INTO sports_items (rating_key, section, file, state, title, record, applied, note, tries, next_try, updated)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            "INSERT OR REPLACE INTO sports_items (rating_key, section, file, state, title, record, applied, note, tries, next_try, updated, seconds, searches, reads)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             params![
                 item.rating_key,
                 item.section,
@@ -215,7 +227,10 @@ impl Store {
                 item.note,
                 item.tries,
                 item.next_try,
-                item.updated
+                item.updated,
+                item.seconds,
+                item.searches,
+                item.reads
             ],
         )?;
         Ok(())
@@ -309,7 +324,10 @@ impl Store {
     }
 }
 
-const SPORTS_COLUMNS: &str = "rating_key, section, file, state, title, record, applied, note, tries, next_try, updated";
+/// What a file researched before the server counted its effort holds in `seconds`, `searches` and `reads`: unknown, not none.
+pub const UNMEASURED: i64 = -1;
+
+const SPORTS_COLUMNS: &str = "rating_key, section, file, state, title, record, applied, note, tries, next_try, updated, seconds, searches, reads";
 
 fn sports_item_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<SportsItem> {
     Ok(SportsItem {
@@ -324,12 +342,25 @@ fn sports_item_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<SportsItem> {
         tries: row.get(8)?,
         next_try: row.get(9)?,
         updated: row.get(10)?,
+        seconds: row.get(11)?,
+        searches: row.get(12)?,
+        reads: row.get(13)?,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn files_researched_before_effort_was_counted_read_as_unmeasured() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(SCHEMA).unwrap();
+        connection.execute("INSERT INTO sports_items (rating_key, section, file, state, updated) VALUES ('1', '4', '/s/a.mkv', 'matched', 1)", []).unwrap();
+        let store = Store::with(connection).unwrap();
+        let item = store.sports_item("1").unwrap().unwrap();
+        assert_eq!((item.seconds, item.searches, item.reads), (UNMEASURED, UNMEASURED, UNMEASURED));
+    }
 
     #[test]
     fn keeps_sports_items_events_and_abilities() {
@@ -346,6 +377,9 @@ mod tests {
             tries: 1,
             next_try: 0,
             updated: now(),
+            seconds: 23,
+            searches: 1,
+            reads: 2,
         };
         store.save_sports_item(&item).unwrap();
         assert_eq!(store.sports_item("21417").unwrap(), Some(item.clone()));

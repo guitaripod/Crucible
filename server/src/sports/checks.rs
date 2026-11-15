@@ -29,18 +29,30 @@ pub enum State {
 #[serde(rename_all = "camelCase")]
 pub struct Check {
     pub id: &'static str,
+    /// The setup step it belongs to: `plex`, `model`, `web` or `library`.
+    pub group: &'static str,
     pub state: State,
     pub detail: String,
     /// What the owner does about it, on the server or in the app; none once it is done.
     pub fix: Option<String>,
 }
 
+/// The setup step a requirement belongs to.
+pub fn group(id: &str) -> &'static str {
+    match id {
+        "owner" => "plex",
+        "model" | "tools" | "thinking" | "context" => "model",
+        "search" | "agreement" => "web",
+        _ => "library",
+    }
+}
+
 fn done(id: &'static str, detail: impl Into<String>) -> Check {
-    Check { id, state: State::Done, detail: detail.into(), fix: None }
+    Check { id, group: group(id), state: State::Done, detail: detail.into(), fix: None }
 }
 
 fn not_yet(id: &'static str, state: State, detail: impl Into<String>, fix: impl Into<String>) -> Check {
-    Check { id, state, detail: detail.into(), fix: Some(fix.into()) }
+    Check { id, group: group(id), state, detail: detail.into(), fix: Some(fix.into()) }
 }
 
 /// The key a model's probed abilities are kept under.

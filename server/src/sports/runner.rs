@@ -18,7 +18,7 @@ use crate::brain::Brain;
 use crate::config::{Config, Model, Sports as Settings};
 use crate::paths::Paths;
 use crate::plex::{Item, Plex};
-use crate::store::{now, SportsItem, Store};
+use crate::store::{now, SportsItem, Store, UNMEASURED};
 
 /// How often the libraries are looked at when nothing wakes the service sooner.
 const EVERY: Duration = Duration::from_secs(20 * 60);
@@ -51,8 +51,73 @@ pub struct Status {
 pub struct Current {
     pub rating_key: String,
     pub name: String,
+    pub file: String,
+    /// The step in words, for clients from before `steps`.
     pub step: String,
     pub started: i64,
+    /// Seconds since the research of this file started, as the server counts them.
+    pub elapsed: i64,
+    /// The newest steps of this file's research, oldest first, for the live timeline.
+    pub steps: Vec<LiveStep>,
+}
+
+/// One step of a live research: `thinking`, `searching` (detail: the query), `reading` (detail: the page),
+/// `checking` or `writing`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveStep {
+    /// Rises with every step of the server's life, so a client keys its timeline rows by it.
+    pub id: u64,
+    pub kind: String,
+    pub detail: String,
+    pub at: i64,
+}
+
+static STEP_IDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+/// Steps kept for the live timeline.
+const STEPS_SHOWN: usize = 12;
+
+impl Current {
+    /// The live research of `release`, starting now with no steps yet.
+    fn starting(rating_key: &str, release: &Release) -> Self {
+        Current {
+            rating_key: rating_key.to_string(),
+            name: release.cleaned.clone(),
+            file: release.file_name.clone(),
+            step: "Thinking".into(),
+            started: now(),
+            elapsed: 0,
+            steps: Vec::new(),
+        }
+    }
+
+    /// Adds a step, folding a repeat of the step before it into that one so thinking between calls shows once.
+    fn push(&mut self, kind: &str, detail: String) {
+        self.step = match (kind, detail.is_empty()) {
+            ("searching", false) => format!("Searching for {detail}"),
+            ("reading", false) => format!("Reading {detail}"),
+            ("checking", _) => "Checking the record".into(),
+            ("writing", _) => "Writing to Plex".into(),
+            _ => "Thinking".into(),
+        };
+        if self.steps.last().is_some_and(|last| last.kind == kind && last.detail == detail) {
+            return;
+        }
+        let id = STEP_IDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.steps.push(LiveStep { id, kind: kind.into(), detail, at: now() });
+        if self.steps.len() > STEPS_SHOWN {
+            self.steps.remove(0);
+        }
+    }
+}
+
+/// What researching a file took, or nothing when the research of another part of its event was reused.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Effort {
+    pub seconds: i64,
+    pub searches: i64,
+    pub reads: i64,
 }
 
 pub struct Sports {
@@ -120,12 +185,23 @@ impl Sports {
         }
     }
 
+    /// The model researching, by name and host, when one is set.
+    pub fn model(&self) -> Option<(String, String)> {
+        let model = self.model.as_ref()?;
+        let host = reqwest::Url::parse(&model.url).ok().and_then(|url| url.host_str().map(str::to_string)).unwrap_or_default();
+        Some((model.name.clone(), host))
+    }
+
     pub fn settings(&self) -> Settings {
         self.settings.read().unwrap_or_else(PoisonError::into_inner).clone()
     }
 
     pub fn status(&self) -> Status {
-        self.status.lock().unwrap_or_else(PoisonError::into_inner).clone()
+        let mut status = self.status.lock().unwrap_or_else(PoisonError::into_inner).clone();
+        if let Some(current) = &mut status.current {
+            current.elapsed = (now() - current.started).max(0);
+        }
+        status
     }
 
     fn web(&self) -> Option<Web> {
@@ -262,6 +338,7 @@ impl Sports {
                 *parts_per_event.entry(event).or_default() += 1;
             }
         }
+        self.follow_owner_titles(&items);
         let due: Vec<&(String, Item)> = items.iter().filter(|(_, item)| self.is_due(item)).collect();
         self.set_status(|status| {
             status.phase = if due.is_empty() { "idle" } else { "researching" }.into();
@@ -288,6 +365,18 @@ impl Sports {
                 status.last_error = None;
             }
         });
+    }
+
+    /// Keeps the title of each item the owner edited as Plex shows it now, since research leaves those items alone and
+    /// would otherwise go on showing the title they had when the owner first changed them.
+    fn follow_owner_titles(&self, items: &[(String, Item)]) {
+        for (_, item) in items {
+            let Some(mut known) = self.store.sports_item(&item.rating_key).ok().flatten() else { continue };
+            if known.state == "edited" && !item.title.trim().is_empty() && known.title != item.title {
+                known.title = item.title.clone();
+                let _ = self.store.save_sports_item(&known);
+            }
+        }
     }
 
     /// Whether an item needs research or a fresh write: new, due for another try, or matched before its collection
@@ -319,6 +408,9 @@ impl Sports {
             tries: 0,
             next_try: 0,
             updated: now(),
+            seconds: UNMEASURED,
+            searches: UNMEASURED,
+            reads: UNMEASURED,
         });
         let applied: Option<Desired> = row.applied.as_deref().and_then(|text| serde_json::from_str(text).ok());
         let wanted: Option<Desired> = row.record.as_deref().and_then(|text| serde_json::from_str::<Record>(text).ok()).map(|record| {
@@ -333,6 +425,9 @@ impl Sports {
         };
         if set_by_hand {
             row.state = "edited".into();
+            if !item.title.trim().is_empty() {
+                row.title = item.title.clone();
+            }
             row.note = "You changed this in Plex, so it is left as you made it.".into();
             row.updated = now();
             let _ = self.store.save_sports_item(&row);
@@ -341,7 +436,12 @@ impl Sports {
         let record = match (&known, row.record.as_deref().and_then(|text| serde_json::from_str::<Record>(text).ok())) {
             (Some(known), Some(record)) if known.state == "matched" || wrote_before(Some(known)) => record,
             _ => match self.record_for(brain, web, item, &release).await {
-                Ok(record) => record,
+                Ok((record, effort)) => {
+                    row.seconds = effort.seconds;
+                    row.searches = effort.searches;
+                    row.reads = effort.reads;
+                    record
+                }
                 Err((state, note, wait)) => {
                     let busy = note.starts_with("Searching paused");
                     row.tries += if busy { 0 } else { 1 };
@@ -361,8 +461,11 @@ impl Sports {
         }
         self.set_status(|status| {
             status.phase = "writing".into();
+            if status.current.as_ref().is_none_or(|current| current.rating_key != item.rating_key) {
+                status.current = Some(Current::starting(&item.rating_key, &release));
+            }
             if let Some(current) = &mut status.current {
-                current.step = "Writing to Plex".into();
+                current.push("writing", String::new());
             }
         });
         match apply(&self.plex, web, token, section, &item.rating_key, &desired, applied.as_ref()).await {
@@ -398,7 +501,7 @@ impl Sports {
 
     /// The record for a file: from an earlier research of the same event, or a new one. On failure, the state, note
     /// and seconds to wait before trying again.
-    async fn record_for(&self, brain: &Brain, web: &Web, item: &Item, release: &Release) -> Result<Record, (&'static str, String, i64)> {
+    async fn record_for(&self, brain: &Brain, web: &Web, item: &Item, release: &Release) -> Result<(Record, Effort), (&'static str, String, i64)> {
         let cached = release
             .event
             .as_ref()
@@ -407,25 +510,25 @@ impl Sports {
         if let Some(mut record) = cached.clone() {
             record.settle(release);
             if !record.lineup.iter().any(|bout| bout.part.is_some()) || !record.bouts_for(record.part.as_deref()).is_empty() {
-                return Ok(record);
+                return Ok((record, Effort::default()));
             }
         }
         let (added, newest) = day_of(item.added_at.unwrap_or_else(now));
         let started = now();
         self.set_status(|status| {
             status.phase = "researching".into();
-            status.current = Some(Current { rating_key: item.rating_key.clone(), name: release.cleaned.clone(), step: "Thinking".into(), started });
+            status.current = Some(Current { started, ..Current::starting(&item.rating_key, release) });
         });
         let on_step = |step: Step| {
-            let words = match step {
-                Step::Thinking => "Thinking".to_string(),
-                Step::Searching(query) => format!("Searching for {query}"),
-                Step::Reading(url) => format!("Reading {}", url.trim_start_matches("https://").trim_start_matches("http://").trim_start_matches("www.")),
-                Step::Checking => "Checking the record".to_string(),
+            let (kind, detail) = match step {
+                Step::Thinking => ("thinking", String::new()),
+                Step::Searching(query) => ("searching", query),
+                Step::Reading(url) => ("reading", url.trim_start_matches("https://").trim_start_matches("http://").trim_start_matches("www.").to_string()),
+                Step::Checking => ("checking", String::new()),
             };
             self.set_status(|status| {
                 if let Some(current) = &mut status.current {
-                    current.step = words;
+                    current.push(kind, detail);
                 }
             });
         };
@@ -447,9 +550,9 @@ impl Sports {
                         let _ = self.store.save_sports_event(event, &text);
                     }
                 }
-                Ok(done.record)
+                Ok((done.record, Effort { seconds: done.seconds as i64, searches: done.searches as i64, reads: done.reads as i64 }))
             }
-            Ok(done) => Err(("attention", format!("The model could not identify it: {}", done.record.notes.trim()), 3 * 86_400)),
+            Ok(done) => Err(("attention", unidentified(&done.record.notes), 3 * 86_400)),
             Err(ResearchError::NoRecord(problems)) => Err(("attention", format!("The model's record did not pass the checks: {problems}"), 86_400)),
             Err(ResearchError::SearchBusy(reason)) => {
                 self.set_status(|status| status.last_error = Some(reason.clone()));
@@ -483,6 +586,9 @@ impl Sports {
         cleared.record = None;
         cleared.next_try = 0;
         cleared.note = "Researching again.".into();
+        cleared.seconds = UNMEASURED;
+        cleared.searches = UNMEASURED;
+        cleared.reads = UNMEASURED;
         cleared.updated = now();
         let _ = self.store.save_sports_item(&cleared);
         self.wake();
@@ -490,9 +596,33 @@ impl Sports {
     }
 }
 
+/// The note for a file the model could not identify: its reason when it gave one.
+fn unidentified(notes: &str) -> String {
+    match notes.trim().trim_end_matches('.') {
+        "" => "The model could not identify it.".into(),
+        reason => format!("The model could not identify it: {reason}."),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_unidentified_file_says_why_only_when_the_model_did() {
+        assert_eq!(unidentified("  "), "The model could not identify it.");
+        assert_eq!(unidentified("No page confirms the date."), "The model could not identify it: No page confirms the date.");
+    }
+
+    #[test]
+    fn a_live_research_starts_with_the_file_and_no_steps() {
+        let release = Release::read("/s/UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4");
+        let mut current = Current::starting("21417", &release);
+        assert_eq!((current.rating_key.as_str(), current.file.as_str(), current.steps.len()), ("21417", "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4", 0));
+        current.push("writing", String::new());
+        current.push("writing", String::new());
+        assert_eq!((current.step.as_str(), current.steps.len()), ("Writing to Plex", 1));
+    }
 
     fn row(state: &str, note: &str, applied: Option<&str>) -> SportsItem {
         SportsItem {
@@ -507,6 +637,9 @@ mod tests {
             tries: 1,
             next_try: 0,
             updated: 0,
+            seconds: UNMEASURED,
+            searches: UNMEASURED,
+            reads: UNMEASURED,
         }
     }
 
@@ -517,6 +650,25 @@ mod tests {
         assert!(!wrote_before(Some(&row("failed", "The model did not answer.", None))));
         assert!(wrote_before(Some(&row("failed", &format!("{WRITE_REFUSED}: 500"), None))));
         assert!(wrote_before(Some(&row("matched", "", Some("{}")))));
+    }
+
+    #[test]
+    fn the_live_timeline_folds_repeats_and_keeps_the_newest_steps() {
+        let mut current = Current::default();
+        current.push("thinking", String::new());
+        current.push("thinking", String::new());
+        current.push("searching", "UFC 334 prelims".into());
+        current.push("thinking", String::new());
+        assert_eq!(current.steps.iter().map(|step| step.kind.as_str()).collect::<Vec<_>>(), ["thinking", "searching", "thinking"]);
+        assert_eq!(current.step, "Thinking");
+        current.push("reading", "ufc.com/event/ufc-334".into());
+        assert_eq!(current.step, "Reading ufc.com/event/ufc-334");
+        for page in 0..20 {
+            current.push("reading", format!("page {page}"));
+        }
+        assert_eq!(current.steps.len(), STEPS_SHOWN);
+        assert_eq!(current.steps.last().unwrap().detail, "page 19");
+        assert!(current.steps.windows(2).all(|pair| pair[0].id < pair[1].id));
     }
 
     #[test]

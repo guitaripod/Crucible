@@ -226,6 +226,7 @@ async fn hello(State(state): State<Shared>) -> Json<Value> {
         "fingerprint": state.fingerprint,
         "brain": state.writer.is_some(),
         "sports": state.sports.is_some(),
+        "sportsVersion": 2,
         "plexMachineIdentifier": state.config.machine_identifier,
     }))
 }
@@ -465,7 +466,16 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
     let sports = sports(&state)?;
     let is_owner = state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str());
     let settings = sports.settings();
-    let checks = sports.checks(false).await;
+    let mut checks = sports.checks(false).await;
+    let ready = crate::sports::checks::ready(&checks);
+    let mut status = sports.status();
+    if !is_owner {
+        for check in &mut checks {
+            check.detail.clear();
+            check.fix = None;
+        }
+        status.last_error = None;
+    }
     let libraries: Vec<Value> = sports
         .libraries()
         .await
@@ -473,24 +483,26 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
         .filter(|(_, _, other_videos)| *other_videos)
         .map(|(key, title, _)| json!({"key": key, "title": title, "chosen": settings.libraries.contains(&key)}))
         .collect();
-    let (mut items, counts) = sports.items(40);
+    let (mut items, counts) = sports.items(60);
     if !is_owner {
         for item in &mut items {
             item.file = item.file.rsplit(['/', '\\']).next().unwrap_or_default().to_string();
         }
     }
+    let items: Vec<Value> = items.iter().map(crate::sports::view::item_view).collect();
     Ok(Json(json!({
         "owner": is_owner,
-        "ready": crate::sports::checks::ready(&checks),
+        "ready": ready,
         "checks": checks,
         "settings": {
             "on": settings.on,
-            "engine": settings.engine.as_ref().map(|engine| engine.label()),
-            "destination": settings.engine.as_ref().map(|engine| engine.destination()),
+            "engine": settings.engine.as_ref().filter(|_| is_owner).map(|engine| engine.label()),
+            "destination": settings.engine.as_ref().filter(|_| is_owner).map(|engine| engine.destination()),
             "agreed": settings.agreed_to_engine(),
         },
         "libraries": libraries,
-        "status": sports.status(),
+        "model": sports.model().filter(|_| is_owner).map(|(name, host)| json!({"name": name, "host": host})),
+        "status": status,
         "counts": counts,
         "items": items,
     })))

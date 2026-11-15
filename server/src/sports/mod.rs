@@ -8,4 +8,5 @@ pub mod record;
 pub mod release;
 pub mod research;
 pub mod runner;
+pub mod view;
 pub mod web;
