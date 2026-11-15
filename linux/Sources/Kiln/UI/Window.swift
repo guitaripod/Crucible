@@ -9,6 +9,9 @@ public protocol WindowDelegate: AnyObject {
     func window(_ window: Window, unhandledButton button: MouseButton) -> Bool
     /// The window gained or lost the keyboard: the app came back to it, or went elsewhere.
     func window(_ window: Window, keyboardFocusChanged focused: Bool)
+    /// The wheel or touchpad scrolled with Ctrl held (zoom, as in a browser): return whether it was used, or the scroll
+    /// goes to the views under the pointer.
+    func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool
     func windowShouldClose(_ window: Window)
 }
 
@@ -16,6 +19,7 @@ extension WindowDelegate {
     public func window(_ window: Window, unhandledKey event: KeyEvent) -> Bool { false }
     public func window(_ window: Window, unhandledButton button: MouseButton) -> Bool { false }
     public func window(_ window: Window, keyboardFocusChanged focused: Bool) {}
+    public func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool { false }
     public func windowShouldClose(_ window: Window) {}
 }
 
@@ -474,7 +478,8 @@ public final class Window {
     public func handleScroll(_ event: ScrollEvent) {
         trace.inputArrived()
         var scroll = event
-        scroll.modifiers = modifiers
+        scroll.modifiers = modifiers.union(event.modifiers)
+        if scroll.modifiers.contains(.control), delegate?.window(self, zoomScrolled: scroll) == true { return }
         if scroll.modifiers.contains(.shift), scroll.isDiscrete, scroll.dx == 0 {
             scroll.dx = scroll.dy
             scroll.notchesX = scroll.notchesY

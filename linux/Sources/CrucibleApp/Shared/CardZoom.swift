@@ -29,6 +29,24 @@ enum CardZoom {
         }
     }
 
+    /// How far a touchpad scrolls with Ctrl held for one step, in points.
+    private static let scrollPerStep: Float = 60
+    private static var scrolled: Float = 0
+
+    /// The step a scroll with Ctrl held asks for: a wheel notch up is larger and down smaller; a touchpad moves one step
+    /// for every `scrollPerStep` points it travels.
+    static func step(for event: ScrollEvent) -> Step? {
+        if event.isDiscrete {
+            scrolled = 0
+            guard event.notchesY != 0 else { return nil }
+            return event.notchesY < 0 ? .larger : .smaller
+        }
+        scrolled += event.dy
+        guard abs(scrolled) >= scrollPerStep else { return nil }
+        defer { scrolled = 0 }
+        return scrolled < 0 ? .larger : .smaller
+    }
+
     static func apply(_ step: Step) {
         let theme = Theme.current
         let next: Float

@@ -289,6 +289,20 @@ final class Ticker: View {
         #expect(!window.isAnimating)
     }
 
+    @Test func ctrlWithTheWheelGoesToTheDelegateInsteadOfScrolling() {
+        let delegate = ZoomRecorder()
+        window.delegate = delegate
+        window.handlePointerMoved(to: Point(x: 500, y: 200))
+        window.handleScroll(ScrollEvent(dx: 0, dy: -15, notchesY: -1, source: .wheel, modifiers: .control))
+        window.settle()
+        #expect(delegate.zooms == [-1])
+        #expect(shelf.offset == 0)
+        window.handleScroll(ScrollEvent(dx: 15, dy: 0, notchesX: 1, source: .wheel))
+        window.settle()
+        #expect(delegate.zooms == [-1], "a scroll without Ctrl never reaches the delegate")
+        #expect(shelf.offset > 0)
+    }
+
     @Test func wheelNotchesGlideByASteppedDistanceAndStopAtTheEnd() {
         window.handlePointerMoved(to: Point(x: 500, y: 200))
         window.handleScroll(ScrollEvent(dx: 15, dy: 0, notchesX: 1, source: .wheel))
@@ -505,4 +519,13 @@ final class Ticker: View {
     }
 }
 
+/// Records the zoom scrolls a window hands its delegate.
+@MainActor
+private final class ZoomRecorder: WindowDelegate {
+    var zooms: [Float] = []
 
+    func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool {
+        zooms.append(event.notchesY)
+        return true
+    }
+}

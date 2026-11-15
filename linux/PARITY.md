@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 79 | 2 | 3 | 3 |
 | Settings and integrations | 50 | 6 | 11 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 565 | 27 | 94 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 58 | 8 | 37 | 0 |
+| **All** | 566 | 27 | 93 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -655,7 +655,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `linux-kb-escape-back` (S) Escape goes back: pops a pushed screen, or from a root screen moves focus up to the tab bar _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [ ] `linux-kb-refresh-ctrl-r` (S) Ctrl+R refreshes the current screen Gap: No Ctrl+R binding. Home reloads only when it appears after 60 seconds (linux/Sources/CrucibleApp/Home/HomeScreen.swift:37-40). _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [ ] `linux-kb-poster-size-ctrl-plusminus` (S) Ctrl+plus and Ctrl+minus change poster size Gap: No Ctrl+plus or Ctrl+minus binding. Theme.cardZoom exists (Tokens.swift:263) but nothing writes it; the only assignment is the clamp at Tokens.swift:27. _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
-- [ ] `linux-ctrl-wheel-poster-zoom` (S) Ctrl with the mouse wheel zooms posters from 0.7 to 1.6 times Gap: Window.handleScroll (linux/Sources/Kiln/UI/Window.swift:458-470) branches only on Shift, never Ctrl, and no input sets cardZoom. _Apple TV: docs/LINUX.md §5.4 Scrolling_
+- [x] `linux-ctrl-wheel-poster-zoom` (S) Ctrl with the mouse wheel zooms posters from 0.7 to 1.6 times _Apple TV: docs/LINUX.md §5.4 Scrolling_
 - [ ] `linux-kb-new-window-ctrl-n` (L) Ctrl+N opens a new Crucible window Gap: No Ctrl+N binding. The process creates one Window and one AppCoordinator (linux/Sources/CrucibleApp/main.swift:40-48). _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [ ] `linux-kb-settings-ctrl-comma` (S) Ctrl+comma opens Settings Gap: No Ctrl+comma binding. Settings is reachable only from the You tab row (linux/Sources/CrucibleApp/You/YouScreen.swift:40, 57). _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [ ] `windows-several-share-connection` (L) Several windows share one Plex connection, as on the iPad Gap: main.swift creates one Window and one AppCoordinator (main.swift:40-48) and no second-window path exists. Session state is process-static (LinuxSession in AppCoordinator.swift:9-18), so a second window would need a shared-leader design that is not present. _Apple TV: docs/LINUX.md §6 Windows_

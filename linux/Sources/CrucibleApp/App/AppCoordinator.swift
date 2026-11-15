@@ -291,6 +291,10 @@ final class AppCoordinator: WindowDelegate {
         return root?.handleCommand(event) ?? false
     }
 
+    func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool {
+        onboarding == nil && root?.zoomScrolled(event) == true
+    }
+
     func window(_ window: Window, unhandledButton button: MouseButton) -> Bool {
         switch button {
         case .back:

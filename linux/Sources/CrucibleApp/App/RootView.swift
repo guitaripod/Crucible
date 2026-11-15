@@ -117,6 +117,19 @@ final class RootView: View {
         return current?.goForward() ?? false
     }
 
+    /// Ctrl with the wheel or a touchpad makes the cards bigger or smaller, as Ctrl with plus and minus does; the player
+    /// keeps the scroll for itself.
+    func zoomScrolled(_ event: ScrollEvent) -> Bool {
+        guard player == nil else { return false }
+        if let step = CardZoom.step(for: event) { zoomCards(step) }
+        return true
+    }
+
+    private func zoomCards(_ step: CardZoom.Step) {
+        CardZoom.apply(step)
+        window?.relayoutEverything()
+    }
+
     /// Opens Settings on the You tab (Ctrl+comma).
     func openSettings() {
         select("you")
@@ -137,8 +150,7 @@ final class RootView: View {
             return true
         }
         if player == nil, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
-            CardZoom.apply(step)
-            window?.relayoutEverything()
+            zoomCards(step)
             return true
         }
         if event.key == Key.character(",") && event.modifiers == .control, player == nil {
