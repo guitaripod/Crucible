@@ -29,6 +29,34 @@ bool kiln_text_register_font(const char *path) {
     return FcConfigAppFontAddFile(FcConfigGetCurrent(), (const FcChar8 *) path) == FcTrue;
 }
 
+/** Pango's line limit counts per paragraph, so text in several paragraphs runs past it: this cuts the text where line
+ * `max_lines` would start and ends it in an ellipsis, keeping the attributes, and marks the layout as cut. */
+static void limit_lines(PangoLayout *layout, int max_lines) {
+    if (max_lines <= 0) return;
+    for (int attempt = 0; attempt < 4 && pango_layout_get_line_count(layout) > max_lines; attempt++) {
+        PangoLayoutLine *line = pango_layout_get_line_readonly(layout, max_lines);
+        if (!line) return;
+        const char *text = pango_layout_get_text(layout);
+        int cut = line->start_index;
+        while (cut > 0 && (text[cut - 1] == '\n' || text[cut - 1] == '\r' || text[cut - 1] == ' ')) cut--;
+        if (attempt > 0) {
+            const char *previous = g_utf8_find_prev_char(text, text + cut);
+            if (previous) cut = (int) (previous - text);
+        }
+        GString *shortened = g_string_new_len(text, cut);
+        g_string_append(shortened, "\u2026");
+        PangoAttrList *attributes = pango_layout_get_attributes(layout);
+        if (attributes) pango_attr_list_ref(attributes);
+        pango_layout_set_text(layout, shortened->str, -1);
+        if (attributes) {
+            pango_layout_set_attributes(layout, attributes);
+            pango_attr_list_unref(attributes);
+        }
+        g_string_free(shortened, TRUE);
+        g_object_set_data(G_OBJECT(layout), "kiln-cut", GINT_TO_POINTER(1));
+    }
+}
+
 /** One PangoLayout for the text and style; the caller unrefs it. */
 static PangoLayout *make_layout(const char *utf8, const kiln_text_style *style) {
     PangoLayout *layout = pango_layout_new(shared_context());
@@ -75,6 +103,7 @@ static PangoLayout *make_layout(const char *utf8, const kiln_text_style *style) 
     } else {
         pango_layout_set_text(layout, utf8, -1);
     }
+    limit_lines(layout, style->max_lines);
     return layout;
 }
 
@@ -87,7 +116,7 @@ kiln_text_metrics kiln_text_measure(const char *utf8, const kiln_text_style *sty
         .height = logical.y + logical.height,
         .lines = pango_layout_get_line_count(layout),
         .baseline = PANGO_PIXELS(pango_layout_get_baseline(layout)),
-        .truncated = pango_layout_is_ellipsized(layout),
+        .truncated = pango_layout_is_ellipsized(layout) || g_object_get_data(G_OBJECT(layout), "kiln-cut") != NULL,
     };
     g_object_unref(layout);
     return metrics;

@@ -140,6 +140,17 @@ import CKilnText
         #expect(yellow > 200, "the emoji keeps its own yellow instead of turning into a white silhouette")
     }
 
+    @Test func aLineLimitCountsLinesAcrossParagraphs() {
+        let style = TextStyle(sizePixels: 24, weight: 400, opticalSize: 14, maxWidthPixels: 2000, maxLines: 3)
+        let metrics = TextRenderer.measure("One.\n\nTwo.\n\nThree.\n\nFour.\n\nFive.", style: style)
+        #expect(metrics.lines == 3, "five short paragraphs stop at three lines in all, not three each")
+        #expect(metrics.truncated)
+        let short = TextRenderer.measure("One.\nTwo.", style: style)
+        #expect(short.lines == 2)
+        #expect(!short.truncated)
+    }
+
+
     @Test func aHighlightKeepsTheLayoutAndMapsUTF16ToBytes() {
         let layout = TextLayout("Café Noir", font: Font(size: 20), scale: 1)
         let match = layout.showingOnly(utf16: [(location: 5, length: 4)])
