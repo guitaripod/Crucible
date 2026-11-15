@@ -27,11 +27,12 @@ yay -S crucible-server-bin && crucible-server setup                             
 cargo install --path server && crucible-server setup                                             # from source
 ```
 
-With Docker (Unraid, Synology, TrueNAS, any NAS): build the image from `server/packaging/Dockerfile` with the
-Linux release binary beside it, mount your media read-only at the paths Plex uses, and run setup once in the
-container before starting it:
+With Docker (Unraid, Synology, TrueNAS, any NAS): put the Linux release binary beside `server/packaging/Dockerfile` as
+`crucible-server-amd64` (or `crucible-server-arm64`), build the image under the name `compose.yml` uses, mount your
+media read-only at the paths Plex uses, and run setup once in the container before starting it:
 
 ```sh
+docker build -t ghcr.io/guitaripod/crucible-server:latest server/packaging
 docker compose -f server/packaging/compose.yml run --rm -it crucible-server setup --no-service
 docker compose -f server/packaging/compose.yml up -d
 ```
@@ -42,8 +43,8 @@ server's certificate, keeps it running as a service (systemd user unit or launch
 with the iPhone's Camera, or in Crucible under Settings, Crucible Server.
 
 An Apple TV pairs through a paired iPhone or iPad: on the TV, You › Crucible Server › Pair with iPhone, pick the
-iPhone and tap Allow on it; or Show Code for iPhone and scan the TV's code with the iPhone's Camera. Typing the code
-`crucible-server pair` prints works too.
+iPhone and tap Allow on it; or Show Code for iPhone and scan the TV's code with the iPhone's Camera. Or type the code
+`crucible-server pair` prints.
 
 ```sh
 crucible-server pair        # a new pairing code for another device
