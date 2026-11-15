@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 /// The demo server's notification stream (`/:/eventsource/notifications`), so the demo shows the app answering a server live:
 /// playback that starts and stops, scans that run and end. Every open stream gets every event, in the form a Plex Media

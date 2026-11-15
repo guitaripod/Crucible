@@ -1,6 +1,13 @@
 @testable import CrucibleCore
+#if canImport(Darwin)
 import Darwin
+#else
+import Glibc
+#endif
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import CrucibleDemo
 
@@ -95,9 +102,15 @@ struct DemoServerTests {
 }
 
 enum RawSocket {
+    #if canImport(Darwin)
+    private static let streamSocket = SOCK_STREAM
+    #else
+    private static let streamSocket = Int32(SOCK_STREAM.rawValue)
+    #endif
+
     /// Sends the requests down one TCP connection and reads until `expectedResponses` status lines have come back.
     static func exchange(port: Int, requests: [String], expectedResponses: Int) throws -> String {
-        let descriptor = socket(AF_INET, SOCK_STREAM, 0)
+        let descriptor = socket(AF_INET, streamSocket, 0)
         defer { close(descriptor) }
         var address = sockaddr_in()
         address.sin_family = sa_family_t(AF_INET)

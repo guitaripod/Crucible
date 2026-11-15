@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 extension DemoRouter {
     /// The stand-in Seerr, which the demo serves under `/seerr` of the library's own address, as a Seerr behind a reverse

@@ -1,7 +1,13 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
+#if os(Linux)
+import CrucibleCore
+#endif
 
-/// Keeps the demo's watch state in a small JSON file in Application Support, written a moment after the last change.
+/// Keeps the demo's watch state in a small JSON file in Application Support (Crucible's data directory on Linux), written a
+/// moment after the last change.
 final class DemoStateStore: @unchecked Sendable {
     private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "demo")
     private static let delay: TimeInterval = 0.4
@@ -16,10 +22,15 @@ final class DemoStateStore: @unchecked Sendable {
         self.fileURL = fileURL
     }
 
+    /// Application Support on Apple platforms; on Linux, Crucible's own data directory (`$XDG_DATA_HOME/crucible`).
     static var defaultFileURL: URL? {
+        #if os(Linux)
+        AppPlatform.persistentDirectory.appendingPathComponent("demo", isDirectory: true).appendingPathComponent("state.json")
+        #else
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appendingPathComponent("CrucibleDemo", isDirectory: true)
             .appendingPathComponent("state.json")
+        #endif
     }
 
     /// The saved state, or an empty one when there is no file or it cannot be read.

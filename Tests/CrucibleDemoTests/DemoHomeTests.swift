@@ -1,5 +1,8 @@
 @testable import CrucibleCore
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import CrucibleDemo
 

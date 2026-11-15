@@ -1,6 +1,8 @@
 import Foundation
+#if canImport(Network)
 import Network
 import os
+#endif
 
 enum DemoServerError: Error, Equatable {
     case notReady
@@ -26,6 +28,7 @@ final class DemoResumeOnce<Value: Sendable>: @unchecked Sendable {
     }
 }
 
+#if canImport(Network)
 /// An HTTP/1.1 server on the loopback interface, built on Network.framework: keep-alive connections, one request at a time on each,
 /// any number of connections at once. It answers on 127.0.0.1 only, so nothing outside the device can reach the demo library.
 final class DemoHTTPServer: @unchecked Sendable {
@@ -298,3 +301,4 @@ final class DemoConnection: @unchecked Sendable {
         onClose(self)
     }
 }
+#endif

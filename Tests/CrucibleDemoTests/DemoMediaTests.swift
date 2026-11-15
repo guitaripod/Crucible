@@ -1,6 +1,10 @@
+#if canImport(AVFoundation)
 import AVFoundation
 @testable import CrucibleCore
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import ImageIO
 import Testing
 @testable import CrucibleDemo
@@ -314,3 +318,4 @@ private final class LegibleCues: NSObject, AVPlayerItemLegibleOutputPushDelegate
         lock.withLock { if cue == nil { cue = (text, itemTime.seconds) } }
     }
 }
+#endif

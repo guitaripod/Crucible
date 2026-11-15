@@ -1,6 +1,8 @@
 import CrucibleCore
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 /// The fictional library of the demo, served from inside the app. The App Store builds hand one of these to `DemoMode`.
 ///
