@@ -40,10 +40,28 @@ final class SettingsScreen: ScreenView {
     private static let ownModelID = "linux.ownModel"
 
     override func screenDidAppear() {
+        render()
+        let previous = YouConnectionStatus.shared.onChange
+        restoreConnectionHandler = { YouConnectionStatus.shared.onChange = previous }
+        YouConnectionStatus.shared.onChange = { [weak self] state in
+            previous?(state)
+            self?.render()
+        }
+        YouConnectionStatus.shared.refresh(api: api)
+    }
+
+    override func screenWillDisappear() {
+        restoreConnectionHandler?()
+        restoreConnectionHandler = nil
+    }
+
+    /// Puts You's own handler back on the connection status when Settings leaves, since the status keeps one.
+    private var restoreConnectionHandler: (() -> Void)?
+
+    private func render() {
         var items = Self.categories.map { category in
-            RowItem(id: category.rawValue, title: category.title(on: .linux), subtitle: category.explanation(on: .linux),
-                    value: category == .appearance ? LinuxDisplay.summary : SettingsCatalog.summary(of: category, on: .linux), symbol: Symbol(category.symbol),
-                    accessory: .chevron)
+            RowItem(id: category.rawValue, title: category.title(on: .linux), subtitle: category.explanation(on: .linux), value: Self.value(of: category),
+                    symbol: Symbol(category.symbol), accessory: .chevron)
         }
         let ownModel = RowItem(id: Self.ownModelID, title: OwnModelCopy.title, subtitle: WatchCopy.title,
                                value: OwnModel.model ?? OwnModelCopy.notSet, symbol: "sparkles", accessory: .chevron)
@@ -51,6 +69,15 @@ final class SettingsScreen: ScreenView {
         items.insert(ownModel, at: after)
         rows.setItems(items)
         setNeedsLayout()
+    }
+
+    /// A category's value line: the desk's appearance, the route to the server as You shows it, or the catalogue's summary.
+    private static func value(of category: SettingsCategory) -> String? {
+        switch category {
+        case .appearance: LinuxDisplay.summary
+        case .connection: YouConnectionStatus.shared.state.routeSummary ?? SettingsCatalog.summary(of: category, on: .linux)
+        default: SettingsCatalog.summary(of: category, on: .linux)
+        }
     }
 
     /// The catalogue's categories for Linux, with Appearance in its place: the desk's own appearance, density and poster
