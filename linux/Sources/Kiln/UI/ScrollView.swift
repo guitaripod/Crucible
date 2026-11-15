@@ -30,6 +30,9 @@ open class ScrollView: View {
 
     /// Called whenever the offset changes (the tab bar hides as content scrolls).
     public var onScroll: ((Float) -> Void)?
+    /// When set, a touchpad flick settles on a multiple of this distance (a shelf's card and gutter), so a card's leading
+    /// edge lands at the start, as tvOS pages a shelf.
+    public var snapInterval: Float?
 
     private var position = Animated(0)
     private var momentum: Float = 0
@@ -109,7 +112,9 @@ open class ScrollView: View {
             guard notches != 0 else { return false }
             if (notches < 0 && position.target <= 0) || (notches > 0 && position.target >= maximumOffset) { return false }
             momentum = 0
-            position.set(clamp(position.target + notches * wheelStep), animation: .timed(duration: 0.22, curve: .easeOut))
+            var target = position.target + notches * wheelStep
+            if let snapInterval, snapInterval > 0 { target = (target / snapInterval).rounded() * snapInterval }
+            position.set(clamp(target), animation: .timed(duration: 0.22, curve: .easeOut))
             apply()
             startAnimating()
             wake()
@@ -122,6 +127,8 @@ open class ScrollView: View {
             recent.removeAll()
             if position.value < 0 || position.value > maximumOffset {
                 position.set(clamp(position.value), animation: .spring(response: 0.4, dampingFraction: 1))
+            } else if let snapInterval, snapInterval > 0 {
+                settle(on: snapInterval, velocity: velocity)
             } else {
                 momentum = abs(velocity) > 40 ? velocity : 0
                 position.reset(position.value)
@@ -140,6 +147,16 @@ open class ScrollView: View {
         apply()
         wake()
         return true
+    }
+
+    /// Springs to the snap point nearest where the flick's momentum would have carried the content, keeping its speed.
+    private func settle(on interval: Float, velocity: Float) {
+        let projected = position.value + velocity * 0.5
+        var target = clamp((projected / interval).rounded() * interval)
+        if abs(maximumOffset - projected) < abs(target - projected) { target = maximumOffset }
+        position.reset(position.value)
+        position.set(target, animation: .spring(response: 0.45, dampingFraction: 1))
+        position.setVelocity(velocity)
     }
 
     /// A drag past an end moves the content less and less, as iOS's rubber band does.

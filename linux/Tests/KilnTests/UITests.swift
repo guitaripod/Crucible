@@ -312,6 +312,19 @@ final class Ticker: View {
         #expect(shelf.offset <= shelf.maximumOffset)
     }
 
+    @Test func aFlickOnASnappingShelfSettlesOnACardEdge() {
+        shelf.snapInterval = 240
+        window.handlePointerMoved(to: Point(x: 500, y: 200))
+        for frame in 0..<6 {
+            window.handleScroll(ScrollEvent(dx: 30, dy: 0, source: .finger, timeMilliseconds: UInt32(frame * 8)))
+        }
+        window.handleScroll(ScrollEvent(dx: 0, dy: 0, source: .finger, ended: true, timeMilliseconds: 48))
+        window.settle()
+        let cards = shelf.offset / 240
+        #expect(abs(cards - cards.rounded()) < 0.01 || abs(shelf.offset - shelf.maximumOffset) < 0.5, "offset \(shelf.offset)")
+        #expect(shelf.offset > 180, "the flick still carries on past where the fingers lifted")
+    }
+
     @Test func draggingPastTheStartRubberBandsAndSpringsBack() {
         window.handlePointerMoved(to: Point(x: 500, y: 200))
         for frame in 0..<5 {
