@@ -277,6 +277,8 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 
 Linux targets never affect the Apple builds, so every phase lands on `master` as it is finished.
 
+Feature parity is tracked row by row in `linux/PARITY.md` (audited 2026-11-15; `linux/scripts/parity.py done <id>` checks a row off, `open` lists what is left). The AUR package (D2) is published only once every row is closed and Marcus has used the client day to day for a while.
+
 ## 13. Risks
 
 | Risk | Answer |
