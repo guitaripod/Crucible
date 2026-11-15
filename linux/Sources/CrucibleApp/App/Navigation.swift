@@ -61,6 +61,7 @@ final class NavigationView: View {
         begin(from: leaving, forward: true, animated: animated)
         window?.focus.focus(screen, animated: false)
         screen.screenDidAppear()
+        settleFocus(on: screen, coming: leaving)
         onChange?()
     }
 
@@ -81,10 +82,22 @@ final class NavigationView: View {
         screens.append(screen)
         addSubview(screen)
         screen.frame = bounds
-        begin(from: screens.count > 1 ? screens[screens.count - 2] : nil, forward: true, animated: animated)
+        let previous = screens.count > 1 ? screens[screens.count - 2] : nil
+        begin(from: previous, forward: true, animated: animated)
         window?.focus.focus(screen, animated: false)
         screen.screenDidAppear()
+        settleFocus(on: screen, coming: previous)
         onChange?()
+    }
+
+    /// A screen that fills itself in `screenDidAppear` had nothing to focus a moment before; focus still on the screen it
+    /// covers (or nowhere) moves in now, while focus the screen placed itself, or an alert it raised, stays.
+    private func settleFocus(on screen: ScreenView, coming previous: ScreenView?) {
+        guard let window else { return }
+        if let focused = window.focusedView {
+            guard let previous, focused.isDescendant(of: previous) else { return }
+        }
+        window.focus.focus(screen, animated: false)
     }
 
     @discardableResult
