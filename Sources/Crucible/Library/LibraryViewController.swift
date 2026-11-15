@@ -148,6 +148,16 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         navigationItem.rightBarButtonItems = [optionsItem, gridSizeItem]
     }
 
+    /// Opens the shown library's collections, as its title menu does.
+    func openCollections() {
+        currentChild?.openCollections()
+    }
+
+    /// Opens the shown library's folders, as its title menu does.
+    func openFolderBrowser() {
+        currentChild?.openFolderBrowser()
+    }
+
     private func libraryMenu() -> UIMenu {
         let switcher = sections.enumerated().map { index, section in
             UIAction(

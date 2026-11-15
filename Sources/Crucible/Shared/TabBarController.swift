@@ -33,6 +33,7 @@ final class TabBarController: UITabBarController {
     private var downloadObserver: UUID?
     private var downloadsTab: AnyObject?
     private var searchTab: AnyObject?
+    private lazy var libraryTabMenu = LibraryTabMenu(title: String(localized: "Library")) { [weak self] in self?.libraryTabMenuContents() }
 
     /// `preloadsHome` hands Home the shelves the launch fetched; a window opened later passes false so Home loads its own.
     init(payload: LaunchPayload, preloadsHome: Bool = true) {
@@ -78,6 +79,42 @@ final class TabBarController: UITabBarController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         updateWindowTitle()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if !libraries.isEmpty {
+            libraryTabMenu.attach(in: tabBar)
+        }
+    }
+
+    /// What holding the Library tab offers, as the library title's menu does: every library to switch to, the one the tab is
+    /// on ticked, then that library's collections and folders once it has been shown.
+    private func libraryTabMenuContents() -> UIMenu? {
+        guard #available(iOS 18.0, *), let group = tab(forIdentifier: Tab.library.identifier) as? UITabGroup else { return nil }
+        let shownID = (group.selectedChild ?? group.children.first)?.identifier
+        let switcher = libraries.map { section in
+            UIAction(
+                title: section.title,
+                image: UIImage(systemName: section.kind == .movie ? "film" : "tv"),
+                state: Self.libraryIdentifier(section.id) == shownID ? .on : .off
+            ) { [weak self] _ in
+                self?.selectLibrary(section.id)
+            }
+        }
+        var children: [UIMenuElement] = [UIMenu(options: .displayInline, children: switcher)]
+        if let section = libraries.first(where: { Self.libraryIdentifier($0.id) == shownID }), let screen = libraryScreens[section.id] {
+            let collections = UIAction(title: String(localized: "Collections"), image: UIImage(systemName: "rectangle.stack")) { [weak self] _ in
+                self?.selectLibrary(section.id)
+                screen.openCollections()
+            }
+            let folders = UIAction(title: String(localized: "Browse Folders"), image: UIImage(systemName: "folder")) { [weak self] _ in
+                self?.selectLibrary(section.id)
+                screen.openFolderBrowser()
+            }
+            children.append(UIMenu(options: .displayInline, children: [collections, folders]))
+        }
+        return UIMenu(children: children)
     }
 
     private func allLibrariesNavigation() -> UINavigationController {

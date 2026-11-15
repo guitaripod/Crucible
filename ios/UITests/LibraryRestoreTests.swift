@@ -25,6 +25,27 @@ final class LibraryRestoreTests: XCTestCase {
         IOSTest.settle(2)
     }
 
+    /// Holding the Library tab offers the library title's menu, from any tab, and a library chosen there opens on the Library tab.
+    func testHoldingTheLibraryTabSwitchesLibraries() {
+        let app = IOSTest.launch()
+        enterDemo(app)
+        app.tabBars.buttons["Library"].press(forDuration: 1.2)
+        IOSTest.capture("01-held", in: self)
+        let shows = app.collectionViews.buttons["TV Shows"].firstMatch
+        XCTAssertTrue(shows.waitForExistence(timeout: 10), "holding the Library tab showed no menu of libraries")
+        IOSTest.capture("02-held-library-tab", in: self)
+        shows.tap()
+        XCTAssertTrue(app.navigationBars["TV Shows"].waitForExistence(timeout: 60), "choosing TV Shows from the held tab did not show it")
+        IOSTest.settle(1.5)
+        IOSTest.tab(app, "Library").press(forDuration: 1.2)
+        let movies = app.collectionViews.buttons["Movies"].firstMatch
+        XCTAssertTrue(movies.waitForExistence(timeout: 10), "holding the Library tab on a library showed no menu")
+        XCTAssertTrue(app.collectionViews.buttons["Collections"].exists, "the held tab offers the shown library's collections")
+        IOSTest.capture("03-held-on-a-library", in: self)
+        movies.tap()
+        XCTAssertTrue(app.navigationBars["Movies"].waitForExistence(timeout: 60), "choosing Movies from the held tab did not show it")
+    }
+
     func testLibraryIsStillShowingAfterRelaunch() {
         let app = IOSTest.launch()
         enterDemo(app)
