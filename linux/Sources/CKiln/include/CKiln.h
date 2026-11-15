@@ -15,6 +15,7 @@
 #include "../protocols/viewporter-client-protocol.h"
 #include "../protocols/idle-inhibit-unstable-v1-client-protocol.h"
 #include "../protocols/cursor-shape-v1-client-protocol.h"
+#include "../protocols/xdg-activation-v1-client-protocol.h"
 
 typedef struct kiln_wl kiln_wl;
 
@@ -120,6 +121,10 @@ void kiln_wl_request_frame(kiln_wl *wl);
 void kiln_wl_set_fifo_barrier(kiln_wl *wl);
 
 void kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit);
+
+/** Raises and focuses the window with an xdg-activation token (one a launcher handed a second launch); false when the
+ * compositor has no xdg_activation_v1. */
+bool kiln_wl_activate(kiln_wl *wl, const char *token);
 
 /** Sets the pointer's cursor over the window (a link hand over clickable content, hidden while video plays). */
 void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor);

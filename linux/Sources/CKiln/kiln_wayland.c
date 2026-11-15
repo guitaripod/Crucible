@@ -22,6 +22,7 @@ struct kiln_wl {
     struct wp_viewporter *viewporter;
     struct zwp_idle_inhibit_manager_v1 *idle_manager;
     struct wp_cursor_shape_manager_v1 *cursor_manager;
+    struct xdg_activation_v1 *activation;
     struct wl_seat *seat;
     struct wl_pointer *pointer;
     struct wl_keyboard *keyboard;
@@ -319,6 +320,8 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
         wl->idle_manager = wl_registry_bind(registry, name, &zwp_idle_inhibit_manager_v1_interface, 1);
     } else if (strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0) {
         wl->cursor_manager = wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, 1);
+    } else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
+        wl->activation = wl_registry_bind(registry, name, &xdg_activation_v1_interface, 1);
     } else if (strcmp(interface, wl_seat_interface.name) == 0 && !wl->seat) {
         wl->seat = wl_registry_bind(registry, name, &wl_seat_interface, kiln_min(version, 9));
         wl_seat_add_listener(wl->seat, &seat_listener, wl);
@@ -350,6 +353,7 @@ kiln_wl *kiln_wl_connect(const char *name) {
 void kiln_wl_disconnect(kiln_wl *wl) {
     if (!wl) return;
     if (wl->inhibitor) zwp_idle_inhibitor_v1_destroy(wl->inhibitor);
+    if (wl->activation) xdg_activation_v1_destroy(wl->activation);
     if (wl->viewport) wp_viewport_destroy(wl->viewport);
     if (wl->fractional) wp_fractional_scale_v1_destroy(wl->fractional);
     if (wl->fifo) wp_fifo_v1_destroy(wl->fifo);
@@ -574,6 +578,13 @@ void kiln_wl_inhibit_idle(kiln_wl *wl, bool inhibit) {
         zwp_idle_inhibitor_v1_destroy(wl->inhibitor);
         wl->inhibitor = NULL;
     }
+}
+
+bool kiln_wl_activate(kiln_wl *wl, const char *token) {
+    if (!wl->activation || !wl->surface || !token || !*token) return false;
+    xdg_activation_v1_activate(wl->activation, token, wl->surface);
+    wl_display_flush(wl->display);
+    return true;
 }
 
 extern int _dispatch_get_main_queue_handle_4CF(void);

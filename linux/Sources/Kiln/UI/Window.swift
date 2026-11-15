@@ -165,6 +165,12 @@ public final class Window {
         surface?.inhibitIdle(inhibit)
     }
 
+    /// Brings the window to the front with an xdg-activation token a launcher handed a later launch of the app.
+    @discardableResult
+    public func activate(token: String) -> Bool {
+        surface?.activate(token: token) ?? false
+    }
+
     // MARK: Drawing
 
     /// Asks for a frame; it is drawn at the end of the event-loop turn, after every pending input has been handled.

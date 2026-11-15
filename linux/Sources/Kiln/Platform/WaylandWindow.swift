@@ -92,6 +92,12 @@ public final class WaylandWindow {
         kiln_wl_inhibit_idle(connection, inhibit)
     }
 
+    /// Raises and focuses the window with a launcher's xdg-activation token.
+    @discardableResult
+    public func activate(token: String) -> Bool {
+        kiln_wl_activate(connection, token)
+    }
+
     public func close() {
         kiln_wl_disconnect(connection)
     }
