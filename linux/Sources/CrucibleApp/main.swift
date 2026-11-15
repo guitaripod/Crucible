@@ -91,8 +91,19 @@ func quitOnSignals(_ coordinator: AppCoordinator) -> [DispatchSourceSignal] {
     }
 }
 
+/// The key a `--capture` letter stands for.
+func captureKey(_ character: Character) -> KeyEvent? {
+    let keys: [Character: Key] = ["d": .down, "u": .up, "l": .left, "r": .right, "e": .return, "x": .escape, "m": .menu, "p": .mediaPlay]
+    if let key = keys[character] { return KeyEvent(key: key) }
+    if character.isNumber || character == "+" || character == "-" {
+        return KeyEvent(key: .character(character == "+" ? "=" : character), modifiers: .control)
+    }
+    return nil
+}
+
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
-/// `r` right, `e` Enter, `x` Escape, in order), waits a moment and writes the window to PATH; the app quits after the last.
+/// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, a digit Ctrl with it, `+` and `-` Ctrl with them, in order),
+/// waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }
@@ -102,8 +113,7 @@ func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoo
         guard parts.count == 3, let seconds = Double(parts[0]) else { continue }
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
             MainActor.assumeIsolated {
-                let keys: [Character: Key] = ["d": .down, "u": .up, "l": .left, "r": .right, "e": .return, "x": .escape]
-                for character in parts[1] { if let key = keys[character] { window.handleKey(KeyEvent(key: key)) } }
+                for character in parts[1] { if let event = captureKey(character) { window.handleKey(event) } }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 MainActor.assumeIsolated {
