@@ -7,15 +7,15 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 52 | 2 | 2 | 1 |
-| Home and libraries | 76 | 2 | 0 | 0 |
+| Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 66 | 0 | 2 | 1 |
 | Search, Pro features (free on Linux) and demo | 52 | 0 | 3 | 8 |
-| You, profiles, history, statistics and manage | 83 | 1 | 0 | 3 |
+| You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 65 | 0 | 2 | 2 |
 | Design system | 91 | 3 | 3 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 75 | 7 | 21 | 0 |
-| **All** | 638 | 15 | 33 | 16 |
+| **All** | 641 | 12 | 33 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -82,10 +82,10 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `browse-home-hero-info` (S) Full-screen Home hero block shows eyebrow, title, meta parts, badges, synopsis and progress for the focused card, and never takes focus. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:427-447 (syncHero/showHero)_
 - [x] `browse-home-backdrop-follows-focus` (S) Full-screen backdrop swaps to the artwork of the focused card or hero. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:443 (backdrop.show in showHero)_
 - [x] `browse-home-backdrop-dims-on-scroll` (S) Backdrop dims in proportion to how far the Home page has scrolled. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:698-701 (scrollViewDidScroll, offset / 520)_
-- [ ] `browse-home-hero-held-in-place` (S) **partial** While the first rail has focus the hero stays fully in view (system scroll ignored, bringHeroBack returns the view to top); focus on lower rails scrolls normally. Gap: Linux translates the hero by every page scroll offset (HomeScreen.swift:152-154) with no hold-while-first-rail-focused and no bring-back logic; unverified whether a first-rail focus reveal moves the hero. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:TVHomeCollectionView (holdsHeroInPlace, bringHeroBack) 710-736_
+- [x] `browse-home-hero-held-in-place` (S) While the first rail has focus the hero stays fully in view (system scroll ignored, bringHeroBack returns the view to top); focus on lower rails scrolls normally. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:TVHomeCollectionView (holdsHeroInPlace, bringHeroBack) 710-736_
 - [x] `browse-home-hero-not-focusable` (S) Hero is information only and never takes focus; every card, including the hero item, lives in a rail. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:173-180 (hero section) and 150-158 (initialFocusIndexPath)_
 - [x] `browse-home-hero-item-stays-in-rail` (S) The hero item stays at the head of the rail it was lifted from (Continue Watching or Up Next) so it remains reachable as a card. _Apple TV: Sources/CrucibleCore/Features/Home/HomeArrangement.swift:50-57 (shelf(for:))_
-- [ ] `browse-home-tab-bar-soft-top-edge` (S) **partial** Content scrolling up under the Home tab bar fades out softly (tvOS 26 soft top edge) instead of being cut off. Gap: Linux hides the whole floating tab bar once content scrolls past 40 points (RootView.swift:157-159 contentScrolled) instead of fading content under it. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:166-171 (softenTopEdge)_
+- [x] `browse-home-tab-bar-soft-top-edge` (S) Content scrolling up under the Home tab bar fades out softly (tvOS 26 soft top edge) instead of being cut off. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:166-171 (softenTopEdge)_
 - [x] `browse-home-initial-focus` (S) Opening Home focuses the first card of the first non-empty rail in a fixed priority: Continue Watching, Up Next, Recently Added, Out Now, Rate. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:150-158 (initialFocusIndexPath)_
 - [x] `browse-home-focus-memory` (S) Returning to a Home rail puts focus back on the card it last held. _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:428-430 (syncHero, focusMemory.preferredIndexPath)_
 - [x] `browse-home-continue-watching-row` (S) Continue Watching rail of resumable movies and episodes with progress and unwatched marks, the latest one as hero. _Apple TV: Sources/CrucibleCore/Features/Home/HomeArrangement.swift:16-31 (init(buckets:rows:))_
@@ -417,7 +417,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `profiles-switch` (M) Selecting an unprotected profile switches the app to it (row shows 'Switching…' meanwhile), then the app restarts as that profile; selecting the current profile does nothing _Apple TV: Sources/CrucibleTV/You/TVProfilesViewController.swift:46-53_
 - [x] `profiles-pin-prompt` (M) Protected profiles ask for a 4-digit PIN in a secure numeric field with Switch and Cancel; a wrong PIN re-prompts with 'That PIN isn't right.' _Apple TV: Sources/CrucibleTV/You/TVProfilesViewController.swift:98-119_
 - [x] `profiles-switch-errors` (S) Switch failures show the alert 'Couldn't Switch Profile' with the message, including 'This profile can't use this server…' when the profile has no access _Apple TV: Sources/CrucibleTV/You/TVProfilesViewController.swift:136-141_
-- [ ] `profiles-session-fallback` (S) **partial** A Home profile's token is kept apart from the account's; if plex.tv refuses the profile at launch the app falls back to the account, and signing out forgets both Gap: The shared AppLaunchSession fallback runs on Linux (AppLaunchSession.swift:52), and sign-out forgets the profile through ServerBootstrap.clear (ServerBootstrap.swift:99, reached from AccountSessionReset.signOut:45). But nothing on Linux can set a profile, so HomeProfiles.active stays nil and the fallback never fires. _Apple TV: Sources/CrucibleCore/Session/AppLaunchSession.swift:40-54_
+- [x] `profiles-session-fallback` (S) A Home profile's token is kept apart from the account's; if plex.tv refuses the profile at launch the app falls back to the account, and signing out forgets both _Apple TV: Sources/CrucibleCore/Session/AppLaunchSession.swift:40-54_
 - [x] `profiles-no-access-copy` (S) Sharing copy: a profile that cannot use this server is told the server's owner can share it with them in Plex (the only sharing-related text in the Apple TV You, History, Stats and Manage code) _Apple TV: Sources/CrucibleCore/Features/Auth/HomeProfiles.swift:43-46_
 - [x] `history-screen-shell` (M) Watch History screen: title 'Watch History' with the weekly summary line, loads the plays newest first, shows a loading state while the first page loads, and opens from the You tab _Apple TV: Sources/CrucibleTV/History/HistoryViewController.swift:13-79_
 - [x] `history-summary-line` (S) Summary line under the title: 'N plays this week · H h M m' (time only when every play in the week has a duration); '1 play this week' for one play _Apple TV: Sources/CrucibleTV/History/HistoryViewController.swift:226-231_
