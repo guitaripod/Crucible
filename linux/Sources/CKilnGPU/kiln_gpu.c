@@ -160,6 +160,10 @@ kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface
 void kiln_gpu_destroy(kiln_gpu *g) {
     if (!g) return;
     if (g->gpu) pl_gpu_finish(g->gpu);
+    kiln_gpu_save_shader_cache(g);
+    if (g->gpu && g->shader_cache) pl_gpu_set_cache(g->gpu, NULL);
+    pl_cache_destroy(&g->shader_cache);
+    free(g->shader_cache_path);
     for (int i = 0; i < g->timer_count; i++) pl_timer_destroy(g->gpu, &g->timers[i]);
     pl_renderer_destroy(&g->renderer);
     pl_dispatch_destroy(&g->dispatch);
@@ -196,6 +200,41 @@ const char *kiln_gpu_device_name(kiln_gpu *g) {
     get(g->vulkan->phys_device, &properties);
     snprintf(name, sizeof(name), "%s", properties.deviceName);
     return name;
+}
+
+bool kiln_gpu_use_shader_cache(kiln_gpu *g, const char *path) {
+    if (!g || !path) return false;
+    if (!g->shader_cache) {
+        g->shader_cache = pl_cache_create(pl_cache_params(.log = g->log, .max_total_size = 64 << 20, .max_object_size = 8 << 20));
+        pl_gpu_set_cache(g->gpu, g->shader_cache);
+    }
+    free(g->shader_cache_path);
+    g->shader_cache_path = strdup(path);
+    FILE *file = fopen(path, "rb");
+    if (!file) return false;
+    int loaded = pl_cache_load_file(g->shader_cache, file);
+    fclose(file);
+    g->shader_cache_objects = pl_cache_objects(g->shader_cache);
+    return loaded > 0;
+}
+
+bool kiln_gpu_save_shader_cache(kiln_gpu *g) {
+    if (!g || !g->shader_cache || !g->shader_cache_path) return false;
+    int objects = pl_cache_objects(g->shader_cache);
+    if (objects == g->shader_cache_objects) return true;
+    size_t length = strlen(g->shader_cache_path);
+    char *temporary = malloc(length + 5);
+    snprintf(temporary, length + 5, "%s.new", g->shader_cache_path);
+    FILE *file = fopen(temporary, "wb");
+    if (!file) {
+        free(temporary);
+        return false;
+    }
+    pl_cache_save_file(g->shader_cache, file);
+    bool ok = fclose(file) == 0 && rename(temporary, g->shader_cache_path) == 0;
+    free(temporary);
+    if (ok) g->shader_cache_objects = objects;
+    return ok;
 }
 
 kiln_vulkan_handles kiln_gpu_vulkan_handles(kiln_gpu *g) {

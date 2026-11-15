@@ -6,6 +6,7 @@
 #include <libplacebo/renderer.h>
 #include <libplacebo/swapchain.h>
 #include <libplacebo/vulkan.h>
+#include <libplacebo/cache.h>
 
 #define KILN_MAX_TIMERS 64
 
@@ -30,6 +31,9 @@ struct kiln_gpu {
     int pass_index;
     double pending_ms;
     VkQueue graphics_queue;
+    pl_cache shader_cache;
+    char *shader_cache_path;
+    int shader_cache_objects;
 };
 
 #endif

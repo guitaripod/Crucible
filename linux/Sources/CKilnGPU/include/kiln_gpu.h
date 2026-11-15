@@ -55,6 +55,11 @@ const char *kiln_gpu_device_name(kiln_gpu *gpu);
 bool kiln_gpu_thread_safe(kiln_gpu *gpu);
 kiln_vulkan_handles kiln_gpu_vulkan_handles(kiln_gpu *gpu);
 
+/** Compiles shaders through a cache kept at `path` (loaded now, saved by `kiln_gpu_save_shader_cache` and on destroy), so
+ * a pass compiled once never stalls a frame again, across launches too. */
+bool kiln_gpu_use_shader_cache(kiln_gpu *gpu, const char *path);
+bool kiln_gpu_save_shader_cache(kiln_gpu *gpu);
+
 /** Resizes the swapchain; width and height come back as the swapchain chose them. */
 bool kiln_gpu_resize(kiln_gpu *gpu, int *width, int *height);
 

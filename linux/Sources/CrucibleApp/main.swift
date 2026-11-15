@@ -24,7 +24,8 @@ func runCrucible() -> Int32 {
     let loop = EventLoop()
     let window: Window
     do {
-        window = try Window(title: "Crucible", appID: "org.guitaripod.Crucible", loop: loop)
+        window = try Window(title: "Crucible", appID: "org.guitaripod.Crucible", loop: loop,
+                            shaderCache: AppPlatform.cachesDirectory.appendingPathComponent("shaders.cache"))
     } catch {
         FileHandle.standardError.write(Data("crucible: \(error)\n".utf8))
         return 1

@@ -1,4 +1,5 @@
 import CKilnGPU
+import Foundation
 import Glibc
 
 /// A texture on Kiln's GPU: half-float render targets for composition, RGBA8 for artwork, R8 for glyphs.
@@ -224,6 +225,18 @@ public final class GPU {
 
     public func finish() {
         kiln_gpu_finish(handle)
+    }
+
+    /// Keeps compiled shaders in `url` between launches.
+    @discardableResult
+    public func useShaderCache(at url: URL) -> Bool {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        return kiln_gpu_use_shader_cache(handle, url.path)
+    }
+
+    /// Writes shaders compiled since the last save.
+    public func saveShaderCache() {
+        _ = kiln_gpu_save_shader_cache(handle)
     }
 
     /// Lets go of the window surface before its Wayland connection closes.

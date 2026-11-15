@@ -86,8 +86,9 @@ public final class Window {
         attach(contentView)
     }
 
-    /// Opens a toplevel on the Wayland display and its swapchain, then the loop drives it.
-    public init(title: String, appID: String, loop: EventLoop, contentView: View = View()) throws(RenderError) {
+    /// Opens a toplevel on the Wayland display and its swapchain, then the loop drives it. Compiled shaders persist in
+    /// `shaderCache`, so a launch after the first draws its first frames without compiling.
+    public init(title: String, appID: String, loop: EventLoop, contentView: View = View(), shaderCache: URL? = nil) throws(RenderError) {
         guard let surface = WaylandWindow() else { throw .device("no Wayland display") }
         let listener = WaylandListener()
         guard surface.open(title: title, appID: appID, delegate: listener) else { throw .device("window") }
@@ -98,6 +99,7 @@ public final class Window {
         size = Size(width: Float(surface.width), height: Float(surface.height))
         scale = Float(surface.scale)
         gpu = try GPU(display: surface.display, surface: surface.surface)
+        if let shaderCache { gpu.useShaderCache(at: shaderCache) }
         renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
         renderer.scale = scale
         self.contentView = contentView
@@ -132,6 +134,7 @@ public final class Window {
         repeatTask?.cancel()
         contentView.window = nil
         gpu.finish()
+        gpu.saveShaderCache()
         gpu.releaseSurface()
         surface?.close()
     }
