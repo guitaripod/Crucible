@@ -86,6 +86,11 @@ package enum PlaybackDecisionCopy {
 package struct StreamInfoLine: Hashable, Sendable {
     package let label: String
     package let value: String
+
+    package init(label: String, value: String) {
+        self.label = label
+        self.value = value
+    }
 }
 
 /// Stream Info: how the title is reaching the screen, for the curious and for working out why something buffers.

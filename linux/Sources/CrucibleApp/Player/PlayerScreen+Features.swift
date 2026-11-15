@@ -66,11 +66,12 @@ extension PlayerScreen {
         let audioId = audio ? id : stream.chosenAudioStreamId
         MidgarLog.notice("Switching streams ratingKey=\(item.id) audio=\(String(describing: audioId)) subtitle=\(String(describing: subtitle))",
                          category: .playback)
+        let converts = convertsAfterFailure
         resolveTask?.cancel()
         resolveTask = Task { [weak self] in
             do {
                 let resolved = try await StreamResolver.resolve(api: api, ratingKey: item.id, startSecs: resumeAt, selectedSubtitleId: subtitle,
-                                                                selectedAudioStreamId: audioId)
+                                                                selectedAudioStreamId: audioId, forceTranscode: converts)
                 guard let self, !Task.isCancelled, !self.closed else { return }
                 self.load(resolved, from: resumeAt)
                 self.rememberLanguagesForShow()
@@ -210,10 +211,15 @@ extension PlayerScreen {
         let record = detail ?? item
         let genres = (record.Genre ?? []).compactMap(\.tag).prefix(3).joined(separator: ", ")
         let facts = [genres, item.grandparentTitle == nil ? nil : record.contentRating].compactMap { $0 }.filter { !$0.isEmpty }
-        let lines = stream.map {
+        var lines = stream.map {
             StreamInfo.lines(stream: $0, route: HomeServerRoute.classify($0.url), quality: QualityPolicy.current(for: $0.url),
                              audioId: $0.chosenAudioStreamId, subtitleId: $0.chosenSubtitleId)
         } ?? []
+        if convertsAfterFailure {
+            lines.insert(StreamInfoLine(label: String(localized: "Direct Play", comment: "Stream Info: the file plays as it is"),
+                                        value: String(localized: "Failed on this computer",
+                                                      comment: "Linux Stream Info, beside Direct Play: playing the file as it is failed here, so the server converts it")), at: 1)
+        }
         return PlayerInfoPanel.Content(title: item.title, subtitle: headline.subtitle, summary: record.summary,
                                        facts: facts.isEmpty ? nil : facts.joined(separator: " · "), posterPath: item.grandparentThumb ?? item.thumb,
                                        chapters: ChapterList.playable(stream?.chapters ?? []), streamLines: lines)

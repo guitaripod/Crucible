@@ -55,6 +55,9 @@ final class PlayerScreen: View {
     var postPlay: PostPlayView?
     var stream: ResolvedStream?
     var stills: ScrubStillLoader?
+    /// Direct play failed on this file, so every stream from now on is converted by the server.
+    var convertsAfterFailure = false
+    private var failurePolicy = PlaybackFailurePolicy()
     var streamOffset: Double = 0
     var segments: [SkipMarker] = []
     var subtitlesTurnedOff = false
@@ -179,7 +182,8 @@ final class PlayerScreen: View {
             do {
                 let resolved = try await StreamResolver.resolve(api: api, ratingKey: item.id, startSecs: resumePosition,
                                                                 selectedSubtitleId: tracks?.subtitle, selectedAudioStreamId: tracks?.audio,
-                                                                languages: languages, honorsServerSelection: tracks == nil && languages == nil)
+                                                                languages: languages, honorsServerSelection: tracks == nil && languages == nil,
+                                                                forceTranscode: convertsAfterFailure)
                 guard !Task.isCancelled, !closed else { return }
                 subtitlesTurnedOff = resolved.chosenSubtitleId == nil && languages?.subtitlesOff == true
                 load(resolved)
@@ -224,11 +228,12 @@ final class PlayerScreen: View {
             let session = stream.sessionId
             Task { try? await api.requestVoid(.stopTranscode(session: session)) }
         }
+        let converts = convertsAfterFailure
         resolveTask?.cancel()
         resolveTask = Task { [weak self] in
             do {
                 let resolved = try await StreamResolver.resolve(api: api, ratingKey: item.id, startSecs: position, selectedSubtitleId: subtitle,
-                                                                selectedAudioStreamId: audio)
+                                                                selectedAudioStreamId: audio, forceTranscode: converts)
                 guard let self, !Task.isCancelled, !self.closed else { return }
                 self.load(resolved, from: position, paused: paused)
             } catch {
@@ -293,12 +298,38 @@ final class PlayerScreen: View {
             offerNext(.playbackEnded)
         case .failed(let message):
             MidgarLog.error("Playback failed: \(message)", category: .playback)
+            recover(from: message)
+        }
+    }
+
+    /// Answers a failed stream as `PlaybackSession` does: a file that fails to play as it is gets converted by the server
+    /// from the playhead, once; anything else says so with Retry.
+    private func recover(from message: String) {
+        switch failurePolicy.decide(wasDirectPlay: stream?.isDirectPlay ?? false, isOffline: false) {
+        case .fallBackToTranscode:
+            fallBackToTranscode(after: message)
+        case .ignore:
+            break
+        case .restartTranscode, .fail:
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
+        }
+    }
+
+    /// Plays the file converted by the server from where direct play stopped, or from the resume point when it never started.
+    private func fallBackToTranscode(after message: String) {
+        guard case .plex(_, let item, let resumePosition) = source else { return }
+        let start = PlaybackFailurePolicy.fallbackStart(lastAbsolute: position, resumePosition: resumePosition)
+        MidgarLog.notice("Direct play of \(item.id) failed (\(message)); converting from \(Int(start)) s", category: .playback)
+        convertsAfterFailure = true
+        reloadStream(at: start, freshSession: false) { [weak self] in
+            self?.failurePolicy.recordFailure()
+            self?.presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
         }
     }
 
     /// Plays again from where it failed, in the same tracks.
     private func retryFromPlayhead() {
+        failurePolicy = PlaybackFailurePolicy()
         guard stream != nil else {
             resolveFirstStream()
             return
