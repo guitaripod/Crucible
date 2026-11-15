@@ -37,6 +37,7 @@ final class HomeScreen: ScreenView {
     private var missingNext: [MissingNext] = []
     private var missingNextTask: Task<Void, Never>?
     private let week = HomeWeekSection()
+    private let topEdge = SoftTopEdgeView()
     private var weekSummary: HomeWeekSummary?
     private var weekTask: Task<Void, Never>?
     private var hasAwaitedFirstSync = false
@@ -48,7 +49,7 @@ final class HomeScreen: ScreenView {
         self.payload = payload
         feed = HomeFeed(api: payload.api)
         super.init()
-        [backdrop, hero, page, state].forEach(addSubview)
+        [backdrop, hero, page, topEdge, state].forEach(addSubview)
         for shelf in skeleton { shelf.count = 4 }
         state.isHidden = true
         page.onScroll = { [weak self] offset in self?.scrolled(offset) }
@@ -548,6 +549,7 @@ final class HomeScreen: ScreenView {
     private func scrolled(_ offset: Float) {
         hero.translation = Point(x: 0, y: -offset)
         backdrop.dimming = min(max(offset / max(heroRoom.height * 0.8, 1), 0), 1)
+        topEdge.alpha = min(max(offset / Theme.current.metrics.tv(160), 0), 1)
         rootView?.contentScrolled(offset: offset)
     }
 
@@ -555,6 +557,7 @@ final class HomeScreen: ScreenView {
         let metrics = Theme.current.metrics
         backdrop.frame = bounds
         page.frame = bounds
+        topEdge.frame = Rect(x: 0, y: 0, width: bounds.width, height: SoftTopEdgeView.height)
         state.frame = bounds
         let heroHeight = max(metrics.heroHeight, min(frame.height * 0.52, frame.width * 0.3))
         heroRoom.height = heroHeight
