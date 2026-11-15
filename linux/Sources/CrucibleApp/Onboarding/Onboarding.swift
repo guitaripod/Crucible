@@ -233,6 +233,7 @@ final class LinkScreen: ScreenView {
         codes = nil
         openedBrowser = false
         retryButton.isHidden = true
+        qr.alpha = 1
         openButton.isEnabled = false
         qr.text = nil
         status.show(String(localized: "Requesting a code…"), busy: true)
@@ -277,6 +278,7 @@ final class LinkScreen: ScreenView {
     private func showRetry(_ title: String) {
         retryButton.title = title
         retryButton.isHidden = false
+        qr.alpha = 0.3
         openButton.isEnabled = false
         window?.focus.focus(retryButton, animated: false)
     }
@@ -306,18 +308,45 @@ final class LinkScreen: ScreenView {
         let title = TextLayout(String(localized: "Link your Plex account"), font: theme.type.title1, maxWidth: column, maxLines: 2, scale: scale)
         context.text(title, at: Point(x: left, y: y), color: palette.label)
         y += title.size.height + metrics.tv(36)
-        let explanation = TextLayout(String(localized: "Sign in to Plex in the browser that just opened and approve Crucible. On another device, go to plex.tv/link and enter this code."),
-                                     font: theme.type.body, maxWidth: column, maxLines: 4, scale: scale)
-        context.text(explanation, at: Point(x: left, y: y), color: palette.labelSecondary)
-        y += explanation.size.height + metrics.tv(36)
+        y = drawSteps(at: Point(x: left, y: y), width: column, context: &context) + metrics.tv(36)
         if let code = codes?.shortCode {
-            drawCode(code, at: Point(x: left, y: y), context: &context)
+            context.faded(isSpent ? 0.3 : 1) { faded in drawCode(code, at: Point(x: left, y: y), context: &faded) }
         }
         if qr.text != nil {
             let caption = TextLayout(String(localized: "Or scan with your phone's camera"), font: theme.type.callout, maxWidth: qr.frame.width * 1.8,
                                      alignment: .center, scale: scale)
             context.text(caption, at: Point(x: qr.frame.midX - caption.size.width / 2, y: qr.frame.maxY + metrics.tv(24)), color: palette.labelSecondary)
         }
+    }
+
+    /// The code can no longer be used, so it and the QR code dim beside Get a New Code or Try Again (`TVLinkViewController`).
+    private var isSpent: Bool { !retryButton.isHidden }
+
+    /// The three steps on numbered badges, as the Apple TV lists them, with plex.tv/link in the accent; returns where they end.
+    private func drawSteps(at origin: Point, width: Float, context: inout DrawContext) -> Float {
+        let theme = Theme.current
+        let metrics = theme.metrics
+        guard let scale = window?.scale else { return origin.y }
+        let hex = { (color: Color) in "#" + color.srgbComponents.prefix(3).map { String(format: "%02X", $0) }.joined() }
+        let go = TextLayout.escapingMarkup(String(localized: "On your iPhone or computer, go to "))
+        let first = "<span foreground=\"\(hex(theme.palette.labelSecondary))\">\(go)</span><span foreground=\"\(hex(theme.palette.accentText))\" weight=\"bold\">plex.tv/link</span>"
+        let steps = [first] + [String(localized: "Enter this code"), String(localized: "Approve Crucible")].map {
+            "<span foreground=\"\(hex(theme.palette.labelSecondary))\">\(TextLayout.escapingMarkup($0))</span>"
+        }
+        let badge = metrics.tv(56)
+        var y = origin.y
+        for (index, markup) in steps.enumerated() {
+            let text = TextLayout(markup, font: theme.type.callout, maxWidth: width - badge - metrics.tv(24), maxLines: 2, scale: scale, markup: true, inColor: true)
+            let height = max(badge, text.size.height)
+            let circle = Rect(x: origin.x, y: y + (height - badge) / 2, width: badge, height: badge)
+            context.fill(circle, radius: badge / 2, color: theme.palette.accentTint)
+            let number = TextLayout("\(index + 1)", font: Font(size: theme.type.body.size, weight: .bold), scale: scale)
+            context.text(number, at: Point(x: (circle.midX - number.size.width / 2).rounded(), y: (circle.midY - number.size.height / 2).rounded()),
+                         color: theme.palette.accentText)
+            context.text(text, at: Point(x: origin.x + badge + metrics.tv(24), y: (y + (height - text.size.height) / 2).rounded()), color: theme.palette.labelSecondary)
+            y += height + metrics.tv(16)
+        }
+        return y
     }
 
     /// The code as a row of tiles, one letter each, as the Apple TV shows it.
