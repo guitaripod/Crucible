@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 41 | 7 | 8 | 1 |
 | Home and libraries | 70 | 3 | 5 | 0 |
-| Title pages, collections, playlists and server activity | 54 | 4 | 13 | 1 |
+| Title pages, collections, playlists and server activity | 54 | 4 | 20 | 1 |
 | Player and What to Watch | 52 | 0 | 16 | 1 |
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 53 | 2 | 29 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
 | Design system | 62 | 20 | 15 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 461 | 50 | 168 | 16 |
+| **All** | 461 | 50 | 175 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -169,6 +169,13 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `detail-watched-toggle-title` (S) Mark Watched or Mark Unwatched button; on press it calls the server, reloads the page on success, and presents a Couldn’t Update alert on failure _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift:148-158_
 - [x] `detail-rate` (M) Rate action on movie, episode and show pages: glass panel with ten half-star steps moved by swipe, Select to commit, Clear Rating when set, Menu to close, failure alert Your rating was not saved. _Apple TV: Sources/CrucibleTV/Detail/TVRatingViewController.swift:85-124_
 - [ ] `detail-trakt-checkin` (M) Trakt Check In and Cancel Check In for movies and episodes, with a replace-confirmation when a check-in is active and result alerts Gap: No Trakt account, device-code flow or check-in on Linux; the doc lists Trakt as in scope for Linux _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:339-347_
+- [ ] `detail-trakt-community-pulse` (M) Community after Cast & Crew (after the episodes on a show): Trakt's score with its 1 to 10 vote spread as rising bars, watchers, plays, lists, comments and favourites, and who is watching now with their faces; Select lists who is watching (Pro) Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityViews.swift (TVCommunityPulseView), Sources/CrucibleTV/Detail/TVDetailViewController.swift (communitySections)_
+- [ ] `detail-trakt-community-sentiments` (S) What people loved and what not so much, as chips that open the comments each came from (Pro) Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift (aspectChip, selectAspect)_
+- [ ] `detail-trakt-community-comments` (M) Comments shelf, most liked first: spoilers covered until pressed, inline spoiler tags drawn as bars, Markdown and emoji short codes, GIFs, likes, replies and reactions per card; long press likes, reacts, reports, edits and deletes; See All, Unlock (without Pro, two comments free) and Write a Review cards Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityViews.swift (TVCommentCardView, TVCommunityActionCard)_
+- [ ] `trakt-comment-thread` (M) A comment's thread: the comment in the left column (Reveal Spoilers, Read in Full), Like with its count, React with the seven reactions, Reply, the author, each reply opening as a thread of its own, More Replies, Edit and Delete for the viewer's own, Report with Trakt's eleven reasons Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentThreadViewController)_
+- [ ] `trakt-comments-list` (M) Every comment on a title: Sort in Trakt's seven orders, Write a Review, a page more as the focus nears the end, the focused comment read in full in the left column, and the comments behind a sentiment Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentsViewController)_
+- [ ] `trakt-member-page` (M) A Trakt member: avatar, name, VIP and director badges, location, joined, about, Follow (Requested for a private member), what they are watching, their recent comments, Block and Report; and the list of who is watching a title Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVTraktMemberViewController, TVTraktMembersViewController)_
+- [ ] `trakt-comment-composer` (M) Writing a comment, review or reply through the system keyboard: Write or Edit, Contains Spoilers, Post or Save, the word count toward five words and a review at 200, warnings for text that is not English or names the app, Trakt's rules until read, drafts kept per title and per reply Gap: No Trakt on Linux (no Trakt code in linux/Sources). _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentComposerViewController)_
 - [x] `detail-watchlist` (M) Add to Watchlist or Remove from Watchlist button for movies and shows (watchlist read alongside the page; failure alert and revert) _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:22-25_
 - [x] `detail-add-to-playlist` (M) Add to Playlist button on movies, episodes and shows that opens the playlist picker _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:348-358_
 - [x] `detail-playlist-picker-create` (S) Playlist picker: alert with each editable playlist, New Playlist name prompt with Create, success Added to X alerts and Couldn’t Create / Couldn’t Add failures _Apple TV: Sources/CrucibleTV/Playlists/TVPlaylistPicker.swift:20-67_
