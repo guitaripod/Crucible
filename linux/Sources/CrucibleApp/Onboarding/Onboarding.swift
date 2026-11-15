@@ -41,7 +41,25 @@ final class OnboardingView: View {
             link.onToken = { [weak self] token in self?.signedIn(token: token) }
         } else if let servers = screen as? ServersScreen {
             servers.onConnected = { [weak self] connection in self?.onConnected?(connection) }
+            servers.onAddAddress = { [weak self, weak servers] known, message in
+                guard let self, let servers else { return }
+                self.addByAddress(token: servers.accountToken, known: known, message: message)
+            }
+            servers.onSignInAgain = { [weak self] in self?.showLink() }
+        } else if let address = screen as? AddressScreen {
+            address.onConnected = { [weak self] connection in self?.onConnected?(connection) }
         }
+    }
+
+    private func addByAddress(token: String, known: ServerChoice?, message: String?) {
+        let address = AddressScreen(token: token, known: known, message: message)
+        configure(address)
+        navigation.push(address)
+    }
+
+    /// The window came back: a server list that could not reach its server looks again if Tailscale changed meanwhile.
+    func windowBecameActive() {
+        (navigation.top as? ServersScreen)?.windowBecameActive()
     }
 
     private func showLink() {
@@ -287,166 +305,5 @@ final class QRCodeView: View {
         context.fill(bounds, radius: Theme.current.metrics.radiusM, color: .white)
         let quiet = bounds.width * 4 / Float(modules + 8)
         context.mask(texture, in: bounds.insetBy(quiet, quiet), color: Color(hex: 0x111111), nearest: true)
-    }
-}
-
-/// The account's servers, each probed for its fastest route; one that answers alone is connected to at once.
-@MainActor
-final class ServersScreen: ScreenView {
-    var onConnected: ((PlexConnection) -> Void)?
-    private let discovery: ServerDiscovery
-    private let token: String
-    private let rows = RowListView()
-    private let state = StateView()
-    private let title = ScreenTitleView(title: String(localized: "Choose Server"),
-                                        detail: String(localized: "Crucible tests every connection and picks the fastest."))
-    private var picker: ServerPickerState?
-    private var tasks: [Task<Void, Never>] = []
-    private var connecting = false
-    private var autoContinue = true
-
-    init(token: String) {
-        self.token = token
-        discovery = ServerDiscovery(token: token)
-        super.init()
-        [title, rows, state].forEach(addSubview)
-        rows.onSelect = { [weak self] item in self?.select(item.id) }
-        rows.columnWidth = Theme.current.metrics.formColumn
-    }
-
-    override var preferredFocusView: View? { state.isHidden ? rows : state }
-
-    override func screenDidAppear() {
-        if tasks.isEmpty { load() }
-    }
-
-    override func screenWillDisappear() {
-        tasks.forEach { $0.cancel() }
-        tasks.removeAll()
-    }
-
-    private func busy(_ text: String) {
-        title.isHidden = true
-        rows.isHidden = true
-        state.isHidden = false
-        state.show(.loading(title: text))
-    }
-
-    private func load() {
-        tasks.forEach { $0.cancel() }
-        tasks.removeAll()
-        busy(String(localized: "Finding your servers…"))
-        tasks.append(Task { [weak self] in
-            guard let self else { return }
-            do {
-                switch try await discovery.listing(progress: { [weak self] in self?.busy($0.message) }) {
-                case .none:
-                    failure(String(localized: "No Plex Server Found"),
-                            String(localized: "This account doesn’t own or share a Plex Media Server. Sign in with the account that has your server, or add one by its address."))
-                case .single(let server):
-                    let outcome = await discovery.connect(toOnly: server) { [weak self] progress in self?.busy(progress.message) }
-                    handle(outcome, server: server)
-                case .several(let servers):
-                    show(servers)
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                failure(String(localized: "Couldn’t Load Your Servers"), ConnectionError.message(for: error))
-            }
-        })
-    }
-
-    private func failure(_ heading: String, _ message: String) {
-        title.isHidden = true
-        rows.isHidden = true
-        state.isHidden = false
-        state.show(.error(title: heading, message: message, retryTitle: String(localized: "Try Again"), retry: { [weak self] in self?.load() }))
-    }
-
-    private func handle(_ outcome: ServerConnectOutcome, server: ServerChoice) {
-        connecting = false
-        switch outcome {
-        case .connected(let connection):
-            onConnected?(connection)
-        case .needsAddress(let message):
-            failure(String(localized: "Couldn’t Reach \(server.name)"),
-                    message ?? String(localized: "Crucible found no route to this server. Enter its address instead."))
-        case .failed(let message):
-            failure(String(localized: "Couldn’t Connect to \(server.name)"), message)
-        case .cancelled:
-            break
-        }
-    }
-
-    private func show(_ servers: [ServerChoice]) {
-        var picker = ServerPickerState(choices: servers)
-        for (server, route) in picker.unprobeableRoutes { _ = picker.record(server: server, route: route, milliseconds: nil) }
-        self.picker = picker
-        title.isHidden = false
-        rows.isHidden = false
-        state.isHidden = true
-        refreshRows()
-        window?.focus.focus(rows, animated: false)
-        let measurements = discovery.measureRoutes(picker.probeTargets)
-        tasks.append(Task { [weak self] in
-            for await measurement in measurements {
-                guard !Task.isCancelled, let self else { return }
-                if self.picker?.record(server: measurement.serverID, route: measurement.routeIndex, milliseconds: measurement.milliseconds) == true {
-                    self.refreshRows()
-                    self.continueIfDecided()
-                }
-            }
-            guard !Task.isCancelled, let self else { return }
-            _ = self.picker?.finishProbing()
-            self.refreshRows()
-        })
-    }
-
-    private func refreshRows() {
-        guard let picker else { return }
-        rows.setItems(picker.choices.map { choice in
-            RowItem(id: choice.id, title: choice.name, subtitle: choice.statusLine, value: choice.routeValue,
-                    symbol: "server.rack", accessory: .chevron, isEnabled: picker.isSelectable(choice.id))
-        })
-        setNeedsLayout()
-    }
-
-    /// Continues alone when exactly one server answered and every best route is known.
-    private func continueIfDecided() {
-        guard autoContinue, !connecting, let target = picker?.autoContinue else { return }
-        autoContinue = false
-        connect(target.choice, route: target.route)
-    }
-
-    private func select(_ id: String) {
-        guard var picker, picker.choose(id), let choice = picker.selectedChoice, let route = choice.bestRoute else { return }
-        self.picker = picker
-        autoContinue = false
-        connect(choice, route: route)
-    }
-
-    private func connect(_ choice: ServerChoice, route: ServerRoute) {
-        guard !connecting else { return }
-        connecting = true
-        busy(String(localized: "Connecting to \(choice.name)…"))
-        tasks.append(Task { [weak self] in
-            guard let self else { return }
-            let outcome = await discovery.connect(to: choice, route: route) { [weak self] progress in self?.busy(progress.message) }
-            guard !Task.isCancelled else { return }
-            handle(outcome, server: choice)
-        })
-    }
-
-    override func layoutSubviews() {
-        let metrics = Theme.current.metrics
-        state.frame = bounds
-        let titleHeight = title.sizeThatFits(bounds.size).height
-        title.frame = Rect(x: 0, y: metrics.tv(120), width: frame.width, height: titleHeight)
-        let height = rows.sizeThatFits(Size(width: frame.width, height: 0)).height
-        rows.frame = Rect(x: 0, y: title.frame.maxY + metrics.tv(40), width: frame.width, height: height)
-    }
-
-    override func draw(_ context: inout DrawContext) {
-        context.fill(bounds, color: Theme.current.palette.canvas)
     }
 }
