@@ -63,7 +63,7 @@ pub struct Desired {
 static VS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\s+(?:vs\.?|v\.?)\s+").expect("vs pattern"));
 static SPOILER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"(?i)(\bdef\.|\bdefeat(?:ed|s)\b|\bknocked out\b|\bknockout win\b|\bsubmitted\b|\bsubmission win\b|\bby (?:unanimous|split|majority) decision\b|\bretain(?:ed|s) (?:the|his|her) (?:title|belt)\b|\bsuccessfully defended\b|\bnew champion\b|\bupset win\b|\bfinal score\b|\bvictory over\b|\bwon the (?:fight|bout|race|game|match)\b)",
+        r"(?i)(\bdef\.|\bdefeat(?:ed|s)\b|\bbeats?\b|\bknocked (?:\w+ )?out\b|\bknockout win\b|\bt?ko'?d\b|\bsubmitted\b|\bsubmission win\b|\bby (?:unanimous|split|majority|technical|doctor'?s?) (?:decision|stoppage|knockout)\b|\b(?:won|wins|win) (?:by|via)\b|\bvia (?:t?ko|submission|decision|stoppage)\b|\bby (?:t?ko|knockout|submission|stoppage)\b|\bwas stopped\b|\b(?:stopped|finished) (?:\w+ ){0,2}in (?:the )?(?:round|first|second|third|fourth|fifth|\d)|\bprevailed\b|\bvictorious\b|\bretain(?:ed|s) (?:the|his|her) (?:title|belt)\b|\bsuccessfully defended\b|\bnew champion\b|\bupset win\b|\bfinal score\b|\bvictory over\b|\b(?:won|wins|took|claimed|captured|lifted) the (?:fight|bout|race|game|match|grand prix|trophy|cup)\b|\b(?:won|took|claimed|captured|wrested) the (?:\w+ )?(?:title|belt|championship) from\b)",
     )
     .expect("spoiler pattern")
 });
@@ -386,6 +386,22 @@ mod tests {
         titled.event = "UFC 334: Gane defeats Hokit".into();
         assert!(!titled.problems(&release, &known, added).is_empty());
         assert_eq!(without_spoilers("Two heavyweights meet. Gane defeated Hokit. The Garden is sold out."), "Two heavyweights meet. The Garden is sold out.");
+        for told in [
+            "Gane beat Hokit by TKO in round two.",
+            "Gane won by TKO in the second round.",
+            "Hokit was stopped in round two.",
+            "Gane finished Hokit in round two.",
+            "Gane won the title from Hokit.",
+            "Gane knocked Hokit out early.",
+            "Hokit got KO'd in the first.",
+            "Gane took the belt via submission.",
+            "Verstappen won the Grand Prix from pole.",
+        ] {
+            assert!(!spoilers(told).is_empty(), "{told}");
+        }
+        for untold in ["Two heavyweights meet at the Garden.", "Gane vs. Hokit headlines a five-round main event.", "A title fight for the vacant belt."] {
+            assert!(spoilers(untold).is_empty(), "{untold}");
+        }
         assert!(Record { identified: false, ..Record::default() }.problems(&release, &known, added).is_empty());
         let mut bad_date = record;
         bad_date.date = "2026-02-30".into();
