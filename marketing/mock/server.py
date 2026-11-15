@@ -1381,6 +1381,19 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     DETAIL_SEASON_MODES[key] = (mode, seconds)
             return self.send_json({"season": key, "mode": mode})
+        if p == "/mock/arrive":
+            with LOCK:
+                episode = LIB.items.get((q.get("ratingKey") or [""])[0])
+                if not episode or episode.get("type") != "episode":
+                    return self.send_json({"arrived": False, "error": "no such episode"}, 404)
+                now = int(time.time())
+                episode["addedAt"] = now
+                episode.pop("viewCount", None)
+                episode.pop("viewOffset", None)
+                for key in (episode.get("parentRatingKey"), episode.get("grandparentRatingKey")):
+                    if key in LIB.items:
+                        LIB.items[key]["addedAt"] = now
+            return self.send_json({"arrived": True, "ratingKey": episode["ratingKey"], "addedAt": now})
         if p == "/mock/approve":
             code = (q.get("code", [""])[0]).lower()
             with LOCK:

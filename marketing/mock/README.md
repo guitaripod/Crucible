@@ -32,6 +32,8 @@ Runtime switches for player tests, read from `MOCK_*` environment variables at s
 - `no_indexes=1` (`MOCK_NO_INDEXES`): every part still says `indexes="sd"`, but its preview stills (`/library/parts/<id>/indexes/sd/<ms>`, otherwise a frame of clip.mp4 every 2 s) answer 404, as on a server whose thumbnails were deleted.
 - `fail_metadata_once=<ratingKey>` (`MOCK_FAIL_METADATA_ONCE`): the next single-item `/library/metadata/<ratingKey>` request answers 404 (a 5xx would be retried by the app's own client), then the flag clears itself (a resolve that fails once, then succeeds on Retry); `0` clears it.
 
+`GET /mock/arrive?ratingKey=<episode>` makes an episode new: added now and unwatched, its season and show moved to the top of Recently Added, as a library news check sees a fresh arrival.
+
 `GET /mock/log?q=<text>` returns the last 3000 request lines containing `<text>` as a JSON array (`GET /:/timeline?...`), so a UI test can assert which timeline states, transcode starts or pings reached the server.
 
 `./make_hls.sh` cuts `assets/clip.mp4` into `assets/hls` (fMP4, 6 s segments). Once it exists, `/video/:/transcode/universal/start.m3u8` serves that playlist whatever the `offset`, so transcode playback, restarts and pings can be exercised; without it the endpoint answers an empty 200. Every request is logged to stderr, so `/:/timeline`, `ping` and `stop` calls can be checked in the server log.
