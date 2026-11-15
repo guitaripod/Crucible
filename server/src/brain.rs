@@ -71,11 +71,46 @@ const LONGEST_WAIT: u64 = 30;
 /// How much of an endpoint's refusal is kept for the owner to read.
 const REFUSAL_SHOWN: usize = 300;
 
-/// A model the endpoint lists, with the context window it states when it states one (llama-swap's "· 256K").
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A model the endpoint lists, with the context window it states when it states one (llama-swap's "· 256K"), the
+/// name it shows people when that differs from its id (llama-swap's "Bolt Unchained"), and whether it is loaded now.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Listed {
     pub id: String,
     pub context: Option<u32>,
+    pub name: Option<String>,
+    pub loaded: bool,
+}
+
+impl Listed {
+    /// How the model is offered: its shown name with the id beside it, the window, and whether it runs now.
+    pub fn offered(&self) -> String {
+        let mut words = match &self.name {
+            Some(name) => format!("{name} ({})", self.id),
+            None => self.id.clone(),
+        };
+        if let Some(context) = self.context {
+            words.push_str(&format!(", {}K", context / 1024));
+        }
+        if self.loaded {
+            words.push_str(", running now");
+        }
+        words
+    }
+}
+
+/// One entry of a model listing: its window from the description llama-swap writes, from llama-swap's own metadata or
+/// from the context length other services state; the name shown for it; and whether llama-swap or LM Studio has it
+/// loaded.
+fn listed_from(model: &Value) -> Option<Listed> {
+    let id = model["id"].as_str()?.to_string();
+    let context = model["description"]
+        .as_str()
+        .and_then(context_in)
+        .or_else(|| model["meta"]["llamaswap"]["agent"]["context"].as_u64().map(|n| n as u32))
+        .or_else(|| model["context_length"].as_u64().map(|n| n as u32));
+    let name = model["name"].as_str().map(str::trim).filter(|name| !name.is_empty() && *name != id).map(str::to_string);
+    let loaded = model["status"]["value"].as_str() == Some("loaded") || model["state"].as_str() == Some("loaded");
+    Some(Listed { id, context, name, loaded })
 }
 
 static CONTEXT_SIZE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\b(\d{1,4})\s*K\b").expect("context pattern"));
@@ -260,19 +295,7 @@ impl Brain {
             return Err(self.refused(status.as_u16(), &refusal));
         }
         let body: Value = response.json().await.map_err(|_| BrainError::Shape)?;
-        Ok(body["data"]
-            .as_array()
-            .map(|models| {
-                models
-                    .iter()
-                    .filter_map(|model| {
-                        let id = model["id"].as_str()?.to_string();
-                        let context = model["description"].as_str().and_then(context_in).or_else(|| model["context_length"].as_u64().map(|n| n as u32));
-                        Some(Listed { id, context })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default())
+        Ok(body["data"].as_array().map(|models| models.iter().filter_map(listed_from).collect()).unwrap_or_default())
     }
 
     /// The error a refusal stands for, in words that say what the owner can do about it. Some services answer a bad
@@ -617,6 +640,22 @@ mod tests {
     use super::testing::{fine, start, Received};
     use super::*;
 
+    #[test]
+    fn reads_llama_swaps_name_window_and_loaded_model() {
+        let bolt = serde_json::json!({
+            "id": "nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf",
+            "name": "Bolt Unchained",
+            "description": "Nemotron 3.5 Bolt 74B · Uncensored · llama.cpp · IQ2 · DFlash · 256K",
+            "status": {"value": "loaded"}
+        });
+        let listed = listed_from(&bolt).unwrap();
+        assert_eq!((listed.name.as_deref(), listed.context, listed.loaded), (Some("Bolt Unchained"), Some(262_144), true));
+        assert_eq!(listed.offered(), "Bolt Unchained (nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf), 256K, running now");
+        let bare = serde_json::json!({"id": "groot", "name": "groot", "meta": {"llamaswap": {"agent": {"context": 131072}}}, "status": {"value": "unloaded"}});
+        let listed = listed_from(&bare).unwrap();
+        assert_eq!((listed.name, listed.context, listed.loaded), (None, Some(131_072), false));
+    }
+
     fn model(url: &str, name: &str) -> Model {
         Model { url: url.into(), name: name.into(), context: 32_768 }
     }
@@ -782,7 +821,7 @@ mod tests {
         assert_eq!(service.received.lock().unwrap()[0].key.as_deref(), Some("sk-right"));
         assert!(Brain::new(model(&service.url, "vendor/other")).has_model().await.unwrap());
         assert!(!Brain::new(model(&service.url, "missing")).has_model().await.unwrap());
-        assert_eq!(brain.listed().await.unwrap()[0], Listed { id: "models/gemini-flash".into(), context: Some(131_072) });
+        assert_eq!(brain.listed().await.unwrap()[0], Listed { id: "models/gemini-flash".into(), context: Some(131_072), ..Listed::default() });
     }
 
     #[test]

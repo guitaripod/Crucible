@@ -96,8 +96,9 @@ pub fn machine_name() -> String {
         .unwrap_or_else(|| "Plex server".into())
 }
 
-/// The models worth trying, best first: the one asked for alone, else the preferred models with a window for a whole
-/// episode's dialogue, then the preferred ones with a smaller window, then whatever else is listed.
+/// The models worth trying, best first: the one asked for alone, else a model the server has loaded with a window
+/// for a whole episode's dialogue (the one the owner already runs, kept warm), then the preferred models with such a
+/// window, then the preferred ones with a smaller window, then whatever else is listed.
 fn candidates(models: &[Listed], wanted: Option<&str>) -> Vec<Listed> {
     if let Some(wanted) = wanted {
         return models.iter().filter(|model| model.id == wanted).cloned().collect();
@@ -105,7 +106,7 @@ fn candidates(models: &[Listed], wanted: Option<&str>) -> Vec<Listed> {
     let rank = |model: &Listed| {
         let preference = PREFERRED.iter().position(|name| model.id.to_lowercase().contains(name)).unwrap_or(PREFERRED.len());
         let roomy = model.context.unwrap_or(DEFAULT_CONTEXT) >= ROOMY;
-        (preference == PREFERRED.len(), !roomy, preference)
+        (!(model.loaded && roomy), preference == PREFERRED.len(), !roomy, preference)
     };
     let mut ordered = models.to_vec();
     ordered.sort_by_key(rank);
@@ -173,7 +174,33 @@ fn listed_as<'a>(models: &'a [Listed], name: &str) -> Option<&'a Listed> {
 /// The model the owner named at this address, with the window the listing states for it; named but unlisted, it is
 /// still tried, since a service may list its models under other ids than it answers to.
 fn named(models: &[Listed], wanted: &str) -> Listed {
-    Listed { id: wanted.to_string(), context: listed_as(models, wanted).and_then(|model| model.context) }
+    match listed_as(models, wanted) {
+        Some(listed) => Listed { id: wanted.to_string(), ..listed.clone() },
+        None => Listed { id: wanted.to_string(), ..Listed::default() },
+    }
+}
+
+/// Models offered by number at once, best first.
+const OFFERED: usize = 9;
+
+/// Asks which of `offered` to use, by its number, with the first as the default; nil for none.
+fn choose_model(offered: &[Listed]) -> Option<Listed> {
+    println!("Which model should write recaps and answers and do Sports Research?");
+    for (index, model) in offered.iter().enumerate() {
+        println!("  {} {}", index + 1, model.offered());
+    }
+    println!("  0 none for now");
+    loop {
+        let answer = ask("Model", "1");
+        match answer.parse::<usize>() {
+            Ok(0) => return None,
+            Ok(number) if number <= offered.len() => return offered.get(number - 1).cloned(),
+            _ => match offered.iter().find(|model| model.id == answer) {
+                Some(model) => return Some(model.clone()),
+                None => println!("Type a number from 0 to {}.", offered.len()),
+            },
+        }
+    }
 }
 
 /// Looks for a model that answers at one address. A model the owner names is taken as named; the one set before at
@@ -197,18 +224,18 @@ async fn pick_at(host: &ModelHost, key: Option<&str>, asked_for: Option<&str>, b
         println!("{} no longer lists {}.", host.label, gone.name);
     }
     let wanted = asked_for.or(still_listed);
-    let offered = match wanted {
+    let asks = !(options.assume_yes || wanted.is_some());
+    let mut offered: Vec<Listed> = match wanted {
         Some(wanted) => vec![named(&models, wanted)],
         None if outside => {
             println!("Say which of them to use: add --model to setup, or --name to crucible-server model.");
             return None;
         }
-        None => candidates(&models, None).into_iter().take(4).collect(),
+        None => candidates(&models, None).into_iter().take(if asks { OFFERED } else { 4 }).collect(),
     };
-    for candidate in offered {
-        if !(options.assume_yes || wanted.is_some() || confirm(&format!("Use {} for recaps and answers?", candidate.id), true)) {
-            continue;
-        }
+    while !offered.is_empty() {
+        let candidate = if asks { choose_model(&offered)? } else { offered[0].clone() };
+        offered.retain(|model| model.id != candidate.id);
         let window_before = before.filter(|model| model.name == candidate.id).map(|model| model.context);
         let window = options.context.or(candidate.context).or(window_before);
         let model = Model { url: host.url.clone(), name: candidate.id.clone(), context: window.unwrap_or(DEFAULT_CONTEXT) };
@@ -730,7 +757,10 @@ mod tests {
         let chosen = settle_model(&paths, Some(&removed), None, &agreeing).await.unwrap().unwrap();
         assert_eq!(chosen.name, "qwen3-30b-a3b");
 
-        let both = vec![Listed { id: "vendor/writer".into(), context: Some(8_192) }, Listed { id: "writer".into(), context: Some(131_072) }];
+        let both = vec![
+            Listed { id: "vendor/writer".into(), context: Some(8_192), ..Listed::default() },
+            Listed { id: "writer".into(), context: Some(131_072), ..Listed::default() },
+        ];
         assert_eq!(named(&both, "writer").context, Some(131_072));
         assert_eq!(listed_as(&both[..1], "writer").map(|listed| listed.id.as_str()), Some("vendor/writer"));
     }
@@ -741,9 +771,9 @@ mod tests {
         assert!(notice.contains("openrouter.ai is outside your network") && notice.contains("subtitles") && notice.contains("No Plex account"));
         assert!(notice.contains("the one they are watching up to where they paused") && notice.contains("names of shows and episodes"));
         assert!(!notice.contains("unprotected") && outside_notice("8.8.8.8", "http://8.8.8.8/v1").contains("cross the internet unprotected"));
-        let listed = vec![Listed { id: "models/gemini-flash".into(), context: Some(1_048_576) }];
-        assert_eq!(named(&listed, "gemini-flash"), Listed { id: "gemini-flash".into(), context: Some(1_048_576) });
-        assert_eq!(named(&listed, "elsewhere"), Listed { id: "elsewhere".into(), context: None });
+        let listed = vec![Listed { id: "models/gemini-flash".into(), context: Some(1_048_576), ..Listed::default() }];
+        assert_eq!(named(&listed, "gemini-flash"), Listed { id: "gemini-flash".into(), context: Some(1_048_576), ..Listed::default() });
+        assert_eq!(named(&listed, "elsewhere"), Listed { id: "elsewhere".into(), ..Listed::default() });
         let outside = Model { url: "https://openrouter.ai/api/v1".into(), name: "m".into(), context: 8192 };
         assert_eq!(described(&outside, true), "m at https://openrouter.ai/api/v1 (outside your network, at openrouter.ai, with your key)");
         assert_eq!(described(&Model { url: "http://127.0.0.1:8081/v1".into(), ..outside }, false), "m at http://127.0.0.1:8081/v1");
@@ -751,11 +781,23 @@ mod tests {
 
     #[test]
     fn tries_good_summary_models_with_room_for_an_episode_first() {
-        let listed = |id: &str, context: Option<u32>| Listed { id: id.into(), context };
+        let listed = |id: &str, context: Option<u32>| Listed { id: id.into(), context, ..Listed::default() };
         let models = vec![listed("flint", Some(262_144)), listed("gemma4-26b-a4b-gguf", Some(8_192)), listed("qwen3-30b-a3b", Some(131_072))];
         let order: Vec<String> = candidates(&models, None).into_iter().map(|m| m.id).collect();
         assert_eq!(order, vec!["qwen3-30b-a3b", "gemma4-26b-a4b-gguf", "flint"]);
         assert_eq!(candidates(&models, Some("flint")).len(), 1);
         assert!(candidates(&models, Some("missing")).is_empty());
+    }
+
+    #[test]
+    fn offers_the_model_the_owner_already_runs_first() {
+        let listed = |id: &str, context: u32, loaded: bool| Listed { id: id.into(), context: Some(context), loaded, ..Listed::default() };
+        let models = vec![
+            listed("groot-19b-a3b-nvfp4", 262_144, false),
+            listed("gpulens-helper", 4_096, true),
+            listed("nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf", 262_144, true),
+        ];
+        let order: Vec<String> = candidates(&models, None).into_iter().map(|m| m.id).collect();
+        assert_eq!(order, vec!["nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf", "groot-19b-a3b-nvfp4", "gpulens-helper"]);
     }
 }
