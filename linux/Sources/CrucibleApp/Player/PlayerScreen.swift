@@ -58,6 +58,8 @@ final class PlayerScreen: View {
     /// Direct play failed on this file, so every stream from now on is converted by the server.
     var convertsAfterFailure = false
     private var failurePolicy = PlaybackFailurePolicy()
+    var heals = HealBudget()
+    var pingTask: Task<Void, Never>?
     var streamOffset: Double = 0
     var segments: [SkipMarker] = []
     var subtitlesTurnedOff = false
@@ -216,6 +218,7 @@ final class PlayerScreen: View {
         MidgarLog.notice("Playing \(item.id) \(resolved.isDirectPlay ? "directly" : "converted") from \(Int(start)) s", category: .playback)
         DemoTour.shared.record(.play)
         startReporting()
+        keepAlive(resolved)
         infoPanel?.update(infoContent)
     }
 
@@ -289,6 +292,7 @@ final class PlayerScreen: View {
         case .loaded, .seeked:
             break
         case .ended:
+            if endedShort() { return }
             if sleepTimer?.stopsAtEndOfItem == true {
                 closeForSleep()
                 return
@@ -645,6 +649,7 @@ final class PlayerScreen: View {
         resolveTask?.cancel()
         reportTask?.cancel()
         heartbeatTask?.cancel()
+        pingTask?.cancel()
         revealTask?.cancel()
         metadataTask?.cancel()
         hideTask?.cancel()

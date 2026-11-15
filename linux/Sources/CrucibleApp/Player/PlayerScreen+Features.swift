@@ -338,6 +338,63 @@ extension PlayerScreen {
         report(resumes ? "playing" : "paused")
     }
 
+    /// Pings a converted stream's server session while the player is open (`PlaybackSession.startPing`), so a long pause does
+    /// not lose it, and rebuilds the stream when the server says the session is gone.
+    func keepAlive(_ resolved: ResolvedStream) {
+        pingTask?.cancel()
+        guard !resolved.isDirectPlay, case .plex(let api, _, _) = source else { return }
+        let session = resolved.sessionId
+        pingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: PlaybackTiming.transcodePingInterval)
+                guard !Task.isCancelled else { return }
+                do {
+                    try await api.requestConfirmed(.pingTranscode(session: session))
+                } catch APIError.httpError(let status, _) where TranscodeLiveness.isGoneStatus(status) {
+                    guard let self, self.stream?.sessionId == session else { return }
+                    self.heal(reason: "ping \(status)")
+                    return
+                } catch {
+                    continue
+                }
+            }
+        }
+    }
+
+    /// A converted stream that stopped well before the end was cut by the server, not finished: it is rebuilt where it
+    /// stopped instead of offering the next episode.
+    func endedShort() -> Bool {
+        guard let stream, !stream.isDirectPlay else { return false }
+        guard !ItemEndRule.isGenuineEnd(absolute: position, duration: duration, creditsStart: upNext?.creditsStartSecs) else { return false }
+        heal(reason: "ended at \(Int(position)) of \(Int(duration))")
+        return true
+    }
+
+    /// Rebuilds a converted stream under a new server session at the playhead, within `HealBudget`, so a server that keeps
+    /// dropping it ends in Retry instead of a loop.
+    func heal(reason: String) {
+        guard let stream, !stream.isDirectPlay, !closed else { return }
+        switch heals.ask(at: .now) {
+        case .wait:
+            return
+        case .giveUp:
+            MidgarLog.error("Giving up on healing after repeated rebuilds: \(reason)", category: .playback)
+            presentFailure(String(localized: "The server keeps stopping this stream."), retry: { [weak self] in
+                self?.heals = HealBudget()
+                self?.reloadStream(at: self?.position ?? 0, freshSession: true)
+            })
+        case .heal:
+            let at = position
+            let paused = player?.state.isPaused ?? false
+            MidgarLog.notice("Healing the converted stream at \(Int(at)) s: \(reason)", category: .playback)
+            reloadStream(at: at, freshSession: true, paused: paused) { [weak self] in
+                self?.presentFailure(String(localized: "The server didn’t answer."), retry: { [weak self] in
+                    self?.reloadStream(at: at, freshSession: true)
+                })
+            }
+        }
+    }
+
     /// Notes when the viewer paused, and on playing again after a pause long enough to be a break backs up a little first
     /// (`BreakRule`); a converted stream the server may have reaped meanwhile is rebuilt under a new session.
     func notePause(_ isPaused: Bool) {
