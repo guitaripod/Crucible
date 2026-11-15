@@ -4,5 +4,6 @@ module CLinuxServices {
     header "crucible_app.h"
     header "crucible_session.h"
     header "crucible_pinned.h"
+    header "crucible_notify.h"
     export *
 }

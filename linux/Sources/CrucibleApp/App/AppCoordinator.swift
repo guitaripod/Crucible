@@ -36,6 +36,8 @@ final class AppCoordinator: WindowDelegate {
     private var finaleTask: Task<Void, Never>?
     private var root: RootView?
     private var onboarding: OnboardingView?
+    private var notifications: DesktopNotifications?
+    private var newsWatcher: LibraryNewsWatcher?
 
     private static let finaleSettleDelay: Duration = .milliseconds(1200)
     private static let finaleRetryInterval: Duration = .milliseconds(800)
@@ -44,6 +46,11 @@ final class AppCoordinator: WindowDelegate {
         self.window = window
         window.delegate = self
         DemoTour.shared.onFinale = { [weak self] in self?.scheduleFinale() }
+        if let loop = window.loop, let notifications = DesktopNotifications(loop: loop) {
+            notifications.onOpen = { [weak self] link, token in self?.open([link], activationToken: token) }
+            self.notifications = notifications
+            newsWatcher = LibraryNewsWatcher(notifications: notifications)
+        }
     }
 
     func start() {
@@ -124,6 +131,7 @@ final class AppCoordinator: WindowDelegate {
         root = main
         install(main)
         router.activate(main)
+        newsWatcher?.start()
     }
 
     /// The launch gate stays a moment over the app it hands to, fading out (`TVAppCoordinator`'s 0.4 s cross-dissolve).
@@ -140,6 +148,7 @@ final class AppCoordinator: WindowDelegate {
     }
 
     private func showOnboarding(_ mode: OnboardingView.Mode) {
+        newsWatcher?.stop()
         launchTask?.cancel()
         finaleTask?.cancel()
         APIClient.onBaseURLChanged.withLock { $0 = nil }
