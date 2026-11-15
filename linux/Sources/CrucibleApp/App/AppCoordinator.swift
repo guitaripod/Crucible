@@ -116,6 +116,7 @@ final class AppCoordinator: WindowDelegate {
         main.onLeaveDemo = { [weak self] in self?.leaveDemo() }
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
         main.onReconnect = { [weak self] in self?.reconnect() }
+        main.onQuit = { [weak self] in self?.onQuit?() }
         APIClient.onBaseURLChanged.withLock { handler in
             handler = { url in Task { @MainActor in Artwork.pipeline = PlexArtworkPipeline(baseURL: url) } }
         }

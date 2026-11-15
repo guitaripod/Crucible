@@ -15,10 +15,12 @@ final class RootView: View {
     var onSwitchServer: (() -> Void)?
     /// Connects again from the saved server (after Add Server by Address).
     var onReconnect: (() -> Void)?
+    /// Quit Crucible from the app's menu.
+    var onQuit: (() -> Void)?
 
-    private let tabBar = TabBarView()
+    let tabBar = TabBarView()
     private var stacks: [String: NavigationView] = [:]
-    private var current: NavigationView?
+    private(set) var current: NavigationView?
     private var currentID = "home"
     private let libraryLayout: LibraryTabLayout
 
@@ -38,6 +40,8 @@ final class RootView: View {
         tabs.append(.init(id: "you", title: String(localized: "You"), symbol: "person.crop.circle"))
         tabBar.tabs = tabs
         tabBar.onSelect = { [weak self] tab in self?.select(tab.id) }
+        tabBar.menuTitle = AppCommandCopy.menu
+        tabBar.onMenu = { [weak self] anchor in self?.presentCommandMenu(anchor: anchor) }
         addSubview(tabBar)
         select("home")
     }
@@ -125,7 +129,7 @@ final class RootView: View {
         return true
     }
 
-    private func zoomCards(_ step: CardZoom.Step) {
+    func zoomCards(_ step: CardZoom.Step) {
         CardZoom.apply(step)
         window?.relayoutEverything()
     }
@@ -138,8 +142,17 @@ final class RootView: View {
         stack.push(SettingsScreen(api: payload.api))
     }
 
-    /// The tvOS app's commands with Ctrl for Command: Ctrl+1 to Ctrl+9 pick tabs.
+    /// The tvOS app's commands with Ctrl for Command: Ctrl+1 to Ctrl+9 pick tabs, F10 opens the app's menu and Ctrl+? lists
+    /// every shortcut.
     func handleCommand(_ event: KeyEvent) -> Bool {
+        if event.key == .f10 && event.modifiers.isEmpty {
+            presentCommandMenu()
+            return true
+        }
+        if event.modifiers.contains(.control), event.key == Key.character("?") || (event.key == Key.character("/") && event.modifiers.contains(.shift)) {
+            presentShortcuts()
+            return true
+        }
         if (event.key == Key.character("f") && event.modifiers == .control) || (event.key == Key.character("/") && event.modifiers.isEmpty) {
             select("search")
             return true
@@ -169,7 +182,7 @@ final class RootView: View {
         return false
     }
 
-    private var player: PlayerScreen?
+    private(set) var player: PlayerScreen?
 
     /// Plays `item` over everything, from where the viewer left it, in the audio and subtitles a title page chose;
     /// focus returns where it was when the player closes.
