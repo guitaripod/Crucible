@@ -12,14 +12,18 @@ public final class MenuView: View {
         public var symbol: Symbol?
         public var isChecked: Bool
         public var isDestructive: Bool
+        /// The item's keyboard shortcut, on the trailing edge as desktop menus show it ("Ctrl+R").
+        public var shortcut: String?
 
-        public init(id: String, title: String, detail: String? = nil, symbol: Symbol? = nil, isChecked: Bool = false, isDestructive: Bool = false) {
+        public init(id: String, title: String, detail: String? = nil, symbol: Symbol? = nil, isChecked: Bool = false, isDestructive: Bool = false,
+                    shortcut: String? = nil) {
             self.id = id
             self.title = title
             self.detail = detail
             self.symbol = symbol
             self.isChecked = isChecked
             self.isDestructive = isDestructive
+            self.shortcut = shortcut
         }
     }
 
@@ -141,8 +145,8 @@ public final class MenuView: View {
     }
 }
 
-/// One row of a menu: a checkmark when chosen, the title and its detail, the item's symbol on the trailing edge as tvOS
-/// menus draw it, the light plate under focus or the pointer.
+/// One row of a menu: a checkmark when chosen, the title and its detail, the item's shortcut and symbol on the trailing
+/// edge as tvOS and desktop menus draw them, the light plate under focus or the pointer.
 @MainActor
 final class MenuRowView: View {
     let item: MenuView.Item
@@ -163,7 +167,8 @@ final class MenuRowView: View {
         let title = TextLayout(item.title, font: Theme.current.type.control, scale: scale).size.width
         let detail = item.detail.map { TextLayout($0, font: Theme.current.type.cardSubtitle, scale: scale).size.width } ?? 0
         let symbol = item.symbol == nil ? 0 : metrics.tv(56)
-        return (max(title, detail) + metrics.tv(140) + symbol).rounded(.up)
+        let shortcut = item.shortcut.map { TextLayout($0, font: Theme.current.type.cardSubtitle, scale: scale).size.width + metrics.tv(40) } ?? 0
+        return (max(title, detail) + metrics.tv(140) + symbol + shortcut).rounded(.up)
     }
 
     private func update() {
@@ -212,6 +217,12 @@ final class MenuRowView: View {
             let side = metrics.tv(30)
             context.symbol(symbol, in: Rect(x: bounds.width - metrics.tv(24) - side, y: bounds.midY - side / 2, width: side, height: side), color: color)
             trailing += metrics.tv(56)
+        }
+        if let shortcut = item.shortcut {
+            let keys = TextLayout(shortcut, font: theme.type.cardSubtitle, maxLines: 1, scale: scale)
+            let keysY = ((bounds.height - keys.size.height) / 2 * scale).rounded() / scale
+            context.text(keys, at: Point(x: bounds.width - trailing - keys.size.width, y: keysY), color: secondary)
+            trailing += keys.size.width + metrics.tv(40)
         }
         let title = TextLayout(item.title, font: theme.type.control, maxWidth: bounds.width - x - trailing, scale: scale)
         let detail = item.detail.map { TextLayout($0, font: theme.type.cardSubtitle, maxWidth: bounds.width - x - trailing, scale: scale) }

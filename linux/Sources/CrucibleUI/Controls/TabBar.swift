@@ -22,8 +22,13 @@ public final class TabBarView: View {
     public var tabs: [Tab] = [] { didSet { rebuild() } }
     public private(set) var selectedID: String?
     public var onSelect: ((Tab) -> Void)?
+    /// When set, a menu button closes the bar's end and opens the app's menu, told where the button sits in the window.
+    public var onMenu: ((Rect) -> Void)? { didSet { rebuild() } }
+    /// The menu button's name, read to assistive tech.
+    public var menuTitle = "Menu" { didSet { rebuild() } }
 
     private var items: [TabItemView] = []
+    private var menuItem: TabItemView?
     private var pillX = Animated(0)
     private var pillWidth = Animated(0)
     private var hidden = Animated(0)
@@ -50,7 +55,14 @@ public final class TabBarView: View {
         startAnimating()
     }
 
+    /// Where the menu button sits in the window, for a menu opened from the keyboard (F10).
+    public var menuAnchor: Rect? {
+        menuItem.map { $0.transformToWindow.apply($0.bounds) }
+    }
+
     private func rebuild() {
+        menuItem?.removeFromSuperview()
+        menuItem = nil
         for item in items { item.removeFromSuperview() }
         items = tabs.map { tab in
             let item = TabItemView(tab: tab)
@@ -63,13 +75,23 @@ public final class TabBarView: View {
             addSubview(item)
             return item
         }
+        if onMenu != nil {
+            let item = TabItemView(tab: Tab(id: "tabbar.menu", title: menuTitle, symbol: "line.3.horizontal"))
+            item.isCompact = true
+            item.onPress = { [weak self, weak item] in
+                guard let self, let item else { return }
+                self.onMenu?(item.transformToWindow.apply(item.bounds))
+            }
+            addSubview(item)
+            menuItem = item
+        }
         setNeedsLayout()
     }
 
     /// Whether every title fits in the window beside the side margins; when not, the tabs show their symbols.
     private func updateCompactness() {
         let metrics = Theme.current.metrics
-        let titled = items.reduce(Float(0)) { $0 + $1.titledWidth } + metrics.tv(12) * 2
+        let titled = items.reduce(Float(0)) { $0 + $1.titledWidth } + (menuItem?.preferredWidth ?? 0) + metrics.tv(12) * 2
         let compact = titled > frame.width - metrics.sideMargin * 2 && items.allSatisfy { $0.tab.symbol != nil }
         for item in items where item.isCompact != compact { item.isCompact = compact }
     }
@@ -77,7 +99,7 @@ public final class TabBarView: View {
     /// The capsule's frame, centred along the top.
     private var capsule: Rect {
         let metrics = Theme.current.metrics
-        let content = items.reduce(Float(0)) { $0 + $1.preferredWidth }
+        let content = items.reduce(Float(0)) { $0 + $1.preferredWidth } + (menuItem?.preferredWidth ?? 0)
         let width = content + metrics.tv(12) * 2
         return Rect(x: ((frame.width - width) / 2).rounded(), y: metrics.tabBarTop, width: width, height: metrics.tabBarHeight)
     }
@@ -87,7 +109,7 @@ public final class TabBarView: View {
         let bar = capsule
         var x = bar.x + Theme.current.metrics.tv(12)
         let inset = Theme.current.metrics.tv(8)
-        for item in items {
+        for item in items + [menuItem].compactMap({ $0 }) {
             item.frame = Rect(x: x, y: bar.y + inset, width: item.preferredWidth, height: bar.height - inset * 2)
             x += item.preferredWidth
         }
@@ -105,6 +127,7 @@ public final class TabBarView: View {
     public override func advanceAnimations(_ dt: Float) -> Bool {
         let moving = [pillX.advance(dt), pillWidth.advance(dt), hidden.advance(dt), tone.advance(dt)].contains(true)
         for item in items { item.tone = tone.value }
+        menuItem?.tone = tone.value
         translation = Point(x: 0, y: -hidden.value * (capsule.maxY + Theme.current.metrics.tv(30)))
         alpha = 1 - hidden.value
         setNeedsDisplay()
@@ -132,6 +155,7 @@ public final class TabBarView: View {
         }
         if tone.update(context, rect: bar) { startAnimating() }
         for item in items { item.tone = tone.value }
+        menuItem?.tone = tone.value
         GlassStyle.capsule(in: bar, light: light, pill: pill, floating: true, tone: tone.value, context: &context)
     }
 }

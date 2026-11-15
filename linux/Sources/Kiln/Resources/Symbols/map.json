@@ -110,6 +110,7 @@
   "key": "key-round",
   "keyboard": "keyboard",
   "leaf": "leaf",
+  "line.3.horizontal": "menu",
   "line.3.horizontal.decrease": "list-filter",
   "line.3.horizontal.decrease.circle": "funnel",
   "line.3.horizontal.decrease.circle.fill": {"icon": "funnel", "fill": true},
