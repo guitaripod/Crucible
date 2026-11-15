@@ -196,9 +196,10 @@ final class AboutScreen: SettingsScaffold {
 
     init() {
         super.init(title: String(localized: "About Crucible"))
-        installContext(ContextPanel(content: .init(symbol: "sparkles", title: "Crucible",
-                                                   subtitle: String(localized: "Version \(AppInfo.versionSummary)"),
-                                                   body: AppInfo.licenseSummary)))
+        let panel = ContextPanel(content: .init(symbol: "sparkles", title: "Crucible", subtitle: String(localized: "Version \(AppInfo.versionSummary)"),
+                                                body: AppInfo.licenseSummary))
+        panel.wellView = CrystalGlyphView()
+        installContext(panel)
         var items = [
             RowItem(id: "about.version", title: String(localized: "Version"), value: AppInfo.versionText, symbol: "info.circle"),
             RowItem(id: "about.build", title: String(localized: "Build", comment: "Build number of the app"), value: AppInfo.buildText, symbol: "hammer"),

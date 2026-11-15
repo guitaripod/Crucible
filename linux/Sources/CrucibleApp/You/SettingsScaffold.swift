@@ -117,6 +117,15 @@ final class ContextPanel: View {
     }
 
     var content: Content { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
+    /// A view drawn in the icon well in place of the symbol (About's crystal).
+    var wellView: View? {
+        didSet {
+            oldValue?.removeFromSuperview()
+            if let wellView { addSubview(wellView) }
+            setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
 
     init(content: Content) {
         self.content = content
@@ -161,6 +170,27 @@ final class ContextPanel: View {
         return Size(width: size.width, height: (inset * 2 + well + Theme.current.metrics.tv(24) + text).rounded(.up))
     }
 
+    override func layoutSubviews() {
+        wellView?.frame = Rect(x: inset, y: inset, width: well, height: well)
+    }
+
+    /// The icon well: the monogram on the ember gradient for an account, the symbol on the accent tint otherwise.
+    private func drawWell(in wellRect: Rect, scale: Float, context: inout DrawContext) {
+        let theme = Theme.current
+        let palette = theme.palette
+        if let monogram = content.monogram {
+            context.gradient(wellRect, vertical: true, stops: [(0, palette.emberMid), (1, palette.emberBottom)], radius: well / 2)
+            let initials = TextLayout(monogram, font: theme.type.title2, scale: scale)
+            context.text(initials, at: Point(x: (wellRect.midX - initials.size.width / 2).rounded(), y: (wellRect.midY - initials.size.height / 2).rounded()),
+                         color: palette.onArt)
+        } else {
+            context.fill(wellRect, radius: theme.metrics.radiusL, color: palette.accentTint)
+            let glyph = well * 0.5
+            context.symbol(content.symbol, in: Rect(x: wellRect.midX - glyph / 2, y: wellRect.midY - glyph / 2, width: glyph, height: glyph),
+                           color: palette.accentText)
+        }
+    }
+
     override func draw(_ context: inout DrawContext) {
         guard let scale = window?.scale else { return }
         let theme = Theme.current
@@ -168,17 +198,7 @@ final class ContextPanel: View {
         let palette = theme.palette
         context.fill(bounds, radius: metrics.radiusL, color: palette.surface)
         let wellRect = Rect(x: inset, y: inset, width: well, height: well)
-        if let monogram = content.monogram {
-            context.gradient(wellRect, vertical: true, stops: [(0, palette.emberMid), (1, palette.emberBottom)], radius: well / 2)
-            let initials = TextLayout(monogram, font: theme.type.title2, scale: scale)
-            context.text(initials, at: Point(x: (wellRect.midX - initials.size.width / 2).rounded(), y: (wellRect.midY - initials.size.height / 2).rounded()),
-                         color: palette.onArt)
-        } else {
-            context.fill(wellRect, radius: metrics.radiusL, color: palette.accentTint)
-            let glyph = well * 0.5
-            context.symbol(content.symbol, in: Rect(x: wellRect.midX - glyph / 2, y: wellRect.midY - glyph / 2, width: glyph, height: glyph),
-                           color: palette.accentText)
-        }
+        if wellView == nil { drawWell(in: wellRect, scale: scale, context: &context) }
         var y = wellRect.maxY + metrics.tv(24)
         for line in layouts(width: bounds.width, scale: scale) {
             var x = inset

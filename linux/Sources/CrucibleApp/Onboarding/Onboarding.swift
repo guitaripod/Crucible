@@ -95,23 +95,28 @@ final class OnboardingView: View {
     }
 }
 
-/// The first screen: the wordmark, a line about the app and Sign in with Plex.
+/// The first screen: the breathing crystal, the wordmark, a line about the app and Sign in with Plex.
 @MainActor
 final class WelcomeScreen: ScreenView {
     var onSignIn: (() -> Void)?
     private let signIn = ButtonView(style: .primary, title: String(localized: "Sign in with Plex"))
+    private let glyph = CrystalGlyphView()
 
     override init(frame: Rect = .zero) {
         super.init(frame: frame)
         signIn.onPress = { [weak self] in self?.onSignIn?() }
+        addSubview(glyph)
         addSubview(signIn)
+        glyph.startBreathing()
     }
 
     override var preferredFocusView: View? { signIn }
 
     override func layoutSubviews() {
         let size = signIn.sizeThatFits(Size(width: 600, height: 200))
-        signIn.frame = Rect(x: ((frame.width - size.width) / 2).rounded(), y: (frame.height * 0.62).rounded(), width: size.width, height: size.height)
+        signIn.frame = Rect(x: ((frame.width - size.width) / 2).rounded(), y: (frame.height * 0.66).rounded(), width: size.width, height: size.height)
+        let side = Theme.current.metrics.tv(220)
+        glyph.frame = Rect(x: ((frame.width - side) / 2).rounded(), y: (frame.height * 0.16).rounded(), width: side, height: side)
     }
 
     override func draw(_ context: inout DrawContext) {
@@ -121,11 +126,11 @@ final class WelcomeScreen: ScreenView {
         context.glow(in: bounds, radius: 0, center: Point(x: bounds.midX, y: bounds.height * 0.4), glowRadius: bounds.width * 0.55,
                      color: Color(srgbRed: 0.18, green: 0.10, blue: 0.04).withAlpha(0.95))
         let wordmark = TextLayout("Crucible", font: Font(size: theme.type.largeTitle.size * 1.3, weight: .heavy), scale: scale)
-        context.text(wordmark, at: Point(x: ((bounds.width - wordmark.size.width) / 2).rounded(), y: (bounds.height * 0.36 - wordmark.size.height / 2).rounded()),
+        context.text(wordmark, at: Point(x: ((bounds.width - wordmark.size.width) / 2).rounded(), y: (bounds.height * 0.42 - wordmark.size.height / 2).rounded()),
                      color: theme.palette.label)
         let tagline = TextLayout(String(localized: "Your Plex library, beautifully on Linux."), font: theme.type.title3, maxWidth: bounds.width * 0.8,
                                  alignment: .center, scale: scale)
-        context.text(tagline, at: Point(x: ((bounds.width - tagline.size.width) / 2).rounded(), y: (bounds.height * 0.36 + wordmark.size.height / 2 + theme.metrics.tv(24)).rounded()),
+        context.text(tagline, at: Point(x: ((bounds.width - tagline.size.width) / 2).rounded(), y: (bounds.height * 0.42 + wordmark.size.height / 2 + theme.metrics.tv(24)).rounded()),
                      color: theme.palette.labelSecondary)
     }
 }
