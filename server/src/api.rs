@@ -473,7 +473,12 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
         .filter(|(_, _, other_videos)| *other_videos)
         .map(|(key, title, _)| json!({"key": key, "title": title, "chosen": settings.libraries.contains(&key)}))
         .collect();
-    let (items, counts) = sports.items(40);
+    let (mut items, counts) = sports.items(40);
+    if !is_owner {
+        for item in &mut items {
+            item.file = item.file.rsplit(['/', '\\']).next().unwrap_or_default().to_string();
+        }
+    }
     Ok(Json(json!({
         "owner": is_owner,
         "ready": crate::sports::checks::ready(&checks),
