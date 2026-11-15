@@ -17,7 +17,7 @@ public final class Texture {
     }
 
     let handle: OpaquePointer
-    unowned let gpu: GPU
+    let gpu: GPU
     public let width: Int
     public let height: Int
 
