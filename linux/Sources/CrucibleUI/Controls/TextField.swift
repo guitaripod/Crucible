@@ -72,6 +72,14 @@ public final class TextFieldView: View {
         return position
     }
 
+    /// Where a word ends going right from `index`.
+    private func wordEnd(_ characters: [Character], from index: Int) -> Int {
+        var position = index
+        while position < characters.count, characters[position].isWhitespace { position += 1 }
+        while position < characters.count, !characters[position].isWhitespace { position += 1 }
+        return position
+    }
+
     public override func keyPressed(_ event: KeyEvent) -> Bool {
         let control = event.modifiers.contains(.control)
         switch event.key {
@@ -86,7 +94,8 @@ public final class TextFieldView: View {
         case .delete:
             edit { characters, caret in
                 guard caret < characters.count else { return }
-                characters.remove(at: caret)
+                let end = control ? wordEnd(characters, from: caret) : caret + 1
+                characters.removeSubrange(caret..<end)
             }
             return true
         case .left where !text.isEmpty && caret > 0:
@@ -96,7 +105,7 @@ public final class TextFieldView: View {
             setNeedsDisplay()
             return true
         case .right where caret < text.count:
-            caret += 1
+            caret = control ? wordEnd(Array(text), from: caret) : caret + 1
             selectAll = false
             restartBlink()
             setNeedsDisplay()

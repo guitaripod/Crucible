@@ -148,6 +148,11 @@ enum SharedGPU {
         window.handleKey(KeyEvent(key: .escape))
         #expect(field.text.isEmpty)
         #expect(changes.last == "")
+        for character in "low tide now" { window.handleKey(KeyEvent(key: Key.character(character), text: String(character))) }
+        window.handleKey(KeyEvent(key: .home))
+        window.handleKey(KeyEvent(key: .right, modifiers: .control))
+        window.handleKey(KeyEvent(key: .delete, modifiers: .control))
+        #expect(field.text == "low now", "Ctrl+Right lands after a word and Ctrl+Delete takes the next one")
         window.render()
     }
 
