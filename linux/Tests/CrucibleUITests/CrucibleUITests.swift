@@ -156,6 +156,37 @@ enum SharedGPU {
         window.render()
     }
 
+    @Test func closingAMenuOrAlertHandsFocusStraightBack() {
+        let anchor = ButtonView(style: .glass, title: "Manage")
+        let neighbour = ButtonView(style: .glass, title: "Neighbour")
+        anchor.frame = Rect(x: 100, y: 100, width: 160, height: 50)
+        neighbour.frame = Rect(x: 100, y: 200, width: 160, height: 50)
+        window.contentView.addSubview(anchor)
+        window.contentView.addSubview(neighbour)
+        window.focus.setVisible(true)
+        window.focus.focus(anchor, animated: false)
+        var landed: [View] = []
+        window.focus.onChange = { _, new in if let new { landed.append(new) } }
+        defer { window.focus.onChange = nil }
+
+        var chosen: String?
+        let menu = MenuView(title: "Manage", items: [MenuView.Item(id: "refresh", title: "Refresh")], anchor: anchor.frameInWindow)
+        menu.onSelect = { chosen = $0.id }
+        menu.present(in: window)
+        window.render()
+        landed.removeAll()
+        window.handleKey(KeyEvent(key: .return))
+        #expect(chosen == "refresh")
+        #expect(landed.count == 1 && landed.first === anchor, "focus goes from the menu to its button without passing a neighbour")
+
+        AlertView.notice(title: "Sent", in: window)
+        window.render()
+        landed.removeAll()
+        window.handleKey(KeyEvent(key: .return))
+        #expect(landed.count == 1 && landed.first === anchor, "focus goes from the alert to the button without passing a neighbour")
+        #expect(window.focusedView === anchor)
+    }
+
     @Test func aTabBarSelectsWithThePointer() {
         let bar = TabBarView()
         bar.tabs = [.init(id: "home", title: "Home"), .init(id: "movies", title: "Movies")]

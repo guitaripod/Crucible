@@ -40,10 +40,8 @@ public final class RatingPanelView: View {
 
     public func dismiss() {
         guard superview != nil else { return }
-        let window = self.window
-        let focus = returnFocus
+        if let focus = returnFocus, focus.window != nil { window?.focus.focus(focus, animated: false) }
         removeFromSuperview()
-        if let focus, focus.window != nil { window?.focus.focus(focus, animated: false) }
     }
 
     private func commit(_ value: Int?) {

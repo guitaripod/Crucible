@@ -160,9 +160,9 @@ final class RootView: View {
         screen.chosenTracks = tracks
         screen.run = run
         screen.onClose = { [weak self, weak screen] in
+            if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
             screen?.removeFromSuperview()
             self?.player = nil
-            if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
             self?.current?.top?.screenDidAppear()
         }
         screen.onPlayNext = { [weak self, weak screen] episode, run in
