@@ -223,6 +223,12 @@ impl Brain {
     }
 
     /// The configured model with the key kept for its address, when one was.
+    /// The same client with room for `calls` requests in flight at once, for work that runs several at a time.
+    pub fn with_calls(mut self, calls: usize) -> Self {
+        self.calls = Arc::new(Semaphore::new(calls.max(1)));
+        self
+    }
+
     pub fn with_stored_key(model: Model, paths: &Paths) -> Self {
         let key = paths.model_key_for(&model.url);
         Brain::with_key(model, key)

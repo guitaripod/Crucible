@@ -2,9 +2,11 @@
 //! on the owner's model, writes what it found into Plex, and keeps what it did so a file is researched once.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, RwLock};
 use std::time::Duration;
 
+use futures_util::stream::{self, StreamExt};
 use serde::Serialize;
 use tokio::sync::Notify;
 
@@ -39,7 +41,10 @@ enum Handled {
 pub struct Status {
     /// `idle`, `looking`, `researching`, `writing` or `waiting` (not everything is ready).
     pub phase: String,
+    /// The research running longest, for clients that show one.
     pub current: Option<Current>,
+    /// Every research running now, oldest first.
+    pub running: Vec<Current>,
     pub queued: usize,
     pub last_pass: Option<i64>,
     pub last_error: Option<String>,
@@ -77,6 +82,23 @@ static STEP_IDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::ne
 
 /// Steps kept for the live timeline.
 const STEPS_SHOWN: usize = 12;
+
+impl Status {
+    /// The live research of the item with `rating_key`, when it runs.
+    fn live(&mut self, rating_key: &str) -> Option<&mut Current> {
+        self.running.iter_mut().find(|current| current.rating_key == rating_key)
+    }
+
+    /// Shows `current` among the running research, in place of an earlier one of the same item.
+    fn start(&mut self, current: Current) {
+        self.finish(&current.rating_key);
+        self.running.push(current);
+    }
+
+    fn finish(&mut self, rating_key: &str) {
+        self.running.retain(|current| current.rating_key != rating_key);
+    }
+}
 
 impl Current {
     /// The live research of `release`, starting now with no steps yet.
@@ -149,6 +171,32 @@ fn web_for(paths: &Paths, settings: &Settings) -> Option<Web> {
     Some(Web::new(engine, key))
 }
 
+/// How many files are researched at once: several on a model on the owner's own machines, which serves requests side by
+/// side, and one at a time on a hosted model, which bills and rate-limits each request.
+fn research_at_once(model: &Model) -> usize {
+    match crate::net::model_place(&model.url) {
+        crate::net::ModelPlace::Own => 4,
+        crate::net::ModelPlace::Outside(_) => 1,
+    }
+}
+
+/// A library item due for research, with the section it is in.
+type Due<'a> = &'a (String, Item);
+
+/// The due items in groups that run one after another: the parts of one event together, in the order they came, so
+/// the first part's research is there for the rest; every file without an event number alone.
+fn by_event<'a>(due: &[Due<'a>]) -> Vec<Vec<Due<'a>>> {
+    let mut groups: Vec<(Option<String>, Vec<Due<'a>>)> = Vec::new();
+    for entry in due {
+        let event = entry.1.part().and_then(|part| part.file.as_deref()).map(Release::read).and_then(|release| release.event);
+        match groups.iter_mut().find(|(key, _)| event.is_some() && *key == event) {
+            Some((_, group)) => group.push(entry),
+            None => groups.push((event, vec![entry])),
+        }
+    }
+    groups.into_iter().map(|(_, group)| group).collect()
+}
+
 /// A day as YYYY-MM-DD and as days since 1970, from a Unix time.
 fn day_of(seconds: i64) -> (String, i64) {
     let days = seconds.div_euclid(86_400);
@@ -167,7 +215,10 @@ fn day_of(seconds: i64) -> (String, i64) {
 impl Sports {
     pub fn new(paths: Paths, config: &Config, plex: Plex, store: Arc<Store>, owner_token: Option<String>) -> Self {
         let model = config.usable_model().ok().flatten().cloned();
-        let brain = model.clone().map(|model| Brain::with_stored_key(model, &paths));
+        let brain = model.clone().map(|model| {
+            let at_once = research_at_once(&model);
+            Brain::with_stored_key(model, &paths).with_calls(at_once)
+        });
         let web = web_for(&paths, &config.sports);
         Sports {
             plex,
@@ -198,9 +249,10 @@ impl Sports {
 
     pub fn status(&self) -> Status {
         let mut status = self.status.lock().unwrap_or_else(PoisonError::into_inner).clone();
-        if let Some(current) = &mut status.current {
+        for current in &mut status.running {
             current.elapsed = (now() - current.started).max(0);
         }
+        status.current = status.running.first().cloned();
         status
     }
 
@@ -344,21 +396,33 @@ impl Sports {
             status.phase = if due.is_empty() { "idle" } else { "researching" }.into();
             status.queued = due.len();
         });
-        let mut paused = false;
-        for (index, (section, item)) in due.iter().enumerate() {
-            let settings = self.settings();
-            if !settings.on || !settings.agreed_to_engine() {
-                break;
-            }
-            self.set_status(|status| status.queued = due.len() - index - 1);
-            if self.handle(&brain, &web, &token, section, item, &parts_per_event).await == Handled::SearchBusy {
-                paused = true;
-                break;
-            }
-        }
+        let paused = AtomicBool::new(false);
+        let started = AtomicUsize::new(0);
+        stream::iter(by_event(&due))
+            .for_each_concurrent(research_at_once(&brain.model), |group| {
+                let (brain, web, token, parts_per_event, paused, started, total) = (&brain, &web, &token, &parts_per_event, &paused, &started, due.len());
+                async move {
+                    for (section, item) in group {
+                        let settings = self.settings();
+                        if paused.load(Ordering::Relaxed) || !settings.on || !settings.agreed_to_engine() {
+                            return;
+                        }
+                        let begun = started.fetch_add(1, Ordering::Relaxed) + 1;
+                        self.set_status(|status| status.queued = total.saturating_sub(begun));
+                        let handled = self.handle(brain, web, token, section, item, parts_per_event).await;
+                        self.set_status(|status| status.finish(&item.rating_key));
+                        if handled == Handled::SearchBusy {
+                            paused.store(true, Ordering::Relaxed);
+                            return;
+                        }
+                    }
+                }
+            })
+            .await;
+        let paused = paused.load(Ordering::Relaxed);
         self.set_status(|status| {
             status.phase = "idle".into();
-            status.current = None;
+            status.running.clear();
             status.queued = 0;
             status.last_pass = Some(now());
             if !paused {
@@ -461,10 +525,10 @@ impl Sports {
         }
         self.set_status(|status| {
             status.phase = "writing".into();
-            if status.current.as_ref().is_none_or(|current| current.rating_key != item.rating_key) {
-                status.current = Some(Current::starting(&item.rating_key, &release));
+            if status.live(&item.rating_key).is_none() {
+                status.start(Current::starting(&item.rating_key, &release));
             }
-            if let Some(current) = &mut status.current {
+            if let Some(current) = status.live(&item.rating_key) {
                 current.push("writing", String::new());
             }
         });
@@ -517,7 +581,7 @@ impl Sports {
         let started = now();
         self.set_status(|status| {
             status.phase = "researching".into();
-            status.current = Some(Current { started, ..Current::starting(&item.rating_key, release) });
+            status.start(Current { started, ..Current::starting(&item.rating_key, release) });
         });
         let on_step = |step: Step| {
             let (kind, detail) = match step {
@@ -527,7 +591,7 @@ impl Sports {
                 Step::Checking => ("checking", String::new()),
             };
             self.set_status(|status| {
-                if let Some(current) = &mut status.current {
+                if let Some(current) = status.live(&item.rating_key) {
                     current.push(kind, detail);
                 }
             });
@@ -607,6 +671,47 @@ fn unidentified(notes: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn item(rating_key: &str, file: &str) -> (String, Item) {
+        let json = serde_json::json!({"ratingKey": rating_key, "Media": [{"Part": [{"file": file}]}]});
+        ("4".to_string(), serde_json::from_value(json).unwrap())
+    }
+
+    #[test]
+    fn an_events_parts_stay_together_and_in_order_while_other_files_run_apart() {
+        let items = [
+            item("1", "/s/UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"),
+            item("2", "/s/Samourai.MMA.21.UFC.Fight.Pass.1080p.WEBRip.H264-Star.mp4"),
+            item("3", "/s/UFC.334.PPV.Ciryl.Gane.vs.Josh.Hokit.1080p.HDTV.h264-Star.mp4"),
+            item("4", "/s/CFFC 161 Lleshi vs Calvert UFC Fight Pass 1080p WEBRip H 264-Star.mp4"),
+        ];
+        let due: Vec<&(String, Item)> = items.iter().collect();
+        let groups: Vec<Vec<&str>> = by_event(&due).iter().map(|group| group.iter().map(|entry| entry.1.rating_key.as_str()).collect()).collect();
+        assert_eq!(groups[0], vec!["1", "3"]);
+        assert!(groups.iter().skip(1).all(|group| group.len() == 1));
+        assert_eq!(groups.len(), 3);
+    }
+
+    #[test]
+    fn running_research_is_listed_oldest_first_and_leaves_when_done() {
+        let release = Release::read("/s/UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4");
+        let mut status = Status::default();
+        status.start(Current::starting("1", &release));
+        status.start(Current::starting("2", &release));
+        status.live("2").unwrap().push("searching", "UFC 334 prelims".into());
+        status.start(Current::starting("1", &release));
+        assert_eq!(status.running.iter().map(|current| current.rating_key.as_str()).collect::<Vec<_>>(), vec!["2", "1"]);
+        status.finish("2");
+        assert_eq!(status.running.len(), 1);
+        assert!(status.live("2").is_none());
+    }
+
+    #[test]
+    fn a_hosted_model_researches_one_file_at_a_time() {
+        let own = Model { url: "http://127.0.0.1:8081/v1".into(), name: "bolt".into(), context: 262_144 };
+        assert_eq!(research_at_once(&own), 4);
+        assert_eq!(research_at_once(&Model { url: "https://openrouter.ai/api/v1".into(), ..own }), 1);
+    }
 
     #[test]
     fn an_unidentified_file_says_why_only_when_the_model_did() {
