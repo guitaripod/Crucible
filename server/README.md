@@ -142,7 +142,10 @@ crucible-server research --again "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"    
 ```
 
 Search goes through a [SearXNG](https://docs.searxng.org) you run (turn its JSON format on) or Brave Search with your
-own key (`--brave-key-file`). Searches name what is in your files, such as "UFC 334 prelims" or a film's title; nothing
+own key (`--brave-key-file`). Enable several engines in SearXNG (Bing, Yahoo, DuckDuckGo, Mojeek): each limits how often
+it may be asked, and SearXNG answers from the others while one rests. When every engine turns a search away, the server
+asks again twice within a minute, and only then pauses research for ten minutes; the apps say which engines asked for
+the break and when research goes on. Searches name what is in your files, such as "UFC 334 prelims" or a film's title; nothing
 else from your library is sent, and the research does not start until you agree to where searches go. Pages are read
 only from public addresses, checked again on every redirect.
 

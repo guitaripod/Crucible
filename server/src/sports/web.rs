@@ -79,7 +79,7 @@ pub enum WebError {
     TooLarge(String),
     #[error("Brave Search needs its key: crucible-server research --brave-key-file")]
     NoKey,
-    #[error("the search engines {0} are turning searches away for now")]
+    #[error("{} turning searches away for now", busy_engines(.0))]
     Busy(String),
 }
 
@@ -110,6 +110,9 @@ pub struct Web {
 
 /// The least time between two searches, so a library of new files never looks like a flood to the engines behind the search.
 const SEARCH_SPACING: Duration = Duration::from_millis(1500);
+/// How long to wait before asking SearXNG again when every engine that answered it turned the search away: its other
+/// engines often come back within a minute, and a pass paused for one empty answer waits ten.
+const BUSY_RETRIES: [Duration; 2] = [Duration::from_secs(20), Duration::from_secs(60)];
 
 static SCRIPTS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?is)<(script|style|noscript|svg|template|iframe)\b[^>]*>.*?</(script|style|noscript|svg|template|iframe)\s*>").expect("scripts")
@@ -258,8 +261,22 @@ impl Web {
         &self.engine
     }
 
-    /// Searches the web for `query`, a moment after the last search at the earliest.
+    /// Searches the web for `query`, a moment after the last search at the earliest. When the engines behind SearXNG
+    /// turn it away and nothing else answers, it asks again twice, a little later each time, before giving up.
     pub async fn search(&self, query: &str) -> Result<Vec<Found>, WebError> {
+        let mut waits = BUSY_RETRIES.iter();
+        loop {
+            match self.search_once(query).await {
+                Err(WebError::Busy(engines)) if matches!(self.engine, Engine::Searxng { .. }) => match waits.next() {
+                    Some(wait) => tokio::time::sleep(*wait).await,
+                    None => return Err(WebError::Busy(engines)),
+                },
+                other => return other,
+            }
+        }
+    }
+
+    async fn search_once(&self, query: &str) -> Result<Vec<Found>, WebError> {
         {
             let mut last = self.last_search.lock().await;
             if let Some(at) = *last {
@@ -395,8 +412,33 @@ impl Web {
 
     /// Whether the engine answers a search, for the checklist.
     pub async fn works(&self) -> Result<usize, WebError> {
-        Ok(self.search("UFC 300").await?.len())
+        Ok(self.search_once("UFC 300").await?.len())
     }
+}
+
+/// The engines that turned searches away, as people know them, with the verb that fits how many there are.
+fn busy_engines(engines: &str) -> String {
+    let names = engine_names(engines);
+    match names.as_slice() {
+        [] => "the search engine is".into(),
+        [one] => format!("{one} is"),
+        [first @ .., last] => format!("{} and {last} are", first.join(", ")),
+    }
+}
+
+/// Engine names as SearXNG writes them ("google cse", "duckduckgo") or a host, as people know them.
+pub fn engine_names(engines: &str) -> Vec<String> {
+    engines
+        .split(", ")
+        .filter(|engine| !engine.trim().is_empty())
+        .map(|engine| match engine.trim() {
+            "duckduckgo" => "DuckDuckGo".to_string(),
+            "google cse" => "Google CSE".to_string(),
+            "api.search.brave.com" | "brave" => "Brave".to_string(),
+            "startpage" => "Startpage".to_string(),
+            other => other.split(' ').map(|word| word[..1].to_uppercase() + &word[1..]).collect::<Vec<_>>().join(" "),
+        })
+        .collect()
 }
 
 /// The engines a SearXNG answer says turned it away for asking too often, or nothing when none did.
@@ -422,6 +464,42 @@ pub fn results_for_model(found: &[Found]) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A SearXNG whose engines turn the first `busy` searches away and then answer.
+    async fn searxng(busy: usize) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+        let asked = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = asked.clone();
+        let router = axum::Router::new().route(
+            "/search",
+            axum::routing::get(move || {
+                let counter = counter.clone();
+                async move {
+                    if counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < busy {
+                        axum::Json(json!({"results": [], "unresponsive_engines": [["brave", "Suspended: too many requests"]]}))
+                    } else {
+                        axum::Json(json!({"results": [{"title": "UFC 334", "url": "https://en.wikipedia.org/wiki/UFC_334", "content": "14 November 2026"}]}))
+                    }
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        (url, asked)
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_search_turned_away_is_asked_again_before_research_pauses() {
+        let (url, asked) = searxng(2).await;
+        let web = Web::new(Engine::Searxng { url }, None);
+        assert_eq!(web.search("UFC 334").await.unwrap().len(), 1);
+        assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 3);
+        let (url, asked) = searxng(9).await;
+        let web = Web::new(Engine::Searxng { url }, None);
+        assert!(matches!(web.search("UFC 334").await, Err(WebError::Busy(_))));
+        assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 3);
+        assert!(matches!(web.works().await, Err(WebError::Busy(_))), "the checklist asks once");
+    }
 
     #[test]
     fn reads_text_title_and_artwork_from_html() {
@@ -453,6 +531,9 @@ mod tests {
         assert_eq!(throttled(&body).as_deref(), Some("brave, duckduckgo"));
         assert_eq!(throttled(&json!({"results": [], "unresponsive_engines": [["bing", "timeout"]]})), None);
         assert_eq!(throttled(&json!({"results": []})), None);
+        assert_eq!(engine_names("brave, google cse, qwant"), ["Brave", "Google CSE", "Qwant"]);
+        assert_eq!(WebError::Busy("brave, google cse, qwant".into()).to_string(), "Brave, Google CSE and Qwant are turning searches away for now");
+        assert_eq!(WebError::Busy("api.search.brave.com".into()).to_string(), "Brave is turning searches away for now");
     }
 
     #[test]

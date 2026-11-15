@@ -67,8 +67,9 @@ pub enum ResearchError {
     #[error("{0}")]
     NoRecord(String),
     /// The search engine turned the research away for now; the file is tried again later, not marked unidentifiable.
-    #[error("{0}")]
-    SearchBusy(String),
+    /// `engines` names the engines behind SearXNG that did, when it said.
+    #[error("{reason}")]
+    SearchBusy { reason: String, engines: Vec<String> },
 }
 
 /// The submit tool of a sports record.
@@ -232,7 +233,13 @@ pub async fn investigate<T>(
                                 | super::web::WebError::Unreachable(..)
                                 | super::web::WebError::Status(..)
                                 | super::web::WebError::NoKey),
-                            ) => return Err(ResearchError::SearchBusy(error.to_string())),
+                            ) => {
+                                let engines = match &error {
+                                    super::web::WebError::Busy(engines) => super::web::engine_names(engines),
+                                    _ => Vec::new(),
+                                };
+                                return Err(ResearchError::SearchBusy { reason: error.to_string(), engines });
+                            }
                             Err(error) => json!({"error": error.to_string()}),
                         }
                     }

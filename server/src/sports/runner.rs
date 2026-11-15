@@ -25,6 +25,8 @@ use crate::store::{now, SportsItem, Store, UNMEASURED};
 
 /// How often the libraries are looked at when nothing wakes the service sooner.
 const EVERY: Duration = Duration::from_secs(20 * 60);
+/// How long research waits after the search engines turned it away before it looks again.
+const SEARCH_PAUSE: i64 = 10 * 60;
 /// How long checks are trusted before they run again on their own.
 const CHECKS_KEPT: i64 = 10 * 60;
 
@@ -88,8 +90,13 @@ impl Found {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
-    /// `idle`, `looking`, `researching`, `writing` or `waiting` (not everything is ready).
+    /// `idle`, `looking`, `researching`, `writing`, `waiting` (not everything is ready) or `paused` (the search engines
+    /// turned research away; it goes on at `paused_until`).
     pub phase: String,
+    /// When research looks again after the search engines turned it away.
+    pub paused_until: Option<i64>,
+    /// The search engines that turned research away, as people know them, when it is paused for them.
+    pub limited: Vec<String>,
     /// Items still to take back after the owner undid a library's research.
     pub undoing: usize,
     /// The research running longest, for clients that show one.
@@ -421,9 +428,10 @@ impl Sports {
             if self.settings().on {
                 self.pass().await;
             }
+            let wait = self.status().paused_until.map_or(EVERY, |until| Duration::from_secs((until - now()).clamp(60, EVERY.as_secs() as i64) as u64));
             tokio::select! {
                 _ = self.wake.notified() => {}
-                _ = tokio::time::sleep(EVERY) => {}
+                _ = tokio::time::sleep(wait) => {}
             }
         }
     }
@@ -517,11 +525,16 @@ impl Sports {
             .await;
         let paused = paused.load(Ordering::Relaxed);
         self.set_status(|status| {
-            status.phase = "idle".into();
             status.running.clear();
             status.queued = 0;
             status.last_pass = Some(now());
-            if !paused {
+            if paused {
+                status.phase = "paused".into();
+                status.paused_until = Some(now() + SEARCH_PAUSE);
+            } else {
+                status.phase = "idle".into();
+                status.paused_until = None;
+                status.limited.clear();
                 status.last_error = None;
             }
         });
@@ -781,8 +794,11 @@ impl Sports {
     fn failed(&self, error: ResearchError) -> (&'static str, String, i64) {
         match error {
             ResearchError::NoRecord(problems) => ("attention", format!("The model's record did not pass the checks: {problems}"), 86_400),
-            ResearchError::SearchBusy(reason) => {
-                self.set_status(|status| status.last_error = Some(reason.clone()));
+            ResearchError::SearchBusy { reason, engines } => {
+                self.set_status(|status| {
+                    status.last_error = Some(reason.clone());
+                    status.limited = engines;
+                });
                 ("failed", format!("Searching paused: {reason}"), 20 * 60)
             }
             ResearchError::Model(crate::brain::BrainError::Status(400, refusal)) => {
