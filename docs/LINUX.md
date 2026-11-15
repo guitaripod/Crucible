@@ -4,14 +4,17 @@ Design for a Linux client that looks and behaves like the Apple TV app, on a des
 
 **The line the whole design follows:** Core decides what to show, Kiln draws it the way the Apple TV does, and mpv plays it the way a home theatre does. The Linux client is a fourth renderer of the same feature slices, not a port with its own rules.
 
-## 1. Decisions waiting on Marcus
+## 1. Decisions
 
-| # | Decision | Recommendation |
+| # | Decision | Decided |
 | --- | --- | --- |
-| D1 | Crucible Pro on Linux | Pro on Linux is the same Pro: the Midgar ledger entitlement, linked by scanning a QR code on the Linux screen with the iPhone that holds it, or by entering its short code on the Apple TV (the Trakt device-code pattern). No unlocked Linux binary, because a distributed build with Pro open is a free Pro. Hosted AI (What to Watch, described recaps) needs Pro anyway because it spends Haiku credit. A Linux-only purchase (web checkout) is a separate pricing call, not part of v1 |
-| D2 | Distribution | AUR package `crucible` plus a GitHub Release tarball with in-app update (the Tailscode Linux pattern) first. Flathub after audio passthrough is proven inside the sandbox |
+| D1 | Crucible Pro on Linux | 2026-11-15: the Linux client is free throughout, as Flaccy's Linux client is (Midgar decisions). No paywall, no Pro surfaces, no store code. Its AI (What to Watch, described recaps, Previously On from dialogue) runs on the person's own model under D38: the paired Crucible Server's model, or any OpenAI-compatible address and key the person gives. The Linux build bundles the prompts from `tools/ai/` and never calls Midgar's hosted Haiku, which stays behind Pro on Apple |
+| D2 | Distribution | 2026-11-15: AUR package `crucible` plus a GitHub Release tarball with in-app update (the Tailscode Linux pattern) first; Flathub after audio passthrough is proven inside the sandbox |
+| D3 | Language | 2026-11-15: Swift (§2) |
+| D4 | Primary input | 2026-11-15: mouse and keyboard first. Gamepad, remote-style keys and the TV are a plus, never at the desk's expense (§5.4) |
+| D5 | Glass | 2026-11-15: Kiln draws Liquid Glass, not a blur stand-in (§5.7) |
 
-Everything else below is decided. The one choice that changes the premise is §2: the client is Swift, not Rust.
+The bar is the best media client on any desktop: nothing ships that looks or feels worse than the Apple TV app it mirrors.
 
 ## 2. Swift, not Rust
 
@@ -108,19 +111,23 @@ Vulkan buys nothing here: the 2D workload is small for this GPU, and mpv can onl
 
 UI colours stay sRGB tokens. The renderer linearises them and scales them to the reference white of the surface, so the UI looks identical on an SDR desktop and over HDR video. Video arrives as PQ BT.2020 (absolute luminance) and is decoded to linear in the composite pass. With the output in SDR, KWin tone-maps the surface (§3); with the output in HDR, highlights reach the panel.
 
-### 5.4 Focus, the engine every input drives
+### 5.4 Mouse and keyboard first
 
-- One geometric focus engine modelled on tvOS: focus environments, preferred focus, focus guides, nearest-in-direction search with overlap preference, focus memory by item identifier across reloads (the `TVScreenViewController` rule), and the anchor that holds focus while a screen loads.
-- The focus effect from `TVMetrics.Focus`: lift 1.04, pressed 0.98, shadow radius 32 at (0, 20) with 0.4 opacity, row growth `min(1.04, 1 + 40 / width)`. Kiln adds what tvOS draws itself: parallax tilt and a moving specular sheen on focused artwork, driven by the pointer's position inside the card or the right stick.
-- **Remote semantics for every device:** arrows, d-pad and left stick move focus (with tvOS-like repeat acceleration); Enter, A and click select; Escape, B and the mouse back button are Menu; Space and Start are Play/Pause; a long press, right click, the Menu key or Y opens the context menu; LB and RB move between tabs.
-- **The pointer drives focus:** hovering focuses with hysteresis so cards do not flicker, the wheel and touchpad scroll shelves and grids, and a click selects. On a desk this reads as a polished desktop app; on the TV nothing changes.
+The desk is the main room (D4). Every screen is designed and judged with a mouse and a keyboard; the TV and the gamepad reuse the same screens.
+
+- **Pointer:** a card under the pointer lifts with the tvOS focus effect and tilts toward it (parallax and a specular sheen that follow the pointer inside the card), the way iPadOS lifts artwork under a trackpad. A click selects; middle click opens a title in a new window; right click opens the context menu (the tvOS long-press menu); the back and forward mouse buttons walk history. Hover never moves keyboard focus, so a resting pointer cannot steal it.
+- **Scrolling:** wheel and touchpad scroll grids and pages with momentum and rubber banding at the ends; shelves scroll sideways under a horizontal swipe or Shift with the wheel, and show edge arrows on hover for mice without a horizontal axis. Overlay scroll indicators appear while scrolling and on hover, never as permanent bars. Ctrl with the wheel resizes posters (the iPad's Command plus and minus).
+- **Keyboard:** the geometric focus engine (below) moves with the arrows; Enter selects, Escape goes back, Tab and Shift+Tab walk controls in reading order, and the focus ring shows only once the keyboard is used (the platform's focus-visible rule). Typing a letter anywhere outside a text field opens Search with that letter. Every command has a shortcut and appears in the menu (§6).
+- **Text:** titles, synopses and cast names can be selected and copied; tooltips name icon-only buttons after a short hover.
+- **Focus engine:** modelled on tvOS: focus environments, preferred focus, focus guides, nearest-in-direction search with overlap preference, focus memory by item identifier across reloads (the `TVScreenViewController` rule), and the anchor that holds focus while a screen loads. The focus effect comes from `TVMetrics.Focus`: lift 1.04, pressed 0.98, shadow radius 32 at (0, 20) with 0.4 opacity, row growth `min(1.04, 1 + 40 / width)`.
+- **Gamepad and couch (a plus):** d-pad and stick move focus with tvOS-like repeat acceleration, A selects, B goes back, Start plays and pauses, Y opens the context menu, LB and RB change tabs; the right stick drives the parallax a pointer would.
 
 ### 5.5 Two densities, one design
 
 | Density | When | Values |
 | --- | --- | --- |
-| Couch | Fullscreen on an output 40 inches or larger (from EDID), the first gamepad input, or `crucible --couch` (the Steam Big Picture shortcut) | The tvOS tokens one to one on a 1920 x 1080 point canvas scaled to the output (2x on the C5 at 4K) |
-| Desk | Any other window | The same layouts and components; type, space and radius take the iPad values that `Theme.metric(phone:tv:)` already holds (body 17, space m 16), and `TVMetrics` geometry is halved (poster 130 x 195, gutter 20) |
+| Desk (default) | Every window | The Apple TV layouts and components; type, space and radius take the iPad values that `Theme.metric(phone:tv:)` already holds (body 17, space m 16), and `TVMetrics` geometry is halved (poster 130 x 195, gutter 20) |
+| Couch | Chosen in the View menu, `crucible --couch` (the Steam Big Picture shortcut), or offered once when a gamepad is used fullscreen on an output 40 inches or larger (from EDID) | The tvOS tokens one to one on a 1920 x 1080 point canvas scaled to the output (2x on the C5 at 4K) |
 
 Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the target poster width, list screens centre a readable column, and the hero grows with the window. Windowed mode uses KWin's server-side decorations; fullscreen (F11) and Couch hide them.
 
@@ -128,6 +135,22 @@ Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the ta
 
 - **Type:** Inter (SIL OFL), bundled so metrics match on every distribution, with Inter Display at 30 points and above. CJK falls back through fontconfig to Noto Sans CJK, a package dependency. The tvOS sizes are kept; line heights are checked in the parity captures (§11).
 - **Symbols:** SF Symbols cannot ship. One map file names an open icon (Lucide, ISC) for every SF Symbol name Core and the Apple TV screens use, with a drawn icon where Lucide has no match; a unit test fails when Core names a symbol the map lacks. Icons are compiled into an MSDF atlas at build time, so they are sharp at every density.
+
+### 5.7 Liquid Glass
+
+Glass is a layer content type with a shape (rounded rectangle or capsule, as a signed distance field) and a variant (regular or clear), drawn in one shader pass over whatever lies behind it, including live HDR video, because Kiln composites everything itself (§7.3).
+
+| Property | How Kiln draws it |
+| --- | --- |
+| Lensing | Behind-content is sampled through a refraction offset along the shape's distance-field normal, strongest in a rim band (about 14 points at Desk density), so edges bend the picture as a thick lens does; a slight colour dispersion at the rim |
+| Frost | The sample comes from the dual-Kawase pyramid at a radius set by the variant; clear glass keeps the picture almost sharp and adds a dimming layer for legibility |
+| Light | A specular rim from the normal and a light direction that follows the pointer (or focus, or the right stick), plus a soft inner highlight on the top edge; pressing brightens the area under the pointer |
+| Adaptivity | The behind-content's mean luminance under the shape (read from the pyramid's smallest level) picks light or dark glass and the label colour, with hysteresis so text never flickers over moving video |
+| Shadow | A soft contact shadow under floating glass (tab bar, player transport, menus), absent on flush controls |
+| Morphing | Shapes in one glass container blend with a smooth minimum of their distance fields, so the tab bar's selection slides as a liquid drop and menus grow out of the button that opened them, on springs |
+| Focus | A focused glass button becomes the light pill with dark text that tvOS 26 draws (`TVButton` legibility rules) |
+
+Reduce Transparency (the desktop setting, read through the portal) turns every variant into the opaque `surfaceRaised` fallback that `Glass` uses on older Apple TVs. Glass gets its own gallery page with every variant over a still, a bright poster and a playing HDR clip, each with golden images.
 
 ## 6. Navigation and screens
 
@@ -143,12 +166,13 @@ Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the ta
 | Search | `Features/Search` | Desk: a real text field with IME through `text-input-v3`. Couch: the tvOS-style letter grid, so a gamepad can type |
 | You, History, Collections, Playlists | `Features/You`, `History`, `Collections`, `Playlists` | As on the Apple TV |
 | Statistics, Year in Review | `CrucibleStats` | Charts drawn by Kiln from `StatsMetrics.tv` and a new desk preset |
-| What to Watch, described recaps | `Features/Watch`, `Hosted`, `Companion` | Pro (D1) |
-| Settings | `Features/Settings/SettingsCatalog` | Catalogue entries gain a Linux platform flag; Linux-only entries: audio passthrough, Match Content, density |
+| What to Watch, described recaps | `Features/Watch`, `Hosted`, `Companion` | Free, on the person's own model (D1): an `OwnModelBrain` implements `HostedBrain` against the paired Crucible Server's model or an OpenAI-compatible address, with the alias prompts bundled from `tools/ai/` |
+| Settings | `Features/Settings/SettingsCatalog` | Catalogue entries gain a Linux platform flag; Linux-only entries: model address and key, audio passthrough, Match Content, density. Pro entries are hidden |
 | Trakt, Seerr, Crucible Server | `Features/Trakt`, `Seerr`, `Companion` | Device code and QR as on the Apple TV; Crucible Server pairs by invite or QR (the Bonjour hand-off is Apple-only) |
 | Player, Up Next, post-play, sleep timer, still watching | `CruciblePlayback`, `Features/Playback` | §7.5 |
 
-- **Desk keyboard map**, taken from the iPad's `AppCommand` with Ctrl for Command: Ctrl+1 to 4 (tabs), Ctrl+F (search), Ctrl+[ and Alt+Left (back), Ctrl+R (refresh), Ctrl+plus and minus (poster size), Ctrl+comma (settings), and in the player Space, S (skip intro or credits), N (next episode) and Escape.
+- **Menu and shortcuts**, taken from the iPad's `AppCommand` and `AppMenu` with Ctrl for Command: a menu button in the tab bar (and F10) opens Go, View, Media and Settings, each item showing its shortcut. Ctrl+1 to 4 (tabs), Ctrl+F or `/` (search), Alt+Left and Alt+Right (back and forward), Ctrl+R (refresh), Ctrl+plus and minus (poster size), Ctrl+N (new window), Ctrl+comma (settings), F11 (fullscreen), and in the player Space or K, J and L, Left and Right, S (skip intro or credits), N (next episode), F (fullscreen), M (mute), Up and Down (volume) and Escape. Ctrl+? shows the full list, as the iPad's Command-key overlay does.
+- **Windows:** several windows share one connection, as on the iPad (`SceneDelegate.launchLeader`); each restores its tab and screen, and a title opens in a new window from its context menu or by middle click.
 - **Not on Linux:** Top Shelf, widgets, the Live Activity and downloads. Downloads can follow later; the others have no Linux equivalent worth building.
 
 ## 7. Playback
@@ -171,7 +195,7 @@ On Linux `PlaybackCapabilities` says mpv decodes every container and codec, so d
 
 ### 7.4 Match Content
 
-On by default in Couch and fullscreen, and only for the output showing the player: an HDR title switches that output to HDR through `kde_output_management_v2` and restores it when playback ends, the same rule as `hdr-game`, including a guard that restores the output if Crucible dies mid-title. Frame rates match where the mode exists: 23.976 and 29.97 fps to 119.88 Hz, 25 and 50 fps to 100 Hz, 24.000 stays on 144 Hz (exactly six refreshes a frame). Compositors other than KWin get no switching and tone-map or clip on their own.
+On by default whenever the player is fullscreen, and only for the output showing it: an HDR title switches that output to HDR through `kde_output_management_v2` and restores it when playback ends, the same rule as `hdr-game`, including a guard that restores the output if Crucible dies mid-title. Frame rates match where the mode exists: 23.976 and 29.97 fps to 119.88 Hz, 25 and 50 fps to 100 Hz, 24.000 stays on 144 Hz (exactly six refreshes a frame). Compositors other than KWin get no switching and tone-map or clip on their own.
 
 ### 7.5 Player chrome
 
@@ -198,6 +222,7 @@ Each seam is a protocol or a cross-platform API in Core, never `#if` inside a fe
 | Addresses | `IPv4Address`, `IPv6Address` | `inet_pton` on both platforms |
 | Device capability | VideoToolbox and `AVPlayer` in `StreamProfile` | A capability provider per platform |
 | Containers and crashes | App Group container, `NSSetUncaughtExceptionHandler` | `AppPlatform` answers XDG directories; fatal signals flush the log (the Tailscode shim) |
+| Pro | `ProAccess` with `MidgarProAccess` on Apple | Linux installs `UnlockedProAccess`, the source-build provider, so every Pro gate opens (D1), and `HostedBrain` is the `OwnModelBrain` |
 | Apple-only | Bonjour hand-off channel, Top Shelf store | Stay Apple-only behind `canImport(Network)` and the platform's screen catalogue |
 | Processes | none in Core today | If one is ever needed, swift-subprocess: Foundation `Process` leaks and races on Linux (Tailscode and omp-bridge both hit it) |
 | Tests | `URLProtocol` stubs (18 Linux failures) | Transport fakes, which also make the Apple tests independent of URL loading |
@@ -241,8 +266,8 @@ A Linux job in CI runs `CRUCIBLE_CORE_ONLY=1 swift test` on every push, so an Ap
 | P2 Kiln components | The design system and the gallery | Golden images beside the Apple TV gallery |
 | P3 Screens | Sign in, Home, Library, Detail, Search, You, Settings | Parity contact sheets against the Apple TV captures |
 | P4 Player | Chrome, markers, Up Next, post-play, sleep timer, MPRIS, idle inhibit, Match Content | Bench passes on mpv; a film and a series watched start to finish on the C5 |
-| P5 Integrations | Trakt, Seerr, Statistics, What to Watch, recaps, Crucible Server, Pro link (D1) | Each feature's Apple TV UI test has a Linux counterpart |
-| P6 Ship | Install script, AUR, release tarball and self-update, README screenshots | Installed from the package on arch; D2 |
+| P5 Integrations | Trakt, Seerr, Statistics, What to Watch and recaps on the person's own model (D1), Crucible Server | Each feature's Apple TV UI test has a Linux counterpart |
+| P6 Ship | Install script, AUR, release tarball and self-update, README screenshots | Installed from the package on arch (D2) |
 
 Linux targets never affect the Apple builds, so every phase lands on `master` as it is finished.
 
