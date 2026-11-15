@@ -110,7 +110,7 @@ static VkPresentModeKHR present_mode(void) {
 
 kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface, char *error, size_t error_size) {
     kiln_gpu *g = calloc(1, sizeof(*g));
-    g->log = pl_log_create(PL_API_VER, pl_log_params(.log_cb = pl_log_color, .log_level = getenv("KILN_PL_DEBUG") ? PL_LOG_DEBUG : PL_LOG_WARN));
+    g->log = pl_log_create(PL_API_VER, pl_log_params(.log_cb = pl_log_color, .log_level = getenv("KILN_PL_TRACE") ? PL_LOG_TRACE : getenv("KILN_PL_DEBUG") ? PL_LOG_DEBUG : PL_LOG_WARN));
     const char *surface_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME };
     const char *instance_optional[] = { VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME };
     g->instance = pl_vk_inst_create(g->log, pl_vk_inst_params(

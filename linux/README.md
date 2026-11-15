@@ -31,7 +31,8 @@ linux/scripts/headless.sh .build/debug/kiln-spike --frames 300   # a private hea
 
 Frame timing: `KILN_TRACE=/path/trace.txt crucible` writes a line per second of drawing and per burst of frames (CPU per
 phase, GPU, compositor waits, input latency, and the text, symbols, textures and passes behind any frame over 12 ms), and
-Ctrl+Shift+P shows the last second in a HUD. `KILN_PRESENT=fifo` swaps the mailbox swapchain for FIFO to compare.
+Ctrl+Shift+P shows the last second in a HUD. `KILN_PRESENT=fifo` swaps the mailbox swapchain for FIFO to compare, and
+`KILN_PL_DEBUG=1` or `KILN_PL_TRACE=1` turn on libplacebo's debug or trace log (the trace names every GPU wait).
 
 `linux/scripts/gen-protocols.sh` regenerates the Wayland protocol code in `Sources/CKiln/protocols` from `Protocols/*.xml`
 (wayland-protocols and plasma-wayland-protocols, as vendored in their Rust crates 0.32.13 and 0.3.12).
