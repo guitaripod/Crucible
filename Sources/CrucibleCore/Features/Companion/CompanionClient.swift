@@ -55,11 +55,18 @@ package enum CompanionStore {
     package static func save(_ server: CompanionServer) {
         guard let data = try? JSONEncoder().encode(server), let json = String(data: data, encoding: .utf8) else { return }
         KeychainHelper.save(key: key, value: json)
+        NotificationCenter.default.post(name: .companionChanged, object: nil)
     }
 
     package static func forget() {
         KeychainHelper.delete(key: key)
+        NotificationCenter.default.post(name: .companionChanged, object: nil)
     }
+}
+
+extension Notification.Name {
+    /// Posted when this device pairs with a Crucible Server or forgets one, so screens showing the pairing show the new one.
+    package static let companionChanged = Notification.Name("crucible.companionChanged")
 }
 
 /// Why talking to Crucible Server failed, in words a person can act on.

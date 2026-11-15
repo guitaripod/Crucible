@@ -29,7 +29,12 @@ final class SettingsCategoryViewController: UICollectionViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    deinit { statusTask?.cancel() }
+    deinit {
+        statusTask?.cancel()
+        if let companionObserver { NotificationCenter.default.removeObserver(companionObserver) }
+    }
+
+    nonisolated(unsafe) private var companionObserver: (any NSObjectProtocol)?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,6 +45,9 @@ final class SettingsCategoryViewController: UICollectionViewController {
         collectionView.accessibilityIdentifier = "settings.category.\(category.rawValue)"
         collectionView.collectionViewLayout = makeLayout()
         navigator.onChange = { [weak self] in self?.refresh() }
+        companionObserver = NotificationCenter.default.addObserver(forName: .companionChanged, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
         configureDataSource()
         sections = SettingsCatalog.sections(of: category, on: .phone)
         applySnapshot()

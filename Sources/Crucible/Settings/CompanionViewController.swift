@@ -23,6 +23,8 @@ final class CompanionViewController: UICollectionViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    nonisolated(unsafe) private var changeObserver: (any NSObjectProtocol)?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = CompanionCopy.title
@@ -38,6 +40,13 @@ final class CompanionViewController: UICollectionViewController {
             return section
         }
         configureDataSource()
+        changeObserver = NotificationCenter.default.addObserver(forName: .companionChanged, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
+    deinit {
+        if let changeObserver { NotificationCenter.default.removeObserver(changeObserver) }
     }
 
     override func viewWillAppear(_ animated: Bool) {
