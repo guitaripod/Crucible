@@ -17,6 +17,8 @@ final class YouScreen: SettingsScaffold {
         static let dashboard = "you.dashboard"
         static let playback = "you.playback"
         static let remote = "you.remote"
+        static let homeRows = "you.homeRows"
+        static let libraries = "you.libraries"
         static let server = "you.server"
         static let privacy = "you.privacy"
         static let diagnostics = "you.diagnostics"
@@ -94,6 +96,10 @@ final class YouScreen: SettingsScaffold {
             RowItem(id: RowID.playback, title: SettingsCategory.playback.title(on: .linux), value: SettingsCatalog.summary(of: .playback, on: .linux),
                     symbol: Symbol(SettingsCategory.playback.symbol), accessory: .chevron),
             RowItem(id: RowID.remote, title: SettingsCategory.controls.title(on: .linux), symbol: Symbol(SettingsCategory.controls.symbol), accessory: .chevron),
+            RowItem(id: RowID.homeRows, title: SettingsCatalog.title(.homeRows),
+                    value: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows"),
+                    symbol: Symbol(SettingsCatalog.symbol(.homeRows)), accessory: .chevron),
+            RowItem(id: RowID.libraries, title: String(localized: "Libraries"), value: LibrariesSettings.summary, symbol: "rectangle.stack", accessory: .chevron),
             RowItem(id: RowID.server, title: String(localized: "Server & Connection"), value: state.routeSummary, symbol: "server.rack", accessory: .chevron),
             RowItem(id: RowID.privacy, title: SettingsCategory.privacy.title(on: .linux), value: SettingsCatalog.summary(of: .privacy, on: .linux),
                     symbol: Symbol(SettingsCategory.privacy.symbol), accessory: .chevron),
@@ -128,6 +134,8 @@ final class YouScreen: SettingsScaffold {
         case RowID.dashboard: navigation?.push(ServerDashboardScreen(api: api))
         case RowID.playback: navigation?.push(SettingsCategoryScreen(category: .playback, api: api))
         case RowID.remote: navigation?.push(SettingsCategoryScreen(category: .controls, api: api))
+        case RowID.homeRows: navigation?.push(HomeRowsScreen())
+        case RowID.libraries: navigation?.push(LibrariesScreen(api: api))
         case RowID.server: navigation?.push(ServerConnectionScreen())
         case RowID.privacy: navigation?.push(SettingsCategoryScreen(category: .privacy, api: api))
         case RowID.diagnostics: navigation?.push(DiagnosticsScreen())

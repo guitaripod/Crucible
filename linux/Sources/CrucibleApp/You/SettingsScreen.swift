@@ -72,6 +72,10 @@ final class SettingsCategoryScreen: ScreenView {
 
     override var preferredFocusView: View? { lists.first }
 
+    override func screenDidAppear() {
+        reload()
+    }
+
     private func reload() {
         var sections: [View] = [title]
         var used = 0
@@ -117,8 +121,9 @@ final class SettingsCategoryScreen: ScreenView {
             return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol),
                            isDestructive: action.needsConfirmation)
         case .destination(let destination):
-            return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol),
-                           accessory: Self.screen(for: destination) == nil ? .none : .chevron, isStatic: Self.screen(for: destination) == nil)
+            let opens = Self.opens(destination)
+            return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, value: Self.value(of: destination), symbol: Symbol(entry.symbol),
+                           accessory: opens ? .chevron : .none, isStatic: !opens)
         case .privacyStatement:
             return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, symbol: Symbol(entry.symbol), isStatic: true)
         }
@@ -147,18 +152,38 @@ final class SettingsCategoryScreen: ScreenView {
         case .action(let action):
             perform(action, anchor: window.focusedView?.frameInWindow ?? frameInWindow)
         case .destination(let destination):
-            if let screen = Self.screen(for: destination) { navigation?.push(screen) }
+            if let screen = screen(for: destination) { navigation?.push(screen) }
         default:
             break
         }
     }
 
     /// The screen a destination row opens, where the Linux client has one.
-    private static func screen(for destination: SettingsDestination) -> ScreenView? {
+    private func screen(for destination: SettingsDestination) -> ScreenView? {
         switch destination {
+        case .homeRows: HomeRowsScreen()
+        case .libraries: LibrariesScreen(api: api)
         case .serverConnection: ServerConnectionScreen()
         case .about: AboutScreen()
         case .diagnostics: DiagnosticsScreen()
+        default: nil
+        }
+    }
+
+    /// Whether the Linux client has a screen for `destination`; the others show as plain text.
+    private static func opens(_ destination: SettingsDestination) -> Bool {
+        switch destination {
+        case .homeRows, .libraries, .serverConnection, .about, .diagnostics: true
+        default: false
+        }
+    }
+
+    /// The value line beside a destination row, as the Apple TV shows it.
+    private static func value(of destination: SettingsDestination) -> String? {
+        switch destination {
+        case .homeRows: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows")
+        case .libraries: LibrariesSettings.summary
+        case .about: AppInfo.versionSummary
         default: nil
         }
     }
