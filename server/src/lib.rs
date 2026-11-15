@@ -18,6 +18,7 @@ pub mod segments;
 pub mod serve;
 pub mod service;
 pub mod setup;
+pub mod sports;
 pub mod store;
 pub mod terminal;
 pub mod tls;

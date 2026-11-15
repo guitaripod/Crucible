@@ -8,7 +8,7 @@ use crucible_server::dialogue;
 use crucible_server::paths::Paths;
 use crucible_server::recap::{write_summary, SummarySource};
 use crucible_server::store::Store;
-use crucible_server::{doctor, serve, service, setup, tls};
+use crucible_server::{doctor, serve, service, setup, sports, tls};
 
 /// The optional companion on the Plex machine for Crucible on iPhone, iPad and Apple TV.
 #[derive(Parser)]
@@ -87,6 +87,31 @@ enum Command {
         #[arg(long, short)]
         yes: bool,
     },
+    /// Research the sports files of an Other Videos library with your model and write proper titles, dates, cards and
+    /// artwork into Plex. Without options, shows every requirement and where it stands.
+    Sports {
+        /// Search with the SearXNG at this address, with its JSON format on, such as http://127.0.0.1:8888.
+        #[arg(long)]
+        searxng: Option<String>,
+        /// Search with Brave Search, using the key in this file. It is kept beside the config, readable only by this user.
+        #[arg(long)]
+        brave_key_file: Option<PathBuf>,
+        /// An Other Videos library to research, by name; repeat for more. Replaces the libraries chosen before.
+        #[arg(long = "library")]
+        libraries: Vec<String>,
+        /// Start researching new files.
+        #[arg(long)]
+        on: bool,
+        /// Stop researching; what was written stays.
+        #[arg(long, conflicts_with = "on")]
+        off: bool,
+        /// Agree to where searches go without being asked.
+        #[arg(long)]
+        agree: bool,
+        /// Research this file name and print what Plex would show, writing nothing; to judge a model.
+        #[arg(long = "try", value_name = "FILE NAME")]
+        try_name: Option<String>,
+    },
     /// Check Plex, the model, ffmpeg, the certificate and the service.
     Doctor,
     /// Make a new certificate, which unpairs every device.
@@ -149,6 +174,9 @@ async fn run(command: Command, paths: Paths) -> Result<(), String> {
             setup::model(&paths, setup::ModelOptions { url, name, key_file, context, assume_yes: yes }, off).await
         }
         Command::Serve => serve::run(&paths).await,
+        Command::Sports { searxng, brave_key_file, libraries, on, off, agree, try_name } => {
+            sports::cli::run(&paths, sports::cli::Options { searxng, brave_key_file, libraries, on, off, agree, try_name }).await
+        }
         Command::Pair => {
             let (config, store) = context(&paths)?;
             let identity = tls::load_or_create(&paths, &config.name).map_err(|error| error.to_string())?;

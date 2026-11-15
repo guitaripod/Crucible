@@ -60,6 +60,31 @@ pub struct Config {
     /// was put in the config any other way than through that agreement is not used.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model_agreed: Option<String>,
+    #[serde(default)]
+    pub sports: Sports,
+}
+
+/// Sports research: whether it runs, the libraries it reads, the search engine it uses, and what the owner agreed
+/// the searches may go to.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Sports {
+    #[serde(default)]
+    pub on: bool,
+    /// Library section keys.
+    #[serde(default)]
+    pub libraries: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engine: Option<crate::sports::web::Engine>,
+    /// The destination the owner agreed searches go to, as the engine describes it; a changed engine needs agreeing again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agreed: Option<String>,
+}
+
+impl Sports {
+    /// Whether the owner agreed to the engine that is set now.
+    pub fn agreed_to_engine(&self) -> bool {
+        matches!((&self.engine, &self.agreed), (Some(engine), Some(agreed)) if engine.destination() == *agreed)
+    }
 }
 
 /// Where a folder Plex reports lives on this machine, when the two differ (Plex in Docker, or on Windows).
@@ -91,6 +116,7 @@ impl Config {
             path_map: Vec::new(),
             model: None,
             model_agreed: None,
+            sports: Sports::default(),
         }
     }
 

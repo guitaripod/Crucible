@@ -22,6 +22,30 @@ CREATE TABLE IF NOT EXISTS pending_pairings (
     secret TEXT NOT NULL,
     expires INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS sports_items (
+    rating_key TEXT PRIMARY KEY,
+    section TEXT NOT NULL,
+    file TEXT NOT NULL,
+    state TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    record TEXT,
+    applied TEXT,
+    note TEXT NOT NULL DEFAULT '',
+    tries INTEGER NOT NULL DEFAULT 0,
+    next_try INTEGER NOT NULL DEFAULT 0,
+    updated INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sports_events (
+    key TEXT PRIMARY KEY,
+    record TEXT NOT NULL,
+    researched INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS model_abilities (
+    model TEXT PRIMARY KEY,
+    tools INTEGER NOT NULL,
+    thinking INTEGER NOT NULL,
+    checked INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS summaries (
     rating_key TEXT NOT NULL,
     source_hash TEXT NOT NULL,
@@ -54,6 +78,27 @@ pub struct Summary {
 
 pub struct Store {
     connection: Mutex<Connection>,
+}
+
+/// What the sports research made of one library item.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SportsItem {
+    pub rating_key: String,
+    pub section: String,
+    pub file: String,
+    /// `matched`, `attention` (the model could not identify it, or its record failed the checks), `edited` (the owner
+    /// changed what was written, so it is left alone) or `failed` (the model, the web or Plex did not answer; tried again later).
+    pub state: String,
+    pub title: String,
+    #[serde(skip)]
+    pub record: Option<String>,
+    #[serde(skip)]
+    pub applied: Option<String>,
+    pub note: String,
+    pub tries: i64,
+    pub next_try: i64,
+    pub updated: i64,
 }
 
 pub fn now() -> i64 {
@@ -145,11 +190,104 @@ impl Store {
     /// Takes a secret the terminal showed out of the database, expired or not, with when it expires.
     pub fn take_pending_pairing(&self, id: &str) -> rusqlite::Result<Option<([u8; 16], i64)>> {
         let connection = self.lock();
-        let found: Option<(String, i64)> = connection
-            .query_row("SELECT secret, expires FROM pending_pairings WHERE id = ?1", params![id], |row| Ok((row.get(0)?, row.get(1)?)))
-            .optional()?;
+        let found: Option<(String, i64)> =
+            connection.query_row("SELECT secret, expires FROM pending_pairings WHERE id = ?1", params![id], |row| Ok((row.get(0)?, row.get(1)?))).optional()?;
         connection.execute("DELETE FROM pending_pairings WHERE id = ?1", params![id])?;
         Ok(found.and_then(|(secret, expires)| hex::decode(secret).ok()?.try_into().ok().map(|secret| (secret, expires))))
+    }
+
+    pub fn sports_item(&self, rating_key: &str) -> rusqlite::Result<Option<SportsItem>> {
+        self.lock().query_row(&format!("SELECT {SPORTS_COLUMNS} FROM sports_items WHERE rating_key = ?1"), params![rating_key], sports_item_from).optional()
+    }
+
+    pub fn save_sports_item(&self, item: &SportsItem) -> rusqlite::Result<()> {
+        self.lock().execute(
+            "INSERT OR REPLACE INTO sports_items (rating_key, section, file, state, title, record, applied, note, tries, next_try, updated)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                item.rating_key,
+                item.section,
+                item.file,
+                item.state,
+                item.title,
+                item.record,
+                item.applied,
+                item.note,
+                item.tries,
+                item.next_try,
+                item.updated
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// The most recently changed items, newest first.
+    pub fn sports_items(&self, limit: usize) -> rusqlite::Result<Vec<SportsItem>> {
+        let connection = self.lock();
+        let mut statement = connection.prepare(&format!(
+            "SELECT {SPORTS_COLUMNS} FROM sports_items ORDER BY CASE state WHEN 'attention' THEN 0 WHEN 'failed' THEN 1 ELSE 2 END, updated DESC, rating_key LIMIT ?1"
+        ))?;
+        let rows = statement.query_map(params![limit as i64], sports_item_from)?;
+        rows.collect()
+    }
+
+    /// How many items are in each state.
+    pub fn sports_counts(&self) -> rusqlite::Result<Vec<(String, i64)>> {
+        let connection = self.lock();
+        let mut statement = connection.prepare("SELECT state, COUNT(*) FROM sports_items GROUP BY state ORDER BY state")?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect()
+    }
+
+    /// Forgets an item, so the research looks at it afresh; returns whether there was one.
+    pub fn forget_sports_item(&self, rating_key: &str) -> rusqlite::Result<bool> {
+        Ok(self.lock().execute("DELETE FROM sports_items WHERE rating_key = ?1", params![rating_key])? > 0)
+    }
+
+    /// Forgets items no longer in the library.
+    pub fn keep_sports_items(&self, present: &[String]) -> rusqlite::Result<usize> {
+        let connection = self.lock();
+        let known: Vec<String> = {
+            let mut statement = connection.prepare("SELECT rating_key FROM sports_items")?;
+            let rows = statement.query_map([], |row| row.get(0))?;
+            rows.collect::<rusqlite::Result<_>>()?
+        };
+        let mut removed = 0;
+        for key in known.iter().filter(|key| !present.contains(key)) {
+            removed += connection.execute("DELETE FROM sports_items WHERE rating_key = ?1", params![key])?;
+        }
+        Ok(removed)
+    }
+
+    pub fn sports_event(&self, key: &str) -> rusqlite::Result<Option<(String, i64)>> {
+        self.lock().query_row("SELECT record, researched FROM sports_events WHERE key = ?1", params![key], |row| Ok((row.get(0)?, row.get(1)?))).optional()
+    }
+
+    pub fn save_sports_event(&self, key: &str, record: &str) -> rusqlite::Result<()> {
+        self.lock().execute("INSERT OR REPLACE INTO sports_events (key, record, researched) VALUES (?1, ?2, ?3)", params![key, record, now()])?;
+        Ok(())
+    }
+
+    pub fn forget_sports_event(&self, key: &str) -> rusqlite::Result<()> {
+        self.lock().execute("DELETE FROM sports_events WHERE key = ?1", params![key])?;
+        Ok(())
+    }
+
+    /// What a model showed it can do when last probed, with when.
+    pub fn abilities(&self, model: &str) -> rusqlite::Result<Option<(bool, bool, i64)>> {
+        self.lock()
+            .query_row("SELECT tools, thinking, checked FROM model_abilities WHERE model = ?1", params![model], |row| {
+                Ok((row.get::<_, i64>(0)? != 0, row.get::<_, i64>(1)? != 0, row.get(2)?))
+            })
+            .optional()
+    }
+
+    pub fn save_abilities(&self, model: &str, tools: bool, thinking: bool) -> rusqlite::Result<()> {
+        self.lock().execute(
+            "INSERT OR REPLACE INTO model_abilities (model, tools, thinking, checked) VALUES (?1, ?2, ?3, ?4)",
+            params![model, tools as i64, thinking as i64, now()],
+        )?;
+        Ok(())
     }
 
     pub fn summary(&self, rating_key: &str, source_hash: &str, model: &str, prompt_version: i64) -> rusqlite::Result<Option<Summary>> {
@@ -171,9 +309,54 @@ impl Store {
     }
 }
 
+const SPORTS_COLUMNS: &str = "rating_key, section, file, state, title, record, applied, note, tries, next_try, updated";
+
+fn sports_item_from(row: &rusqlite::Row<'_>) -> rusqlite::Result<SportsItem> {
+    Ok(SportsItem {
+        rating_key: row.get(0)?,
+        section: row.get(1)?,
+        file: row.get(2)?,
+        state: row.get(3)?,
+        title: row.get(4)?,
+        record: row.get(5)?,
+        applied: row.get(6)?,
+        note: row.get(7)?,
+        tries: row.get(8)?,
+        next_try: row.get(9)?,
+        updated: row.get(10)?,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn keeps_sports_items_events_and_abilities() {
+        let store = Store::in_memory().unwrap();
+        let item = SportsItem {
+            rating_key: "21417".into(),
+            section: "4".into(),
+            file: "/s/UFC 334 Prelims.mp4".into(),
+            state: "matched".into(),
+            title: "UFC 334: Gane vs. Hokit · Prelims".into(),
+            record: Some("{}".into()),
+            applied: None,
+            note: String::new(),
+            tries: 1,
+            next_try: 0,
+            updated: now(),
+        };
+        store.save_sports_item(&item).unwrap();
+        assert_eq!(store.sports_item("21417").unwrap(), Some(item.clone()));
+        assert_eq!(store.sports_counts().unwrap(), vec![("matched".to_string(), 1)]);
+        assert_eq!(store.keep_sports_items(&["1".into()]).unwrap(), 1);
+        assert!(store.sports_items(10).unwrap().is_empty());
+        store.save_sports_event("UFC 334", "{\"a\":1}").unwrap();
+        assert_eq!(store.sports_event("UFC 334").unwrap().map(|(record, _)| record), Some("{\"a\":1}".into()));
+        store.save_abilities("bolt@http://x", true, false).unwrap();
+        assert_eq!(store.abilities("bolt@http://x").unwrap().map(|(tools, thinking, _)| (tools, thinking)), Some((true, false)));
+    }
 
     #[test]
     fn a_device_is_found_by_its_token_and_never_stores_it() {

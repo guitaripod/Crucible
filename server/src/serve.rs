@@ -16,6 +16,7 @@ use crate::paths::Paths;
 use crate::plex::Plex;
 use crate::plextv::PlexTv;
 use crate::recap::Writer;
+use crate::sports::runner::Sports;
 use crate::store::Store;
 use crate::{setup, tls};
 
@@ -34,7 +35,9 @@ pub async fn run(paths: &Paths) -> Result<(), String> {
     let writer = model
         .cloned()
         .map(|model| Arc::new(Writer { plex: plex.clone(), brain: Brain::with_stored_key(model, paths), store: store.clone(), config: config.clone() }));
-    let state = Arc::new(AppState::new(
+    let sports = Arc::new(Sports::new(paths.clone(), &config, plex.clone(), store.clone(), owner_token.clone()));
+    tokio::spawn(sports.clone().run());
+    let mut state = AppState::new(
         config.clone(),
         store.clone(),
         Arc::new(Pairings::backed_by(store)),
@@ -42,7 +45,9 @@ pub async fn run(paths: &Paths) -> Result<(), String> {
         plex,
         writer,
         Home::new(PlexTv::new(&client), owner_token, config.machine_identifier.clone()),
-    ));
+    );
+    state.sports = Some(sports);
+    let state = Arc::new(state);
     let tls = RustlsConfig::from_pem_file(paths.certificate(), paths.private_key()).await.map_err(|error| error.to_string())?;
     let address = SocketAddr::from(([0, 0, 0, 0], config.port));
     let handle = axum_server::Handle::new();

@@ -8,6 +8,9 @@ TV pairs with it once and then gets:
 - **Previously On**: a short recap of the last episodes you finished, written by a model you choose from Plex's
   synopsis and the episodes' own subtitles, and checked before you see it.
 - **Ask**: pause and ask about what you're watching; the answer uses only what you've already seen.
+- **Sports Research**: for the sports recordings in an Other Videos library, your model searches the web, reads the
+  event's pages and gives each file a real title, date, card and poster in Plex, without touching the files
+  ([Sports Research](#sports-research)).
 
 With a model on this machine or on a computer on your own tailnet, nothing leaves your network. No such computer?
 Point it at a hosted model with your own key instead ([The model](#the-model)); it says what would be sent before
@@ -91,6 +94,38 @@ home network or your tailnet that asks for a key gets it over plain HTTP, direct
 Redirects are never followed. In Docker, mount the key as a secret and give its path to `setup` with
 `--model-key-file`, or in `CRUCIBLE_MODEL_KEY_FILE`, beside `--model-url`.
 
+## Sports Research
+
+Plex has no agent for sports, so a recording in an Other Videos library shows up as its file name
+(`ufc.fight.night.286.nurmagomedov.vs.song.1080p.web.h264-verum`). Sports Research turns that into
+**UFC Fight Night 286: Nurmagomedov vs. Song**, dated, sorted with the event's other parts, with the card, the venue and
+the event's artwork, and does it again on its own whenever a new file arrives.
+
+It is for people who run a capable model: one that calls tools, thinks before it answers and has a context window of
+32K tokens or more. Each file is researched by the model itself: it searches the web, reads the league's own event
+page and Wikipedia, and hands in a record. The server checks the record before anything reaches Plex: the date must
+be real and before the file arrived, an event number in the file name must match, the sources must be pages the model
+actually saw, and nothing may give away a result. Then it writes the title, sort title, date, summary, studio,
+genre, collection and artwork through Plex's own API, every field locked so Plex's agents leave it alone. The media
+files are never opened, moved or renamed, so a torrent client can keep seeding them. Change a field by hand in Plex
+and the server leaves that item to you from then on.
+
+```sh
+crucible-server sports                                                   # every requirement, checked live
+crucible-server sports --searxng http://127.0.0.1:8888 --library Sports --agree --on
+crucible-server sports --try "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"     # research one name, write nothing
+```
+
+Search goes through a [SearXNG](https://docs.searxng.org) you run (turn its JSON format on) or Brave Search with your
+own key (`--brave-key-file`). Searches name the events in your files, such as "UFC 334 prelims"; nothing else from
+your library is sent, and the research does not start until you agree to where searches go. Pages are read only from
+public addresses, checked again on every redirect.
+
+Crucible on iPhone, iPad and Apple TV shows every requirement with whether it is met and how to meet it, lets the
+owner choose libraries, agree and switch research on, shows the file being researched and the step the model is on,
+and lists what it made of each file. With Nemotron 3.5 Bolt on llama.cpp, a UFC event takes 15 to 60 seconds;
+the other parts of the same event reuse it.
+
 ## How it keeps you safe
 
 - It answers only this machine, the home network and your tailnet, over HTTPS with its own certificate.
@@ -110,5 +145,7 @@ Redirects are never followed. In Docker, mount the key as a secret and give its 
   network over plain HTTP. `crucible-server doctor` says where the model is, and so does Crucible's own status line.
 - Summaries use names only from the episode's dialogue, synopsis and cast; a summary that invents one, or a sentence
   the sources don't support, is rewritten or dropped.
+- Sports Research writes to Plex only for the libraries the owner chose, only as the owner, and only metadata. It
+  reads web pages only at public addresses, so a page cannot steer it into your network.
 
 Licensed GPL-3.0, like Crucible.

@@ -83,6 +83,66 @@ pub struct Item {
     pub media: Vec<Media>,
     #[serde(rename = "Role", default)]
     pub roles: Vec<Role>,
+    #[serde(default)]
+    pub added_at: Option<i64>,
+    #[serde(default)]
+    pub title_sort: Option<String>,
+    #[serde(default)]
+    pub originally_available_at: Option<String>,
+    #[serde(default)]
+    pub studio: Option<String>,
+    #[serde(default)]
+    pub tagline: Option<String>,
+    #[serde(default)]
+    pub thumb: Option<String>,
+    #[serde(rename = "Field", default)]
+    pub locks: Vec<FieldLock>,
+    #[serde(rename = "Collection", default)]
+    pub collections: Vec<Tag>,
+    #[serde(rename = "Genre", default)]
+    pub genres: Vec<Tag>,
+}
+
+/// A field the owner or a tool locked against Plex's own agents.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct FieldLock {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub locked: bool,
+}
+
+/// A tag such as a genre or a collection.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct Tag {
+    #[serde(default)]
+    pub tag: String,
+}
+
+/// A library on the server.
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct Section {
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default, rename = "type")]
+    pub kind: String,
+    #[serde(default)]
+    pub agent: String,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct SectionsContainer {
+    #[serde(rename = "Directory", default)]
+    directories: Vec<Section>,
+}
+
+impl Section {
+    /// An "Other Videos" library: movies kept by Plex's Personal Media agent, which names items after their files.
+    pub fn is_other_videos(&self) -> bool {
+        self.kind == "movie" && matches!(self.agent.as_str(), "tv.plex.agents.none" | "com.plexapp.agents.none")
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -117,6 +177,8 @@ pub struct Media {
 pub struct Part {
     #[serde(default)]
     pub id: u64,
+    #[serde(default)]
+    pub size: Option<u64>,
     #[serde(default)]
     pub key: Option<String>,
     #[serde(default)]
@@ -202,9 +264,13 @@ impl Plex {
     }
 
     fn request(&self, path: &str, token: Option<&str>) -> reqwest::RequestBuilder {
+        self.request_with(reqwest::Method::GET, path, token)
+    }
+
+    fn request_with(&self, method: reqwest::Method, path: &str, token: Option<&str>) -> reqwest::RequestBuilder {
         let mut request = self
             .http
-            .get(format!("{}{}", self.base, path))
+            .request(method, format!("{}{}", self.base, path))
             .header("Accept", "application/json")
             .header("X-Plex-Product", PRODUCT)
             .header("X-Plex-Client-Identifier", &self.client_id);
@@ -283,9 +349,88 @@ impl Plex {
         Ok(response.bytes().await.map_err(|error| PlexError::Decode(error.to_string()))?.to_vec())
     }
 
+    /// The libraries this token may see.
+    pub async fn sections(&self, token: &str) -> Result<Vec<Section>, PlexError> {
+        let response = self.send("/library/sections", Some(token)).await?;
+        match response.status() {
+            StatusCode::OK => {}
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => return Err(PlexError::Unauthorized),
+            other => return Err(PlexError::Status(other.as_u16())),
+        }
+        let body: Envelope<SectionsContainer> = response.json().await.map_err(|error| PlexError::Decode(error.to_string()))?;
+        Ok(body.container.directories)
+    }
+
+    /// Every video in a movie-type library, with its files.
+    pub async fn section_videos(&self, section: &str, token: &str) -> Result<Vec<Item>, PlexError> {
+        let key = sanitize_key(section).ok_or_else(|| PlexError::NotFound(section.into()))?;
+        Ok(self.container(&format!("/library/sections/{key}/all?type=1"), token).await?.metadata)
+    }
+
+    /// Writes fields of one video in a movie-type library: `pairs` are Plex's own edit parameters, such as
+    /// `title.value` and `title.locked`. Only the server's owner may edit.
+    pub async fn edit(&self, section: &str, rating_key: &str, pairs: &[(String, String)], token: &str) -> Result<(), PlexError> {
+        let section = sanitize_key(section).ok_or_else(|| PlexError::NotFound(section.into()))?;
+        let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
+        let mut query: Vec<(String, String)> = vec![("type".into(), "1".into()), ("id".into(), key.into())];
+        query.extend(pairs.iter().cloned());
+        let response = self
+            .request_with(reqwest::Method::PUT, &format!("/library/sections/{section}/all"), Some(token))
+            .query(&query)
+            .send()
+            .await
+            .map_err(|error| PlexError::Unreachable(self.base.clone(), error.to_string()))?;
+        Self::accepted(response.status())
+    }
+
+    /// Uploads an image as an item's poster (`posters`) or background (`arts`); Plex keeps the bytes and selects it.
+    pub async fn upload_artwork(&self, rating_key: &str, kind: Artwork, bytes: Vec<u8>, token: &str) -> Result<(), PlexError> {
+        let key = sanitize_key(rating_key).ok_or_else(|| PlexError::NotFound(rating_key.into()))?;
+        let response = self
+            .request_with(reqwest::Method::POST, &format!("/library/metadata/{key}/{}", kind.path()), Some(token))
+            .body(bytes)
+            .send()
+            .await
+            .map_err(|error| PlexError::Unreachable(self.base.clone(), error.to_string()))?;
+        Self::accepted(response.status())
+    }
+
+    fn accepted(status: StatusCode) -> Result<(), PlexError> {
+        match status {
+            status if status.is_success() => Ok(()),
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Err(PlexError::Unauthorized),
+            StatusCode::NOT_FOUND => Err(PlexError::NotFound("item".into())),
+            other => Err(PlexError::Status(other.as_u16())),
+        }
+    }
+
     /// A streaming request for a file Plex serves, for a companion on another machine than the media.
     pub fn file_request(&self, part_key: &str, token: &str) -> Option<reqwest::RequestBuilder> {
         part_key.starts_with("/library/parts/").then(|| self.request(part_key, Some(token)).timeout(Duration::from_secs(3600)))
+    }
+}
+
+/// Which of an item's two images an upload is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Artwork {
+    Poster,
+    Background,
+}
+
+impl Artwork {
+    fn path(self) -> &'static str {
+        match self {
+            Artwork::Poster => "posters",
+            Artwork::Background => "arts",
+        }
+    }
+
+    /// The field that locks this image against Plex's own agents.
+    pub fn lock_field(self) -> &'static str {
+        match self {
+            Artwork::Poster => "thumb.locked",
+            Artwork::Background => "art.locked",
+        }
     }
 }
 

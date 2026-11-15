@@ -78,6 +78,11 @@ impl Paths {
         }
     }
 
+    /// The Brave Search key, when the owner chose Brave for sports research.
+    pub fn search_key(&self) -> PathBuf {
+        self.root.join("search-key")
+    }
+
     pub fn log(&self) -> PathBuf {
         self.root.join("crucible-server.log")
     }

@@ -1,9 +1,9 @@
 [package]
 name = "crucible-server"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "GPL-3.0-only"
-description = "The optional companion on the Plex machine: pairs with Crucible on iPhone, iPad and Apple TV, skips what files mark, and catches you up with grounded recaps from a model you choose"
+description = "The optional companion on the Plex machine: pairs with Crucible on iPhone, iPad and Apple TV, skips what files mark, catches you up with grounded recaps, and researches your sports recordings, all with a model you choose"
 repository = "https://github.com/guitaripod/Crucible"
 
 [[bin]]

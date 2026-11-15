@@ -23,6 +23,7 @@ use crate::pairing::{new_device_token, Pairings, Refused};
 use crate::plex::{sanitize_key, Plex, PlexError};
 use crate::recap::Writer;
 use crate::segments;
+use crate::sports::runner::Sports;
 use crate::store::{hash_token, Device, Store};
 
 pub const PROTOCOL: u32 = 1;
@@ -40,6 +41,7 @@ pub struct AppState {
     pub jobs: Jobs,
     pub owner_token_hash: Option<String>,
     pub home: Home,
+    pub sports: Option<Arc<Sports>>,
     accepted: Mutex<HashMap<String, Instant>>,
 }
 
@@ -63,6 +65,7 @@ impl AppState {
             jobs: Jobs::default(),
             owner_token_hash: home.owner_token_hash(),
             home,
+            sports: None,
             accepted: Mutex::new(HashMap::new()),
         }
     }
@@ -128,7 +131,11 @@ pub fn router(state: Shared) -> Router {
         .route("/recaps", post(start_recap))
         .route("/recaps/{id}", get(collect))
         .route("/questions", post(start_question))
-        .route("/questions/{id}", get(collect));
+        .route("/questions/{id}", get(collect))
+        .route("/sports", get(sports_status).put(sports_settings))
+        .route("/sports/run", post(sports_run))
+        .route("/sports/checks", post(sports_checks))
+        .route("/sports/items/{rating_key}/redo", post(sports_redo));
     Router::new()
         .nest("/crucible/v1", v1)
         .layer(DefaultBodyLimit::max(1 << 20))
@@ -218,6 +225,7 @@ async fn hello(State(state): State<Shared>) -> Json<Value> {
         "version": env!("CARGO_PKG_VERSION"),
         "fingerprint": state.fingerprint,
         "brain": state.writer.is_some(),
+        "sports": state.sports.is_some(),
         "plexMachineIdentifier": state.config.machine_identifier,
     }))
 }
@@ -431,5 +439,124 @@ async fn collect(State(state): State<Shared>, headers: HeaderMap, Path(id): Path
         Some(JobState::Working) => Ok(Json(json!({"status": "working"}))),
         Some(JobState::Done(result)) => Ok(Json(json!({"status": "ready", "result": result}))),
         Some(JobState::Failed(message)) => Ok(Json(json!({"status": "failed", "message": message}))),
+    }
+}
+
+fn sports(state: &AppState) -> Result<Arc<Sports>, ApiError> {
+    state
+        .sports
+        .clone()
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "no_sports", "This Crucible Server has no sports research.").hint("Update Crucible Server."))
+}
+
+/// A caller who is the server's owner, for the routes that change what the server writes into Plex.
+async fn owner(state: &AppState, headers: &HeaderMap) -> Result<Caller, ApiError> {
+    let caller = caller(state, headers).await?;
+    if state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str()) {
+        Ok(caller)
+    } else {
+        Err(ApiError::new(StatusCode::FORBIDDEN, "owner_only", "Only the owner of this Plex server can change sports research."))
+    }
+}
+
+/// Where sports research stands: every requirement, the settings, what the server is doing and what it did.
+async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
+    let caller = caller(&state, &headers).await?;
+    let sports = sports(&state)?;
+    let is_owner = state.owner_token_hash.as_deref() == Some(hash_token(&caller.plex_token).as_str());
+    let settings = sports.settings();
+    let checks = sports.checks(false).await;
+    let libraries: Vec<Value> = sports
+        .libraries()
+        .await
+        .into_iter()
+        .filter(|(_, _, other_videos)| *other_videos)
+        .map(|(key, title, _)| json!({"key": key, "title": title, "chosen": settings.libraries.contains(&key)}))
+        .collect();
+    let (items, counts) = sports.items(40);
+    Ok(Json(json!({
+        "owner": is_owner,
+        "ready": crate::sports::checks::ready(&checks),
+        "checks": checks,
+        "settings": {
+            "on": settings.on,
+            "engine": settings.engine.as_ref().map(|engine| engine.label()),
+            "destination": settings.engine.as_ref().map(|engine| engine.destination()),
+            "agreed": settings.agreed_to_engine(),
+        },
+        "libraries": libraries,
+        "status": sports.status(),
+        "counts": counts,
+        "items": items,
+    })))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SportsChange {
+    on: Option<bool>,
+    libraries: Option<Vec<String>>,
+    agree: Option<bool>,
+}
+
+/// The owner turns research on or off, chooses libraries, or agrees to where searches go.
+async fn sports_settings(State(state): State<Shared>, headers: HeaderMap, Json(change): Json<SportsChange>) -> Result<Json<Value>, ApiError> {
+    owner(&state, &headers).await?;
+    let sports = sports(&state)?;
+    let other_videos: Vec<String> = sports.libraries().await.into_iter().filter(|(_, _, other_videos)| *other_videos).map(|(key, _, _)| key).collect();
+    if let Some(chosen) = &change.libraries {
+        if let Some(stranger) = chosen.iter().find(|key| !other_videos.contains(key)) {
+            return Err(ApiError::new(
+                StatusCode::BAD_REQUEST,
+                "not_other_videos",
+                format!("Library {stranger} is not an Other Videos library on this server."),
+            ));
+        }
+    }
+    let updated = sports
+        .update(|settings| {
+            if let Some(on) = change.on {
+                settings.on = on;
+            }
+            if let Some(chosen) = change.libraries {
+                settings.libraries = chosen;
+            }
+            match change.agree {
+                Some(true) => settings.agreed = settings.engine.as_ref().map(|engine| engine.destination()),
+                Some(false) => settings.agreed = None,
+                None => {}
+            }
+        })
+        .map_err(|error| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "config", error))?;
+    tracing::info!(on = updated.on, libraries = ?updated.libraries, agreed = updated.agreed_to_engine(), "the owner changed sports research");
+    Ok(Json(json!({"on": updated.on, "libraries": updated.libraries, "agreed": updated.agreed_to_engine()})))
+}
+
+/// The owner asks the server to look at the libraries now.
+async fn sports_run(State(state): State<Shared>, headers: HeaderMap) -> Result<StatusCode, ApiError> {
+    owner(&state, &headers).await?;
+    sports(&state)?.wake();
+    Ok(StatusCode::ACCEPTED)
+}
+
+/// The owner asks for every requirement to be checked again now, the model probed afresh.
+async fn sports_checks(State(state): State<Shared>, headers: HeaderMap) -> Result<Json<Value>, ApiError> {
+    owner(&state, &headers).await?;
+    let sports = sports(&state)?;
+    let checks = sports.checks(true).await;
+    if crate::sports::checks::ready(&checks) {
+        sports.wake();
+    }
+    Ok(Json(json!({"ready": crate::sports::checks::ready(&checks), "checks": checks})))
+}
+
+/// The owner asks for one item to be researched again from scratch.
+async fn sports_redo(State(state): State<Shared>, headers: HeaderMap, Path(rating_key): Path<String>) -> Result<StatusCode, ApiError> {
+    owner(&state, &headers).await?;
+    let key = sanitize_key(&rating_key).ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "not_found", "No such item."))?;
+    if sports(&state)?.redo(key) {
+        Ok(StatusCode::ACCEPTED)
+    } else {
+        Err(ApiError::new(StatusCode::NOT_FOUND, "not_found", "Sports research has not seen that item."))
     }
 }
