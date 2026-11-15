@@ -58,6 +58,9 @@ public struct Key: Hashable, Sendable {
     public static let f10 = Key(0xFFC7)
     public static let f11 = Key(0xFFC8)
     public static let back = Key(0x1008FF26)
+    /// XF86AudioPlay, the Play/Pause key of keyboards and remotes.
+    public static let mediaPlay = Key(0x1008FF14)
+    public static let mediaPause = Key(0x1008FF31)
     public static let forward = Key(0x1008FF27)
 
     /// A letter or digit key by its lowercase character (`Key.character("f")`).

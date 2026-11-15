@@ -122,6 +122,8 @@ public final class CardView: View {
     public var onContextMenu: ((CardItem, Point?) -> Void)?
     /// Called when the card gains focus (Home's backdrop follows it).
     public var onFocus: ((CardItem) -> Void)?
+    /// The Play/Pause key on the focused card; returns whether it played, so a show passes the press on.
+    public var onPlay: ((CardItem) -> Bool)?
 
     private lazy var artwork = ArtworkSlot(owner: self)
     private var lift = Animated(0)
@@ -216,6 +218,11 @@ public final class CardView: View {
             onActivate?(item)
         }
         pressedByPointer = false
+    }
+
+    public override func keyPressed(_ event: KeyEvent) -> Bool {
+        guard event.key == .mediaPlay || event.key == .mediaPause, let onPlay else { return false }
+        return onPlay(item)
     }
 
     public override func activate() {

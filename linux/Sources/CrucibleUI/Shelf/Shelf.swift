@@ -25,6 +25,7 @@ public final class ShelfView: View {
 
     public var onActivate: ((CardItem) -> Void)?
     public var onFocus: ((CardItem) -> Void)?
+    public var onPlay: ((CardItem) -> Bool)?
     public var onContextMenu: ((CardItem, Point?) -> Void)?
     public var onSeeAll: (() -> Void)?
 
@@ -69,6 +70,7 @@ public final class ShelfView: View {
                 let card = CardView(item: item, style: style)
                 card.onActivate = { [weak self] item in self?.onActivate?(item) }
                 card.onFocus = { [weak self] item in self?.onFocus?(item) }
+                card.onPlay = { [weak self] item in self?.onPlay?(item) ?? false }
                 card.onContextMenu = { [weak self] item, point in self?.onContextMenu?(item, point) }
                 scroller.addSubview(card)
                 next[item.id] = card
@@ -246,6 +248,7 @@ public final class CardGridView: View {
     public var aspect: Float = 1.5 { didSet { if aspect != oldValue { setNeedsLayout() } } }
     public var onActivate: ((CardItem) -> Void)?
     public var onFocus: ((CardItem) -> Void)?
+    public var onPlay: ((CardItem) -> Bool)?
     public var onContextMenu: ((CardItem, Point?) -> Void)?
     private var cards: [String: CardView] = [:]
     private var order: [String] = []
@@ -265,6 +268,7 @@ public final class CardGridView: View {
                 let card = CardView(item: item, style: style)
                 card.onActivate = { [weak self] item in self?.onActivate?(item) }
                 card.onFocus = { [weak self] item in self?.onFocus?(item) }
+                card.onPlay = { [weak self] item in self?.onPlay?(item) ?? false }
                 card.onContextMenu = { [weak self] item, point in self?.onContextMenu?(item, point) }
                 addSubview(card)
                 next[item.id] = card
