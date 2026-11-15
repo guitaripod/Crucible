@@ -1,0 +1,52 @@
+From b956b33f56b9f8b64a25c7df26f633ac484d4a3d Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Sun, 15 Nov 2026 14:10:36 +0200
+Subject: [PATCH] vulkan/gpu_pass: don't hold a descriptor set for a pass
+ without descriptors
+
+A pass with no descriptors skips creating its descriptor pool, so it never
+takes the push descriptor path, yet vk_pass_run still claimed one of its
+NUM_DS slots per run and released it only when the command completed. Once
+a descriptor-less pass ran more than NUM_DS times before the GPU caught up,
+every further run blocked in the slow path waiting on the GPU, even though
+no set is ever bound. Skip the slot bookkeeping when there is nothing to
+bind.
+---
+ src/vulkan/gpu_pass.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/vulkan/gpu_pass.c b/src/vulkan/gpu_pass.c
+index 99188020..461dab6f 100644
+--- a/src/vulkan/gpu_pass.c
++++ b/src/vulkan/gpu_pass.c
+@@ -816,7 +816,8 @@ void vk_pass_run(pl_gpu gpu, const struct pl_pass_run_params *params)
+         pl_log_cpu_time(gpu->log, start, pl_clock_now(), "re-specializing shader");
+     }
+ 
+-    if (!pass_vk->use_pushd) {
++    bool use_sets = !pass_vk->use_pushd && pass->params.num_descriptors;
++    if (use_sets) {
+         // Wait for a free descriptor set
+         while (!pass_vk->dmask) {
+             PL_TRACE(gpu, "No free descriptor sets! ...blocking (slow path)");
+@@ -835,7 +836,7 @@ void vk_pass_run(pl_gpu gpu, const struct pl_pass_run_params *params)
+ 
+     // Find a descriptor set to use
+     VkDescriptorSet ds = VK_NULL_HANDLE;
+-    if (!pass_vk->use_pushd) {
++    if (use_sets) {
+         for (int i = 0; i < PL_ARRAY_SIZE(pass_vk->dss); i++) {
+             uint16_t dsbit = 1u << i;
+             if (pass_vk->dmask & dsbit) {
+@@ -852,7 +853,7 @@ void vk_pass_run(pl_gpu gpu, const struct pl_pass_run_params *params)
+     for (int i = 0; i < pass->params.num_descriptors; i++)
+         vk_update_descriptor(gpu, cmd, pass, params->desc_bindings[i], ds, i);
+ 
+-    if (!pass_vk->use_pushd) {
++    if (use_sets) {
+         vk->UpdateDescriptorSets(vk->dev, pass->params.num_descriptors,
+                                  pass_vk->dswrite, 0, NULL);
+     }
+-- 
+2.56.1
+
