@@ -257,8 +257,10 @@ final class HomeScreen: ScreenView {
     private func makeShelf(_ row: Row) -> ShelfView {
         let style: CardStyle = row == .continueWatching || row == .upNext ? .landscape : .poster
         let shelf = ShelfView(header: nil, style: style)
-        shelf.onFocus = { [weak self] item in
-            guard let self, let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
+        shelf.onFocus = { [weak self, weak shelf] item in
+            guard let self else { return }
+            if let shelf { self.bringHeroBack(focusing: shelf) }
+            guard let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
             self.feature(media, bucket: bucket, animated: true)
         }
         shelf.onActivate = { [weak self] item in self?.activate(item.id, in: row) }
@@ -545,6 +547,13 @@ final class HomeScreen: ScreenView {
     }
 
     // MARK: Layout
+
+    /// Focus on the first row under the hero scrolls back to the top so the hero shows whole again
+    /// (`TVHomeCollectionView.bringHeroBack`); the lower rows scroll as far as they need.
+    private func bringHeroBack(focusing shelf: View) {
+        guard page.sections.dropFirst().first === shelf, page.offset > 0 else { return }
+        page.setOffset(0, animated: true)
+    }
 
     private func scrolled(_ offset: Float) {
         hero.translation = Point(x: 0, y: -offset)
