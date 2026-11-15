@@ -45,6 +45,11 @@ package enum HostedBrain {
         provider.withLock { $0 = brain }
     }
 
+    /// Takes the installed model away, as when the person removes their own model on Linux; the demo's stays.
+    package static func remove() {
+        provider.withLock { $0 = nil }
+    }
+
     /// Installs the answers the demo gives. Called once by an app entry point that links `CrucibleDemo`.
     package static func installDemo(_ brain: any HostedBrainProviding) {
         demoProvider.withLock { $0 = brain }
@@ -75,7 +80,11 @@ package enum HostedBrain {
     /// The English name of the language the app is shown in, which the service's instructions answer in:
     /// "Finnish", "Portuguese (Brazil)", "Chinese, Simplified".
     package static var language: String {
+        #if canImport(Darwin)
         languageName(Bundle.main.preferredLocalizations.first ?? "en")
+        #else
+        languageName(LocalizationCatalog.shared.currentLanguage)
+        #endif
     }
 
     package static func languageName(_ identifier: String) -> String {
