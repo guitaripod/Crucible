@@ -24,11 +24,14 @@ enum ScreenAwake {
 }
 
 /// Lets go of decoded artwork nothing on screen shows when the kernel reports memory running short (a pressure-stall
-/// trigger), as the Apple TV does on a memory warning; at most once every ten seconds.
+/// trigger), as the Apple TV does on a memory warning; at most once every ten seconds, and not while the app is still
+/// starting, when reading its own files from disk stalls like pressure does.
 @MainActor
 final class MemoryPressure {
     private static let spacing: Duration = .seconds(10)
+    private static let startupGrace: Duration = .seconds(20)
     private let fd: Int32
+    private let started = ContinuousClock.now
     private var lastPurge: ContinuousClock.Instant?
 
     init?(loop: EventLoop, window: Window) {
@@ -42,6 +45,7 @@ final class MemoryPressure {
 
     private func purge(_ window: Window) {
         let now = ContinuousClock.now
+        guard started.duration(to: now) >= Self.startupGrace else { return }
         if let lastPurge, lastPurge.duration(to: now) < Self.spacing { return }
         lastPurge = now
         MidgarLog.notice("Memory is short: purging decoded artwork", category: .lifecycle)

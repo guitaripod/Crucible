@@ -109,7 +109,7 @@ void crucible_screensaver_uninhibit(void) {
 int crucible_memory_pressure_open(void) {
     int fd = open("/proc/pressure/memory", O_RDWR | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) return -1;
-    const char trigger[] = "some 150000 2000000";
+    const char trigger[] = "some 300000 2000000";
     if (write(fd, trigger, sizeof trigger) < 0) {
         close(fd);
         return -1;

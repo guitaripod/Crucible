@@ -22,7 +22,7 @@ void crucible_qr_free(uint8_t *modules);
 bool crucible_screensaver_inhibit(const char *reason);
 void crucible_screensaver_uninhibit(void);
 
-/** A pressure-stall trigger on memory (150 ms of stall within 2 s) that polls urgent when memory runs short, or -1 where
+/** A pressure-stall trigger on memory (300 ms of stall within 2 s) that polls urgent when memory runs short, or -1 where
  * the kernel offers none. */
 int crucible_memory_pressure_open(void);
 
