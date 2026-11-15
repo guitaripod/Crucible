@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 36 | 0 | 19 | 8 |
 | You, profiles, history, statistics and manage | 75 | 2 | 7 | 3 |
 | Settings and integrations | 36 | 6 | 25 | 2 |
-| Design system | 79 | 11 | 7 | 0 |
+| Design system | 82 | 8 | 7 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 57 | 8 | 38 | 0 |
-| **All** | 500 | 41 | 145 | 16 |
+| **All** | 503 | 38 | 145 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -575,7 +575,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-hero-ratings-line` (M) Scores on the hero meta line, each drawn under its source's official mark (star for Plex, brand marks for the others) _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:16_
 - [x] `design-hero-badges` (S) Outlined technical badges (4K, HDR, Atmos) in a row under the meta line _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:196-211_
 - [x] `design-hero-progress` (S) Thin progress bar under the hero text for an item that is partly watched _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:149-151_
-- [ ] `design-hero-crossfade` (S) **partial** Hero text cross-dissolves when the focused item changes, instantly under Reduce Motion Gap: The 0.25 s cross-dissolve exists (Backdrop.swift:123-156), but the Reduce Motion path never triggers because Animation.reduceMotion (Animation.swift:58) is never assigned. Even when set, a timed change is shortened to 0.15 s (Animation.swift:88-92) rather than made instant as TVHeroInfoView.swift:121-133 does. _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:123-133_
+- [x] `design-hero-crossfade` (S) Hero text cross-dissolves when the focused item changes, instantly under Reduce Motion _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:123-133_
 - [x] `design-hero-not-focusable` (S) Hero block never takes focus, so the remote moves from the tab bar straight to the first shelf _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:214-235_
 - [x] `design-backdrop-crossfade` (S) Full-screen artwork cross-fades after a 0.4 second debounce, at once on a screen's first paint, and fades to the canvas when there is no art _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVBackdropView.swift:75-117_
 - [x] `design-backdrop-scrims` (S) Three canvas-tinted scrims (text, bottom and top) keep text, shelves and the tab bar legible over any picture, in Light and Dark _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVBackdropView.swift:44-64_
@@ -613,8 +613,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `design-text-field` (M) **partial** Single-line text field with caret, select-all, word delete, placeholder, submit, and an IME-capable input path Gap: Typing, caret, select-all, word delete, placeholder and submit exist (TextField.swift:8-216). There is no text-input-v3 or preedit path under linux/Sources/Kiln or CKiln, so IME composition cannot work. The Apple refs point at the alert text field, not an inline field. _Apple TV: Sources/CrucibleTV/DesignSystem/Extensions/UIViewController+Alert.swift:41-69_
 - [x] `design-glass-liquid` (S) Liquid Glass controls: lensing, a rim, a specular light that follows the pointer or focus, adaptive light or dark tone, and a contact shadow on floating glass _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-12_
 - [x] `design-glass-tone-hysteresis` (S) Glass flips between light and dark from the luminance under it, with hysteresis so text never flickers over moving video _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-12_
-- [ ] `design-reduce-transparency` (M) **partial** Reduce Transparency swaps glass for an opaque raised surface Gap: Glass honours theme.reduceTransparency (Button.swift:21-25), but nothing ever sets it: Tokens.swift:266 defaults to false and no settings-portal read exists in linux/Sources. docs/LINUX.md:155 describes a portal read that is not in code, so the desktop setting never applies. _Apple TV: Sources/CrucibleDesign/Glass.swift:1-60_
-- [ ] `design-reduce-motion` (M) **partial** Reduce Motion collapses every animation: focus and fades apply at once, spinners and skeletons stop pulsing, and content swaps instantly Gap: Consumers exist (StateView.swift:162-213, Animation.swift:88) but Animation.reduceMotion (Animation.swift:58) is declared and never assigned, so the desktop setting never applies. The reduced path also shortens timed motion to 0.15 s (Animation.swift:88-92) instead of making it instant, and content swaps are not instant (see design-state-content-dissolve). _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVMotion.swift:12-14_
+- [x] `design-reduce-transparency` (M) Reduce Transparency swaps glass for an opaque raised surface _Apple TV: Sources/CrucibleDesign/Glass.swift:1-60_
+- [x] `design-reduce-motion` (M) Reduce Motion collapses every animation: focus and fades apply at once, spinners and skeletons stop pulsing, and content swaps instantly _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVMotion.swift:12-14_
 - [x] `design-motion-tokens` (S) Motion timings: focus 0.2s, fade 0.25s, hero text 0.25s, hero return 0.35s, backdrop fade 0.35s, backdrop debounce 0.4s, skeleton pulse 1.2s _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVMetrics.swift:60-68_
 - [x] `design-focus-tokens` (S) Focus tokens: lift 1.04, pressed 0.98, shadow radius 32 at offset (0, 20) with 0.4 opacity, and the row growth cap _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVMetrics.swift:38-44_
 - [x] `design-spinner` (S) Activity indicator for loading (Apple: UIActivityIndicator in a status row; Linux: eight petals in the loading state) _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVStatusRow.swift:12_
