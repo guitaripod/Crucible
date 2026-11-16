@@ -66,7 +66,7 @@ struct Gallery {
                 window.handleKey(KeyEvent(key: .right))
                 settle(window)
                 write(window, to: "\(directory)/home-focus-second.png", report: &report)
-                window.handleKey(KeyEvent(key: .down))
+                window.focus.focus(home.postersShelf.seeAllButton, animated: true)
                 settle(window)
                 write(window, to: "\(directory)/home-focus-see-all.png", report: &report)
                 window.handleKey(KeyEvent(key: .down))

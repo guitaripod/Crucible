@@ -92,6 +92,9 @@ public final class ShelfView: View {
 
     public func card(for id: String) -> CardView? { cards[id] }
 
+    /// The header's See All, when the shelf has one.
+    public var seeAllButton: View? { seeAll.superview == nil ? nil : seeAll }
+
     private func rebuildHeader() {
         headerLabel.text = header?.title ?? ""
         secondaryLabel.text = header?.secondaryText ?? ""
