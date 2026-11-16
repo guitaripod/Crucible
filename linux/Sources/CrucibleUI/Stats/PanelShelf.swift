@@ -37,7 +37,9 @@ public final class PanelShelfView: View {
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? { panels.first }
 
+    /// Shows `views` in order; the same panels again change nothing, so a refresh that keeps the cards keeps their focus.
     public func setPanels(_ views: [View]) {
+        guard views.count != panels.count || zip(views, panels).contains(where: { $0 !== $1 }) else { return }
         panels.forEach { $0.removeFromSuperview() }
         panels = views
         views.forEach(scroller.addSubview)
