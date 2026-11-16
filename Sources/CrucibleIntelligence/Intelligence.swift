@@ -26,9 +26,13 @@ package enum Intelligence {
     }
 
     /// Store captures and scripted UI-test sessions keep the answers and screens they were written for: no translation and
-    /// no on-device answers ahead of the scripted model.
+    /// no on-device answers ahead of the scripted model. `CRUCIBLE_INTELLIGENCE=1` keeps both on in such a session, to look
+    /// at them in a capture.
     static func isScripted(_ environment: [String: String]) -> Bool {
-        environment["CRUCIBLE_SHOT_SCRIPT"] != nil || environment["CRUCIBLE_BRAIN"].map { $0 != "live" } == true
+        guard environment["CRUCIBLE_INTELLIGENCE"] != "1" else { return false }
+        let capture = environment["CRUCIBLE_SIGNAL_DIR"] != nil || !(environment["CRUCIBLE_SHOT_SCRIPT"] ?? "").isEmpty
+        let brain = environment["CRUCIBLE_BRAIN"] ?? ""
+        return capture || (!brain.isEmpty && brain != "live")
     }
 
     /// The language the app is shown in, which recaps and reasons are written in.
