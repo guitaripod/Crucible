@@ -151,7 +151,7 @@ public final class Window {
         attach(contentView)
         accessibility = AccessibilityBridge(window: self, title: title)
         accessibility?.onActiveChange = { [weak self] _ in self?.setNeedsDisplay() }
-        _ = gpu.resize(width: renderer.target.width, height: renderer.target.height)
+        _ = gpu.resize(width: renderer.viewport.width, height: renderer.viewport.height)
         loop.add(fd: surface.fileDescriptor) { [weak self] readable in
             guard let self, let surface = self.surface, !self.closed else { return }
             if !surface.pump(readable: readable) {
@@ -403,7 +403,7 @@ public final class Window {
             mark = Window.now()
             surface.requestFrame()
             trace.frameRequested()
-            if gpu.present(renderer.target) {
+            if gpu.present(renderer.target, width: renderer.viewport.width, height: renderer.viewport.height) {
                 waitingForFrame = true
                 lastPresent = mark
             } else {
@@ -512,7 +512,15 @@ public final class Window {
     /// The last drawn frame as linear RGBA floats, top row first.
     public func capture() -> (width: Int, height: Int, pixels: [Float]) {
         gpu.finish()
-        return (renderer.target.width, renderer.target.height, renderer.target.download())
+        let full = renderer.target.download()
+        let (width, height) = renderer.viewport
+        guard width != renderer.target.width || height != renderer.target.height else { return (width, height, full) }
+        var pixels = [Float](repeating: 0, count: width * height * 4)
+        for row in 0..<height {
+            let from = row * renderer.target.width * 4
+            pixels.replaceSubrange(row * width * 4..<(row + 1) * width * 4, with: full[from..<from + width * 4])
+        }
+        return (width, height, pixels)
     }
 
     // MARK: Resizing

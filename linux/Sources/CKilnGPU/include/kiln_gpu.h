@@ -107,7 +107,8 @@ bool kiln_gpu_draw(kiln_gpu *gpu, kiln_tex *target, const char *header, const ch
                    const float *vertices, int vertex_count, bool blend);
 
 /** Starts a swapchain frame, draws `source` onto it, submits and swaps; false when nothing reached the compositor. */
-bool kiln_gpu_present(kiln_gpu *gpu, kiln_tex *source);
+/** Presents the top-left `width` by `height` pixels of `source`, which may be larger than the window. */
+bool kiln_gpu_present(kiln_gpu *gpu, kiln_tex *source, int width, int height);
 
 /** GPU time of the passes since the last call, in milliseconds (a frame or two late). */
 double kiln_gpu_take_gpu_ms(kiln_gpu *gpu);

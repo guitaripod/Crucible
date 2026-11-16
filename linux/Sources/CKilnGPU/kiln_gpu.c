@@ -565,7 +565,7 @@ bool kiln_gpu_draw(kiln_gpu *g, kiln_tex *target, const char *header, const char
     ));
 }
 
-bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source) {
+bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source, int width, int height) {
     if (!g->swapchain) return false;
     struct pl_swapchain_frame frame;
     if (!pl_swapchain_start_frame(g->swapchain, &frame)) return false;
@@ -574,6 +574,7 @@ bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source) {
         .planes = { { .texture = source->tex, .components = 4, .component_mapping = { 0, 1, 2, 3 } } },
         .repr = pl_color_repr_rgb,
         .color = { .primaries = PL_COLOR_PRIM_BT_709, .transfer = PL_COLOR_TRC_LINEAR, .hdr = { .max_luma = 10000.0f } },
+        .crop = { 0, 0, (float) width, (float) height },
     };
     struct pl_frame target;
     pl_frame_from_swapchain(&target, &frame);

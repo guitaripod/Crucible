@@ -94,7 +94,7 @@ final class Spike: WaylandWindowDelegate {
         if frame == 90 || frame == frameLimit - 1 { capture(finalTarget, name: "frame-\(frame)") }
         window.requestFrame()
         waitingForFrame = true
-        gpu.present(finalTarget)
+        gpu.present(finalTarget, width: finalTarget.width, height: finalTarget.height)
         window.flush()
         let milliseconds = gpu.takeGPUMilliseconds()
         if milliseconds > 0 { gpuTimes.append(milliseconds) }

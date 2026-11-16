@@ -269,8 +269,9 @@ public final class GPU {
     private var blanks: [Texture] = []
 
     @discardableResult
-    public func present(_ source: Texture) -> Bool {
-        kiln_gpu_present(handle, source.handle)
+    /// Presents the top-left `width` by `height` pixels of `source`.
+    public func present(_ source: Texture, width: Int, height: Int) -> Bool {
+        kiln_gpu_present(handle, source.handle, Int32(width), Int32(height))
     }
 
     public func takeGPUMilliseconds() -> Double {

@@ -30,13 +30,28 @@ final class SceneRenderer {
         text = TextRenderer(gpu: gpu)
         symbols = SymbolRenderer(gpu: gpu)
         shapes = ShapeRenderer(gpu: gpu)
-        target = try gpu.texture(width: max(width, 1), height: max(height, 1), format: .rgba16f, renderable: true)
+        viewport = (max(width, 1), max(height, 1))
+        target = try gpu.texture(width: Self.allocated(viewport.width), height: Self.allocated(viewport.height), format: .rgba16f, renderable: true)
         painter = Painter(gpu: gpu, target: target)
     }
 
+    /// The part of `target` the window shows, from its top-left corner. The target and the glass's own textures are
+    /// allocated a step larger (`allocated`), so a window resized by dragging its edge draws into what is there instead of
+    /// allocating a new set of full-size textures for every size it passes through.
+    private(set) var viewport: (width: Int, height: Int)
+
+    /// A size rounded up to the next 256 pixels.
+    static func allocated(_ pixels: Int) -> Int {
+        (pixels + 255) / 256 * 256
+    }
+
+    /// Shows `width` by `height` pixels, reallocating only when the window outgrows the target or shrinks well inside it.
     func resize(width: Int, height: Int) throws(RenderError) {
-        guard width != target.width || height != target.height else { return }
-        target = try gpu.texture(width: max(width, 1), height: max(height, 1), format: .rgba16f, renderable: true)
+        viewport = (max(width, 1), max(height, 1))
+        let fits = viewport.width <= target.width && viewport.height <= target.height
+        let roomy = viewport.width * 4 >= target.width * 3 || viewport.height * 4 >= target.height * 3
+        guard !fits || !roomy else { return }
+        target = try gpu.texture(width: Self.allocated(viewport.width + 128), height: Self.allocated(viewport.height + 128), format: .rgba16f, renderable: true)
         painter = Painter(gpu: gpu, target: target)
         glassRenderer = nil
         backdropCopy = nil
@@ -189,7 +204,7 @@ final class SceneRenderer {
     /// The performance HUD: the frame trace's line on a dark plate at the top left.
     func drawHUD(_ line: String) {
         painter.clip = nil
-        var style = TextStyle(sizePixels: Double(13 * scale), weight: 500, opticalSize: 14, maxWidthPixels: target.width - Int(24 * scale), maxLines: 3)
+        var style = TextStyle(sizePixels: Double(13 * scale), weight: 500, opticalSize: 14, maxWidthPixels: viewport.width - Int(24 * scale), maxLines: 3)
         style.alignment = .leading
         guard let label = try? text.texture(for: line, style: style) else { return }
         let rect = Rect(x: 8 * scale, y: 8 * scale, width: Float(label.metrics.width) + 16 * scale, height: Float(label.metrics.height) + 12 * scale)
