@@ -156,6 +156,9 @@ final class PlayerScreen: View {
     private var seekTarget: (position: Double, at: ContinuousClock.Instant)?
     private var chrome = Animated(1)
     private var hideTask: Task<Void, Never>?
+    /// Whether the player was paused at its last report, to start the chrome's rest when playback resumes: mpv reports
+    /// the change a moment after Space or a click asked for it, too late for the rest those start.
+    private var wasPaused = true
     var resolveTask: Task<Void, Never>?
     private var reportTask: Task<Void, Never>?
     private var heartbeatTask: Task<Void, Never>?
@@ -417,7 +420,12 @@ final class PlayerScreen: View {
             let change: PlaybackChange = playerState.isPaused ? .paused(position: position) : .playing(position: position)
             watchers.forEach { $0.playback(change) }
         }
-        if playerState.isPaused, preroll == nil { showChrome(autoHide: false) }
+        if playerState.isPaused, preroll == nil {
+            showChrome(autoHide: false)
+        } else if !playerState.isPaused, wasPaused, chromeShown {
+            showChrome(autoHide: true)
+        }
+        wasPaused = playerState.isPaused
         followBorrowedSubtitle(muted: playerState.isMuted)
         setNeedsDisplay()
     }
