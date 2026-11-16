@@ -98,7 +98,80 @@ final class YouScreen: SettingsScaffold {
         return count > 0 ? WatchlistReleaseCopy.newCount(count) : nil
     }
 
+    // MARK: Two panes
+
+    /// The page beside the list in the Desktop layout, and which row it belongs to.
+    private var pane: ScreenView?
+    private var paneID: String?
+    /// The page last open beside the list, which You opens on again.
+    private static var lastPaneID = RowID.history
+    /// The rows whose pages open beside the list rather than over it.
+    private static let paneRows: Set<String> = [RowID.history, RowID.statistics, RowID.playlists, RowID.watchlist, RowID.requests, RowID.activity,
+                                                RowID.dashboard]
+
+    /// Whether You keeps its list down the left with the chosen page beside it (the Desktop layout).
+    private var usesPanes: Bool { Theme.current.density == .desk }
+
+    private func paneScreen(for id: String) -> ScreenView? {
+        let api = payload.api
+        switch id {
+        case RowID.history: return HistoryScreen(api: api)
+        case RowID.statistics: return StatisticsScreen(api: api)
+        case RowID.playlists: return PlaylistScreens.playlists(api: api)
+        case RowID.watchlist: return WatchlistScreens.watchlist(api: api)
+        case RowID.requests: return SeerrRequestsScreen(api: api)
+        case RowID.activity: return OwnerScreens.activity(api: api)
+        case RowID.dashboard: return ServerDashboardScreen(api: api)
+        default: return nil
+        }
+    }
+
+    /// Opens `id`'s page beside the list in place of the one there; what it opens itself still goes on the stack.
+    private func showPane(_ id: String) {
+        guard id != paneID || pane == nil, let screen = paneScreen(for: id) else { return }
+        pane?.screenWillDisappear()
+        pane?.removeFromSuperview()
+        screen.navigation = navigation
+        pane = screen
+        paneID = id
+        Self.lastPaneID = id
+        rows.selectedID = id
+        addSubview(screen)
+        placePanes()
+        screen.screenDidAppear()
+    }
+
+    private func closePane() {
+        pane?.screenWillDisappear()
+        pane?.removeFromSuperview()
+        pane = nil
+        paneID = nil
+        rows.selectedID = nil
+    }
+
+    override func layoutSubviews() {
+        if usesPanes, pane == nil, !rows.items.isEmpty {
+            showPane(rows.items.contains { $0.id == Self.lastPaneID } ? Self.lastPaneID : RowID.history)
+        }
+        if !usesPanes, pane != nil { closePane() }
+        placePanes()
+    }
+
+    /// The list in a column at the leading edge and the page in the rest, or the list alone on a couch.
+    private func placePanes() {
+        let column = Theme.current.metrics.tv(980)
+        leadingColumnWidth = usesPanes ? column : nil
+        super.layoutSubviews()
+        guard let pane else { return }
+        pane.frame = Rect(x: column, y: 0, width: max(bounds.width - column, 0), height: bounds.height)
+    }
+
+    override func screenWillDisappear() {
+        pane?.screenWillDisappear()
+    }
+
     override func screenDidAppear() {
+        pane?.screenDidAppear()
         accountName = PlexAccountName.stored
         refreshProfile()
         YouConnectionStatus.shared.refresh(api: payload.api)
@@ -227,6 +300,10 @@ final class YouScreen: SettingsScaffold {
 
     override func rowSelected(_ id: String) {
         let api = payload.api
+        if usesPanes, Self.paneRows.contains(id) {
+            showPane(id)
+            return
+        }
         switch id {
         case RowID.switchProfile:
             navigation?.push(ProfilesScreen(machineIdentifier: payload.connection.machineIdentifier) { [weak self] in self?.rootView?.onReconnect?() })

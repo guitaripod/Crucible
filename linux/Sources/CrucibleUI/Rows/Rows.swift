@@ -76,6 +76,9 @@ public final class RowView: View {
     }
 
     public override var canBecomeFocused: Bool { item.isEnabled && !item.isStatic }
+    /// The row whose page shows beside the list (a desk's two panes), tinted in the accent.
+    public var isSelected = false { didSet { if isSelected != oldValue { setNeedsDisplay() } } }
+    public override var accessibilityIsSelected: Bool? { isSelected ? true : nil }
     public override var accessibilityLabel: String? { [item.title, item.value].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ") }
     public override var accessibilityValue: String? {
         if case .toggle(let isOn) = item.accessory { return Strings.lookup(isOn ? "On" : "Off") }
@@ -227,6 +230,9 @@ public final class RowView: View {
                                  opacity: metrics.focusShadowOpacity * focus.value)
                     inner.fill(rect, radius: metrics.radiusM, color: palette.focusFill.withAlpha(focus.value))
                 }
+                if isSelected && focus.value < 0.99 {
+                    inner.fill(rect, radius: metrics.radiusM, color: palette.accent.withAlpha(0.2 * (1 - focus.value)))
+                }
                 if hover.value > 0.01 {
                     inner.fill(rect, radius: metrics.radiusM, color: palette.label.withAlpha(0.07 * hover.value))
                 }
@@ -291,6 +297,8 @@ public final class RowListView: View {
     /// A row took the focus.
     public var onFocus: ((RowItem) -> Void)?
     public var columnWidth: Float?
+    /// The row whose page shows beside the list (a desk's two panes).
+    public var selectedID: String? { didSet { rows.forEach { $0.value.isSelected = $0.key == selectedID } } }
     /// Starts the column at the screen's margin, in line with a grid below it, instead of centring it.
     public var isLeadingAligned = false { didSet { setNeedsLayout() } }
     private var rows: [String: RowView] = [:]
@@ -309,6 +317,7 @@ public final class RowListView: View {
         for item in newItems {
             let row = rows[item.id] ?? RowView(item: item)
             row.item = item
+            row.isSelected = item.id == selectedID
             row.onSelect = { [weak self] item in self?.onSelect?(item) }
             row.onFocus = { [weak self] item in self?.onFocus?(item) }
             row.onContextMenu = { [weak self] item, anchor in self?.onContextMenu?(item, anchor) ?? false }

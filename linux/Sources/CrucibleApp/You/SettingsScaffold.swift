@@ -85,9 +85,12 @@ class SettingsScaffold: ScreenView {
     /// and return true.
     func rowMenu(_ id: String, at anchor: Rect) -> Bool { false }
 
+    /// A width the scaffold keeps to at its leading edge (a desk's two panes, the page beside it), or the whole screen.
+    var leadingColumnWidth: Float? { didSet { if leadingColumnWidth != oldValue { setNeedsLayout() } } }
+
     override func layoutSubviews() {
         page.topInset = Theme.current.metrics.tabBarClearance
-        page.frame = bounds
+        page.frame = leadingColumnWidth.map { Rect(x: 0, y: 0, width: min($0, bounds.width), height: bounds.height) } ?? bounds
         page.setNeedsLayout()
     }
 
