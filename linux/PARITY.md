@@ -9,13 +9,13 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Sign in, launch, tabs and navigation | 56 | 0 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
-| Player and What to Watch | 67 | 0 | 1 | 1 |
+| Player and What to Watch | 68 | 0 | 0 | 1 |
 | Search, Pro features (free on Linux) and demo | 54 | 0 | 1 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
-| Settings and integrations | 66 | 0 | 1 | 2 |
+| Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 96 | 1 | 0 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 97 | 2 | 4 | 0 |
-| **All** | 676 | 3 | 7 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 100 | 2 | 1 | 0 |
+| **All** | 681 | 3 | 2 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -297,7 +297,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `player-sleep-timer` (M) Sleep timer in the transport menu: Off, 15, 30, 45, 60, 90 minutes, or End of Episode or Movie; the menu title shows time left; the timer carries across episodes and counts wall-clock time while the device sleeps; sound fades for eight seconds before pause; the player closes so the Apple TV can sleep _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator+Tracks.swift:40-60, 56-60_
 - [x] `player-settings-upnext-rows` (S) Settings rows for Up Next and playback: Still Watching, Post-Play Suggestions, Rewind After a Break _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:211-213_
 - [x] `player-skipping-settings` (S) Settings for Skip Intro and Skip Credits modes (Off, Show, Automatic) and the Up Next countdown length _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:209-215_
-- [ ] `player-match-content` (L) Match the display to the content while the player is full screen (refresh rate and range), restored afterwards Gap: No output-management or refresh-rate switching in linux/Sources; the vendored KDE protocol is unbound, and the doc's HDR switch and restore are not implemented. _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:117 (appliesPreferredDisplayCriteriaAutomatically)_
+- [x] `player-match-content` (L) Match the display to the content while the player is full screen (refresh rate and range), restored afterwards _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:117 (appliesPreferredDisplayCriteriaAutomatically)_
 - [x] `player-playlist-queue` (M) Play a playlist from the player: Play or Shuffle the playlist, the next entry plays in the same player, and the queue ends where the playlist ends _Apple TV: Sources/CrucibleTV/Navigation/Screens+Playlists.swift:56, 86-97 (Play, Shuffle, play one entry)_
 - [x] `player-return-refresh` (S) After playback ends, the screen underneath reloads its watched and resume state, so Continue Watching and the title's progress are current _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:380-388 (finish dismisses so the screen beneath reloads fresh watched state)_
 - [x] `watch-entry-home-tile` (M) What to Watch tile on Home, shown only when the AI is available _Apple TV: Sources/CrucibleTV/Home/TVHomeViewController.swift:288-293 (tile with WatchCopy.tileSubtitle)_
@@ -516,7 +516,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `companion-status-and-unpair` (S) Paired status line from the server's brain status (checking, then the status text or the error), and Unpair after a confirmation _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:refresh (CompanionClient.brain), confirmUnpair (presentConfirmation)_
 - [x] `companion-sports-research` (L) Sports Research, opened from the paired Crucible Server: four setup steps, switch on research for new files, choose libraries, agree to the terms (withdraw), Check Again, Look Now, a results board with per-item states, Research Again after a confirmation, and a Pro pitch for non-Pro users _Apple TV: Sources/CrucibleTV/Settings/TVSportsResearchViewController.swift_
 - [x] `linux-own-model-settings` (M) Model address and key for What to Watch and described recaps on the person's own model (D1, D38), a Linux-only settings entry _Apple TV: Sources/CrucibleCore/Features/Hosted/HostedBrain.swift (HostedBrainProviding, line 24)_
-- [ ] `linux-match-content-setting` (L) Match Content: switch the display to the video's frame rate and range (Linux-only, docs/LINUX.md section 7.4) Gap: Only a static gallery row exists (linux/Sources/CrucibleGallery/GalleryPages.swift:290); no Settings entry and no output switching in the app.
+- [x] `linux-match-content-setting` (L) Match Content: switch the display to the video's frame rate and range (Linux-only, docs/LINUX.md section 7.4)
 - [x] `linux-audio-passthrough-setting` (M) Audio passthrough: Auto, On or Off for the bitstream codecs sent to the receiver (docs/LINUX.md section 7.6, Linux-only settings entry)
 - [x] `priv-statement` (S) Privacy statement row: No Tracking or Nothing Leaves This Device, with the statement text _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:privacyStatement_
 - [x] `priv-clear-search-history` (S) Clear Search History: forgets recent searches with no confirmation, then a Done alert _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:run (Preferences.recentSearches = [], then Done alert at :163)_
@@ -710,9 +710,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `single-instance-dbus` (S) A second launch hands its link and activation token to the running Crucible over D-Bus and quits, instead of opening a second window _Apple TV: docs/LINUX.md §9 crucible:// links and one instance_
 - [x] `notifications-library-news` (M) LibraryNews notifications (org.freedesktop.Notifications) while the app runs _Apple TV: docs/LINUX.md §9 Notifications_
 - [x] `background-refresh-timer` (M) systemd user timer runs background library refresh (doc says it can follow) _Apple TV: docs/LINUX.md §9 Notifications_
-- [ ] `match-content-output-hdr-switch` (L) Match Content switches the player's output to HDR for an HDR title and restores it afterward, through kde_output_management_v2 Gap: The kde-output-management-v2 protocol is generated (linux/Sources/CKiln/protocols/kde-output-management-v2-protocol.c) but kiln_wayland.c never binds it (no kde_output reference in kiln_wayland.c), and no output configuration is requested. _Apple TV: docs/LINUX.md §7.4 Match Content_
-- [ ] `match-content-refresh-switch` (L) Match Content switches the refresh rate to the frame rate (23.976 and 29.97 to 119.88 Hz, 25 and 50 to 100 Hz, 24 stays on 144 Hz) Gap: No mode switching or frame-rate table exists; depends on the output-management binding. _Apple TV: docs/LINUX.md §7.4 Match Content_
-- [ ] `match-content-setting-and-guard` (M) Match Content is a Linux Settings entry, on by default in fullscreen, and restores the output if Crucible dies mid-title Gap: No Match Content entry in SettingsCatalog.swift (206-251), no default-on fullscreen behaviour, and no crash guard. _Apple TV: docs/LINUX.md §6 Settings_
+- [x] `match-content-output-hdr-switch` (L) Match Content switches the player's output to HDR for an HDR title and restores it afterward, through kde_output_management_v2 _Apple TV: docs/LINUX.md §7.4 Match Content_
+- [x] `match-content-refresh-switch` (L) Match Content switches the refresh rate to the frame rate (23.976 and 29.97 to 119.88 Hz, 25 and 50 to 100 Hz, 24 stays on 144 Hz) _Apple TV: docs/LINUX.md §7.4 Match Content_
+- [x] `match-content-setting-and-guard` (M) Match Content is a Linux Settings entry, on by default in fullscreen, and restores the output if Crucible dies mid-title _Apple TV: docs/LINUX.md §6 Settings_
 - [x] `audio-passthrough-setting` (M) Audio passthrough setting (Auto, On, Off) feeds --audio-spdif with the codecs the sink accepts, so TrueHD, DTS-HD, E-AC-3 and AC-3 reach the receiver as bitstreams _Apple TV: docs/LINUX.md §7.6 Audio_
 - [x] `audio-iec958-check` (M) Before each play, Crucible checks PipeWire's enabled IEC958 codecs and reapplies them, because PipeWire forgets them on reconnect _Apple TV: docs/LINUX.md §7.6 Audio_
 - [x] `audio-pipewire-output` (S) Audio goes out through PipeWire, with the client named Crucible _Apple TV: docs/LINUX.md §7.6 Audio_
