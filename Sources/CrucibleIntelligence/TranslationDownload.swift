@@ -11,7 +11,7 @@ import UIKit
 enum TranslationDownload {
     /// True once the languages are on the device; false when the person declined or nothing could show the sheet.
     static func run(source: String, target: String) async -> Bool {
-        guard let host = frontmost() else { return false }
+        guard let host = frontmost(), host.viewIfLoaded?.window != nil else { return false }
         let from = Locale.Language(identifier: source)
         let to = Locale.Language(identifier: target)
         var configuration = TranslationSession.Configuration(source: from, target: to)
