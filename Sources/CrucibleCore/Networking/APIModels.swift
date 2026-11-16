@@ -46,7 +46,7 @@ package struct PlexHistoryEntry: Decodable, Sendable {
     package let historyKey: String?
 
     enum CodingKeys: String, CodingKey {
-        case ratingKey, type, title, grandparentTitle, grandparentRatingKey, grandparentThumb, thumb
+        case ratingKey, type, title, grandparentTitle, grandparentRatingKey, grandparentKey, grandparentThumb, thumb
         case parentIndex, index, viewedAt, librarySectionID, librarySectionTitle, accountID, deviceID, historyKey
     }
 
@@ -66,7 +66,7 @@ package struct PlexHistoryEntry: Decodable, Sendable {
         type = str(.type)
         title = str(.title)
         grandparentTitle = str(.grandparentTitle)
-        grandparentRatingKey = str(.grandparentRatingKey)
+        grandparentRatingKey = str(.grandparentRatingKey) ?? Self.ratingKey(fromKey: str(.grandparentKey))
         grandparentThumb = str(.grandparentThumb)
         thumb = str(.thumb)
         parentIndex = int(.parentIndex)
@@ -77,6 +77,15 @@ package struct PlexHistoryEntry: Decodable, Sendable {
         accountID = int(.accountID)
         deviceID = int(.deviceID)
         historyKey = str(.historyKey)
+    }
+
+    /// The rating key a metadata path names (`/library/metadata/3052` is 3052): play history gives an episode's series only
+    /// as `grandparentKey`, without `grandparentRatingKey`.
+    static func ratingKey(fromKey key: String?) -> String? {
+        guard let key, key.hasPrefix("/library/metadata/") else { return nil }
+        let rest = key.dropFirst("/library/metadata/".count)
+        let id = rest.prefix { $0 != "/" }
+        return id.isEmpty ? nil : String(id)
     }
 }
 

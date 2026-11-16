@@ -29,6 +29,19 @@ struct LibraryRecentlyWatchedTests {
         #expect(items.map(\.viewedAt) == [3000, 2000])
     }
 
+    @Test func aShowRailGroupsByTheSeriesKeyHistoryActuallySends() throws {
+        let rows = try LibraryFixtures.history(#"""
+        [
+          {"ratingKey":"301","type":"episode","title":"E11","grandparentKey":"/library/metadata/3052","viewedAt":3000},
+          {"ratingKey":"300","type":"episode","title":"E10","grandparentKey":"/library/metadata/3052","viewedAt":2000},
+          {"ratingKey":"401","type":"episode","title":"S1","grandparentKey":"/library/metadata/77/children","viewedAt":1000}
+        ]
+        """#)
+        let items = RecentlyWatched.railItems(from: rows, groupingByShow: true, limit: 20)
+        #expect(items.map(\.id) == ["301", "401"])
+        #expect(items.map(\.grandparentRatingKey) == ["3052", "77"])
+    }
+
     @Test func aMovieRailKeepsOneCardPerItem() throws {
         let rows = try LibraryFixtures.history(episodes)
         let items = RecentlyWatched.railItems(from: rows, groupingByShow: false, limit: 20)
