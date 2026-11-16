@@ -22,6 +22,12 @@ enum WatchlistScreens {
                                      fallback: card.subtitle)
             card.subtitle = news.subtitle
             card.badgeText = news.badge?.localizedUppercase
+            if let state = book.states[item.entryID], !isOnServer(state) {
+                let requestable = state.canRequest(with: SeerrAccount.shared.permissions)
+                card.primarySymbol = requestable ? "plus" : "info.circle"
+                card.primaryName = requestable ? SeerrCopy.request : SeerrCopy.cardLabel(state.availability)
+                card.canToggleWatched = false
+            }
             return card
         }
         releases.changed = { [weak grid] _ in grid?.refreshCards() }
@@ -36,11 +42,20 @@ enum WatchlistScreens {
         grid.onMenu = { [weak grid] entry, point in
             guard let grid, let window = grid.window, let guid = entry.guid else { return }
             let frame = window.focusedView?.frameInWindow ?? grid.frameInWindow
-            let menu = MenuView(title: entry.title, items: [MenuView.Item(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true,
-                                                                          shortcut: String(localized: "Delete"))],
-                                anchor: Rect(x: point?.x ?? frame.minX, y: point?.y ?? frame.maxY, width: 1, height: 1))
-            menu.onSelect = { [weak grid] _ in
-                if let grid { remove(guid: guid, token: token, from: grid) }
+            var items: [MenuView.Item] = []
+            if SeerrAccount.shared.isConnected, book.states[entry.entryID].map({ !isOnServer($0) }) ?? true {
+                items.append(MenuView.Item(id: "request", title: SeerrCopy.request, symbol: "plus.circle"))
+            }
+            items.append(MenuView.Item(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true,
+                                       shortcut: String(localized: "Delete")))
+            let menu = MenuView(title: entry.title, items: items, anchor: Rect(x: point?.x ?? frame.minX, y: point?.y ?? frame.maxY, width: 1, height: 1))
+            menu.onSelect = { [weak grid] chosen in
+                guard let grid else { return }
+                if chosen.id == "request" {
+                    open(entry, api: api, from: grid)
+                } else {
+                    remove(guid: guid, token: token, from: grid)
+                }
             }
             menu.present(in: window)
         }
@@ -53,6 +68,11 @@ enum WatchlistScreens {
             return true
         }
         return grid
+    }
+
+    /// Whether Seerr says the server has the title, in full or in part, so it opens its page rather than a request.
+    private static func isOnServer(_ state: SeerrTitleState) -> Bool {
+        state.availability == .available || state.availability == .partiallyAvailable
     }
 
     /// Takes a title off the watchlist and loads the grid again, or says what went wrong.

@@ -148,7 +148,7 @@ final class EpisodeRowView: View {
         guard let list else { return [] }
         var zones: [Zone] = []
         if list.onPlay != nil { zones.append(.play) }
-        if list.onToggleWatched != nil { zones.append(.watched) }
+        if list.onToggleWatched != nil, item.canToggleWatched { zones.append(.watched) }
         if list.onContextMenu != nil { zones.append(.menu) }
         return zones
     }
@@ -184,7 +184,7 @@ final class EpisodeRowView: View {
 
     override func tooltip(at point: Point) -> String? {
         switch zone(at: point) {
-        case .play: item.hasProgress ? Strings.lookup("Resume") : Strings.lookup("Play")
+        case .play: item.primaryName ?? (item.hasProgress ? Strings.lookup("Resume") : Strings.lookup("Play"))
         case .watched: item.isWatched ? Strings.lookup("Mark as Unwatched") : Strings.lookup("Mark as Watched")
         case .menu: Strings.lookup("More")
         case nil: nil
@@ -346,7 +346,9 @@ final class EpisodeRowView: View {
                 case .play:
                     faded.fill(rect, radius: rect.width / 2, color: isHot ? palette.accent : Color.shade(0.62))
                     let inset = rect.width * 0.32
-                    faded.symbol("play.fill", in: rect.insetBy(inset, inset).offsetBy(rect.width * 0.03, 0), color: palette.onArt)
+                    let glyph = rect.insetBy(inset, inset)
+                    let nudged = item.primarySymbol == "play.fill"
+                    faded.symbol(item.primarySymbol, in: nudged ? glyph.offsetBy(rect.width * 0.03, 0) : glyph, color: palette.onArt)
                 case .watched, .menu:
                     let fill = watched ? palette.accent : palette.label.withAlpha(isHot ? 0.18 : 0.08)
                     faded.fill(rect, radius: rect.width / 2, color: fill)

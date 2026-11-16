@@ -61,13 +61,21 @@ final class ShowDetailScreen: DetailScreen {
             }
         }
         episodes.onContextMenu = { [weak self] card, point in
-            guard let self, let episode = self.episode(card.id) else { return }
-            self.presentEpisodeMenu(episode, at: point, from: self.episodes.card(for: card.id))
+            guard let self else { return }
+            if let episode = self.episode(card.id) {
+                self.presentEpisodeMenu(episode, at: point, from: self.episodes.card(for: card.id))
+            } else if self.missingByID[card.id] != nil {
+                self.presentMissingMenu(card, at: point, from: self.episodes.card(for: card.id))
+            }
         }
         episodeList.onActivate = episodes.onActivate
         episodeList.onContextMenu = { [weak self] card, point in
-            guard let self, let episode = self.episode(card.id) else { return }
-            self.presentEpisodeMenu(episode, at: point, from: self.episodeList.row(for: card.id))
+            guard let self else { return }
+            if let episode = self.episode(card.id) {
+                self.presentEpisodeMenu(episode, at: point, from: self.episodeList.row(for: card.id))
+            } else if self.missingByID[card.id] != nil {
+                self.presentMissingMenu(card, at: point, from: self.episodeList.row(for: card.id))
+            }
         }
         community.onReshape = { [weak self] in self?.rebuild() }
         episodesFailed.onRetry = { [weak self] in
@@ -223,12 +231,27 @@ final class ShowDetailScreen: DetailScreen {
                         isDimmed: status.isWatched || status.isSkipped, placeholderSymbol: "tv").linked(to: episode).summarised(shielded ? nil : episode.summary)
     }
 
-    /// An aired episode the server lacks, dimmed with "Not on your server" (`TVDetailMapping.missingEpisode`).
+    /// An aired episode the server lacks, dimmed with "Not on your server" (`TVDetailMapping.missingEpisode`), offering a
+    /// Seerr request where a server episode offers Play and no watched mark.
     private func missingCard(_ missing: MissingEpisode, shielded: Bool) -> CardItem {
         let status = EpisodeStatus(missing: missing, shielded: shielded)
-        return CardItem(id: missing.id, artwork: shielded ? nil : missing.thumb.map { .path($0, .backdrop) },
-                        title: shielded ? status.title : "\(missing.episode)  ·  " + status.title, subtitle: status.metaText.isEmpty ? nil : status.metaText,
-                        eyebrow: Self.eyebrow(for: status.marker), isDimmed: true, placeholderSymbol: "tv")
+        var card = CardItem(id: missing.id, artwork: shielded ? nil : missing.thumb.map { .path($0, .backdrop) },
+                            title: shielded ? status.title : "\(missing.episode)  ·  " + status.title, subtitle: status.metaText.isEmpty ? nil : status.metaText,
+                            eyebrow: Self.eyebrow(for: status.marker), isDimmed: true, placeholderSymbol: "tv")
+        card.primarySymbol = "plus"
+        card.primaryName = SeerrCopy.request
+        card.canToggleWatched = false
+        return card
+    }
+
+    /// The menu of an episode the server lacks: Request, which asks Seerr for the show's missing seasons.
+    private func presentMissingMenu(_ card: CardItem, at point: Point?, from view: View?) {
+        guard let window else { return }
+        let frame = view?.frameInWindow ?? frameInWindow
+        let menu = MenuView(title: card.title, items: [MenuView.Item(id: "request", title: SeerrCopy.request, symbol: "plus.circle")],
+                            anchor: point.map { Rect(x: $0.x, y: $0.y, width: 1, height: 1) } ?? frame)
+        menu.onSelect = { [weak self] _ in self?.requestMissing() }
+        menu.present(in: window)
     }
 
     private static func eyebrow(for marker: EpisodeStatus.Marker?) -> String? {
@@ -240,10 +263,12 @@ final class ShowDetailScreen: DetailScreen {
         }
     }
 
-    /// Asks Seerr for what the server lacks of the show, or says how to connect Seerr when it is not.
+    /// Asks Seerr for what the server lacks of the show, or says how to connect Seerr when it is not, naming the aired
+    /// episodes the server lacks for a season Seerr takes no request for.
     private func requestMissing() {
-        guard let show = model?.show else { return }
-        SeerrRequestScreen.open(show, api: api, isOnServer: true, from: self)
+        guard let model else { return }
+        let missing = model.gaps.episodes.values.joined().map { SeerrMissingEpisode(season: $0.season, episode: $0.episode, title: $0.title) }
+        SeerrRequestScreen.open(model.show, api: api, isOnServer: true, missing: missing, from: self)
     }
 
     /// Asks Seerr whether the show is missing seasons nobody asked for, which adds Request More Seasons; the page never

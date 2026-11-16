@@ -269,7 +269,13 @@ final class HomeScreen: ScreenView {
         }
         shelf.onActivate = { [weak self] item in self?.activate(item.id, in: row) }
         shelf.onPlay = { [weak self] item in
-            guard let self, Self.bucket(row) != nil, let media = self.feed.item(id: item.id) else { return false }
+            guard let self, Self.bucket(row) != nil else { return false }
+            if let entry = self.missingNext.first(where: { $0.id == item.id }) {
+                guard SeerrAccount.shared.isConnected else { return false }
+                SeerrRequestScreen.open(entry.showMetadata, api: self.payload.api, isOnServer: true, missing: [entry.seerrMissing], from: self)
+                return true
+            }
+            guard let media = self.feed.item(id: item.id) else { return false }
             return ItemActions.playPause(media, api: self.payload.api, from: self)
         }
         shelf.onContextMenu = { [weak self] item, point in self?.presentMenu(for: item.id, in: row, at: point) }
@@ -342,15 +348,24 @@ final class HomeScreen: ScreenView {
     }
 
     /// The next episode of a show the viewer is caught up on that aired and the server lacks: dimmed, "S3 · E5 · Not on your
-    /// server"; it opens the show on that season.
+    /// server"; it opens the show on that season, and its hover button asks Seerr for it (or opens the show without Seerr).
     private func card(for entry: MissingNext) -> CardItem {
-        CardItem(id: entry.id, artwork: (entry.artPath ?? entry.posterPath).map { .path($0, .backdrop) }, title: entry.showTitle, subtitle: entry.caption,
-                 isDimmed: true, placeholderSymbol: "tv")
+        var card = CardItem(id: entry.id, artwork: (entry.artPath ?? entry.posterPath).map { .path($0, .backdrop) }, title: entry.showTitle,
+                            subtitle: entry.caption, isDimmed: true, placeholderSymbol: "tv")
+        card.primarySymbol = SeerrAccount.shared.isConnected ? "plus" : "info.circle"
+        card.primaryName = SeerrAccount.shared.isConnected ? SeerrCopy.request : String(localized: "Go to Show")
+        card.canToggleWatched = false
+        return card
     }
 
+    /// A watchlist title that came out and the server lacks; it opens the request sheet, as its hover button says.
     private func card(for release: WatchlistRelease) -> CardItem {
-        CardItem(id: release.id, artwork: release.posterPath.map { .path($0, .poster) }, title: release.title, subtitle: release.caption(now: Date()),
-                 badgeText: release.news.badge.uppercased(), placeholderSymbol: "tv")
+        var card = CardItem(id: release.id, artwork: release.posterPath.map { .path($0, .poster) }, title: release.title,
+                            subtitle: release.caption(now: Date()), badgeText: release.news.badge.uppercased(), placeholderSymbol: "tv")
+        card.primarySymbol = "plus"
+        card.primaryName = SeerrCopy.request
+        card.canToggleWatched = false
+        return card
     }
 
     /// The hero and backdrop show the focused card.
@@ -533,14 +548,21 @@ final class HomeScreen: ScreenView {
         render()
     }
 
-    /// Request through Seerr, when it is connected.
+    /// Request through Seerr when it is connected, and Go to Show.
     private func presentMissingNextMenu(_ entry: MissingNext, at point: Point?) {
-        guard SeerrAccount.shared.isConnected, let window else { return }
+        guard let window else { return }
         let api = payload.api
-        let menu = MenuView(title: entry.showTitle, items: [.init(id: "request", title: SeerrCopy.request, symbol: "plus.circle")], anchor: menuAnchor(point))
-        menu.onSelect = { [weak self] _ in
+        var items: [MenuView.Item] = []
+        if SeerrAccount.shared.isConnected { items.append(.init(id: "request", title: SeerrCopy.request, symbol: "plus.circle")) }
+        items.append(.init(id: "show", title: String(localized: "Go to Show"), symbol: "tv"))
+        let menu = MenuView(title: entry.showTitle, items: items, anchor: menuAnchor(point))
+        menu.onSelect = { [weak self] chosen in
             guard let self else { return }
-            SeerrRequestScreen.open(entry.showMetadata, api: api, isOnServer: true, from: self)
+            guard chosen.id == "request" else {
+                self.rootView?.push(DetailScreen.make(api: api, route: .show(ratingKey: entry.showRatingKey, initialSeasonKey: entry.initialSeasonKey)))
+                return
+            }
+            SeerrRequestScreen.open(entry.showMetadata, api: api, isOnServer: true, missing: [entry.seerrMissing], from: self)
         }
         menu.present(in: window)
     }
@@ -686,3 +708,8 @@ final class HomeSeeAllScreen: ScreenView {
 }
 
 extension HomeScreen: Reloadable {}
+
+extension MissingNext {
+    /// The episode as a report of missing episodes names it.
+    var seerrMissing: SeerrMissingEpisode { SeerrMissingEpisode(season: season, episode: episode, title: title) }
+}
