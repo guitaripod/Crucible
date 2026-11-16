@@ -196,9 +196,11 @@ extension PlayerScreen {
         setNeedsLayout()
         showChrome(autoHide: false)
         window?.focus.focus(panel, animated: false)
+        startLiveStreamInfo()
     }
 
     func closeInfo() {
+        stopLiveStreamInfo()
         infoPanel?.removeFromSuperview()
         infoPanel = nil
         setNeedsLayout()
@@ -210,7 +212,8 @@ extension PlayerScreen {
     var infoContent: PlayerInfoPanel.Content {
         let headline = prerollHeadline
         guard case .plex(_, let item, _) = source else {
-            return PlayerInfoPanel.Content(title: headline.title, chapters: [], streamLines: [])
+            return PlayerInfoPanel.Content(title: headline.title, chapters: [], streamLines: [], liveLines: livePlaybackLines,
+                                           deliveryLines: liveDeliveryLines, bitrates: bitrateHistory)
         }
         let record = detail ?? item
         let genres = (record.Genre ?? []).compactMap(\.tag).prefix(3).joined(separator: ", ")
@@ -226,7 +229,8 @@ extension PlayerScreen {
         }
         return PlayerInfoPanel.Content(title: item.title, subtitle: headline.subtitle, summary: record.summary,
                                        facts: facts.isEmpty ? nil : facts.joined(separator: " · "), posterPath: item.grandparentThumb ?? item.thumb,
-                                       chapters: ChapterList.playable(stream?.chapters ?? []), streamLines: lines)
+                                       chapters: ChapterList.playable(stream?.chapters ?? []), streamLines: lines, liveLines: livePlaybackLines, deliveryLines: liveDeliveryLines,
+                                       bitrates: bitrateHistory)
     }
 
     /// Reads the server's full record for the info panel: the synopsis, genres and rating.

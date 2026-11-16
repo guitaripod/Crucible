@@ -48,6 +48,11 @@ final class PlayerInfoPanel: View {
         var posterPath: String?
         var chapters: [PlexChapter]
         var streamLines: [StreamInfoLine]
+        /// What the player does with the picture and sound now (`PlayerScreen.livePlaybackLines`), how the title reaches
+        /// it now (`liveDeliveryLines`), and the last minute's bitrate samples.
+        var liveLines: [StreamInfoLine] = []
+        var deliveryLines: [StreamInfoLine] = []
+        var bitrates: [Double] = []
     }
 
     var onChapter: ((PlexChapter) -> Void)?
@@ -86,7 +91,7 @@ final class PlayerInfoPanel: View {
         if !content.chapters.isEmpty {
             chips.append(.init(id: Tab.chapters.rawValue, title: ChapterList.title, isSelected: tab == .chapters))
         }
-        if !content.streamLines.isEmpty {
+        if !content.streamLines.isEmpty || !content.liveLines.isEmpty || !content.deliveryLines.isEmpty {
             chips.append(.init(id: Tab.stream.rawValue, title: StreamInfo.title, isSelected: tab == .stream))
         }
         tabs.setChips(chips)
@@ -101,6 +106,7 @@ final class PlayerInfoPanel: View {
     private func select(_ next: Tab) {
         tab = next
         update(content)
+        superview?.setNeedsLayout()
     }
 
     private func showTab() {
@@ -116,15 +122,33 @@ final class PlayerInfoPanel: View {
         return true
     }
 
+    /// On Stream Info, tall enough for its longest column (at least the live columns' seven rows, so the panel keeps
+    /// its height as live lines come and go), but never taller than the room `size` offers.
     override func sizeThatFits(_ size: Size) -> Size {
-        let metrics = Theme.current.metrics
-        return Size(width: size.width, height: metrics.tv(500))
+        let theme = Theme.current
+        let metrics = theme.metrics
+        var wanted = metrics.tv(500)
+        if tab == .stream {
+            let heading = TextLayout("A", font: theme.type.caption2, maxLines: 1, scale: window?.scale ?? 1).size.height + metrics.tv(14)
+            let rows = Float(max(content.streamLines.count, Self.liveRows))
+            wanted = max(wanted, body.y + heading + rows * Self.rowHeight + inset + metrics.tv(8))
+        }
+        return Size(width: size.width, height: size.height > 0 ? min(wanted, max(size.height, metrics.tv(360))) : wanted)
     }
+
+    /// Stream Info's line pitch, and the rows its live columns take: six playback lines, or the bitrate graph and four
+    /// delivery lines.
+    fileprivate static var rowHeight: Float { Theme.current.metrics.tv(46) }
+    fileprivate static let liveRows = 7
+    fileprivate static var graphHeight: Float { rowHeight * 3 - Theme.current.metrics.tv(20) }
 
     private var inset: Float { Theme.current.metrics.tv(40) }
 
     fileprivate var streamArea: Rect { body }
     fileprivate var streamLines: [StreamInfoLine] { content.streamLines }
+    fileprivate var liveLines: [StreamInfoLine] { content.liveLines }
+    fileprivate var deliveryLines: [StreamInfoLine] { content.deliveryLines }
+    fileprivate var bitrates: [Double] { content.bitrates }
 
     private var body: Rect {
         let metrics = Theme.current.metrics
@@ -178,26 +202,116 @@ final class PlayerInfoPanel: View {
 }
 
 extension PlayerInfoPanel {
-    /// Stream Info (`TVStreamInfoViewController`): one label and value per line, in two columns when the lines would not fit
-    /// in one.
+    private struct Block {
+        let heading: String
+        let lines: [StreamInfoLine]
+        var graphed = false
+    }
+
+    /// Stream Info (`TVStreamInfoViewController`) in up to three columns: the title as the server sends it, what the
+    /// player does with the picture and sound now, and how the title reaches it now under the last minute's bitrate. The
+    /// live columns refresh every second. Each column is as wide as its widest line wants, sharing out what is left over;
+    /// in a panel too narrow for that the lines take a smaller size, and the columns give up the same share each when even
+    /// those do not fit. A column whose lines would not fit in its height splits into more.
     private func drawStreamInfo(label: Color, secondary: Color, scale: Float, context: inout DrawContext) {
         let theme = Theme.current
         let metrics = theme.metrics
         let area = streamArea
-        let lines = streamLines
-        guard !lines.isEmpty else { return }
-        let rowHeight = metrics.tv(54)
-        let rows = max(Int(area.height / rowHeight), 1)
-        let columns = (lines.count + rows - 1) / rows
-        let columnWidth = area.width / Float(max(columns, 1))
-        let labelWidth = metrics.tv(290)
+        let blocks = [
+            Block(heading: String(localized: "This Title", comment: "Stream Info heading: how the server sends the title"), lines: streamLines),
+            Block(heading: String(localized: "Player", comment: "Stream Info heading: what the player does with the picture and sound now"),
+                  lines: liveLines),
+            Block(heading: String(localized: "Streaming", comment: "Stream Info heading: how the title reaches the player now"), lines: deliveryLines,
+                  graphed: bitrates.count > 1),
+        ].filter { !$0.lines.isEmpty || $0.graphed }
+        guard !blocks.isEmpty else { return }
+        let labelGap = metrics.tv(24)
+        let gap = metrics.tv(56)
+        let room = area.width - gap * Float(blocks.count - 1)
+        func measure(_ font: Font) -> [(label: Float, value: Float)] {
+            blocks.map { block in
+                block.lines.reduce((label: Float(0), value: Float(0))) { widest, line in
+                    (max(widest.label, TextLayout(line.label, font: font, maxLines: 1, scale: scale).size.width),
+                     max(widest.value, TextLayout(line.value, font: font, maxLines: 1, scale: scale).size.width))
+                }
+            }
+        }
+        func wanted(_ sizes: [(label: Float, value: Float)]) -> [Float] {
+            zip(blocks, sizes).map { block, size in max(size.label + labelGap + size.value, block.graphed ? metrics.tv(420) : 0) }
+        }
+        var font = theme.type.callout
+        var measured = measure(font)
+        var wants = wanted(measured)
+        if wants.reduce(0, +) > room {
+            font = theme.type.footnote
+            measured = measure(font)
+            wants = wanted(measured)
+        }
+        let total = wants.reduce(0, +)
+        var x = area.x
+        for (index, block) in blocks.enumerated() {
+            let width = total <= room ? wants[index] + (room - total) * wants[index] / total : wants[index] * room / total
+            let rect = Rect(x: x, y: area.y, width: width, height: area.height)
+            let graphHeight = block.graphed ? Self.graphHeight : 0
+            let band = drawLineBlock(block.heading, block.lines, in: rect, font: font, labelWidth: measured[index].label + labelGap,
+                                     reserving: graphHeight > 0 ? graphHeight + metrics.tv(20) : 0, label: label, secondary: secondary,
+                                     scale: scale, context: &context)
+            if block.graphed { drawBitrateGraph(in: Rect(x: rect.x, y: band, width: rect.width, height: graphHeight), scale: scale, context: &context) }
+            x = rect.maxX + gap
+        }
+    }
+
+    /// A heading over label and value lines in `font`, in as few balanced columns as fit, values starting `labelWidth` in
+    /// (at most 45% of a column), leaving `reserved` points free under the heading; returns the top of that free band.
+    @discardableResult
+    private func drawLineBlock(_ heading: String, _ lines: [StreamInfoLine], in area: Rect, font: Font, labelWidth wanted: Float,
+                               reserving reserved: Float = 0, label: Color, secondary: Color, scale: Float, context: inout DrawContext) -> Float {
+        let theme = Theme.current
+        let metrics = theme.metrics
+        let title = TextLayout(heading.uppercased(), font: theme.type.caption2, maxWidth: area.width, maxLines: 1, scale: scale)
+        context.text(title, at: Point(x: area.x, y: area.y), color: secondary)
+        let band = area.y + title.size.height + metrics.tv(14)
+        guard !lines.isEmpty else { return band }
+        let top = band + reserved
+        let rowHeight = Self.rowHeight
+        let fit = max(Int((area.maxY - top) / rowHeight), 1)
+        let columns = (lines.count + fit - 1) / fit
+        let rows = (lines.count + columns - 1) / columns
+        let columnGap = metrics.tv(32)
+        let columnWidth = (area.width - columnGap * Float(columns - 1)) / Float(columns)
+        let labelWidth = min(wanted, columnWidth * 0.45)
         for (index, line) in lines.enumerated() {
-            let x = area.x + Float(index / rows) * columnWidth
-            let y = area.y + Float(index % rows) * rowHeight
-            let key = TextLayout(line.label, font: theme.type.callout, maxWidth: labelWidth - metrics.tv(16), scale: scale)
-            let value = TextLayout(line.value, font: theme.type.callout, maxWidth: columnWidth - labelWidth - metrics.tv(24), scale: scale)
+            let x = area.x + Float(index / rows) * (columnWidth + columnGap)
+            let y = top + Float(index % rows) * rowHeight
+            let key = TextLayout(line.label, font: font, maxWidth: labelWidth - metrics.tv(12), maxLines: 1, scale: scale)
+            let value = TextLayout(line.value, font: font, maxWidth: columnWidth - labelWidth, maxLines: 1, scale: scale)
             context.text(key, at: Point(x: x, y: y), color: secondary)
             context.text(value, at: Point(x: x + labelWidth, y: y), color: label)
+        }
+        return band
+    }
+
+    /// The last minute's bitrate as bars on a faint track under a "Last minute" caption, the newest in the accent at the
+    /// right, scaled to the minute's peak.
+    private func drawBitrateGraph(in rect: Rect, scale: Float, context: inout DrawContext) {
+        let theme = Theme.current
+        let metrics = theme.metrics
+        let samples = bitrates
+        guard rect.width > 0, samples.count > 1, let peak = samples.max(), peak > 0 else { return }
+        context.fill(rect, radius: metrics.tv(10), color: Color.black.withSRGBAlpha(0.24))
+        let inner = rect.insetBy(metrics.tv(12), metrics.tv(10))
+        let caption = TextLayout(String(localized: "Last minute", comment: "Stream Info: over the bitrate graph of the last sixty seconds"),
+                                 font: theme.type.caption2, maxLines: 1, scale: scale)
+        context.text(caption, at: Point(x: inner.x, y: inner.y), color: Color.white.withSRGBAlpha(0.55))
+        let captionHeight = caption.size.height + metrics.tv(6)
+        let plot = Rect(x: inner.x, y: inner.y + captionHeight, width: inner.width, height: max(inner.height - captionHeight, metrics.tv(8)))
+        let slot = plot.width / 60
+        for (index, sample) in samples.enumerated() {
+            let height = max(metrics.tv(2), plot.height * Float(sample / peak))
+            let x = plot.maxX - Float(samples.count - index) * slot
+            context.fill(Rect(x: x, y: plot.maxY - height, width: max(slot * 0.7, 1), height: height),
+                         radius: min(slot * 0.35, metrics.tv(3)),
+                         color: index == samples.count - 1 ? theme.palette.accent : Color.white.withSRGBAlpha(0.4))
         }
     }
 }

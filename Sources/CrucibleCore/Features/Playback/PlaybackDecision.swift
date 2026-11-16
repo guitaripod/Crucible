@@ -156,7 +156,7 @@ package enum StreamInfo {
     }
 
     /// "23.976 fps", "24 fps" or "59.94 fps".
-    static func frameRate(_ rate: Double) -> String? {
+    package static func frameRate(_ rate: Double) -> String? {
         guard rate.isFinite, rate > 0 else { return nil }
         let number = rate.formatted(.number.precision(.fractionLength(0...3)).locale(Formatters.interfaceLocale))
         return String(localized: "\(number) fps", comment: "Stream Info: video frames per second, as in \"23.976 fps\"")

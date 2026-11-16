@@ -610,10 +610,34 @@ package struct PlexPlaybackSession: Decodable, Sendable {
 package struct PlexTranscodeSession: Decodable, Sendable {
     package let videoDecision: String?
     package let audioDecision: String?
+    /// "/transcode/sessions/<session>", which names the client's own session.
+    package var key: String?
+    /// How many times faster than real time the server converts; under 1 the picture will stall.
+    package var speed: Double?
+    /// The server converted far enough ahead and paused to wait.
+    package var throttled: Bool?
+    /// The hardware decoding and encoding the server uses ("nvdec", "vaapi"), nil for software.
+    package var transcodeHwDecoding: String?
+    package var transcodeHwEncoding: String?
 
     package init(videoDecision: String?, audioDecision: String?) {
         self.videoDecision = videoDecision
         self.audioDecision = audioDecision
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case videoDecision, audioDecision, key, speed, throttled, transcodeHwDecoding, transcodeHwEncoding
+    }
+
+    package init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        videoDecision = try? container.decodeIfPresent(String.self, forKey: .videoDecision)
+        audioDecision = try? container.decodeIfPresent(String.self, forKey: .audioDecision)
+        key = try? container.decodeIfPresent(String.self, forKey: .key)
+        speed = PlexNumber.decode(container, .speed, Double.self)
+        throttled = (try? container.decodeIfPresent(Bool.self, forKey: .throttled)) ?? PlexNumber.decode(container, .throttled, Int.self).map { $0 != 0 }
+        transcodeHwDecoding = try? container.decodeIfPresent(String.self, forKey: .transcodeHwDecoding)
+        transcodeHwEncoding = try? container.decodeIfPresent(String.self, forKey: .transcodeHwEncoding)
     }
 }
 

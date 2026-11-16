@@ -59,6 +59,11 @@ final class PlayerScreen: View {
         }
     }
     var miniHover = Animated(0)
+    /// Refreshes Stream Info's live lines while the info panel is open, with the last minute of bitrate samples and the
+    /// server's side of a conversion.
+    var infoTicker: Task<Void, Never>?
+    var bitrateHistory: [Double] = []
+    var serverTranscode: PlexTranscodeSession?
     var miniZone: MiniZone?
     var miniPress: (zone: MiniZone?, start: Point, dragged: Bool)?
 
@@ -1262,7 +1267,8 @@ final class PlayerScreen: View {
         transport.frame = Rect(x: ((frame.width - width) / 2).rounded(), y: frame.height - height - metrics.tv(desk ? 32 : 48), width: width, height: height)
         transport.isFullscreen = window?.isFullscreen ?? false
         if let infoPanel {
-            let panelHeight = infoPanel.sizeThatFits(Size(width: width, height: 0)).height
+            let room = transport.frame.y - metrics.tv(24) - metrics.tv(desk ? 32 : 48)
+            let panelHeight = infoPanel.sizeThatFits(Size(width: width, height: room)).height
             infoPanel.frame = Rect(x: transport.frame.x, y: transport.frame.y - panelHeight - metrics.tv(24), width: width, height: panelHeight)
         }
         layoutToast()

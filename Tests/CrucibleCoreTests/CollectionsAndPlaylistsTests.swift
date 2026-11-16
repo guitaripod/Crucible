@@ -231,6 +231,25 @@ struct ServerActivityTests {
         #expect(!ServerActivity.isTranscoding(direct))
     }
 
+    @Test func aConversionSaysHowFastAndOnWhatHardwareTheServerKeepsUp() throws {
+        let numbers = try session(#"""
+        {"ratingKey":"1","type":"movie","title":"Halcyon","TranscodeSession":{"key":"/transcode/sessions/abc-123","speed":13.2,
+         "throttled":false,"transcodeHwDecoding":"nvdec","transcodeHwEncoding":"nvenc","videoDecision":"transcode"}}
+        """#).transcodeSession
+        #expect(numbers?.key == "/transcode/sessions/abc-123")
+        #expect(numbers?.speed == 13.2)
+        #expect(numbers?.throttled == false)
+        #expect(numbers?.transcodeHwDecoding == "nvdec")
+        #expect(numbers?.transcodeHwEncoding == "nvenc")
+
+        let strings = try session(#"""
+        {"ratingKey":"2","type":"movie","title":"Low Tide","TranscodeSession":{"speed":"0.8","throttled":"1"}}
+        """#).transcodeSession
+        #expect(strings?.speed == 0.8)
+        #expect(strings?.throttled == true)
+        #expect(strings?.transcodeHwDecoding == nil)
+    }
+
     @Test func aSessionWithNoDetailsHasNoSubtitle() throws {
         #expect(ServerActivity.subtitle(try session(#"{"ratingKey":"3","type":"movie","title":"Bare"}"#)) == nil)
     }
