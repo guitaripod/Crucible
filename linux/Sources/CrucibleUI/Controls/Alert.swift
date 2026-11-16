@@ -29,6 +29,8 @@ public final class AlertView: View {
     private let message: String?
     private let actions: [Action]
     private let buttons: [ButtonView]
+    /// Holds the buttons, and scrolls them when there are more than the window can show (a long list of playlists).
+    private let list = ScrollView(axis: .vertical)
     private var appear = Animated(0)
     private var tone = GlassTone()
     private weak var returnFocus: View?
@@ -53,9 +55,11 @@ public final class AlertView: View {
             field.onSubmit = { [weak self] _ in self?.choose(self?.actions.firstIndex { $0.role != .cancel } ?? 0) }
             addSubview(field)
         }
+        list.showsIndicator = false
+        addSubview(list)
         for (index, button) in buttons.enumerated() {
             button.onPress = { [weak self] in self?.choose(index) }
-            addSubview(button)
+            list.addSubview(button)
         }
     }
 
@@ -136,16 +140,27 @@ public final class AlertView: View {
         message.map { TextLayout($0, font: Theme.current.type.callout, maxWidth: panelWidth - inset * 2, maxLines: 16, alignment: .center, scale: scale) }
     }
 
-    private var panel: Rect {
+    /// The buttons' full height, all of them stacked.
+    private var buttonsHeight: Float {
+        Float(buttons.count) * Theme.current.metrics.primaryControlHeight + Float(max(buttons.count - 1, 0)) * gap
+    }
+
+    /// The panel and how tall its buttons may show: all of them, or as many as fit the window, the rest scrolling.
+    private var panelLayout: (area: Rect, buttons: Float) {
         let metrics = Theme.current.metrics
         let scale = window?.scale ?? 1
         var height = inset * 2 + headingLayout(scale: scale).size.height
         if let text = messageLayout(scale: scale) { height += gap + text.size.height }
         if field != nil { height += gap * 2 + metrics.primaryControlHeight }
-        height += gap * 2 + Float(buttons.count) * metrics.primaryControlHeight + Float(max(buttons.count - 1, 0)) * gap
-        return Rect(x: ((frame.width - panelWidth) / 2).rounded(), y: max(((frame.height - height) / 2).rounded(), metrics.tv(40)),
-                    width: panelWidth, height: height)
+        height += gap * 2
+        let room = max(frame.height - metrics.tv(40) * 2 - height, metrics.primaryControlHeight * 2 + gap)
+        let shown = min(buttonsHeight, room)
+        height += shown
+        return (Rect(x: ((frame.width - panelWidth) / 2).rounded(), y: max(((frame.height - height) / 2).rounded(), metrics.tv(40)),
+                     width: panelWidth, height: height), shown)
     }
+
+    private var panel: Rect { panelLayout.area }
 
     public override func layoutSubviews() {
         let metrics = Theme.current.metrics
@@ -159,9 +174,17 @@ public final class AlertView: View {
             y += metrics.primaryControlHeight
         }
         y += gap * 2
+        let shown = panelLayout.buttons
+        let scrolls = shown < buttonsHeight - 0.5
+        let lift = scrolls ? gap : 0
+        list.clipsToBounds = scrolls
+        list.frame = Rect(x: area.x, y: y - lift, width: area.width, height: shown + lift * 2)
+        list.contentLength = buttonsHeight + lift * 2
+        list.revealInsets = EdgeInsets(top: lift, bottom: lift)
+        var buttonY = lift
         for button in buttons {
-            button.frame = Rect(x: area.x + inset, y: y, width: area.width - inset * 2, height: metrics.primaryControlHeight)
-            y += metrics.primaryControlHeight + gap
+            button.frame = Rect(x: inset, y: buttonY, width: area.width - inset * 2, height: metrics.primaryControlHeight)
+            buttonY += metrics.primaryControlHeight + gap
         }
     }
 

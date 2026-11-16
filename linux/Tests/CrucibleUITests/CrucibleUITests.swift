@@ -105,6 +105,21 @@ enum SharedGPU {
         #expect(window.focusedView?.isDescendant(of: second) == true)
     }
 
+    @Test func anAlertWithMoreButtonsThanFitScrollsThemInsideTheWindow() {
+        let actions = (0..<30).map { AlertView.Action("Playlist \($0)") } + [AlertView.Action("Cancel", role: .cancel)]
+        let alert = AlertView(title: "Add to Playlist", actions: actions)
+        alert.present(in: window)
+        window.settle()
+        let panelBottom = alert.subviews.compactMap { $0 as? ScrollView }.first.map { $0.frameInWindow.maxY } ?? .infinity
+        #expect(panelBottom <= 720)
+        for _ in 0..<40 { window.handleKey(KeyEvent(key: .down)) }
+        window.settle()
+        let focused = window.focusedView?.frameInWindow ?? .zero
+        #expect(focused.maxY <= 720 && focused.minY >= 0)
+        #expect((window.focusedView as? ButtonView)?.title == "Cancel")
+        alert.dismiss()
+    }
+
     @Test func replacingItemsKeepsTheViewsOfItemsThatStay() {
         let shelf = ShelfView(header: nil, style: .poster)
         shelf.setItems([CardItem(id: "a", title: "A"), CardItem(id: "b", title: "B")])
