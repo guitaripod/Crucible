@@ -220,6 +220,11 @@ public struct Palette: Sendable {
 
     public var accentTint: Color { accent.withSRGBAlpha(0.16) }
 
+    /// The warm glow behind the welcome screen's crystal: ember dark on the dark canvas, a soft amber on the light one.
+    public var welcomeGlow: Color {
+        appearance == .dark ? Color(srgbRed: 0.18, green: 0.10, blue: 0.04).withAlpha(0.95) : Color(srgbRed: 1.0, green: 0.84, blue: 0.62).withAlpha(0.55)
+    }
+
     public static let dark = Palette(
         appearance: .dark,
         canvas: Color(hex: 0x181818),

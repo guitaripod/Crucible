@@ -185,7 +185,7 @@ final class DemoSheetView: View {
         let theme = Theme.current
         context.fill(bounds, color: theme.palette.canvas)
         context.glow(in: bounds, radius: 0, center: Point(x: bounds.midX, y: bounds.height * 0.4), glowRadius: bounds.width * 0.55,
-                     color: Color(srgbRed: 0.18, green: 0.10, blue: 0.04).withAlpha(0.95))
+                     color: theme.palette.welcomeGlow)
         let origins = columns(scale: scale)
         let title = titleLayout(scale: scale)
         context.text(title, at: origins.leading, color: theme.palette.label)

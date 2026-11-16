@@ -177,7 +177,7 @@ final class WelcomeScreen: ScreenView {
         guard let scale = window?.scale else { return }
         context.fill(bounds, color: theme.palette.canvas)
         context.glow(in: bounds, radius: 0, center: Point(x: bounds.midX, y: bounds.height * 0.4), glowRadius: bounds.width * 0.55,
-                     color: Color(srgbRed: 0.18, green: 0.10, blue: 0.04).withAlpha(0.95))
+                     color: theme.palette.welcomeGlow)
         let wordmark = TextLayout("Crucible", font: Font(size: theme.type.largeTitle.size * 1.3, weight: .heavy), scale: scale)
         context.text(wordmark, at: Point(x: ((bounds.width - wordmark.size.width) / 2).rounded(), y: (bounds.height * 0.42 - wordmark.size.height / 2).rounded()),
                      color: theme.palette.label)
