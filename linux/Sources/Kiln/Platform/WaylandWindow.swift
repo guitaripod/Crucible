@@ -97,6 +97,16 @@ public final class WaylandWindow {
         kiln_wl_set_fullscreen(connection, fullscreen)
     }
 
+    /// Whether the window's buffers can be larger than it, cropped by `cropBuffer`.
+    public var canCropBuffer: Bool {
+        kiln_wl_can_crop_buffer(connection)
+    }
+
+    /// Shows only the top-left `width` by `height` pixels of the window's buffers, which must lie inside the next one.
+    public func cropBuffer(width: Int, height: Int) {
+        kiln_wl_crop_buffer(connection, Int32(width), Int32(height))
+    }
+
     public func applyScale(logicalWidth: Int, logicalHeight: Int) {
         kiln_wl_set_buffer_scale120(connection, UInt32((scale * 120).rounded()), Int32(logicalWidth), Int32(logicalHeight))
     }

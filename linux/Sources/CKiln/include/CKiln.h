@@ -127,6 +127,11 @@ int kiln_wl_roundtrip(kiln_wl *wl);
 bool kiln_wl_create_window(kiln_wl *wl, const char *title, const char *app_id, kiln_wl_callbacks callbacks, void *context);
 void kiln_wl_set_fullscreen(kiln_wl *wl, bool fullscreen);
 void kiln_wl_set_buffer_scale120(kiln_wl *wl, uint32_t scale120, int32_t logical_width, int32_t logical_height);
+/** Whether the window's buffers can be larger than it, cropped by `kiln_wl_crop_buffer` (the compositor has a viewporter). */
+bool kiln_wl_can_crop_buffer(kiln_wl *wl);
+/** Shows only the top-left `width` by `height` pixels of the buffers the window commits (wp_viewport's source), which
+ * must lie inside the buffer committed next. */
+void kiln_wl_crop_buffer(kiln_wl *wl, int32_t width, int32_t height);
 
 uint32_t kiln_wl_color_features(kiln_wl *wl);
 

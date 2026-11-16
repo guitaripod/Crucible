@@ -1025,6 +1025,15 @@ void kiln_wl_set_fullscreen(kiln_wl *wl, bool fullscreen) {
     else xdg_toplevel_unset_fullscreen(wl->toplevel);
 }
 
+bool kiln_wl_can_crop_buffer(kiln_wl *wl) {
+    return wl->viewport != NULL;
+}
+
+void kiln_wl_crop_buffer(kiln_wl *wl, int32_t width, int32_t height) {
+    if (!wl->viewport) return;
+    wp_viewport_set_source(wl->viewport, wl_fixed_from_int(0), wl_fixed_from_int(0), wl_fixed_from_int(width), wl_fixed_from_int(height));
+}
+
 void kiln_wl_set_buffer_scale120(kiln_wl *wl, uint32_t scale120, int32_t logical_width, int32_t logical_height) {
     if (wl->viewport) {
         wp_viewport_set_destination(wl->viewport, logical_width, logical_height);

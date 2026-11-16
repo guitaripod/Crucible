@@ -587,6 +587,7 @@ bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source, int width, int height) {
     };
     struct pl_frame target;
     pl_frame_from_swapchain(&target, &frame);
+    target.crop = (pl_rect2df) { 0, 0, (float) width, (float) height };
     struct pl_color_map_params color_map = pl_color_map_default_params;
     color_map.tone_mapping_function = &pl_tone_map_clip;
     color_map.gamut_mapping = &pl_gamut_map_clip;

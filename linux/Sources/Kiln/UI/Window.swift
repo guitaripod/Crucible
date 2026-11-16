@@ -151,7 +151,7 @@ public final class Window {
         attach(contentView)
         accessibility = AccessibilityBridge(window: self, title: title)
         accessibility?.onActiveChange = { [weak self] _ in self?.setNeedsDisplay() }
-        _ = gpu.resize(width: renderer.viewport.width, height: renderer.viewport.height)
+        fitSwapchain(width: renderer.viewport.width, height: renderer.viewport.height)
         loop.add(fd: surface.fileDescriptor) { [weak self] readable in
             guard let self, let surface = self.surface, !self.closed else { return }
             if !surface.pump(readable: readable) {
@@ -581,12 +581,34 @@ public final class Window {
         let pixelHeight = Int((Float(height) * newScale).rounded())
         if let surface {
             surface.applyScale(logicalWidth: width, logicalHeight: height)
-            _ = gpu.resize(width: pixelWidth, height: pixelHeight)
+            fitSwapchain(width: pixelWidth, height: pixelHeight)
         }
         try? renderer.resize(width: pixelWidth, height: pixelHeight)
         contentView.frame = Rect(origin: .zero, size: size)
         invalidateLayout(contentView)
         setNeedsDisplay()
+    }
+
+    /// The swapchain's size, a step larger than the window where the compositor crops buffers (`cropBuffer`).
+    private var swapchainSize: (width: Int, height: Int)?
+
+    /// Sizes the swapchain for a window of `width` by `height` pixels. Where the compositor crops the window's buffers, the
+    /// swapchain is a step larger and only recreated when the window outgrows it or shrinks well inside it, as the render
+    /// target is: recreating it for every size a dragged edge passes through allocates new buffers, waits for the GPU and
+    /// makes the compositor import them each time.
+    private func fitSwapchain(width: Int, height: Int) {
+        guard let surface else { return }
+        guard surface.canCropBuffer else {
+            _ = gpu.resize(width: width, height: height)
+            return
+        }
+        let fits = swapchainSize.map { width <= $0.width && height <= $0.height } ?? false
+        let roomy = swapchainSize.map { width * 4 >= $0.width * 3 || height * 4 >= $0.height * 3 } ?? false
+        if !fits || !roomy, let made = gpu.resize(width: SceneRenderer.allocated(width + 128), height: SceneRenderer.allocated(height + 128)) {
+            swapchainSize = made
+        }
+        guard let size = swapchainSize else { return }
+        surface.cropBuffer(width: min(width, size.width), height: min(height, size.height))
     }
 
     private func invalidateLayout(_ view: View) {
