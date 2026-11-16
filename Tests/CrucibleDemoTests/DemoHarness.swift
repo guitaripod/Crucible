@@ -42,10 +42,21 @@ struct DemoHarness {
         await provider.stop()
     }
 
+    /// A state file of its own in this run's folder, which a test may hand to several servers in turn.
     static func temporaryStateFile() -> URL {
+        runFolder.appendingPathComponent(UUID().uuidString, isDirectory: true).appendingPathComponent("state.json")
+    }
+
+    /// The folder every state file of this test run lives in, named for the process and removed when it exits, so runs
+    /// leave nothing behind in the temporary directory.
+    private static let runFolder: URL = {
+        atexit { try? FileManager.default.removeItem(at: DemoHarness.runFolderURL) }
+        return runFolderURL
+    }()
+
+    private static var runFolderURL: URL {
         FileManager.default.temporaryDirectory
-            .appendingPathComponent("crucible-demo-tests-\(UUID().uuidString)", isDirectory: true)
-            .appendingPathComponent("state.json")
+            .appendingPathComponent("crucible-demo-tests-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true)
     }
 
     static func start(stateFile: URL = temporaryStateFile()) async throws -> DemoHarness {
