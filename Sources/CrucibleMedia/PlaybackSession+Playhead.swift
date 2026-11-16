@@ -217,7 +217,7 @@ extension PlaybackSession {
         switch status {
         case .paused:
             if isRestarting { keepPausedThroughRebuild() }
-            if pausedSince == nil, !isRestarting { pausedSince = now() }
+            if pausedSince == nil, !isRestarting, !isChangingStreams { pausedSince = now() }
             noteViewerAction()
         case .playing, .waitingToPlayAtSpecifiedRate:
             if status == .playing { staleClock = nil }
@@ -242,9 +242,9 @@ extension PlaybackSession {
     }
 
     /// Tells the integrations the viewer played or paused, but not the pauses the session makes itself to restart a
-    /// transcode or recover a stream: those are not the viewer's.
+    /// transcode, recover a stream or change tracks: those are not the viewer's.
     private func tellWatchers(_ status: AVPlayer.TimeControlStatus) {
-        guard !watchers.isEmpty, !isRestarting, !isRecovering, let position = absolutePosition else { return }
+        guard !watchers.isEmpty, !isRestarting, !isRecovering, !isChangingStreams, let position = absolutePosition else { return }
         switch status {
         case .playing: watchers.forEach { $0.playback(.playing(position: position)) }
         case .paused: watchers.forEach { $0.playback(.paused(position: position)) }

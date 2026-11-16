@@ -79,19 +79,28 @@ extension PlaybackSession {
 
     /// Switches the audio track or subtitle by re-resolving the stream at the playhead: a non-default audio track or a
     /// subtitle the file cannot show makes the server convert it, choosing none of them returns to the original stream when it
-    /// can direct play. The item is replaced in the same player; a failed resolve throws and leaves playback untouched.
+    /// can direct play. The item is replaced in the same player. The picture holds still while the server answers, so the new
+    /// track starts exactly where the old one stopped instead of replaying the moments the answer took; a failed resolve
+    /// throws and plays on as before.
     private func resolveStreams(_ choice: StreamChoice) async throws {
         guard !isStopped, let player else { return }
-        let position = absolutePosition ?? request.resumePosition
         let wasPlaying = player.rate > 0
+        if wasPlaying { player.pause() }
+        let position = absolutePosition ?? request.resumePosition
         await selectionUpdateTask?.value
-        let resolved = try await StreamResolver.resolve(
-            api: api,
-            ratingKey: request.ratingKey,
-            startSecs: position > 0 ? position : nil,
-            selectedSubtitleId: choice.subtitleId,
-            selectedAudioStreamId: choice.audioStreamId
-        )
+        let resolved: ResolvedStream
+        do {
+            resolved = try await StreamResolver.resolve(
+                api: api,
+                ratingKey: request.ratingKey,
+                startSecs: position > 0 ? position : nil,
+                selectedSubtitleId: choice.subtitleId,
+                selectedAudioStreamId: choice.audioStreamId
+            )
+        } catch {
+            if wasPlaying, !isStopped { player.play() }
+            throw error
+        }
         guard !isStopped else {
             discardTranscode(of: resolved)
             return
