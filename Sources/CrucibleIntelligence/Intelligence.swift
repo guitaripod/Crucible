@@ -13,7 +13,8 @@ package enum Intelligence {
 
     /// Installs what this device can run and learns its languages in the background. Safe to call again, as when the
     /// on-device model finishes downloading.
-    package static func configureForLaunch() {
+    package static func configureForLaunch(environment: [String: String] = ProcessInfo.processInfo.environment) {
+        guard !isScripted(environment) else { return }
         #if os(tvOS)
         if #available(tvOS 27.3, *) { configureModelTranslation() }
         #else
@@ -22,6 +23,12 @@ package enum Intelligence {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, macOS 26.0, tvOS 27.3, *) { installOnDeviceBrain() }
         #endif
+    }
+
+    /// Store captures and scripted UI-test sessions keep the answers and screens they were written for: no translation and
+    /// no on-device answers ahead of the scripted model.
+    static func isScripted(_ environment: [String: String]) -> Bool {
+        environment["CRUCIBLE_SHOT_SCRIPT"] != nil || environment["CRUCIBLE_BRAIN"].map { $0 != "live" } == true
     }
 
     /// The language the app is shown in, which recaps and reasons are written in.
