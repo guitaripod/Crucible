@@ -308,11 +308,16 @@ final class GalleryStates: View {
         title.frame = Rect(x: 0, y: metrics.tv(60), width: frame.width / 2, height: titleHeight)
         let rowsHeight = rows.sizeThatFits(Size(width: frame.width / 2, height: 0)).height
         rows.frame = Rect(x: 0, y: title.frame.maxY + metrics.tv(24), width: frame.width / 2, height: rowsHeight)
-        let third = frame.height / 3
-        loading.frame = Rect(x: frame.width / 2, y: 0, width: frame.width / 2, height: third)
-        empty.frame = Rect(x: frame.width / 2, y: third, width: frame.width / 2, height: third)
-        failed.frame = Rect(x: frame.width / 2, y: third * 2, width: frame.width / 2, height: third)
         let skeletonHeight = skeleton.sizeThatFits(bounds.size).height
-        skeleton.frame = Rect(x: 0, y: frame.height - skeletonHeight, width: frame.width / 2, height: skeletonHeight)
+        skeleton.frame = Rect(x: 0, y: max(rows.frame.maxY + metrics.tv(24), frame.height - skeletonHeight), width: frame.width / 2,
+                              height: skeletonHeight)
+        let column = Size(width: frame.width / 2, height: frame.height)
+        let heights = [loading, empty, failed].map { $0.sizeThatFits(column).height }
+        let gap = max((frame.height - heights.reduce(0, +)) / 4, metrics.tv(24))
+        var y = gap
+        for (state, height) in zip([loading, empty, failed], heights) {
+            state.frame = Rect(x: frame.width / 2, y: y, width: frame.width / 2, height: height)
+            y += height + gap
+        }
     }
 }

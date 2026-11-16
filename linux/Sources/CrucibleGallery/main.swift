@@ -172,10 +172,11 @@ struct Gallery {
         return !report.contains { $0.hasPrefix("golden ") && !$0.hasPrefix("golden ok") && !$0.hasPrefix("golden wrote") }
     }
 
+    /// Lets a page's artwork and async work arrive for a second and a half and plays its animations for exactly as long,
+    /// so what keeps moving (a spinner, a pulsing skeleton) is captured at the same moment however fast frames draw.
     private func settle(_ window: Window) {
-        let deadline = Date().addingTimeInterval(1.5)
-        while Date() < deadline {
-            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        for _ in 0..<15 {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.1))
             window.advance(by: 0.1)
         }
         window.settle()
