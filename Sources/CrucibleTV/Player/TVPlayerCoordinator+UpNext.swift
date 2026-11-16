@@ -13,7 +13,7 @@ extension TVPlayerCoordinator {
     func prepareUpNext(for session: PlaybackSession) {
         upNextTask?.cancel()
         upNextTask = Task { [weak self] in
-            guard let offer = await session.nextEpisodeOffer(), !Task.isCancelled else { return }
+            guard let offer = await Self.nextEpisode(of: session), !Task.isCancelled else { return }
             guard let self, session === self.session else { return }
             installUpNext(offer, hasCredits: session.creditsStartSecs != nil, session: session)
             let preview = await Self.loadPreview(for: offer.episode)
@@ -22,10 +22,34 @@ extension TVPlayerCoordinator {
         }
     }
 
+    /// The next episode for the card, asked again a little later while the server does not answer, so one dropped request
+    /// does not cost the whole episode its Up Next card.
+    private static func nextEpisode(of session: PlaybackSession) async -> UpNextOffer? {
+        for attempt in 0..<upNextLookupAttempts {
+            if attempt > 0 {
+                try? await Task.sleep(for: upNextLookupRetry)
+                guard !Task.isCancelled else { return nil }
+            }
+            switch await session.lookUpNextEpisode() {
+            case .offer(let offer): return offer
+            case .nothingNext: return nil
+            case .failed: continue
+            }
+        }
+        return nil
+    }
+
+    private static let upNextLookupAttempts = 4
+    private static let upNextLookupRetry: Duration = .seconds(15)
+
     private func installUpNext(_ offer: UpNextOffer, hasCredits: Bool, session: PlaybackSession) {
         MidgarLog.notice("Up Next prepared: \(offer.episode.id) credits=\(String(describing: session.creditsStartSecs)) offset=\(session.streamOffset)", category: .playback)
         upNextOffer = offer
-        let card = TVUpNextViewController(offer: offer, hasCredits: hasCredits)
+        let card = TVUpNextViewController(
+            offer: offer,
+            hasCredits: hasCredits,
+            autoplaysAtEnd: AutoplayRule.autoplays(reason: .playbackEnded, isQueue: offer.queue != nil)
+        )
         card.onDeferred = { [weak self] in self?.upNextCardWasDeferred() }
         card.isAtEndOfItem = { [weak self] in self?.isItemNearEnd ?? false }
         card.asksStillWatching = { [weak self] in self?.asksStillWatching ?? false }
@@ -87,8 +111,9 @@ extension TVPlayerCoordinator {
             break
         case .playbackEnded:
             let ended = session
+            let grace = upNextOffer == nil ? Duration.zero : Self.upNextCardGrace
             Task { [weak self] in
-                try? await Task.sleep(for: Self.upNextCardGrace)
+                try? await Task.sleep(for: grace)
                 guard let self, ended === session, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
                 if offer.autoplays, !asksStillWatching {
                     advance(to: offer)

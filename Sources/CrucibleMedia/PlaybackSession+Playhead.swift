@@ -395,7 +395,7 @@ extension PlaybackSession {
 
     /// Asks for the next episode, trying once more when the request fails: the credits are a short window
     /// and one dropped request there means no card at all, not a card a moment later.
-    private static func lookUpOffer(resolver: UpNextResolver, api: APIClient, reason: UpNextOffer.Reason) async -> UpNextLookup {
+    static func lookUpOffer(resolver: UpNextResolver, api: APIClient, reason: UpNextOffer.Reason) async -> UpNextLookup {
         for attempt in 0..<2 {
             if attempt > 0 {
                 MidgarLog.notice("Up Next lookup failed; trying once more", category: .playback)
@@ -475,7 +475,7 @@ extension PlaybackSession {
 }
 
 /// What looking for the next episode found: one to offer, none at all, or no answer from the server.
-enum UpNextLookup {
+package enum UpNextLookup: Sendable {
     case offer(UpNextOffer)
     case nothingNext
     case failed

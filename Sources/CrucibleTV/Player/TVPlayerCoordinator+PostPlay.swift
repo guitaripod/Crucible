@@ -6,7 +6,7 @@ extension TVPlayerCoordinator {
     /// Once nothing plays next, titles like the one that ended take the screen over the player's last frame; without any the
     /// player closes, as it always has.
     func offerWhatsNext() {
-        guard postPlayTask == nil, postPlay == nil, !isFinishing, !isAdvancing else { return }
+        guard postPlayTask == nil, postPlay == nil, !isFinishing, !isAdvancing, !isUpNextCardVisible else { return }
         let ended = request
         postPlayTask = Task { [weak self] in
             guard let self else { return }

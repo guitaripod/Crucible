@@ -24,6 +24,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
 
     private let episode: PlexMetadata
     private let autoplays: Bool
+    private let autoplaysAtEnd: Bool
     private let hasCredits: Bool
     private let countdownLabel = UILabel()
     private let eyebrow = UILabel()
@@ -35,9 +36,12 @@ final class TVUpNextViewController: AVContentProposalViewController {
     private var playButton: UIButton?
     private var leaveButton: UIButton?
 
-    init(offer: UpNextOffer, hasCredits: Bool) {
+    /// `autoplaysAtEnd` is whether the end of the item plays on by itself, which a card shown there follows instead of what
+    /// the credits do: an item with no credits never reaches them, and Skip Credits has nothing to skip.
+    init(offer: UpNextOffer, hasCredits: Bool, autoplaysAtEnd: Bool) {
         episode = offer.episode
         autoplays = offer.autoplays
+        self.autoplaysAtEnd = autoplaysAtEnd
         self.hasCredits = hasCredits
         super.init(nibName: nil, bundle: nil)
     }
@@ -47,7 +51,10 @@ final class TVUpNextViewController: AVContentProposalViewController {
 
     /// Counts down only when autoplay is on, VoiceOver is off, nobody needs asking and no sleep timer stops playback here: a
     /// countdown the viewer cannot see must not start the next episode under them, and neither may one nobody is awake for.
-    private var isCounting: Bool { autoplays && !stopsAfterItem && !stillWatching && !UIAccessibility.isVoiceOverRunning }
+    private var isCounting: Bool {
+        let plays = leavingKeepsPlaying ? autoplays : autoplaysAtEnd
+        return plays && !stopsAfterItem && !stillWatching && !UIAccessibility.isVoiceOverRunning
+    }
 
     private var animatesDismissal: Bool { !UIAccessibility.isReduceMotionEnabled }
 

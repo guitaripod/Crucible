@@ -6,11 +6,11 @@ extension PlaybackSession {
     /// Where the credits begin on the item's timeline, if the server marked them.
     package var creditsStartSecs: Double? { upNext.creditsStartSecs }
 
-    /// The next episode on offer, or nil for a movie, a last episode or when the season cannot be read.
-    /// Lets a surface prepare its own "up next" presentation ahead of the credits.
-    package func nextEpisodeOffer() async -> UpNextOffer? {
-        guard upNext.canOfferNext else { return nil }
-        return try? await upNext.loadOffer(api: api, reason: .credits)
+    /// Looks up the next episode for a surface that prepares its own "up next" presentation ahead of the credits: an offer, none
+    /// for a movie or a last episode, or a failure when the server did not answer even on a second try.
+    package func lookUpNextEpisode() async -> UpNextLookup {
+        guard upNext.canOfferNext else { return .nothingNext }
+        return await Self.lookUpOffer(resolver: upNext, api: api, reason: .credits)
     }
 
     /// Keeps the viewer's pick on an episode for its show, so the show's other episodes start in the same languages.
