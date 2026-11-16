@@ -104,9 +104,7 @@ final class TVCommentComposerViewController: TVSettingsScaffold {
 
     /// Whether the draft reads as another language than English and this Apple TV can put it into English.
     private func offersTranslation(_ draft: TraktCommentDraft) -> Bool {
-        let center = TranslationCenter.shared
-        guard center.isAvailable, draft.wordCount >= 3, let language = center.language(ofDraft: text) else { return false }
-        return !TranslationLanguages.isSame(language, "en")
+        draft.wordCount >= 3 && TranslationCenter.shared.canTranslateDraft(text, into: "en")
     }
 
     /// Puts the draft into English on the device, spoiler tags and all.
@@ -131,7 +129,7 @@ final class TVCommentComposerViewController: TVSettingsScaffold {
                 self.render()
             } else {
                 self.render()
-                if case .failure = result { self.presentAlert(title: TraktCopy.name, message: TranslationCopy.failed) }
+                if case .failure(let failure) = result, failure != .notInstalled { self.presentAlert(title: TraktCopy.name, message: TranslationCopy.failed) }
             }
         }
     }

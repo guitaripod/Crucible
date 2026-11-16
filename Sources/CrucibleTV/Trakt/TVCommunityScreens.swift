@@ -397,7 +397,7 @@ final class TVCommentThreadViewController: TVSettingsScaffold {
         if !revealed, root.isSpoiler || text.hasInlineSpoilers {
             rows.append(TVRowItem(id: "thread.reveal", title: String(localized: "Reveal Spoilers", comment: "Row that shows a Trakt comment's hidden spoilers"), symbol: "eye"))
         }
-        if text.plainText.count > 520 {
+        if text.plainText.count > 520, revealed || !root.isSpoiler {
             rows.append(TVRowItem(id: "thread.read", title: String(localized: "Read in Full", comment: "Row that opens a long Trakt comment in a reader"), symbol: "text.alignleft", accessory: .chevron))
         }
         if let translation = TVCommunityScreens.translationRow(for: root) { rows.append(translation) }
@@ -438,7 +438,8 @@ final class TVCommentThreadViewController: TVSettingsScaffold {
             revealed = true
             render()
         case "thread.read":
-            present(TVSynopsisViewController(title: root.user.displayName, text: TraktCommentText(TranslationCenter.shared.displayed(root).text).plainText), animated: TVMotion.animationsEnabled)
+            let shown = TraktCommentText(TranslationCenter.shared.displayed(root).text)
+            present(TVSynopsisViewController(title: root.user.displayName, text: revealed ? shown.plainText : shown.textHidingSpoilers), animated: TVMotion.animationsEnabled)
         case "thread.translation":
             TVCommunityScreens.selectTranslation(of: root)
         case "thread.like":
@@ -552,7 +553,9 @@ final class TVCommentsViewController: TVSettingsScaffold {
         installHeading(heading)
         presentState(.loading(title: TraktCommunityCopy.comments))
         translationObserver = TVCommunityScreens.observeTranslations { [weak self] in
-            guard let self, self.page > 0 else { return }
+            guard let self else { return }
+            if case .aspect(let aspect, _) = self.source { self.heading.setTitle(TraktSentimentsTranslation.text(aspect)) }
+            guard self.page > 0 else { return }
             self.render()
         }
         changeObserver = NotificationCenter.default.addObserver(forName: .traktCommunityChanged, object: nil, queue: .main) { [weak self] note in

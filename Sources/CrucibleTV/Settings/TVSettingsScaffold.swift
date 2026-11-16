@@ -174,6 +174,13 @@ final class TVSettingsHeading: TVReadOnlyPanel {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Puts a new title in place, as when a heading's words arrive translated.
+    func setTitle(_ title: String) {
+        guard title != content.title else { return }
+        content.title = title
+        titleView.configure(content)
+    }
+
     /// Shows `body` under the title, cross-dissolving from the last one as the focus moves between rows.
     func setBody(_ body: String?) {
         guard body != content.detail else { return }
