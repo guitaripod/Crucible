@@ -1,6 +1,6 @@
 pkgbase = crucible
 	pkgdesc = Plex client in the Apple TV design, with Liquid Glass and HDR video (Wayland, Vulkan)
-	pkgver = 0.14.1
+	pkgver = 0.14.2
 	pkgrel = 1
 	url = https://github.com/guitaripod/Crucible
 	arch = x86_64
@@ -45,7 +45,7 @@ pkgbase = crucible
 	options = !lto
 	options = !debug
 	options = !strip
-	source = crucible-0.14.1.tar.gz::https://github.com/guitaripod/Crucible/archive/refs/tags/linux-0.14.1.tar.gz
+	source = crucible-0.14.2.tar.gz::https://github.com/guitaripod/Crucible/archive/refs/tags/linux-0.14.2.tar.gz
 	sha256sums = SKIP
 
 pkgname = crucible
