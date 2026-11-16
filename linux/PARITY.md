@@ -10,12 +10,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 68 | 0 | 0 | 1 |
-| Search, Pro features (free on Linux) and demo | 54 | 0 | 1 | 8 |
+| Search, Pro features (free on Linux) and demo | 55 | 0 | 0 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 96 | 1 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 100 | 2 | 1 | 0 |
-| **All** | 681 | 3 | 2 | 16 |
+| **All** | 682 | 3 | 1 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -356,7 +356,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `pro-what-to-watch` (L) What to Watch: say what you feel like and get picks from your own library, each with a reason, from your own model (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:6,17,30,43,56-61_
 - [x] `pro-previously-on` (M) Previously On: a recap of the last episodes written before you press play, from dialogue, on your own model (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:7,18,31,44,58-61_
 - [x] `pro-full-statistics` (L) Full Statistics: every range, library filter, patterns, binges and taste from Plex history plus Trakt (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:9,20,33,64_
-- [ ] `pro-year-in-review` (M) Year in Review poster: preview and share your year as a Story or Square poster (D1). Gap: No Year in Review on Linux; depends on Statistics data and a share surface. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:10,34,64_
+- [x] `pro-year-in-review` (M) Year in Review poster: preview and share your year as a Story or Square poster (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:10,34,64_
 - [x] `pro-manage-requests` (L) Manage Requests: approve, decline and retry everyone’s Seerr requests, listed only when the connected Seerr manages requests (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:12,23,36,65_
 - [x] `pro-sports-research` (L) Sports Research: your own model looks up the events in your sports recordings and fills in titles, dates, cards and posters; listed when paired with a Crucible Server (D1). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:13,24,37,57,66_
 - [x] `pro-unlimited-downloads` (S) n/a: Unlimited downloads and whole-season downloads (iPhone-only in the Pro list). _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Pro/ProFeature.swift:8,17,32,62_
