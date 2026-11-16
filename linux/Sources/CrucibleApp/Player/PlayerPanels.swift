@@ -12,6 +12,8 @@ struct PlayerRun {
     var trackLanguages: TrackLanguages?
     /// The playlist being played, standing on the title on screen: what follows is its next entry, not the next episode.
     var queue: PlaybackQueue?
+    /// Whether the window was out of full screen when the sitting's first title opened; nil until it opens.
+    var beganWindowed: Bool?
 
     /// Whether the Up Next card asks "Still watching?" instead of counting down.
     var asksStillWatching: Bool {
@@ -25,7 +27,8 @@ struct PlayerRun {
                   viewerActedThisEpisode: byViewer,
                   sleepTimer: sleepTimer.flatMap { $0.stopsAtEndOfItem ? nil : $0 },
                   trackLanguages: languages,
-                  queue: queue)
+                  queue: queue,
+                  beganWindowed: beganWindowed)
     }
 }
 

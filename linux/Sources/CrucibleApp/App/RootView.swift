@@ -77,6 +77,7 @@ final class RootView: View, WindowRestoration.Restorable {
     }
 
     /// The keys a window's app leaves to its main UI: F11, the frame-time HUD, Back and Forward, then the app's commands.
+    /// Escape with nothing left to go back from takes the window out of full screen.
     func handleWindowKey(_ event: KeyEvent, in window: Window) -> Bool {
         if event.key == .f11 {
             window.setFullscreen(!window.isFullscreen)
@@ -86,7 +87,9 @@ final class RootView: View, WindowRestoration.Restorable {
             window.showsPerformanceHUD.toggle()
             return true
         }
-        if event.key == .escape || event.key == .back || (event.key == .left && event.modifiers == .alt) { return handleBack() }
+        if event.key == .escape || event.key == .back || (event.key == .left && event.modifiers == .alt) {
+            return handleBack() || (event.key == .escape && LinuxDisplay.leaveFullscreen(window))
+        }
         if event.key == .forward || (event.key == .right && event.modifiers == .alt) { return handleForward() }
         return handleCommand(event)
     }

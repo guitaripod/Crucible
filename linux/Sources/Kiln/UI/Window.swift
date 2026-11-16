@@ -55,6 +55,9 @@ public final class Window {
     public private(set) var scale: Float
 
     public private(set) var isFullscreen = false
+    /// Whether the window asked to leave full screen and the compositor has not let it yet, or will not (a rule that keeps
+    /// the window full screen).
+    public private(set) var isLeavingFullscreen = false
     public private(set) var hasKeyboardFocus = true
 
     private var needsDisplay = true
@@ -187,6 +190,7 @@ public final class Window {
     }
 
     public func setFullscreen(_ fullscreen: Bool) {
+        isLeavingFullscreen = !fullscreen && isFullscreen
         surface?.setFullscreen(fullscreen)
     }
 
@@ -737,6 +741,7 @@ public final class Window {
         func windowConfigured(_ surface: WaylandWindow, width: Int, height: Int, fullscreen: Bool) {
             guard let window else { return }
             window.isFullscreen = fullscreen
+            if !fullscreen { window.isLeavingFullscreen = false }
             window.resize(width: width, height: height, scale: Float(surface.scale))
         }
 

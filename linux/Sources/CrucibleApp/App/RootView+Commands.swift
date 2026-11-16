@@ -70,7 +70,7 @@ extension RootView {
             AppCommand(AppCommandCopy.volumeUp, keys: [KeyName.up], run: send(.up)),
             AppCommand(AppCommandCopy.volumeDown, keys: [KeyName.down], run: send(.down)),
             AppCommand(AppCommandCopy.fullScreen, keys: ["F"], run: send(.character("f"))),
-            AppCommand(String(localized: "Close Player"), keys: [KeyName.esc], run: send(.escape)),
+            AppCommand(String(localized: "Close Player"), keys: [KeyName.esc]) { [weak self] in self?.player?.close() },
         ], inMenu: player != nil)
     }
 

@@ -12,7 +12,8 @@ import MidgarCore
 /// Keys: Space or K play and pause, Left and Right or J and L the skip distances (held: what Settings say), Home starts
 /// over, Page Up and Page Down move by chapter, [ and ] change the speed and Backspace resets it, Up and Down volume,
 /// M mute, S skip, I the info panel, A and C audio and subtitles, T the sleep timer, N the next episode, F full screen,
-/// Escape back. A click plays and pauses, a double click fills the screen, the wheel moves through the title.
+/// Escape leaves full screen, then goes back. A click plays and pauses, a double click fills the screen, the wheel moves
+/// through the title.
 @MainActor
 final class PlayerScreen: View {
     /// What plays: a title on the Plex server from a position, or a local file (headless checks of the player itself).
@@ -160,6 +161,7 @@ final class PlayerScreen: View {
     private func start() {
         guard let window, let loop = window.loop else { return }
         PlayerScreen.active = self
+        if run.beganWindowed == nil { run.beganWindowed = !window.isFullscreen }
         sleepTimer = run.sleepTimer
         applyTestPresets()
         do {
@@ -753,7 +755,15 @@ final class PlayerScreen: View {
         sessionWatch = nil
         ScreenAwake.hold(false, in: window)
         window?.setCursor(.default)
+        restoreWindow()
         onClose?()
+    }
+
+    /// Takes the window back out of full screen as the sitting's last title closes, whichever way it closes, when the sitting
+    /// began in a window; a hand-over to the next title (no `onClose`) keeps it full screen.
+    private func restoreWindow() {
+        guard onClose != nil, run.beganWindowed == true else { return }
+        _ = LinuxDisplay.leaveFullscreen(window)
     }
 
     /// Notes a finished movie or episode in the ledger behind Rate What You Watched and the shows the viewer follows
@@ -867,6 +877,8 @@ final class PlayerScreen: View {
         case .escape, .back:
             if let card {
                 if card.offer.playbackEnded { close() } else { dismissCard() }
+            } else if event.key == .escape, LinuxDisplay.leaveFullscreen(window) {
+                break
             } else {
                 close()
             }

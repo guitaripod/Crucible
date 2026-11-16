@@ -37,6 +37,15 @@ enum LinuxDisplay {
     static var densityLabel: String { isCouch ? String(localized: "Couch") : String(localized: "Desk") }
     static var posterSizeLabel: String { "\(Int((Theme.current.cardZoom * 100).rounded()))%" }
 
+    /// Takes a window out of full screen for Escape, as desktop players and browsers do, when the desk density put it there
+    /// by choice; Couch keeps its full screen, where Escape is Back. False when there was nothing to leave, including a window
+    /// that already asked and is still full screen, so a compositor that keeps it there does not swallow every Escape.
+    static func leaveFullscreen(_ window: Window?) -> Bool {
+        guard let window, window.isFullscreen, !window.isLeavingFullscreen, !isCouch else { return false }
+        window.setFullscreen(false)
+        return true
+    }
+
     /// "Dark · Desk · 100%", the Appearance category's value line.
     static var summary: String { [appearanceLabel, densityLabel, posterSizeLabel].joined(separator: " · ") }
 
