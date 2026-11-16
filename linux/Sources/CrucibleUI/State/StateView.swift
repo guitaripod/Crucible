@@ -176,6 +176,9 @@ public final class SpinnerView: View {
 
     public override func didMoveToWindow() { startAnimating() }
 
+    /// The lit petal moves eight times a second; sixteen steps keep it on the beat without drawing the window at 90 Hz.
+    public override var animationInterval: Double? { 1.0 / 16 }
+
     public override func advanceAnimations(_ dt: Float) -> Bool {
         guard window != nil, !Animation.reduceMotion else { return false }
         phase = (phase + dt).truncatingRemainder(dividingBy: 1)
@@ -217,6 +220,9 @@ public final class SkeletonShelfView: View {
         let metrics = Theme.current.metrics
         return Size(width: size.width, height: metrics.shelfHeaderHeight + metrics.shelfTopInset + style.itemSize.height + metrics.shelfBottomInset)
     }
+
+    /// The pulse is a slow fade; thirty steps a second are smooth.
+    public override var animationInterval: Double? { 1.0 / 30 }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
         guard window != nil, !Animation.reduceMotion else { return false }

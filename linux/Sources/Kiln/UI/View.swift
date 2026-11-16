@@ -219,6 +219,12 @@ open class View {
     /// receiving these with `startAnimating()`.
     open func advanceAnimations(_ dt: Float) -> Bool { false }
 
+    /// How often an ambient animation needs a new frame, in seconds (a spinner that steps eight times a second, a slow
+    /// glow): while only views with an interval animate, the window draws when the earliest of them is due instead of at
+    /// the display's rate, and hands each the time since its own last step. Nil (the default) asks for every frame, as
+    /// anything that follows input or moves across the screen must.
+    open var animationInterval: Double? { nil }
+
     public func startAnimating() {
         guard let window else {
             animationPending = true

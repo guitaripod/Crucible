@@ -42,6 +42,9 @@ public final class DetailSkeletonView: View {
         fade.reset(1)
     }
 
+    /// The pulse steps thirty times a second; the fade that hands over to the page runs every frame.
+    public override var animationInterval: Double? { fade.isAnimating ? nil : 1.0 / 30 }
+
     public override func advanceAnimations(_ dt: Float) -> Bool {
         let fading = fade.advance(dt)
         alpha = fade.value

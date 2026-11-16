@@ -53,6 +53,9 @@ public final class CrystalGlyphView: View {
         startAnimating()
     }
 
+    /// A breath takes 3.6 seconds and needs thirty steps a second; dimming and the flare run every frame.
+    public override var animationInterval: Double? { dim.isAnimating || flareAmount.isAnimating ? nil : 1.0 / 30 }
+
     public override func advanceAnimations(_ dt: Float) -> Bool {
         let moving = [dim.advance(dt), flareAmount.advance(dt)].contains(true)
         if !moving, let done = onFlared, flareAmount.value >= 1 {

@@ -417,8 +417,11 @@ public final class Window {
         }
     }
 
-    /// Registers a view whose animated values move; it is advanced every frame until it reports it has settled.
+    /// Registers a view whose animated values move; it is advanced every frame until it reports it has settled. A view
+    /// that animates every frame, starting while only ambient views ran, starts from a fresh clock, so its first step is
+    /// not the time since the last ambient frame.
     func startAnimating(_ view: View) {
+        if view.animationInterval == nil && !animating.values.contains(where: { $0.animationInterval == nil }) { lastFrameTime = nil }
         animating[ObjectIdentifier(view)] = view
         setNeedsDisplay()
     }
@@ -438,7 +441,7 @@ public final class Window {
         let dt = Float(min(max(time - (lastFrameTime ?? time), 0), 0.1))
         lastFrameTime = animating.isEmpty ? nil : time
         var mark = Window.now()
-        advanceAnimations(dt)
+        advanceAnimations(dt, at: time)
         if !animating.isEmpty { lastFrameTime = time }
         frame.animate = Window.now() - mark
         mark = Window.now()
@@ -468,24 +471,66 @@ public final class Window {
         accessibility?.frameDrawn()
         if settled {
             saveShadersIfDue(time)
+        } else if let due = ambientFrameDue() {
+            needsDisplay = false
+            scheduleAmbientFrame(at: due)
         } else {
             needsDisplay = true
         }
     }
 
-    /// Advances every animating view; a view that settled, left the window, or sits under a hidden ancestor stops (it
-    /// starts again when something changes it), so nothing invisible keeps the window drawing.
-    private func advanceAnimations(_ dt: Float) {
-        guard !animating.isEmpty else { return }
+    /// When the next frame is due if every animating view is ambient (has an `animationInterval`); nil when one wants every
+    /// frame. The views' own requests to draw while they stepped are what the schedule replaces. While the window lacks the
+    /// keyboard (Steam's overlay or screensaver is over it, or another window is in front) ambient views step once a second.
+    private func ambientFrameDue() -> Double? {
+        guard !showsPerformanceHUD else { return nil }
+        var due = Double.infinity
         for (key, view) in animating {
+            guard let interval = view.animationInterval else { return nil }
+            due = min(due, (ambientSteps[key] ?? 0) + (hasKeyboardFocus ? interval : max(interval, 1)))
+        }
+        return due.isFinite ? due : nil
+    }
+
+    private var ambientSteps: [ObjectIdentifier: Double] = [:]
+    private var ambientWake: Double?
+
+    /// Draws again at `time` for the ambient views, unless something draws sooner.
+    private func scheduleAmbientFrame(at time: Double) {
+        if let ambientWake, ambientWake <= time, ambientWake > Window.now() { return }
+        ambientWake = time
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(time - Window.now(), 0)) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.ambientWake == time else { return }
+                self.ambientWake = nil
+                self.setNeedsDisplay()
+            }
+        }
+    }
+
+    /// Advances every animating view; a view that settled, left the window, or sits under a hidden ancestor stops (it
+    /// starts again when something changes it), so nothing invisible keeps the window drawing. An ambient view is handed
+    /// the time since its own last step, up to a quarter second.
+    private func advanceAnimations(_ dt: Float, at time: Double) {
+        guard !animating.isEmpty else {
+            ambientSteps.removeAll()
+            return
+        }
+        for (key, view) in animating {
+            var step = dt
+            if let interval = view.animationInterval {
+                step = Float(min(max(time - (ambientSteps[key] ?? time - interval), 0), 0.25))
+                ambientSteps[key] = time
+            }
             if view.window !== self {
                 animating[key] = nil
             } else if view.isUnderHiddenView {
                 animating[key] = nil
                 parked[key] = ParkedView(view: view)
-            } else if !view.advanceAnimations(dt) {
+            } else if !view.advanceAnimations(step) {
                 animating[key] = nil
             }
+            if animating[key] == nil { ambientSteps[key] = nil }
         }
     }
 
@@ -890,7 +935,10 @@ public final class Window {
             let changed = window.hasKeyboardFocus != focused
             window.hasKeyboardFocus = focused
             window.accessibility?.windowFocusChanged(focused)
-            if changed { window.delegate?.window(window, keyboardFocusChanged: focused) }
+            if changed {
+                window.delegate?.window(window, keyboardFocusChanged: focused)
+                if focused && window.isAnimating { window.setNeedsDisplay() }
+            }
             if !focused {
                 window.repeatTask?.cancel()
                 window.repeatTask = nil
