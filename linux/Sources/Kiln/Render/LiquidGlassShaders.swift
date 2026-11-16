@@ -73,6 +73,9 @@ enum LiquidGlassShaders {
     }
     """
 
+    /// The glass pass. Past the rim and the hairline the refraction, bevel and rim light are all zero, so the field's
+    /// gradient (four more field evaluations) and the dispersed taps (six fetches) are skipped there, where most of a
+    /// large panel's pixels lie.
     static let composite = """
     vec2 p = gl_FragCoord.xy;
     vec3 base = texture(scene, p / size).rgb;
@@ -84,13 +87,14 @@ enum LiquidGlassShaders {
         color = overlay > 0.5 ? vec4(0.0, 0.0, 0.0, shadow) : vec4(base * keep, 1.0);
     } else {
         float coverage = clamp(0.5 - d, 0.0, 1.0);
-        vec3 gradient = kilnGradient(p);
-        vec2 n = gradient.xy;
         float depth = clamp(-d / rimWidth, 0.0, 1.0);
+        bool interior = depth >= 1.0 && d < -2.0;
+        vec3 gradient = interior ? vec3(0.0) : kilnGradient(p);
+        vec2 n = gradient.xy;
         float bevel = (1.0 - depth) * smoothstep(0.55, 0.95, gradient.z);
         vec2 shift = -n * kilnSlope(depth) * refraction;
         float sharpness = clamp(clearness + 0.55 * bevel * bevel, 0.0, 1.0);
-        vec3 seen = kilnRefracted(p, shift, sharpness);
+        vec3 seen = interior ? kilnBehind(p, sharpness) : kilnRefracted(p, shift, sharpness);
         float backdrop = kilnLuminance(texture(tiny, shapeA.xy / size).rgb);
         float lightGlass = tone >= 0.0 ? tone : smoothstep(0.32, 0.62, backdrop);
         vec3 tint = mix(vec3(0.02), vec3(1.0), lightGlass);
