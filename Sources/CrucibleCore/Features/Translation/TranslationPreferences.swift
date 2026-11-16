@@ -60,7 +60,7 @@ package enum TranslationPreferences {
     }
 
     private static func postChange() {
-        let post = { NotificationCenter.default.post(name: .translationPreferencesChanged, object: nil) }
+        let post: @Sendable () -> Void = { NotificationCenter.default.post(name: .translationPreferencesChanged, object: nil) }
         if Thread.isMainThread { post() } else { DispatchQueue.main.async(execute: post) }
     }
 }

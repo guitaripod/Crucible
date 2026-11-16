@@ -21,6 +21,10 @@ let linuxCrypto: Target.Dependency = .product(name: "Crypto", package: "swift-cr
 
 let coreOnly = ProcessInfo.processInfo.environment["CRUCIBLE_CORE_ONLY"] != nil
 let benchOnly = ProcessInfo.processInfo.environment["CRUCIBLE_BENCH"] != nil
+/// Core and the Apple Intelligence target with its tests alone, which run on a Mac against its own models:
+/// `CRUCIBLE_INTELLIGENCE_ONLY=1 swift test --scratch-path .build-intel`.
+let intelligenceOnly = ProcessInfo.processInfo.environment["CRUCIBLE_INTELLIGENCE_ONLY"] != nil
+let intelligence: Target = .target(name: "CrucibleIntelligence", dependencies: ["CrucibleCore", midgarCore], resources: [.copy("Prompts")])
 
 var products: [Product] = []
 
@@ -94,6 +98,8 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
 
 if coreOnly {
     targets.append(.testTarget(name: "CrucibleCoreTests", dependencies: ["CrucibleCore", "CrucibleStats", linuxCrypto]))
+} else if intelligenceOnly {
+    targets += [intelligence, .testTarget(name: "CrucibleIntelligenceTests", dependencies: ["CrucibleIntelligence", "CrucibleCore"])]
 } else {
     #if os(Linux)
     let client = linuxClient()
@@ -110,9 +116,11 @@ if coreOnly {
         .library(name: "CrucibleDesign", targets: ["CrucibleDesign"]),
         .library(name: "CrucibleStatsUI", targets: ["CrucibleStatsUI"]),
         .library(name: "CrucibleActivity", targets: ["CrucibleActivity"]),
+        .library(name: "CrucibleIntelligence", targets: ["CrucibleIntelligence"]),
     ]
     targets += [
         .target(name: "CrucibleActivity"),
+        intelligence,
         .target(name: "CrucibleMedia", dependencies: ["CrucibleCore", midgarCore]),
         .target(name: "CrucibleDesign", dependencies: ["CrucibleCore"], resources: [.process("Resources")]),
         .target(name: "CrucibleStatsUI", dependencies: ["CrucibleStats", "CrucibleDesign"]),
@@ -125,6 +133,7 @@ if coreOnly {
                 "CrucibleStats",
                 "CrucibleDesign",
                 "CrucibleStatsUI",
+                "CrucibleIntelligence",
                 grdb,
                 midgarCore,
             ],
@@ -149,7 +158,7 @@ if coreOnly {
         ),
         .target(
             name: "CrucibleTV",
-            dependencies: ["CrucibleCore", "CrucibleMedia", "CrucibleStats", "CrucibleDesign", "CrucibleStatsUI", midgarCore]
+            dependencies: ["CrucibleCore", "CrucibleMedia", "CrucibleStats", "CrucibleDesign", "CrucibleStatsUI", "CrucibleIntelligence", midgarCore]
         ),
         .target(name: "CrucibleTopShelf", dependencies: ["CrucibleCore", midgarCore]),
     ]

@@ -53,6 +53,8 @@ targets:
       - package: Crucible
         product: CrucibleStatsUI
       - package: Crucible
+        product: CrucibleIntelligence
+      - package: Crucible
         product: CrucibleActivity
       - package: Crucible
         product: CrucibleStore
