@@ -35,6 +35,7 @@ BROWSE_KEYS = ("r(160)" * 12 + "(400)e(2600)d(450)d(450)d(450)(600)x(1400)" + "d
 
 
 def load_steam_library():
+    sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location("steam_library", os.path.join(HERE, "steam-library.py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
