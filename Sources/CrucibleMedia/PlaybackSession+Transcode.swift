@@ -46,17 +46,24 @@ extension PlaybackSession {
 
     /// A jump of the playhead inside a transcode is the viewer scrubbing: the transcode restarts at the new
     /// place, playing or paused as the player was. Jumps while the session moves the player itself, or before
-    /// the item is ready to show the new place, are the item settling and not the viewer.
+    /// the item is ready to show the new place, are the item settling and not the viewer. A scrub made while a
+    /// rebuild is still on its way moves the item still playing, which the session leaves alone, so it becomes the
+    /// place the rebuild goes to instead of being lost when the rebuild lands.
     private func handleJump() {
         guard let player else { return }
         if player.rate == 0, pausedSince != nil, !isRecovering { pausedSince = now() }
         guard stream?.isDirectPlay == false else { return }
-        guard !tracker.isHeld, !isRestarting, !isRecovering, let item = player.currentItem, item.status == .readyToPlay else { return }
+        guard !tracker.isHeld, !isRecovering, let item = player.currentItem, item.status == .readyToPlay else { return }
         let now = item.currentTime().seconds
         guard now.isFinite else { return }
         let previous = lastPlayhead
         lastPlayhead = now
         guard TranscodeSeekPolicy.isJump(from: previous, to: now) else { return }
+        guard !isRestarting else {
+            noteViewerAction()
+            restartTranscode(atAbsolute: streamOffset + max(0, now), resumesPlayback: intendsToPlay, reason: "scrub during a rebuild to \(Int(now))")
+            return
+        }
         let toStaleClock = staleClock.map { abs($0 - now) < 1.5 } ?? false
         if toStaleClock || settlingUntil.map({ self.now() < $0 }) == true {
             settleRebuiltItem(item, movedTo: now)
@@ -290,8 +297,19 @@ extension PlaybackSession {
                 startPing(session: sessionId)
                 discardTranscode(session: previous)
             }
+            guard !startPendingRestart() else { return }
             applyTranscodeRestart(url: url, atAbsolute: start)
         }
+    }
+
+    /// Goes straight on to the place asked for while a rebuild was being built, when there is one, instead of first showing the
+    /// superseded place: a run of clicks or scrubs during a rebuild ends where the last one asked. Returns whether it did.
+    private func startPendingRestart() -> Bool {
+        guard let pending = pendingRestart else { return false }
+        pendingRestart = nil
+        isRestarting = false
+        restartTranscode(atAbsolute: pending.target, resumesPlayback: pending.resumesPlayback, freshSession: pending.freshSession, reason: "queued \(pending.reason)")
+        return true
     }
 
     private func applyTranscodeRestart(url: URL, atAbsolute target: Double) {
@@ -343,10 +361,7 @@ extension PlaybackSession {
         pausedSince = player?.rate == 0 ? now() : nil
         restartItemObserver?.invalidate()
         restartItemObserver = nil
-        if let pending = pendingRestart {
-            pendingRestart = nil
-            restartTranscode(atAbsolute: pending.target, resumesPlayback: pending.resumesPlayback, freshSession: pending.freshSession, reason: "queued \(pending.reason)")
-        }
+        _ = startPendingRestart()
     }
 
     /// Whether a rebuilt item's first reading is the previous item's clock the system carried over rather than where the

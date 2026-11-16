@@ -92,6 +92,8 @@ package final class PlaybackSession {
     /// The sleep timer the viewer set, if any.
     package internal(set) var sleepTimer: SleepTimer?
     var volumeBeforeFade: Float?
+    /// Whether the player was playing when an audio interruption began, which is the only case its end may resume.
+    var playingBeforeInterruption = false
     let installsRemoteCommands: Bool
     var isChangingStreams = false
     /// The latest audio and subtitle the viewer asked for while a change was still resolving; the running change takes it up

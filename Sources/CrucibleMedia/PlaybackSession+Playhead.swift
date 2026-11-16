@@ -58,18 +58,31 @@ extension PlaybackSession {
         move(toAbsolute: 0, plays: player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate, reason: "start over")
     }
 
+    /// Moves the player to `target` on the item's timeline. A direct-play file and a transcode that already holds the place seek
+    /// exactly; anywhere else, and anything asked while a transcode is still being rebuilt, goes to a rebuild, which takes the
+    /// latest of several asked in a row. `plays` starts playback once there, except after a pause the viewer made while the
+    /// player was on its way.
     func move(toAbsolute target: Double, plays: Bool, reason: String) {
         guard let stream, let player else { return }
         let playerTime = stream.isDirectPlay ? target : target - streamOffset
-        guard stream.isDirectPlay || canSeekInStream(toAbsolute: target, playerTime: playerTime) else {
+        guard stream.isDirectPlay || (!isRestarting && canSeekInStream(toAbsolute: target, playerTime: playerTime)) else {
             restartTranscode(atAbsolute: target, resumesPlayback: plays, reason: reason)
             return
         }
         tracker.moved(to: target)
         if !stream.isDirectPlay { lastPlayhead = playerTime }
+        let wasPlaying = player.rate > 0
         player.seek(to: CMTime(seconds: playerTime, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
-            Task { @MainActor in if plays { self?.player?.play() } }
+            Task { @MainActor in self?.playAfterSeek(asked: plays, wasPlaying: wasPlaying) }
         }
+    }
+
+    /// Plays once a seek has landed when the move asked for it. A player that was playing when the seek began and stands paused
+    /// now was paused by the viewer on the way, and stays paused.
+    private func playAfterSeek(asked plays: Bool, wasPlaying: Bool) {
+        guard plays, !isStopped, let player else { return }
+        if wasPlaying, player.rate == 0 { return }
+        player.play()
     }
 
     /// Whether the transcode's current stream can show `target` itself: it is not before where the stream started
@@ -203,6 +216,7 @@ extension PlaybackSession {
         guard !noticeAbsence(trigger: "player state") else { return }
         switch status {
         case .paused:
+            if isRestarting { keepPausedThroughRebuild() }
             if pausedSince == nil, !isRestarting { pausedSince = now() }
             noteViewerAction()
         case .playing, .waitingToPlayAtSpecifiedRate:
@@ -214,6 +228,17 @@ extension PlaybackSession {
         @unknown default:
             break
         }
+    }
+
+    /// A pause while a transcode is being rebuilt, on the item still playing: the session only pauses the player itself once
+    /// the new item is in, so this is the viewer (or the sleep timer), and the rebuilt stream stays paused instead of starting
+    /// when it is ready. An item that played to its end pauses on its own and says nothing about the viewer.
+    private func keepPausedThroughRebuild() {
+        guard !isRecovering, let item = player?.currentItem, item.status == .readyToPlay else { return }
+        let duration = item.duration.seconds
+        guard !duration.isFinite || item.currentTime().seconds < duration - 1 else { return }
+        restartResumesPlayback = false
+        pendingRestart?.resumesPlayback = false
     }
 
     /// Tells the integrations the viewer played or paused, but not the pauses the session makes itself to restart a
@@ -251,13 +276,17 @@ extension PlaybackSession {
         MidgarLog.notice("Playing after a pause ratingKey=\(request.ratingKey) pause=\(Int(pause.seconds))s position=\(Int(snapshot)) target=\(Int(target)) sessionGone=\(gone)", category: .playback)
         if stream.isDirectPlay {
             seekAfterReturn(to: target, resumesPlayback: true)
+        } else if gone {
+            restartTranscode(atAbsolute: target, resumesPlayback: true, freshSession: true, reason: "play after a pause")
         } else {
-            restartTranscode(atAbsolute: target, resumesPlayback: true, freshSession: gone, reason: "play after a pause")
+            move(toAbsolute: target, plays: true, reason: "play after a pause")
         }
     }
 
     /// A tick of the player's clock. A transcode's clock means nothing until its item is ready (it reads zero), so those
-    /// ticks are dropped instead of placing the viewer, the skip markers and the credits at the start of the item.
+    /// ticks are dropped instead of placing the viewer, the skip markers and the credits at the start of the item. While a
+    /// transcode is rebuilt the old item still plays from before the move, so its ticks neither save a position nor bring
+    /// back the skip button the viewer just took.
     private func playheadMoved(to seconds: Double) {
         guard !isStopped, let player, !noticeAbsence(trigger: "playhead") else { return }
         let ready = isItemReady
@@ -268,6 +297,7 @@ extension PlaybackSession {
         lastPlayhead = seconds
         let absolute = seconds + streamOffset
         if !tracker.isHeld { wasPlayingAtLastTick = player.rate > 0 }
+        guard !isRestarting else { return }
         if !tracker.isHeld, ready { keepPosition(absolute, force: false) }
         emit(.position(absolute: absolute, rate: Double(player.rate)))
         if upNext.creditsReached(at: absolute) { loadUpNext(reason: .credits) }
@@ -429,12 +459,15 @@ extension PlaybackSession {
                       let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
 
                 MidgarLog.notice("Audio interruption \(type == .began ? "began" : "ended") ratingKey=\(self.request.ratingKey) playerRate=\(self.player?.rate ?? -1)", category: .playback)
-                if type == .ended, let optionsValue {
+                if type == .began {
+                    self.playingBeforeInterruption = self.wasPlayingAtLastTick || (self.player?.rate ?? 0) > 0
+                } else if let optionsValue {
                     let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
-                    if options.contains(.shouldResume) {
+                    if options.contains(.shouldResume), self.playingBeforeInterruption {
                         try? AVAudioSession.sharedInstance().setActive(true)
                         self.player?.play()
                     }
+                    self.playingBeforeInterruption = false
                 }
             }
         }
