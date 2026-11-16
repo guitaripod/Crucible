@@ -19,7 +19,7 @@ package enum WatchCopy {
         case .onDevice:
             return String(localized: "Say what you feel like and Apple Intelligence picks from your own library, on this device. Nothing leaves it.", comment: "What to Watch: the device's own model chooses and nothing is sent")
         case .onDeviceFirst:
-            return String(localized: "Say what you feel like and Apple Intelligence picks from your own library, on this device. Only if it can't do your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI. Nothing else leaves this device.", comment: "What to Watch: the device's own model chooses, with the hosted model as the fallback")
+            return String(localized: "Say what you feel like and Apple Intelligence picks from your own library, on this device. Only if it can't answer are your words and the titles, years, genres, lengths, ratings and watched state of your films and series sent to Crucible's AI. Nothing else leaves this device.", comment: "What to Watch: the device's own model chooses, with the hosted model as the fallback")
         case .hosted:
             return String(localized: "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device.", comment: "What to Watch: what is sent to the hosted model")
         }

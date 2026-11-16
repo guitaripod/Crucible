@@ -94,7 +94,7 @@ package enum DescribedRecapCopy {
         case .onDevice:
             return String(localized: "Apple Intelligence writes the recap on this device from these descriptions. Nothing leaves it.", comment: "What a described Previously On sends when the device's own model writes it")
         case .onDeviceFirst:
-            return String(localized: "Apple Intelligence writes the recap on this device. Only if it can't are the name of the series and these descriptions sent to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends when the device's own model writes it and the hosted model is the fallback")
+            return String(localized: "Apple Intelligence writes the recap on this device. Only if it can't write it are the name of the series and these descriptions sent to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends when the device's own model writes it and the hosted model is the fallback")
         case .hosted:
             return String(localized: "Writing a recap sends the name of the series and these descriptions to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends to the hosted model")
         }

@@ -30100,6 +30100,198 @@
         }
       }
     },
+    "Apple Intelligence writes the recap on this device from these descriptions. Nothing leaves it." : {
+      "comment" : "What a described Previously On sends when the device's own model writes it",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skriver resuméet på denne enhed ud fra disse beskrivelser. Intet forlader enheden."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence schreibt die Zusammenfassung auf diesem Gerät anhand dieser Beschreibungen. Nichts verlässt es."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence escribe el resumen en este dispositivo a partir de estas descripciones. Nada sale de él."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence kirjoittaa yhteenvedon tällä laitteella näiden kuvausten perusteella. Mitään ei poistu laitteelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence rédige le résumé sur cet appareil à partir de ces descriptions. Rien ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skrifar samantektina í þessu tæki út frá þessum lýsingum. Ekkert fer úr tækinu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence scrive il riassunto su questo dispositivo a partire da queste descrizioni. Niente lascia il dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence が、この端末上でこれらの説明からあらすじを作成します。この端末の外へ出るものはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence가 이 기기에서 이 설명들로 지난 이야기를 작성합니다. 기기 밖으로 나가는 정보는 없습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skriver oppsummeringen på denne enheten basert på disse beskrivelsene. Ingenting forlater enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence pisze podsumowanie na tym urządzeniu na podstawie tych opisów. Nic nie opuszcza urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Apple Intelligence escreve o resumo neste dispositivo a partir destas descrições. Nada sai dele."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skriver sammanfattningen på den här enheten utifrån dessa beskrivningar. Ingenting lämnar enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence 根据这些描述在此设备上撰写前情提要。没有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence 會根據這些描述在這台裝置上撰寫前情提要。沒有任何資料離開這台裝置。"
+          }
+        }
+      }
+    },
+    "Apple Intelligence writes the recap on this device. Only if it can't write it are the name of the series and these descriptions sent to Crucible's AI. Nothing else leaves this device." : {
+      "comment" : "What a described Previously On sends when the device's own model writes it and the hosted model is the fallback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skriver resuméet på denne enhed. Kun hvis den ikke kan skrive det, sendes seriens navn og disse beskrivelser til Crucibles AI. Intet andet forlader denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence schreibt die Zusammenfassung auf diesem Gerät. Nur wenn Apple Intelligence sie nicht schreiben kann, werden der Name der Serie und diese Beschreibungen an Crucibles KI gesendet. Sonst verlässt nichts dieses Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence escribe el resumen en este dispositivo. Solo si no puede escribirlo, el nombre de la serie y estas descripciones se envían a la IA de Crucible. Nada más sale de este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence kirjoittaa yhteenvedon tällä laitteella. Vain jos se ei pysty kirjoittamaan sitä, sarjan nimi ja nämä kuvaukset lähetetään Crucible-tekoälylle. Mitään muuta ei poistu tältä laitteelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence rédige le résumé sur cet appareil. Ce n’est que s’il ne peut pas le rédiger que le nom de la série et ces descriptions sont envoyés à l’IA de Crucible. Rien d’autre ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skrifar samantektina í þessu tæki. Aðeins ef hún getur ekki skrifað hana eru nafn þáttaraðarinnar og þessar lýsingar sendar til gervigreindar Crucible. Ekkert annað fer úr þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence scrive il riassunto su questo dispositivo. Solo se non riesce a scriverlo, il nome della serie e queste descrizioni vengono inviati all’IA di Crucible. Nient’altro lascia questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence が、この端末上であらすじを作成します。作成できない場合に限り、シリーズ名とこれらの説明が Crucible の AI に送信されます。それ以外のデータがこの端末から送信されることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence가 이 기기에서 지난 이야기를 작성합니다. 작성할 수 없을 때에만 시리즈 이름과 이 설명들이 Crucible AI로 전송됩니다. 이 기기 밖으로는 다른 정보가 전송되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skriver oppsummeringen på denne enheten. Bare hvis den ikke kan skrive den, sendes navnet på serien og disse beskrivelsene til Crucibles KI. Ingenting annet forlater denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence pisze podsumowanie na tym urządzeniu. Tylko jeśli nie może go napisać, nazwa serialu i te opisy są wysyłane do AI Crucible. Nic więcej nie opuszcza tego urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Apple Intelligence escreve o resumo neste dispositivo. Somente se ela não conseguir escrevê-lo, o nome da série e estas descrições são enviados para a IA do Crucible. Nada mais sai deste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence skriver sammanfattningen på den här enheten. Bara om det inte går att skriva den skickas seriens namn och dessa beskrivningar till Crucibles AI. Inget annat lämnar den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence 在此设备上撰写前情提要。只有在它无法撰写时，剧集名称和这些描述才会发送给 Crucible 的 AI。除此之外，不会有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence 會在這台裝置上撰寫前情提要。只有在它無法撰寫時，影集名稱和這些描述才會傳送到 Crucible 的 AI。除此之外，不會有其他資料離開這台裝置。"
+          }
+        }
+      }
+    },
     "Applies to subtitles the server draws into the picture and to the ones the player draws." : {
       "localizations" : {
         "da" : {
@@ -32842,6 +33034,198 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自動"
+          }
+        }
+      }
+    },
+    "Automatic (%@)" : {
+      "comment" : "Translation language option that follows the app and device languages, e.g. Automatic (Finnish)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk (%@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático (%@)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automaattinen (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique (%@)"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjálfvirkt (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatico (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자동 (%@)"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatycznie (%@)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático (%@)"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动（%@）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動（%@）"
+          }
+        }
+      }
+    },
+    "Automatic follows the language Crucible is shown in, then the languages you set for this device." : {
+      "comment" : "Explanation of the Translate Into setting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk følger det sprog, Crucible vises på, og derefter de sprog, du har valgt til denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch folgt der Sprache, in der Crucible angezeigt wird, und dann den Sprachen, die du für dieses Gerät eingestellt hast."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático sigue el idioma en el que se muestra Crucible y, después, los idiomas que hayas configurado para este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automaattinen noudattaa Crucible-sovelluksen näyttökieltä ja sen jälkeen tällä laitteella asettamiasi kieliä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique suit la langue dans laquelle Crucible s’affiche, puis les langues que vous avez définies pour cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjálfvirkt fylgir tungumálinu sem Crucible birtist á og síðan tungumálunum sem þú hefur stillt fyrir þetta tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatico segue la lingua in cui viene mostrato Crucible, poi le lingue impostate per questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「自動」は、Crucible の表示言語を優先し、次にこの端末で設定した言語に従います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자동은 Crucible이 표시되는 언어를 먼저 따르고, 다음으로 이 기기에서 설정한 언어를 따릅니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk følger språket Crucible vises på, deretter språkene du har valgt for denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatycznie wybiera język, w którym wyświetlany jest Crucible, a następnie języki ustawione dla tego urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático segue o idioma em que o Crucible é exibido e, depois, os idiomas que você definiu para este dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatiskt följer språket Crucible visas på, och sedan språken du har angett för enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“自动”会先遵循 Crucible 显示所用的语言，然后遵循你在此设备上设置的语言。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「自動」會先遵循 Crucible 顯示所用的語言，再遵循你在這台裝置上設定的語言。"
           }
         }
       }
@@ -41175,6 +41559,198 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "評論"
+          }
+        }
+      }
+    },
+    "Comments, reviews and descriptions in another language appear in yours as they load, with Show Original a tap away. Off, each one offers Translate instead." : {
+      "comment" : "Explanation of the Translate Automatically setting",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer, anmeldelser og beskrivelser på andet sprog vises på dit sprog, efterhånden som de indlæses, og Vis original er ét tryk væk. Når det er slået fra, tilbydes i stedet Oversæt ved hver enkelt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentare, Bewertungen und Beschreibungen in einer anderen Sprache erscheinen beim Laden in deiner Sprache, Original anzeigen ist nur einen Tipp entfernt. Ist die Funktion aus, bietet jeder Eintrag stattdessen Übersetzen an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los comentarios, reseñas y descripciones en otro idioma aparecen en el tuyo al cargarse, con Mostrar original a un toque. Si está desactivado, cada uno ofrece Traducir."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muilla kielillä kirjoitetut kommentit, arvostelut ja kuvaukset näkyvät omalla kielelläsi latautuessaan, ja Näytä alkuperäinen on yhden napautuksen päässä. Kun tämä on pois päältä, jokaisessa on sen sijaan Käännä-painike."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les commentaires, avis et descriptions dans une autre langue apparaissent dans la vôtre au fur et à mesure du chargement, avec Afficher l’original d’une simple pression. Désactivé, chacun propose Traduire à la place."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Athugasemdir, umsagnir og lýsingar á öðru tungumáli birtast á þínu tungumáli þegar þær hlaðast inn og Sýna upprunalegt er einn smellur í burtu. Þegar slökkt er á þessu býðst Þýða í staðinn á hverri og einni."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commenti, recensioni e descrizioni in un’altra lingua appaiono nella tua mentre si caricano, con Mostra originale a un tocco di distanza. Se disattivato, ognuno offre Traduci."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "他の言語のコメント、レビュー、説明は、読み込まれると自分の言語で表示され、「原文を表示」を一度タップすれば元の文章に戻せます。オフの場合は、それぞれに「翻訳」ボタンが表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 언어로 된 댓글, 리뷰, 설명은 불러올 때 내 언어로 표시되며, 한 번 누르면 ‘원문 보기’로 원래 글을 볼 수 있습니다. 꺼 두면 각 항목마다 ‘번역’ 버튼이 대신 표시됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer, anmeldelser og beskrivelser på andre språk vises på ditt språk etter hvert som de lastes inn, og Vis original er ett trykk unna. Når dette er av, tilbys Oversett i stedet for hver enkelt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarze, recenzje i opisy w innym języku pojawiają się w Twoim języku po załadowaniu, a stuknięcie „Pokaż oryginał” przywraca wersję oryginalną. Gdy opcja jest wyłączona, przy każdym z nich pojawia się przycisk „Przetłumacz”."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comentários, avaliações e descrições em outro idioma aparecem no seu conforme são carregados, com Mostrar original a um toque. Desativado, cada um oferece Traduzir."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer, recensioner och beskrivningar på andra språk visas på ditt språk när de laddas, och Visa original är ett tryck bort. När det är avstängt erbjuds i stället Översätt för varje text."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他语言的评论、评价和描述会在加载时以你的语言显示，点按“显示原文”即可查看原文。关闭后，每条内容都会显示“翻译”按钮。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他語言的留言、評論和描述會在載入時以你的語言顯示，點一下「顯示原文」即可查看原文。關閉後，每則內容都會改為顯示「翻譯」按鈕。"
+          }
+        }
+      }
+    },
+    "Comments, reviews and descriptions in your language, translated on this device." : {
+      "comment" : "Explanation of the Translation settings category",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer, anmeldelser og beskrivelser på dit sprog, oversat på denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentare, Bewertungen und Beschreibungen in deiner Sprache, auf diesem Gerät übersetzt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comentarios, reseñas y descripciones en tu idioma, traducidos en este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentit, arvostelut ja kuvaukset omalla kielelläsi, käännettynä tällä laitteella."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commentaires, avis et descriptions dans votre langue, traduits sur cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Athugasemdir, umsagnir og lýsingar á þínu tungumáli, þýddar í þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commenti, recensioni e descrizioni nella tua lingua, tradotti su questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の言語のコメント、レビュー、説明を、この端末上で翻訳します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 언어로 된 댓글, 리뷰, 설명을 이 기기에서 번역합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer, anmeldelser og beskrivelser på ditt språk, oversatt på denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komentarze, recenzje i opisy w Twoim języku, tłumaczone na tym urządzeniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comentários, avaliações e descrições no seu idioma, traduzidos neste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer, recensioner och beskrivningar på ditt språk, översatta på den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评论、评价和描述以你的语言呈现，并在此设备上翻译。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的語言所用的留言、評論和描述，會在這台裝置上翻譯。"
           }
         }
       }
@@ -52054,6 +52630,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法載入這一季。"
+          }
+        }
+      }
+    },
+    "Couldn’t translate" : {
+      "comment" : "Shown under a comment or description that could not be translated",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oversættes"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konnte nicht übersetzt werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo traducir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännös ei onnistunut"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de traduire"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að þýða"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile tradurre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳できませんでした"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역할 수 없습니다"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oversettes"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przetłumaczyć"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível traduzir"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunde inte översättas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法翻译"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法翻譯"
           }
         }
       }
@@ -116625,6 +117297,102 @@
         }
       }
     },
+    "On Request" : {
+      "comment" : "Translation summary: text is translated only when asked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Efter anmodning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Anfrage"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bajo petición"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyynnöstä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur demande"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eftir beiðni"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su richiesta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リクエスト時"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청 시"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "På forespørsel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na żądanie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sob demanda"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "På begäran"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按需"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "依要求"
+          }
+        }
+      }
+    },
     "On This Day" : {
       "localizations" : {
         "da" : {
@@ -147833,6 +148601,198 @@
         }
       }
     },
+    "Say what you feel like and Apple Intelligence picks from your own library, on this device. Nothing leaves it." : {
+      "comment" : "What to Watch: the device's own model chooses and nothing is sent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sig, hvad du har lyst til, så vælger Apple Intelligence titler fra dit eget bibliotek, på denne enhed. Intet forlader enheden."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag, worauf du Lust hast, und Apple Intelligence wählt auf diesem Gerät aus deiner eigenen Mediathek aus. Nichts verlässt es."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di lo que te apetece y Apple Intelligence elige de tu propia biblioteca, en este dispositivo. Nada sale de él."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kerro, mitä mieli tekee, ja Apple Intelligence valitsee sopivat elokuvat ja sarjat omasta kirjastostasi tällä laitteella. Mitään ei poistu laitteelta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites ce que vous avez envie de voir : Apple Intelligence choisit dans votre propre bibliothèque, sur cet appareil. Rien ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segðu hvað þig langar í og Apple Intelligence velur úr þínu eigin safni í þessu tæki. Ekkert fer úr tækinu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di’ cosa ti va e Apple Intelligence sceglie dalla tua libreria, su questo dispositivo. Niente lascia il dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今の気分を話すか入力すると、Apple Intelligence がこの端末上でご自身のライブラリから選びます。この端末の外へ出るものはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원하는 것을 말하면 Apple Intelligence가 이 기기에서 보관함의 작품 중에서 골라 드립니다. 기기 밖으로 나가는 정보는 없습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si hva du har lyst til, så velger Apple Intelligence titler fra ditt eget bibliotek, på denne enheten. Ingenting forlater enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiedz, na co masz ochotę, a Apple Intelligence wybierze coś z Twojej biblioteki, na tym urządzeniu. Nic nie opuszcza urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga o que você quer assistir e a Apple Intelligence escolhe na sua própria biblioteca, neste dispositivo. Nada sai dele."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säg vad du är sugen på, så väljer Apple Intelligence titlar i ditt eget bibliotek, på den här enheten. Ingenting lämnar enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说说你现在想看什么，Apple Intelligence 会在此设备上从你自己的资料库中挑选。没有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說說你現在想看什麼，Apple Intelligence 會在這台裝置上從你自己的媒體庫中挑選。沒有任何資料離開這台裝置。"
+          }
+        }
+      }
+    },
+    "Say what you feel like and Apple Intelligence picks from your own library, on this device. Only if it can't answer are your words and the titles, years, genres, lengths, ratings and watched state of your films and series sent to Crucible's AI. Nothing else leaves this device." : {
+      "comment" : "What to Watch: the device's own model chooses, with the hosted model as the fallback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sig, hvad du har lyst til, så vælger Apple Intelligence titler fra dit eget bibliotek, på denne enhed. Kun hvis den ikke kan svare, sendes dine ord og titlernes, årstallenes, genrernes, spilletidernes, bedømmelsernes og set-statussen for dine film og serier til Crucibles AI. Intet andet forlader denne enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag, worauf du Lust hast, und Apple Intelligence wählt auf diesem Gerät aus deiner eigenen Mediathek aus. Nur wenn Apple Intelligence keine Antwort geben kann, werden deine Worte sowie die Titel, Jahre, Genres, Laufzeiten, Bewertungen und der Gesehen-Status deiner Filme und Serien an Crucibles KI gesendet. Sonst verlässt nichts dieses Gerät."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di lo que te apetece y Apple Intelligence elige de tu propia biblioteca, en este dispositivo. Solo si no puede dar una respuesta, tus palabras y los títulos, años, géneros, duraciones, valoraciones y estado de visionado de tus películas y series se envían a la IA de Crucible. Nada más sale de este dispositivo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kerro, mitä mieli tekee, ja Apple Intelligence valitsee sopivat elokuvat ja sarjat omasta kirjastostasi tällä laitteella. Vain jos se ei pysty vastaamaan, sanasi sekä elokuviesi ja sarjojesi nimet, vuosiluvut, lajityypit, kestot, arviot ja katselutila lähetetään Crucible-tekoälylle. Tältä laitteelta ei lähde mitään muuta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites ce que vous avez envie de voir : Apple Intelligence choisit dans votre propre bibliothèque, sur cet appareil. Ce n’est que si elle ne peut pas répondre que vos mots ainsi que les titres, années, genres, durées, notes et état de visionnage de vos films et séries sont envoyés à l’IA de Crucible. Rien d’autre ne quitte cet appareil."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segðu hvað þig langar í og Apple Intelligence velur úr þínu eigin safni í þessu tæki. Aðeins ef hún getur ekki svarað eru orðin þín ásamt titlum, útgáfuárum, tegundum, lengdum, einkunnum og áhorfsstöðu kvikmynda og þátta þinna send til gervigreindar Crucible. Ekkert annað fer úr þessu tæki."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di’ cosa ti va e Apple Intelligence sceglie dalla tua libreria, su questo dispositivo. Solo se non riesce a rispondere, le tue parole e i titoli, gli anni, i generi, le durate, le valutazioni e lo stato di visione di film e serie vengono inviati all’IA di Crucible. Nient’altro lascia questo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今の気分を話すか入力すると、Apple Intelligence がこの端末上でご自身のライブラリから選びます。選べない場合に限り、入力した言葉と、映画やシリーズのタイトル、公開年、ジャンル、長さ、評価、視聴状況が Crucible の AI に送信されます。それ以外のデータがこの端末から送信されることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원하는 것을 말하면 Apple Intelligence가 이 기기에서 보관함의 작품 중에서 골라 드립니다. 고를 수 없을 때에만 입력한 말과 영화 및 시리즈의 제목, 연도, 장르, 길이, 평점, 시청 여부가 Crucible AI로 전송됩니다. 이 기기 밖으로는 다른 정보가 전송되지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si hva du har lyst til, så velger Apple Intelligence titler fra ditt eget bibliotek, på denne enheten. Bare hvis den ikke kan svare, sendes ordene dine og titlenes, årstallenes, sjangrenes, lengdenes, vurderingenes og sett-statusen for filmene og seriene dine til Crucibles KI. Ingenting annet forlater denne enheten."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powiedz, na co masz ochotę, a Apple Intelligence wybierze coś z Twojej biblioteki, na tym urządzeniu. Tylko jeśli nie potrafi odpowiedzieć, Twoje słowa oraz tytuły, lata, gatunki, długości, oceny i stan oglądania Twoich filmów i seriali są wysyłane do AI Crucible. Nic więcej nie opuszcza tego urządzenia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diga o que você quer assistir e a Apple Intelligence escolhe na sua própria biblioteca, neste dispositivo. Somente se ela não conseguir responder, as suas palavras e os títulos, anos, gêneros, durações, classificações e o que já foi assistido dos seus filmes e séries são enviados para a IA do Crucible. Nada mais sai deste dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säg vad du är sugen på, så väljer Apple Intelligence titlar i ditt eget bibliotek, på den här enheten. Bara om det inte går att svara skickas dina ord och titlarnas, årtalens, genrernas, längdernas, betygens och visningsstatusen för dina filmer och serier till Crucibles AI. Inget annat lämnar den här enheten."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说说你现在想看什么，Apple Intelligence 会在此设备上从你自己的资料库中挑选。只有在它无法给出答案时，你说的话，以及电影和剧集的片名、年份、类型、时长、评分和观看状态，才会发送给 Crucible 的 AI。除此之外，不会有任何数据离开此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "說說你現在想看什麼，Apple Intelligence 會在這台裝置上從你自己的媒體庫中挑選。只有在它無法給出答案時，你說的話，以及電影和影集的片名、年份、類型、片長、評分和觀看狀態，才會傳送到 Crucible 的 AI。除此之外，不會有其他資料離開這台裝置。"
+          }
+        }
+      }
+    },
     "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device." : {
       "comment" : "What to Watch: what is sent to the hosted model",
       "localizations" : {
@@ -159032,6 +159992,102 @@
         }
       }
     },
+    "Show Original" : {
+      "comment" : "Button that shows a translated comment or description as it was written",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis original"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar original"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näytä alkuperäinen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’original"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sýna upprunalegt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra originale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原文を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원문 보기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis original"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż oryginał"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar original"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visa original"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示原文"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示原文"
+          }
+        }
+      }
+    },
     "Show Settings" : {
       "comment" : "Title of the screen with the server's settings for one show",
       "localizations" : {
@@ -159313,6 +160369,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示已跳過的集數"
+          }
+        }
+      }
+    },
+    "Show Translation" : {
+      "comment" : "Button that shows the translation again after Show Original",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis oversættelse"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzung anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar traducción"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näytä käännös"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la traduction"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sýna þýðingu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra traduzione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역 보기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis oversettelse"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaż tłumaczenie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar tradução"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visa översättning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示译文"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示譯文"
           }
         }
       }
@@ -189905,6 +191057,966 @@
         }
       }
     },
+    "Translate" : {
+      "comment" : "Button that translates a comment or description into the reader's language",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversæt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýða"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversett"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumacz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översätt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻譯"
+          }
+        }
+      }
+    },
+    "Translate Automatically" : {
+      "comment" : "Setting: translate text in another language as it loads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversæt automatisk"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir automáticamente"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännä automaattisesti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire automatiquement"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýða sjálfkrafa"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci automaticamente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動で翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자동 번역"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversett automatisk"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tłumacz automatycznie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir automaticamente"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översätt automatiskt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动翻译"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動翻譯"
+          }
+        }
+      }
+    },
+    "Translate Into" : {
+      "comment" : "Setting: the language comments, reviews and descriptions are translated into",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversæt til"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzen in"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir a"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännä kielelle"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire en"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýða yfir á"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci in"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳先"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역 언어"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversett til"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumacz na"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir para"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översätt till"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译为"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻譯成"
+          }
+        }
+      }
+    },
+    "Translate from %@" : {
+      "comment" : "Button under a comment or description in another language, e.g. Translate from Spanish",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversæt fra %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus %@ übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir de %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännä (alkukieli: %@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire depuis %@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýða (uppruni: %@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci da %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@から翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에서 번역"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversett fra %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumacz z języka %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir de %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översätt från %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从%@翻译"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從%@翻譯"
+          }
+        }
+      }
+    },
+    "Translate to English" : {
+      "comment" : "Composer button that translates the comment being written into English, which Trakt requires",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversæt til engelsk"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Englisch übersetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducir al inglés"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännä englanniksi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduire en anglais"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýða á ensku"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduci in inglese"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "英語に翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "영어로 번역"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversett til engelsk"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumacz na angielski"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzir para o inglês"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översätt till engelska"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译成英文"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻譯成英文"
+          }
+        }
+      }
+    },
+    "Translated" : {
+      "comment" : "Short badge on a comment card that was translated into the reader's language",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversat"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducido"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännetty"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduit"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýtt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tradotto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역됨"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversatt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumaczono"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzido"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översatt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已翻译"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已翻譯"
+          }
+        }
+      }
+    },
+    "Translated from %@" : {
+      "comment" : "Under a translated comment or description, e.g. Translated from Spanish",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversat fra %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzt aus %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducido de %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännös, alkukieli: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduit de %@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýtt, uppruni: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tradotto da %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@から翻訳済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에서 번역됨"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversatt fra %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumaczono z języka %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzido de %@"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översatt från %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "译自%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "譯自%@"
+          }
+        }
+      }
+    },
+    "Translated to English. Check it reads the way you meant before posting." : {
+      "comment" : "Composer note after the comment was translated into English",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversat til engelsk. Tjek, at teksten læses, som du mente, før du sender den."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Englisch übersetzt. Prüfe vor dem Senden, ob der Text so klingt, wie du es meinst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducido al inglés. Comprueba que se lea como querías antes de publicarlo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännetty englanniksi. Tarkista, että teksti kuulostaa siltä kuin tarkoitit, ennen julkaisua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduit en anglais. Vérifiez que le texte correspond à ce que vous vouliez dire avant de publier."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýtt á ensku. Athugaðu hvort textinn er eins og þú ætlaðir áður en þú birtir hann."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tradotto in inglese. Controlla che il testo suoni come intendevi prima di pubblicarlo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "英語に翻訳しました。投稿する前に、意図どおりに読めるか確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "영어로 번역되었습니다. 게시하기 전에 의도한 대로 읽히는지 확인하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversatt til engelsk. Sjekk at teksten blir slik du mente før du sender den."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przetłumaczono na angielski. Sprawdź, czy tekst brzmi tak, jak chcesz, zanim opublikujesz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzido para o inglês. Confira se o texto ficou como você queria antes de publicar."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översatt till engelska. Kontrollera att den blir som du menade innan du publicerar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已翻译成英文。发布前请检查其表达是否符合你的本意。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已翻譯成英文。發布前請確認內容符合你的原意。"
+          }
+        }
+      }
+    },
+    "Translating…" : {
+      "comment" : "Shown while a comment or description is being translated",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversætter…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird übersetzt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduciendo…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännetään…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduction en cours…"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýðir…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzione in corso…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역 중…"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversetter…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tłumaczenie…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzindo…"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översätter…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在翻译…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在翻譯…"
+          }
+        }
+      }
+    },
+    "Translation" : {
+      "comment" : "Settings category for translating comments, reviews and descriptions",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversættelse"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersetzung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traducción"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käännös"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduction"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þýðing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traduzione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversettelse"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tłumaczenie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tradução"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Översättning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻譯"
+          }
+        }
+      }
+    },
     "Tries to reconnect to the server" : {
       "localizations" : {
         "da" : {
@@ -217215,6 +219327,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "trakt, scrobble, 同步播放紀錄, 同步, 歷史紀錄, 評分, 簽到, 整合, 外掛"
+          }
+        }
+      }
+    },
+    "translate, translation, language, foreign, Apple Intelligence, comments, reviews" : {
+      "comment" : "Search keywords for the translation settings, comma separated",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oversæt, oversættelse, sprog, udenlandsk, Apple Intelligence, kommentarer, anmeldelser"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "übersetzen, Übersetzung, Sprache, fremd, Apple Intelligence, Kommentare, Bewertungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "traducir, traducción, idioma, extranjero, Apple Intelligence, comentarios, reseñas"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "käännä, käännös, kieli, vieras, Apple Intelligence, kommentit, arvostelut"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "traduire, traduction, langue, étranger, Apple Intelligence, commentaires, avis"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "þýða, þýðing, tungumál, erlent, Apple Intelligence, athugasemdir, umsagnir"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "traduci, traduzione, lingua, straniero, Apple Intelligence, commenti, recensioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻訳する, 翻訳, 言語, 外国語, Apple Intelligence, コメント, レビュー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "번역, 번역하기, 언어, 외국어, Apple Intelligence, 댓글, 리뷰"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oversett, oversettelse, språk, fremmedspråk, Apple Intelligence, kommentarer, anmeldelser"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "przetłumacz, tłumaczenie, język, obcy, Apple Intelligence, komentarze, recenzje"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "traduzir, tradução, idioma, estrangeiro, Apple Intelligence, comentários, avaliações"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "översätt, översättning, språk, utländsk, Apple Intelligence, kommentarer, recensioner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译, 译文, 语言, 外语, Apple Intelligence, 评论, 评价"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻譯, 譯文, 語言, 外語, Apple Intelligence, 留言, 評論"
           }
         }
       }
