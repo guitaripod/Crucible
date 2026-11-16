@@ -16,6 +16,13 @@ final class SceneRenderer {
     var scale: Float = 1
     private var readback: Readback?
     private var readbackStarted = false
+    private var lastReadback: Double = -.infinity
+    /// Whether the backdrop's luminance under glass, which picks the glass's tone, is read back at most ten times a
+    /// second (a window on screen) instead of as often as a reading lands (offscreen captures, which settle in a burst of
+    /// frames and must see the final backdrop). The tone flips on hysteresis and fades, so ten readings a second follow
+    /// moving video; reading back every other frame cost a host buffer and a submit of its own each time.
+    var throttlesReadback = false
+    private static let readbackInterval = 0.1
     private var luminanceMap: (width: Int, height: Int, values: [Float])?
     /// Whether glass blurred the backdrop earlier in this frame, so the next glass may reuse it.
     private var blurredThisFrame = false
@@ -166,9 +173,11 @@ final class SceneRenderer {
             glassRenderer.blur(backdropCopy)
             painter.backdropBlurred()
             blurredThisFrame = true
-            if readback == nil && !readbackStarted {
+            let now = Window.now()
+            if readback == nil && !readbackStarted && (!throttlesReadback || now - lastReadback >= Self.readbackInterval) {
                 readback = glassRenderer.tiny.beginReadback()
                 readbackStarted = true
+                lastReadback = now
             }
         }
         glassRenderer.composite(scene: backdropCopy, into: target, element: element, rect: area, opacity: opacity, overlay: true)

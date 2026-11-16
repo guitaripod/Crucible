@@ -152,6 +152,7 @@ public final class Window {
         if let shaderCache { gpu.useShaderCache(at: shaderCache) }
         renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
         renderer.scale = scale
+        renderer.throttlesReadback = true
         renderer.prewarm()
         self.contentView = contentView
         listener.window = self
