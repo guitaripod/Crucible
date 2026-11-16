@@ -59,6 +59,15 @@ public final class GamepadDriver {
     /// Whether a direction is held, so repeats need the clock.
     public var isRepeating: Bool { held != nil }
 
+    /// Lets go of every direction, as when no window takes the pad's input (Steam's overlay, another window in front): its
+    /// releases go nowhere then, and a direction still held on return would repeat on its own.
+    public func releaseAll() {
+        dpad.removeAll()
+        stick = nil
+        held = nil
+        interval = timing.interval
+    }
+
     public func handle(_ event: GamepadEvent, at time: Double, in window: Window) {
         switch event {
         case .button(let button, let down):
@@ -236,7 +245,7 @@ public final class Gamepads {
                 driver.handle(event, at: now, in: window)
             }
         }
-        if let window { driver.tick(at: now, in: window) }
+        if let window { driver.tick(at: now, in: window) } else { driver.releaseAll() }
         schedule(!isConnected ? .absent : now - lastInput < Self.activeSpan || driver.isRepeating ? .active : .idle)
     }
 
