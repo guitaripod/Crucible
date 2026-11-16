@@ -279,10 +279,11 @@ final class SearchScreen: ScreenView {
         let watched = override ?? item.isWatched
         let hasProgress = override != true && (model.progress ?? 0) > 0
         let playable = SearchItemActions.isPlayable(item)
-        return CardItem(id: item.id, artwork: model.posterPath.map { .path($0, .poster) }, title: model.title, subtitle: model.subtitle,
-                        progress: override == true ? nil : model.progress, isUnwatched: playable && !watched && !hasProgress, isWatched: playable && watched,
-                        badgeText: model.unwatchedCount.map { String(localized: "\($0) unwatched") }, placeholderSymbol: Symbol(model.placeholderIcon))
-            .linked(to: item)
+        var card = CardItem(id: item.id, artwork: model.posterPath.map { .path($0, .poster) }, title: model.title, subtitle: model.subtitle,
+                            progress: override == true ? nil : model.progress, isUnwatched: playable && !watched && !hasProgress, isWatched: playable && watched,
+                            badgeText: model.unwatchedCount.map { String(localized: "\($0) unwatched") }, placeholderSymbol: Symbol(model.placeholderIcon))
+        card.canToggleWatched = playable
+        return card.linked(to: item)
     }
 
     private func episodeCard(_ item: PlexMetadata) -> CardItem {

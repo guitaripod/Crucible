@@ -88,16 +88,19 @@ enum LibraryCards {
     /// unwatched episodes.
     static func grid(_ item: PlexMetadata, kind: LibraryGridKind) -> CardItem {
         let poster = LibraryPoster(grid: item, kind: kind)
-        return CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
-                        progress: poster.progress, isUnwatched: poster.isUnwatched, isWatched: kind == .movie && item.isWatched,
-                        badgeText: poster.unwatchedCount.map { String(localized: "\($0) unwatched") }, placeholderSymbol: Symbol(poster.placeholderIcon))
-            .linked(to: item)
+        var card = CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
+                            progress: poster.progress, isUnwatched: poster.isUnwatched, isWatched: kind == .movie && item.isWatched,
+                            badgeText: poster.unwatchedCount.map { String(localized: "\($0) unwatched") }, placeholderSymbol: Symbol(poster.placeholderIcon))
+        card.canToggleWatched = kind == .movie
+        return card.linked(to: item)
     }
 
     static func recent(_ item: PlexMetadata, kind: LibraryGridKind) -> CardItem {
         let poster = LibraryPoster(recent: item, kind: kind)
-        return CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
-                        placeholderSymbol: Symbol(poster.placeholderIcon)).linked(to: item)
+        var card = CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
+                            isWatched: HomeMediaRules.isPlayable(item) && item.isWatched, placeholderSymbol: Symbol(poster.placeholderIcon))
+        card.canToggleWatched = HomeMediaRules.isPlayable(item)
+        return card.linked(to: item)
     }
 
     /// A folder entry. Movies and episodes carry progress, the unwatched dot or the watched check.

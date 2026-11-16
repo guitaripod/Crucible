@@ -26,6 +26,8 @@ public struct CardItem: Hashable, Sendable {
     public var monogram: Monogram?
     /// A longer description where a list has room for it (an episode's synopsis in the desktop episode list).
     public var summary: String?
+    /// Whether the card offers the hover watched toggle: off where it keeps no watched state of its own to show (a show).
+    public var canToggleWatched = true
 
     public struct Monogram: Hashable, Sendable {
         public var initials: String
@@ -284,7 +286,9 @@ public final class CardView: View {
     /// The actions shown on hover: on a desk, for a rounded card, what its shelf or grid offers.
     private var offered: CardHoverActions {
         guard Theme.current.density == .desk, style.shape == .rounded else { return [] }
-        return hoverActions()
+        var actions = hoverActions()
+        if !item.canToggleWatched { actions.remove(.watched) }
+        return actions
     }
 
     /// Where each hover button sits in the card's points, following the artwork's lift.
