@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 101 | 2 | 0 | 0 |
-| **All** | 684 | 2 | 0 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 102 | 1 | 0 | 0 |
+| **All** | 685 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -742,6 +742,6 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `linux-player-time-left` (S) The transport shows the time left as a negative clock beside the position _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `linux-sign-in-browser-xdg-open` (S) Sign in opens the browser with xdg-open on a desk _Apple TV: docs/LINUX.md §6 Screens (Sign in)_
 - [x] `linux-kb-ctrl-q-quit` (S) Ctrl+Q quits Crucible through the same path as closing the window _Apple TV: docs/LINUX.md §9 Clean exit_
-- [ ] `linux-aur-package` (S) **partial** AUR package crucible installs the desktop build from the repo Gap: linux/packaging/aur/PKGBUILD:2 builds pkgname=crucible-git, not crucible as D2 names it, and the doc lists publishing to the AUR as open. _Apple TV: docs/LINUX.md §1 D2_
+- [x] `linux-aur-package` (S) AUR package crucible installs the desktop build from the repo _Apple TV: docs/LINUX.md §1 D2_
 - [x] `linux-release-tarball-self-update` (M) GitHub Release tarball with in-app update, the Tailscode Linux pattern _Apple TV: docs/LINUX.md §1 D2_
 - [x] `linux-install-script` (S) A local install builds release, installs the binary, desktop entry, icons and scheme handler, and checks that the installed binary reports its version _Apple TV: docs/LINUX.md §10 Layout, build and install_
