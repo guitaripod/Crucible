@@ -198,6 +198,7 @@ extension PlayerScreen {
     func closeInfo() {
         infoPanel?.removeFromSuperview()
         infoPanel = nil
+        setNeedsLayout()
         window?.focus.focus(self, animated: false)
         showChrome(autoHide: true)
     }

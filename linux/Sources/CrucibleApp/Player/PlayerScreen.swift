@@ -943,12 +943,13 @@ final class PlayerScreen: View {
             let panelHeight = infoPanel.sizeThatFits(Size(width: width, height: 0)).height
             infoPanel.frame = Rect(x: transport.frame.x, y: transport.frame.y - panelHeight - metrics.tv(24), width: width, height: panelHeight)
         }
+        let above = infoPanel?.frame.y ?? transport.frame.y
         let size = skip.sizeThatFits(Size(width: 600, height: 200))
-        skip.frame = Rect(x: frame.width - metrics.sideMargin - size.width, y: transport.frame.y - size.height - metrics.tv(32),
+        skip.frame = Rect(x: frame.width - metrics.sideMargin - size.width, y: above - size.height - metrics.tv(32),
                           width: size.width, height: size.height)
         if let card {
             let cardSize = card.sizeThatFits(bounds.size)
-            card.frame = Rect(x: frame.width - metrics.sideMargin - cardSize.width, y: transport.frame.y - cardSize.height - metrics.tv(32),
+            card.frame = Rect(x: frame.width - metrics.sideMargin - cardSize.width, y: above - cardSize.height - metrics.tv(32),
                               width: cardSize.width, height: cardSize.height)
         }
     }
