@@ -100,6 +100,7 @@ final class SettingsScreen: ScreenView {
 
     override func layoutSubviews() {
         page.topInset = Theme.current.metrics.tabBarClearance
+        page.bottomInset = Theme.current.metrics.tv(60)
         page.frame = bounds
     }
 
@@ -119,6 +120,8 @@ final class SettingsCategoryScreen: ScreenView {
     private var lists: [RowListView] = []
     private let restore = RowListView()
     private var entries: [String: SettingsEntry] = [:]
+    /// The choice menu open over this screen, closed when the screen leaves so it never lingers over the next one.
+    private weak var openMenu: MenuView?
 
     init(category: SettingsCategory, api: APIClient) {
         self.category = category
@@ -136,6 +139,10 @@ final class SettingsCategoryScreen: ScreenView {
 
     override func screenDidAppear() {
         reload()
+    }
+
+    override func screenWillDisappear() {
+        openMenu?.dismiss()
     }
 
     private func reload() {
@@ -209,6 +216,7 @@ final class SettingsCategoryScreen: ScreenView {
                     setting.select(choice)
                     self?.reload()
                 }
+                openMenu = menu
                 menu.present(in: window)
             }
         case .action(let action):
@@ -303,6 +311,7 @@ final class SettingsCategoryScreen: ScreenView {
 
     override func layoutSubviews() {
         page.topInset = Theme.current.metrics.tabBarClearance
+        page.bottomInset = Theme.current.metrics.tv(60)
         page.frame = bounds
     }
 
