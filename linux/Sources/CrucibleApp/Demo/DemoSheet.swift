@@ -119,7 +119,12 @@ final class DemoSheetView: View {
     private func stepLayouts(_ step: DemoTourStep, scale: Float) -> (title: TextLayout, detail: TextLayout) {
         let width = columnWidth - metrics.rowIconWell - metrics.tv(24)
         return (TextLayout(step.title, font: Theme.current.type.cardTitle, maxWidth: width, maxLines: 2, scale: scale),
-                TextLayout(step.detail, font: Theme.current.type.cardSubtitle, maxWidth: width, maxLines: 4, scale: scale))
+                TextLayout(Self.keepingRangesWhole(step.detail), font: Theme.current.type.cardSubtitle, maxWidth: width, maxLines: 4, scale: scale))
+    }
+
+    /// The text with word joiners around its en dashes, so a range such as A–Z never breaks across lines.
+    private static func keepingRangesWhole(_ text: String) -> String {
+        text.replacingOccurrences(of: "–", with: "\u{2060}–\u{2060}")
     }
 
     private var buttonsHeight: Float {
