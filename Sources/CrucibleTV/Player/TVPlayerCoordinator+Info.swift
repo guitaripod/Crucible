@@ -26,5 +26,6 @@ extension TVPlayerCoordinator {
         item.externalMetadata = infoItems
         item.nextContentProposal = makeProposal()
         applyChapters(to: item)
+        revealOnReplacement(item)
     }
 }

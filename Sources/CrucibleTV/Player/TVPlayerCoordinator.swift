@@ -35,6 +35,10 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         openTitle: (@MainActor (DetailRoute, UIViewController) -> Void)? = nil
     ) {
         if let previous = active {
+            guard !previous.isStarting(request) else {
+                MidgarLog.notice("Play ignored: ratingKey=\(request.ratingKey) is already starting", category: .playback)
+                return
+            }
             Task { await previous.finish(animated: false) }
         }
         let coordinator = TVPlayerCoordinator(api: api, request: request, openTitle: openTitle)
@@ -76,6 +80,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isAdvancing = false
     var isShowingAlert = false
     var isRevealing = false
+    /// The session's player is attached and the pre-roll waits for its item to load.
+    var isAwaitingReveal = false
     var isUpNextCardVisible = false
     var unattendedEpisodes = 0
     /// A timed sleep timer that outlives one session, so it keeps counting into the next episode.
@@ -126,6 +132,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         hideSystemSubtitleMenu()
         configureSkipping()
         installHoldGestures()
+    }
+
+    /// Whether this coordinator is still bringing up `other`'s item behind its pre-roll: a second press of Play that lands while
+    /// the first pre-roll is still fading in starts nothing new, instead of stacking a second playback under the first.
+    private func isStarting(_ other: PlaybackRequest) -> Bool {
+        !isFinishing && request.ratingKey == other.ratingKey && playerVC.presentingViewController == nil
     }
 
     /// The app's own Subtitles menu lists every subtitle the server has, the file's own tracks included, and shows or hides the
@@ -194,10 +206,17 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         }
         self.preroll = preroll
         if playerVC.presentingViewController != nil {
-            topmost(from: playerVC).present(preroll, animated: false)
+            topmost(from: playerVC).present(preroll, animated: TVMotion.animationsEnabled)
         } else if let rootPresenter {
             rootPresenter.present(preroll, animated: true)
         }
+    }
+
+    /// A stream that failed before the player was revealed and that the session replaced (a direct-play file retried through
+    /// the transcoder) reveals the player on its replacement instead of leaving the pre-roll up over it.
+    func revealOnReplacement(_ item: AVPlayerItem) {
+        guard isAwaitingReveal, preroll != nil, let session else { return }
+        revealWhenLoaded(session, item: item)
     }
 
     private func playerRevealed() {
@@ -214,15 +233,18 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     }
 
     /// Dissolves from the pre-roll into the player: the first time the player is presented over the
-    /// pre-roll, which stays black underneath, afterwards the pre-roll just fades away over the open
-    /// player. There is never a moment with neither on screen.
+    /// pre-roll, which then goes clear underneath it, so closing the player later dissolves straight
+    /// to the screen it was started from instead of through the poster and spinner; afterwards the
+    /// pre-roll just fades away over the open player. There is never a moment with neither on screen.
     private func revealPlayer() {
         guard let preroll else { return }
         self.preroll = nil
+        isAwaitingReveal = false
         if playerVC.presentingViewController == nil, preroll.presentingViewController != nil {
             preroll.suppressCloseReport()
             isRevealing = true
-            preroll.present(playerVC, animated: !UIAccessibility.isReduceMotionEnabled) { [weak self] in
+            preroll.present(playerVC, animated: !UIAccessibility.isReduceMotionEnabled) { [weak self, weak preroll] in
+                preroll?.clearBehindPlayer()
                 self?.playerRevealed()
             }
         } else {
@@ -270,8 +292,11 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             return
         }
         player.preventsDisplaySleepDuringVideoPlayback = true
+        playerVC.player?.replaceCurrentItem(with: nil)
         playerVC.player = player
+        playerVC.showsPlaybackControls = true
         DemoTour.shared.record(.play)
+        isAwaitingReveal = true
         revealWhenLoaded(session, item: player.currentItem)
         observeEvents(of: session)
         refreshTrackMenus()
@@ -388,12 +413,16 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         restartSession()
     }
 
-    /// Ends the current session without leaving the player and starts `request` in its place.
+    /// Ends the current session without leaving the player and starts `request` in its place. The old picture stops at once
+    /// and the pre-roll for what comes next dissolves in over it before the old session winds down, so there is neither a
+    /// moment of the old sound under a black screen nor a hard cut.
     func restartSession() {
         let old = session
         carriedSleepTimer = old?.sleepTimer
+        freezePicture()
         resetPresentationState()
-        let stop = Task { _ = await old?.stop() }
+        if preroll?.presentingViewController == nil { showPreroll() }
+        let stop = Task { _ = await old?.stop(keepsLastFrame: true) }
         stopTask = stop
         prepareTask = Task { [weak self] in
             await stop.value
@@ -419,18 +448,21 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         restartSession()
     }
 
+    /// Clears what belongs to the session on screen. The player itself stays: the next session's player replaces it, and a
+    /// finishing playback releases it once the player is off screen, so its last frame shows until then instead of black.
     private func resetPresentationState() {
         eventsTask?.cancel()
         prepareTask?.cancel()
         metadataTask?.cancel()
         revealTask?.cancel()
+        revealTask = nil
+        isAwaitingReveal = false
         upNextTask?.cancel()
         postPlayTask?.cancel()
         postPlayTask = nil
         postPlay = nil
         clearContextualActions()
         playerVC.transportBarCustomMenuItems = []
-        playerVC.player = nil
         infoItems = []
         upNextOffer = nil
         upNextPreview = nil
@@ -447,14 +479,14 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         guard !isFinishing else { return }
         isFinishing = true
         MidgarLog.notice("Playback finishing ratingKey=\(request.ratingKey) animated=\(animated)", category: .playback)
-        session?.player?.pause()
+        freezePicture()
         stopObservingLifecycle()
         let session = self.session
         let earlier = stopTask
         resetPresentationState()
         let stop = Task {
             await earlier?.value
-            _ = await session?.stop()
+            _ = await session?.stop(keepsLastFrame: true)
         }
         stopTask = stop
         await waitForStop(stop)
@@ -464,13 +496,29 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             let after = afterDismiss
             afterDismiss = nil
             let endedBySleepTimer = endedBySleepTimer
-            dismissEverything(animated: animated) {
+            dismissEverything(animated: animated) { [weak self] in
+                self?.releasePlayer()
                 after?()
                 guard !endedBySleepTimer else { return }
                 Self.onEnded?(finishedAnItem)
             }
+        } else {
+            releasePlayer()
         }
         TVTopShelfRefresher.refresh()
+    }
+
+    /// Stops the picture where it is for a playback that is going away, without the transport bar the system player brings up
+    /// for a pause: it would flash up just as the next screen dissolves in over it.
+    private func freezePicture() {
+        playerVC.showsPlaybackControls = false
+        session?.player?.pause()
+    }
+
+    /// Lets go of the player once nothing shows it any more.
+    private func releasePlayer() {
+        playerVC.player?.replaceCurrentItem(with: nil)
+        playerVC.player = nil
     }
 
     /// Closes the player once the sleep timer has paused it, so the stream and the server's transcode stop and the Apple TV is

@@ -46,7 +46,6 @@ final class TVPlayerPrerollViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        spinner.startAnimating()
         hasAppeared = true
         resumeAppearWaiters()
     }
@@ -77,17 +76,28 @@ final class TVPlayerPrerollViewController: UIViewController {
         isClosingProgrammatically = true
     }
 
+    /// Empties the screen once the player is on top of it for good: closing the player takes this screen with it, and the
+    /// dissolve then shows the screen playback started from rather than the poster and spinner from before the first frame.
+    func clearBehindPlayer() {
+        loadTask?.cancel()
+        spinner.stopAnimating()
+        content.isHidden = true
+        view.backgroundColor = .clear
+    }
+
     /// Removes the screen without reporting a viewer-initiated close.
     func close(animated: Bool) {
         isClosingProgrammatically = true
-        spinner.stopAnimating()
         loadTask?.cancel()
         resumeAppearWaiters()
         presentingViewController?.dismiss(animated: animated && !UIAccessibility.isReduceMotionEnabled)
     }
 
+    /// The spinner turns from the start, inside the content that fades in as one, so the poster and title never move up to
+    /// make room for it.
     private func build() {
         spinner.color = Theme.Color.onArt
+        spinner.startAnimating()
         titleLabel.text = headline.title
         titleLabel.font = Theme.Font.title2
         titleLabel.textColor = Theme.Color.onArt

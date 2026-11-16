@@ -320,9 +320,10 @@ package final class PlaybackSession {
     /// item, its season and its show, and releases the player. An item the viewer finished is reported at
     /// its very end, which is what ends it in Continue Watching and counts it as watched on a server whose
     /// completion rule does not happen to be the one this item's credits cross. Returns the playhead at the
-    /// moment of the stop so a caller can persist it.
+    /// moment of the stop so a caller can persist it. `keepsLastFrame` pauses the player instead of emptying it,
+    /// for a surface that keeps the picture on screen until it has gone and then releases the player itself.
     @discardableResult
-    package func stop() async -> Double? {
+    package func stop(keepsLastFrame: Bool = false) async -> Double? {
         guard !isStopped else { return nil }
         isStopped = true
         let finalPosition = finalPlayhead()
@@ -353,7 +354,11 @@ package final class PlaybackSession {
         removePlayheadObservers()
         await stopTranscodeIfNeeded()
 
-        player?.replaceCurrentItem(with: nil)
+        if keepsLastFrame {
+            player?.pause()
+        } else {
+            player?.replaceCurrentItem(with: nil)
+        }
         player = nil
         stream = nil
         continuation.finish()
