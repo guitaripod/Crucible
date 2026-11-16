@@ -269,7 +269,7 @@ final class SportsPosterView: View {
         guard let words, bounds.width >= 70 else { return }
         let inner = bounds.width - metrics.tv(24)
         let caption = TextLayout(words.caption, font: theme.type.cardTitle, maxWidth: inner, maxLines: 3, scale: scale)
-        let eyebrow = TextLayout(words.eyebrow.uppercased(), font: theme.type.eyebrow, maxWidth: inner, maxLines: 1, scale: scale)
+        let eyebrow = TextLayout(words.eyebrow.uppercased(), font: theme.type.eyebrow, maxWidth: inner, maxLines: 2, scale: scale)
         var y = bounds.height - metrics.tv(14) - caption.size.height
         context.text(caption, at: Point(x: metrics.tv(12), y: y), color: theme.palette.label)
         y -= eyebrow.size.height + metrics.tv(4)
