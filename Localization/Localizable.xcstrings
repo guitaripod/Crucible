@@ -28867,6 +28867,102 @@
         }
       }
     },
+    "Always" : {
+      "comment" : "Audio passthrough choice: send every bitstream format",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altid"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siempre"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aina"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alltaf"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常に"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "항상"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alltid"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zawsze"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alltid"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一律"
+          }
+        }
+      }
+    },
     "An Hour Later" : {
       "comment" : "Rating reminder timing option",
       "localizations" : {
@@ -31992,6 +32088,102 @@
         }
       }
     },
+    "Audio Passthrough" : {
+      "comment" : "Linux setting: send surround formats to the receiver untouched",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lyd-passthrough"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio-Passthrough"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paso directo de audio"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Äänen läpivienti"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passthrough audio"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bein hljóðsending"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passthrough audio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オーディオパススルー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오디오 패스스루"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lyd-passthrough"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przekazywanie dźwięku"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passthrough de áudio"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ljud-passthrough"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频直通"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音訊直通"
+          }
+        }
+      }
+    },
     "Audio, %@" : {
       "localizations" : {
         "da" : {
@@ -32458,6 +32650,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "驗證逾時，請再試一次。"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "comment" : "Audio passthrough choice: send what the sound output accepts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automaattinen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatique"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjálfvirkt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatico"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자동"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisk"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatycznie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatiskt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
           }
         }
       }
@@ -60208,6 +60496,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Docker 顯示名稱 seerr 已被使用：先前的嘗試還留在那裡。請用 sudo docker rm -f seerr 把它移除，然後再執行一次指令。"
+          }
+        }
+      }
+    },
+    "Dolby, Atmos, TrueHD, DTS, receiver, soundbar, HDMI, surround, bitstream" : {
+      "comment" : "Search keywords for the Linux audio passthrough setting, comma separated",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, receiver, forstærker, soundbar, HDMI, surround, bitstream"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, Receiver, AV-Receiver, Soundbar, HDMI, Surround, Bitstream"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, receptor, amplificador, barra de sonido, HDMI, envolvente, bitstream"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, vahvistin, viritinvahvistin, soundbar, HDMI, tilaääni, bitstream"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, ampli, amplificateur, barre de son, HDMI, surround, bitstream"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, magnari, hljóðstöng, HDMI, umhverfishljóð, bitastraumur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, ricevitore, amplificatore, soundbar, HDMI, surround, bitstream"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, AVアンプ, レシーバー, サウンドバー, HDMI, サラウンド, ビットストリーム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, 리시버, 앰프, 사운드바, HDMI, 서라운드, 비트스트림"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, receiver, forsterker, lydplanke, HDMI, surround, bitstream"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, amplituner, soundbar, HDMI, dźwięk przestrzenny, bitstream"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, receiver, amplificador, soundbar, HDMI, surround, bitstream"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby, Atmos, TrueHD, DTS, receiver, förstärkare, soundbar, HDMI, surround, bitstream"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "杜比，Atmos，TrueHD，DTS，功放，接收器，回音壁，HDMI，环绕声，源码输出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "杜比, Atmos, TrueHD, DTS, 擴大機, 接收器, 聲霸, HDMI, 環繞音效, 源碼輸出"
           }
         }
       }
@@ -153123,6 +153507,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "傳送至 Trakt"
+          }
+        }
+      }
+    },
+    "Sends Dolby TrueHD and Atmos, DTS-HD and Dolby Digital to your receiver or TV untouched. Automatic sends what your sound output is set to accept." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sender Dolby TrueHD og Atmos, DTS-HD og Dolby Digital uændret til din receiver eller dit tv. Automatisk sender det, din lydudgang er sat til at modtage."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet Dolby TrueHD und Atmos, DTS-HD und Dolby Digital unverändert an deinen Receiver oder Fernseher. Automatisch sendet, was dein Audioausgang annehmen soll."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía Dolby TrueHD y Atmos, DTS-HD y Dolby Digital sin cambios a tu receptor o televisor. Automático envía lo que tu salida de sonido está configurada para aceptar."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähettää Dolby TrueHD:n ja Atmosin, DTS-HD:n ja Dolby Digitalin muuttamattomina vahvistimeen tai televisioon. Automaattinen lähettää sen, minkä äänilähtö on asetettu ottamaan vastaan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie Dolby TrueHD et Atmos, DTS-HD et Dolby Digital tels quels à votre ampli ou téléviseur. Automatique envoie ce que votre sortie audio est réglée pour accepter."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendir Dolby TrueHD og Atmos, DTS-HD og Dolby Digital óbreytt í magnarann eða sjónvarpið. Sjálfvirkt sendir það sem hljóðúttakið er stillt á að taka við."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia Dolby TrueHD e Atmos, DTS-HD e Dolby Digital invariati al ricevitore o alla TV. Automatico invia ciò che l’uscita audio è impostata ad accettare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby TrueHD と Atmos、DTS-HD、Dolby Digital をそのままレシーバーやテレビに送ります。「自動」では、サウンド出力で受け付けるよう設定された形式を送ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby TrueHD와 Atmos, DTS-HD, Dolby Digital을 변환 없이 리시버나 TV로 보냅니다. 자동은 사운드 출력이 받도록 설정된 형식을 보냅니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sender Dolby TrueHD og Atmos, DTS-HD og Dolby Digital uendret til forsterkeren eller TV-en. Automatisk sender det lydutgangen er satt til å ta imot."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysyła Dolby TrueHD i Atmos, DTS-HD oraz Dolby Digital bez zmian do amplitunera lub telewizora. Automatycznie wysyła to, co wyjście dźwięku ma ustawione do odbioru."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envia Dolby TrueHD e Atmos, DTS-HD e Dolby Digital sem alterações para seu receiver ou TV. Automático envia o que sua saída de som está configurada para aceitar."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skickar Dolby TrueHD och Atmos, DTS-HD och Dolby Digital oförändrade till din förstärkare eller tv. Automatiskt skickar det som ljudutgången är inställd att ta emot."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 Dolby TrueHD 与 Atmos、DTS-HD 和 Dolby Digital 原样传送到功放或电视。“自动”会传送声音输出设置为接受的格式。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將 Dolby TrueHD 與 Atmos、DTS-HD 和 Dolby Digital 原封不動傳送到擴大機或電視。「自動」會傳送聲音輸出設定為接受的格式。"
           }
         }
       }

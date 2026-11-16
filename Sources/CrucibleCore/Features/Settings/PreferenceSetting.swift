@@ -30,6 +30,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case skipIntro
     case skipOutro
     case subtitleSize
+    /// Linux: bitstreams to the receiver (docs/LINUX.md §7.6).
+    case audioPassthrough
     case skipBack
     case skipForward
     case holdLeft
@@ -73,6 +75,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipIntro: return String(localized: "Skip Intro")
         case .skipOutro: return String(localized: "Skip Credits", comment: "Setting: what happens when the end credits start")
         case .subtitleSize: return String(localized: "Subtitle Size", comment: "Setting: how big subtitles are drawn")
+        case .audioPassthrough: return String(localized: "Audio Passthrough", comment: "Linux setting: send surround formats to the receiver untouched")
         case .skipBack: return String(localized: "Skip Back")
         case .skipForward: return String(localized: "Skip Ahead")
         case .holdLeft: return String(localized: "Hold Left")
@@ -109,6 +112,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .stillWatching: return String(localized: "Asks before the next episode once this many have played in a row without the remote.")
         case .postPlaySuggestions: return String(localized: "When a movie or the last episode of a show ends, titles like it wait on the screen instead of the player closing.")
         case .subtitleSize: return String(localized: "Applies to subtitles the server draws into the picture and to the ones the player draws.")
+        case .audioPassthrough:
+            return String(localized: "Sends Dolby TrueHD and Atmos, DTS-HD and Dolby Digital to your receiver or TV untouched. Automatic sends what your sound output is set to accept.")
         case .skipBack, .skipForward: return String(localized: "How far one skip goes: a click on the left or right of the Siri Remote's clickpad, or the skip buttons on the Lock Screen, in Control Center and on headphones.")
         case .holdLeft, .holdRight: return String(localized: "What holding the left or right of the clickpad does: the system's rewind and fast forward, a jump, or Start Over and Next Episode.")
         case .downloadQuality: return String(localized: "The quality new downloads start at. You can still pick another one for each download.")
@@ -144,6 +149,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipIntro: return "forward.end"
         case .skipOutro: return "forward.end.circle"
         case .subtitleSize: return "textformat.size"
+        case .audioPassthrough: return "speaker.wave.2"
         case .skipBack: return "gobackward.10"
         case .skipForward: return "goforward.10"
         case .holdLeft: return "backward"
@@ -208,6 +214,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .choice(Self.choices(Preferences.SkipOutroMode.allCases, current: Preferences.skipOutroMode, rawValue: \.rawValue, title: \.title))
         case .subtitleSize:
             return .choice(Self.choices(SubtitleSize.allCases, current: Preferences.subtitleSize, rawValue: \.rawValue, title: \.title))
+        case .audioPassthrough:
+            return .choice(Self.choices(AudioPassthrough.allCases, current: Preferences.audioPassthrough, rawValue: \.rawValue, title: \.title))
         case .skipBack:
             return .choice(Self.skipChoices(current: Preferences.skipBackSeconds))
         case .skipForward:
@@ -291,6 +299,9 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .subtitleSize:
             guard let size = SubtitleSize(rawValue: choice.id) else { return }
             Preferences.subtitleSize = size
+        case .audioPassthrough:
+            guard let passthrough = AudioPassthrough(rawValue: choice.id) else { return }
+            Preferences.audioPassthrough = passthrough
         case .stillWatching:
             guard StillWatchingRule.choices.contains(choice.id) else { return }
             Preferences.stillWatchingAfter = choice.id
@@ -375,6 +386,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         .skipIntro: .choice(choices(Preferences.SkipIntroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),
         .skipOutro: .choice(choices(Preferences.SkipOutroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),
         .subtitleSize: .choice(choices(SubtitleSize.allCases, current: .standard, rawValue: \.rawValue, title: \.title)),
+        .audioPassthrough: .choice(choices(AudioPassthrough.allCases, current: .automatic, rawValue: \.rawValue, title: \.title)),
         .skipBack: .choice(skipChoices(current: SkipRule.defaultSeconds)),
         .skipForward: .choice(skipChoices(current: SkipRule.defaultSeconds)),
         .holdLeft: .choice(holdChoices(current: .scan, forward: false)),
