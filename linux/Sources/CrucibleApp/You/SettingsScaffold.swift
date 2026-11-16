@@ -219,7 +219,7 @@ final class ContextPanel: ReadOnlyPanelView {
         var result = [Line(layout: TextLayout(content.title, font: theme.type.title3, maxWidth: textWidth, maxLines: 2, scale: scale),
                            color: palette.label, after: theme.metrics.tv(6))]
         if let subtitle = content.subtitle {
-            result.append(Line(layout: TextLayout(subtitle, font: theme.type.callout, maxWidth: textWidth, maxLines: 2, scale: scale),
+            result.append(Line(layout: TextLayout(subtitle, font: theme.type.callout, maxWidth: textWidth, maxLines: 3, scale: scale),
                                color: palette.labelSecondary, after: theme.metrics.tv(16)))
         }
         if let status = content.status {
