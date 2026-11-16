@@ -274,6 +274,11 @@ public final class GPU {
         kiln_gpu_present(handle, source.handle, Int32(width), Int32(height))
     }
 
+    /// Tells the compositor the brightest the window's content gets, in cd/m² on the scRGB scale (`kiln_gpu_set_content_peak`).
+    public func setContentPeak(nits: Float) {
+        kiln_gpu_set_content_peak(handle, nits)
+    }
+
     public func takeGPUMilliseconds() -> Double {
         kiln_gpu_take_gpu_ms(handle)
     }

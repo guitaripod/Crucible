@@ -133,6 +133,25 @@ uint32_t kiln_wl_color_features(kiln_wl *wl);
 /** Describes the window surface as Windows-scRGB (BT.709 primaries, extended linear, 1.0 = 80 cd/m2). */
 bool kiln_wl_describe_scrgb(kiln_wl *wl);
 
+/** What the compositor prefers for the window's surface (color-management-v1's preferred image description): its transfer
+ * function (the protocol's transfer_function value, 0 when it named none), the luminances of its signal and of the display
+ * it targets in cd/m2, 0 when not given. The user's display calibration on the desktop reaches clients here. */
+typedef struct {
+    uint32_t transfer;
+    double min_luminance;
+    double max_luminance;
+    double reference_luminance;
+    double target_min_luminance;
+    double target_max_luminance;
+    double target_max_cll;
+} kiln_display_color;
+
+/** Reads the preferred description into `color`, waiting on the compositor; false without color management. */
+bool kiln_wl_display_color(kiln_wl *wl, kiln_display_color *color);
+/** Counts the compositor's announcements that the preferred description changed (the window moved to another screen, HDR
+ * went on or off, the brightness or calibration changed), so a caller reads it again when the count moves. */
+uint32_t kiln_wl_display_color_serial(kiln_wl *wl);
+
 /** Asks for presentation feedback and a frame callback for the next commit. The colour description and FIFO barrier are
  * opt-in: a Vulkan swapchain creates its own wp_fifo_v1 and colour-management surface, and a second one is a protocol
  * error. */
@@ -172,6 +191,8 @@ void kiln_wl_text_input_update(kiln_wl *wl, const char *surrounding, int32_t cur
 
 /** The name of the screen the window is on ("DP-3"), as KWin's output devices name it too; NULL before it shows. */
 const char *kiln_wl_output_name(kiln_wl *wl);
+/** The compositor's description of that screen (make, model and connector, as wl_output describes it); NULL when unknown. */
+const char *kiln_wl_output_description(kiln_wl *wl);
 
 /** KWin's output management on a connection of its own (kde_output_management_v2), for Match Content and its guard: the
  * modes, HDR and wide colour gamut of a screen, and switching them. Blocking; use it off the main thread. */

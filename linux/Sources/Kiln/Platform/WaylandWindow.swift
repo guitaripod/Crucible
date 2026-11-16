@@ -78,6 +78,17 @@ public final class WaylandWindow {
         kiln_wl_describe_scrgb(connection)
     }
 
+    /// What the compositor prefers for the window (`DisplayColor`), or nil without color management.
+    public func readDisplayColor() -> DisplayColor? {
+        var raw = kiln_display_color()
+        guard kiln_wl_display_color(connection, &raw) else { return nil }
+        return DisplayColor(transfer: raw.transfer, minimum: raw.min_luminance, maximum: raw.max_luminance, reference: raw.reference_luminance,
+                            targetMinimum: raw.target_min_luminance, targetMaximum: raw.target_max_luminance, targetMaxCLL: raw.target_max_cll)
+    }
+
+    /// Moves each time the compositor says its preferred description changed.
+    public var displayColorSerial: UInt32 { kiln_wl_display_color_serial(connection) }
+
     public func requestFrame() {
         kiln_wl_request_frame(connection)
     }
@@ -122,6 +133,10 @@ public final class WaylandWindow {
     }
 
     /// The name of the screen the window is on ("DP-3").
+    public var outputDescription: String? {
+        kiln_wl_output_description(connection).map { String(cString: $0) }
+    }
+
     public var outputName: String? {
         kiln_wl_output_name(connection).map { String(cString: $0) }
     }

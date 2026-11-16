@@ -565,6 +565,15 @@ bool kiln_gpu_draw(kiln_gpu *g, kiln_tex *target, const char *header, const char
     ));
 }
 
+void kiln_gpu_set_content_peak(kiln_gpu *g, float nits) {
+    if (!g->swapchain) return;
+    pl_swapchain_colorspace_hint(g->swapchain, &(struct pl_color_space) {
+        .primaries = PL_COLOR_PRIM_BT_709,
+        .transfer = PL_COLOR_TRC_SCRGB,
+        .hdr = { .max_luma = nits, .max_cll = nits },
+    });
+}
+
 bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source, int width, int height) {
     if (!g->swapchain) return false;
     struct pl_swapchain_frame frame;

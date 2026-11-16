@@ -67,6 +67,9 @@ bool kiln_gpu_save_shader_cache(kiln_gpu *gpu);
 
 /** Resizes the swapchain; width and height come back as the swapchain chose them. */
 bool kiln_gpu_resize(kiln_gpu *gpu, int *width, int *height);
+/** Tells the compositor, through the swapchain's HDR metadata, the brightest the window's content gets (cd/m² on the
+ * scRGB scale), so it does not tone-map content that already fits the screen. */
+void kiln_gpu_set_content_peak(kiln_gpu *gpu, float nits);
 
 kiln_tex *kiln_tex_create(kiln_gpu *gpu, int width, int height, enum kiln_format format, bool renderable);
 void kiln_tex_destroy(kiln_gpu *gpu, kiln_tex *tex);

@@ -20,6 +20,7 @@ typedef struct {
     int32_t width_mm;
     int32_t height_mm;
     char connector[64];
+    char description[160];
 } kiln_output;
 
 struct kiln_wl {
@@ -98,6 +99,11 @@ struct kiln_wl {
     struct xdg_toplevel *toplevel;
     struct zxdg_toplevel_decoration_v1 *decoration;
     struct wp_color_management_surface_v1 *color_surface;
+    struct wp_color_management_surface_feedback_v1 *color_feedback;
+    uint32_t color_serial;
+    int preferred_state;
+    bool info_done;
+    kiln_display_color reading;
     struct wp_fifo_v1 *fifo;
     struct wp_fractional_scale_v1 *fractional;
     struct wp_viewport *viewport;
@@ -442,7 +448,12 @@ static void output_name(void *data, struct wl_output *output, const char *name) 
         if (wl->outputs[index].output == output) snprintf(wl->outputs[index].connector, sizeof wl->outputs[index].connector, "%s", name);
     }
 }
-static void output_description(void *data, struct wl_output *output, const char *description) {}
+static void output_description(void *data, struct wl_output *output, const char *description) {
+    kiln_wl *wl = data;
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (wl->outputs[index].output == output) snprintf(wl->outputs[index].description, sizeof wl->outputs[index].description, "%s", description);
+    }
+}
 
 static const struct wl_output_listener output_listener = {
     .geometry = output_geometry,
@@ -499,6 +510,14 @@ const char *kiln_wl_output_name(kiln_wl *wl) {
     }
     for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
         if (wl->outputs[index].output && wl->outputs[index].connector[0]) return wl->outputs[index].connector;
+    }
+    return NULL;
+}
+
+const char *kiln_wl_output_description(kiln_wl *wl) {
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        const kiln_output *output = &wl->outputs[index];
+        if (output->output && output->output == wl->current_output && output->description[0]) return output->description;
     }
     return NULL;
 }
@@ -866,6 +885,7 @@ void kiln_wl_disconnect(kiln_wl *wl) {
     if (wl->fractional) wp_fractional_scale_v1_destroy(wl->fractional);
     if (wl->fifo) wp_fifo_v1_destroy(wl->fifo);
     if (wl->color_surface) wp_color_management_surface_v1_destroy(wl->color_surface);
+    if (wl->color_feedback) wp_color_management_surface_feedback_v1_destroy(wl->color_feedback);
     if (wl->decoration) zxdg_toplevel_decoration_v1_destroy(wl->decoration);
     if (wl->toplevel) xdg_toplevel_destroy(wl->toplevel);
     if (wl->xdg_surface) xdg_surface_destroy(wl->xdg_surface);
@@ -1033,6 +1053,126 @@ static const struct wp_image_description_v1_listener description_listener = {
     .ready = description_ready,
     .ready2 = description_ready2,
 };
+
+static void preferred_changed(void *data, struct wp_color_management_surface_feedback_v1 *feedback, uint32_t identity) {
+    kiln_wl *wl = data;
+    wl->color_serial++;
+}
+
+static void preferred_changed2(void *data, struct wp_color_management_surface_feedback_v1 *feedback, uint32_t identity_hi, uint32_t identity_lo) {
+    kiln_wl *wl = data;
+    wl->color_serial++;
+}
+
+static const struct wp_color_management_surface_feedback_v1_listener feedback_color_listener = {
+    .preferred_changed = preferred_changed,
+    .preferred_changed2 = preferred_changed2,
+};
+
+static void preferred_failed(void *data, struct wp_image_description_v1 *description, uint32_t cause, const char *message) {
+    kiln_wl *wl = data;
+    wl->preferred_state = -1;
+}
+
+static void preferred_ready(void *data, struct wp_image_description_v1 *description, uint32_t identity) {
+    kiln_wl *wl = data;
+    wl->preferred_state = 1;
+}
+
+static void preferred_ready2(void *data, struct wp_image_description_v1 *description, uint32_t identity_hi, uint32_t identity_lo) {
+    kiln_wl *wl = data;
+    wl->preferred_state = 1;
+}
+
+static const struct wp_image_description_v1_listener preferred_listener = {
+    .failed = preferred_failed,
+    .ready = preferred_ready,
+    .ready2 = preferred_ready2,
+};
+
+static void info_done(void *data, struct wp_image_description_info_v1 *info) {
+    kiln_wl *wl = data;
+    wl->info_done = true;
+}
+
+static void info_icc(void *data, struct wp_image_description_info_v1 *info, int32_t icc, uint32_t size) { close(icc); }
+static void info_primaries(void *data, struct wp_image_description_info_v1 *info, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y,
+                           int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {}
+static void info_primaries_named(void *data, struct wp_image_description_info_v1 *info, uint32_t primaries) {}
+static void info_tf_power(void *data, struct wp_image_description_info_v1 *info, uint32_t eexp) {}
+
+static void info_tf_named(void *data, struct wp_image_description_info_v1 *info, uint32_t tf) {
+    kiln_wl *wl = data;
+    wl->reading.transfer = tf;
+}
+
+static void info_luminances(void *data, struct wp_image_description_info_v1 *info, uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
+    kiln_wl *wl = data;
+    wl->reading.min_luminance = min_lum / 10000.0;
+    wl->reading.max_luminance = max_lum;
+    wl->reading.reference_luminance = reference_lum;
+}
+
+static void info_target_primaries(void *data, struct wp_image_description_info_v1 *info, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y,
+                                  int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {}
+
+static void info_target_luminance(void *data, struct wp_image_description_info_v1 *info, uint32_t min_lum, uint32_t max_lum) {
+    kiln_wl *wl = data;
+    wl->reading.target_min_luminance = min_lum / 10000.0;
+    wl->reading.target_max_luminance = max_lum;
+}
+
+static void info_target_max_cll(void *data, struct wp_image_description_info_v1 *info, uint32_t max_cll) {
+    kiln_wl *wl = data;
+    wl->reading.target_max_cll = max_cll;
+}
+
+static void info_target_max_fall(void *data, struct wp_image_description_info_v1 *info, uint32_t max_fall) {}
+
+static const struct wp_image_description_info_v1_listener info_listener = {
+    .done = info_done,
+    .icc_file = info_icc,
+    .primaries = info_primaries,
+    .primaries_named = info_primaries_named,
+    .tf_power = info_tf_power,
+    .tf_named = info_tf_named,
+    .luminances = info_luminances,
+    .target_primaries = info_target_primaries,
+    .target_luminance = info_target_luminance,
+    .target_max_cll = info_target_max_cll,
+    .target_max_fall = info_target_max_fall,
+};
+
+bool kiln_wl_display_color(kiln_wl *wl, kiln_display_color *color) {
+    if (!wl->color_manager || !wl->surface) return false;
+    if (!wl->color_feedback) {
+        wl->color_feedback = wp_color_manager_v1_get_surface_feedback(wl->color_manager, wl->surface);
+        wp_color_management_surface_feedback_v1_add_listener(wl->color_feedback, &feedback_color_listener, wl);
+    }
+    struct wp_image_description_v1 *description = wp_color_management_surface_feedback_v1_get_preferred(wl->color_feedback);
+    wl->preferred_state = 0;
+    wp_image_description_v1_add_listener(description, &preferred_listener, wl);
+    while (wl->preferred_state == 0) {
+        if (wl_display_roundtrip(wl->display) < 0) break;
+    }
+    bool read = false;
+    if (wl->preferred_state == 1) {
+        wl->reading = (kiln_display_color) { 0 };
+        wl->info_done = false;
+        struct wp_image_description_info_v1 *info = wp_image_description_v1_get_information(description);
+        wp_image_description_info_v1_add_listener(info, &info_listener, wl);
+        while (!wl->info_done) {
+            if (wl_display_roundtrip(wl->display) < 0) break;
+        }
+        read = wl->info_done;
+        if (read) *color = wl->reading;
+        wp_image_description_info_v1_destroy(info);
+    }
+    wp_image_description_v1_destroy(description);
+    return read;
+}
+
+uint32_t kiln_wl_display_color_serial(kiln_wl *wl) { return wl->color_serial; }
 
 bool kiln_wl_describe_scrgb(kiln_wl *wl) {
     if (!wl->color_manager || !(wl->color_features & KILN_COLOR_SCRGB)) return false;

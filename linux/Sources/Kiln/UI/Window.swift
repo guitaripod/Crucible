@@ -156,10 +156,36 @@ public final class Window {
             guard let self, let surface = self.surface, !self.closed else { return }
             if !surface.pump(readable: readable) {
                 self.delegate?.windowShouldClose(self)
+                return
             }
+            self.checkDisplayColor()
         }
+        checkDisplayColor()
         loop.atEndOfEachTurn { [weak self] in self?.renderIfDue() }
         setNeedsDisplay()
+    }
+
+    /// What the compositor says about the screen the window is on (`DisplayColor`), read again whenever it announces a
+    /// change: the window moved to another screen, HDR went on or off, the brightness or the desktop's calibration changed.
+    public private(set) var displayColor: DisplayColor?
+    /// Called when `displayColor` changed.
+    public var onDisplayColorChange: ((DisplayColor?) -> Void)?
+    private var displayColorSerial: UInt32 = .max
+
+    /// Reads the description again when the compositor announced a change, and again should another arrive during the
+    /// read's own roundtrips.
+    private func checkDisplayColor() {
+        guard let surface else { return }
+        var color = displayColor
+        for _ in 0..<3 {
+            let serial = surface.displayColorSerial
+            guard serial != displayColorSerial else { break }
+            displayColorSerial = serial
+            color = surface.readDisplayColor()
+        }
+        guard color != displayColor else { return }
+        displayColor = color
+        onDisplayColorChange?(color)
     }
 
     /// Attaches an image store that views load artwork through.
@@ -278,6 +304,8 @@ public final class Window {
 
     /// The name of the screen the window is on ("DP-3"), which KWin's output management knows it by; nil offscreen.
     public var outputName: String? { surface?.outputName }
+    /// The compositor's description of the screen the window is on (make, model, connector).
+    public var outputDescription: String? { surface?.outputDescription }
 
     /// The diagonal of the screen the window is on, in inches, from the size the screen reports; nil offscreen or when the
     /// screen reports none.
