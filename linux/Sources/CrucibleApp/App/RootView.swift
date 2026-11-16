@@ -127,6 +127,7 @@ final class RootView: View, WindowRestoration.Restorable {
         currentID = id
         current = stack
         insertSubview(stack, below: tabBar)
+        stack.isHidden = player != nil
         stack.frame = bounds
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
@@ -265,7 +266,12 @@ final class RootView: View, WindowRestoration.Restorable {
         screen.chosenTracks = tracks
         screen.run = run
         screen.onClose = { [weak self, weak screen] in
-            if let returnFocus, returnFocus.window != nil { self?.window?.focus.focus(returnFocus, animated: false) }
+            self?.showUnderPlayer(true)
+            if let returnFocus, returnFocus.window != nil {
+                self?.window?.focus.focus(returnFocus, animated: false)
+            } else {
+                self?.window?.focus.focus(self?.current, animated: false)
+            }
             screen?.removeFromSuperview()
             self?.player = nil
             self?.current?.top?.screenDidAppear()
@@ -287,6 +293,14 @@ final class RootView: View, WindowRestoration.Restorable {
         addSubview(screen)
         screen.frame = bounds
         window?.focus.focus(screen, animated: false)
+        showUnderPlayer(false)
+    }
+
+    /// Hides the tab and the tab bar while the opaque player covers them, so every video frame draws only the player, and
+    /// shows them again (their animations carry on) when it closes.
+    private func showUnderPlayer(_ shown: Bool) {
+        current?.isHidden = !shown
+        tabBar.isHidden = !shown
     }
 
     /// Shows `item`'s page from anywhere: the player closes, Home's stack unwinds to its root and the page goes on top.
