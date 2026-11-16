@@ -1,0 +1,15 @@
+FROM docker.io/library/archlinux:base
+COPY pacman.conf /etc/pacman.conf
+RUN sed -i 's/^SigLevel.*/SigLevel = Never/' /etc/pacman.conf \
+ && pacman -Syy --noconfirm holo-keyring archlinux-keyring \
+ && sed -i 's/^SigLevel.*/SigLevel = Required DatabaseOptional/' /etc/pacman.conf \
+ && pacman-key --init && pacman-key --populate archlinux holo \
+ && pacman -Suu --noconfirm \
+ && pacman -S --noconfirm --needed base-devel git meson ninja cmake python rust patchelf zstd imagemagick \
+    ffmpeg libass libdovi lcms2 shaderc glslang spirv-tools xxhash libva zimg rubberband libarchive libbluray luajit \
+    libdisplay-info libpulse alsa-lib pipewire libsecret qrencode systemd-libs curl openssl giflib librsvg sdl3 libdrm \
+    wayland wayland-protocols libxkbcommon libxkbcommon-x11 libxcb pango cairo fontconfig libjpeg-turbo libwebp libpng vulkan-icd-loader \
+    vulkan-headers mesa libxml2 sqlite libedit ncurses \
+ && pacman -U --noconfirm https://archive.archlinux.org/packages/l/libxml2-legacy/libxml2-legacy-2.13.9-2-x86_64.pkg.tar.zst \
+ && ln -sf libncursesw.so.6 /usr/lib/libncurses.so.6 \
+ && pacman -Scc --noconfirm

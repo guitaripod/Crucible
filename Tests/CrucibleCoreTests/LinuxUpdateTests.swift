@@ -88,6 +88,8 @@ struct LinuxUpdateTests {
         #expect(LinuxInstallKind.classify(executable: binary, size: 1200, stamp: source, checkoutExists: exists) == .source(checkout: "/home/maren/src/Crucible"))
         #expect(LinuxInstallKind.classify(executable: binary, size: 1200, stamp: source, checkoutExists: { _ in false }) == .standalone)
         #expect(LinuxInstallKind.classify(executable: binary, size: 1200, stamp: nil, checkoutExists: exists) == .standalone)
+        let deck = LinuxInstallStamp(kind: .steamdeck, version: "0.17.0", binary: binary, size: 1200, prefix: "/home/maren/.local", commit: "abc123")
+        #expect(LinuxInstallKind.classify(executable: binary, size: 1200, stamp: deck, checkoutExists: exists) == .developer)
     }
 
     @Test func eachInstallIsOfferedWhatCanUpdateIt() throws {
@@ -116,5 +118,10 @@ struct LinuxUpdateTests {
         let stamp = try #require(LinuxInstallStamp.decode(Data(json.utf8)))
         #expect(stamp.kind == .tarball && stamp.size == 153_000_000 && stamp.source == nil)
         #expect(LinuxInstallStamp.decode(Data("{\"kind\":\"zip\"}".utf8)) == nil)
+        let deck = """
+        {"kind":"steamdeck","version":"0.17.0","binary":"/home/deck/.local/lib/crucible/crucible","size":160321968,
+         "prefix":"/home/deck/.local","commit":"abc123","installedAt":"2026-11-16T17:21:38Z"}
+        """
+        #expect(LinuxInstallStamp.decode(Data(deck.utf8))?.kind == .steamdeck)
     }
 }

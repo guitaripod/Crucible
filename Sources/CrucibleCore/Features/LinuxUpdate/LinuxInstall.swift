@@ -1,11 +1,12 @@
 import Foundation
 
-/// What an installer left in `$XDG_STATE_HOME/crucible/install.json`: the tarball's `install.sh` or the checkout's
-/// `linux/scripts/install.sh`, the executable it put in place and how big it was, so a stamp left by an earlier install or
+/// What an installer left in `$XDG_STATE_HOME/crucible/install.json`: the tarball's `install.sh`, the checkout's
+/// `linux/scripts/install.sh` or `linux/scripts/steamdeck.sh` (a Steam Deck build made against SteamOS's packages on
+/// another computer), the executable it put in place and how big it was, so a stamp left by an earlier install or
 /// describing a binary somebody replaced by hand is not believed.
 package struct LinuxInstallStamp: Codable, Equatable, Sendable {
     package enum Kind: String, Codable, Sendable {
-        case tarball, source
+        case tarball, source, steamdeck
     }
 
     package var kind: Kind
@@ -50,7 +51,8 @@ package enum LinuxInstallKind: Equatable, Sendable {
 
     /// Reads the evidence in the order it deserves: a path in a build directory is a working copy whatever a stamp says,
     /// a path under `/usr` or `/opt` belongs to the package manager, and a stamp counts only when it names the running
-    /// executable at the size it has now.
+    /// executable at the size it has now. A Steam Deck build is updated from the computer that built it, as a working copy
+    /// is, since a release tarball made on Arch does not load on SteamOS.
     package static func classify(executable: String, size: Int?, stamp: LinuxInstallStamp?, checkoutExists: (String) -> Bool) -> LinuxInstallKind {
         if executable.contains("/.build/") { return .developer }
         if executable.hasPrefix("/usr/") || executable.hasPrefix("/opt/") { return .packaged }
@@ -61,6 +63,8 @@ package enum LinuxInstallKind: Equatable, Sendable {
         case .source:
             guard let checkout = stamp.source, checkoutExists(checkout) else { return .standalone }
             return .source(checkout: checkout)
+        case .steamdeck:
+            return .developer
         }
     }
 }
