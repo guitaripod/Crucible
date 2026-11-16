@@ -43,7 +43,12 @@ final class TransportView: View {
     var isSleepTimerSet = false { didSet { setNeedsDisplay() } }
     /// Playback runs at another speed than normal, so its button is lit.
     var isSpeedChanged = false { didSet { setNeedsDisplay() } }
-    var onSeek: ((Float) -> Void)?
+    /// Where a drag along the scrubber is: begun, moving, or let go, with the fraction of the title it points at.
+    enum ScrubPhase {
+        case began, moved, ended
+    }
+
+    var onScrub: ((Float, ScrubPhase) -> Void)?
     var onTogglePause: (() -> Void)?
     /// A menu button was pressed, with where it sits in the window.
     var onControl: ((Control, Rect) -> Void)?
@@ -55,6 +60,10 @@ final class TransportView: View {
     private var buffering = false
     private var hoverFraction: Float?
     private var scrubbing = false
+    /// The fraction a drag points at, which the knob, the time and the still follow rather than the player, whose picture
+    /// trails a drag by a seek.
+    private var scrubFraction: Float = 0
+    private var lastScrubX: Float = 0
     private var tone = GlassTone()
     /// Each label's own tone over the picture right under it: dark over glare there while the glass as a whole reads dark.
     private var labelTones: [Label: GlassTone] = [:]
@@ -114,9 +123,32 @@ final class TransportView: View {
     }
 
     override func pointerMoved(to point: Point) {
+        guard !scrubbing else { return }
         hoverFraction = point.y > bar.y - Theme.current.metrics.tv(40) && point.x >= bar.x ? fraction(at: point) : nil
-        if scrubbing { onSeek?(fraction(at: point)) }
         setNeedsDisplay()
+    }
+
+    /// A drag keeps scrubbing wherever the pointer goes once it pressed the bar, off the transport included.
+    override func pointerDragged(to point: Point) {
+        guard scrubbing else { return }
+        scrubFraction = scrubTarget(at: point)
+        lastScrubX = point.x
+        hoverFraction = scrubFraction
+        onScrub?(scrubFraction, .moved)
+        setNeedsDisplay()
+    }
+
+    /// Where a drag moving to `point` points: with Shift held the knob moves a tenth as far as the pointer, for a precise
+    /// spot in a long title; otherwise it follows the pointer and settles on a chapter start it passes within a few points of.
+    private func scrubTarget(at point: Point) -> Float {
+        if window?.modifiers.contains(.shift) == true {
+            return min(max(scrubFraction + (point.x - lastScrubX) / max(bar.width, 1) / 10, 0), 1)
+        }
+        let target = fraction(at: point)
+        guard duration > 0 else { return target }
+        let reach = Theme.current.metrics.tv(8) / max(bar.width, 1)
+        let snapped = chapterMarks.map { Float($0 / duration) }.filter { abs($0 - target) <= reach }.min { abs($0 - target) < abs($1 - target) }
+        return snapped ?? target
     }
 
     override func pointerExited() {
@@ -136,13 +168,20 @@ final class TransportView: View {
         }
         if point.x >= bar.x - 8 {
             scrubbing = true
-            onSeek?(fraction(at: point))
+            scrubFraction = fraction(at: point)
+            lastScrubX = point.x
+            hoverFraction = scrubFraction
+            onScrub?(scrubFraction, .began)
+            setNeedsDisplay()
         }
         return true
     }
 
     override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
+        guard scrubbing else { return }
         scrubbing = false
+        onScrub?(scrubFraction, .ended)
+        setNeedsDisplay()
     }
 
     static func clock(_ seconds: Double) -> String {
@@ -202,7 +241,7 @@ final class TransportView: View {
             let bufferedEnd = min((position + buffered) / duration, 1)
             context.fill(Rect(x: track.x, y: track.y, width: track.width * Float(bufferedEnd), height: track.height), radius: track.height / 2,
                          color: label.withAlpha(0.18))
-            let played = Float(min(max(position / duration, 0), 1))
+            let played = scrubbing ? scrubFraction : Float(min(max(position / duration, 0), 1))
             context.fill(Rect(x: track.x, y: track.y, width: max(track.width * played, track.height), height: track.height), radius: track.height / 2,
                          color: theme.palette.accent)
             for mark in chapterMarks where mark > 0 && mark < duration {
@@ -229,8 +268,9 @@ final class TransportView: View {
                 }
             }
         }
-        let elapsed = TextLayout(Self.clock(position), font: theme.type.caption1, scale: scale)
-        let remaining = TextLayout("-" + Self.clock(max(duration - position, 0)), font: theme.type.caption1, scale: scale)
+        let shown = scrubbing ? Double(scrubFraction) * duration : position
+        let elapsed = TextLayout(Self.clock(shown), font: theme.type.caption1, scale: scale)
+        let remaining = TextLayout("-" + Self.clock(max(duration - shown, 0)), font: theme.type.caption1, scale: scale)
         let elapsedOrigin = Point(x: track.x, y: track.maxY + metrics.tv(8))
         let remainingOrigin = Point(x: track.maxX - remaining.size.width, y: track.maxY + metrics.tv(8))
         context.text(elapsed, at: elapsedOrigin,
@@ -248,7 +288,7 @@ final class TransportView: View {
     /// with the time and chapter there on a dark pill at its foot.
     private func drawStill(_ texture: Texture, caption: TextLayout, centeredAt anchor: Float, context: inout DrawContext) {
         let metrics = Theme.current.metrics
-        let width = metrics.tv(440)
+        let width = metrics.tv(scrubbing ? 620 : 440)
         let height = (width * Float(texture.height) / Float(max(texture.width, 1))).rounded()
         let inset = metrics.tv(24)
         let x = min(max(anchor - width / 2, inset), bounds.width - inset - width).rounded()

@@ -55,7 +55,11 @@ extension PlayerScreen {
     /// choice. A failed switch says so, with Retry. The show remembers the languages for its other episodes.
     func choose(track id: Int?, audio: Bool) {
         guard let stream, case .plex(let api, let item, _) = source else { return }
-        if !audio { subtitlesTurnedOff = id == nil }
+        if !audio {
+            subtitlesTurnedOff = id == nil
+            if let id { lastChosenSubtitle = id }
+            borrowedSubtitle = nil
+        }
         if stream.isDirectPlay {
             switchInPlace(track: id, audio: audio, stream: stream)
             rememberLanguagesForShow()

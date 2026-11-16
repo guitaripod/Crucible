@@ -9,9 +9,12 @@ import MidgarCore
 /// after an automatic one) over the picture, the info panel, Up Next with "Still watching?", what's next at the end, a
 /// sleep timer, and the server told where the playhead is every ten seconds and whenever it stops or pauses.
 ///
-/// Keys: Space or K play and pause, Left and Right or J and L the skip distances (held: what Settings say), Home starts
-/// over, Page Up and Page Down move by chapter, [ and ] change the speed and Backspace resets it, Up and Down volume,
-/// M mute, S skip, I the info panel, A and C audio and subtitles, T the sleep timer, N the next episode, F full screen,
+/// Keys: Space or K play and pause, Left and Right or J and L the skip distances (held: what Settings say) and with Shift a
+/// precise second, 0 to 9 a tenth of the title, comma and period a frame, Home starts over, Page Up and Page Down move by
+/// chapter, [ and ] change the speed and Backspace resets it (with Shift, Go Back), Up and Down volume, M mute, S skip
+/// (with Shift, a screenshot; Ctrl+C copies the picture), I the info panel, A and C audio and subtitles, V subtitles on
+/// and off, Z and X subtitle sync, minus and equals sound sync, Shift+L the A-B loop, T the sleep timer, N the next
+/// episode, F full screen, the Menu key or a right click the player's menu,
 /// Escape leaves full screen, then goes back. A click plays and pauses, a double click fills the screen, the wheel moves
 /// through the title.
 @MainActor
@@ -57,7 +60,7 @@ final class PlayerScreen: View {
     var stream: ResolvedStream?
     var stills: ScrubStillLoader?
     /// The codecs mpv passes through to the receiver, from the sound output as it was checked when the player opened.
-    private var spdifCodecs: [String] = []
+    var spdifCodecs: [String] = []
     /// Direct play failed on this file, so every stream from now on is converted by the server.
     var convertsAfterFailure = false
     private var failurePolicy = PlaybackFailurePolicy()
@@ -76,6 +79,30 @@ final class PlayerScreen: View {
     var pausedSince: ContinuousClock.Instant?
     var undo: (returnTo: Double, until: ContinuousClock.Instant)?
     var autoSkipped: Set<SkipMarker> = []
+    /// Where a drag along the scrubber began, for Go Back once it is let go.
+    var scrubOrigin: Double?
+    /// The drag paused playback, so letting go plays on.
+    var scrubResumes = false
+    /// The preview still standing in for the picture while a seek is on its way (`StillVeil`).
+    var seekVeil: StillVeil?
+    /// Where the playhead was before the last long jump (a drag, a chapter, a number key), for Go Back.
+    var jumpOrigin: Double?
+    /// The sync, framing and taste set for this title (`PlayerTweaks`).
+    var tweaks = PlayerTweaks()
+    var toast: PlayerToast?
+    /// A subtitle shown on its own for a while: while the sound is muted, or until the stretch a skip back replays has
+    /// played again (`until`, on the title's timeline).
+    var borrowedSubtitle: (until: Double?, track: Int)?
+    /// The repeated stretch of A-B Loop, on the title's timeline.
+    var loop: (a: Double?, b: Double?) = (nil, nil)
+    /// The subtitle chosen last in this player, which turning subtitles back on brings back.
+    var lastChosenSubtitle: Int?
+    /// The subtitle position last handed to mpv, so it is only told of a change.
+    var placedSubtitlePosition: Int?
+    /// The peak the picture was last mapped to, in cd/m² (`applyDisplay`).
+    var appliedDisplayPeak: Double?
+    var calibration: DisplayCalibrationView?
+    weak var contextMenu: ContextMenuView?
     var holdOrigin: Double?
     /// Whether the window filled the screen when Match Content last looked.
     private var matchedFullscreen = false
@@ -121,9 +148,9 @@ final class PlayerScreen: View {
         case .plex(_, let item, _): transport.title = item.grandparentTitle.map { "\($0) · \(item.title)" } ?? item.title
         case .file(_, let title): transport.title = title
         }
-        transport.onSeek = { [weak self] fraction in
+        transport.onScrub = { [weak self] fraction, phase in
             self?.viewerActed()
-            self?.seek(toFraction: fraction)
+            self?.scrub(to: fraction, phase: phase)
         }
         transport.onTogglePause = { [weak self] in
             self?.viewerActed()
@@ -135,7 +162,7 @@ final class PlayerScreen: View {
         }
         transport.chapterTitle = { [weak self] time in
             guard let chapters = self?.stream?.chapters, let chapter = ChapterList.current(ChapterList.playable(chapters), at: time) else { return nil }
-            return ChapterList.menuTitle(chapter)
+            return chapter.title
         }
         skip.isHidden = true
         skip.onPress = { [weak self] in
@@ -173,6 +200,7 @@ final class PlayerScreen: View {
             videoView = view
             player.onStateChange = { [weak self] state in self?.stateChanged(state) }
             player.onEvent = { [weak self] event in self?.handle(event) }
+            window.onDisplayColorChange = { [weak self] _ in self?.applyDisplay() }
             controls = MediaControls(loop: loop)
             controls?.onCommand = { [weak self] command in self?.perform(command) }
             sessionWatch = SessionWatch(loop: loop)
@@ -231,7 +259,7 @@ final class PlayerScreen: View {
             let codecs = await AudioOutput.prepare(setting)
             guard let self, codecs != self.spdifCodecs else { return }
             self.spdifCodecs = codecs
-            if self.stream != nil { self.player?.set("audio-spdif", codecs.joined(separator: ",")) }
+            if self.stream != nil { self.applyAudioFilters() }
         }
     }
 
@@ -248,8 +276,10 @@ final class PlayerScreen: View {
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
         showStills(of: resolved, api: api)
         player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
-        player?.set("audio-spdif", spdifCodecs.joined(separator: ","))
         player?.set("speed", String(speed))
+        loadTweaks()
+        applyDisplay()
+        reapplyLoop()
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers,
                      options: resolved.isDirectPlay ? FileTracks(resolved).loadOptions : [:])
@@ -318,14 +348,15 @@ final class PlayerScreen: View {
         }
         controls?.update(playing: !playerState.isPaused, title: transport.title, show: showTitle, artURL: artworkFile, duration: duration,
                          position: position, canGoNext: upNext?.canOfferNext ?? false)
-        notePause(playerState.isPaused)
         let reportState = playerState.isPaused ? "paused" : "playing"
-        if reportState != lastReportedState {
+        if scrubOrigin == nil { notePause(playerState.isPaused) }
+        if reportState != lastReportedState, scrubOrigin == nil {
             report(reportState)
             let change: PlaybackChange = playerState.isPaused ? .paused(position: position) : .playing(position: position)
             watchers.forEach { $0.playback(change) }
         }
         if playerState.isPaused, preroll == nil { showChrome(autoHide: false) }
+        followBorrowedSubtitle(muted: playerState.isMuted)
         setNeedsDisplay()
     }
 
@@ -334,7 +365,7 @@ final class PlayerScreen: View {
         case .loaded:
             settleFileTracks()
         case .seeked:
-            break
+            seekVeil?.lift()
         case .ended:
             if endedShort() { return }
             if sleepTimer?.stopsAtEndOfItem == true {
@@ -436,9 +467,28 @@ final class PlayerScreen: View {
         shown.present(in: window)
     }
 
-    private func seek(toFraction fraction: Float) {
+    /// A drag along the scrubber: playback holds while it moves, and the picture follows the pointer by keyframe seeks when
+    /// seeks on this file land quickly; from a slow source (a spinning disk behind the server) the preview stills carry the
+    /// drag instead. Letting go seeks exactly, shows the still for that moment until the picture arrives, and plays on if
+    /// it was playing. The place it started from is kept for Go Back, and the server and Trakt hear nothing of the hold.
+    private func scrub(to fraction: Float, phase: TransportView.ScrubPhase) {
         guard duration > 0 else { return }
-        seek(to: Double(fraction) * duration)
+        let target = Double(fraction) * duration
+        switch phase {
+        case .began:
+            scrubOrigin = position
+            scrubResumes = player?.state.isPaused == false
+            if scrubResumes { player?.setPaused(true) }
+            if dragMovesPicture { seek(to: target, mode: .keyframe) }
+        case .moved:
+            if dragMovesPicture { seek(to: target, mode: .keyframe) }
+        case .ended:
+            seek(to: target)
+            if scrubResumes { player?.setPaused(false) }
+            if let scrubOrigin { noteJump(from: scrubOrigin, to: target) }
+            scrubOrigin = nil
+            scrubResumes = false
+        }
     }
 
     /// `CRUCIBLE_PLAYER_SLEEP_TIMER=<seconds>` starts with a timed sleep timer that runs out that many seconds later (`end`
@@ -596,10 +646,21 @@ final class PlayerScreen: View {
         player?.togglePause()
     }
 
-    func seek(to absolute: Double) {
+    /// Seeks to `absolute` on the title's timeline; a long exact jump shows the preview still there until the picture lands.
+    /// A converted stream starts where the server began it, so a place before that asks the server for the stream again
+    /// from there (a drag waits for its release).
+    func seek(to absolute: Double, mode: VideoPlayer.SeekMode = .exact) {
         let target = min(max(absolute, 0), max(duration - 1, 0))
+        if let stream, !stream.isDirectPlay, target < streamOffset - 0.5 {
+            guard mode == .exact else { return }
+            seekTarget = (target, .now)
+            veil(at: target)
+            reloadStream(at: target, freshSession: false, paused: player?.state.isPaused ?? false)
+            return
+        }
+        if mode == .exact, abs(target - position) >= Self.jumpWorthReturning { veil(at: target) }
         seekTarget = (target, .now)
-        player?.seek(to: target - streamOffset)
+        player?.seek(to: target - streamOffset, mode: mode)
         controls?.seeked(to: target)
         showChrome(autoHide: true)
     }
@@ -649,7 +710,7 @@ final class PlayerScreen: View {
         showSkip(title: String(localized: "Undo Skip"), symbol: "arrow.uturn.backward")
     }
 
-    private func skipSegment() {
+    func skipSegment() {
         if let undo {
             self.undo = nil
             skip.isHidden = true
@@ -731,6 +792,9 @@ final class PlayerScreen: View {
         card?.stopCounting()
         alert?.dismiss()
         alert = nil
+        contextMenu?.dismiss()
+        calibration?.removeFromSuperview()
+        calibration = nil
         let finished = WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
         watchers.forEach { $0.playback(.stopped(position: position, finished: finished, at: Date())) }
         if finished { recordFinish() }
@@ -755,6 +819,7 @@ final class PlayerScreen: View {
         sessionWatch = nil
         ScreenAwake.hold(false, in: window)
         window?.setCursor(.default)
+        window?.onDisplayColorChange = nil
         restoreWindow()
         onClose?()
     }
@@ -798,9 +863,13 @@ final class PlayerScreen: View {
 
     // MARK: Chrome
 
+    /// Whether the transport is showing or on its way in.
+    var chromeShown: Bool { chrome.target > 0.5 }
+
     func showChrome(autoHide: Bool) {
         guard preroll == nil else { return }
         chrome.set(1, animation: .fade)
+        placeSubtitles()
         window?.setCursor(.default)
         startAnimating()
         hideTask?.cancel()
@@ -809,6 +878,7 @@ final class PlayerScreen: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             guard let self, !Task.isCancelled, self.player?.state.isPaused == false, self.infoPanel == nil else { return }
             self.chrome.set(0, animation: .timed(duration: 0.4, curve: .easeInOut))
+            self.placeSubtitles()
             self.window?.setCursor(.hidden)
             self.startAnimating()
         }
@@ -830,11 +900,49 @@ final class PlayerScreen: View {
 
     override func keyPressed(_ event: KeyEvent) -> Bool {
         guard let player else { return false }
+        if event.modifiers == .control, event.key == Key.character("c") {
+            screenshot(withSubtitles: false, copy: true)
+            return true
+        }
         let modifiers = event.modifiers.subtracting(.shift)
         guard modifiers.isEmpty else { return false }
         let onPicture = window?.focusedView === self
         if !onPicture, [Key.left, .right, .up, .down, .return, .keypadEnter, .space].contains(event.key) { return false }
         viewerActed()
+        if event.modifiers.contains(.shift), handleShifted(event) {
+            showChrome(autoHide: true)
+            return true
+        }
+        if let tenth = Self.tenth(of: event.key) {
+            jump(toTenth: tenth)
+            showChrome(autoHide: true)
+            return true
+        }
+        switch event.key {
+        case Key.character(","):
+            stepFrame(forward: false)
+            return true
+        case Key.character("."):
+            stepFrame(forward: true)
+            return true
+        case Key.character("z"):
+            setSubtitleDelay(tweaks.title.subtitleDelay - 0.1)
+            return true
+        case Key.character("x"):
+            setSubtitleDelay(tweaks.title.subtitleDelay + 0.1)
+            return true
+        case Key.character("-"):
+            setAudioDelay(tweaks.title.audioDelay - 0.1)
+            return true
+        case Key.character("="):
+            setAudioDelay(tweaks.title.audioDelay + 0.1)
+            return true
+        case Key.character("v"):
+            toggleSubtitles()
+            return true
+        default:
+            break
+        }
         switch event.key {
         case .space, Key.character("k"), .mediaPlay:
             togglePause()
@@ -891,6 +999,31 @@ final class PlayerScreen: View {
         return true
     }
 
+    /// Shift with a key: Left and Right a precise second, Backspace Go Back, L the A-B loop, S a screenshot.
+    private func handleShifted(_ event: KeyEvent) -> Bool {
+        switch event.key {
+        case .left:
+            nudge(by: -1)
+        case .right:
+            nudge(by: 1)
+        case .backspace:
+            goBack()
+        case Key.character("l"), Key.character("L"):
+            markLoop()
+        case Key.character("s"), Key.character("S"):
+            screenshot(withSubtitles: false, copy: false)
+        default:
+            return false
+        }
+        return true
+    }
+
+    /// The tenth of the title a digit key jumps to: 0 the start, 5 the middle, 9 nine tenths in.
+    static func tenth(of key: Key) -> Int? {
+        for digit in 0...9 where key == Key.character(Character(String(digit))) { return digit }
+        return nil
+    }
+
     /// Left or Right: a press skips the distance Settings give that side; held, the side does what Settings say for a hold
     /// (scan, a jump from where the press began, start over or the next episode).
     private func press(forward: Bool, isRepeat: Bool) {
@@ -898,6 +1031,7 @@ final class PlayerScreen: View {
         guard isRepeat else {
             holdOrigin = playhead
             holdHandled = false
+            if !forward { skippedBack(from: playhead) }
             seek(to: playhead + step)
             return
         }
@@ -961,9 +1095,18 @@ final class PlayerScreen: View {
         case .back:
             close()
             return true
+        case .secondary:
+            guard scrubOrigin == nil else { return false }
+            presentContextMenu(at: transformToWindow.apply(point))
+            return true
         default:
             return false
         }
+    }
+
+    override func showContextMenu(at point: Point?) -> Bool {
+        presentContextMenu(at: point)
+        return true
     }
 
     override func scrolled(_ event: ScrollEvent) -> Bool {
@@ -978,6 +1121,8 @@ final class PlayerScreen: View {
         let metrics = Theme.current.metrics
         followFullscreen()
         videoView?.frame = bounds
+        seekVeil?.frame = bounds
+        calibration?.frame = bounds
         preroll?.frame = bounds
         postPlay?.frame = bounds
         let width = min(frame.width - metrics.sideMargin * 2, metrics.tv(1600))
@@ -987,6 +1132,8 @@ final class PlayerScreen: View {
             let panelHeight = infoPanel.sizeThatFits(Size(width: width, height: 0)).height
             infoPanel.frame = Rect(x: transport.frame.x, y: transport.frame.y - panelHeight - metrics.tv(24), width: width, height: panelHeight)
         }
+        layoutToast()
+        placeSubtitles()
         let above = infoPanel?.frame.y ?? transport.frame.y
         let size = skip.sizeThatFits(Size(width: 600, height: 200))
         skip.frame = Rect(x: frame.width - metrics.sideMargin - size.width, y: above - size.height - metrics.tv(32),

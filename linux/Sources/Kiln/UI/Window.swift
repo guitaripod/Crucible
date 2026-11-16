@@ -81,7 +81,7 @@ public final class Window {
     public private(set) var clickCount = 1
     /// The view holding the window's one text selection.
     public private(set) weak var selectionOwner: (any TextSelecting)?
-    private var modifiers: Modifiers = []
+    public private(set) var modifiers: Modifiers = []
     private var repeatRate: Int32 = 25
     private var repeatDelay: Int32 = 600
     private var repeatTask: Task<Void, Never>?
@@ -715,7 +715,7 @@ public final class Window {
             var responder = contentView.hitTest(pointer)
             while let view = responder {
                 if view.pointerPressed(button, at: view.convert(pointer, from: nil)) {
-                    self.pressed = (view, button)
+                    if self.pressed == nil || self.pressed?.button == button { self.pressed = (view, button) }
                     if let owner = selectionOwner, owner !== view { owner.clearSelection() }
                     return
                 }

@@ -9,6 +9,8 @@ enum KeyName {
     static let alt = String(localized: "Alt", comment: "Name of the Alt key in a keyboard shortcut, as in Alt+Left")
     static let space = String(localized: "Space", comment: "Name of the space bar in a keyboard shortcut")
     static let esc = String(localized: "Esc", comment: "Name of the Escape key in a keyboard shortcut")
+    static let shift = String(localized: "Shift", comment: "Name of the Shift key in a keyboard shortcut, as in Shift+L")
+    static let backspace = String(localized: "Backspace", comment: "Name of the Backspace key in a keyboard shortcut")
     static let pageUp = String(localized: "Page Up", comment: "Name of the Page Up key in a keyboard shortcut")
     static let pageDown = String(localized: "Page Down", comment: "Name of the Page Down key in a keyboard shortcut")
     static let left = "←"

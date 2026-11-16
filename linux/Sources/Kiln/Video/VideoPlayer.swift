@@ -56,6 +56,9 @@ public final class VideoPlayer {
     public func load(_ url: URL, start: Double = 0, headers: [String: String] = [:], options: KeyValuePairs<String, String> = [:]) {
         let fields = headers.map { "\($0.key): \($0.value)" }.joined(separator: ",")
         set("http-header-fields", fields)
+        typicalSeekTime = nil
+        seekSent = nil
+        pendingSeek = nil
         var perFile = ["start=\(String(format: "%.3f", max(start, 0)))"]
         if url.isFileURL { perFile.append("cache=no") }
         perFile += options.map { "\($0.key)=\($0.value)" }
@@ -79,16 +82,72 @@ public final class VideoPlayer {
 
     public func togglePause() { setPaused(!state.isPaused) }
 
-    /// Seeks to `seconds`, exactly (`precise`) or to the nearest keyframe for fast scrubbing.
-    public func seek(to seconds: Double, precise: Bool = true) {
-        command(["seek", String(format: "%.3f", max(seconds, 0)), precise ? "absolute+exact" : "absolute+keyframes"])
+    /// How a seek lands: on the exact frame, or on the keyframe nearest it, which needs no decoding up to the target and so
+    /// keeps a drag across the bar showing pictures.
+    public enum SeekMode: Sendable {
+        case exact, keyframe
+    }
+
+    /// Seeks to `seconds`. One seek is on its way at a time: one asked for meanwhile waits, and only the newest waiting one
+    /// goes once mpv has landed (or after `seekPatience`, should it never say), so a drag never queues stale positions.
+    public func seek(to seconds: Double, mode: SeekMode = .exact) {
+        let target = (seconds: max(seconds, 0), mode: mode)
+        if let sent = seekSent, sent.duration(to: .now) < Self.seekPatience {
+            pendingSeek = target
+            return
+        }
+        send(target)
+    }
+
+    /// How long a seek may take before the next one goes anyway, should mpv never say it landed; longer than the slowest
+    /// real seek (a spinning disk behind a server), so each landing belongs to the seek sent last.
+    private static let seekPatience: Duration = .seconds(2)
+    private var seekSent: ContinuousClock.Instant?
+    private var pendingSeek: (seconds: Double, mode: SeekMode)?
+
+    private func send(_ target: (seconds: Double, mode: SeekMode)) {
+        pendingSeek = nil
+        let sent = ContinuousClock.now
+        seekSent = sent
+        command(["seek", String(format: "%.3f", target.seconds), target.mode == .exact ? "absolute+exact" : "absolute+keyframes"])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.seekSent == sent else { return }
+                self.seekLanded()
+            }
+        }
+    }
+
+    /// The seek on its way landed (or ran out of patience): the newest one waiting goes now.
+    private func seekLanded() {
+        if let seekSent { noteSeekTime(seekSent.duration(to: .now)) }
+        seekSent = nil
+        if let pendingSeek { send(pendingSeek) }
+    }
+
+    /// How long seeks take to land on this file lately, weighted toward the latest: a few tens of milliseconds from a fast
+    /// disk, most of a second from a spinning one behind a server. Nil until a seek landed.
+    public private(set) var typicalSeekTime: Duration?
+
+    private func noteSeekTime(_ time: Duration) {
+        typicalSeekTime = typicalSeekTime.map { $0 * 0.6 + time * 0.4 } ?? time
+    }
+
+    /// Steps one frame forward or back, pausing as mpv does.
+    public func frameStep(forward: Bool) {
+        command([forward ? "frame-step" : "frame-back-step"])
     }
 
     public func seek(by seconds: Double) {
         command(["seek", String(format: "%.3f", seconds), "relative+exact"])
     }
 
-    public func setVolume(_ volume: Double) { set("volume", String(format: "%.0f", min(max(volume, 0), 130))) }
+    /// The loudest the volume goes, in percent: 100 plays the file as it is, more amplifies it (mpv's volume-max).
+    public var maximumVolume: Double = 100 {
+        didSet { set("volume-max", String(format: "%.0f", maximumVolume)) }
+    }
+
+    public func setVolume(_ volume: Double) { set("volume", String(format: "%.0f", min(max(volume, 0), maximumVolume))) }
 
     public func setMuted(_ muted: Bool) { set("mute", muted ? "yes" : "no") }
 
@@ -151,7 +210,10 @@ public final class VideoPlayer {
             }
         }
         if happened & UInt32(KILN_VIDEO_LOADED) != 0 { onEvent?(.loaded) }
-        if happened & UInt32(KILN_VIDEO_SEEKED) != 0 { onEvent?(.seeked) }
+        if happened & UInt32(KILN_VIDEO_SEEKED) != 0 {
+            seekLanded()
+            onEvent?(.seeked)
+        }
         if happened & UInt32(KILN_VIDEO_ENDED) != 0 { onEvent?(.ended) }
         if happened & UInt32(KILN_VIDEO_FAILED) != 0 {
             onEvent?(.failed(withUnsafeBytes(of: raw.error) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }))
@@ -182,27 +244,38 @@ public final class VideoView: View {
         player.onFrame = { [weak self] in self?.setNeedsDisplay() }
     }
 
+    /// mpv draws into the whole view, bars included, so its own framing (zoom, pan, crop to fill, a forced shape, rotation)
+    /// reaches the screen.
     public override func draw(_ context: inout DrawContext) {
         context.fill(bounds, color: .black)
         guard let window, player.state.videoWidth > 0, player.state.videoHeight > 0 else { return }
-        let aspect = Float(player.state.videoWidth) / Float(player.state.videoHeight)
-        var picture = bounds
-        if bounds.width / max(bounds.height, 1) > aspect {
-            picture.width = bounds.height * aspect
-            picture.x = (bounds.width - picture.width) / 2
-        } else {
-            picture.height = bounds.width / aspect
-            picture.y = (bounds.height - picture.height) / 2
-        }
+        let picture = bounds
         let pixels = context.transform.apply(picture)
         let width = max(Int(pixels.width.rounded()), 1)
         let height = max(Int(pixels.height.rounded()), 1)
-        if texture?.width != width || texture?.height != height {
+        if texture?.width != width || texture?.height != height, texture == nil || sizeHeld(width, height) {
             texture = try? window.gpu.texture(width: width, height: height, format: .rgba16f, renderable: true)
             if let texture { player.render(into: texture) }
         } else if player.hasNewFrame, let texture {
             player.render(into: texture)
         }
         if let texture { context.image(texture, in: picture, srgb: false) }
+    }
+
+    private var wantedSize: (width: Int, height: Int, since: Double)?
+
+    /// Whether the view has held a new size long enough to render at it. While a window edge is being dragged the size
+    /// changes every frame, and a new texture each time would also make mpv rebuild its output at every size; the picture
+    /// it has is scaled to the view meanwhile, and redrawn at the exact size once the size rests.
+    private func sizeHeld(_ width: Int, _ height: Int) -> Bool {
+        let now = Window.now()
+        if wantedSize?.width != width || wantedSize?.height != height {
+            wantedSize = (width, height, now)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                MainActor.assumeIsolated { self?.setNeedsDisplay() }
+            }
+            return false
+        }
+        return now - (wantedSize?.since ?? now) >= 0.25
     }
 }

@@ -74,6 +74,11 @@ public final class Texture {
 public struct TextureUploader: @unchecked Sendable {
     let gpu: OpaquePointer
 
+    /// Frees a texture this uploader made that will not be adopted after all.
+    public func discard(_ detached: DetachedTexture) {
+        kiln_tex_destroy(gpu, detached.handle)
+    }
+
     /// An sRGB RGBA8 texture holding `pixels`, ready to adopt on the main thread.
     public func rgba8(width: Int, height: Int, pixels: UnsafeRawPointer, rowBytes: Int) -> DetachedTexture? {
         guard let raw = kiln_tex_create(gpu, Int32(width), Int32(height), KILN_FORMAT_RGBA8, false) else { return nil }

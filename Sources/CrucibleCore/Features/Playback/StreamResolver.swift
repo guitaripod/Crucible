@@ -237,7 +237,7 @@ package enum StreamResolver {
     }
 
     /// The full (not forced) text subtitle in `language`, a BCP 47 tag such as "en-US", for a viewer who keeps captions on.
-    static func captionSubtitle(in language: String, among subtitles: [PlexStream]) -> PlexStream? {
+    package static func captionSubtitle(in language: String, among subtitles: [PlexStream]) -> PlexStream? {
         let wanted = alpha3(language)
         return subtitles.first { stream in
             guard !stream.isBitmap, stream.forced != true, let tag = stream.bcp47Language else { return false }

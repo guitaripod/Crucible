@@ -58,18 +58,40 @@ extension RootView {
             AppCommand(AppCommandCopy.playOrPause, keys: [KeyName.space, "K"], run: send(.space)),
             AppCommand(String(localized: "Skip Back"), keys: [KeyName.left, "J"], run: send(.left)),
             AppCommand(String(localized: "Skip Ahead"), keys: [KeyName.right, "L"], run: send(.right)),
+            AppCommand(String(localized: "Back or Ahead One Second", comment: "Shortcut list: Shift with Left or Right"),
+                       keys: [KeyName.chord(KeyName.shift, KeyName.left), KeyName.chord(KeyName.shift, KeyName.right)]),
+            AppCommand(String(localized: "Jump to a Tenth", comment: "Shortcut list: the digit keys jump to 0% to 90% of the title"), keys: ["0–9"]),
+            AppCommand(String(localized: "Previous or Next Frame", comment: "Shortcut list: comma and period step a frame"), keys: [",", "."]),
+            AppCommand(String(localized: "Go Back", comment: "Shortcut list: return to before the last long jump"),
+                       keys: [KeyName.chord(KeyName.shift, KeyName.backspace)]) { [weak self] in self?.player?.goBack() },
             AppCommand(String(localized: "Skip Intro"), keys: ["S"], run: send(.character("s"))),
             AppCommand(String(localized: "Play Next Episode"), keys: ["N"], run: send(.character("n"))),
             AppCommand(String(localized: "Chapters"), keys: [KeyName.pageUp, KeyName.pageDown]),
             AppCommand(String(localized: "Info"), keys: ["I"], run: send(.character("i"))),
             AppCommand(String(localized: "Audio"), keys: ["A"], run: send(.character("a"))),
             AppCommand(String(localized: "Subtitles"), keys: ["C"], run: send(.character("c"))),
+            AppCommand(String(localized: "Subtitles On or Off", comment: "Shortcut list"), keys: ["V"], run: send(.character("v"))),
+            AppCommand(String(localized: "Subtitle Sync", comment: "Shortcut list: subtitles earlier or later"), keys: ["Z", "X"]),
+            AppCommand(String(localized: "Sound Sync", comment: "Shortcut list: sound earlier or later"), keys: ["−", "="]),
             AppCommand(String(localized: "Sleep Timer"), keys: ["T"], run: send(.character("t"))),
             AppCommand(String(localized: "Playback Speed"), keys: ["[", "]"]),
             AppCommand(AppCommandCopy.mute, keys: ["M"], run: send(.character("m"))),
             AppCommand(AppCommandCopy.volumeUp, keys: [KeyName.up], run: send(.up)),
             AppCommand(AppCommandCopy.volumeDown, keys: [KeyName.down], run: send(.down)),
             AppCommand(AppCommandCopy.fullScreen, keys: ["F"], run: send(.character("f"))),
+            AppCommand(String(localized: "Loop a Stretch", comment: "Shortcut list: A-B loop"), keys: [KeyName.chord(KeyName.shift, "L")]) { [weak self] in
+                self?.player?.markLoop()
+            },
+            AppCommand(String(localized: "Save Picture", comment: "Player menu: screenshot to a file"), keys: [KeyName.chord(KeyName.shift, "S")]) { [weak self] in
+                self?.player?.screenshot(withSubtitles: false, copy: false)
+            },
+            AppCommand(String(localized: "Copy Picture", comment: "Player menu: screenshot to the clipboard"), keys: [KeyName.chord(KeyName.ctrl, "C")]) {
+                [weak self] in self?.player?.screenshot(withSubtitles: false, copy: true)
+            },
+            AppCommand(String(localized: "Player Menu", comment: "Shortcut list: the player's right-click menu"),
+                       keys: [String(localized: "Right Click", comment: "Shortcut list: the secondary mouse button")]) { [weak self] in
+                self?.player?.presentContextMenu(at: nil)
+            },
             AppCommand(String(localized: "Close Player"), keys: [KeyName.esc]) { [weak self] in self?.player?.close() },
         ], inMenu: player != nil)
     }

@@ -369,3 +369,108 @@ final class PostPlayView: View {
         context.text(title, at: Point(x: metrics.sideMargin, y: headingTop), color: theme.palette.onArt)
     }
 }
+
+/// What a key or menu choice just did, briefly at the top of the picture ("Audio sync +0.1 s", "Speed 1.25×"), on a small
+/// glass capsule that fades out after a moment; a newer message replaces it in place.
+@MainActor
+final class PlayerToast: View {
+    private var message = ""
+    private var symbol: Symbol?
+    private var shown = Animated(0)
+    private var tone = GlassTone()
+    private var hideTask: Task<Void, Never>?
+
+    func show(_ message: String, symbol: Symbol?) {
+        self.message = message
+        self.symbol = symbol
+        shown.set(1, animation: .timed(duration: 0.15, curve: .easeOut))
+        startAnimating()
+        setNeedsDisplay()
+        hideTask?.cancel()
+        hideTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard let self, !Task.isCancelled else { return }
+            self.shown.set(0, animation: .timed(duration: 0.4, curve: .easeInOut))
+            self.startAnimating()
+        }
+    }
+
+    override var accessibilityLabel: String? { message }
+
+    func preferredSize(scale: Float) -> Size {
+        let metrics = Theme.current.metrics
+        let text = TextLayout(message, font: Theme.current.type.callout, maxLines: 1, scale: scale).size
+        let icon: Float = symbol == nil ? 0 : metrics.tv(44)
+        return Size(width: (text.width + icon + metrics.tv(64)).rounded(.up), height: metrics.tv(72))
+    }
+
+    override func advanceAnimations(_ dt: Float) -> Bool {
+        let moving = [shown.advance(dt), tone.advance(dt)].contains(true)
+        setNeedsDisplay()
+        return moving
+    }
+
+    override func draw(_ context: inout DrawContext) {
+        guard shown.value > 0.01, let scale = window?.scale else { return }
+        let metrics = Theme.current.metrics
+        let size = preferredSize(scale: scale)
+        let pill = Rect(x: ((bounds.width - size.width) / 2).rounded(), y: 0, width: size.width, height: size.height)
+        if tone.update(context, rect: pill) { startAnimating() }
+        context.faded(shown.value) { faded in
+            GlassStyle.capsule(in: pill, radius: pill.height / 2, light: Point(x: pill.midX, y: -pill.height), floating: true, tone: tone.value, context: &faded)
+            let color = GlassStyle.label(tone: tone.value)
+            var x = pill.x + metrics.tv(32)
+            if let symbol {
+                let side = metrics.tv(30)
+                faded.symbol(symbol, in: Rect(x: x, y: pill.midY - side / 2, width: side, height: side), color: color)
+                x += metrics.tv(44)
+            }
+            let text = TextLayout(message, font: Theme.current.type.callout, maxLines: 1, scale: scale)
+            faded.text(text, at: Point(x: x, y: ((pill.midY - text.size.height / 2) * scale).rounded() / scale), color: color)
+        }
+    }
+}
+
+/// The preview still for where a seek is going, filling the picture until the seek lands: the screen answers a scrub at
+/// once even when the picture comes from a slow disk. It fades away as the picture arrives, or after a few seconds should
+/// it never say.
+@MainActor
+final class StillVeil: View {
+    private var texture: Texture?
+    private var shown = Animated(0)
+    private var giveUp: Task<Void, Never>?
+
+    func show(_ still: Texture) {
+        texture = still
+        shown.set(1, animation: .timed(duration: 0.08, curve: .easeOut))
+        startAnimating()
+        setNeedsDisplay()
+        giveUp?.cancel()
+        giveUp = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.lift()
+        }
+    }
+
+    func lift() {
+        guard shown.target > 0 else { return }
+        giveUp?.cancel()
+        shown.set(0, animation: .timed(duration: 0.25, curve: .easeInOut))
+        startAnimating()
+    }
+
+    override func advanceAnimations(_ dt: Float) -> Bool {
+        let moving = shown.advance(dt)
+        setNeedsDisplay()
+        return moving
+    }
+
+    override func draw(_ context: inout DrawContext) {
+        guard let texture, shown.value > 0.01 else { return }
+        context.faded(shown.value) { faded in
+            faded.fill(bounds, color: .black)
+            faded.image(texture, in: bounds, fit: true)
+        }
+    }
+}
