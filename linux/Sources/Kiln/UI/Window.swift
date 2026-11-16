@@ -12,6 +12,8 @@ public protocol WindowDelegate: AnyObject {
     /// The wheel or touchpad scrolled with Ctrl held (zoom, as in a browser): return whether it was used, or the scroll
     /// goes to the views under the pointer.
     func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool
+    /// A view asked for `link` in a new window of the app (a middle click on a title).
+    func window(_ window: Window, openInNewWindow link: URL)
     func windowShouldClose(_ window: Window)
 }
 
@@ -20,6 +22,7 @@ extension WindowDelegate {
     public func window(_ window: Window, unhandledButton button: MouseButton) -> Bool { false }
     public func window(_ window: Window, keyboardFocusChanged focused: Bool) {}
     public func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool { false }
+    public func window(_ window: Window, openInNewWindow link: URL) {}
     public func windowShouldClose(_ window: Window) {}
 }
 
@@ -163,9 +166,13 @@ public final class Window {
         setNeedsDisplay()
     }
 
+    /// Closes the window; the app's loop stops watching its display and screen readers stop seeing it, so a closed window
+    /// costs nothing while others stay.
     public func close() {
         guard !closed else { return }
         closed = true
+        accessibility = nil
+        if let surface { loop?.remove(fd: surface.fileDescriptor) }
         repeatTask?.cancel()
         contentView.window = nil
         gpu.finish()
@@ -236,6 +243,11 @@ public final class Window {
 
     private func sendTextInputState(_ state: TextInputState, of view: View) {
         surface?.updateTextInput(state, caret: view.transformToWindow.apply(state.caret))
+    }
+
+    /// Hands `link` to the app to open in a new window.
+    public func openInNewWindow(_ link: URL) {
+        delegate?.window(self, openInNewWindow: link)
     }
 
     /// Makes `owner`'s selection the window's, clearing the one another view held.
