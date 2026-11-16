@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 53 | 0 | 2 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 66 | 0 | 1 | 2 |
-| Design system | 95 | 1 | 1 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 89 | 4 | 10 | 0 |
-| **All** | 665 | 6 | 15 | 16 |
+| Design system | 96 | 1 | 0 | 0 |
+| Linux-only requirements (docs/LINUX.md) | 93 | 4 | 6 | 0 |
+| **All** | 670 | 6 | 10 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -608,7 +608,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-focus-memory` (S) Each screen remembers the focused item across reloads and returns to it after a Back from a detail _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:60-102_
 - [x] `design-focus-anchor-while-loading` (S) While a screen loads or shows a state with no button, focus sits on an invisible anchor so Menu pops the screen instead of leaving the app _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVFocusAnchorView.swift:7-20_
 - [x] `design-play-pause-on-focused-item` (S) Play/Pause on a focused card or item starts or resumes that item from the grid, as the Apple TV does _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:7-43_
-- [ ] `design-gamepad-input` (L) Gamepad and remote-style focus: d-pad and stick move focus with repeat, A selects, B goes back, Start plays or pauses, Y opens the context menu, LB and RB change tabs, and the right stick drives parallax Gap: No gamepad source exists in Kiln or the app (no joystick, SDL or gamepad code under linux/Sources; Input.swift handles keyboard and pointer only). View.swift:287 mentions Y but nothing feeds it. docs/LINUX.md:126 lists it as planned. _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:29-43_
+- [x] `design-gamepad-input` (L) Gamepad and remote-style focus: d-pad and stick move focus with repeat, A selects, B goes back, Start plays or pauses, Y opens the context menu, LB and RB change tabs, and the right stick drives parallax _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:29-43_
 - [x] `design-remote-menu-back` (S) Back and Menu pop the screen or dismiss the open alert or menu, and Escape does the same on the desk _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVNavigation.swift:22-30_
 - [x] `design-text-field` (M) Single-line text field with caret, select-all, word delete, placeholder, submit, and an IME-capable input path _Apple TV: Sources/CrucibleTV/DesignSystem/Extensions/UIViewController+Alert.swift:41-69_
 - [x] `design-glass-liquid` (S) Liquid Glass controls: lensing, a rim, a specular light that follows the pointer or focus, adaptive light or dark tone, and a contact shadow on floating glass _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-12_
@@ -673,7 +673,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `player-info-menu` (M) Info menu in the player transport (glass menu beside Audio and Subtitles) _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `player-speed-menu` (S) Playback speed menu in the player _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `player-audio-subtitle-menus` (S) Audio and Subtitles menus list the file's streams with the playing one checked, and switch tracks _Apple TV: docs/LINUX.md §7.5 Player chrome_
-- [ ] `player-trigger-scrub` (M) Gamepad triggers scrub the timeline Gap: No gamepad input path exists anywhere in linux/Sources (see couch-gamepad-focus). _Apple TV: docs/LINUX.md §7.5 Player chrome_
+- [x] `player-trigger-scrub` (M) Gamepad triggers scrub the timeline _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `player-skip-intro-credits-button` (S) Skip Intro and Skip Credits buttons appear inside their segments, with automatic skipping when Settings ask for it _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `player-up-next-card` (S) Up Next card with a countdown, Play Now, and Watch Credits or Close _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `player-post-play-suggestions` (M) Post-play suggestions after an episode or film ends _Apple TV: docs/LINUX.md §6 Player, Up Next, post-play, sleep timer, still watching_
@@ -689,9 +689,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `density-couch-offer-gamepad-40in` (M) Couch is offered once when a gamepad is used fullscreen on an output 40 inches or larger (EDID) Gap: No gamepad input and no output-size or EDID read: kiln_wayland.c has no wl_output geometry handling (wl_output appears only as a callback parameter, :527). _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `windowed-ssd-fullscreen-hide` (S) Windowed mode uses the desktop's server-side decorations; fullscreen and Couch hide them _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [ ] `couch-letter-grid-search` (M) Couch Search shows a tvOS-style letter grid so a gamepad can type Gap: SearchScreen has only the desk text field (linux/Sources/CrucibleApp/Search/SearchScreen.swift); no letter grid and no couch-specific Search layout. _Apple TV: docs/LINUX.md §6 Search_
-- [ ] `couch-gamepad-focus` (L) Gamepad d-pad and left stick move focus with tvOS-like repeat acceleration; A selects, B goes back Gap: No gamepad input path: no SDL, evdev or joystick code in linux/Sources, and SDL3 from §10 is not referenced. Keyboard input comes only from wl_keyboard (CKiln/kiln_wayland.c:28-33). _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
-- [ ] `couch-gamepad-start-tabs-menu` (M) Gamepad Start plays and pauses, Y opens the context menu, and LB and RB change tabs Gap: No gamepad input. The Menu key opens the context menu (linux/Sources/Kiln/UI/FocusEngine.swift:186) but there is no Y mapping and no LB or RB tab switching. _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
-- [ ] `couch-gamepad-right-stick-parallax` (S) Gamepad right stick drives the card parallax a pointer would Gap: No gamepad input path, so no right-stick parallax. _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
+- [x] `couch-gamepad-focus` (L) Gamepad d-pad and left stick move focus with tvOS-like repeat acceleration; A selects, B goes back _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
+- [x] `couch-gamepad-start-tabs-menu` (M) Gamepad Start plays and pauses, Y opens the context menu, and LB and RB change tabs _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
+- [x] `couch-gamepad-right-stick-parallax` (S) Gamepad right stick drives the card parallax a pointer would _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
 - [ ] `couch-steam-shortcut-template` (S) **partial** crucible --couch as a non-Steam Big Picture shortcut with a Steam Input template Gap: The desktop Couch action exists (packaging/org.guitaripod.Crucible.desktop:9-16). No Steam Input template and no documented non-Steam shortcut setup exists in linux/. _Apple TV: docs/LINUX.md §9 Couch_
 - [x] `exit-quit-path-stops-player` (S) Ctrl+Q and closing the window stop the player and send the stopped timeline before the process exits _Apple TV: docs/LINUX.md §9 Clean exit_
 - [x] `exit-sigterm-sigint` (S) SIGTERM and SIGINT save resume positions and send the stopped timeline before exiting _Apple TV: docs/LINUX.md §9 Clean exit_
