@@ -119,9 +119,16 @@ public struct CardStyle: Hashable, Sendable {
         let columns = metrics.gridColumns(itemWidth: target, width: width)
         let itemWidth = ((width - metrics.gutter * Float(columns - 1)) / Float(columns)).rounded(.down)
         return CardStyle(artworkSize: Size(width: itemWidth, height: (itemWidth * aspect).rounded()), itemWidth: itemWidth,
-                         kind: aspect < 1 ? .backdrop : .poster, shape: .rounded, titleLines: 1, showsEyebrow: false, centersCaption: false,
-                         scrimsArtwork: false)
+                         kind: aspect < 1 ? .backdrop : .poster, shape: .rounded, titleLines: metrics.cardZoom < 1 ? 2 : 1, showsEyebrow: false,
+                         centersCaption: false, scrimsArtwork: false)
     }
+
+    private struct LineKey: Hashable {
+        let font: Font
+        let opticalScale: Float
+    }
+
+    @MainActor private static var lineHeights: [LineKey: Float] = [:]
 
     @MainActor public var captionHeight: Float {
         let type = Theme.current.type
@@ -136,8 +143,13 @@ public struct CardStyle: Hashable, Sendable {
         Size(width: itemWidth, height: artworkSize.height + Theme.current.metrics.captionSpacing + captionHeight)
     }
 
+    /// A line of `font`'s height, measured once per font: grids ask for every card's size on every layout.
     @MainActor private func lineHeight(_ font: Font) -> Float {
-        TextLayout("Ag", font: font, scale: 2).size.height
+        let key = LineKey(font: font, opticalScale: Font.opticalScale)
+        if let known = Self.lineHeights[key] { return known }
+        let height = TextLayout("Ag", font: font, scale: 2).size.height
+        Self.lineHeights[key] = height
+        return height
     }
 }
 
