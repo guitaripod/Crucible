@@ -61,12 +61,15 @@ package enum Formatters {
         count.formatted(.number.notation(.compactName).locale(interfaceLocale).precision(.significantDigits(1...3)))
     }
 
+    /// The picture's class by its width as well as its height, so a widescreen film cropped to 3840 × 1604 is still 4K
+    /// and one cropped to 1920 × 800 still 1080p.
     package static func resolution(_ width: Int?, _ height: Int?) -> String? {
         guard let height else { return nil }
-        if height >= 2160 { return "4K" }
-        if height >= 1080 { return "1080p" }
-        if height >= 720 { return "720p" }
-        if height >= 480 { return "480p" }
+        let width = width ?? 0
+        if height >= 2160 || width >= 3200 { return "4K" }
+        if height >= 1080 || width >= 1600 { return "1080p" }
+        if height >= 720 || width >= 1200 { return "720p" }
+        if height >= 480 || width >= 700 { return "480p" }
         return String(localized: "\(height)p")
     }
 

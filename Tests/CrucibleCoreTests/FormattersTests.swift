@@ -26,12 +26,16 @@ struct FormattersTests {
         #expect(Formatters.fileSize(1_610_612_736) == "1.5 GB")
     }
 
-    @Test func resolutionBucketsByHeight() {
+    @Test func resolutionBucketsByWidthOrHeight() {
         #expect(Formatters.resolution(3840, 2160) == "4K")
         #expect(Formatters.resolution(1920, 1080) == "1080p")
         #expect(Formatters.resolution(1280, 720) == "720p")
         #expect(Formatters.resolution(720, 480) == "480p")
         #expect(Formatters.resolution(640, 360) == "360p")
+        #expect(Formatters.resolution(3840, 1604) == "4K")
+        #expect(Formatters.resolution(1920, 800) == "1080p")
+        #expect(Formatters.resolution(1280, 536) == "720p")
+        #expect(Formatters.resolution(854, 356) == "480p")
         #expect(Formatters.resolution(1920, nil) == nil)
     }
 
