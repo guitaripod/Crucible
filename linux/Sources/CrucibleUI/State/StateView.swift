@@ -30,6 +30,8 @@ public final class StateView: View {
     private var symbol: Symbol?
     private var title: String?
     private var message: String?
+    /// The column as last laid out, kept for drawing until the state or the size changes.
+    private var laidOut: Layout?
 
     /// What the state says (loading, nothing here, what went wrong), read as text; its buttons read on their own.
     public override var accessibilityLabel: String? { [title, message].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ") }
@@ -70,6 +72,7 @@ public final class StateView: View {
             if let other { configure(secondary, other) }
         }
         anchor.isHidden = !primary.isHidden
+        laidOut = nil
         setNeedsLayout()
         setNeedsDisplay()
         if containsFocus || window?.focusedView == nil { window?.focus.focus(self, animated: false) }
@@ -90,20 +93,31 @@ public final class StateView: View {
         var buttons: Float
     }
 
-    private func measure() -> Layout {
+    /// The column's text laid out for `width` points, and its height with the symbol and buttons.
+    private func column(width: Float) -> (title: TextLayout?, message: TextLayout?, height: Float) {
         let theme = Theme.current
         let metrics = theme.metrics
         let type = theme.type
-        let width = min(metrics.wideColumn, frame.width - metrics.sideMargin * 2)
+        let textWidth = min(metrics.wideColumn, width - metrics.sideMargin * 2)
         var height: Float = 0
-        let symbolSize = metrics.symbolState
-        if symbol != nil || !spinner.isHidden { height += symbolSize + metrics.tv(32) }
-        let titleLayout = title.map { TextLayout($0, font: type.title3, maxWidth: width, maxLines: 2, alignment: .center, scale: rasterScale) }
-        let messageLayout = message.map { TextLayout($0, font: type.body, maxWidth: width, maxLines: 4, alignment: .center, scale: rasterScale) }
+        if symbol != nil || !spinner.isHidden { height += metrics.symbolState + metrics.tv(32) }
+        let titleLayout = title.map { TextLayout($0, font: type.title3, maxWidth: textWidth, maxLines: 2, alignment: .center, scale: rasterScale) }
+        let messageLayout = message.map { TextLayout($0, font: type.body, maxWidth: textWidth, maxLines: 4, alignment: .center, scale: rasterScale) }
         if let titleLayout { height += titleLayout.size.height }
         if let messageLayout { height += metrics.tv(16) + messageLayout.size.height }
-        let buttonsHeight: Float = primary.isHidden ? 0 : metrics.tv(48) + metrics.primaryControlHeight
-        height += buttonsHeight
+        if !primary.isHidden { height += metrics.tv(48) + metrics.primaryControlHeight }
+        return (titleLayout, messageLayout, height)
+    }
+
+    /// The height the column needs at `size`'s width, so a state can be stacked with others instead of filling a screen.
+    public override func sizeThatFits(_ size: Size) -> Size {
+        Size(width: size.width, height: column(width: size.width).height)
+    }
+
+    private func measure() -> Layout {
+        let metrics = Theme.current.metrics
+        let symbolSize = metrics.symbolState
+        let (titleLayout, messageLayout, height) = column(width: frame.width)
         var y = ((frame.height - height) / 2).rounded()
         var layout = Layout(buttons: 0)
         if symbol != nil || !spinner.isHidden {
@@ -125,6 +139,7 @@ public final class StateView: View {
 
     public override func layoutSubviews() {
         let layout = measure()
+        laidOut = layout
         if let symbolRect = layout.symbol { spinner.frame = symbolRect }
         anchor.frame = Rect(x: frame.width / 2 - 1, y: frame.height / 2 - 1, width: 2, height: 2)
         let buttons = [primary, secondary].filter { !$0.isHidden }
@@ -139,7 +154,7 @@ public final class StateView: View {
 
     public override func draw(_ context: inout DrawContext) {
         let palette = Theme.current.palette
-        let layout = measure()
+        let layout = laidOut ?? measure()
         if let symbol, let rect = layout.symbol { context.symbol(symbol, in: rect, color: palette.labelTertiary) }
         if let (text, origin) = layout.title { context.text(text, at: origin, color: palette.label) }
         if let (text, origin) = layout.message { context.text(text, at: origin, color: palette.labelSecondary) }
