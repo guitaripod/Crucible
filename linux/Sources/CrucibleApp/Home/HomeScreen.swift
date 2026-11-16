@@ -263,6 +263,10 @@ final class HomeScreen: ScreenView {
             guard let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
             self.feature(media, bucket: bucket, animated: true)
         }
+        shelf.onHover = { [weak self] item in
+            guard let self, let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
+            self.feature(media, bucket: bucket, animated: true)
+        }
         shelf.onActivate = { [weak self] item in self?.activate(item.id, in: row) }
         shelf.onPlay = { [weak self] item in
             guard let self, Self.bucket(row) != nil, let media = self.feed.item(id: item.id) else { return false }

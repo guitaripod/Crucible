@@ -96,6 +96,10 @@ final class LibraryScreen: ScreenView {
             guard let self, let item = self.model.item(withId: card.id) else { return false }
             return self.actions.play(item, isRecent: false)
         }
+        grid.onToggleWatched = { [weak self] card in
+            guard let self, let item = self.model.item(withId: card.id) else { return }
+            self.actions.toggleWatched(item, card: card)
+        }
         grid.onFocus = { [weak self] card in
             guard let self, let index = self.grid.index(of: card.id) else { return }
             self.model.loadNextPageIfNeeded(near: index)
@@ -122,6 +126,10 @@ final class LibraryScreen: ScreenView {
             self.actions.presentMenu(for: item, isRecent: true, at: point)
         }
         recents.onSeeAll = { [weak self] in self?.showAllRecent() }
+        recents.onToggleWatched = { [weak self] card in
+            guard let self, let item = self.model.recentItem(withId: card.id) else { return }
+            self.actions.toggleWatched(item, card: card)
+        }
     }
 
     // MARK: Model updates

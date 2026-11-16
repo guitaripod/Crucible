@@ -305,6 +305,7 @@ final class SearchScreen: ScreenView {
         shelf.onActivate = { [weak self] card in self?.activate(card.id, rememberingQuery: id != "recent") }
         shelf.onPlay = { [weak self] card in self?.playKey(card.id, rememberingQuery: id != "recent") ?? false }
         shelf.onContextMenu = { [weak self] card, point in self?.presentMenu(for: card.id, at: point) }
+        shelf.onToggleWatched = { [weak self] card in self?.toggleWatched(card) }
         shelves[id] = shelf
         return shelf
     }
@@ -314,7 +315,14 @@ final class SearchScreen: ScreenView {
         grid.onActivate = { [weak self] card in self?.activate(card.id, rememberingQuery: true) }
         grid.onPlay = { [weak self] card in self?.playKey(card.id, rememberingQuery: true) ?? false }
         grid.onContextMenu = { [weak self] card, point in self?.presentMenu(for: card.id, at: point) }
+        grid.onToggleWatched = { [weak self] card in self?.toggleWatched(card) }
         return grid
+    }
+
+    /// A card's hover watched toggle, for a result that keeps a watched state.
+    private func toggleWatched(_ card: CardItem) {
+        guard let item = items[card.id] else { return }
+        setWatched(!(watchedOverrides[item.id] ?? item.isWatched), item: item)
     }
 
     // MARK: Actions

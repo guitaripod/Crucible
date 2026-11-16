@@ -80,6 +80,7 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return }
             ItemActions.present(for: item, api: self.api, at: point, in: self) { [weak self] in self?.reload() }
         }
+        episodes.onToggleWatched = { [weak self] card in self?.markWatched(!card.isWatched, ratingKey: card.id) }
         episodes.onPlay = { [weak self] card in
             guard let self, let episode = self.episode(card.id) else { return false }
             self.rootView?.play(item: episode, api: self.api)

@@ -284,6 +284,37 @@ enum SharedGPU {
         window.handleKey(KeyEvent(key: .escape))
     }
 
+    @Test func aCardOffersPlayWatchedAndItsMenuUnderThePointer() {
+        let grid = CardGridView()
+        var played: [String] = []
+        var toggled: [String] = []
+        var menus: [String] = []
+        grid.onPlay = { played.append($0.id); return true }
+        grid.onToggleWatched = { toggled.append($0.id) }
+        grid.onContextMenu = { card, _ in menus.append(card.id) }
+        grid.setItems([CardItem(id: "a", title: "A Title Long Enough To Be Cut Short In One Line", subtitle: "2017")])
+        grid.frame = Rect(x: 0, y: 0, width: 1280, height: 600)
+        window.contentView.addSubview(grid)
+        window.render()
+        guard let card = grid.subviews.compactMap({ $0 as? CardView }).first else { Issue.record("no card"); return }
+        let art = card.frameInWindow
+        let artHeight = card.style.artworkSize.height
+        window.handlePointerMoved(to: Point(x: art.midX, y: art.minY + artHeight / 2))
+        window.settle()
+        click(Point(x: art.midX, y: art.minY + artHeight / 2))
+        #expect(played == ["a"])
+        let inset = Theme.current.metrics.badgeInset + 6
+        click(Point(x: art.minX + inset, y: art.minY + inset))
+        #expect(toggled == ["a"])
+        click(Point(x: art.maxX - inset, y: art.minY + inset))
+        #expect(menus == ["a"])
+        #expect(card.tooltip(at: Point(x: 4, y: artHeight + 12))?.contains("Cut Short") == true, "a title the caption cuts short shows whole")
+        window.focus.focus(card, animated: false)
+        window.handleKey(KeyEvent(key: .space, text: " "))
+        #expect(played == ["a", "a"], "Space plays the focused card")
+        grid.removeFromSuperview()
+    }
+
     @Test func aDesktopScrollbarPagesOnAClickAndDragsItsThumb() {
         ScrollView.desktopScrollbars = true
         defer { ScrollView.desktopScrollbars = false }

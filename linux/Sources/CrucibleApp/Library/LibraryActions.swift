@@ -28,6 +28,11 @@ final class LibraryActions {
         return true
     }
 
+    /// The card's hover watched toggle: watched when the card is not, unwatched when it is.
+    func toggleWatched(_ item: PlexMetadata, card: CardItem) {
+        setWatched(item, !card.isWatched)
+    }
+
     func select(_ item: PlexMetadata, isRecent: Bool) {
         open(isRecent ? LibraryDestination(recent: item, kind: kind) : LibraryDestination(browsing: item))
     }

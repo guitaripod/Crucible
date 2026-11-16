@@ -28,6 +28,10 @@ public final class ShelfView: View {
     public var onPlay: ((CardItem) -> Bool)?
     public var onContextMenu: ((CardItem, Point?) -> Void)?
     public var onSeeAll: (() -> Void)?
+    /// The hover watched toggle of a card; without it the cards offer none.
+    public var onToggleWatched: ((CardItem) -> Void)?
+    /// The pointer rested on a card.
+    public var onHover: ((CardItem) -> Void)?
 
     public let scroller = ScrollView(axis: .horizontal)
     private var cards: [String: CardView] = [:]
@@ -80,6 +84,9 @@ public final class ShelfView: View {
                 card.onFocus = { [weak self] item in self?.onFocus?(item) }
                 card.onPlay = { [weak self] item in self?.onPlay?(item) ?? false }
                 card.onContextMenu = { [weak self] item, point in self?.onContextMenu?(item, point) }
+                card.onToggleWatched = { [weak self] item in self?.onToggleWatched?(item) }
+                card.onHover = { [weak self] item in self?.onHover?(item) }
+                card.hoverActions = { [weak self] in self?.hoverActions ?? [] }
                 scroller.addSubview(card)
                 next[item.id] = card
             }
@@ -91,6 +98,15 @@ public final class ShelfView: View {
     }
 
     public func card(for id: String) -> CardView? { cards[id] }
+
+    /// What its cards offer on hover, from the callbacks the screen set.
+    private var hoverActions: CardHoverActions {
+        var actions: CardHoverActions = []
+        if onPlay != nil { actions.insert(.play) }
+        if onToggleWatched != nil { actions.insert(.watched) }
+        if onContextMenu != nil { actions.insert(.menu) }
+        return actions
+    }
 
     /// The header's See All, when the shelf has one.
     public var seeAllButton: View? { seeAll.superview == nil ? nil : seeAll }
@@ -269,9 +285,22 @@ public final class CardGridView: View {
     public var onFocus: ((CardItem) -> Void)?
     public var onPlay: ((CardItem) -> Bool)?
     public var onContextMenu: ((CardItem, Point?) -> Void)?
+    /// The hover watched toggle of a card; without it the cards offer none.
+    public var onToggleWatched: ((CardItem) -> Void)?
+    /// The pointer rested on a card.
+    public var onHover: ((CardItem) -> Void)?
     private var cards: [String: CardView] = [:]
     private var order: [String] = []
     public private(set) var style: CardStyle = .poster
+
+    /// What its cards offer on hover, from the callbacks the screen set.
+    private var hoverActions: CardHoverActions {
+        var actions: CardHoverActions = []
+        if onPlay != nil { actions.insert(.play) }
+        if onToggleWatched != nil { actions.insert(.watched) }
+        if onContextMenu != nil { actions.insert(.menu) }
+        return actions
+    }
 
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? { order.first.flatMap { cards[$0] } }
@@ -289,6 +318,9 @@ public final class CardGridView: View {
                 card.onFocus = { [weak self] item in self?.onFocus?(item) }
                 card.onPlay = { [weak self] item in self?.onPlay?(item) ?? false }
                 card.onContextMenu = { [weak self] item, point in self?.onContextMenu?(item, point) }
+                card.onToggleWatched = { [weak self] item in self?.onToggleWatched?(item) }
+                card.onHover = { [weak self] item in self?.onHover?(item) }
+                card.hoverActions = { [weak self] in self?.hoverActions ?? [] }
                 addSubview(card)
                 next[item.id] = card
             }

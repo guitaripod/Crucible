@@ -153,8 +153,21 @@ public struct CardStyle: Hashable, Sendable {
     }
 }
 
+/// What a card offers under the pointer on a desk: a play button in the middle of its artwork, a watched toggle in one
+/// corner and a button for its menu in the other.
+public struct CardHoverActions: OptionSet, Sendable {
+    public let rawValue: Int
+    public init(rawValue: Int) { self.rawValue = rawValue }
+
+    public static let play = CardHoverActions(rawValue: 1)
+    public static let watched = CardHoverActions(rawValue: 2)
+    public static let menu = CardHoverActions(rawValue: 4)
+}
+
 /// The one card (`TVCardContentView`): artwork that lifts under focus or the pointer, tilting its sheen toward the
 /// pointer, with a caption that slides down with it; progress, watched and unwatched marks and a corner badge on the art.
+/// On a desk the pointer also brings out the card's hover actions (`CardHoverActions`), the full title in a tooltip when
+/// the caption cuts it short, and resting on a card tells `onHover` (Home's hero follows it); Space plays the focused card.
 @MainActor
 public final class CardView: View {
     public var item: CardItem { didSet { if item != oldValue { apply(oldValue) } } }
@@ -167,6 +180,22 @@ public final class CardView: View {
     public var onFocus: ((CardItem) -> Void)?
     /// The Play/Pause key on the focused card; returns whether it played, so a show passes the press on.
     public var onPlay: ((CardItem) -> Bool)?
+    /// The hover watched toggle.
+    public var onToggleWatched: ((CardItem) -> Void)?
+    /// The pointer rested on the card for a moment.
+    public var onHover: ((CardItem) -> Void)?
+    /// Which hover actions the card offers now; its shelf or grid says, from the callbacks its screen set.
+    public var hoverActions: () -> CardHoverActions = { [] }
+
+    /// One of the hover buttons.
+    private enum Zone: Equatable {
+        case play, watched, menu
+    }
+
+    private var hoverChrome = Animated(0)
+    private var hoveredZone: Zone?
+    private var pressedZone: Zone?
+    private var restTask: DispatchWorkItem?
 
     private lazy var artwork = ArtworkSlot(owner: self)
     private var lift = Animated(0)
@@ -224,13 +253,85 @@ public final class CardView: View {
         if isFocused { updateLift() }
     }
 
-    public override func pointerEntered() { updateLift() }
+    public override func pointerEntered() {
+        updateLift()
+        guard Theme.current.density == .desk else { return }
+        hoverChrome.set(1, animation: .timed(duration: 0.14, curve: .easeOut))
+        startAnimating()
+        restTask?.cancel()
+        let rest = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.isHovered else { return }
+                self.onHover?(self.item)
+            }
+        }
+        restTask = rest
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: rest)
+    }
 
     public override func pointerExited() {
         pressedByPointer = false
+        pressedZone = nil
+        hoveredZone = nil
+        restTask?.cancel()
         press.set(0, animation: .press)
+        hoverChrome.set(0, animation: .timed(duration: 0.18, curve: .easeOut))
         updateLift()
     }
+
+    /// The actions shown on hover: on a desk, for a rounded card, what its shelf or grid offers.
+    private var offered: CardHoverActions {
+        guard Theme.current.density == .desk, style.shape == .rounded else { return [] }
+        return hoverActions()
+    }
+
+    /// Where each hover button sits in the card's points, following the artwork's lift.
+    private func zoneRect(_ zone: Zone) -> Rect {
+        let metrics = Theme.current.metrics
+        let art = artworkRect
+        let inset = metrics.badgeInset
+        let corner = metrics.tv(46)
+        let raw: Rect
+        switch zone {
+        case .play:
+            let side = min(max(min(art.width, art.height) * 0.3, metrics.tv(64)), metrics.tv(112))
+            raw = Rect(x: art.midX - side / 2, y: art.midY - side / 2, width: side, height: side)
+        case .watched:
+            raw = Rect(x: art.minX + inset, y: art.minY + inset, width: corner, height: corner)
+        case .menu:
+            raw = Rect(x: art.maxX - inset - corner, y: art.minY + inset, width: corner, height: corner)
+        }
+        let scale = artworkScale
+        let parallax = Point(x: tiltX.value * art.width * 0.012 * lift.value, y: tiltY.value * art.height * 0.012 * lift.value)
+        let center = art.center
+        return Rect(x: center.x + (raw.x - center.x) * scale + parallax.x, y: center.y + (raw.y - center.y) * scale + parallax.y,
+                    width: raw.width * scale, height: raw.height * scale)
+    }
+
+    private func zone(at point: Point) -> Zone? {
+        let offered = offered
+        guard !offered.isEmpty, hoverChrome.target > 0 else { return nil }
+        if offered.contains(.menu), zoneRect(.menu).insetBy(-4, -4).contains(point) { return .menu }
+        if offered.contains(.watched), zoneRect(.watched).insetBy(-4, -4).contains(point) { return .watched }
+        if offered.contains(.play), zoneRect(.play).contains(point) { return .play }
+        return nil
+    }
+
+    /// A hover button's name, or the full title and subtitle when the caption cuts the title short.
+    public override func tooltip(at point: Point) -> String? {
+        switch zone(at: point) {
+        case .play: return item.hasProgress ? Strings.lookup("Resume") : Strings.lookup("Play")
+        case .watched: return item.isWatched ? Strings.lookup("Mark as Unwatched") : Strings.lookup("Mark as Watched")
+        case .menu: return Strings.lookup("More")
+        case nil:
+            guard Theme.current.density == .desk, let scale = window?.scale else { return nil }
+            let full = TextLayout(item.title, font: Theme.current.type.cardTitle, scale: scale).size.width
+            guard full > frame.width * Float(style.titleLines) else { return nil }
+            return [item.title, item.subtitle].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+        }
+    }
+
+    public override func cursor(at point: Point) -> Cursor { zone(at: point) == nil ? cursor : .pointer }
 
     /// A gamepad's right stick tilts the focused card as the pointer does over it.
     public override func gamepadTilted(x: Float, y: Float) -> Bool {
@@ -241,6 +342,11 @@ public final class CardView: View {
     }
 
     public override func pointerMoved(to point: Point) {
+        let zone = zone(at: point)
+        if zone != hoveredZone {
+            hoveredZone = zone
+            setNeedsDisplay()
+        }
         let art = artworkRect
         let x = min(max((point.x - art.midX) / max(art.width / 2, 1), -1), 1)
         let y = min(max((point.y - art.midY) / max(art.height / 2, 1), -1), 1)
@@ -252,6 +358,11 @@ public final class CardView: View {
     public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         switch button {
         case .primary:
+            if let zone = zone(at: point) {
+                pressedZone = zone
+                setNeedsDisplay()
+                return true
+            }
             pressedByPointer = true
             press.set(1, animation: .press)
             startAnimating()
@@ -270,6 +381,21 @@ public final class CardView: View {
 
     public override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
         guard button == .primary else { return }
+        if let pressed = pressedZone {
+            pressedZone = nil
+            setNeedsDisplay()
+            guard zone(at: point) == pressed else { return }
+            switch pressed {
+            case .play:
+                if onPlay?(item) != true { onActivate?(item) }
+            case .watched:
+                onToggleWatched?(item)
+            case .menu:
+                let button = transformToWindow.apply(zoneRect(.menu))
+                onContextMenu?(item, Point(x: button.minX, y: button.maxY))
+            }
+            return
+        }
         press.set(0, animation: .press)
         startAnimating()
         if pressedByPointer && inside {
@@ -280,8 +406,10 @@ public final class CardView: View {
     }
 
     public override func keyPressed(_ event: KeyEvent) -> Bool {
-        guard event.key == .mediaPlay || event.key == .mediaPause, let onPlay else { return false }
-        return onPlay(item)
+        guard let onPlay else { return false }
+        if event.key == .mediaPlay || event.key == .mediaPause { return onPlay(item) }
+        if event.key == .space, event.modifiers.isEmpty, Theme.current.density == .desk, offered.contains(.play) { return onPlay(item) }
+        return false
     }
 
     public override func activate() {
@@ -300,7 +428,7 @@ public final class CardView: View {
     }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
-        let moving = [lift.advance(dt), press.advance(dt), tiltX.advance(dt), tiltY.advance(dt), artwork.advance(dt)]
+        let moving = [lift.advance(dt), press.advance(dt), tiltX.advance(dt), tiltY.advance(dt), artwork.advance(dt), hoverChrome.advance(dt)]
         setNeedsDisplay()
         return moving.contains(true)
     }
@@ -339,6 +467,9 @@ public final class CardView: View {
                 drawArtwork(in: art, radius: radius, context: &faded)
                 drawDecorations(in: art, radius: radius, context: &faded)
             }
+            if hoverChrome.value > 0.01, !offered.isEmpty {
+                inner.fill(art, radius: radius, color: Color.shade(0.28 * hoverChrome.value))
+            }
             if lift.value > 0.001 {
                 let light = Point(x: art.midX - tiltX.value * art.width * 0.45, y: art.minY + art.height * (0.15 - tiltY.value * 0.3))
                 inner.glow(in: art, radius: radius, center: light, glowRadius: art.width * 0.9, color: Color.white.withAlpha(0.16 * lift.value))
@@ -347,6 +478,31 @@ public final class CardView: View {
 
         let captionTop = art.maxY + (scale - 1) * art.height / 2 + metrics.captionSpacing + max(0, parallax.y)
         drawCaption(top: captionTop, type: type, palette: palette, metrics: metrics, context: &context)
+        drawHoverActions(context: &context)
+    }
+
+    /// The hover buttons, faded in with the pointer: dark circles that light under it.
+    private func drawHoverActions(context: inout DrawContext) {
+        let offered = offered
+        guard hoverChrome.value > 0.01, !offered.isEmpty else { return }
+        let palette = Theme.current.palette
+        context.faded(hoverChrome.value) { faded in
+            for zone in [Zone.play, .watched, .menu] {
+                let action: CardHoverActions = zone == .play ? .play : zone == .watched ? .watched : .menu
+                guard offered.contains(action) else { continue }
+                let rect = zoneRect(zone)
+                let lit = hoveredZone == zone || pressedZone == zone
+                let filled = zone == .watched && item.isWatched
+                let fill = lit ? (zone == .play ? palette.accent : Color.white.withAlpha(0.9)) : (filled ? palette.accent : Color.shade(0.62))
+                faded.fill(rect, radius: rect.width / 2, color: fill)
+                if !filled && !lit { faded.stroke(rect, radius: rect.width / 2, width: 1, color: Color.white.withAlpha(0.35)) }
+                let glyph: Symbol = zone == .play ? "play.fill" : zone == .watched ? "checkmark" : "ellipsis"
+                let inset = rect.width * (zone == .play ? 0.32 : 0.27)
+                let glyphRect = zone == .play ? rect.insetBy(inset, inset).offsetBy(rect.width * 0.03, 0) : rect.insetBy(inset, inset)
+                let glyphColor = lit && zone != .play ? Color(hex: 0x1A1816) : palette.onArt
+                faded.symbol(glyph, in: glyphRect, color: glyphColor)
+            }
+        }
     }
 
     private func drawArtwork(in art: Rect, radius: Float, context: inout DrawContext) {
@@ -397,20 +553,21 @@ public final class CardView: View {
             let layout = TextLayout(detail, font: type.artCaption, maxWidth: art.width - inset * 2, scale: scale)
             context.text(layout, at: Point(x: art.x + inset, y: footerBottom - layout.size.height), color: palette.onArt)
         }
-        if item.isUnwatched && !showsProgress && !item.isWatched {
+        let hoverCoversCorners = hoverChrome.value > 0.5 && !offered.isEmpty
+        if item.isUnwatched && !showsProgress && !item.isWatched && !hoverCoversCorners {
             let d = metrics.dotDiameter
             let dot = Rect(x: art.maxX - inset - d, y: art.y + inset, width: d, height: d)
             context.fill(dot.insetBy(-1.5, -1.5), radius: d, color: Color.shade(0.5))
             context.fill(dot, radius: d / 2, color: palette.accent)
         }
-        if item.isWatched && !showsProgress {
+        if item.isWatched && !showsProgress && !hoverCoversCorners {
             let d = metrics.checkDiameter
             let badge = Rect(x: art.maxX - inset - d, y: art.maxY - inset - d, width: d, height: d)
             context.fill(badge, radius: d / 2, color: Color.shade(0.55))
             let glyph = metrics.symbolBadge
             context.symbol("checkmark", in: Rect(x: badge.midX - glyph / 2, y: badge.midY - glyph / 2, width: glyph, height: glyph), color: palette.onArt)
         }
-        if let badge = item.badgeText, !badge.isEmpty, let scale = window?.scale {
+        if let badge = item.badgeText, !badge.isEmpty, !hoverCoversCorners, let scale = window?.scale {
             BadgeStyle.draw(badge, at: Point(x: art.x + inset, y: art.y + inset), maxWidth: art.width - inset * 2, scale: scale, context: &context)
         }
     }
