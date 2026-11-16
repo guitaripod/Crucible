@@ -8,7 +8,7 @@
 #include <libplacebo/vulkan.h>
 #include <libplacebo/cache.h>
 
-#define KILN_MAX_TIMERS 64
+#define KILN_MAX_TIMERS 1024
 
 struct kiln_tex {
     pl_tex tex;
