@@ -52,7 +52,7 @@ final class HistoryScreen: ScreenView {
     override func screenDidAppear() {
         hasRequestedFirstPage = true
         if hasAppeared, !feed.items.isEmpty, !feed.pager.isLoading {
-            feed.refresh()
+            feed.refreshTop()
         } else {
             feed.loadFirstPageIfNeeded()
         }

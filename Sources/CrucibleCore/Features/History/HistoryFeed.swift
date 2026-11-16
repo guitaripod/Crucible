@@ -59,6 +59,46 @@ package final class HistoryFeed {
         loadPage(offset: 0)
     }
 
+    /// Fetches the newest page and puts the plays that came since on top, keeping the plays paged in below: for a screen
+    /// coming back into view, where replacing the list would drop everything the viewer scrolled to and the row they left
+    /// from. When the page does not reach the newest play already listed (more came than a page holds), it refreshes.
+    package func refreshTop() {
+        guard let newestKnown = items.first, loadTask == nil else {
+            loadFirstPageIfNeeded()
+            return
+        }
+        pager.beginLoading()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let container = try await request(.history(start: 0, size: HistoryPager.pageSize))
+                guard !Task.isCancelled else { return }
+                let played = HistoryItem.items(in: container, offset: 0)
+                guard let overlap = played.firstIndex(where: { $0.ratingKey == newestKnown.ratingKey && $0.viewedAt == newestKnown.viewedAt }) else {
+                    loadTask = nil
+                    pager.cancelLoading()
+                    refresh()
+                    return
+                }
+                let fresh = Array(played.prefix(overlap))
+                if !fresh.isEmpty {
+                    let current = await CurrentMetadata.fetch(fresh.map(\.ratingKey), request: request)
+                    guard !Task.isCancelled else { return }
+                    items = fresh.map { CurrentMetadata.played($0, now: current).placedOnTop } + items
+                    pager.noteAdded(fresh.count)
+                }
+                pager.cancelLoading()
+                loadTask = nil
+                if !fresh.isEmpty { onEvent?(.pageLoaded) }
+            } catch {
+                guard !Task.isCancelled else { return }
+                MidgarLog.error("History refresh failed: \(error.localizedDescription)", category: .networking)
+                loadTask = nil
+                pager.cancelLoading()
+            }
+        }
+    }
+
     package func retry() {
         pager.clearFailure()
         loadPage(offset: 0)

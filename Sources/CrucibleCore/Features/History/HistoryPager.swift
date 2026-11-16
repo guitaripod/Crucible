@@ -67,6 +67,12 @@ package struct HistoryPager: Equatable, Sendable {
         total = max(offset, total - 1)
     }
 
+    /// Plays were put on top of the loaded list, so the plays after them moved down and the next page starts that much later.
+    package mutating func noteAdded(_ count: Int) {
+        offset += count
+        total += count
+    }
+
     package mutating func clearFailure() {
         hasFailed = false
     }

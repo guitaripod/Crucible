@@ -72,6 +72,14 @@ extension HistoryItem {
         )
     }
 
+    /// This play with an identity of its own that no offset-based one shares: a play put on top of a list that was loaded
+    /// earlier, whose rows already use the positions it has now.
+    package var placedOnTop: HistoryItem {
+        HistoryItem(ratingKey: ratingKey, title: title, type: type, viewedAt: viewedAt, thumb: thumb, grandparentThumb: grandparentThumb,
+                    grandparentTitle: grandparentTitle, grandparentRatingKey: grandparentRatingKey, parentRatingKey: parentRatingKey,
+                    parentIndex: parentIndex, index: index, duration: duration, uniqueId: "\(ratingKey)@\(viewedAt ?? 0)", historyKey: historyKey)
+    }
+
     /// Maps one page of the history endpoint, which started at `offset`, into items in server order.
     package static func items(in container: PlexMediaContainer, offset: Int) -> [HistoryItem] {
         (container.Metadata ?? []).enumerated().map { index, metadata in

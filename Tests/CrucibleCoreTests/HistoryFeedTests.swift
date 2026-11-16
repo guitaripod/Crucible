@@ -270,6 +270,45 @@ struct HistoryFeedTests {
         #expect(await server.historyStarts == [0, 0])
     }
 
+    @Test func refreshingTheTopPutsNewPlaysAboveTheListAndKeepsWhatWasPagedIn() async {
+        let fresh = (0..<2).map { HistoryFixtures.json(key: "new\($0)", title: "New \($0)", viewedAt: HistoryFixtures.ago(days: 1)) }
+        let server = FakeHistoryServer(replies: [
+            .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
+            .page(HistoryFixtures.container(total: 100, rows: rows(50..<100))),
+            .page(HistoryFixtures.container(total: 102, rows: fresh + rows(0..<48))),
+        ])
+        let (feed, log) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        feed.prefetchMore()
+        await settle(feed)
+        #expect(feed.items.count == 100)
+        feed.refreshTop()
+        await settle(feed)
+        #expect(feed.items.count == 102)
+        #expect(feed.items.prefix(3).map(\.ratingKey) == ["new0", "new1", "0"])
+        #expect(Set(feed.items.map(\.uniqueId)).count == 102)
+        #expect(feed.pager.offset == 102)
+        #expect(log.events == [.pageLoaded, .pageLoaded, .pageLoaded])
+        #expect(await server.historyStarts == [0, 50, 0])
+    }
+
+    @Test func refreshingTheTopWithNothingNewChangesNothing() async {
+        let server = FakeHistoryServer(replies: [
+            .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
+            .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
+        ])
+        let (feed, log) = makeFeed(server)
+        feed.loadFirstPageIfNeeded()
+        await settle(feed)
+        let before = feed.items
+        feed.refreshTop()
+        await settle(feed)
+        #expect(feed.items == before)
+        #expect(feed.pager.offset == 50)
+        #expect(log.events == [.pageLoaded])
+    }
+
     @Test func aFailedRefreshKeepsTheListAndItsPagingState() async {
         let server = FakeHistoryServer(replies: [
             .page(HistoryFixtures.container(total: 100, rows: rows(0..<50))),
