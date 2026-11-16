@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adds Crucible to Steam as a non-Steam game for Big Picture: `crucible --couch` (Couch density, full screen) with its
+"""Adds Crucible to Steam as a non-Steam game for Big Picture: `crucible --steam-deck` (the Steam Deck layout, full screen) with its
 icon, in every Steam account on this computer, and picks Steam Input's own gamepad templates for it, the Steam Deck's and
 DualSense's with the right trackpad as the mouse. Steam reads both files only when it starts, so it must be closed.
 
@@ -89,7 +89,7 @@ def update_shortcuts(path, exe, remove):
         quoted = f'"{exe}"'
         kept.append({
             "appid": shortcut_id(quoted, NAME), "AppName": NAME, "Exe": quoted, "StartDir": f'"{os.path.dirname(exe)}/"',
-            "icon": icon_path(), "ShortcutPath": "", "LaunchOptions": "--couch", "IsHidden": 0, "AllowDesktopConfig": 1,
+            "icon": icon_path(), "ShortcutPath": "", "LaunchOptions": "--steam-deck", "IsHidden": 0, "AllowDesktopConfig": 1,
             "AllowOverlay": 1, "OpenVR": 0, "Devkit": 0, "DevkitGameID": "", "DevkitOverrideAppID": 0, "LastPlayTime": 0,
             "FlatpakAppID": "", "tags": {},
         })
@@ -136,7 +136,7 @@ def main():
     for account in accounts:
         update_shortcuts(os.path.join(users, account, "config", "shortcuts.vdf"), exe, options.remove)
         update_templates(os.path.join(options.steam, "steamapps", "common", "Steam Controller Configs", account, "config"), options.remove)
-        print(f"steam-shortcut: {'removed' if options.remove else 'added'} {NAME} for account {account} ({exe} --couch)")
+        print(f"steam-shortcut: {'removed' if options.remove else 'added'} {NAME} for account {account} ({exe} --steam-deck)")
 
 
 if __name__ == "__main__":

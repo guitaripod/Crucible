@@ -11,7 +11,7 @@ enum CrucibleLinux {
 
 /// Crucible for Linux.
 ///
-///     crucible [--couch] [--light] [--fullscreen] [--new-instance] [crucible://...]
+///     crucible [--steam-deck | --desktop] [--light] [--fullscreen] [--new-instance] [crucible://...]
 ///     crucible --check-news   (the news timer: announce what arrived on the server, then quit)
 ///
 /// A launch while Crucible runs hands its `crucible://` links to the running app and quits; `--new-instance` (and the
@@ -51,7 +51,7 @@ func runCrucible() -> Int32 {
         return 1
     }
     window.hudTraceFile = AppPlatform.cachesDirectory.appendingPathComponent("frame-trace.txt")
-    if arguments.contains("--fullscreen") || arguments.contains("--couch") { window.setFullscreen(true) }
+    if arguments.contains("--fullscreen") || arguments.contains("--couch") || arguments.contains("--steam-deck") { window.setFullscreen(true) }
     LinuxDisplay.applyCanvas(to: window)
     TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
     DesktopAccessibility.apply(to: window)

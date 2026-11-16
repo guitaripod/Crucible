@@ -117,21 +117,25 @@ UI colours stay sRGB tokens. The renderer linearises them and scales them to the
 
 The desk is the main room (D4). Every screen is designed and judged with a mouse and a keyboard; the TV and the gamepad reuse the same screens.
 
-- **Pointer:** a card under the pointer lifts with the tvOS focus effect and tilts toward it (parallax and a specular sheen that follow the pointer inside the card), the way iPadOS lifts artwork under a trackpad. A click selects; middle click opens a title in a new window; right click opens the context menu (the tvOS long-press menu); the back and forward mouse buttons walk history. Hover never moves keyboard focus, so a resting pointer cannot steal it.
-- **Scrolling:** wheel and touchpad scroll grids and pages with momentum and rubber banding at the ends; shelves scroll sideways under a horizontal swipe or Shift with the wheel, and show edge arrows on hover for mice without a horizontal axis. Overlay scroll indicators appear while scrolling and on hover, never as permanent bars. Ctrl with the wheel resizes posters (the iPad's Command plus and minus).
+- **Pointer:** a card under the pointer lifts with the tvOS focus effect and tilts toward it (parallax and a specular sheen that follow the pointer inside the card), the way iPadOS lifts artwork under a trackpad, and in the Desktop layout brings out a play button, a watched toggle and a menu button on its artwork, with the full title in a tooltip when the caption cuts it short. A click selects; middle click opens a title in a new window; right click opens the context menu, a desktop menu (one highlighted row per panel, submenus with menu aim, type-ahead) rather than the tvOS long-press panel; the back and forward mouse buttons walk history. Hover never moves keyboard focus, so a resting pointer cannot steal it.
+- **Scrolling:** wheel and touchpad scroll grids and pages with momentum and rubber banding at the ends; shelves scroll sideways under a horizontal swipe or Shift with the wheel, and show edge arrows on hover for mice without a horizontal axis. In the Desktop layout every vertical page has a slim scrollbar that stays while there is more to scroll, widens under the pointer, drags and pages on a click, and Page Up, Page Down, Home and End scroll; the Steam Deck layout keeps tvOS's indicator that shows only while scrolling. Ctrl with the wheel resizes posters (the iPad's Command plus and minus).
 - **Keyboard:** the geometric focus engine (below) moves with the arrows; Enter selects, Escape goes back, Tab and Shift+Tab walk controls in reading order, and the focus ring shows only once the keyboard is used (the platform's focus-visible rule). Typing a letter anywhere outside a text field opens Search with that letter. Every command has a shortcut and appears in the menu (§6).
 - **Text:** titles, synopses and cast names can be selected and copied; tooltips name icon-only buttons after a short hover.
 - **Focus engine:** modelled on tvOS: focus environments, preferred focus, focus guides, nearest-in-direction search with overlap preference, focus memory by item identifier across reloads (the `TVScreenViewController` rule), and the anchor that holds focus while a screen loads. The focus effect comes from `TVMetrics.Focus`: lift 1.04, pressed 0.98, shadow radius 32 at (0, 20) with 0.4 opacity, row growth `min(1.04, 1 + 40 / width)`.
 - **Gamepad and couch (a plus):** d-pad and stick move focus with tvOS-like repeat acceleration, A selects, B goes back, Start plays and pauses, Y opens the context menu, LB and RB change tabs; the right stick drives the parallax a pointer would.
 
-### 5.5 Two densities, one design
+### 5.5 Two layouts, one design
 
-| Density | When | Values |
+| Layout (density) | When | Values |
 | --- | --- | --- |
-| Desk (default) | Every window | The Apple TV layouts and components at 60% of the tvOS numbers, type, space, radius and geometry alike, so body text lands on the iPad's 17 points (17.5), a poster is 156 x 234 and the gutter 24; a wider window shows more of the same shelves and more grid columns, and Ctrl with the wheel zooms cards from 0.7 to 1.6 times |
-| Couch | Chosen in the View menu, `crucible --couch` (the Steam Big Picture shortcut), or offered once when a gamepad is used fullscreen on an output 40 inches or larger (from EDID) | The tvOS tokens one to one on a 1920 x 1080 point canvas scaled to the output (2x on the C5 at 4K) |
+| Desktop (`desk`, default) | Every window outside Steam's Game Mode | The Apple TV components at 60% of the tvOS numbers, type, space, radius and geometry alike, so body text lands on the iPad's 17 points (17.5), a poster is 156 x 234 and the gutter 24; a wider window shows more of the same shelves and more grid columns, and Ctrl with the wheel zooms cards from 0.7 to 1.6 times. Laid out for a mouse and keyboard rather than a remote: a sidebar instead of the floating tab bar (below), two-pane Settings with switches, a season's episodes as a list, the player's desktop control bar, desktop menus, scrollbars, text fields and dialogs |
+| Steam Deck (`couch`) | Steam's Game Mode (gamescope with Steam's gamepad interface) until the viewer picks a layout, Settings › Appearance › Layout, the View menu's Switch Layout, `crucible --steam-deck` (the Steam shortcut; `--couch` still works), `CRUCIBLE_LAYOUT=steam-deck`, or offered once when a gamepad is used fullscreen on an output 40 inches or larger (from EDID) | The tvOS tokens one to one on a 1920 x 1080 point canvas scaled to the output (2x on the C5 at 4K, two thirds on the Deck's 1280 x 800, where the canvas grows to 1920 x 1200), with the tvOS screens as the Apple TV draws them |
 
-Desk windows adapt like the iPad's `Theme.Room`: grids add columns toward the target poster width, list screens centre a readable column, and the hero grows with the window. Windowed mode uses KWin's server-side decorations; fullscreen (F11) and Couch hide them.
+`--desktop` and `CRUCIBLE_LAYOUT=desktop` force the Desktop layout. Desktop windows adapt like the iPad's `Theme.Room`: grids add columns toward the target poster width, forms centre a readable column (wider than on a TV), and the hero grows with the window. Windowed mode uses KWin's server-side decorations; fullscreen (F11) and the Steam Deck layout hide them.
+
+#### The Desktop layout's sidebar
+
+The Desktop layout navigates from a sidebar down the window's leading edge instead of the floating tab bar: Back and Forward at its head (Alt+Left and Alt+Right, the mouse's side buttons), Home and Search, every library (the tab bar's More folds into the list), You, and Settings and the app's menu at its foot (the menu cascades into Go, View, Media and Settings). Ctrl with a number picks destinations in the order they show; Ctrl+B, or a window narrower than about 1140 points, narrows it to a rail of symbols named in tooltips. Pages no longer leave room for a floating bar at their top.
 
 ### 5.6 Type and symbols
 
@@ -243,7 +247,7 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 | `crucible://` links and one instance | A desktop entry with `MimeType=x-scheme-handler/crucible;` and the D-Bus name `org.guitaripod.Crucible`, which hands a second launch's link to the running app and Core's deep-link parser |
 | Notifications | `org.freedesktop.Notifications` for `LibraryNews` while the app runs; a systemd user timer for background refresh can follow |
 | Output HDR and refresh rate | `kde_output_management_v2` (§7.4) |
-| Couch | `crucible --couch` as a non-Steam shortcut for Big Picture: `linux/scripts/steam-shortcut.py` adds it to every Steam account with Steam closed and picks Steam Input's own gamepad templates for it (gamepad and trackpad mouse on the Steam Deck and DualSense, gamepad elsewhere) |
+| Steam Deck layout | `crucible --steam-deck` as a non-Steam shortcut for Big Picture and Game Mode: `linux/scripts/steam-shortcut.py` adds it to every Steam account with Steam closed and picks Steam Input's own gamepad templates for it (gamepad and trackpad mouse on the Steam Deck and DualSense, gamepad elsewhere) |
 | Clean exit | SIGTERM, SIGINT and SIGHUP save resume positions and send the stopped timeline before exiting (the Tailscode lesson that an unhandled SIGTERM counts as a crash) |
 
 ## 10. Layout, build and install
