@@ -9,6 +9,12 @@ public enum GlassStyle {
         Color(hex: 0xF6F3EF).mixed(with: Color(hex: 0x1A1816), amount: tone)
     }
 
+    /// The destructive red for a label on glass: lighter on dark glass and deeper on light glass, so Delete reads over a
+    /// warm backdrop where the palette's red sits too close to the glass in brightness.
+    public static func destructiveLabel(tone: Float) -> Color {
+        Color(hex: 0xFF8A80).mixed(with: Color(hex: 0xC4161C), amount: tone)
+    }
+
     public static func secondaryLabel(tone: Float) -> Color {
         Color(hex: 0xF6F3EF, srgbAlpha: 0.68).mixed(with: Color(hex: 0x1A1816, srgbAlpha: 0.66), amount: tone)
     }

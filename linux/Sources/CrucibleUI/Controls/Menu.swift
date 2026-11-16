@@ -213,7 +213,7 @@ final class MenuRowView: View {
         if lit.value > 0.01 {
             context.fill(bounds, radius: metrics.radiusM, color: theme.palette.focusFill.withAlpha(lit.value))
         }
-        let base = item.isDestructive ? theme.palette.destructive : GlassStyle.label(tone: tone)
+        let base = item.isDestructive ? GlassStyle.destructiveLabel(tone: tone) : GlassStyle.label(tone: tone)
         let color = base.mixed(with: theme.palette.onFocusFill, amount: lit.value)
         let secondary = GlassStyle.secondaryLabel(tone: tone).mixed(with: theme.palette.onFocusFillSecondary, amount: lit.value)
         let check = metrics.tv(28)
