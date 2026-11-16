@@ -9,8 +9,8 @@ import Kiln
 /// or the row whose submenu is open while the pointer is in that submenu. A submenu opens after the pointer rests on its
 /// row, and a pointer crossing other rows on its way into an open submenu does not close it (menu aim). The keyboard:
 /// Up and Down move and wrap, Home, End, Page Up and Page Down jump, typing a title's first letters moves to it, Right or
-/// Return opens a submenu and Left closes it, Left and Right on a stepper change its value, Return or Space chooses,
-/// Escape closes the innermost panel. A panel taller than the window scrolls. A choice closes the menu unless its entry
+/// Return opens a submenu and Left closes it, Left and Right on a stepper change its value and Return, Backspace or Delete
+/// put it back, Return or Space chooses, Escape closes the innermost panel. Only a stepper's − and + take clicks. A panel taller than the window scrolls. A choice closes the menu unless its entry
 /// keeps it open, and an entry that keeps it open rebuilds its panel so values and checkmarks stay current.
 @MainActor
 public final class ContextMenuView: View {
@@ -609,7 +609,6 @@ final class ContextMenuRow: View {
             let zones = stepperZones
             if zones.minus.insetBy(-6, -6).contains(point) { step(stepper.decrease) }
             else if zones.plus.insetBy(-6, -6).contains(point) { step(stepper.increase) }
-            else if let reset = stepper.reset { step(reset) }
         default:
             activate()
         }
@@ -639,6 +638,8 @@ final class ContextMenuRow: View {
             if let panel, panel.level > 0 { menu?.closeInnermost() }
         case (_, .right):
             break
+        case (.stepper(let stepper), .backspace), (.stepper(let stepper), .delete):
+            if let reset = stepper.reset { step(reset) }
         case (_, let key) where key.isActivation && panel?.highlighted !== self:
             break
         case (_, .up):

@@ -22,6 +22,31 @@ extension PlayerScreen {
         holdChrome()
     }
 
+    /// On a desk, a transport button opens the same menu as its row of the right-click menu, hanging from the button.
+    func presentDeskMenu(for control: TransportView.Control, anchor: Rect) {
+        guard let window, player != nil else { return }
+        let entries: @MainActor () -> [ContextMenuView.Entry] = { [weak self] in
+            guard let self else { return [] }
+            switch control {
+            case .audio: return self.audioEntries()
+            case .subtitles: return self.subtitleEntries()
+            case .speed: return self.speedEntries()
+            case .sleep: return self.sleepEntries()
+            case .info: return []
+            }
+        }
+        contextMenu?.dismiss()
+        let menu = ContextMenuView(anchor: anchor, entries: entries)
+        menu.onDismiss = { [weak self] in
+            self?.showChrome(autoHide: true)
+            self?.contextMenu = nil
+        }
+        contextMenu = menu
+        menu.present(in: window)
+        showChrome(autoHide: false)
+        holdChrome()
+    }
+
     private func menuEntries() -> [ContextMenuView.Entry] {
         typealias Action = ContextMenuView.Action
         var entries: [ContextMenuView.Entry] = []
@@ -99,7 +124,7 @@ extension PlayerScreen {
         return .submenu(String(localized: "Audio", comment: "Player menu"), detail: current, symbol: "waveform") { [weak self] in self?.audioEntries() ?? [] }
     }
 
-    private func audioEntries() -> [ContextMenuView.Entry] {
+    func audioEntries() -> [ContextMenuView.Entry] {
         typealias Action = ContextMenuView.Action
         var entries: [ContextMenuView.Entry] = []
         if let stream {
@@ -149,7 +174,7 @@ extension PlayerScreen {
         }
     }
 
-    private func subtitleEntries() -> [ContextMenuView.Entry] {
+    func subtitleEntries() -> [ContextMenuView.Entry] {
         typealias Action = ContextMenuView.Action
         var entries: [ContextMenuView.Entry] = []
         if let stream {
@@ -210,7 +235,7 @@ extension PlayerScreen {
 
     // MARK: Speed, picture, chapters, loop, screenshots, sleep
 
-    private func speedEntries() -> [ContextMenuView.Entry] {
+    func speedEntries() -> [ContextMenuView.Entry] {
         [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map { value in
             .action(ContextMenuView.Action(Self.speedTitle(value), isChecked: abs(value - speed) < 0.01) { [weak self] in
                 self?.setSpeed(value)
@@ -321,7 +346,7 @@ extension PlayerScreen {
         ]
     }
 
-    private func sleepEntries() -> [ContextMenuView.Entry] {
+    func sleepEntries() -> [ContextMenuView.Entry] {
         let timer = sleepTimer
         var entries: [ContextMenuView.Entry] = [.action(ContextMenuView.Action(SleepTimer.off, isChecked: timer == nil) { [weak self] in
             self?.setSleepTimer(nil)

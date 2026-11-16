@@ -15,6 +15,10 @@ extension PlayerScreen {
     // MARK: Menus
 
     func present(_ control: TransportView.Control, anchor: Rect) {
+        if Theme.current.density == .desk, control != .info {
+            presentDeskMenu(for: control, anchor: anchor)
+            return
+        }
         switch control {
         case .info: toggleInfo()
         case .speed: presentSpeeds(anchor: anchor)
