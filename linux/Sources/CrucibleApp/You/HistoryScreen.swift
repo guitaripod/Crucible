@@ -138,6 +138,7 @@ final class HistoryScreen: ScreenView {
         section.onOpen = { [weak self] item in self?.open(item) }
         section.onPlay = { [weak self] item in self?.playAgain(item) }
         section.onMenu = { [weak self] item, point in self?.presentMenu(for: item, at: point) }
+        section.onRemove = { [weak self] item in self?.confirmRemove(item) }
         return section
     }
 
@@ -240,6 +241,15 @@ final class HistoryScreen: ScreenView {
         menu.present(in: window)
     }
 
+    /// Delete on a play: for the server's owner, asks and then removes it from the server's history.
+    private func confirmRemove(_ item: HistoryItem) {
+        guard let window, ServerOwnership.isOwner(), item.historyKey != nil else { return }
+        AlertView.confirm(title: String(localized: "Remove from History", comment: "Owner action that deletes a play from the server's watch history"),
+                          message: item.row.title, confirm: String(localized: "Remove", comment: "Button that confirms removing something"), in: window) {
+            [weak self] in self?.remove(item)
+        }
+    }
+
     private func remove(_ item: HistoryItem) {
         guard let historyKey = item.historyKey else { return }
         let api = api
@@ -291,6 +301,7 @@ private final class HistoryDaySection: View {
     var onOpen: ((HistoryItem) -> Void)?
     var onPlay: ((HistoryItem) -> Void)?
     var onMenu: ((HistoryItem, Point?) -> Void)?
+    var onRemove: ((HistoryItem) -> Void)?
 
     private var title = ""
     private var rows: [String: HistoryRowView] = [:]
@@ -310,6 +321,7 @@ private final class HistoryDaySection: View {
             row.onOpen = { [weak self] item in self?.onOpen?(item) }
             row.onPlay = { [weak self] item in self?.onPlay?(item) }
             row.onMenu = { [weak self] item, point in self?.onMenu?(item, point) }
+            row.onRemove = { [weak self] item in self?.onRemove?(item) }
             if row.superview == nil { addSubview(row) }
             next[item.uniqueId] = row
         }
@@ -321,7 +333,7 @@ private final class HistoryDaySection: View {
     }
 
     private var headerHeight: Float { Theme.current.metrics.tv(64) }
-    private var rowHeight: Float { Theme.current.metrics.tv(144) }
+    private var rowHeight: Float { Theme.current.metrics.tv(Theme.current.density == .desk ? 124 : 144) }
     private var spacing: Float { Theme.current.metrics.tv(12) }
 
     override func sizeThatFits(_ size: Size) -> Size {
@@ -331,7 +343,7 @@ private final class HistoryDaySection: View {
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
-        let width = min(frame.width - metrics.sideMargin * 2, metrics.tv(1400))
+        let width = min(frame.width - metrics.sideMargin * 2, metrics.tv(Theme.current.density == .desk ? 2200 : 1400))
         var y = headerHeight
         for id in order {
             rows[id]?.frame = Rect(x: metrics.sideMargin, y: y, width: width, height: rowHeight)
@@ -356,16 +368,20 @@ private final class HistoryRowView: View {
     var onOpen: ((HistoryItem) -> Void)?
     var onPlay: ((HistoryItem) -> Void)?
     var onMenu: ((HistoryItem, Point?) -> Void)?
+    var onRemove: ((HistoryItem) -> Void)?
 
     let plate: HistoryPlate
     private let play = ButtonView(style: .glass, title: nil, symbol: "play.fill")
+    /// The desk's button for the play's menu, beside Play Again.
+    private let more = ButtonView(style: .glass, title: nil, symbol: "ellipsis")
     private let spinner = SpinnerView()
 
     init(item: HistoryItem) {
         self.item = item
         plate = HistoryPlate(presentation: item.row)
         super.init()
-        play.spokenTitle = String(localized: "Play")
+        play.spokenTitle = String(localized: "Play Again", comment: "Watch history action that plays a title again")
+        more.spokenTitle = String(localized: "More")
         plate.onActivate = { [weak self] in
             guard let self else { return }
             self.onOpen?(self.item)
@@ -382,7 +398,16 @@ private final class HistoryRowView: View {
             guard let self else { return }
             self.onPlay?(self.item)
         }
-        [plate, play, spinner].forEach(addSubview)
+        more.onPress = { [weak self] in
+            guard let self else { return }
+            let frame = self.more.frameInWindow
+            self.onMenu?(self.item, Point(x: frame.minX, y: frame.maxY))
+        }
+        plate.onRemove = { [weak self] in
+            guard let self else { return }
+            self.onRemove?(self.item)
+        }
+        [plate, play, more, spinner].forEach(addSubview)
     }
 
     override var remembersFocus: Bool { true }
@@ -391,9 +416,13 @@ private final class HistoryRowView: View {
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
         let side = metrics.tv(76)
-        let buttonX = frame.width - side
+        let desk = Theme.current.density == .desk
+        more.isHidden = !desk
+        let moreX = frame.width - side
+        let buttonX = desk ? moreX - side - metrics.tv(20) : frame.width - side
         plate.frame = Rect(x: 0, y: 0, width: buttonX - metrics.tv(40), height: frame.height)
         play.frame = Rect(x: buttonX, y: (frame.height - side) / 2, width: side, height: side)
+        more.frame = Rect(x: moreX, y: (frame.height - side) / 2, width: side, height: side)
         spinner.frame = play.frame.insetBy(side * 0.2, side * 0.2)
         play.isHidden = isBusy
         spinner.isHidden = !isBusy
@@ -407,6 +436,7 @@ private final class HistoryPlate: View {
     var onActivate: (() -> Void)?
     var onPlay: (() -> Void)?
     var onMenu: ((Point?) -> Void)?
+    var onRemove: (() -> Void)?
 
     private let poster = ArtworkView()
     private var lift = Animated(0)
@@ -459,9 +489,14 @@ private final class HistoryPlate: View {
         return true
     }
 
+    /// Play/Pause plays the title again; Delete removes the play (for the server's owner, after asking).
     override func keyPressed(_ event: KeyEvent) -> Bool {
-        guard event.key == .mediaPlay || event.key == .mediaPause else { return false }
-        onPlay?()
+        if event.key == .mediaPlay || event.key == .mediaPause {
+            onPlay?()
+            return true
+        }
+        guard event.modifiers.isEmpty, event.key == .delete, let onRemove else { return false }
+        onRemove()
         return true
     }
 
