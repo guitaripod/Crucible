@@ -258,7 +258,9 @@ public final class StatsHeatLegendView: View {
         context.text(text.less, at: Point(x: x, y: ((frame.height - text.less.size.height) / 2).rounded()), color: secondary)
         x += text.less.size.width + metrics.tv(12)
         for level in [0, 2, 5] {
-            context.fill(Rect(x: x, y: ((frame.height - swatch) / 2).rounded(), width: swatch, height: swatch), radius: metrics.tv(4), color: StatsStyle.heat(level))
+            let rect = Rect(x: x, y: ((frame.height - swatch) / 2).rounded(), width: swatch, height: swatch)
+            context.fill(rect, radius: metrics.tv(4), color: StatsStyle.heat(level))
+            if level == 0 { context.stroke(rect, radius: metrics.tv(4), width: 1, color: Theme.current.palette.labelTertiary) }
             x += swatch + metrics.tv(4)
         }
         x += metrics.tv(12) - metrics.tv(4)
