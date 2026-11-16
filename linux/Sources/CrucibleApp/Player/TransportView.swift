@@ -56,6 +56,13 @@ final class TransportView: View {
     private var hoverFraction: Float?
     private var scrubbing = false
     private var tone = GlassTone()
+    /// Each label's own tone over the picture right under it: dark over glare there while the glass as a whole reads dark.
+    private var labelTones: [Label: GlassTone] = [:]
+
+    private enum Label: Hashable {
+        case title, play, elapsed, remaining, buffering, preview
+        case control(Control)
+    }
 
     func update(position: Double, duration: Double, buffered: Double, paused: Bool, buffering: Bool) {
         self.position = position
@@ -154,29 +161,39 @@ final class TransportView: View {
         GlassStyle.capsule(in: bounds, radius: metrics.radiusL, light: Point(x: bounds.midX, y: bounds.minY - bounds.height), floating: true,
                            tone: tone.value, context: &context)
         let label = GlassStyle.label(tone: tone.value)
-        let secondary = GlassStyle.secondaryLabel(tone: tone.value)
         let firstControl = Control.allCases.map(frame(of:)).map(\.minX).min() ?? frame.width
         let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: firstControl - metrics.tv(72), scale: scale)
-        context.text(titleLayout, at: Point(x: metrics.tv(48), y: metrics.tv(28)), color: label)
-        drawControls(label: label, context: &context)
+        let titleOrigin = Point(x: metrics.tv(48), y: metrics.tv(28))
+        context.text(titleLayout, at: titleOrigin,
+                     color: GlassStyle.label(tone: labelTone(.title, over: Rect(origin: titleOrigin, size: titleLayout.size), context)))
+        drawControls(context: &context)
         let symbol: Symbol = paused ? "play.fill" : "pause.fill"
         let play = playButton
-        context.symbol(symbol, in: play.insetBy(play.width * 0.22, play.height * 0.22), color: label)
-        drawBar(label: label, secondary: secondary, scale: scale, context: &context)
+        context.symbol(symbol, in: play.insetBy(play.width * 0.22, play.height * 0.22), color: GlassStyle.label(tone: labelTone(.play, over: play, context)))
+        drawBar(label: label, scale: scale, context: &context)
+    }
+
+    /// The tone of `label` at `rect`, read from the picture under it, beside the glass's own.
+    private func labelTone(_ label: Label, over rect: Rect, _ context: DrawContext) -> Float {
+        var each = labelTones[label] ?? GlassTone()
+        if each.update(context, rect: rect, on: tone) { startAnimating() }
+        labelTones[label] = each
+        return each.value
     }
 
     /// The menu buttons; a set sleep timer or a changed speed lights its button in the accent.
-    private func drawControls(label: Color, context: inout DrawContext) {
+    private func drawControls(context: inout DrawContext) {
         let accent = Theme.current.palette.accent
         for control in Control.allCases {
             let button = frame(of: control)
             let lit = (control == .sleep && isSleepTimerSet) || (control == .speed && isSpeedChanged)
             let symbol: Symbol = control == .sleep && isSleepTimerSet ? "moon.zzz.fill" : control.symbol
+            let label = GlassStyle.label(tone: labelTone(.control(control), over: button, context))
             context.symbol(symbol, in: button.insetBy(button.width * 0.22, button.height * 0.22), color: lit ? accent : label)
         }
     }
 
-    private func drawBar(label: Color, secondary: Color, scale: Float, context: inout DrawContext) {
+    private func drawBar(label: Color, scale: Float, context: inout DrawContext) {
         let theme = Theme.current
         let metrics = theme.metrics
         let track = bar
@@ -206,18 +223,24 @@ final class TransportView: View {
                 if let texture = still?(time) {
                     drawStill(texture, caption: preview, centeredAt: anchor, context: &context)
                 } else {
-                    let x = min(max(anchor - preview.size.width / 2, track.x), track.maxX - preview.size.width)
-                    context.text(preview, at: Point(x: x, y: track.y - preview.size.height - metrics.tv(14)), color: label)
+                    let origin = Point(x: min(max(anchor - preview.size.width / 2, track.x), track.maxX - preview.size.width),
+                                       y: track.y - preview.size.height - metrics.tv(14))
+                    context.text(preview, at: origin, color: GlassStyle.label(tone: labelTone(.preview, over: Rect(origin: origin, size: preview.size), context)))
                 }
             }
         }
         let elapsed = TextLayout(Self.clock(position), font: theme.type.caption1, scale: scale)
         let remaining = TextLayout("-" + Self.clock(max(duration - position, 0)), font: theme.type.caption1, scale: scale)
-        context.text(elapsed, at: Point(x: track.x, y: track.maxY + metrics.tv(8)), color: secondary)
-        context.text(remaining, at: Point(x: track.maxX - remaining.size.width, y: track.maxY + metrics.tv(8)), color: secondary)
+        let elapsedOrigin = Point(x: track.x, y: track.maxY + metrics.tv(8))
+        let remainingOrigin = Point(x: track.maxX - remaining.size.width, y: track.maxY + metrics.tv(8))
+        context.text(elapsed, at: elapsedOrigin,
+                     color: GlassStyle.secondaryLabel(tone: labelTone(.elapsed, over: Rect(origin: elapsedOrigin, size: elapsed.size), context)))
+        context.text(remaining, at: remainingOrigin,
+                     color: GlassStyle.secondaryLabel(tone: labelTone(.remaining, over: Rect(origin: remainingOrigin, size: remaining.size), context)))
         if buffering {
             let note = TextLayout(String(localized: "Buffering…"), font: theme.type.caption1, scale: scale)
-            context.text(note, at: Point(x: track.midX - note.size.width / 2, y: track.maxY + metrics.tv(8)), color: secondary)
+            let origin = Point(x: track.midX - note.size.width / 2, y: track.maxY + metrics.tv(8))
+            context.text(note, at: origin, color: GlassStyle.secondaryLabel(tone: labelTone(.buffering, over: Rect(origin: origin, size: note.size), context)))
         }
     }
 
@@ -241,7 +264,11 @@ final class TransportView: View {
     }
 
     override func advanceAnimations(_ dt: Float) -> Bool {
-        let moving = tone.advance(dt)
+        var moving = tone.advance(dt)
+        for (label, var each) in labelTones {
+            moving = each.advance(dt) || moving
+            labelTones[label] = each
+        }
         setNeedsDisplay()
         return moving
     }
