@@ -106,6 +106,15 @@ extension PlayerScreen {
             guard let window = self?.window else { return }
             window.setFullscreen(!window.isFullscreen)
         }))
+        if isMini {
+            entries.append(.action(Action(String(localized: "Full Player", comment: "Mini player button: brings the full player back")) { [weak self] in
+                self?.onExpand?()
+            }))
+        } else if onMinimize != nil {
+            entries.append(.action(Action(String(localized: "Mini Player", comment: "Player button: keeps playing in a corner while you browse"), shortcut: "P") {
+                [weak self] in self?.onMinimize?()
+            }))
+        }
         entries.append(.action(Action(String(localized: "Info", comment: "Player menu: the info panel"), shortcut: "I", isChecked: infoPanel != nil) {
             [weak self] in self?.toggleInfo()
         }))

@@ -37,6 +37,30 @@ final class PlayerScreen: View {
     var onPlayTitle: ((PlexMetadata, PlayerRun) -> Void)?
     /// Opens the page of a show picked at the end, once the player has closed.
     var onOpenTitle: ((PlexMetadata) -> Void)?
+    /// The viewer asked for the mini player (P, its button, the menu) or for the full player back from it.
+    var onMinimize: (() -> Void)?
+    var onExpand: (() -> Void)?
+    /// The mini player was dragged by `delta` (window points), or let go (nil), when it settles in the nearest corner.
+    var onMiniDrag: ((Point?) -> Void)?
+    /// The player plays on in a corner of the window while the viewer browses (`RootView.minimizePlayer`).
+    var isMini = false {
+        didSet {
+            guard isMini != oldValue else { return }
+            miniHover.reset(0)
+            miniZone = nil
+            if isMini {
+                contextMenu?.dismiss()
+                holdChrome()
+                window?.setCursor(.default)
+            }
+            followFullscreen()
+            setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
+    var miniHover = Animated(0)
+    var miniZone: MiniZone?
+    var miniPress: (zone: MiniZone?, start: Point, dragged: Bool)?
 
     let source: Source
     /// The player on screen, so quitting the app can stop it before its window and GPU go away.
@@ -110,8 +134,8 @@ final class PlayerScreen: View {
     /// Match Content follows the window into full screen and out of it: the screen matches the title only while the player
     /// fills it.
     private func followFullscreen() {
-        guard let window, window.isFullscreen != matchedFullscreen, !closed else { return }
-        matchedFullscreen = window.isFullscreen
+        guard let window, (window.isFullscreen && !isMini) != matchedFullscreen, !closed else { return }
+        matchedFullscreen = window.isFullscreen && !isMini
         if matchedFullscreen, let stream {
             MatchContent.engage(stream, in: window)
         } else if !matchedFullscreen {
@@ -175,6 +199,7 @@ final class PlayerScreen: View {
             if player.state.isMuted { player.setMuted(false) }
             player.setVolume(volume)
         }
+        transport.onMini = { [weak self] in self?.onMinimize?() }
         transport.onToggleFullscreen = { [weak self] in
             guard let window = self?.window else { return }
             self?.viewerActed()
@@ -899,7 +924,7 @@ final class PlayerScreen: View {
     var chromeShown: Bool { chrome.target > 0.5 }
 
     func showChrome(autoHide: Bool) {
-        guard preroll == nil else { return }
+        guard preroll == nil, !isMini else { return }
         chrome.set(1, animation: .fade)
         placeSubtitles()
         window?.setCursor(.default)
@@ -923,8 +948,8 @@ final class PlayerScreen: View {
     }
 
     override func advanceAnimations(_ dt: Float) -> Bool {
-        let moving = chrome.advance(dt)
-        transport.alpha = chrome.value
+        let moving = [chrome.advance(dt), miniHover.advance(dt)].contains(true)
+        transport.alpha = isMini ? 0 : chrome.value
         transport.translation = Point(x: 0, y: (1 - chrome.value) * Theme.current.metrics.tv(40))
         setNeedsDisplay()
         return moving
@@ -1012,6 +1037,8 @@ final class PlayerScreen: View {
             return true
         case Key.character("s"), .return:
             if !skip.isHidden { skipSegment() } else { togglePause() }
+        case Key.character("p"):
+            onMinimize?()
         case Key.character("i"):
             toggleInfo()
         case Key.character("a"):
@@ -1096,13 +1123,37 @@ final class PlayerScreen: View {
     /// The pointer brings the chrome back, except for a nudge of a few points from where it rested when the chrome hid (a
     /// bumped desk or a settling mouse), and keeps it while over the transport.
     override func pointerMoved(to point: Point) {
+        if isMini {
+            miniPointerMoved(to: point)
+            return
+        }
         lastPointer = point
         if chrome.target < 0.5, let rest = restingPointer, abs(point.x - rest.x) + abs(point.y - rest.y) < Theme.current.metrics.tv(24) { return }
         restingPointer = nil
         showChrome(autoHide: !transport.frame.contains(point))
     }
 
+    override func pointerDragged(to point: Point) {
+        if isMini { miniPointerDragged(to: point) }
+    }
+
+    override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
+        if isMini { miniReleased(button, at: point) }
+    }
+
+    override func drawOverlay(_ context: inout DrawContext) {
+        if isMini { drawMiniControls(&context) }
+    }
+
+    override func tooltip(at point: Point) -> String? {
+        isMini ? miniTooltip(at: point) : nil
+    }
+
     override func pointerExited() {
+        if isMini {
+            miniPointerExited()
+            return
+        }
         guard window?.pointerLocation == nil else { return }
         pointerLeftWindow()
     }
@@ -1147,6 +1198,7 @@ final class PlayerScreen: View {
 
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         viewerActed()
+        if isMini { return miniPressed(button, at: point) }
         switch button {
         case .primary:
             let now = Date()
@@ -1189,6 +1241,13 @@ final class PlayerScreen: View {
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
+        for chrome in [transport, skip, card, infoPanel, toast] as [View?] { chrome?.alpha = isMini ? 0 : 1 }
+        if isMini {
+            laidOutSize = nil
+            followFullscreen()
+            for layer in [videoView, seekVeil, calibration, preroll, postPlay] as [View?] { layer?.frame = bounds }
+            return
+        }
         if let previous = laidOutSize, previous != bounds.size { windowResized() }
         laidOutSize = bounds.size
         followFullscreen()

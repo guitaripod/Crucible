@@ -120,7 +120,7 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Narrows the sidebar to its rail or widens it again (Ctrl+B), and keeps the choice.
     func toggleSidebar() {
-        guard usesSidebar, player == nil, !isTooNarrowForSidebar else { return }
+        guard usesSidebar, !playerCovers, !isTooNarrowForSidebar else { return }
         let collapsed = !UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
         UserDefaults.standard.set(collapsed, forKey: Self.sidebarCollapsedKey)
         setNeedsLayout()
@@ -250,7 +250,7 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Escape: back out of a pushed screen, or from a root screen up to the tab bar.
     func handleBack() -> Bool {
-        if let player {
+        if let player, !player.isMini {
             player.close()
             return true
         }
@@ -268,14 +268,14 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Forward: the screen Back last popped on this tab comes back.
     func handleForward() -> Bool {
-        guard player == nil else { return false }
+        guard player == nil || player?.isMini == true else { return false }
         return current?.goForward() ?? false
     }
 
     /// Ctrl with the wheel or a touchpad makes the cards bigger or smaller, as Ctrl with plus and minus does; the player
     /// keeps the scroll for itself.
     func zoomScrolled(_ event: ScrollEvent) -> Bool {
-        guard player == nil else { return false }
+        guard !playerCovers else { return false }
         if let step = CardZoom.step(for: event) { zoomCards(step) }
         return true
     }
@@ -308,25 +308,25 @@ final class RootView: View, WindowRestoration.Restorable {
             select("search")
             return true
         }
-        if let typed = event.typedText, player == nil, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+        if let typed = event.typedText, !playerCovers, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
             select("search")
             (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
             return true
         }
-        if player == nil, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
+        if !playerCovers, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
             zoomCards(step)
             return true
         }
-        if event.key == Key.character(",") && event.modifiers == .control, player == nil {
+        if event.key == Key.character(",") && event.modifiers == .control, !playerCovers {
             openSettings()
             return true
         }
-        if event.key == Key.character("r") && event.modifiers == .control, player == nil {
+        if event.key == Key.character("r") && event.modifiers == .control, !playerCovers {
             (current?.top as? Reloadable)?.reload()
             return true
         }
         if event.key == .tabPrevious || event.key == .tabNext || (event.modifiers == .control && (event.key == .pageUp || event.key == .pageDown)) {
-            guard player == nil else { return false }
+            guard !playerCovers else { return false }
             stepTab(forward: event.key == .tabNext || event.key == .pageDown)
             return true
         }
@@ -338,7 +338,7 @@ final class RootView: View, WindowRestoration.Restorable {
             onCloseWindow?()
             return true
         }
-        if event.key == Key.character("b") && event.modifiers == .control, usesSidebar, player == nil {
+        if event.key == Key.character("b") && event.modifiers == .control, usesSidebar, !playerCovers {
             toggleSidebar()
             return true
         }
@@ -357,13 +357,20 @@ final class RootView: View, WindowRestoration.Restorable {
     /// focus returns where it was when the player closes.
     func play(item: PlexMetadata, api: APIClient, from position: Double? = nil, tracks: (audio: Int?, subtitle: Int?)? = nil,
               run: PlayerRun = PlayerRun()) {
+        if let mini = player, mini.isMini { mini.close() }
         guard player == nil else { return }
         let returnFocus = window?.focusedView
         let screen = PlayerScreen(source: .plex(api, item, resume: position ?? item.resumeSecs))
         screen.chosenTracks = tracks
         screen.run = run
         screen.onClose = { [weak self, weak screen] in
+            let wasMini = screen?.isMini == true
             self?.showUnderPlayer(true)
+            if wasMini {
+                screen?.removeFromSuperview()
+                self?.player = nil
+                return
+            }
             if let returnFocus, returnFocus.window != nil {
                 self?.window?.focus.focus(returnFocus, animated: false)
             } else {
@@ -374,15 +381,22 @@ final class RootView: View, WindowRestoration.Restorable {
             self?.current?.top?.screenDidAppear()
         }
         screen.onPlayNext = { [weak self, weak screen] episode, run in
+            let wasMini = screen?.isMini == true
             screen?.removeFromSuperview()
             self?.player = nil
             self?.play(item: episode, api: api, from: 0, run: run)
+            if wasMini { self?.minimizePlayer() }
         }
         screen.onPlayTitle = { [weak self, weak screen] title, run in
+            let wasMini = screen?.isMini == true
             screen?.removeFromSuperview()
             self?.player = nil
             self?.play(item: title, api: api, run: run)
+            if wasMini { self?.minimizePlayer() }
         }
+        screen.onMinimize = { [weak self] in self?.minimizePlayer() }
+        screen.onExpand = { [weak self] in self?.expandPlayer() }
+        screen.onMiniDrag = { [weak self] delta in self?.dragMiniPlayer(by: delta) }
         screen.onOpenTitle = { [weak self] title in
             self?.push(DetailScreen.make(api: api, item: title))
         }
@@ -401,6 +415,9 @@ final class RootView: View, WindowRestoration.Restorable {
         sidebar.isHidden = !shown || !usesSidebar
     }
 
+    /// Whether a full player covers the pages (a mini player leaves them showing).
+    private var playerCovers: Bool { player.map { !$0.isMini } ?? false }
+
     /// Shows `item`'s page from anywhere: the player closes, Home's stack unwinds to its root and the page goes on top.
     func showDetail(_ item: PlexMetadata) {
         closePlayer()
@@ -411,7 +428,69 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Whether nothing covers the tabs: no player, alert, menu, sheet or launch gate on its way out.
     var isUnobstructed: Bool {
-        player == nil && subviews.allSatisfy { $0 === tabBar || $0 === sidebar || $0 === current }
+        (player == nil || player?.isMini == true) && subviews.allSatisfy { $0 === tabBar || $0 === sidebar || $0 === current || $0 === player }
+    }
+
+    // MARK: Mini player
+
+    /// The corner the mini player sits in, kept between plays.
+    private static let miniCornerKey = "linux.miniPlayerCorner"
+    private var miniCorner: Int {
+        get { UserDefaults.standard.object(forKey: Self.miniCornerKey) as? Int ?? 3 }
+        set { UserDefaults.standard.set(newValue, forKey: Self.miniCornerKey) }
+    }
+    /// Where a drag has moved the mini player from its corner, until it is let go.
+    private var miniOffset = Point(x: 0, y: 0)
+
+    /// Shrinks the player into a corner of the window so the viewer can browse while it plays on; the pages come back
+    /// under it with the keyboard on them.
+    func minimizePlayer() {
+        guard let player, !player.isMini else { return }
+        player.isMini = true
+        miniOffset = Point(x: 0, y: 0)
+        showUnderPlayer(true)
+        layoutSubviews()
+        window?.focus.focus(current, animated: false)
+    }
+
+    /// Brings the full player back from the mini player.
+    func expandPlayer() {
+        guard let player, player.isMini else { return }
+        player.isMini = false
+        showUnderPlayer(false)
+        layoutSubviews()
+        window?.focus.focus(player, animated: false)
+        player.showChrome(autoHide: true)
+    }
+
+    /// Moves the mini player with a drag, and on letting go settles it in the corner nearest where it was dropped.
+    private func dragMiniPlayer(by delta: Point?) {
+        guard let player, player.isMini else { return }
+        guard let delta else {
+            let frame = player.frame
+            let content = contentFrame
+            let right = frame.midX > content.midX
+            let bottom = frame.midY > content.midY
+            miniCorner = (bottom ? 2 : 0) + (right ? 1 : 0)
+            miniOffset = Point(x: 0, y: 0)
+            layoutSubviews()
+            return
+        }
+        miniOffset = Point(x: miniOffset.x + delta.x, y: miniOffset.y + delta.y)
+        player.frame = miniFrame.offsetBy(miniOffset.x, miniOffset.y)
+    }
+
+    /// The mini player's place: a sixteen by nine picture about a quarter of the pages' width, in its corner of them.
+    private var miniFrame: Rect {
+        let metrics = Theme.current.metrics
+        let content = contentFrame
+        let width = min(max(content.width * 0.26, metrics.tv(620)), content.width * 0.6).rounded()
+        let height = (width * 9 / 16).rounded()
+        let margin = metrics.tv(36)
+        let right = miniCorner % 2 == 1
+        let bottom = miniCorner >= 2
+        return Rect(x: right ? content.maxX - margin - width : content.minX + margin, y: bottom ? content.maxY - margin - height : content.minY + margin,
+                    width: width, height: height)
     }
 
     /// Ends playback if a player is up; the server hears where it stopped.
@@ -441,11 +520,11 @@ final class RootView: View, WindowRestoration.Restorable {
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
         sidebar.isCollapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey) || isTooNarrowForSidebar
-        tabBar.isHidden = usesSidebar || player != nil
-        sidebar.isHidden = !usesSidebar || player != nil
+        tabBar.isHidden = usesSidebar || playerCovers
+        sidebar.isHidden = !usesSidebar || playerCovers
         sidebar.frame = Rect(x: 0, y: 0, width: sidebar.width, height: frame.height)
         current?.frame = contentFrame
-        player?.frame = bounds
+        if let player { player.frame = player.isMini ? miniFrame.offsetBy(miniOffset.x, miniOffset.y) : bounds }
         tabBar.frame = Rect(x: 0, y: 0, width: frame.width, height: metrics.tabBarTop + metrics.tabBarHeight + metrics.tv(20))
         updateSidebar()
     }

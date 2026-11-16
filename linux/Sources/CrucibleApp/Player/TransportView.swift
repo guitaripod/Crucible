@@ -48,7 +48,7 @@ final class TransportView: View {
 
     /// A button of the desk's control row.
     enum Button: Hashable {
-        case play, back, ahead, mute, fullscreen
+        case play, back, ahead, mute, fullscreen, mini
         case control(Control)
     }
 
@@ -82,6 +82,8 @@ final class TransportView: View {
     /// The desk's volume slider or the wheel over it asks for this volume.
     var onVolume: ((Double) -> Void)?
     var onToggleFullscreen: (() -> Void)?
+    /// The desk's Mini Player button.
+    var onMini: (() -> Void)?
     /// The pointer moved over the transport, which keeps it showing, or left it (false), which lets it hide again.
     var onPointerActivity: ((Bool) -> Void)?
 
@@ -231,14 +233,15 @@ final class TransportView: View {
         case .ahead: return at(start + side + gap * 2 + playSide)
         case .mute: return at(start + side * 2 + gap * 2 + playSide + metrics.tv(44))
         case .fullscreen: return at(frame.width - start - side)
+        case .mini: return at(frame.width - start - side * 2 - gap)
         case .control(let control):
             let order: [Control] = [.info, .sleep, .speed, .subtitles, .audio]
             let index = Float(order.firstIndex(of: control) ?? 0)
-            return at(frame.width - start - side * (index + 2) - gap * (index + 1) - metrics.tv(40))
+            return at(frame.width - start - side * (index + 3) - gap * (index + 2) - metrics.tv(40))
         }
     }
 
-    private var deskButtons: [Button] { [.back, .play, .ahead, .mute, .fullscreen] + Control.allCases.map { .control($0) } }
+    private var deskButtons: [Button] { [.back, .play, .ahead, .mute, .mini, .fullscreen] + Control.allCases.map { .control($0) } }
 
     /// The volume slider beside the mute button, as wide as the room before the menu buttons allows (none in a narrow
     /// window), and the wider band that takes presses and the wheel, never over a button.
@@ -280,6 +283,7 @@ final class TransportView: View {
         case .ahead: String(localized: "Skip Ahead \(skipSeconds.ahead) s", comment: "Player menu, with the skip distance")
         case .mute: muted ? String(localized: "Unmute", comment: "Player button") : String(localized: "Mute", comment: "Player button")
         case .fullscreen: isFullscreen ? String(localized: "Exit Full Screen", comment: "Player button") : String(localized: "Full Screen", comment: "Player menu")
+        case .mini: String(localized: "Mini Player", comment: "Player button: keeps playing in a corner while you browse")
         case .control(let control): control.title
         }
     }
@@ -291,6 +295,7 @@ final class TransportView: View {
         case .ahead: KeyName.right
         case .mute: "M"
         case .fullscreen: "F"
+        case .mini: "P"
         case .control(let control): control.shortcut
         }
     }
@@ -302,6 +307,7 @@ final class TransportView: View {
         case .ahead: "goforward.10"
         case .mute: muted || volume <= 0 ? "speaker.slash" : (volume < 50 ? "speaker.wave.2" : "speaker.wave.3")
         case .fullscreen: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
+        case .mini: "pip"
         case .control(let control): control == .sleep && isSleepTimerSet ? "moon.zzz.fill" : control.symbol
         }
     }
@@ -452,6 +458,7 @@ final class TransportView: View {
         case .ahead: onSkip?(true)
         case .mute: onToggleMute?()
         case .fullscreen: onToggleFullscreen?()
+        case .mini: onMini?()
         case .control(let control): onControl?(control, transformToWindow.apply(deskFrame(of: button)))
         }
     }
