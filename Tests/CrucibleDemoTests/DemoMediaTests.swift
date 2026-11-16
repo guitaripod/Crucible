@@ -106,6 +106,7 @@ struct DemoMediaTests {
     }
 
     @Test func theStreamResolverDirectPlaysFreshTitlesAndTranscodesResumedOnes() async throws {
+        let playsEveryFile = PlaybackCapabilities.current.playsEveryFile
         try await withDemo { demo in
             let fresh = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: nil)
             #expect(fresh.isDirectPlay)
@@ -116,22 +117,26 @@ struct DemoMediaTests {
             #expect((response as? HTTPURLResponse)?.statusCode == 200)
 
             let resumed = try await StreamResolver.resolve(api: demo.api, ratingKey: "1002", startSecs: 3150, selectedSubtitleId: nil, selectedAudioStreamId: nil)
-            #expect(!resumed.isDirectPlay)
-            #expect(resumed.url.path.hasSuffix("/start.m3u8"))
+            #expect(resumed.isDirectPlay == playsEveryFile)
+            #expect(resumed.url.path.hasSuffix(playsEveryFile ? "/file.mp4" : "/start.m3u8"))
 
             let forced = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: nil, selectedAudioStreamId: nil, forceTranscode: true)
             #expect(!forced.isDirectPlay)
             let subtitled = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10015, selectedAudioStreamId: nil)
-            #expect(!subtitled.isDirectPlay)
+            #expect(subtitled.isDirectPlay == playsEveryFile)
             #expect(subtitled.subtitleDelivery == .track)
             let burned = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10019, selectedAudioStreamId: nil)
-            #expect(burned.subtitleDelivery == .burned)
+            #expect(burned.subtitleDelivery == (playsEveryFile ? .track : .burned))
+            let converted = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10019, selectedAudioStreamId: nil,
+                                                             forceTranscode: true)
+            #expect(converted.subtitleDelivery == .burned)
         }
     }
 
     @Test func aTextSubtitleTravelsAsAWebVTTRenditionAndOffClearsIt() async throws {
         try await withDemo { demo in
-            let spanish = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10017, selectedAudioStreamId: nil)
+            let spanish = try await StreamResolver.resolve(api: demo.api, ratingKey: "1001", startSecs: nil, selectedSubtitleId: 10017, selectedAudioStreamId: nil,
+                                                           forceTranscode: true)
             #expect(try await demo.metadata("1001").subtitleStreams.first { $0.selected == true }?.id == 10017)
             let master = String(decoding: try await URLSession.shared.data(from: spanish.url).0, as: UTF8.self)
             #expect(master.contains("TYPE=SUBTITLES") && master.contains(#"SUBTITLES="vtt-base""#))

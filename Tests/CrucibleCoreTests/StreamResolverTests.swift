@@ -58,6 +58,11 @@ struct StreamResolverTests {
         #expect(url.contains("X-Plex-Client-Profile-Name") == AppPlatform.isLinux)
     }
 
+    @Test func onlyAPlayerThatTakesEveryFileSaysSo() {
+        #expect(PlaybackCapabilities.everything.playsEveryFile)
+        #expect(!PlaybackCapabilities(decodesHEVC: true, decodesAV1: true, showsHDR: true).playsEveryFile)
+    }
+
     @Test func transcodeURLAsksForTextSubtitlesAsAWebVTTRendition() throws {
         let url = withQuality(.original) { transcode(subtitles: "none") }
         #expect(url.contains("&subtitles=none"))

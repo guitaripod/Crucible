@@ -84,18 +84,13 @@ extension PlayerScreen {
     }
 
     private func switchInPlace(track id: Int?, audio: Bool, stream: ResolvedStream) {
-        let streams = audio ? stream.audioTracks : stream.subtitles
         if audio {
-            if let index = streams.firstIndex(where: { $0.id == id }) { player?.setAudioTrack(index + 1) }
-        } else if let id, let track = streams.first(where: { $0.id == id }) {
-            if let key = track.key, var components = URLComponents(url: stream.url, resolvingAgainstBaseURL: false) {
-                components.path = key
-                components.query = nil
-                guard let url = components.url else { return }
-                player?.addSubtitle(url, title: track.displayTitle)
-            } else {
-                let embedded = streams.filter { $0.key == nil }
-                if let index = embedded.firstIndex(where: { $0.id == id }) { player?.setSubtitleTrack(index + 1) }
+            if let track = FileTracks.audioTrack(id, among: stream.audioTracks) { player?.setAudioTrack(track) }
+        } else if let id, let subtitle = stream.subtitles.first(where: { $0.id == id }) {
+            if subtitle.key != nil {
+                addSidecar(subtitle, of: stream)
+            } else if let track = FileTracks.subtitleTrack(id, among: stream.subtitles) {
+                player?.setSubtitleTrack(track)
             }
         } else {
             player?.setSubtitleTrack(nil)

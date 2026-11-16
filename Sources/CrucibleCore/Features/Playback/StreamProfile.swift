@@ -18,11 +18,16 @@ package struct PlaybackCapabilities: Sendable, Equatable {
     /// Whether the screen shows HDR. The player refuses a stream whose only picture is PQ when it does not, so PQ video is then
     /// left to the server to convert; HLG stays, since it reads as SDR on any screen.
     package let showsHDR: Bool
+    /// Whether the player opens any file the server holds as it is: mpv on Linux decodes every container, codec, audio format
+    /// and subtitle a library carries, and picks the file's own tracks, so a file only goes through the transcoder at a lower
+    /// quality or after it failed to play.
+    package let playsEveryFile: Bool
 
-    package init(decodesHEVC: Bool, decodesAV1: Bool, showsHDR: Bool) {
+    package init(decodesHEVC: Bool, decodesAV1: Bool, showsHDR: Bool, playsEveryFile: Bool = false) {
         self.decodesHEVC = decodesHEVC
         self.decodesAV1 = decodesAV1
         self.showsHDR = showsHDR
+        self.playsEveryFile = playsEveryFile
     }
 
     package static var current: PlaybackCapabilities {
@@ -42,7 +47,7 @@ package struct PlaybackCapabilities: Sendable, Equatable {
 
     /// What mpv takes on Linux: every codec it decodes, and HDR kept, because the client tone-maps itself and the
     /// compositor maps an HDR surface onto an SDR output.
-    package static let everything = PlaybackCapabilities(decodesHEVC: true, decodesAV1: true, showsHDR: true)
+    package static let everything = PlaybackCapabilities(decodesHEVC: true, decodesAV1: true, showsHDR: true, playsEveryFile: true)
 
     private static let provided = OSAllocatedUnfairLock<PlaybackCapabilities?>(initialState: nil)
 

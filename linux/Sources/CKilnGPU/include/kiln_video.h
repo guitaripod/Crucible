@@ -55,5 +55,7 @@ void kiln_video_report_swap(kiln_video *video);
 /** Runs an mpv command (`loadfile`, `seek`, `set`, ...) given as a NULL-terminated argument list. */
 int kiln_video_command(kiln_video *video, const char **arguments);
 int kiln_video_set_property(kiln_video *video, const char *name, const char *value);
+/** Reads an mpv property as text into `value` (`size` bytes); false when mpv has no such property now. */
+bool kiln_video_get_property(kiln_video *video, const char *name, char *value, size_t size);
 
 #endif

@@ -221,3 +221,11 @@ void kiln_video_report_swap(kiln_video *v) { mpv_render_context_report_swap(v->r
 int kiln_video_command(kiln_video *v, const char **arguments) { return mpv_command(v->mpv, arguments); }
 
 int kiln_video_set_property(kiln_video *v, const char *name, const char *value) { return mpv_set_property_string(v->mpv, name, value); }
+
+bool kiln_video_get_property(kiln_video *v, const char *name, char *value, size_t size) {
+    char *text = mpv_get_property_string(v->mpv, name);
+    if (!text) return false;
+    snprintf(value, size, "%s", text);
+    mpv_free(text);
+    return true;
+}

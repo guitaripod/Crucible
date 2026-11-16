@@ -249,7 +249,8 @@ final class PlayerScreen: View {
         player?.set("audio-spdif", spdifCodecs.joined(separator: ","))
         player?.set("speed", String(speed))
         let headers = PlexHeaders.allHeaders(token: api.token)
-        player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)
+        player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers,
+                     options: resolved.isDirectPlay ? FileTracks(resolved).loadOptions : [:])
         player?.setPaused(paused)
         if let window { MatchContent.engage(resolved, in: window) }
         matchedFullscreen = window?.isFullscreen ?? false
@@ -328,7 +329,9 @@ final class PlayerScreen: View {
 
     private func handle(_ event: VideoPlayer.Event) {
         switch event {
-        case .loaded, .seeked:
+        case .loaded:
+            settleFileTracks()
+        case .seeked:
             break
         case .ended:
             if endedShort() { return }
@@ -343,6 +346,26 @@ final class PlayerScreen: View {
             MidgarLog.error("Playback failed: \(message)", category: .playback)
             recover(from: message)
         }
+    }
+
+    /// Checks the tracks a file playing directly opened on against what it carries, since the server can list streams the file
+    /// lacks: a missing audio track falls back to mpv's own pick and a missing subtitle to none. A chosen subtitle beside the
+    /// file is fetched and added now that the file is open.
+    private func settleFileTracks() {
+        guard let stream, stream.isDirectPlay, let player else { return }
+        let tracks = FileTracks(stream)
+        if let audio = tracks.audio, audio > player.fileTrackCount("audio") { player.set("aid", "auto") }
+        if let subtitle = tracks.subtitle, subtitle > player.fileTrackCount("sub") { player.setSubtitleTrack(nil) }
+        if let sidecar = tracks.sidecar { addSidecar(sidecar, of: stream) }
+    }
+
+    /// Fetches a subtitle that sits beside the file from the server and shows it.
+    func addSidecar(_ subtitle: PlexStream, of stream: ResolvedStream) {
+        guard let key = subtitle.key, var components = URLComponents(url: stream.url, resolvingAgainstBaseURL: false) else { return }
+        components.path = key
+        components.query = nil
+        guard let url = components.url else { return }
+        player?.addSubtitle(url, title: subtitle.displayTitle)
     }
 
     /// Answers a failed stream as `PlaybackSession` does: a file that fails to play as it is gets converted by the server

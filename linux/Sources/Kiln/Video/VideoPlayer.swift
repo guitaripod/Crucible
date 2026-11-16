@@ -51,13 +51,28 @@ public final class VideoPlayer {
         }
     }
 
-    /// Plays `url` from `start` seconds, sending `headers` with every request (the Plex token).
-    public func load(_ url: URL, start: Double = 0, headers: [String: String] = [:]) {
+    /// Plays `url` from `start` seconds, sending `headers` with every request (the Plex token); `options` are mpv options
+    /// for this file alone, such as the `aid` and `sid` it opens with.
+    public func load(_ url: URL, start: Double = 0, headers: [String: String] = [:], options: KeyValuePairs<String, String> = [:]) {
         let fields = headers.map { "\($0.key): \($0.value)" }.joined(separator: ",")
         set("http-header-fields", fields)
-        var options = "start=\(String(format: "%.3f", max(start, 0)))"
-        if url.isFileURL { options += ",cache=no" }
-        command(["loadfile", url.isFileURL ? url.path : url.absoluteString, "replace", "-1", options])
+        var perFile = ["start=\(String(format: "%.3f", max(start, 0)))"]
+        if url.isFileURL { perFile.append("cache=no") }
+        perFile += options.map { "\($0.key)=\($0.value)" }
+        command(["loadfile", url.isFileURL ? url.path : url.absoluteString, "replace", "-1", perFile.joined(separator: ",")])
+    }
+
+    /// An mpv property as text, or nil when mpv has none now.
+    public func get(_ property: String) -> String? {
+        var value = [CChar](repeating: 0, count: 512)
+        guard kiln_video_get_property(handle, property, &value, value.count) else { return nil }
+        return value.withUnsafeBufferPointer { String(cString: $0.baseAddress!) }
+    }
+
+    /// How many tracks of `type` ("video", "audio" or "sub") the open file carries itself, leaving out subtitles added beside it.
+    public func fileTrackCount(_ type: String) -> Int {
+        let count = get("track-list/count").flatMap(Int.init) ?? 0
+        return (0..<count).filter { get("track-list/\($0)/type") == type && get("track-list/\($0)/external") != "yes" }.count
     }
 
     public func setPaused(_ paused: Bool) { set("pause", paused ? "yes" : "no") }

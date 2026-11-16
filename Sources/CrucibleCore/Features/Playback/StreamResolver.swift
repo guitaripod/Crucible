@@ -114,6 +114,8 @@ package enum StreamResolver {
     /// the viewer (their Plex account's subtitle preferences), else one in `captionLanguage`, the language of the device's
     /// always-on captions. The server is told the choice, so a converted stream carries exactly that subtitle, or none. A text
     /// subtitle travels as a WebVTT track; an image subtitle, or a text one on a server that answers it will burn it in, is burned.
+    /// A player that takes every file (`PlaybackCapabilities.playsEveryFile`) plays it as it is at full quality, whatever it
+    /// carries and whichever streams are chosen.
     package static func resolve(
         api: APIClient,
         ratingKey: String,
@@ -167,12 +169,16 @@ package enum StreamResolver {
         )
 
         let capabilities = PlaybackCapabilities.current
+        let playsAsItIs = capabilities.playsEveryFile || (
+            subtitleIsInFile
+                && !wantsNonDefaultAudio
+                && !DynamicRange(part.Stream?.first { $0.streamType == 1 }).isDualLayerDolbyVision
+                && isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec,
+                                    capabilities: capabilities)
+        )
         if !forceTranscode,
            QualityPolicy.current(for: baseURL) == .original,
-           subtitleIsInFile,
-           !wantsNonDefaultAudio,
-           !DynamicRange(part.Stream?.first { $0.streamType == 1 }).isDualLayerDolbyVision,
-           isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec, capabilities: capabilities),
+           playsAsItIs,
            let directURL = directPlayURL(baseURL: baseURL, partKey: part.key, token: token) {
             return ResolvedStream(
                 url: directURL,
