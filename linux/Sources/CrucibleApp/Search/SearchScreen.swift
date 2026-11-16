@@ -363,8 +363,12 @@ final class SearchScreen: ScreenView {
         hits[id] = hit
         let poster = SeerrAccount.shared.connection.flatMap { SeerrImage.poster(hit.posterPath, base: $0.address) }
         let label = hit.availability == .notRequested ? nil : SeerrCopy.cardLabel(hit.availability)
-        return CardItem(id: id, artwork: poster.map { .url($0) }, title: hit.title,
-                        subtitle: [hit.year.map(String.init), label].compactMap { $0 }.joined(separator: " · "), placeholderSymbol: hit.kind == .tv ? "tv" : "film")
+        var card = CardItem(id: id, artwork: poster.map { .url($0) }, title: hit.title,
+                            subtitle: [hit.year.map(String.init), label].compactMap { $0 }.joined(separator: " · "), placeholderSymbol: hit.kind == .tv ? "tv" : "film")
+        card.primarySymbol = "plus"
+        card.primaryName = SeerrCopy.request
+        card.canToggleWatched = false
+        return card
     }
 
     private func activate(_ id: String, rememberingQuery: Bool) {
@@ -405,6 +409,17 @@ final class SearchScreen: ScreenView {
     /// The menu of a result (`TVSearchMenus`): Resume or Play and Play from Beginning, View Details and Go to Show, and both
     /// watched directions with the current one checked.
     private func presentMenu(for id: String, at point: Point?) {
+        if let hit = hits[id], let window {
+            let frame = window.focusedView?.frameInWindow ?? frameInWindow
+            let menu = MenuView(title: hit.title, items: [MenuView.Item(id: "request", title: SeerrCopy.request, symbol: "plus.circle")],
+                                anchor: Rect(x: point?.x ?? frame.minX, y: point?.y ?? frame.maxY, width: 1, height: 1))
+            menu.onSelect = { [weak self] _ in
+                guard let self else { return }
+                SeerrRequestScreen.open(hit.asMetadata, api: self.api, isOnServer: false, from: self)
+            }
+            menu.present(in: window)
+            return
+        }
         guard let item = items[id], let window else { return }
         let watched = watchedOverrides[item.id] ?? item.isWatched
         var entries: [MenuView.Item] = []

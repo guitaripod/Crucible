@@ -28,6 +28,9 @@ public struct CardItem: Hashable, Sendable {
     public var summary: String?
     /// Whether the card offers the hover watched toggle: off where it keeps no watched state of its own to show (a show).
     public var canToggleWatched = true
+    /// The hover button in the middle of the artwork, and its name: Play by default, Request for a title the server lacks.
+    public var primarySymbol: Symbol = "play.fill"
+    public var primaryName: String?
 
     public struct Monogram: Hashable, Sendable {
         public var initials: String
@@ -326,7 +329,7 @@ public final class CardView: View {
     /// A hover button's name, or the full title and subtitle when the caption cuts the title short.
     public override func tooltip(at point: Point) -> String? {
         switch zone(at: point) {
-        case .play: return item.hasProgress ? Strings.lookup("Resume") : Strings.lookup("Play")
+        case .play: return item.primaryName ?? (item.hasProgress ? Strings.lookup("Resume") : Strings.lookup("Play"))
         case .watched: return item.isWatched ? Strings.lookup("Mark as Unwatched") : Strings.lookup("Mark as Watched")
         case .menu: return Strings.lookup("More")
         case nil:
@@ -509,9 +512,10 @@ public final class CardView: View {
                 let fill = lit ? (zone == .play ? palette.accent : Color.white.withAlpha(0.9)) : (filled ? palette.accent : Color.shade(0.62))
                 faded.fill(rect, radius: rect.width / 2, color: fill)
                 if !filled && !lit { faded.stroke(rect, radius: rect.width / 2, width: 1, color: Color.white.withAlpha(0.35)) }
-                let glyph: Symbol = zone == .play ? "play.fill" : zone == .watched ? "checkmark" : "ellipsis"
+                let glyph: Symbol = zone == .play ? item.primarySymbol : zone == .watched ? "checkmark" : "ellipsis"
                 let inset = rect.width * (zone == .play ? 0.32 : 0.27)
-                let glyphRect = zone == .play ? rect.insetBy(inset, inset).offsetBy(rect.width * 0.03, 0) : rect.insetBy(inset, inset)
+                let nudged = zone == .play && item.primarySymbol == "play.fill"
+                let glyphRect = nudged ? rect.insetBy(inset, inset).offsetBy(rect.width * 0.03, 0) : rect.insetBy(inset, inset)
                 let glyphColor = lit && zone != .play ? Color(hex: 0x1A1816) : palette.onArt
                 faded.symbol(glyph, in: glyphRect, color: glyphColor)
             }
