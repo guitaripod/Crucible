@@ -703,6 +703,38 @@ enum SharedGPU {
         menu.dismiss()
     }
 
+    @Test func spaceChoosesAfterTypeAheadEndsAndADisabledRowKeepsTheHighlight() async {
+        var ran: [String] = []
+        let menu = ContextMenuView(at: Point(x: 100, y: 100)) {
+            [.action(ContextMenuView.Action("Play") { ran.append("play") }),
+             .action(ContextMenuView.Action("Locked", isEnabled: false) {}),
+             .action(ContextMenuView.Action("Stop") { ran.append("stop") })]
+        }
+        menu.present(in: window)
+        window.settle()
+        window.handleKey(KeyEvent(key: .character("s"), text: "s"))
+        #expect(lit(menu.panels[0]) == ["Stop"])
+        await wait(1.1)
+        let locked = centre("Locked", in: menu)
+        window.handlePointerMoved(to: locked)
+        #expect(lit(menu.panels[0]) == ["Stop"], "a disabled row under the pointer leaves the keyboard's row lit")
+        window.handleKey(KeyEvent(key: .space, text: " "))
+        #expect(ran == ["stop"], "Space chooses once type-ahead has ended")
+    }
+
+    @Test func clearingAFieldWithEscapeCanBeUndone() {
+        let field = TextFieldView(placeholder: "Search")
+        field.frame = Rect(x: 0, y: 0, width: 600, height: 60)
+        window.contentView.addSubview(field)
+        window.focus.focus(field, animated: false)
+        type("salt")
+        window.handleKey(KeyEvent(key: .escape))
+        #expect(field.text.isEmpty)
+        window.handleKey(KeyEvent(key: Key.character("z"), modifiers: .control))
+        #expect(field.text == "salt")
+        field.removeFromSuperview()
+    }
+
     @Test func aMenuThePointerOpenedStartsUnlitAndDownLandsOnTheFirstRow() {
         let state = MenuState()
         let menu = ContextMenuView(at: Point(x: 100, y: 100), highlightingFirstRow: false) {

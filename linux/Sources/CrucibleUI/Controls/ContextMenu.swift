@@ -115,6 +115,7 @@ public final class ContextMenuView: View {
 
     public func present(in window: Window) {
         returnFocus = window.focusedView
+        ContextMenuRow.resetTypeAhead()
         window.contentView.addSubview(self)
         frame = window.contentView.bounds
         let panel = ContextMenuPanel(menu: self, level: 0, build: root)
@@ -180,7 +181,7 @@ public final class ContextMenuView: View {
     private func settle(on row: ContextMenuRow) {
         guard let panel = row.panel else { return }
         guard row.canBecomeFocused else {
-            if child(of: panel) == nil { panel.highlighted = nil }
+            if child(of: panel) == nil, let focused = window?.focusedView as? ContextMenuRow, focused.panel === panel { panel.highlighted = focused }
             return
         }
         window?.focus.focus(row, animated: false, reveal: false)
@@ -467,6 +468,15 @@ final class ContextMenuRow: View {
     private static var typed = ""
     private static var typedAt = Date.distantPast
 
+    /// Whether letters typed in the last second are still gathering, so a space joins them rather than choosing the row.
+    private static var isTypingAhead: Bool { !typed.isEmpty && Date().timeIntervalSince(typedAt) <= 1 }
+
+    /// Forgets what was typed, so a menu that opens starts its own type-ahead.
+    static func resetTypeAhead() {
+        typed = ""
+        typedAt = .distantPast
+    }
+
     init(entry: ContextMenuView.Entry, panel: ContextMenuPanel) {
         self.entry = entry
         self.panel = panel
@@ -651,7 +661,7 @@ final class ContextMenuRow: View {
         case (_, .end), (_, .pageDown):
             move { rows, _ in rows.count - 1 }
         default:
-            guard let text = event.typedText, !(text == " " && Self.typed.isEmpty) else { return false }
+            guard let text = event.typedText, text != " " || Self.isTypingAhead else { return false }
             typeAhead(text)
         }
         return true

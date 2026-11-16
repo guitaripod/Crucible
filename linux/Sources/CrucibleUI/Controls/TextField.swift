@@ -147,9 +147,19 @@ public final class TextFieldView: View, TextInputClient {
         setNeedsDisplay()
     }
 
+    /// Empties the field as an edit the viewer can undo (Escape, the clear button).
+    private func clearByViewer() {
+        lastEditWasTyping = false
+        edit { characters, caret in
+            characters.removeAll()
+            caret = 0
+        }
+    }
+
     /// Selects every character.
     public func selectEverything() {
         guard !text.isEmpty else { return }
+        lastEditWasTyping = false
         anchor = 0
         caret = text.count
         setNeedsDisplay()
@@ -313,7 +323,7 @@ public final class TextFieldView: View, TextInputClient {
             onSubmit?(text)
             return true
         case .escape where !text.isEmpty:
-            setText("")
+            clearByViewer()
             return true
         case Key.character("a") where control:
             selectEverything()
@@ -375,7 +385,7 @@ public final class TextFieldView: View, TextInputClient {
         guard button == .primary else { return false }
         window.focus.focus(self, animated: true, reveal: false)
         if clearButton.map({ $0.contains(point) }) == true {
-            setText("")
+            clearByViewer()
             return true
         }
         let index = characterIndex(at: point.x)
