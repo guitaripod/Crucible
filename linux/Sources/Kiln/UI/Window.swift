@@ -26,14 +26,14 @@ extension WindowDelegate {
     public func windowShouldClose(_ window: Window) {}
 }
 
-/// A Kiln window: a view tree drawn by libplacebo into an FP16 scRGB swapchain on Wayland, or offscreen for tests and
-/// the gallery. It owns layout, animation, focus and input routing for its tree.
+/// A Kiln window: a view tree drawn by libplacebo into an FP16 scRGB swapchain on Wayland (X11 in Steam's Game Mode), or
+/// offscreen for tests and the gallery. It owns layout, animation, focus and input routing for its tree.
 @MainActor
 public final class Window {
     public weak var delegate: WindowDelegate?
     public let gpu: GPU
     let renderer: SceneRenderer
-    private let surface: WaylandWindow?
+    private let surface: PlatformWindow?
     public let focus = FocusEngine()
     /// The loop the window's Wayland connection runs on (nil offscreen); players and timers attach to it.
     public private(set) weak var loop: EventLoop?
@@ -86,7 +86,7 @@ public final class Window {
     private var repeatDelay: Int32 = 600
     private var repeatTask: Task<Void, Never>?
     private var closed = false
-    private let listener: WaylandListener
+    private let listener: SurfaceListener
 
     /// Where frame time goes; `KILN_TRACE=path` writes it out, and the HUD draws it.
     public let trace = FrameTrace()
@@ -122,7 +122,7 @@ public final class Window {
             gpu = try GPU(display: nil, surface: nil)
         }
         surface = nil
-        listener = WaylandListener()
+        listener = SurfaceListener()
         self.size = size
         self.scale = scale
         surfaceSize = size
@@ -134,11 +134,11 @@ public final class Window {
         attach(contentView)
     }
 
-    /// Opens a toplevel on the Wayland display and its swapchain, then the loop drives it. Compiled shaders persist in
-    /// `shaderCache`, so a launch after the first draws its first frames without compiling.
+    /// Opens a toplevel on the session's display (`PlatformWindow.makeForSession`) and its swapchain, then the loop drives
+    /// it. Compiled shaders persist in `shaderCache`, so a launch after the first draws its first frames without compiling.
     public init(title: String, appID: String, loop: EventLoop, contentView: View = View(), shaderCache: URL? = nil) throws(RenderError) {
-        guard let surface = WaylandWindow() else { throw .device("no Wayland display") }
-        let listener = WaylandListener()
+        guard let surface = PlatformWindow.makeForSession() else { throw .device("no Wayland or X11 display") }
+        let listener = SurfaceListener()
         guard surface.open(title: title, appID: appID, delegate: listener) else { throw .device("window") }
         self.surface = surface
         self.listener = listener
@@ -148,13 +148,14 @@ public final class Window {
         scale = Float(surface.scale)
         surfaceSize = size
         outputScale = scale
-        gpu = try GPU(display: surface.display, surface: surface.surface)
+        gpu = try surface.makeGPU()
         if let shaderCache { gpu.useShaderCache(at: shaderCache) }
         renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
         renderer.scale = scale
         renderer.prewarm()
         self.contentView = contentView
         listener.window = self
+        if let refresh = surface.refreshNanoseconds { refreshInterval = Double(refresh) / 1e9 }
         focus.window = self
         attach(contentView)
         accessibility = AccessibilityBridge(window: self, title: title)
@@ -169,6 +170,13 @@ public final class Window {
             self.checkDisplayColor()
         }
         checkDisplayColor()
+        if let secondary = surface.secondaryFileDescriptor {
+            loop.add(fd: secondary) { [weak self] readable in
+                guard readable, let self, let surface = self.surface, !self.closed else { return }
+                _ = surface.pump(readable: false)
+                self.checkDisplayColor()
+            }
+        }
         loop.atEndOfEachTurn { [weak self] in self?.renderIfDue() }
         setNeedsDisplay()
     }
@@ -193,6 +201,8 @@ public final class Window {
         }
         guard color != displayColor else { return }
         displayColor = color
+        gpu.setOutput(gain: surface.outputGain, sdr: surface.prefersSDROutput)
+        setNeedsDisplay()
         onDisplayColorChange?(color)
     }
 
@@ -215,7 +225,10 @@ public final class Window {
         closed = true
         trace.flushFrames()
         accessibility = nil
-        if let surface { loop?.remove(fd: surface.fileDescriptor) }
+        if let surface {
+            loop?.remove(fd: surface.fileDescriptor)
+            if let secondary = surface.secondaryFileDescriptor { loop?.remove(fd: secondary) }
+        }
         repeatTask?.cancel()
         contentView.window = nil
         gpu.finish()
@@ -805,74 +818,74 @@ public final class Window {
 
     /// Receives the toplevel's events on the main actor.
     @MainActor
-    final class WaylandListener: WaylandWindowDelegate {
+    final class SurfaceListener: PlatformWindowDelegate {
         weak var window: Window?
 
-        func windowConfigured(_ surface: WaylandWindow, width: Int, height: Int, fullscreen: Bool) {
+        func windowConfigured(_ surface: PlatformWindow, width: Int, height: Int, fullscreen: Bool) {
             guard let window else { return }
             window.isFullscreen = fullscreen
             if !fullscreen { window.isLeavingFullscreen = false }
             window.resize(width: width, height: height, scale: Float(surface.scale))
         }
 
-        func windowClosed(_ surface: WaylandWindow) {
+        func windowClosed(_ surface: PlatformWindow) {
             guard let window else { return }
             window.delegate?.windowShouldClose(window)
         }
 
-        func windowScaleChanged(_ surface: WaylandWindow, scale: Double) {
+        func windowScaleChanged(_ surface: PlatformWindow, scale: Double) {
             guard let window else { return }
             window.resize(width: Int(window.surfaceSize.width), height: Int(window.surfaceSize.height), scale: Float(scale))
         }
 
-        func windowPresented(_ surface: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
+        func windowPresented(_ surface: PlatformWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
             guard let window else { return }
             if nanoseconds > 0 { window.trace.presented(at: Double(nanoseconds) / 1e9) }
             guard refreshNanoseconds > 1_000_000 else { return }
             window.refreshInterval = Double(refreshNanoseconds) / 1e9
         }
 
-        func windowFrameDone(_ surface: WaylandWindow) {
+        func windowFrameDone(_ surface: PlatformWindow) {
             guard let window else { return }
             window.waitingForFrame = false
             window.trace.frameCallbackArrived()
         }
 
-        func windowPointerMoved(_ surface: WaylandWindow, x: Double, y: Double) {
+        func windowPointerMoved(_ surface: PlatformWindow, x: Double, y: Double) {
             guard let window else { return }
             window.handlePointerMoved(to: Point(x: Float(x) / window.canvasZoom, y: Float(y) / window.canvasZoom))
         }
 
-        func windowPointerLeft(_ surface: WaylandWindow) {
+        func windowPointerLeft(_ surface: PlatformWindow) {
             window?.handlePointerLeft()
         }
 
-        func windowPointerButton(_ surface: WaylandWindow, button: UInt32, pressed: Bool) {
+        func windowPointerButton(_ surface: PlatformWindow, button: UInt32, pressed: Bool) {
             window?.handlePointerButton(MouseButton(code: button), pressed: pressed)
         }
 
-        func windowScrolled(_ surface: WaylandWindow, event: ScrollEvent) {
+        func windowScrolled(_ surface: PlatformWindow, event: ScrollEvent) {
             window?.handleScroll(event)
         }
 
-        func windowKey(_ surface: WaylandWindow, event: KeyEvent, pressed: Bool, repeats: Bool) {
+        func windowKey(_ surface: PlatformWindow, event: KeyEvent, pressed: Bool, repeats: Bool) {
             window?.keyFromSurface(event, pressed: pressed, repeats: repeats)
         }
 
-        func windowModifiersChanged(_ surface: WaylandWindow, modifiers: Modifiers) {
+        func windowModifiersChanged(_ surface: PlatformWindow, modifiers: Modifiers) {
             window?.modifiers = modifiers
         }
 
-        func windowRepeatInfo(_ surface: WaylandWindow, rate: Int32, delay: Int32) {
+        func windowRepeatInfo(_ surface: PlatformWindow, rate: Int32, delay: Int32) {
             window?.repeatRate = rate
             window?.repeatDelay = delay
         }
 
-        func windowTextInput(_ surface: WaylandWindow, event: TextInputEvent) {
+        func windowTextInput(_ surface: PlatformWindow, event: TextInputEvent) {
             window?.textInputClient?.applyTextInput(event)
         }
 
-        func windowKeyboardFocusChanged(_ surface: WaylandWindow, focused: Bool) {
+        func windowKeyboardFocusChanged(_ surface: PlatformWindow, focused: Bool) {
             guard let window else { return }
             let changed = window.hasKeyboardFocus != focused
             window.hasKeyboardFocus = focused

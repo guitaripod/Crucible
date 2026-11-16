@@ -50,6 +50,10 @@ typedef struct {
 /** Creates the Vulkan device (mpv's recipe: Vulkan Video decode queues, internally synchronised queues) and, when a
  * Wayland surface is given, an FP16 swapchain on it hinted as scRGB. Writes a reason into `error` on failure. */
 kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface, char *error, size_t error_size);
+/** Multiplies the light presented by `gain` (1 leaves it), and presents SDR (sRGB) rather than scRGB while `sdr`. */
+void kiln_gpu_set_output(kiln_gpu *gpu, float gain, bool sdr);
+/** The same on an X11 window (`connection` is its `xcb_connection_t`), presenting FIFO since X11 has no frame callbacks. */
+kiln_gpu *kiln_gpu_create_xcb(void *connection, uint32_t window, char *error, size_t error_size);
 void kiln_gpu_destroy(kiln_gpu *gpu);
 /** Destroys the swapchain and the Vulkan surface, so the Wayland connection under them can close while the device
  * lives on until its last texture goes. Presenting afterwards does nothing. */

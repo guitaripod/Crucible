@@ -5,8 +5,10 @@
 #include <string.h>
 
 #include <wayland-client.h>
+#include <xcb/xcb.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_wayland.h>
+#include <vulkan/vulkan_xcb.h>
 #include <libplacebo/dispatch.h>
 #include <libplacebo/log.h>
 #include <libplacebo/renderer.h>
@@ -48,11 +50,20 @@ static const char *const optional_extensions[] = {
 #endif
 };
 
+/** Whether gamescope's WSI layer sits between Kiln and the driver (Steam's Game Mode turns it on for every launch). Its
+ * dispatch tables look queues up without their creation flags, so an internally synchronised queue comes back null and
+ * the layer aborts; with it, queues are left to libplacebo's own locking. */
+static bool gamescope_layer_active(void) {
+    const char *enabled = getenv("ENABLE_GAMESCOPE_WSI");
+    const char *disabled = getenv("DISABLE_GAMESCOPE_WSI");
+    return enabled && strcmp(enabled, "1") == 0 && !(disabled && strcmp(disabled, "1") == 0);
+}
+
 static pl_vulkan create_device(kiln_gpu *g) {
 #ifdef VK_KHR_internally_synchronized_queues
     VkPhysicalDeviceInternallySynchronizedQueuesFeaturesKHR synchronized_queues = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INTERNALLY_SYNCHRONIZED_QUEUES_FEATURES_KHR,
-        .internallySynchronizedQueues = true,
+        .internallySynchronizedQueues = !gamescope_layer_active(),
     };
     void *chain = &synchronized_queues;
 #else
@@ -99,33 +110,55 @@ static pl_vulkan create_device(kiln_gpu *g) {
     ));
 }
 
-/** Mailbox, so a present never blocks the main thread on vblank (frame callbacks pace the window); `KILN_PRESENT=fifo`
- * selects FIFO for comparison. */
-static VkPresentModeKHR present_mode(void) {
+/** Mailbox on Wayland, so a present never blocks the main thread on vblank (frame callbacks pace the window). X11 has no
+ * frame callbacks, so there FIFO paces the window instead, waiting at most a refresh for a free image. `KILN_PRESENT=fifo`,
+ * `mailbox` or `immediate` overrides either. */
+static VkPresentModeKHR present_mode(bool paced_by_present) {
     const char *mode = getenv("KILN_PRESENT");
     if (mode && strcmp(mode, "fifo") == 0) return VK_PRESENT_MODE_FIFO_KHR;
+    if (mode && strcmp(mode, "mailbox") == 0) return VK_PRESENT_MODE_MAILBOX_KHR;
     if (mode && strcmp(mode, "immediate") == 0) return VK_PRESENT_MODE_IMMEDIATE_KHR;
-    return VK_PRESENT_MODE_MAILBOX_KHR;
+    return paced_by_present ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 }
 
-kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface, char *error, size_t error_size) {
+/** Where the swapchain goes: a Wayland surface, an X11 window, or nowhere (offscreen). */
+typedef struct {
+    struct wl_display *display;
+    struct wl_surface *surface;
+    xcb_connection_t *connection;
+    xcb_window_t window;
+} kiln_surface_target;
+
+static kiln_gpu *create(kiln_surface_target target, char *error, size_t error_size) {
     kiln_gpu *g = calloc(1, sizeof(*g));
+    g->output_gain = 1;
     g->log = pl_log_create(PL_API_VER, pl_log_params(.log_cb = pl_log_color, .log_level = getenv("KILN_PL_TRACE") ? PL_LOG_TRACE : getenv("KILN_PL_DEBUG") ? PL_LOG_DEBUG : PL_LOG_WARN));
-    const char *surface_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME };
+    bool wayland = target.surface != NULL;
+    bool x11 = target.connection != NULL && target.window != 0;
+    const char *surface_extensions[] = { VK_KHR_SURFACE_EXTENSION_NAME, x11 ? VK_KHR_XCB_SURFACE_EXTENSION_NAME : VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME };
     const char *instance_optional[] = { VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME };
     g->instance = pl_vk_inst_create(g->log, pl_vk_inst_params(
-        .extensions = surface ? surface_extensions : NULL,
-        .num_extensions = surface ? 2 : 0,
+        .extensions = wayland || x11 ? surface_extensions : NULL,
+        .num_extensions = wayland || x11 ? 2 : 0,
         .opt_extensions = instance_optional,
         .num_opt_extensions = 2,
     ));
     if (!g->instance) { fail(error, error_size, "vulkan instance"); kiln_gpu_destroy(g); return NULL; }
-    if (surface) {
+    if (wayland) {
         PFN_vkCreateWaylandSurfaceKHR create_surface = (PFN_vkCreateWaylandSurfaceKHR)
             g->instance->get_proc_addr(g->instance->instance, "vkCreateWaylandSurfaceKHR");
-        VkWaylandSurfaceCreateInfoKHR info = { .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR, .display = display, .surface = surface };
+        VkWaylandSurfaceCreateInfoKHR info = { .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR, .display = target.display, .surface = target.surface };
         if (!create_surface || create_surface(g->instance->instance, &info, NULL, &g->surface) != VK_SUCCESS) {
             fail(error, error_size, "wayland surface");
+            kiln_gpu_destroy(g);
+            return NULL;
+        }
+    } else if (x11) {
+        PFN_vkCreateXcbSurfaceKHR create_surface = (PFN_vkCreateXcbSurfaceKHR)
+            g->instance->get_proc_addr(g->instance->instance, "vkCreateXcbSurfaceKHR");
+        VkXcbSurfaceCreateInfoKHR info = { .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR, .connection = target.connection, .window = target.window };
+        if (!create_surface || create_surface(g->instance->instance, &info, NULL, &g->surface) != VK_SUCCESS) {
+            fail(error, error_size, "x11 surface");
             kiln_gpu_destroy(g);
             return NULL;
         }
@@ -136,7 +169,7 @@ kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface
     if (g->surface) {
         g->swapchain = pl_vulkan_create_swapchain(g->vulkan, pl_vulkan_swapchain_params(
             .surface = g->surface,
-            .present_mode = present_mode(),
+            .present_mode = present_mode(x11),
             .swapchain_depth = 2,
         ));
         if (!g->swapchain) { fail(error, error_size, "swapchain"); kiln_gpu_destroy(g); return NULL; }
@@ -164,6 +197,14 @@ kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface
     if (getenv("KILN_VIDEO_TRACE")) fprintf(stderr, "kiln_gpu: graphics queue %p family %u flags %u\n", (void *) g->graphics_queue,
                                            g->vulkan->queue_graphics.index, (unsigned) queue_info.flags);
     return g;
+}
+
+kiln_gpu *kiln_gpu_create(struct wl_display *display, struct wl_surface *surface, char *error, size_t error_size) {
+    return create((kiln_surface_target) { .display = display, .surface = surface }, error, error_size);
+}
+
+kiln_gpu *kiln_gpu_create_xcb(void *connection, uint32_t window, char *error, size_t error_size) {
+    return create((kiln_surface_target) { .connection = connection, .window = window }, error, error_size);
 }
 
 void kiln_gpu_destroy(kiln_gpu *g) {
@@ -566,12 +607,21 @@ bool kiln_gpu_draw(kiln_gpu *g, kiln_tex *target, const char *header, const char
 }
 
 void kiln_gpu_set_content_peak(kiln_gpu *g, float nits) {
-    if (!g->swapchain) return;
+    if (!g->swapchain || g->sdr_output) return;
     pl_swapchain_colorspace_hint(g->swapchain, &(struct pl_color_space) {
         .primaries = PL_COLOR_PRIM_BT_709,
         .transfer = PL_COLOR_TRC_SCRGB,
         .hdr = { .max_luma = nits, .max_cll = nits },
     });
+}
+
+void kiln_gpu_set_output(kiln_gpu *g, float gain, bool sdr) {
+    g->output_gain = gain > 0 ? gain : 1;
+    if (!g->swapchain || sdr == g->sdr_output) return;
+    g->sdr_output = sdr;
+    pl_swapchain_colorspace_hint(g->swapchain, sdr
+        ? &(struct pl_color_space) { .primaries = PL_COLOR_PRIM_BT_709, .transfer = PL_COLOR_TRC_SRGB }
+        : &(struct pl_color_space) { .primaries = PL_COLOR_PRIM_BT_709, .transfer = PL_COLOR_TRC_SCRGB });
 }
 
 bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source, int width, int height) {
@@ -591,10 +641,13 @@ bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source, int width, int height) {
     struct pl_color_map_params color_map = pl_color_map_default_params;
     color_map.tone_mapping_function = &pl_tone_map_clip;
     color_map.gamut_mapping = &pl_gamut_map_clip;
+    struct pl_color_adjustment gain = pl_color_adjustment_neutral;
+    gain.contrast = g->output_gain;
     pl_render_image(g->renderer, &image, &target, pl_render_params(
         .upscaler = &pl_filter_bilinear, .downscaler = &pl_filter_bilinear,
         .skip_anti_aliasing = true, .disable_linear_scaling = true,
         .color_map_params = &color_map,
+        .color_adjustment = g->output_gain != 1 ? &gain : NULL,
     ));
     bool ok = pl_swapchain_submit_frame(g->swapchain);
     if (ok) pl_swapchain_swap_buffers(g->swapchain);

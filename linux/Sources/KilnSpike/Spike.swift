@@ -5,7 +5,7 @@ import Kiln
 /// P0 spike: an FP16 scRGB window on KWin, a Liquid Glass tab bar over a moving HDR scene, GPU and presentation timing,
 /// the main actor driven by Kiln's loop, and readbacks written as PPM files for review.
 @MainActor
-final class Spike: WaylandWindowDelegate {
+final class Spike: PlatformWindowDelegate {
     let highlightNits: Float = 1000
     let frameLimit: Int
     let outputDirectory: String
@@ -171,26 +171,26 @@ final class Spike: WaylandWindowDelegate {
         return UInt8((encoded * 255).rounded())
     }
 
-    func windowConfigured(_ window: WaylandWindow, width: Int, height: Int, fullscreen: Bool) {
+    func windowConfigured(_ window: PlatformWindow, width: Int, height: Int, fullscreen: Bool) {
         self.width = width
         self.height = height
         report["fullscreen"] = String(fullscreen)
     }
 
-    func windowClosed(_ window: WaylandWindow) { finished = true }
-    func windowScaleChanged(_ window: WaylandWindow, scale: Double) { report["scale"] = String(scale) }
+    func windowClosed(_ window: PlatformWindow) { finished = true }
+    func windowScaleChanged(_ window: PlatformWindow, scale: Double) { report["scale"] = String(scale) }
 
-    func windowPresented(_ window: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
+    func windowPresented(_ window: PlatformWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
         presentations.append(nanoseconds)
         self.refreshNanoseconds = refreshNanoseconds
     }
 
-    func windowFrameDone(_ window: WaylandWindow) { waitingForFrame = false }
-    func windowPointerMoved(_ window: WaylandWindow, x: Double, y: Double) {}
-    func windowPointerLeft(_ window: WaylandWindow) {}
-    func windowPointerButton(_ window: WaylandWindow, button: UInt32, pressed: Bool) {}
-    func windowScrolled(_ window: WaylandWindow, event: ScrollEvent) {}
-    func windowKey(_ window: WaylandWindow, event: KeyEvent, pressed: Bool, repeats: Bool) {}
+    func windowFrameDone(_ window: PlatformWindow) { waitingForFrame = false }
+    func windowPointerMoved(_ window: PlatformWindow, x: Double, y: Double) {}
+    func windowPointerLeft(_ window: PlatformWindow) {}
+    func windowPointerButton(_ window: PlatformWindow, button: UInt32, pressed: Bool) {}
+    func windowScrolled(_ window: PlatformWindow, event: ScrollEvent) {}
+    func windowKey(_ window: PlatformWindow, event: KeyEvent, pressed: Bool, repeats: Bool) {}
 }
 
 struct SpikeError: Error, CustomStringConvertible {

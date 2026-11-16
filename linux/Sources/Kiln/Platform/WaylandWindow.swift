@@ -4,35 +4,9 @@ import Foundation
 import Glibc
 #endif
 
-/// What the window reports back to its owner, on the main actor.
-@MainActor
-public protocol WaylandWindowDelegate: AnyObject {
-    func windowConfigured(_ window: WaylandWindow, width: Int, height: Int, fullscreen: Bool)
-    func windowClosed(_ window: WaylandWindow)
-    func windowScaleChanged(_ window: WaylandWindow, scale: Double)
-    func windowPresented(_ window: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64)
-    func windowFrameDone(_ window: WaylandWindow)
-    func windowPointerMoved(_ window: WaylandWindow, x: Double, y: Double)
-    func windowPointerLeft(_ window: WaylandWindow)
-    func windowPointerButton(_ window: WaylandWindow, button: UInt32, pressed: Bool)
-    func windowScrolled(_ window: WaylandWindow, event: ScrollEvent)
-    func windowKey(_ window: WaylandWindow, event: KeyEvent, pressed: Bool, repeats: Bool)
-    func windowModifiersChanged(_ window: WaylandWindow, modifiers: Modifiers)
-    func windowRepeatInfo(_ window: WaylandWindow, rate: Int32, delay: Int32)
-    func windowKeyboardFocusChanged(_ window: WaylandWindow, focused: Bool)
-    func windowTextInput(_ window: WaylandWindow, event: TextInputEvent)
-}
-
-extension WaylandWindowDelegate {
-    public func windowModifiersChanged(_ window: WaylandWindow, modifiers: Modifiers) {}
-    public func windowRepeatInfo(_ window: WaylandWindow, rate: Int32, delay: Int32) {}
-    public func windowKeyboardFocusChanged(_ window: WaylandWindow, focused: Bool) {}
-    public func windowTextInput(_ window: WaylandWindow, event: TextInputEvent) {}
-}
-
 /// One xdg toplevel on its own Wayland connection, with the colour, timing and scale protocols Kiln relies on.
 @MainActor
-public final class WaylandWindow {
+public final class WaylandWindow: PlatformWindow {
     public struct ColorSupport: OptionSet, Sendable {
         public let rawValue: UInt32
         public init(rawValue: UInt32) { self.rawValue = rawValue }
@@ -44,33 +18,33 @@ public final class WaylandWindow {
         public static let luminances = ColorSupport(rawValue: UInt32(KILN_COLOR_LUMINANCES))
     }
 
-    public weak var delegate: WaylandWindowDelegate?
     private let connection: OpaquePointer
-    public private(set) var width = 0
-    public private(set) var height = 0
-    public private(set) var scale = 1.0
 
     public init?(displayName: String? = nil) {
         guard let connection = kiln_wl_connect(displayName) else { return nil }
         self.connection = connection
     }
 
-    public var fileDescriptor: Int32 { kiln_wl_fd(connection) }
+    public override var fileDescriptor: Int32 { kiln_wl_fd(connection) }
     public var display: OpaquePointer? { kiln_wl_display(connection) }
     public var surface: OpaquePointer? { kiln_wl_surface(connection) }
     public var colorSupport: ColorSupport { ColorSupport(rawValue: kiln_wl_color_features(connection)) }
 
-    public func open(title: String, appID: String, delegate: WaylandWindowDelegate) -> Bool {
+    public override func open(title: String, appID: String, delegate: PlatformWindowDelegate) -> Bool {
         self.delegate = delegate
         let context = Unmanaged.passUnretained(self).toOpaque()
         return kiln_wl_create_window(connection, title, appID, Self.callbacks, context)
     }
 
-    public func pump(readable: Bool) -> Bool {
+    public override func makeGPU() throws(RenderError) -> GPU {
+        try GPU(display: display, surface: surface)
+    }
+
+    public override func pump(readable: Bool) -> Bool {
         kiln_wl_pump(connection, readable) == 0
     }
 
-    public func flush() {
+    public override func flush() {
         _ = kiln_wl_flush(connection)
     }
 
@@ -79,7 +53,7 @@ public final class WaylandWindow {
     }
 
     /// What the compositor prefers for the window (`DisplayColor`), or nil without color management.
-    public func readDisplayColor() -> DisplayColor? {
+    public override func readDisplayColor() -> DisplayColor? {
         var raw = kiln_display_color()
         guard kiln_wl_display_color(connection, &raw) else { return nil }
         return DisplayColor(transfer: raw.transfer, minimum: raw.min_luminance, maximum: raw.max_luminance, reference: raw.reference_luminance,
@@ -87,48 +61,48 @@ public final class WaylandWindow {
     }
 
     /// Moves each time the compositor says its preferred description changed.
-    public var displayColorSerial: UInt32 { kiln_wl_display_color_serial(connection) }
+    public override var displayColorSerial: UInt32 { kiln_wl_display_color_serial(connection) }
 
-    public func requestFrame() {
+    public override func requestFrame() {
         kiln_wl_request_frame(connection)
     }
 
-    public func setFullscreen(_ fullscreen: Bool) {
+    public override func setFullscreen(_ fullscreen: Bool) {
         kiln_wl_set_fullscreen(connection, fullscreen)
     }
 
     /// Whether the window's buffers can be larger than it, cropped by `cropBuffer`.
-    public var canCropBuffer: Bool {
+    public override var canCropBuffer: Bool {
         kiln_wl_can_crop_buffer(connection)
     }
 
     /// Shows only the top-left `width` by `height` pixels of the window's buffers, which must lie inside the next one.
-    public func cropBuffer(width: Int, height: Int) {
+    public override func cropBuffer(width: Int, height: Int) {
         kiln_wl_crop_buffer(connection, Int32(width), Int32(height))
     }
 
-    public func applyScale(logicalWidth: Int, logicalHeight: Int) {
+    public override func applyScale(logicalWidth: Int, logicalHeight: Int) {
         kiln_wl_set_buffer_scale120(connection, UInt32((scale * 120).rounded()), Int32(logicalWidth), Int32(logicalHeight))
     }
 
-    public func setCursor(_ cursor: Cursor) {
+    public override func setCursor(_ cursor: Cursor) {
         kiln_wl_set_cursor(connection, cursor.raw)
     }
 
     @discardableResult
-    public func inhibitIdle(_ inhibit: Bool) -> Bool {
+    public override func inhibitIdle(_ inhibit: Bool) -> Bool {
         kiln_wl_inhibit_idle(connection, inhibit)
     }
 
     /// Makes `text` the clipboard.
     @discardableResult
-    public func setClipboard(_ text: String) -> Bool {
+    public override func setClipboard(_ text: String) -> Bool {
         kiln_wl_set_clipboard(connection, text)
     }
 
     /// Makes `data` of type `mimeType` ("image/png") the clipboard.
     @discardableResult
-    public func setClipboard(_ data: Data, mimeType: String) -> Bool {
+    public override func setClipboard(_ data: Data, mimeType: String) -> Bool {
         data.withUnsafeBytes { buffer in
             guard let base = buffer.bindMemory(to: UInt8.self).baseAddress else { return false }
             return kiln_wl_set_clipboard_data(connection, mimeType, base, buffer.count)
@@ -136,23 +110,23 @@ public final class WaylandWindow {
     }
 
     /// The clipboard's text, or nil when it holds none.
-    public func clipboardText() -> String? {
+    public override func clipboardText() -> String? {
         guard let raw = kiln_wl_clipboard_text(connection) else { return nil }
         defer { free(raw) }
         return String(cString: raw)
     }
 
     /// The name of the screen the window is on ("DP-3").
-    public var outputDescription: String? {
+    public override var outputDescription: String? {
         kiln_wl_output_description(connection).map { String(cString: $0) }
     }
 
-    public var outputName: String? {
+    public override var outputName: String? {
         kiln_wl_output_name(connection).map { String(cString: $0) }
     }
 
     /// The physical size of the screen the window is on, in millimetres, when the screen reports one.
-    public var screenSizeMillimetres: (width: Int, height: Int)? {
+    public override var screenSizeMillimetres: (width: Int, height: Int)? {
         var width: Int32 = 0
         var height: Int32 = 0
         guard kiln_wl_output_size_mm(connection, &width, &height) else { return nil }
@@ -160,12 +134,12 @@ public final class WaylandWindow {
     }
 
     /// Turns the input method on for a focused text field, or off.
-    public func setTextInputEnabled(_ enabled: Bool) {
+    public override func setTextInputEnabled(_ enabled: Bool) {
         kiln_wl_text_input_enable(connection, enabled)
     }
 
     /// Tells the input method the focused field's text, caret and purpose; `caret` is in surface points.
-    public func updateTextInput(_ state: TextInputState, caret: Rect) {
+    public override func updateTextInput(_ state: TextInputState, caret: Rect) {
         let type = state.contentType
         let shown = state.purpose == .password ? "" : state.text
         let cursor = state.purpose == .password ? 0 : state.cursor
@@ -176,121 +150,17 @@ public final class WaylandWindow {
 
     /// Raises and focuses the window with a launcher's xdg-activation token.
     @discardableResult
-    public func activate(token: String) -> Bool {
+    public override func activate(token: String) -> Bool {
         kiln_wl_activate(connection, token)
     }
 
     /// Raises and focuses the window without a launcher's token, as far as the compositor's focus rules allow.
     @discardableResult
-    public func raise() -> Bool {
+    public override func raise() -> Bool {
         kiln_wl_raise(connection)
     }
 
-    public func close() {
+    public override func close() {
         kiln_wl_disconnect(connection)
     }
-
-    /// Runs `body` on the main actor with the window a C callback's context points at. The pointer travels as an integer
-    /// because every callback arrives on the main thread, inside `pump`.
-    private nonisolated static func on(_ context: UnsafeMutableRawPointer?, _ body: @MainActor (WaylandWindow) -> Void) {
-        let address = UInt(bitPattern: context)
-        MainActor.assumeIsolated {
-            guard let pointer = UnsafeRawPointer(bitPattern: address) else { return }
-            body(Unmanaged<WaylandWindow>.fromOpaque(pointer).takeUnretainedValue())
-        }
-    }
-
-    private static let callbacks = kiln_wl_callbacks(
-        configure: { context, width, height, states in
-            WaylandWindow.on(context) { window in
-                if width > 0 { window.width = Int(width) }
-                if height > 0 { window.height = Int(height) }
-                if window.width == 0 { window.width = 1280 }
-                if window.height == 0 { window.height = 800 }
-                let fullscreen = states & UInt32(KILN_STATE_FULLSCREEN) != 0
-                window.delegate?.windowConfigured(window, width: window.width, height: window.height, fullscreen: fullscreen)
-            }
-        },
-        close: { context in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowClosed(window)
-            }
-        },
-        scale: { context, scale120 in
-            WaylandWindow.on(context) { window in
-                window.scale = Double(scale120) / 120
-                window.delegate?.windowScaleChanged(window, scale: window.scale)
-            }
-        },
-        presented: { context, nanoseconds, refresh, sequence, _ in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowPresented(window, nanoseconds: nanoseconds, refreshNanoseconds: refresh, sequence: sequence)
-            }
-        },
-        discarded: { _ in },
-        frame: { context, _ in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowFrameDone(window)
-            }
-        },
-        pointer_motion: { context, x, y in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowPointerMoved(window, x: x, y: y)
-            }
-        },
-        pointer_leave: { context in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowPointerLeft(window)
-            }
-        },
-        pointer_button: { context, button, pressed in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowPointerButton(window, button: button, pressed: pressed != 0)
-            }
-        },
-        pointer_axis: { context, frame in
-            WaylandWindow.on(context) { window in
-                let source: ScrollEvent.Source = switch frame.source {
-                case 0: .wheel
-                case 1: .finger
-                case 2: .continuous
-                default: .wheelTilt
-                }
-                let event = ScrollEvent(dx: Float(frame.dx), dy: Float(frame.dy), notchesX: Float(frame.dx120) / 120,
-                                        notchesY: Float(frame.dy120) / 120, source: frame.dx120 != 0 || frame.dy120 != 0 ? .wheel : source,
-                                        ended: frame.stop_x || frame.stop_y, timeMilliseconds: frame.time_ms)
-                window.delegate?.windowScrolled(window, event: event)
-            }
-        },
-        key: { context, key in
-            WaylandWindow.on(context) { window in
-                let text = withUnsafeBytes(of: key.text) { buffer in
-                    String(decoding: buffer.prefix { $0 != 0 }, as: UTF8.self)
-                }
-                let event = KeyEvent(key: Key(key.keysym), text: text, modifiers: Modifiers(rawValue: key.modifiers))
-                window.delegate?.windowKey(window, event: event, pressed: key.pressed, repeats: key.repeats)
-            }
-        },
-        modifiers: { context, mask in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowModifiersChanged(window, modifiers: Modifiers(rawValue: mask))
-            }
-        },
-        repeat_info: { context, rate, delay in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowRepeatInfo(window, rate: rate, delay: delay)
-            }
-        },
-        keyboard_focus: { context, focused in
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowKeyboardFocusChanged(window, focused: focused)
-            }
-        },
-        text_input: { context, raw in
-            let event = TextInputEvent(raw)
-            WaylandWindow.on(context) { window in
-                window.delegate?.windowTextInput(window, event: event)
-            }
-        }
-    )
 }

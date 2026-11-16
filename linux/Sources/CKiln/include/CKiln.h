@@ -232,6 +232,48 @@ bool kiln_display_read(kiln_display *display, const char *output, kiln_display_s
  * to five seconds for KWin; true when it applied or nothing needed changing. */
 bool kiln_display_apply(kiln_display *display, const char *output, kiln_display_mode mode, int hdr, int wide_color_gamut);
 
+/** An X11 window (through XWayland), for gamescope's Game Mode: Steam hands focus only to windows XWayland reports, so a
+ * Wayland toplevel there is never shown. It takes the same callbacks as the Wayland window; there are no frame callbacks,
+ * presentation feedback, colour management, input method or clipboard on it. */
+typedef struct kiln_x11 kiln_x11;
+
+/** Connects to the named X display (NULL for $DISPLAY). */
+kiln_x11 *kiln_x11_connect(const char *name);
+void kiln_x11_disconnect(kiln_x11 *x);
+int kiln_x11_fd(kiln_x11 *x);
+/** The `xcb_connection_t` and window, for a Vulkan surface. */
+void *kiln_x11_connection(kiln_x11 *x);
+uint32_t kiln_x11_window(kiln_x11 *x);
+/** Creates and maps a window the size of the screen and reports it through `configure` before returning. `steam_app_id`,
+ * when not 0, goes on the window as STEAM_GAME, which tells gamescope and Steam whose window it is. */
+bool kiln_x11_create_window(kiln_x11 *x, const char *title, const char *app_id, uint32_t steam_app_id, kiln_wl_callbacks callbacks, void *context);
+/** Handles every event the connection holds, then flushes; -1 once the connection has failed. */
+int kiln_x11_pump(kiln_x11 *x);
+void kiln_x11_flush(kiln_x11 *x);
+void kiln_x11_set_fullscreen(kiln_x11 *x, bool fullscreen);
+void kiln_x11_set_cursor(kiln_x11 *x, enum kiln_cursor cursor);
+uint32_t kiln_x11_refresh_millihertz(kiln_x11 *x);
+
+/** How gamescope composes the screen, as Steam set it on the root window: whether the output is HDR, the brightness SDR
+ * content is shown at on an HDR output, and the gains Steam's brightness slider applies to SDR and to HDR content (in HDR
+ * mode the slider scales content instead of the backlight). `display_nits` is the panel's brightness, 0 when not given. */
+typedef struct {
+    bool hdr;
+    float sdr_on_hdr_nits;
+    float sdr_gain;
+    float hdr_gain;
+    float display_nits;
+} kiln_gamescope_color;
+
+/** Reads gamescope's colour state; false outside gamescope. */
+bool kiln_x11_gamescope_color(kiln_x11 *x, kiln_gamescope_color *out);
+/** Moves whenever the colour state may have changed: the window was shown or came back from Steam's overlay, or Steam
+ * changed one of gamescope's colour properties (the brightness slider, the HDR switch). */
+uint32_t kiln_x11_color_serial(kiln_x11 *x);
+/** The connection to gamescope's root XWayland server when the window lives on another one, to watch for those changes;
+ * -1 when there is none (it opens with the first colour reading). `kiln_x11_pump` handles its events too. */
+int kiln_x11_root_fd(kiln_x11 *x);
+
 /** Hands libdispatch's main-queue handle to the event loop, as CoreFoundation's run loop does. */
 int kiln_dispatch_main_queue_handle(void);
 void kiln_dispatch_drain_main_queue(void);

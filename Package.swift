@@ -66,7 +66,9 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .executable(name: "crucible", targets: ["CrucibleApp"]),
     ]
     let targets: [Target] = [
-        .target(name: "CKiln", path: "linux/Sources/CKiln", linkerSettings: [.linkedLibrary("wayland-client"), .linkedLibrary("xkbcommon")]),
+        .target(name: "CKiln", path: "linux/Sources/CKiln", linkerSettings: [.linkedLibrary("wayland-client"), .linkedLibrary("xkbcommon"),
+                                                                             .linkedLibrary("xkbcommon-x11"), .linkedLibrary("xcb"), .linkedLibrary("xcb-xkb"),
+                                                                             .linkedLibrary("xcb-randr"), .linkedLibrary("xcb-xinput")]),
         .systemLibrary(name: "CMPV", path: "linux/Sources/CMPV", pkgConfig: "mpv"),
         .systemLibrary(name: "CPlacebo", path: "linux/Sources/CPlacebo", pkgConfig: "libplacebo"),
         .systemLibrary(name: "CPangoCairo", path: "linux/Sources/CPangoCairo", pkgConfig: "pangocairo fontconfig"),
@@ -74,7 +76,7 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .systemLibrary(name: "CImageLibs", path: "linux/Sources/CImageLibs", pkgConfig: "libturbojpeg libpng libwebp librsvg-2.0"),
         .target(name: "CKilnImage", dependencies: ["CImageLibs"], path: "linux/Sources/CKilnImage", linkerSettings: [.linkedLibrary("gif")]),
         .target(name: "CKilnGPU", dependencies: ["CPlacebo", "CMPV"], path: "linux/Sources/CKilnGPU",
-                linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
+                linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client"), .linkedLibrary("xcb")]),
         .systemLibrary(name: "CAccessKit", path: "linux/Sources/CAccessKit", pkgConfig: "accesskit"),
         .systemLibrary(name: "CSDL", path: "linux/Sources/CSDL", pkgConfig: "sdl3"),
         .target(name: "CKilnPad", dependencies: ["CSDL"], path: "linux/Sources/CKilnPad"),

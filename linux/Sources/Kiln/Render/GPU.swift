@@ -165,7 +165,23 @@ public final class GPU {
         deviceName = String(cString: kiln_gpu_device_name(handle))
     }
 
+    /// The device with a FIFO swapchain on an X11 window (`xcbConnection` is its `xcb_connection_t`).
+    public init(xcbConnection: UnsafeMutableRawPointer?, window: UInt32) throws(RenderError) {
+        var error = [CChar](repeating: 0, count: 256)
+        guard let handle = kiln_gpu_create_xcb(xcbConnection, window, &error, error.count) else {
+            throw .device(error.withUnsafeBufferPointer { String(cString: $0.baseAddress!) })
+        }
+        self.handle = handle
+        deviceName = String(cString: kiln_gpu_device_name(handle))
+    }
+
     public var vulkanHandles: VulkanHandles { VulkanHandles(raw: kiln_gpu_vulkan_handles(handle)) }
+
+    /// Multiplies the light the swapchain shows by `gain`, and presents SDR instead of scRGB when `sdr` (the compositor's
+    /// output is SDR and it wants SDR buffers).
+    public func setOutput(gain: Float, sdr: Bool) {
+        kiln_gpu_set_output(handle, gain, sdr)
+    }
 
     public func resize(width: Int, height: Int) -> (width: Int, height: Int)? {
         var w = Int32(width)

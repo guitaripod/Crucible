@@ -40,6 +40,8 @@ struct kiln_gpu {
     int vertex_frame;
     size_t vertex_used;
     bool vertex_ready;
+    float output_gain;
+    bool sdr_output;
 };
 
 #endif
