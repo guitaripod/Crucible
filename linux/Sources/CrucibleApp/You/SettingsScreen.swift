@@ -5,13 +5,20 @@ import Kiln
 import MidgarCore
 
 /// Settings: the shared catalogue's categories for this platform, each with its value line, opening a screen of rows
-/// where a choice opens a menu of its options and a switch flips in place.
+/// where a choice opens a menu of its options and a switch flips in place. In the Desktop layout the categories stand in
+/// a column down the left and the chosen one's page fills the rest, so moving between them never leaves Settings.
 @MainActor
 final class SettingsScreen: ScreenView {
     private let title = ScreenTitleView(title: String(localized: "Settings"))
     private let rows = RowListView()
     private let page = PageView()
     private let api: APIClient
+    private let categoryList = SidebarView()
+    /// The chosen category's page beside the list, in the Desktop layout.
+    private var pane: ScreenView?
+    private var paneID: String?
+    /// The category last open beside the list, which Settings opens on again.
+    private static var lastPaneID: String?
 
     init(api: APIClient) {
         self.api = api
@@ -20,26 +27,43 @@ final class SettingsScreen: ScreenView {
         addSubview(page)
         page.setSections([title, rows])
         rows.onSelect = { [weak self] item in
-            guard let self else { return }
-            if item.id == Self.ownModelID {
-                self.navigation?.push(OwnModelSettingsScreen())
-                return
-            }
-            if item.id == Self.crucibleServerID {
-                self.navigation?.push(CrucibleServerScreen())
-                return
-            }
-            guard let category = SettingsCategory(rawValue: item.id) else { return }
-            if category == .appearance {
-                self.navigation?.push(AppearanceSettingsScreen())
-            } else {
-                self.navigation?.push(SettingsCategoryScreen(category: category, api: self.api))
-            }
+            guard let self, let screen = self.screen(for: item.id) else { return }
+            self.navigation?.push(screen)
         }
+        categoryList.showsNavigation = false
+        categoryList.preferredWidth = Theme.current.metrics.tv(560)
+        categoryList.onSelect = { [weak self] item, _ in self?.showPane(item.id) }
+        addSubview(categoryList)
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
     }
 
-    override var preferredFocusView: View? { rows }
+    override var preferredFocusView: View? { usesPanes ? categoryList : rows }
+
+    /// Whether the categories stand beside the chosen one's page (the Desktop layout) or open one at a time.
+    private var usesPanes: Bool { Theme.current.density == .desk }
+
+    /// The page of the category or setting `id`.
+    private func screen(for id: String) -> ScreenView? {
+        if id == Self.ownModelID { return OwnModelSettingsScreen() }
+        if id == Self.crucibleServerID { return CrucibleServerScreen() }
+        guard let category = SettingsCategory(rawValue: id) else { return nil }
+        return category == .appearance ? AppearanceSettingsScreen() : SettingsCategoryScreen(category: category, api: api)
+    }
+
+    /// Opens `id`'s page beside the list in place of the one there; its own deeper pages still push onto the stack.
+    private func showPane(_ id: String) {
+        guard id != paneID || pane == nil, let screen = screen(for: id) else { return }
+        pane?.screenWillDisappear()
+        pane?.removeFromSuperview()
+        screen.navigation = navigation
+        pane = screen
+        paneID = id
+        Self.lastPaneID = id
+        addSubview(screen)
+        categoryList.select(id)
+        placePanes()
+        screen.screenDidAppear()
+    }
 
     private static let ownModelID = "linux.ownModel"
     private static let crucibleServerID = "linux.crucibleServer"
@@ -58,6 +82,7 @@ final class SettingsScreen: ScreenView {
     override func screenWillDisappear() {
         restoreConnectionHandler?()
         restoreConnectionHandler = nil
+        pane?.screenWillDisappear()
     }
 
     /// Puts You's own handler back on the connection status when Settings leaves, since the status keeps one.
@@ -79,6 +104,15 @@ final class SettingsScreen: ScreenView {
             items.insert(server, at: connection)
         }
         rows.setItems(items)
+        categoryList.sections = [SidebarView.Section(title: String(localized: "Settings"), items: items.map {
+            SidebarView.Item(id: $0.id, title: $0.title, symbol: $0.symbol ?? "gearshape")
+        })]
+        if usesPanes {
+            let wanted = paneID ?? Self.lastPaneID ?? items.first?.id
+            if let wanted, items.contains(where: { $0.id == wanted }) {
+                if pane == nil || paneID != wanted { showPane(wanted) } else { pane?.screenDidAppear() }
+            }
+        }
         setNeedsLayout()
     }
 
@@ -101,7 +135,22 @@ final class SettingsScreen: ScreenView {
     override func layoutSubviews() {
         page.topInset = Theme.current.metrics.tabBarClearance
         page.bottomInset = Theme.current.metrics.tv(60)
-        page.frame = bounds
+        if usesPanes, pane == nil, let first = Self.lastPaneID ?? rows.items.first?.id { showPane(first) }
+        placePanes()
+    }
+
+    /// The list and its page side by side in the Desktop layout, or the one page of categories.
+    private func placePanes() {
+        page.isHidden = usesPanes
+        categoryList.isHidden = !usesPanes
+        pane?.isHidden = !usesPanes
+        guard usesPanes else {
+            page.frame = bounds
+            return
+        }
+        let listWidth = categoryList.width
+        categoryList.frame = Rect(x: 0, y: 0, width: listWidth, height: bounds.height)
+        pane?.frame = Rect(x: listWidth, y: 0, width: max(bounds.width - listWidth, 0), height: bounds.height)
     }
 
     override func draw(_ context: inout DrawContext) {

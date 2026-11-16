@@ -45,8 +45,9 @@ public struct Metrics {
     /// Room a page leaves at its top: below the floating tab bar on a couch, a margin beside the sidebar on a desk.
     public var tabBarClearance: Float { density == .desk ? tv(70) : tv(150) }
 
-    public var formColumn: Float { tv(1000) }
-    public var wideColumn: Float { tv(1100) }
+    /// A form's column: wider on a desk, where a monitor has the room and long settings stop cutting off.
+    public var formColumn: Float { density == .desk ? tv(1300) : tv(1000) }
+    public var wideColumn: Float { density == .desk ? tv(1500) : tv(1100) }
     public var messageColumn: Float { tv(900) }
 
     public enum Space {

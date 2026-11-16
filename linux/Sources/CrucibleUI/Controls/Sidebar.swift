@@ -39,6 +39,16 @@ public final class SidebarView: View {
     public var onForward: (() -> Void)?
     public var canGoBack = false { didSet { if canGoBack != oldValue { back.isEnabled = canGoBack } } }
     public var canGoForward = false { didSet { if canGoForward != oldValue { forward.isEnabled = canGoForward } } }
+    /// Whether Back and Forward head the column (the window's sidebar) or not (a list of categories beside a page).
+    public var showsNavigation = true {
+        didSet {
+            back.isHidden = !showsNavigation
+            forward.isHidden = !showsNavigation
+            setNeedsLayout()
+        }
+    }
+    /// A width of its own in place of the window sidebar's.
+    public var preferredWidth: Float?
     /// A rail of symbols instead of the full column.
     public var isCollapsed = false {
         didSet {
@@ -73,7 +83,7 @@ public final class SidebarView: View {
     }
 
     /// How wide the column is: full, or the rail.
-    public var width: Float { Theme.current.metrics.tv(isCollapsed ? 128 : 430) }
+    public var width: Float { isCollapsed ? Theme.current.metrics.tv(128) : preferredWidth ?? Theme.current.metrics.tv(430) }
 
     public override var isPointerInteractive: Bool { true }
     public override var cursor: Cursor { .default }
@@ -119,7 +129,7 @@ public final class SidebarView: View {
         forward.frame = isCollapsed
             ? Rect(x: pad, y: back.frame.maxY + metrics.tv(8), width: navSide, height: navSide)
             : Rect(x: back.frame.maxX + metrics.tv(10), y: back.frame.y, width: navSide, height: navSide)
-        let top = forward.frame.maxY + metrics.tv(28)
+        let top = showsNavigation ? forward.frame.maxY + metrics.tv(28) : metrics.tabBarClearance - metrics.tv(20)
         let footerHeight = Float(footer.count) * rowHeight + metrics.tv(24)
         scroller.frame = Rect(x: 0, y: top, width: bounds.width, height: max(bounds.height - top - footerHeight, 0))
         var y: Float = 0
