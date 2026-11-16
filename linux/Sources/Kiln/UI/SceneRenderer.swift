@@ -12,10 +12,15 @@ final class SceneRenderer {
     private(set) var painter: Painter
     private var glassRenderer: LiquidGlassRenderer?
     private var backdropCopy: Texture?
+    private var backdropCopier: Painter?
     var scale: Float = 1
     private var readback: Readback?
     private var readbackStarted = false
     private var luminanceMap: (width: Int, height: Int, values: [Float])?
+    /// Whether glass blurred the backdrop earlier in this frame, so the next glass may reuse it.
+    private var blurredThisFrame = false
+    /// How far around glass, in target pixels, the frost and the refraction reach for what is behind it.
+    private static let glassReach: Float = 128
 
     init(gpu: GPU, width: Int, height: Int) throws(RenderError) {
         self.gpu = gpu
@@ -32,11 +37,13 @@ final class SceneRenderer {
         painter = Painter(gpu: gpu, target: target)
         glassRenderer = nil
         backdropCopy = nil
+        backdropCopier = nil
     }
 
     func render(root: View, background: Color) {
         collectReadback()
         readbackStarted = false
+        blurredThisFrame = false
         painter.clip = nil
         painter.clear(background)
         let context = DrawContext(renderer: self, transform: Affine(scale: scale), alpha: 1, clip: nil)
@@ -67,7 +74,9 @@ final class SceneRenderer {
         view.drawOverlay(&context)
     }
 
-    /// Blurs the frame so far into the frost pyramid and composites `element` (in target pixels) over it.
+    /// Composites `element` (in target pixels) over the frame, through the frost pyramid blurred from what has been drawn.
+    /// Glass reuses the pyramid an earlier glass of this frame blurred when nothing it would see has been drawn since (the
+    /// labels on that glass aside) and it does not overlap that glass, so a row of glass buttons blurs the backdrop once.
     func drawGlass(_ element: LiquidGlass, clip: Rect?, opacity: Float) {
         guard opacity > 0.001 else { return }
         FrameTrace.glass += 1
@@ -78,18 +87,28 @@ final class SceneRenderer {
             return
         }
         guard let glassRenderer, let backdropCopy else { return }
-        painter.flush()
-        let copier = Painter(gpu: gpu, target: backdropCopy)
-        copier.copy(target)
-        glassRenderer.blur(backdropCopy)
-        if readback == nil && !readbackStarted {
-            readback = glassRenderer.tiny.beginReadback()
-            readbackStarted = true
-        }
+        let copier = backdropCopier ?? Painter(gpu: gpu, target: backdropCopy)
+        backdropCopier = copier
         var area = element.bounds
         if let clip { area = area.intersection(clip) }
         guard !area.isEmpty else { return }
-        glassRenderer.composite(scene: backdropCopy, into: target, element: element, rect: area, opacity: opacity)
+        let shape = element.shapeBounds
+        let reach = Self.glassReach + element.refraction
+        let seen = shape.insetBy(-reach, -reach)
+        let current = blurredThisFrame && !painter.drawnSinceBlur(intersects: seen) && !painter.glassSinceBlur.contains { $0.intersects(shape) }
+        painter.flush()
+        if !current {
+            copier.copy(target)
+            glassRenderer.blur(backdropCopy)
+            painter.backdropBlurred()
+            blurredThisFrame = true
+            if readback == nil && !readbackStarted {
+                readback = glassRenderer.tiny.beginReadback()
+                readbackStarted = true
+            }
+        }
+        glassRenderer.composite(scene: backdropCopy, into: target, element: element, rect: area, opacity: opacity, overlay: true)
+        painter.glassDrawn(shape)
     }
 
     private func collectReadback() {

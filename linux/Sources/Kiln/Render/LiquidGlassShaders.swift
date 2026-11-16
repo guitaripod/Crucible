@@ -79,9 +79,9 @@ enum LiquidGlassShaders {
     float d = kilnField(p);
     float s = kilnField(p - shadowOffset);
     float shadow = shadowOpacity * (1.0 - smoothstep(-shadowRadius * 0.5, shadowRadius, s)) * smoothstep(-1.0, 1.0, d);
-    base *= 1.0 - shadow;
+    float keep = 1.0 - shadow;
     if (d > 1.0) {
-        color = vec4(base, 1.0);
+        color = overlay > 0.5 ? vec4(0.0, 0.0, 0.0, shadow) : vec4(base * keep, 1.0);
     } else {
         float coverage = clamp(0.5 - d, 0.0, 1.0);
         vec3 gradient = kilnGradient(p);
@@ -128,7 +128,13 @@ enum LiquidGlassShaders {
         glass += press * 0.22 * exp(-distanceToLight / max(shapeA.w * 1.5, 1.0));
         float hairline = 1.0 - smoothstep(0.0, 1.25, abs(d + 0.6));
         glass = mix(glass, vec3(1.15), hairline * (0.22 + 0.6 * facing));
-        color = vec4(mix(base, glass, coverage * opacity), 1.0);
+        float a = coverage * opacity;
+        if (overlay > 0.5) {
+            float alpha = 1.0 - keep * (1.0 - a);
+            color = alpha > 1e-5 ? vec4(glass * a / alpha, alpha) : vec4(0.0);
+        } else {
+            color = vec4(mix(base * keep, glass, a), 1.0);
+        }
     }
     """
 }

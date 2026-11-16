@@ -62,5 +62,51 @@ import Testing
         #expect(pixels[(99 * 64 + 32) * 4] < 0.03)
         #expect(pixels[(4 * 64 + 4) * 4 + 2] > 0.99)
     }
+
+    @Test func aRowOfGlassBlursTheBackdropOnceAndKeepsEachLabel() throws {
+        let window = try Window(offscreen: Size(width: 900, height: 200), gpu: TestGPU.shared)
+        window.background = Color(linearRed: 0.2, green: 0.1, blue: 0.05)
+        let row = GlassRow()
+        row.frame = Rect(x: 0, y: 0, width: 900, height: 200)
+        window.contentView.addSubview(row)
+        window.render()
+        #expect(FrameTrace.glass == 3)
+        #expect(FrameTrace.passes < 3 * 9)
+        let capture = window.capture()
+        for x in [150, 450, 750] {
+            let index = (100 * capture.width + x) * 4
+            #expect(capture.pixels[index] > 0.99 && capture.pixels[index + 1] > 0.99)
+        }
+    }
+
+    @Test func glassOverGlassBlursAgainSoTheUpperSeesTheLower() throws {
+        let window = try Window(offscreen: Size(width: 400, height: 200), gpu: TestGPU.shared)
+        window.background = Color(linearRed: 0.2, green: 0.1, blue: 0.05)
+        let stack = GlassStack()
+        stack.frame = Rect(x: 0, y: 0, width: 400, height: 200)
+        window.contentView.addSubview(stack)
+        window.render()
+        #expect(FrameTrace.glass == 2)
+        #expect(FrameTrace.passes >= 2 * 9)
+    }
 }
 
+/// Three glass pills far apart in a row, each with a white label square on it, drawn in turn.
+@MainActor
+private final class GlassRow: View {
+    override func draw(_ context: inout DrawContext) {
+        for x: Float in [150, 450, 750] {
+            context.glass(LiquidGlass(primary: .init(centerX: x, centerY: 100, halfWidth: 90, halfHeight: 30, radius: 30), lightX: x, lightY: 0))
+            context.fill(Rect(x: x - 10, y: 90, width: 20, height: 20), color: .white)
+        }
+    }
+}
+
+/// A glass pill with a smaller one over it.
+@MainActor
+private final class GlassStack: View {
+    override func draw(_ context: inout DrawContext) {
+        context.glass(LiquidGlass(primary: .init(centerX: 200, centerY: 100, halfWidth: 150, halfHeight: 60, radius: 60), lightX: 200, lightY: 0))
+        context.glass(LiquidGlass(primary: .init(centerX: 200, centerY: 100, halfWidth: 60, halfHeight: 25, radius: 25), lightX: 200, lightY: 0))
+    }
+}

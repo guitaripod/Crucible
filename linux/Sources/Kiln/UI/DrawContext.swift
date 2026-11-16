@@ -180,12 +180,17 @@ extension LiquidGlass {
 
     /// The pixels the element and its shadow can touch.
     var bounds: Rect {
+        let reach = shadowRadius * 1.5 + abs(shadowOffsetY) + blend + 2
+        return shapeBounds.insetBy(-reach, -reach)
+    }
+
+    /// The pixels of the glass itself, without its shadow.
+    var shapeBounds: Rect {
         func rect(_ shape: Shape) -> Rect {
             Rect(x: shape.centerX - shape.halfWidth, y: shape.centerY - shape.halfHeight, width: shape.halfWidth * 2, height: shape.halfHeight * 2)
         }
         var area = rect(primary)
         if let secondary { area = area.union(rect(secondary)) }
-        let reach = shadowRadius * 1.5 + abs(shadowOffsetY) + blend + 2
-        return area.insetBy(-reach, -reach)
+        return area.insetBy(-blend, -blend)
     }
 }

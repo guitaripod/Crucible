@@ -56,6 +56,7 @@ public final class Painter {
         let area = clip.flatMap { bounds($0, outset: 0) }
         if clip != nil && area == nil { return }
         flush()
+        touched(area ?? (0, 0, Float(target.width), Float(target.height)))
         gpu.pass(into: target, body: "color = vec4(fill.rgb, fill.a);", uniforms: [.init("fill", color.red, color.green, color.blue, color.alpha)], rect: area)
     }
 
@@ -147,6 +148,7 @@ public final class Painter {
             return
         }
         flush()
+        touched(area)
         let padded = Array((stops + Array(repeating: stops[stops.count - 1], count: max(0, 4 - stops.count))).prefix(4))
         gpu.pass(into: target, header: PainterShaders.header, body: PainterShaders.gradient, uniforms: [
             .init("box", rect.midX, rect.midY, rect.width / 2, rect.height / 2),
@@ -166,6 +168,7 @@ public final class Painter {
     public func glow(in rect: Rect, radius: Float, center: Point, glowRadius: Float, color: Color) {
         guard color.alpha > 0, rect.width > 0, rect.height > 0, let area = bounds(rect) else { return }
         flush()
+        touched(area)
         gpu.pass(into: target, header: PainterShaders.header, body: PainterShaders.glow, uniforms: [
             .init("box", rect.midX, rect.midY, rect.width / 2, rect.height / 2),
             .init("radius", min(radius, min(rect.width, rect.height) / 2)),
@@ -180,9 +183,48 @@ public final class Painter {
         let area = rect.flatMap { bounds($0, outset: 0) }
         if rect != nil && area == nil { return }
         flush()
+        touched(area ?? (0, 0, Float(target.width), Float(target.height)))
         gpu.pass(into: target, body: PainterShaders.copy, samplers: [.init("source", source, nearest: true)], uniforms: [
             .init("size", Float(target.width), Float(target.height)),
         ], rect: area)
+    }
+
+    // MARK: What glass sees
+
+    /// Target pixels drawn since glass last blurred the backdrop, leaving out what was drawn on that glass itself (its
+    /// label, its icon): glass beside it does not see those, as in a tvOS glass container.
+    private var drawnSinceBlur: [Rect] = []
+    /// The glass composited since the backdrop was last blurred.
+    private(set) var glassSinceBlur: [Rect] = []
+
+    /// The backdrop was just blurred from the target as it is now.
+    func backdropBlurred() {
+        drawnSinceBlur.removeAll(keepingCapacity: true)
+        glassSinceBlur.removeAll(keepingCapacity: true)
+    }
+
+    /// Glass covering `rect` was composited.
+    func glassDrawn(_ rect: Rect) {
+        glassSinceBlur.append(rect)
+    }
+
+    /// Whether anything glass would see inside `rect` was drawn since the last blur.
+    func drawnSinceBlur(intersects rect: Rect) -> Bool {
+        drawnSinceBlur.contains { $0.intersects(rect) }
+    }
+
+    private func touched(_ area: (Float, Float, Float, Float)) {
+        let (x0, y0, x1, y1) = area
+        if glassSinceBlur.contains(where: { $0.x <= x0 && $0.y <= y0 && $0.maxX >= x1 && $0.maxY >= y1 }) { return }
+        let rect = Rect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
+        if let last = drawnSinceBlur.last, last.x <= x0, last.y <= y0, last.maxX >= x1, last.maxY >= y1 { return }
+        if drawnSinceBlur.count >= 24 {
+            let merged = drawnSinceBlur.reduce(rect) { $0.union($1) }
+            drawnSinceBlur.removeAll(keepingCapacity: true)
+            drawnSinceBlur.append(merged)
+        } else {
+            drawnSinceBlur.append(rect)
+        }
     }
 
     // MARK: Batching
@@ -228,6 +270,7 @@ public final class Painter {
     /// Appends one primitive as two triangles covering `area` (whole target pixels, already clipped).
     private func add(_ area: (Float, Float, Float, Float), kind: Kind, box: Rect, radius: Float = 0, aux: Float = 0, opacity: Float = 1,
                      fill: Color = .black, fill2: Color = .black, uv: UVMap = UVMap(), slot: Int = 0) {
+        touched(area)
         let (x0, y0, x1, y1) = area
         let cx = box.midX
         let cy = box.midY

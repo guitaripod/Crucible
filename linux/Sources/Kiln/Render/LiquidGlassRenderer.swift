@@ -97,7 +97,10 @@ public final class LiquidGlassRenderer {
     }
 
     /// Composites `element` over `scene` into `target`, everywhere or only inside `rect` (target pixels), faded by `opacity`.
-    public func composite(scene: Texture, into target: Texture, element: LiquidGlass, rect: Rect? = nil, opacity: Float = 1) {
+    /// With `overlay` the glass and its shadow blend over what `target` holds now (which may have changed since `scene` was
+    /// blurred) instead of replacing it with `scene`.
+    public func composite(scene: Texture, into target: Texture, element: LiquidGlass, rect: Rect? = nil, opacity: Float = 1,
+                          overlay: Bool = false) {
         let a = element.primary
         let b = element.secondary
         let pill = element.pill
@@ -122,8 +125,9 @@ public final class LiquidGlassRenderer {
             .init("tone", element.tone ?? -1),
             .init("shadowOffset", 0, element.shadowOffsetY),
             .init("shadowRadius", element.shadowRadius),
+            .init("overlay", overlay ? 1 : 0),
         ], rect: rect.map { area in
             (area.x.rounded(.down), area.y.rounded(.down), area.maxX.rounded(.up), area.maxY.rounded(.up))
-        })
+        }, blend: overlay)
     }
 }
