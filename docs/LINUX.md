@@ -55,6 +55,9 @@ Rust's real advantage would be its UI crates, and §4 explains why none of them 
 | On an HDR output gamescope shows SDR content (Steam's interface) at `GAMESCOPE_SDR_ON_HDR_CONTENT_BRIGHTNESS` times the SDR gain and multiplies HDR content by the HDR gain; Steam's brightness slider sets both gains on the root window | gamescope `steamcompmgr.cpp` (colour LUTs) | Kiln scales its scRGB output so its white lands on Steam's, and draws SDR when the output is SDR (§9.1) |
 | swift-corelibs-foundation's URLSession only ever adds libdispatch sources for a socket: after libcurl has sent a request and only waits to read, the write source stays and fires as fast as the socket is writable. Any request that stays open (the server-events stream) spins a core for as long as the app runs: 99% CPU measured on the desktop, 108% on the Deck | `MultiHandle.swift` (`_SocketSources.createSources`); perf on both machines | `CLinuxServices/crucible_curl.c` relays URLSession's socket callback and drops the sources libcurl no longer wants |
 | RADV on the Deck exposes no Vulkan Video decode, and the gpu-next libmpv backend handed mpv no display, so VA-API fell back to copying every frame through system memory (`vaapi-copy`) | mpv's log on the Deck | mpv patch 0012 opens the GPU's render node for the VA-API interop: zero-copy VA-API |
+| The vendored Vulkan render backend ended every frame with `pl_gpu_finish()` and never read the `MPV_RENDER_PARAM_VULKAN_SYNC` its header declares, so Kiln's main thread waited out all of a frame's GPU work: 9 to 11 ms of every 4K frame on the Deck, which held 4K 60 fps titles near 40 fps | `KILN_FRAMES` and `perf` on the Deck (2026-11-16); `video/out/gpu_next/context.c` | mpv patch 0013 hands the frame back through a timeline semaphore that Kiln's next use waits for on the GPU (§7.3) |
+| mpv's default chroma upscaler (Lanczos) brings a 4:2:0 picture's colour up to the full size of its luma before the picture is scaled to the view, so a 4K picture on an 800-line screen spent most of mpv's GPU time on a pass whose detail the shrinking then discards | `KILN_MPV_OPTIONS` trials on the Deck: `cscale=bilinear` alone took 4K 60 fps from 52% to 32% of the GPU | A picture shown at half its size or smaller gets the bilinear chroma pass (§7.3) |
+| gamescope sets its refresh for the shown title from the private `gamescope_control` protocol, which Steam drives and whose definition says regular clients must not use it; the `GAMESCOPE_DYNAMIC_REFRESH` root property Steam still writes is cleared on every frame it composes | gamescope 3.16 `steamcompmgr.cpp` (`_update_app_target_refresh_cycle`), `gamescope-control.xml` | No Match Content in Game Mode: Steam's per-game refresh rate (72 Hz for film on the OLED) is the way (§7.4) |
 
 ## 4. Architecture
 
@@ -202,11 +205,13 @@ On Linux `PlaybackCapabilities` says mpv decodes every container and codec, so d
 
 **HDR metadata:** mastering primaries and luminance, MaxCLL and MaxFALL come from mpv's `video-params` and go into the surface's image description, never as zeros (§3).
 
+**Hand-off:** mpv renders into the view's texture without the main thread waiting for the GPU (mpv patch 0013): the texture's timeline semaphore tells mpv when Kiln's last use of it is done, mpv signals the next value when its frame is drawn, and Kiln's composite waits for that value on the GPU. Taking the texture back waits on the CPU for Kiln's previous use, so the GPU never runs more than a frame behind and the decoder's last surface is free before the next is mapped. `kiln_video.c` refuses to build against an mpv without the patch, since its semaphore would never be signalled. A picture shown at half its size or smaller gets mpv's bilinear chroma upscaler instead of Lanczos (§3); one shown larger keeps Lanczos. While the transport is hidden the player hears the playhead four times a second instead of every frame, so each frame of video draws the window once, not twice. `KILN_MPV_OPTIONS='name=value;…'` sets mpv options for a trial on a device without a rebuild.
+
 **Fallback:** if the vendored series cannot follow mpv for a release, mpv runs its own `gpu-next` Wayland output, made a subsurface below Kiln's surface by a Wayland proxy (the Jellium pattern), with mpv 0.42's own colour management; the chrome then sits in a sibling surface and glass over video becomes a translucent plate without live blur. Rejected as the main path because upstream's OpenGL render API (`gl_video`) gets Dolby Vision 5 wrong (§3).
 
 ### 7.4 Match Content
 
-Match Content in Settings › Playback, on by default, acts whenever the player is fullscreen, and only on the output showing it: an HDR title switches that output to HDR with wide colour gamut through `kde_output_management_v2` (the devices come from `kde_output_device_registry_v2` on KWin 6.5 and later) and it goes back when playback ends or leaves full screen, the same rule as `hdr-game`. The state to go back to is written to `$XDG_STATE_HOME/crucible/display-prior.json` first and `crucible --display-guard` watches the player's process, so a crash or a kill still ends with the output restored, and a launch restores what a guard could not. Frame rates match where the mode exists at the current size, a whole number of refreshes a frame within 0.05%: 23.976 and 29.97 fps to 119.88 Hz, 25 and 50 fps to 100 Hz, 24.000 stays on 144 Hz (exactly six refreshes a frame) (`MatchContentPlan`). Compositors other than KWin get no switching and tone-map or clip on their own.
+Match Content in Settings › Playback, on by default, acts whenever the player is fullscreen, and only on the output showing it: an HDR title switches that output to HDR with wide colour gamut through `kde_output_management_v2` (the devices come from `kde_output_device_registry_v2` on KWin 6.5 and later) and it goes back when playback ends or leaves full screen, the same rule as `hdr-game`. The state to go back to is written to `$XDG_STATE_HOME/crucible/display-prior.json` first and `crucible --display-guard` watches the player's process, so a crash or a kill still ends with the output restored, and a launch restores what a guard could not. Frame rates match where the mode exists at the current size, a whole number of refreshes a frame within 0.05%: 23.976 and 29.97 fps to 119.88 Hz, 25 and 50 fps to 100 Hz, 24.000 stays on 144 Hz (exactly six refreshes a frame) (`MatchContentPlan`). Compositors other than KWin get no switching and tone-map or clip on their own. In the Steam Deck's Game Mode the refresh is Steam's to set (§3): Steam's per-game Refresh Rate for Crucible at 72 Hz shows film without the uneven cadence 90 Hz gives it.
 
 ### 7.5 Player chrome
 
@@ -268,7 +273,7 @@ Crucible runs in the Deck's Game Mode in the Steam Deck layout: the tvOS canvas 
 | Colour | gamescope's colour state is read from its root XWayland server and followed as Steam changes it: on an HDR output the scRGB swapchain's light is scaled so Kiln's 203 cd/m² white lands on Steam's SDR white under the slider's gains, leaving the panel's peak for HDR video; on an SDR output the window draws SDR |
 | Input | Steam Input's virtual pad through SDL (polled at 60 Hz while in use and 20 Hz while idle), the trackpad as the pointer, and the touchscreen through XInput 2: a tap clicks, a drag scrolls with the touchpad's momentum |
 | Sign-in | The browser does not open by itself in Game Mode, where it would cover Crucible; the code and QR code serve a phone, and Open plex.tv still opens the Deck's browser |
-| Measure | `linux/scripts/steamdeck-bench.py ui|play|compare` on the Deck launches through Steam on a throwaway profile signed in to the bundled demo, scripts a launch, a resting Home and a browse, or plays a file, and samples CPU, memory, APU power (`amdgpu` hwmon) and GPU load beside Kiln's per-frame timings (`KILN_FRAMES`) |
+| Measure | `linux/scripts/steamdeck-bench.py ui|play|compare` on the Deck launches through Steam on a throwaway profile signed in to the bundled demo, scripts a launch, a resting Home and a browse, or plays a file, and samples CPU, memory, GPU and video decoder time (amdgpu `fdinfo`), APU power (`amdgpu` hwmon), GPU load and the bytes received beside Kiln's per-frame timings (`KILN_FRAMES`). `--signed-in` starts the profile from a copy of the Deck's own (its account, settings, Home snapshot and statistics) with an empty image cache, and `play --item RATINGKEY` plays a title from the server through the app and puts its watch state on the server back afterwards; Plex tokens are cut out of everything a run writes |
 
 Measured on a Steam Deck OLED (SteamOS 3.9.5, 90 Hz, HDR on), warm launch, before (0.16.8) and after (0.17.0). 0.16.8 cannot show
 in Game Mode at all, so its interface numbers come from forcing it onto gamescope's Wayland socket, where it draws unseen;
@@ -289,6 +294,22 @@ ambient animations (spinner, skeletons, the welcome crystal) drawing the whole s
 re-rasterised on nearly every frame of a spring, a glass luminance readback with its own submit every other frame, VA-API
 copying every decoded frame, and memory-pressure purges set off by other programs' stalls. The artwork disk cache now
 stops at 512 MB (the Deck's disk is small and shared with games).
+
+Then signed in to a real server over Wi-Fi 6E (2026-11-16), `steamdeck-bench.py --signed-in` and `play --item`, direct play
+throughout, before and after the playback hand-off, the chroma rule and the paced playhead reports (§7.3). Browsing the
+real library (87 movies, 36 shows, 134 game cinematics) was already where the demo left it and stayed there: 1.4 s of CPU
+to launch, 21% CPU and 4.2 W browsing, 1.1% of frames late, pages filled about 0.1 s after the press.
+
+| Title (as stored on the server) | Before | After |
+| --- | --- | --- |
+| 4K HEVC HDR10 + Dolby Vision 8, TrueHD 7.1, 30 Mb/s: CPU, APU power, GPU, main thread per frame, frames drawn | 19.9%, 5.18 W, 28%, 8.9 ms, 46/s | 17.5%, 4.74 W, 19%, 3.2 ms, 27/s |
+| 4K HEVC HDR10, DTS-HD 7.1, 25 Mb/s: CPU, APU power, GPU | 17.4%, 5.00 W, 27% | 15.3%, 4.56 W, 15% |
+| 1080p VC-1, TrueHD 5.1, 30 Mb/s: CPU, APU power, GPU, main thread per frame | 17.2%, 4.75 W, 19%, 13 ms | 14.8%, 4.52 W, 14%, 3.1 ms |
+| 1080p H.264, DTS 5.1, 15 Mb/s: CPU, APU power, GPU | 17.7%, 4.38 W, 18% | 15.8%, 3.94 W, 14% |
+| 4K 60 fps AV1: frames shown, GPU, main thread per frame | 41/s, 43%, 10.9 ms | 59/s, 30%, 3.2 ms |
+| 4K 60 fps VP9: frames shown, GPU | 48/s, 50% | 59/s, 31% |
+| 1080p 60 fps H.264: CPU, frames drawn | 24.2%, 78/s | 21.9%, 64/s |
+| 8K AV1 at 24 fps (the decoder is 83% busy either way): frames shown, APU power | 20/s, 6.9 W | 24/s, 6.0 W |
 
 ## 10. Layout, build and install
 
