@@ -198,4 +198,9 @@ open class Label: View {
     }
 
     open override var accessibilityLabel: String? { text }
+
+    /// Read as a heading (a shelf's or a section's title), so a screen reader can jump between them.
+    public var isHeading = false
+
+    open override var accessibilityRole: AccessibilityRole { text.isEmpty ? .none : isHeading ? .heading : .label }
 }

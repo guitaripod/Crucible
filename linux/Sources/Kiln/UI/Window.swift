@@ -138,6 +138,8 @@ public final class Window {
         listener.window = self
         focus.window = self
         attach(contentView)
+        accessibility = AccessibilityBridge(window: self, title: title)
+        accessibility?.onActiveChange = { [weak self] _ in self?.setNeedsDisplay() }
         _ = gpu.resize(width: renderer.target.width, height: renderer.target.height)
         loop.add(fd: surface.fileDescriptor) { [weak self] readable in
             guard let self, let surface = self.surface, !self.closed else { return }
@@ -196,6 +198,21 @@ public final class Window {
     @discardableResult
     public func activate(token: String) -> Bool {
         surface?.activate(token: token) ?? false
+    }
+
+    /// The link to screen readers; offscreen windows have none.
+    private var accessibility: AccessibilityBridge?
+
+    /// Whether a screen reader such as Orca is listening, when read-only panels become focus stops so it reaches them.
+    public var isScreenReaderActive: Bool { simulatesScreenReader || (accessibility?.isActive ?? false) }
+
+    /// Behaves as if a screen reader listened, for tests and the gallery.
+    public var simulatesScreenReader = false
+
+    /// The focus moved: the input method and the screen reader follow it.
+    func focusDidMove() {
+        textInputFocusChanged()
+        accessibility?.focusChanged()
     }
 
     /// The focused view when it takes text from the input method.
@@ -331,6 +348,7 @@ public final class Window {
         }
         let settled = animating.isEmpty && !showsPerformanceHUD
         trace.end(frame, settled: settled)
+        accessibility?.frameDrawn()
         if settled {
             saveShadersIfDue(time)
         } else {
@@ -697,6 +715,7 @@ public final class Window {
             guard let window else { return }
             let changed = window.hasKeyboardFocus != focused
             window.hasKeyboardFocus = focused
+            window.accessibility?.windowFocusChanged(focused)
             if changed { window.delegate?.window(window, keyboardFocusChanged: focused) }
             if !focused {
                 window.repeatTask?.cancel()

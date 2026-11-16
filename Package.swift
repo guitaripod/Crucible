@@ -49,7 +49,8 @@ if benchOnly {
 
 /// The Linux client (docs/LINUX.md): Kiln, the design system on it, the gallery and the app, in this package so they
 /// reach Core's package-level API. Their sources live under `linux/`. Building them needs the vendored libmpv and
-/// libplacebo (`linux/scripts/build-mpv.sh`, then `PKG_CONFIG_PATH=linux/.build/mpv/lib/pkgconfig`).
+/// libplacebo (`linux/scripts/build-mpv.sh`) and AccessKit (`linux/scripts/build-accesskit.sh`), then
+/// `PKG_CONFIG_PATH=linux/.build/mpv/lib/pkgconfig`.
 func linuxClient() -> (products: [Product], targets: [Target]) {
     let products: [Product] = [
         .library(name: "CrucibleCore", targets: ["CrucibleCore"]),
@@ -70,7 +71,8 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .target(name: "CKilnImage", dependencies: ["CImageLibs"], path: "linux/Sources/CKilnImage", linkerSettings: [.linkedLibrary("gif")]),
         .target(name: "CKilnGPU", dependencies: ["CPlacebo", "CMPV"], path: "linux/Sources/CKilnGPU",
                 linkerSettings: [.linkedLibrary("vulkan"), .linkedLibrary("wayland-client")]),
-        .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText", "CKilnImage"], path: "linux/Sources/Kiln",
+        .systemLibrary(name: "CAccessKit", path: "linux/Sources/CAccessKit", pkgConfig: "accesskit"),
+        .target(name: "Kiln", dependencies: ["CKiln", "CKilnGPU", "CKilnText", "CKilnImage", "CAccessKit"], path: "linux/Sources/Kiln",
                 resources: [.copy("Resources/Fonts"), .copy("Resources/Symbols")]),
         .executableTarget(name: "KilnSpike", dependencies: ["Kiln", "CKiln"], path: "linux/Sources/KilnSpike"),
         .target(name: "CrucibleUI", dependencies: ["Kiln"], path: "linux/Sources/CrucibleUI", resources: [.copy("Resources/Brand")]),

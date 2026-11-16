@@ -320,6 +320,37 @@ open class View {
     /// A short label for accessibility and tooltips.
     open var accessibilityLabel: String? { nil }
 
+    /// What the view is to a screen reader. Focusable views are buttons and labelled ones text unless they say otherwise;
+    /// `.none` leaves a view out, and its children read as its parent's.
+    open var accessibilityRole: AccessibilityRole {
+        if canBecomeFocused { return .button }
+        return (accessibilityLabel ?? "").isEmpty ? .none : .label
+    }
+
+    /// Whether the views inside read on their own; false when this view's label already says what they show (a panel
+    /// read as one element).
+    open var accessibilityExposesChildren: Bool { true }
+
+    /// The state a screen reader reads after the label ("45 percent watched", a field's text).
+    open var accessibilityValue: String? { nil }
+
+    /// What acting on the view does, read after a pause.
+    open var accessibilityHint: String? { nil }
+
+    /// Whether the view is the chosen one of its group (a tab, a checked menu item); nil when it is not a choice.
+    open var accessibilityIsSelected: Bool? { nil }
+
+    /// The view's identity in the accessibility tree, fixed for its life.
+    public private(set) lazy var accessibilityID: UInt64 = View.makeAccessibilityID()
+
+    private static var lastAccessibilityID: UInt64 = 1
+
+    /// The next unused node identity; 1 is the window's.
+    private static func makeAccessibilityID() -> UInt64 {
+        lastAccessibilityID += 1
+        return lastAccessibilityID
+    }
+
     /// What a tooltip says when the pointer rests on `point` (in this view's points): the name of an icon-only control.
     open func tooltip(at point: Point) -> String? { nil }
 }
