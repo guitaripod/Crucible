@@ -58,6 +58,23 @@ public final class TextFieldView: View, TextInputClient {
         Size(width: size.width, height: Theme.current.metrics.primaryControlHeight)
     }
 
+    /// Types `text` at the caret, replacing a selection, as keys do (the couch's letter grid).
+    public func insert(_ text: String) {
+        edit { characters, caret in
+            characters.insert(contentsOf: Array(text), at: caret)
+            caret += text.count
+        }
+    }
+
+    /// Deletes what Backspace deletes: the selection, or the character before the caret.
+    public func deleteBackward() {
+        edit { characters, caret in
+            guard caret > 0 else { return }
+            characters.remove(at: caret - 1)
+            caret -= 1
+        }
+    }
+
     /// Replaces the text and puts the caret at its end.
     public func setText(_ value: String, notify: Bool = true) {
         text = value
