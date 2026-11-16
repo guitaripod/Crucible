@@ -56,10 +56,18 @@ final class DiagnosticsScreen: ScreenView {
             (String(localized: "Log size"), ByteCountFormatter.string(fromByteCount: Int64(tail.byteCount), countStyle: .file)),
             (String(localized: "Image cache"), ImageCacheMeter.formatted(cacheBytes)),
             (String(localized: "Version"), AppInfo.versionSummary),
-            (String(localized: "Log file"), Self.homeRelative(CrucibleLog.directory.appendingPathComponent(CrucibleLog.fileName).path)),
+            (String(localized: "Log file"), Self.compact(Self.homeRelative(CrucibleLog.directory.appendingPathComponent(CrucibleLog.fileName).path))),
         ]
         log.lines = tail.isEmpty ? [String(localized: "The log is empty.")] : tail.lines
         setNeedsLayout()
+    }
+
+    /// `path` cut short in the middle so its folder and file name show in the panel's narrow value column: the start, an
+    /// ellipsis, then the last two components (`~/…/logs/crucible.log`).
+    private static func compact(_ path: String) -> String {
+        let parts = path.split(separator: "/", omittingEmptySubsequences: false)
+        guard parts.count > 4 else { return path }
+        return ([parts[0], "…"] + parts.suffix(2)).joined(separator: "/")
     }
 
     /// `path` with the home directory written as `~`.
