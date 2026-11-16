@@ -141,9 +141,15 @@ package final class ServerConnectionModel {
         }
     }
 
+    /// Cancels a run in flight and forgets its half-finished probes, so coming back to the screen runs the test again
+    /// instead of showing "…" and Testing… for good.
     package func stop() {
-        probeTask?.cancel()
-        probeTask = nil
+        guard let probeTask else { return }
+        probeTask.cancel()
+        self.probeTask = nil
+        probes.removeAll()
+        isTesting = false
+        onChange?()
     }
 
     package var card: Card {

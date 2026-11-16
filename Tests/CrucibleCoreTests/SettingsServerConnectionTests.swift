@@ -175,6 +175,18 @@ struct SettingsServerConnectionTests {
         model.stop()
     }
 
+    @Test func leavingMidRunLetsTheNextVisitTestAgain() {
+        let model = ServerConnectionModel(environment: Self.environment(connection: Self.connection(), probes: [:]))
+        model.startIfNeeded()
+        model.stop()
+        #expect(!model.isTesting)
+        #expect(model.probeState(for: Self.local) == nil)
+        model.startIfNeeded()
+        #expect(model.isTesting)
+        #expect(model.probeState(for: Self.local) == .probing)
+        model.stop()
+    }
+
     @Test func containerNetworkRoutesStayHiddenUnlessTheyAnswer() async {
         let bridge = URL(string: "https://172-17-0-1.abc.plex.direct:32400")!
         let answering = URL(string: "http://172.18.0.1:32400")!
