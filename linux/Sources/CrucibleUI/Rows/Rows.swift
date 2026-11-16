@@ -37,7 +37,14 @@ public struct RowItem: Hashable, Sendable {
 /// by `rowScale` and dipping while pressed. The pointer shows a faint plate.
 @MainActor
 public final class RowView: View {
-    public var item: RowItem { didSet { if item != oldValue { superview?.setNeedsLayout(); setNeedsDisplay() } } }
+    public var item: RowItem {
+        didSet {
+            guard item != oldValue else { return }
+            laidOut = nil
+            superview?.setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
     public var onSelect: ((RowItem) -> Void)?
     /// Asked for the row's menu (right-click or the Menu key) with where to anchor it in the window; returns whether a
     /// menu opened.
@@ -62,22 +69,47 @@ public final class RowView: View {
 
     private var rasterScale: Float { window?.scale ?? 1 }
 
-    private var textWidth: Float {
+    /// The row's title, subtitle and value laid out for one width.
+    private struct Texts {
+        let title: TextLayout
+        let subtitle: TextLayout?
+        let value: TextLayout?
+    }
+
+    private var laidOut: (width: Float, scale: Float, font: Font, texts: Texts)?
+
+    /// The texts for a row `width` points wide, kept until the item, the width, the scale or the type changes: rows
+    /// draw every frame of a focus move. A value takes at most two fifths of the row, on up to two lines, so a long one
+    /// (Back 10 Seconds · Ahead 10 Seconds) leaves the title and subtitle their room.
+    private func texts(width: Float) -> Texts {
+        let type = Theme.current.type
+        let scale = rasterScale
+        if let laidOut, laidOut.width == width, laidOut.scale == scale, laidOut.font == type.rowTitle { return laidOut.texts }
         let metrics = Theme.current.metrics
-        var width = frame.width - metrics.rowInset * 2
-        if item.symbol != nil || item.brand != nil { width -= metrics.rowIconWell + metrics.tv(32) }
-        if item.accessory != .none || item.value != nil { width -= metrics.symbolAccessory + metrics.tv(32) }
-        if let value = item.value { width -= TextLayout(value, font: Theme.current.type.callout, scale: rasterScale).size.width + metrics.tv(32) }
-        return max(width, 40)
+        var value: TextLayout?
+        if let text = item.value, !text.isEmpty {
+            let cap = max(40, (width - metrics.rowInset * 2) * 0.4)
+            let natural = TextLayout(text, font: type.callout, maxWidth: cap, maxLines: 2, scale: scale)
+            value = natural.lineCount > 1
+                ? TextLayout(text, font: type.callout, maxWidth: natural.size.width + 1, maxLines: 2, alignment: .trailing, scale: scale) : natural
+        }
+        var textWidth = width - metrics.rowInset * 2
+        if item.symbol != nil || item.brand != nil { textWidth -= metrics.rowIconWell + metrics.tv(32) }
+        if item.accessory != .none || item.value != nil { textWidth -= metrics.symbolAccessory + metrics.tv(32) }
+        if let value { textWidth -= value.size.width + metrics.tv(32) }
+        textWidth = max(textWidth, 40)
+        let subtitle = item.subtitle.flatMap { $0.isEmpty ? nil : TextLayout($0, font: type.cardSubtitle, maxWidth: textWidth, maxLines: 2, scale: scale) }
+        let texts = Texts(title: TextLayout(item.title, font: type.rowTitle, maxWidth: textWidth, scale: scale), subtitle: subtitle, value: value)
+        laidOut = (width, scale, type.rowTitle, texts)
+        return texts
     }
 
     public override func sizeThatFits(_ size: Size) -> Size {
         let metrics = Theme.current.metrics
-        let type = Theme.current.type
-        var height = TextLayout(item.title, font: type.rowTitle, maxWidth: textWidth, scale: rasterScale).size.height
-        if let subtitle = item.subtitle, !subtitle.isEmpty {
-            height += 2 + TextLayout(subtitle, font: type.cardSubtitle, maxWidth: textWidth, maxLines: 2, scale: rasterScale).size.height
-        }
+        let texts = texts(width: size.width)
+        var height = texts.title.size.height
+        if let subtitle = texts.subtitle { height += 2 + subtitle.size.height }
+        height = max(height, texts.value?.size.height ?? 0)
         return Size(width: size.width, height: max(metrics.rowHeight, height + metrics.tv(24)))
     }
 
@@ -174,15 +206,13 @@ public final class RowView: View {
                         inner.fill(well, radius: metrics.radiusS, color: palette.accentTint.mixed(with: palette.onFocusFill.withAlpha(0.08), amount: focus.value))
                         let glyph = metrics.symbolRow
                         inner.symbol(symbol, in: Rect(x: well.midX - glyph / 2, y: well.midY - glyph / 2, width: glyph, height: glyph),
-                                     color: item.isDestructive ? palette.destructive : palette.accentText)
+                                     color: item.isDestructive ? palette.destructive : palette.accentText.mixed(with: Palette.light.accentText, amount: focus.value))
                     }
                     x = well.maxX + metrics.tv(32)
                 }
-                let title = TextLayout(item.title, font: type.rowTitle, maxWidth: textWidth, scale: rasterScale)
-                var subtitle: TextLayout?
-                if let text = item.subtitle, !text.isEmpty {
-                    subtitle = TextLayout(text, font: type.cardSubtitle, maxWidth: textWidth, maxLines: 2, scale: rasterScale)
-                }
+                let texts = texts(width: rect.width)
+                let title = texts.title
+                let subtitle = texts.subtitle
                 let blockHeight = title.size.height + (subtitle.map { $0.size.height + 2 } ?? 0)
                 var y = ((rect.height - blockHeight) / 2 * rasterScale).rounded() / rasterScale
                 inner.text(title, at: Point(x: x, y: y), color: primary)
@@ -202,8 +232,7 @@ public final class RowView: View {
                 case .none:
                     if item.value != nil { trailing -= accessorySize + metrics.tv(32) }
                 }
-                if let value = item.value, !value.isEmpty {
-                    let layout = TextLayout(value, font: type.callout, scale: rasterScale)
+                if let layout = texts.value {
                     let valueY = ((rect.height - layout.size.height) / 2 * rasterScale).rounded() / rasterScale
                     inner.text(layout, at: Point(x: trailing - layout.size.width, y: valueY), color: secondary)
                 }
