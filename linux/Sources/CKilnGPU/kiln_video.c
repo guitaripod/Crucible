@@ -59,10 +59,11 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
         { "video-sync", "audio" }, { "cache", "yes" }, { "demuxer-max-bytes", "256MiB" }, { "demuxer-readahead-secs", "30" },
         { "input-default-bindings", "no" }, { "input-vo-keyboard", "no" }, { "osc", "no" }, { "ytdl", "no" },
         { "sub-font", "Inter Variable" }, { "sub-font-size", "46" }, { "sub-border-size", "2.5" }, { "sub-shadow-offset", "1" },
-        { "audio-client-name", "Crucible" },
+        { "audio-client-name", "Crucible" }, { "ao", "pipewire," },
     };
     for (size_t i = 0; i < sizeof options / sizeof *options; i++) mpv_set_option_string(v->mpv, options[i][0], options[i][1]);
     if (getenv("KILN_HWDEC")) mpv_set_option_string(v->mpv, "hwdec", getenv("KILN_HWDEC"));
+    if (getenv("KILN_AO")) mpv_set_option_string(v->mpv, "ao", getenv("KILN_AO"));
     if (mpv_initialize(v->mpv) < 0) {
         fail(error, error_size, "mpv_initialize");
         kiln_video_destroy(v);

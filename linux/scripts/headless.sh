@@ -2,6 +2,7 @@
 set -euo pipefail
 width="${KILN_WIDTH:-3840}"
 height="${KILN_HEIGHT:-2160}"
+export KILN_AO="${KILN_AO:-null}"
 session="$(mktemp --suffix=.sh)"
 trap 'rm -f "$session"' EXIT
 printf '#!/bin/bash\ncd %q\n' "$PWD" > "$session"
