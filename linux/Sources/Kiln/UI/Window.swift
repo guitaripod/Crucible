@@ -213,6 +213,7 @@ public final class Window {
     public func close() {
         guard !closed else { return }
         closed = true
+        trace.flushFrames()
         accessibility = nil
         if let surface { loop?.remove(fd: surface.fileDescriptor) }
         repeatTask?.cancel()
@@ -825,7 +826,9 @@ public final class Window {
         }
 
         func windowPresented(_ surface: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
-            guard let window, refreshNanoseconds > 1_000_000 else { return }
+            guard let window else { return }
+            if nanoseconds > 0 { window.trace.presented(at: Double(nanoseconds) / 1e9) }
+            guard refreshNanoseconds > 1_000_000 else { return }
             window.refreshInterval = Double(refreshNanoseconds) / 1e9
         }
 

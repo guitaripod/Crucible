@@ -3,7 +3,10 @@ import Foundation
 /// Where a window's frame time goes: each frame's animation, layout, drawing and present on the CPU, the GPU time of its
 /// passes, the passes, new text rasterisations and texture uploads it caused, how long it waited for the compositor,
 /// and how long an input took to reach the screen. `KILN_TRACE=path` writes a line there for every second of drawing
-/// and for every burst of frames that ends; the HUD shows the last second.
+/// and for every burst of frames that ends; the HUD shows the last second. `KILN_FRAMES=path` writes every frame there, for
+/// benchmarks that want percentiles: `f START CPU GPU WAIT INPUT PRESENT` per frame drawn (CPU includes PRESENT, which
+/// under FIFO also holds the wait for a free image) and `p TIME` per frame the compositor showed, in CLOCK_MONOTONIC
+/// seconds and milliseconds (-1 when unknown).
 @MainActor
 public final class FrameTrace {
     public struct Frame: Sendable {
@@ -50,6 +53,8 @@ public final class FrameTrace {
     private var lastWrite = Window.now()
     private let opened = Window.now()
     private var output: FileHandle?
+    private var framesOutput: FileHandle?
+    private var framesBuffer = ""
     /// Whether `KILN_TRACE` named the file, which `record(to:)` then leaves alone.
     private let fromEnvironment: Bool
 
@@ -61,6 +66,10 @@ public final class FrameTrace {
         } else {
             output = nil
             fromEnvironment = false
+        }
+        if let path = ProcessInfo.processInfo.environment["KILN_FRAMES"], !path.isEmpty,
+           FileManager.default.createFile(atPath: path, contents: nil) {
+            framesOutput = FileHandle(forWritingAtPath: path)
         }
     }
 
@@ -82,6 +91,12 @@ public final class FrameTrace {
     }
 
     func frameRequested() { requested = Window.now() }
+
+    /// The compositor showed a frame at `seconds` (CLOCK_MONOTONIC).
+    func presented(at seconds: Double) {
+        guard framesOutput != nil else { return }
+        framesBuffer += String(format: "p %.6f\n", seconds)
+    }
 
     func frameCallbackArrived() {
         if let requested { pendingWait = (Window.now() - requested) * 1000 }
@@ -125,6 +140,7 @@ public final class FrameTrace {
         }
         recent.append(finished)
         if recent.count > 240 { recent.removeFirst(recent.count - 240) }
+        recordFrame(finished, settled: settled)
         guard output != nil else { return }
         pending.append(finished)
         if settled || Window.now() - lastWrite >= 1 { write() }
@@ -158,6 +174,20 @@ public final class FrameTrace {
         line += "  input \(latencies.isEmpty ? "-" : stat(latencies))"
         line += "  [\(Set(frames.flatMap(\.animatingNames)).sorted().joined(separator: ","))]"
         return line
+    }
+
+    private func recordFrame(_ frame: Frame, settled: Bool) {
+        guard framesOutput != nil else { return }
+        framesBuffer += String(format: "f %.6f %.3f %.3f %.3f %.3f %.3f\n", frame.start, frame.cpu * 1000, frame.gpu ?? -1, frame.callbackWait ?? -1,
+                               frame.inputLatency ?? -1, frame.present * 1000)
+        if settled || framesBuffer.utf8.count > 16_384 { flushFrames() }
+    }
+
+    /// Writes the frames `KILN_FRAMES` has not received yet (the window calls it as it closes).
+    public func flushFrames() {
+        guard let framesOutput, !framesBuffer.isEmpty else { return }
+        framesOutput.write(Data(framesBuffer.utf8))
+        framesBuffer.removeAll(keepingCapacity: true)
     }
 
     private func write() {
