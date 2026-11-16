@@ -297,8 +297,20 @@ public final class Window {
     /// Puts `text` on the desktop's clipboard (Ctrl+C, a menu's Copy). Headless windows keep it to themselves.
     public func copy(_ text: String) {
         localClipboard = text
+        copiedData = nil
         surface?.setClipboard(text)
     }
+
+    /// Puts `data` of type `mimeType` (a PNG as "image/png") on the desktop's clipboard. Headless windows keep it in
+    /// `copiedData`.
+    public func copy(_ data: Data, mimeType: String) {
+        localClipboard = nil
+        copiedData = (mimeType, data)
+        surface?.setClipboard(data, mimeType: mimeType)
+    }
+
+    /// What `copy(_:mimeType:)` last put on the clipboard, until text replaces it.
+    public private(set) var copiedData: (mimeType: String, data: Data)?
 
     /// The desktop clipboard's text (Ctrl+V), or what this window copied when it has no desktop.
     public func pasteboardText() -> String? {

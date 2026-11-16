@@ -1,4 +1,5 @@
 import CKiln
+import Foundation
 #if canImport(Glibc)
 import Glibc
 #endif
@@ -102,6 +103,15 @@ public final class WaylandWindow {
     @discardableResult
     public func setClipboard(_ text: String) -> Bool {
         kiln_wl_set_clipboard(connection, text)
+    }
+
+    /// Makes `data` of type `mimeType` ("image/png") the clipboard.
+    @discardableResult
+    public func setClipboard(_ data: Data, mimeType: String) -> Bool {
+        data.withUnsafeBytes { buffer in
+            guard let base = buffer.bindMemory(to: UInt8.self).baseAddress else { return false }
+            return kiln_wl_set_clipboard_data(connection, mimeType, base, buffer.count)
+        }
     }
 
     /// The clipboard's text, or nil when it holds none.

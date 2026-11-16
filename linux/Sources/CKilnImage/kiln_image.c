@@ -271,3 +271,22 @@ bool kiln_image_write_png(const char *path, const uint8_t *rgba, int width, int 
     image.format = PNG_FORMAT_RGBA;
     return png_image_write_to_file(&image, path, 0, rgba, width * 4, NULL) != 0;
 }
+
+uint8_t *kiln_image_encode_png(const uint8_t *rgba, int width, int height, size_t *length) {
+    png_image image;
+    memset(&image, 0, sizeof image);
+    image.version = PNG_IMAGE_VERSION;
+    image.width = (png_uint_32)width;
+    image.height = (png_uint_32)height;
+    image.format = PNG_FORMAT_RGBA;
+    png_alloc_size_t size = 0;
+    if (!png_image_write_to_memory(&image, NULL, &size, 0, rgba, width * 4, NULL) || size == 0) return NULL;
+    uint8_t *bytes = malloc(size);
+    if (!bytes) return NULL;
+    if (!png_image_write_to_memory(&image, bytes, &size, 0, rgba, width * 4, NULL)) {
+        free(bytes);
+        return NULL;
+    }
+    *length = size;
+    return bytes;
+}

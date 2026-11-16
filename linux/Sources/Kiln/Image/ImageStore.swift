@@ -83,6 +83,20 @@ public struct AnimatedImage: Sendable {
 /// Writes linear RGBA floats (a capture) as an 8-bit sRGB PNG, reference white as white and highlights clipped.
 public enum PNGWriter {
     public static func write(linear pixels: [Float], width: Int, height: Int, to path: String) -> Bool {
+        kiln_image_write_png(path, srgbBytes(linear: pixels, width: width, height: height), Int32(width), Int32(height))
+    }
+
+    /// The PNG file's bytes for a captured frame, for the clipboard or a file written elsewhere; nil when encoding fails.
+    public static func encode(linear pixels: [Float], width: Int, height: Int) -> Data? {
+        var length = 0
+        guard let bytes = kiln_image_encode_png(srgbBytes(linear: pixels, width: width, height: height), Int32(width), Int32(height), &length)
+        else { return nil }
+        defer { free(bytes) }
+        return Data(bytes: bytes, count: length)
+    }
+
+    /// Linear light from a capture as opaque 8-bit sRGB, clipped to the reference white.
+    private static func srgbBytes(linear pixels: [Float], width: Int, height: Int) -> [UInt8] {
         var bytes = [UInt8](repeating: 0, count: width * height * 4)
         for index in 0..<(width * height) {
             for channel in 0..<3 {
@@ -92,7 +106,7 @@ public enum PNGWriter {
             }
             bytes[index * 4 + 3] = 255
         }
-        return kiln_image_write_png(path, bytes, Int32(width), Int32(height))
+        return bytes
     }
 }
 

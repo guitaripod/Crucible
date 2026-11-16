@@ -49,9 +49,11 @@ struct kiln_wl {
     /** What other clients offer as the clipboard, and the drag offered while one is over the window. */
     struct wl_data_offer *selection_offer;
     struct wl_data_offer *drag_offer;
-    /** The clipboard this app set, answered from memory while it holds the selection. */
+    /** The clipboard this app set, answered from memory while it holds the selection: text, or bytes of one type. */
     struct wl_data_source *own_source;
     char *own_text;
+    uint8_t *own_bytes;
+    size_t own_length;
     kiln_output outputs[KILN_MAX_OUTPUTS];
     /** The screen the window was last shown on. */
     struct wl_output *current_output;
@@ -601,20 +603,32 @@ static void write_to_reader(int fd, const char *text, size_t left) {
     pthread_sigmask(SIG_SETMASK, &previous, NULL);
 }
 
-/** Answers another client's paste with this app's clipboard text. */
+/** Answers another client's paste with this app's clipboard: its text, or the bytes it offered. */
 static void source_send(void *data, struct wl_data_source *source, const char *mime, int32_t fd) {
     kiln_wl *wl = data;
-    const char *text = wl->own_source == source && wl->own_text ? wl->own_text : "";
-    write_to_reader(fd, text, strlen(text));
+    if (wl->own_source == source && wl->own_bytes) {
+        write_to_reader(fd, (const char *) wl->own_bytes, wl->own_length);
+    } else {
+        const char *text = wl->own_source == source && wl->own_text ? wl->own_text : "";
+        write_to_reader(fd, text, strlen(text));
+    }
     close(fd);
+}
+
+/** Lets go of what this app had on the clipboard. */
+static void forget_own_clipboard(kiln_wl *wl) {
+    free(wl->own_text);
+    wl->own_text = NULL;
+    free(wl->own_bytes);
+    wl->own_bytes = NULL;
+    wl->own_length = 0;
 }
 
 static void source_cancelled(void *data, struct wl_data_source *source) {
     kiln_wl *wl = data;
     if (wl->own_source == source) {
         wl->own_source = NULL;
-        free(wl->own_text);
-        wl->own_text = NULL;
+        forget_own_clipboard(wl);
     }
     wl_data_source_destroy(source);
 }
@@ -630,7 +644,7 @@ bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text) {
     wl_data_source_offer(source, "UTF8_STRING");
     wl_data_source_offer(source, "text/plain");
     if (wl->own_source) wl_data_source_destroy(wl->own_source);
-    free(wl->own_text);
+    forget_own_clipboard(wl);
     wl->own_source = source;
     wl->own_text = strdup(text);
     wl_data_device_set_selection(wl->data_device, source, wl->input_serial);
@@ -638,8 +652,30 @@ bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text) {
     return true;
 }
 
+bool kiln_wl_set_clipboard_data(kiln_wl *wl, const char *mime, const uint8_t *bytes, size_t length) {
+    if (!wl->data_device || !mime || !bytes || length == 0) return false;
+    uint8_t *copy = malloc(length);
+    if (!copy) return false;
+    memcpy(copy, bytes, length);
+    struct wl_data_source *source = wl_data_device_manager_create_data_source(wl->data_manager);
+    if (!source) {
+        free(copy);
+        return false;
+    }
+    wl_data_source_add_listener(source, &source_listener, wl);
+    wl_data_source_offer(source, mime);
+    if (wl->own_source) wl_data_source_destroy(wl->own_source);
+    forget_own_clipboard(wl);
+    wl->own_source = source;
+    wl->own_bytes = copy;
+    wl->own_length = length;
+    wl_data_device_set_selection(wl->data_device, source, wl->input_serial);
+    wl_display_flush(wl->display);
+    return true;
+}
+
 char *kiln_wl_clipboard_text(kiln_wl *wl) {
-    if (wl->own_source && wl->own_text) return strdup(wl->own_text);
+    if (wl->own_source) return wl->own_text ? strdup(wl->own_text) : NULL;
     struct wl_data_offer *offer = wl->selection_offer;
     if (!offer) return NULL;
     uintptr_t kinds = (uintptr_t) wl_data_offer_get_user_data(offer);
@@ -836,7 +872,7 @@ void kiln_wl_disconnect(kiln_wl *wl) {
     if (wl->surface) wl_surface_destroy(wl->surface);
     if (wl->cursor_device) wp_cursor_shape_device_v1_destroy(wl->cursor_device);
     if (wl->own_source) wl_data_source_destroy(wl->own_source);
-    free(wl->own_text);
+    forget_own_clipboard(wl);
     if (wl->selection_offer) wl_data_offer_destroy(wl->selection_offer);
     if (wl->drag_offer) wl_data_offer_destroy(wl->drag_offer);
     if (wl->data_device) {

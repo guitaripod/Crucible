@@ -155,6 +155,8 @@ void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor);
 bool kiln_wl_output_size_mm(kiln_wl *wl, int32_t *width_mm, int32_t *height_mm);
 /** Makes `text` the clipboard, as of the latest key or button press. */
 bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text);
+/** Makes `length` bytes of type `mime` ("image/png") the clipboard, as of the latest key or button press. */
+bool kiln_wl_set_clipboard_data(kiln_wl *wl, const char *mime, const uint8_t *bytes, size_t length);
 /** The clipboard as UTF-8 text, to free, or NULL when it holds none; another app's clipboard is read for up to half a
  * second without an answer. */
 char *kiln_wl_clipboard_text(kiln_wl *wl);

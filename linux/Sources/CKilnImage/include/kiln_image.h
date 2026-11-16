@@ -24,4 +24,7 @@ uint8_t *kiln_svg_render_mask(const uint8_t *data, size_t size, int pixel_size, 
 /** Writes 8-bit RGBA rows (top first) as a PNG file. */
 bool kiln_image_write_png(const char *path, const uint8_t *rgba, int width, int height);
 
+/** Encodes 8-bit RGBA rows (top first) as PNG bytes in memory, to free, with their count in `length`; NULL on failure. */
+uint8_t *kiln_image_encode_png(const uint8_t *rgba, int width, int height, size_t *length);
+
 #endif
