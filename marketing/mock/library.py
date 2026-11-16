@@ -457,6 +457,7 @@ class Library:
         streams = [
             {"id": int(rk) * 10 + 1, "streamType": 1, "codec": "h264", "language": "English", "languageCode": "eng",
              "bitrate": 14200 if height >= 2160 else 8200, "selected": True, "default": True,
+             "frameRate": 23.976 if title_kind == "movie" else 25.0,
              "displayTitle": ("4K (H.264 HDR10)" if hdr else "1080p (H.264)")},
             {"id": int(rk) * 10 + 2, "streamType": 2, "codec": "aac", "language": "English", "languageCode": "eng",
              "languageTag": "en", "channels": channels, "bitrate": 640, "selected": True, "default": True,
