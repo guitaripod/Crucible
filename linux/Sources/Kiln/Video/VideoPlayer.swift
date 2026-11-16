@@ -30,6 +30,8 @@ public final class VideoPlayer {
     /// A new frame is waiting to be rendered.
     public private(set) var hasNewFrame = false
     public var onStateChange: ((State) -> Void)?
+    /// Whether mpv's chroma upscaler was last set for a picture shown at half its size or smaller.
+    private var chromaForShrinking: Bool?
     public var onEvent: ((Event) -> Void)?
     public var onFrame: (() -> Void)?
 
@@ -189,6 +191,26 @@ public final class VideoPlayer {
 
     public func reportSwap() { kiln_video_report_swap(handle) }
 
+    /// mpv brings a subsampled picture's colour planes up to the size of its brightness plane with its chroma upscaler
+    /// (Lanczos by default) before it scales the picture into the view, a pass at the picture's full size. Shown at half
+    /// its size or smaller, the picture's colour planes already hold as many samples as the view shows, so nothing that
+    /// pass sharpens survives the shrinking: there a bilinear pass serves, which for 4K on a Steam Deck took most of mpv's
+    /// GPU time and kept 60 fps titles near 40 fps. A picture shown larger keeps mpv's default.
+    func fitChromaUpscaler(toWidth width: Int, height: Int) {
+        guard state.videoWidth > 0, state.videoHeight > 0 else { return }
+        let shrinking = Self.showsAtHalfOrLess(videoWidth: state.videoWidth, videoHeight: state.videoHeight, viewWidth: width, viewHeight: height)
+        guard shrinking != chromaForShrinking else { return }
+        chromaForShrinking = shrinking
+        set("cscale", shrinking ? "bilinear" : "")
+    }
+
+    /// Whether a picture fitted into the view (as mpv fits it, whole and centred) shows at half its size or smaller.
+    public nonisolated static func showsAtHalfOrLess(videoWidth: Int, videoHeight: Int, viewWidth: Int, viewHeight: Int) -> Bool {
+        guard videoWidth > 0, videoHeight > 0 else { return false }
+        let fit = min(Double(viewWidth) / Double(videoWidth), Double(viewHeight) / Double(videoHeight))
+        return fit <= 0.5
+    }
+
     private func poll() {
         let happened = kiln_video_poll(handle, &raw)
         if happened & UInt32(KILN_VIDEO_STATE) != 0 {
@@ -253,6 +275,7 @@ public final class VideoView: View {
         let pixels = context.transform.apply(picture)
         let width = max(Int(pixels.width.rounded()), 1)
         let height = max(Int(pixels.height.rounded()), 1)
+        player.fitChromaUpscaler(toWidth: width, height: height)
         if texture?.width != width || texture?.height != height, texture == nil || sizeHeld(width, height) {
             texture = try? window.gpu.texture(width: width, height: height, format: .rgba16f, renderable: true)
             if let texture { player.render(into: texture) }
