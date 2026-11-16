@@ -9,6 +9,15 @@ import Kiln
 enum LinuxDisplay {
     private static let appearanceKey = "linux.appearance"
     private static let densityKey = "linux.density"
+    /// Couch's canvas: the tvOS tokens one to one on the Apple TV's 1920 by 1080 points, scaled to the screen.
+    static let couchCanvas = Size(width: 1920, height: 1080)
+    /// Every open window, which a change of appearance or density reaches at once; the app sets it.
+    static var windows: @MainActor () -> [Window] = { [] }
+
+    /// Lays `window` out on Couch's canvas, or at the desk's own size.
+    static func applyCanvas(to window: Window) {
+        window.canvas = isCouch ? couchCanvas : nil
+    }
 
     /// Puts the saved appearance, density and poster size on the theme at launch.
     static func restore(arguments: [String]) {
@@ -36,8 +45,10 @@ enum LinuxDisplay {
         let theme = Theme.current
         theme.palette = isLight ? .dark : .light
         UserDefaults.standard.set(isLight ? "light" : "dark", forKey: appearanceKey)
-        window?.background = theme.palette.canvas
-        window?.relayoutEverything()
+        for each in everyWindow(window) {
+            each.background = theme.palette.canvas
+            each.relayoutEverything()
+        }
     }
 
     /// Switches between Desk and Couch density everywhere at once, and keeps the choice.
@@ -45,7 +56,17 @@ enum LinuxDisplay {
         let theme = Theme.current
         theme.density = isCouch ? .desk : .couch
         UserDefaults.standard.set(isCouch ? "couch" : "desk", forKey: densityKey)
-        window?.relayoutEverything()
+        for each in everyWindow(window) {
+            applyCanvas(to: each)
+            each.relayoutEverything()
+        }
+    }
+
+    /// The open windows, with `window` among them even before the app has listed it.
+    private static func everyWindow(_ window: Window?) -> [Window] {
+        var all = windows()
+        if let window, !all.contains(where: { $0 === window }) { all.append(window) }
+        return all
     }
 }
 
@@ -107,5 +128,28 @@ final class AppearanceSettingsScreen: SettingsScaffold {
             self?.render()
         }
         menu.present(in: window)
+    }
+}
+
+/// Couch, offered once (docs/LINUX.md §5.5): the first time a gamepad is used while Crucible fills a screen of 40 inches or
+/// more at the desk size, it asks whether to draw itself as on a TV across the room. `CRUCIBLE_SCREEN_INCHES` stands in
+/// for the screen's own size in headless checks.
+@MainActor
+enum CouchOffer {
+    private static let offeredKey = "linux.couchOffered"
+    private static let smallestTV: Float = 40
+
+    static func consider(in window: Window?) {
+        guard let window, !LinuxDisplay.isCouch, window.isFullscreen, !UserDefaults.standard.bool(forKey: offeredKey) else { return }
+        let inches = ProcessInfo.processInfo.environment["CRUCIBLE_SCREEN_INCHES"].flatMap(Float.init) ?? window.screenDiagonalInches
+        guard let inches, inches >= smallestTV else { return }
+        UserDefaults.standard.set(true, forKey: offeredKey)
+        AlertView(title: String(localized: "Switch to Couch?", comment: "Linux: offered once when a gamepad is used full screen on a TV"),
+                  message: String(localized: "Couch draws Crucible as the Apple TV does, for a TV across the room. Settings › Appearance changes it back.",
+                                  comment: "Linux: the Couch offer's message"),
+                  actions: [
+                      AlertView.Action(String(localized: "Switch to Couch", comment: "Linux: takes the Couch offer")) { LinuxDisplay.toggleDensity(in: window) },
+                      AlertView.Action(String(localized: "Not Now"), role: .cancel),
+                  ]).present(in: window)
     }
 }

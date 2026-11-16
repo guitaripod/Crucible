@@ -49,12 +49,15 @@ func runCrucible() -> Int32 {
         return 1
     }
     if arguments.contains("--fullscreen") || arguments.contains("--couch") { window.setFullscreen(true) }
+    LinuxDisplay.applyCanvas(to: window)
     TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
     DesktopAccessibility.apply(to: window)
     window.makeTooltip = { TooltipView(text: $0) }
     let coordinator = AppCoordinator(window: window)
+    LinuxDisplay.windows = { coordinator.allWindows }
     let memoryPressure = MemoryPressure(loop: loop) { coordinator.allWindows }
     let gamepads = Gamepads { coordinator.keyWindow }
+    gamepads?.onUse = { CouchOffer.consider(in: coordinator.keyWindow) }
     if ProcessInfo.processInfo.environment["CRUCIBLE_VIRTUAL_PAD"] == "1", gamepads?.attachVirtualPad() == true { CapturePad.pad = gamepads }
     ServerRouteMonitor.shared.start()
     var running = true

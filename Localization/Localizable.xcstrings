@@ -44963,6 +44963,102 @@
         }
       }
     },
+    "Couch draws Crucible as the Apple TV does, for a TV across the room. Settings › Appearance changes it back." : {
+      "comment" : "Linux: the Couch offer's message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofa tegner Crucible som Apple TV gør det, til et tv på den anden side af stuen. Indstillinger › Udseende skifter tilbage."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couch zeigt Crucible wie das Apple TV, für einen Fernseher auf der anderen Seite des Raums. Einstellungen › Darstellung stellt es zurück."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofá muestra Crucible como lo hace el Apple TV, para un televisor al otro lado de la sala. Ajustes › Apariencia lo devuelve."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sohva piirtää Cruciblen Apple TV:n tapaan, huoneen toisella puolella olevaa televisiota varten. Asetukset › Ulkoasu vaihtaa takaisin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canapé affiche Crucible comme l’Apple TV, pour un téléviseur à l’autre bout de la pièce. Réglages › Apparence le rétablit."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sófi sýnir Crucible eins og Apple TV gerir, fyrir sjónvarp hinum megin í stofunni. Stillingar › Útlit breytir því aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Divano mostra Crucible come fa Apple TV, per una TV dall’altra parte della stanza. Impostazioni › Aspetto lo riporta indietro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソファは、部屋の向こうのテレビ向けに Apple TV と同じ表示で Crucible を描きます。「設定」›「外観」で元に戻せます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "소파는 방 건너편 TV에 맞게 Apple TV처럼 Crucible을 표시합니다. 설정 › 화면 표시에서 되돌릴 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofa viser Crucible slik Apple TV gjør, for en TV på andre siden av rommet. Innstillinger › Utseende bytter tilbake."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanapa wyświetla Crucible tak jak Apple TV, dla telewizora po drugiej stronie pokoju. Ustawienia › Wygląd przywraca poprzedni widok."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofá mostra o Crucible como a Apple TV, para uma TV do outro lado da sala. Ajustes › Aparência volta ao normal."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soffa visar Crucible som Apple TV gör, för en tv på andra sidan rummet. Inställningar › Utseende byter tillbaka."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沙发模式会像 Apple TV 一样显示 Crucible，适合房间另一端的电视。“设置”›“外观”可改回。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沙發模式會像 Apple TV 一樣顯示 Crucible，適合房間另一端的電視。「設定」›「外觀」可改回。"
+          }
+        }
+      }
+    },
     "Could not build download URL" : {
       "localizations" : {
         "da" : {
@@ -169119,6 +169215,198 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用篩選按鈕開啟更多媒體庫。"
+          }
+        }
+      }
+    },
+    "Switch to Couch" : {
+      "comment" : "Linux: takes the Couch offer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skift til Sofa"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu Couch wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar a Sofá"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaihda Sohvaan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer en mode Canapé"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipta yfir í Sófa"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passa a Divano"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソファに切り替える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "소파로 전환"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bytt til Sofa"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz na Kanapę"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudar para Sofá"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Byt till Soffa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到沙发模式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切換到沙發模式"
+          }
+        }
+      }
+    },
+    "Switch to Couch?" : {
+      "comment" : "Linux: offered once when a gamepad is used full screen on a TV",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skift til Sofa?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu Couch wechseln?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cambiar a Sofá?"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaihdetaanko Sohvaan?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer en mode Canapé ?"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipta yfir í Sófa?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passare a Divano?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソファに切り替えますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "소파로 전환할까요?"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bytte til Sofa?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełączyć na Kanapę?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudar para Sofá?"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Byta till Soffa?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换到沙发模式？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切換到沙發模式？"
           }
         }
       }

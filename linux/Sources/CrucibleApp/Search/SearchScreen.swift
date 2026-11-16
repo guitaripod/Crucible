@@ -19,6 +19,7 @@ final class SearchScreen: ScreenView {
     private let api: APIClient
     private let session: SearchSession
     private let field = TextFieldView(placeholder: SearchCopy.placeholder)
+    private let letters = LetterGridView()
     private let page = PageView()
     private let recentsTitle = SectionTitleView(title: SearchSection.recent.title ?? "")
     private let recents = ChipRowView()
@@ -47,7 +48,8 @@ final class SearchScreen: ScreenView {
         self.api = api
         session = SearchSession(loader: SearchLoader(api: api))
         super.init()
-        [page, state, field].forEach(addSubview)
+        [page, state, field, letters].forEach(addSubview)
+        letters.onPress = { [weak self] press in self?.typed(press) }
         state.isHidden = true
         field.onChange = { [weak self] text in
             guard let self else { return }
@@ -77,7 +79,19 @@ final class SearchScreen: ScreenView {
         session.start()
     }
 
-    override var preferredFocusView: View? { field }
+    override var preferredFocusView: View? { isCouch ? letters : field }
+
+    /// On a couch the letter grid shows under the field, for typing with a gamepad.
+    private var isCouch: Bool { Theme.current.density == .couch }
+
+    /// A key of the letter grid: it types into the field as the keyboard would.
+    private func typed(_ press: LetterGridView.Press) {
+        switch press {
+        case .text(let text): field.insert(text)
+        case .delete: field.deleteBackward()
+        case .clear: field.setText("")
+        }
+    }
 
     override func screenDidAppear() { session.resume() }
     override func screenWillDisappear() {
@@ -443,9 +457,14 @@ final class SearchScreen: ScreenView {
         let metrics = Theme.current.metrics
         let width = min(frame.width - metrics.sideMargin * 2, metrics.tv(1200))
         field.frame = Rect(x: ((frame.width - width) / 2).rounded(), y: metrics.tabBarClearance, width: width, height: metrics.primaryControlHeight)
-        page.topInset = field.frame.maxY + metrics.tv(24)
+        letters.isHidden = !isCouch
+        let gridWidth = frame.width - metrics.sideMargin * 2
+        letters.frame = Rect(x: metrics.sideMargin, y: field.frame.maxY + metrics.tv(28), width: gridWidth,
+                             height: isCouch ? letters.sizeThatFits(Size(width: gridWidth, height: 0)).height : 0)
+        let headTop = isCouch ? letters.frame.maxY : field.frame.maxY
+        page.topInset = headTop + metrics.tv(24)
         page.frame = bounds
-        let stateTop = field.frame.maxY + (page.isHidden ? 0 : scopes.sizeThatFits(bounds.size).height + metrics.tv(24))
+        let stateTop = headTop + (page.isHidden ? 0 : scopes.sizeThatFits(bounds.size).height + metrics.tv(24))
         state.frame = Rect(x: 0, y: stateTop, width: frame.width, height: frame.height - stateTop)
     }
 
