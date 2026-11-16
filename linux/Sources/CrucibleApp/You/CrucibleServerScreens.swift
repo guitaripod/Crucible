@@ -191,7 +191,7 @@ final class CrucibleServerCodeScreen: ScreenView {
     private func wait() {
         let hosts = PreviouslyOnRequest.hostsBesidePlex()
         guard !hosts.isEmpty else {
-            show(CompanionError.unreachable.message)
+            show(CompanionError.unreachable.message, failed: true)
             return
         }
         let invite = CompanionInvite(name: CompanionCopy.title, hosts: hosts, secret: device.secret, fingerprint: nil)
@@ -205,13 +205,16 @@ final class CrucibleServerCodeScreen: ScreenView {
                 self?.onPaired?()
             } catch {
                 guard !Task.isCancelled else { return }
-                self?.show(error == .codeRefused ? CompanionCopy.codeExpired : error.message)
+                self?.show(error == .codeRefused ? CompanionCopy.codeExpired : error.message, failed: true)
             }
         }
     }
 
-    private func show(_ text: String) {
+    /// Shows `text` under the steps; a failure fades the code, which no longer pairs anything once the screen stopped
+    /// waiting.
+    private func show(_ text: String, failed: Bool = false) {
         status = text
+        code.alpha = failed ? 0.15 : 1
         setNeedsLayout()
         setNeedsDisplay()
     }
