@@ -31,17 +31,23 @@ struct Gallery {
         case "controls": GalleryControls()
         case "grid": GalleryGrid()
         case "states": GalleryStates()
+        case "tiles": GalleryTiles()
+        case "panels": GalleryPanels()
+        case "stats": GalleryStats()
         default: GalleryHome()
         }
     }
 
-    /// Renders each page in its rest state and in the states that matter (keyboard focus, hover), writing PNGs.
+    static let pages = ["home", "cards", "controls", "grid", "states", "tiles", "panels", "stats"]
+
+    /// Renders each page in its rest state and in the states that matter (keyboard focus, hover, what it presents), writing
+    /// PNGs.
     func capture(into directory: String) throws {
         try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
         let window = try Window(offscreen: size, scale: scale)
         window.useImages(diskDirectory: nil) { url in try Data(contentsOf: url) }
         GalleryArt.preload(GalleryFixtures.allArt, into: window.images!, gpu: window.gpu, scale: 1)
-        let pages = value("--page").map { [$0] } ?? ["home", "cards", "controls", "grid", "states"]
+        let pages = value("--page").map { [$0] } ?? Self.pages
         var report: [String] = []
         for name in pages {
             let page = makePage(name)
@@ -109,6 +115,53 @@ struct Gallery {
                 window.handlePointerMoved(to: Point(x: hovered.midX, y: hovered.midY))
                 settle(window)
                 write(window, to: "\(directory)/states-focus.png", report: &report)
+            case "tiles":
+                let tiles = page as! GalleryTiles
+                window.focus.setVisible(true)
+                window.focus.focus(tiles.genres, animated: false)
+                window.handleKey(KeyEvent(key: .right))
+                if let card = tiles.cast.card(for: "cast.2") {
+                    let frame = card.frameInWindow
+                    window.handlePointerMoved(to: Point(x: frame.midX, y: frame.midY))
+                }
+                settle(window)
+                write(window, to: "\(directory)/tiles-focus.png", report: &report)
+                window.handlePointerLeft()
+                window.focus.focus(tiles.letters, animated: false)
+                window.handleKey(KeyEvent(key: .right))
+                window.handleKey(KeyEvent(key: .down))
+                settle(window)
+                write(window, to: "\(directory)/tiles-letters.png", report: &report)
+            case "panels":
+                let panels = page as! GalleryPanels
+                window.focus.setVisible(true)
+                window.focus.focus(panels.field, animated: false)
+                settle(window)
+                write(window, to: "\(directory)/panels-focus.png", report: &report)
+                let alert = panels.renameAlert()
+                alert.present(in: window)
+                settle(window)
+                write(window, to: "\(directory)/panels-alert.png", report: &report)
+                alert.dismiss()
+                let rating = panels.ratingPanel()
+                rating.present(in: window)
+                settle(window)
+                write(window, to: "\(directory)/panels-rating.png", report: &report)
+                rating.dismiss()
+                let shortcuts = panels.shortcuts()
+                shortcuts.present(in: window)
+                settle(window)
+                write(window, to: "\(directory)/panels-shortcuts.png", report: &report)
+                shortcuts.dismiss()
+            case "stats":
+                let stats = page as! GalleryStats
+                window.focus.setVisible(true)
+                if let last = stats.panels.last { window.focus.focus(last, animated: false, reveal: true) }
+                settle(window)
+                write(window, to: "\(directory)/stats-lower.png", report: &report)
+                window.focus.focus(stats.moments, animated: false, reveal: true)
+                settle(window)
+                write(window, to: "\(directory)/stats-moments.png", report: &report)
             default:
                 break
             }
@@ -246,6 +299,9 @@ final class GalleryHost: WindowDelegate {
         case "3": show("controls")
         case "4": show("grid")
         case "5": show("states")
+        case "6": show("tiles")
+        case "7": show("panels")
+        case "8": show("stats")
         default:
             if event.key == .escape || (event.key == Key.character("q") && event.modifiers.contains(.control)) {
                 onClose?()
