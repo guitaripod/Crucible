@@ -1,4 +1,4 @@
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
 import CrucibleCore
 import Foundation
 import FoundationModels

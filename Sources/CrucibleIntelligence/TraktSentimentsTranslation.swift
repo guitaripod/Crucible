@@ -1,7 +1,7 @@
 import CrucibleCore
 import Foundation
 import MidgarCore
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
 import FoundationModels
 #endif
 
@@ -50,7 +50,7 @@ package enum TraktSentimentsTranslation {
     }
 
     private static func translate(_ phrases: [String], into target: String) async -> [String: String] {
-        #if canImport(FoundationModels)
+        #if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
         if #available(iOS 26.0, macOS 26.0, tvOS 27.3, *), let together = await AspectBatch.translate(phrases, into: target) {
             return together
         }
@@ -66,7 +66,7 @@ package enum TraktSentimentsTranslation {
     }
 }
 
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
 /// The aspects of a title translated in one request to the on-device model, which reads them as phrases about one film.
 @available(iOS 26.0, macOS 26.0, tvOS 27.3, *)
 enum AspectBatch {

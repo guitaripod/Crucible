@@ -4,13 +4,14 @@ import MidgarCore
 #if canImport(UIKit)
 import UIKit
 #endif
-#if canImport(FoundationModels)
+#if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
 import FoundationModels
 #endif
 
 /// Apple Intelligence in Crucible, set up at launch: the translator for comments, reviews and descriptions, the languages
 /// it translates into, and the on-device model that answers What to Watch and Previously On. A device without any of it
-/// keeps the hosted model and shows no translation.
+/// keeps the hosted model and shows no translation. On Apple TV the model first runs in tvOS 27.3, so its code builds
+/// only with that SDK's compiler (Swift 6.4.2); a build made with an earlier Xcode leaves Apple TV without it.
 @MainActor
 package enum Intelligence {
     private static var watching = false
@@ -21,11 +22,13 @@ package enum Intelligence {
         guard !isScripted(environment) else { return }
         observeForeground()
         #if os(tvOS)
+        #if compiler(>=6.4.2)
         if #available(tvOS 27.3, *) { configureModelTranslation() }
+        #endif
         #else
         if #available(iOS 26.0, macOS 26.0, *) { configureSystemTranslation() }
         #endif
-        #if canImport(FoundationModels)
+        #if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
         if #available(iOS 26.0, macOS 26.0, tvOS 27.3, *) { installOnDeviceBrain() }
         #endif
     }
@@ -79,7 +82,7 @@ package enum Intelligence {
     }
     #endif
 
-    #if canImport(FoundationModels)
+    #if canImport(FoundationModels) && (!os(tvOS) || compiler(>=6.4.2))
     @available(iOS 26.0, macOS 26.0, tvOS 27.3, *)
     private static func configureModelTranslation() {
         let languages = ModelTextTranslator.supportedLanguages()
