@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 54 | 2 | 0 | 1 |
+| Sign in, launch, tabs and navigation | 55 | 1 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 67 | 0 | 1 | 1 |
@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 66 | 0 | 1 | 2 |
 | Design system | 95 | 1 | 1 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 84 | 4 | 15 | 0 |
-| **All** | 659 | 7 | 20 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 89 | 4 | 10 | 0 |
+| **All** | 665 | 6 | 15 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -56,7 +56,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-deep-links` (S) crucible:// links open an item's detail or start playback from anywhere, closing any presented player or modal first, resolve unknown types by lookup, wait for the main UI if they arrive early (only the latest is kept), and ignore unknown URLs with a log line. _Apple TV: Sources/CrucibleTV/App/TVSceneDelegate.swift:29-31 (openURLContexts)_
 - [x] `shell-single-instance-handoff` (S) A second launch hands its link to the running app over the org.guitaripod.Crucible D-Bus name and exits.
 - [x] `shell-relaunch-tab-restore` (M) Each window restores its tab and screen after a relaunch (Linux-only requirement in docs/LINUX.md section 6).
-- [ ] `shell-multi-window` (L) **partial** Ctrl+N opens a new window that shares the connection and restores its own tab; a title can open in a new window from its context menu or a middle click (docs/LINUX.md section 6). Gap: A second window exists only as a separate process through the --new-instance flag. Missing: Ctrl+N (no binding), middle-click or context-menu open in a new window, and a per-window tab restore. Linux-only requirement.
+- [x] `shell-multi-window` (L) Ctrl+N opens a new window that shares the connection and restores its own tab; a title can open in a new window from its context menu or a middle click (docs/LINUX.md section 6).
 - [x] `shell-command-menu` (M) A menu button in the tab bar and F10 open a Go, View, Media and Settings menu with each item's shortcut, and Ctrl+? shows the full shortcut list (docs/LINUX.md section 6).
 - [x] `shell-shortcuts-refresh-settings-zoom` (S) Ctrl+R refreshes, Ctrl+comma opens Settings, and Ctrl+plus and Ctrl+minus change poster size (docs/LINUX.md section 6).
 - [x] `shell-fullscreen-quit-keys` (S) F11 toggles fullscreen and Ctrl+Q quits.
@@ -656,12 +656,12 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `linux-kb-refresh-ctrl-r` (S) Ctrl+R refreshes the current screen _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `linux-kb-poster-size-ctrl-plusminus` (S) Ctrl+plus and Ctrl+minus change poster size _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `linux-ctrl-wheel-poster-zoom` (S) Ctrl with the mouse wheel zooms posters from 0.7 to 1.6 times _Apple TV: docs/LINUX.md §5.4 Scrolling_
-- [ ] `linux-kb-new-window-ctrl-n` (L) Ctrl+N opens a new Crucible window Gap: No Ctrl+N binding. The process creates one Window and one AppCoordinator (linux/Sources/CrucibleApp/main.swift:40-48). _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
+- [x] `linux-kb-new-window-ctrl-n` (L) Ctrl+N opens a new Crucible window _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `linux-kb-settings-ctrl-comma` (S) Ctrl+comma opens Settings _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
-- [ ] `windows-several-share-connection` (L) Several windows share one Plex connection, as on the iPad Gap: main.swift creates one Window and one AppCoordinator (main.swift:40-48) and no second-window path exists. Session state is process-static (LinuxSession in AppCoordinator.swift:9-18), so a second window would need a shared-leader design that is not present. _Apple TV: docs/LINUX.md §6 Windows_
-- [ ] `windows-restore-tab-screen` (M) Each window restores its own tab and screen Gap: Tab and stack state lives in memory in one RootView (linux/Sources/CrucibleApp/App/RootView.swift:16-18) and is not saved per window. _Apple TV: docs/LINUX.md §6 Windows_
-- [ ] `windows-title-new-window` (M) A title opens in a new window from its context menu Gap: The card context menu is built in ItemActions.swift (linux/Sources/CrucibleApp/Shared/ItemActions.swift:14-21) with Play, Resume, Restart, Mark Watched and Go to Details only; no Open in New Window item. _Apple TV: docs/LINUX.md §6 Windows_
-- [ ] `windows-middle-click-new-window` (S) Middle click opens a title in a new window Gap: Input maps the middle button (linux/Sources/Kiln/Input/Input.swift:122) but no view or app handler uses .middle (Window.swift forwards only unhandled .back to the delegate, :450). _Apple TV: docs/LINUX.md §5.4 Pointer_
+- [x] `windows-several-share-connection` (L) Several windows share one Plex connection, as on the iPad _Apple TV: docs/LINUX.md §6 Windows_
+- [x] `windows-restore-tab-screen` (M) Each window restores its own tab and screen _Apple TV: docs/LINUX.md §6 Windows_
+- [x] `windows-title-new-window` (M) A title opens in a new window from its context menu _Apple TV: docs/LINUX.md §6 Windows_
+- [x] `windows-middle-click-new-window` (S) Middle click opens a title in a new window _Apple TV: docs/LINUX.md §5.4 Pointer_
 - [x] `player-kb-space-k` (S) Space or K plays and pauses in the player _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `player-kb-left-right-jl-skip` (S) Left and Right, and J and L, skip by the distances set in Settings _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
 - [x] `player-kb-up-down-volume` (S) Up and Down change volume by 5 in the player _Apple TV: docs/LINUX.md §6 Menu and shortcuts_
