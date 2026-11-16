@@ -9,13 +9,13 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Sign in, launch, tabs and navigation | 54 | 2 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
-| Player and What to Watch | 66 | 0 | 2 | 1 |
+| Player and What to Watch | 67 | 0 | 1 | 1 |
 | Search, Pro features (free on Linux) and demo | 53 | 0 | 2 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
-| Settings and integrations | 65 | 0 | 2 | 2 |
+| Settings and integrations | 66 | 0 | 1 | 2 |
 | Design system | 95 | 1 | 1 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 81 | 5 | 17 | 0 |
-| **All** | 654 | 8 | 24 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 84 | 4 | 15 | 0 |
+| **All** | 659 | 7 | 20 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -259,7 +259,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `player-track-switch-failure-alert` (S) A failed audio or subtitle switch shows a Playback Error alert with Retry _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator+Tracks.swift:82-90_
 - [x] `player-subtitle-size` (S) Subtitle size preference applied to the picture _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:120-129 (subtitles drawn in the viewer's caption style)_
 - [x] `player-track-carry-over` (M) Subtitle and audio choices carry to the next episode, and each show remembers its languages _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:401-413 (advance keeps trackLanguages)_
-- [ ] `player-audio-passthrough` (M) Audio passthrough setting (Auto, On, Off) that sends TrueHD, DTS-HD, E-AC-3 and AC-3 bitstreams to the receiver Gap: No passthrough setting and no --audio-spdif or IEC958 handling anywhere in linux/Sources or Core. Settings row for it is absent. _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:101-122 (AVKit selects the audio route)_
+- [x] `player-audio-passthrough` (M) Audio passthrough setting (Auto, On, Off) that sends TrueHD, DTS-HD, E-AC-3 and AC-3 bitstreams to the receiver _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:101-122 (AVKit selects the audio route)_
 - [x] `player-skip-intro-button` (S) Skip Intro button shown inside an intro segment, skipping to its end _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:317-331 (contextual action)_
 - [x] `player-skip-credits-button` (S) Skip Credits button in the credits segment; at the end of the item it closes the player _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:317-331_
 - [x] `player-auto-skip-intro` (S) Skip intro automatically once per segment, when the Skipping setting says Automatic _Apple TV: Sources/CrucibleTV/Player/TVPlayerCoordinator.swift:298-299 (autoSkipped event)_
@@ -517,7 +517,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `companion-sports-research` (L) Sports Research, opened from the paired Crucible Server: four setup steps, switch on research for new files, choose libraries, agree to the terms (withdraw), Check Again, Look Now, a results board with per-item states, Research Again after a confirmation, and a Pro pitch for non-Pro users _Apple TV: Sources/CrucibleTV/Settings/TVSportsResearchViewController.swift_
 - [x] `linux-own-model-settings` (M) Model address and key for What to Watch and described recaps on the person's own model (D1, D38), a Linux-only settings entry _Apple TV: Sources/CrucibleCore/Features/Hosted/HostedBrain.swift (HostedBrainProviding, line 24)_
 - [ ] `linux-match-content-setting` (L) Match Content: switch the display to the video's frame rate and range (Linux-only, docs/LINUX.md section 7.4) Gap: Only a static gallery row exists (linux/Sources/CrucibleGallery/GalleryPages.swift:290); no Settings entry and no output switching in the app.
-- [ ] `linux-audio-passthrough-setting` (M) Audio passthrough: Auto, On or Off for the bitstream codecs sent to the receiver (docs/LINUX.md section 7.6, Linux-only settings entry) Gap: No passthrough setting in Settings or the player. The entry is small, but the IEC958 path it drives (docs/LINUX.md section 7.6) is not.
+- [x] `linux-audio-passthrough-setting` (M) Audio passthrough: Auto, On or Off for the bitstream codecs sent to the receiver (docs/LINUX.md section 7.6, Linux-only settings entry)
 - [x] `priv-statement` (S) Privacy statement row: No Tracking or Nothing Leaves This Device, with the statement text _Apple TV: Sources/CrucibleCore/Features/Settings/SettingsCatalog.swift:privacyStatement_
 - [x] `priv-clear-search-history` (S) Clear Search History: forgets recent searches with no confirmation, then a Done alert _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:run (Preferences.recentSearches = [], then Done alert at :163)_
 - [x] `priv-clear-image-cache` (S) Clear Image Cache: confirmation (Clear Image Cache? Posters and backdrops will be downloaded again as you browse), then removes the cache and confirms Done _Apple TV: Sources/CrucibleTV/Settings/TVSettingsCategoryViewController.swift:perform, run(.clearImageCache) (Done alert at :163)_
@@ -713,9 +713,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `match-content-output-hdr-switch` (L) Match Content switches the player's output to HDR for an HDR title and restores it afterward, through kde_output_management_v2 Gap: The kde-output-management-v2 protocol is generated (linux/Sources/CKiln/protocols/kde-output-management-v2-protocol.c) but kiln_wayland.c never binds it (no kde_output reference in kiln_wayland.c), and no output configuration is requested. _Apple TV: docs/LINUX.md §7.4 Match Content_
 - [ ] `match-content-refresh-switch` (L) Match Content switches the refresh rate to the frame rate (23.976 and 29.97 to 119.88 Hz, 25 and 50 to 100 Hz, 24 stays on 144 Hz) Gap: No mode switching or frame-rate table exists; depends on the output-management binding. _Apple TV: docs/LINUX.md §7.4 Match Content_
 - [ ] `match-content-setting-and-guard` (M) Match Content is a Linux Settings entry, on by default in fullscreen, and restores the output if Crucible dies mid-title Gap: No Match Content entry in SettingsCatalog.swift (206-251), no default-on fullscreen behaviour, and no crash guard. _Apple TV: docs/LINUX.md §6 Settings_
-- [ ] `audio-passthrough-setting` (M) Audio passthrough setting (Auto, On, Off) feeds --audio-spdif with the codecs the sink accepts, so TrueHD, DTS-HD, E-AC-3 and AC-3 reach the receiver as bitstreams Gap: No passthrough entry in SettingsCatalog.swift and no audio-spdif option in kiln_video.c:55-63. _Apple TV: docs/LINUX.md §7.6 Audio_
-- [ ] `audio-iec958-check` (M) Before each play, Crucible checks PipeWire's enabled IEC958 codecs and reapplies them, because PipeWire forgets them on reconnect Gap: No PipeWire or IEC958 code anywhere in linux/Sources or CKilnGPU. _Apple TV: docs/LINUX.md §7.6 Audio_
-- [ ] `audio-pipewire-output` (S) **partial** Audio goes out through PipeWire, with the client named Crucible Gap: audio-client-name is Crucible (kiln_video.c:62), but ao is never set, so mpv picks its own default output. PipeWire is not pinned or verified. _Apple TV: docs/LINUX.md §7.6 Audio_
+- [x] `audio-passthrough-setting` (M) Audio passthrough setting (Auto, On, Off) feeds --audio-spdif with the codecs the sink accepts, so TrueHD, DTS-HD, E-AC-3 and AC-3 reach the receiver as bitstreams _Apple TV: docs/LINUX.md §7.6 Audio_
+- [x] `audio-iec958-check` (M) Before each play, Crucible checks PipeWire's enabled IEC958 codecs and reapplies them, because PipeWire forgets them on reconnect _Apple TV: docs/LINUX.md §7.6 Audio_
+- [x] `audio-pipewire-output` (S) Audio goes out through PipeWire, with the client named Crucible _Apple TV: docs/LINUX.md §7.6 Audio_
 - [x] `ai-own-model-settings` (M) Settings hold the model address and key for the person's own OpenAI-compatible model (or the paired Crucible Server model) _Apple TV: docs/LINUX.md §6 Settings_
 - [x] `ai-own-model-brain` (L) An OwnModelBrain answers AI requests against the person's model address with their key _Apple TV: docs/LINUX.md §6 What to Watch_
 - [x] `ai-bundled-prompts` (S) The alias prompts from tools/ai are bundled into the Linux build _Apple TV: docs/LINUX.md §6 What to Watch_
