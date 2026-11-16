@@ -45,7 +45,7 @@ final class TraktSpoilerCoverView: UIVisualEffectView {
 
 /// The small capsules beside a member's name: VIP, Director, Review, Spoiler.
 enum TraktTag {
-    case vip, director, review, spoiler, edited
+    case vip, director, review, spoiler, edited, translated
 
     var text: String {
         switch self {
@@ -54,6 +54,7 @@ enum TraktTag {
         case .review: return TraktCommunityCopy.review
         case .spoiler: return TraktCommunityCopy.spoiler
         case .edited: return TraktCommunityCopy.edited
+        case .translated: return TranslationCopy.translated
         }
     }
 
@@ -64,6 +65,7 @@ enum TraktTag {
         case .review: return .systemTeal
         case .spoiler: return .systemRed
         case .edited: return Theme.Color.labelTertiary
+        case .translated: return .systemIndigo
         }
     }
 

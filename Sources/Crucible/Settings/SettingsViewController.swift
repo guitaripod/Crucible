@@ -49,9 +49,13 @@ final class SettingsViewController: UICollectionViewController {
         demoObservation = DemoObservation { [weak self] in self?.demoChanged() }
     }
 
+    /// Categories can arrive after launch, as Translation once the device has reported its languages, so a changed list is
+    /// laid out again; otherwise each row's summary is refreshed in place.
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        reconfigure(SettingsCatalog.categories(on: .phone).map(Item.category))
+        let categories = SettingsCatalog.categories(on: .phone).map(Item.category)
+        guard dataSource.snapshot().itemIdentifiers(inSection: .categories) == categories else { return applySnapshot() }
+        reconfigure(categories)
     }
 
     private func configureSearch() {

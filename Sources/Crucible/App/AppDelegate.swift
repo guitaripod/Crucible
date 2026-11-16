@@ -1,5 +1,6 @@
 import AVFoundation
 import CrucibleCore
+import CrucibleIntelligence
 import MidgarCore
 import UIKit
 import UserNotifications
@@ -19,6 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         #endif
         ProAccess.shared.configureForLaunch(store: nil)
         HostedBrain.configureForLaunch()
+        Intelligence.configureForLaunch()
         PaywallPresenter.install()
         DemoCoordinator.shared.install()
         DownloadManager.shared.bootstrap()

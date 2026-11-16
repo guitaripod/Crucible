@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import MidgarCore
 @preconcurrency import UIKit
 
@@ -93,7 +94,7 @@ final class TraktCommentsViewController: UICollectionViewController {
         let aspectCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, _ in
             guard let self, case .aspect(let aspect, _) = self.source else { return }
             var content = UIListContentConfiguration.subtitleCell()
-            content.text = aspect.text
+            content.text = TraktSentimentsTranslation.text(aspect)
             content.textProperties.font = Theme.Font.title3
             content.secondaryText = TraktCommunityCopy.whatPeopleSay
             content.secondaryTextProperties.color = Theme.Color.labelSecondary

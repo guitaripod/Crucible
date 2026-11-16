@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 @preconcurrency import UIKit
 
 /// The pulse of a title's community, at the top of its Community section: Trakt's score with how its voters spread across the
@@ -380,7 +381,7 @@ final class TraktSentimentsContentView: UIView, UIContentView {
         chips.spacing = 6
         for aspect in aspects {
             var configuration = UIButton.Configuration.plain()
-            var title = AttributedString(aspect.text, attributes: AttributeContainer([.font: Theme.Font.footnoteSemibold, .foregroundColor: Theme.Color.label]))
+            var title = AttributedString(TraktSentimentsTranslation.text(aspect), attributes: AttributeContainer([.font: Theme.Font.footnoteSemibold, .foregroundColor: Theme.Color.label]))
             if !aspect.commentIDs.isEmpty {
                 title += AttributedString("  \(aspect.commentIDs.count)", attributes: AttributeContainer([.font: Theme.Font.caption1Regular, .foregroundColor: tint]))
             }

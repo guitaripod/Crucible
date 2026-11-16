@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import MidgarCore
 @preconcurrency import UIKit
 
@@ -22,6 +23,7 @@ final class TraktMemberViewController: UICollectionViewController {
     private var commentsLoaded = false
     private var commentsHidden = false
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
+    private var translationObserver: NSObjectProtocol?
 
     init(user: TraktUser) {
         self.user = user
@@ -30,6 +32,26 @@ final class TraktMemberViewController: UICollectionViewController {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit {
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
+    }
+
+    /// Redraws the comments whose translation changed, so a preview turns into the reader's language as it lands.
+    private func observeTranslations() {
+        translationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated {
+                guard let self, self.dataSource != nil else { return }
+                let changed = self.comments.filter { key == nil || TranslationCenter.key($0.comment) == key }.map { Item.comment($0.comment.id) }
+                var snapshot = self.dataSource.snapshot()
+                let present = changed.filter { snapshot.indexOfItem($0) != nil }
+                guard !present.isEmpty else { return }
+                snapshot.reconfigureItems(present)
+                self.dataSource.apply(snapshot, animatingDifferences: false)
+            }
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -47,6 +69,7 @@ final class TraktMemberViewController: UICollectionViewController {
         more.accessibilityIdentifier = "trakt.member.more"
         navigationItem.leftBarButtonItem = more
         configureDataSource()
+        observeTranslations()
         Task { await apply() }
         load()
     }
@@ -81,7 +104,7 @@ final class TraktMemberViewController: UICollectionViewController {
         let commentCell = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { [weak self] cell, _, id in
             guard let entry = self?.comments.first(where: { $0.comment.id == id }) else { return }
             var content = UIListContentConfiguration.subtitleCell()
-            let text = TraktCommentText(entry.comment.text)
+            let text = TraktCommentText(TranslationCenter.shared.displayed(entry.comment).text)
             content.text = entry.comment.isSpoiler ? TraktCommunityCopy.spoilerCover : text.textHidingSpoilers
             content.textProperties.numberOfLines = 3
             content.textProperties.font = Theme.Font.subheadline

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 @preconcurrency import UIKit
 
 /// Ember primary pill, then a 52pt glass download ring, a 52pt glass watched toggle and a 52pt glass star for the viewer's rating.
@@ -392,6 +393,9 @@ struct DetailOverviewConfiguration: UIContentConfiguration {
     var isExpanded = false
     var isTruncatable = false
     var onToggle: (() -> Void)?
+    /// Names the description for its translation into the reader's language, which it offers or shows when it is in
+    /// another; nil keeps it as written.
+    var translationKey: String?
 
     func makeContentView() -> UIView & UIContentView {
         DetailOverviewContentView(configuration: self)
@@ -433,6 +437,8 @@ final class DetailOverviewContentView: UIView, UIContentView {
 
     private let label = UILabel()
     private let toggleButton = UIButton(configuration: .plain())
+    private let translationButton = TranslationLineButton()
+    private var translationObservers: [NSObjectProtocol] = []
 
     init(configuration: DetailOverviewConfiguration) {
         self.configuration = configuration
@@ -458,7 +464,10 @@ final class DetailOverviewContentView: UIView, UIContentView {
             config.onToggle?()
         }, for: .primaryActionTriggered)
 
-        let stack = UIStackView(arrangedSubviews: [label, toggleButton])
+        translationButton.accessibilityIdentifier = "detail.overview.translation"
+        translationButton.addAction(UIAction { [weak self] _ in self?.translationTapped() }, for: .primaryActionTriggered)
+
+        let stack = UIStackView(arrangedSubviews: [label, toggleButton, translationButton])
         stack.axis = .vertical
         stack.alignment = .leading
         stack.spacing = 0
@@ -473,16 +482,55 @@ final class DetailOverviewContentView: UIView, UIContentView {
             toggleButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 32),
         ])
         apply()
+        observeTranslations()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        translationObservers.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    /// Shows the description's translation as it lands, growing the cell to fit.
+    private func observeTranslations() {
+        let refresh: @Sendable (Notification) -> Void = { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated {
+                guard let self, let config = self.configuration as? DetailOverviewConfiguration, let translationKey = config.translationKey,
+                      key == nil || key == translationKey else { return }
+                self.apply()
+                self.invalidateIntrinsicContentSize()
+            }
+        }
+        translationObservers = [
+            NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main, using: refresh),
+            NotificationCenter.default.addObserver(forName: .translationPreferencesChanged, object: nil, queue: .main, using: refresh),
+        ]
+    }
+
+    private func translationTapped() {
+        guard let config = configuration as? DetailOverviewConfiguration, let key = config.translationKey else { return }
+        let center = TranslationCenter.shared
+        switch translationButton.phase {
+        case .offer, .failed: center.translate(key: key, text: config.text)
+        case .translated, .original: center.toggleOriginal(key: key)
+        case .translating, .none: break
+        }
+        Haptics.light()
+    }
+
     private func apply() {
         guard let config = configuration as? DetailOverviewConfiguration else { return }
-        label.attributedText = DetailOverviewConfiguration.attributedText(config.text)
+        let translation = config.translationKey.map { TranslationCenter.shared.presentation(key: $0, text: config.text) } ?? .none
+        let text = translation.showsTranslation ? translation.translation.map { TraktCommentText($0).plainText } ?? config.text : config.text
+        translationButton.show(translation)
+        label.attributedText = DetailOverviewConfiguration.attributedText(text)
         label.numberOfLines = config.isExpanded ? 0 : config.collapsedLines
-        toggleButton.isHidden = !config.isTruncatable
+        let width = bounds.width - 2 * Theme.Space.m
+        let truncatable = text == config.text || width <= 0 ? config.isTruncatable
+            : DetailOverviewConfiguration.needsTruncation(text, width: width, lines: config.collapsedLines)
+        toggleButton.isHidden = !truncatable
         toggleButton.configuration?.title = config.isExpanded ? String(localized: "less") : String(localized: "more")
         toggleButton.accessibilityLabel = config.isExpanded ? String(localized: "Show less") : String(localized: "Show more")
     }

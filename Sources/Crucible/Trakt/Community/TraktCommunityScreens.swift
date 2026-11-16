@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import MidgarCore
 @preconcurrency import UIKit
 
@@ -104,6 +105,22 @@ enum TraktCommunityScreens {
 
     /// Everything a comment's menu offers: like, react, reply, copy, share, open on Trakt, report, and edit and delete for the
     /// viewer's own.
+    /// Translate, Show Original or Show Translation for a comment in another language, or nil for one in the reader's.
+    static func translationAction(for comment: TraktComment) -> UIAction? {
+        let center = TranslationCenter.shared
+        let shown = center.presentation(for: comment)
+        switch shown.phase {
+        case .offer, .failed:
+            return UIAction(title: TranslationCopy.translate, image: UIImage(systemName: "translate")) { _ in center.translate(comment) }
+        case .translated:
+            return UIAction(title: TranslationCopy.showOriginal, image: UIImage(systemName: "text.bubble")) { _ in center.toggleOriginal(comment) }
+        case .original:
+            return UIAction(title: TranslationCopy.showTranslation, image: UIImage(systemName: "translate")) { _ in center.toggleOriginal(comment) }
+        case .translating, .none:
+            return nil
+        }
+    }
+
     static func menu(for comment: TraktComment, subject: TraktCommunitySubject?, titleName: String?, from host: UIViewController, includesOpen: Bool = false) -> UIMenu {
         let community = TraktCommunity.shared
         var primary: [UIMenuElement] = []
@@ -130,9 +147,10 @@ enum TraktCommunityScreens {
         }
         var share: [UIMenuElement] = [
             UIAction(title: TraktCommunityCopy.copyText, image: UIImage(systemName: "doc.on.doc")) { _ in
-                UIPasteboard.general.string = TraktCommentText(comment.text).plainText
+                UIPasteboard.general.string = TraktCommentText(TranslationCenter.shared.displayed(comment).text).plainText
             },
         ]
+        if let translation = translationAction(for: comment) { share.insert(translation, at: 0) }
         if let url = comment.webURL {
             share.append(UIAction(title: TraktCommunityCopy.openOnTrakt, image: UIImage(systemName: "safari")) { _ in
                 UIApplication.shared.open(url)

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import MidgarCore
 @preconcurrency import UIKit
 
@@ -37,6 +38,7 @@ final class TraktCommunityDetailBlock {
     private var changeObserver: NSObjectProtocol?
     private var proObserver: UUID?
     private var accountObserver: UUID?
+    private var translationObserver: NSObjectProtocol?
     private var barsAnimated = false
 
     init(api: APIClient, ratingKey: String, host: UIViewController) {
@@ -55,10 +57,25 @@ final class TraktCommunityDetailBlock {
             self.snapshot = nil
             self.onStructureChange?()
         }
+        translationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated { self?.translationChanged(key) }
+        }
+    }
+
+    /// Redraws the cards whose translation changed, so their spoken words follow what they show; a translated phrase
+    /// of What People Say redraws its card too.
+    private func translationChanged(_ key: String?) {
+        guard let snapshot else { return }
+        let comments = snapshot.comments.filter { key == nil || TranslationCenter.key($0) == key }.map { Item.comment($0.id) }
+        let sentiments: [Item] = key == nil || key?.hasPrefix(TraktSentimentsTranslation.prefix) == true ? [.sentiments] : []
+        guard !(comments + sentiments).isEmpty else { return }
+        onReconfigure?(comments + sentiments)
     }
 
     deinit {
         if let changeObserver { NotificationCenter.default.removeObserver(changeObserver) }
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
         let pro = proObserver, account = accountObserver
         Task { @MainActor in
             if let pro { ProAccess.shared.stopObserving(pro) }
@@ -178,7 +195,7 @@ final class TraktCommunityDetailBlock {
         case .comment(let id):
             guard let comment = comment(id) else { return }
             cell.contentConfiguration = commentConfiguration(comment)
-            cell.accessibilityLabel = TraktCommunityCopy.accessibilityLabel(comment, hidingSpoilers: !revealed.contains(id))
+            cell.accessibilityLabel = TraktCommunityCopy.accessibilityLabel(TranslationCenter.shared.displayed(comment), hidingSpoilers: !revealed.contains(id))
         case .unlock:
             cell.contentConfiguration = TraktUnlockCardConfiguration(count: snapshot.commentCount)
         case .actions:

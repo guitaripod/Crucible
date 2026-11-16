@@ -232,7 +232,8 @@ final class MediaDetailViewController: UICollectionViewController {
                 collapsedLines: lines,
                 isExpanded: self.isOverviewExpanded,
                 isTruncatable: DetailOverviewConfiguration.needsTruncation(summary, width: width, lines: lines),
-                onToggle: { [weak self] in self?.toggleOverview() }
+                onToggle: { [weak self] in self?.toggleOverview() },
+                translationKey: self.model?.item.ratingKey.map { "plex.\($0)" }
             )
         }
         let genresReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in

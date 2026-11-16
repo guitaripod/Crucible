@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import MidgarCore
 @preconcurrency import UIKit
 
@@ -18,6 +19,8 @@ final class TraktCommentComposerViewController: UIViewController, UITextViewDele
     private let placeholder = UILabel()
     private let spoilerButton = UIButton(configuration: .plain())
     private let hideButton = UIButton(configuration: .plain())
+    private let translateButton = UIButton(configuration: .plain())
+    private var isTranslating = false
     private let counter = UILabel()
     private let ring = TraktWordRing()
     private let bar = UIView()
@@ -300,7 +303,20 @@ final class TraktCommentComposerViewController: UIViewController, UITextViewDele
 
         let spacer = UIView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        let row = UIStackView(arrangedSubviews: [spoilerButton, hideButton, spacer, counter, ring])
+        var translate = UIButton.Configuration.plain()
+        translate.image = UIImage(systemName: "translate")
+        translate.cornerStyle = .capsule
+        translate.background.backgroundColor = Theme.Color.surfaceRaised
+        translate.baseForegroundColor = Theme.Color.accentText
+        translate.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10)
+        translateButton.configuration = translate
+        translateButton.isHidden = true
+        translateButton.accessibilityLabel = TranslationCopy.translateToEnglish
+        translateButton.toolTip = TranslationCopy.translateToEnglish
+        translateButton.accessibilityIdentifier = "trakt.composer.translate"
+        translateButton.addAction(UIAction { [weak self] _ in self?.translateToEnglish() }, for: .primaryActionTriggered)
+
+        let row = UIStackView(arrangedSubviews: [spoilerButton, hideButton, translateButton, spacer, counter, ring])
         row.spacing = 8
         row.alignment = .center
         row.translatesAutoresizingMaskIntoConstraints = false
@@ -332,6 +348,52 @@ final class TraktCommentComposerViewController: UIViewController, UITextViewDele
             row.leadingAnchor.constraint(equalTo: view.readableContentGuide.leadingAnchor),
             row.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor),
         ])
+    }
+
+    /// Trakt takes only English, so a draft written in another language can be put into English on the device, spoiler
+    /// tags and all; the text is replaced the way typing would, so Undo brings the original back.
+    private func translateToEnglish() {
+        let text = textView.text ?? ""
+        guard !isTranslating, !text.isEmpty else { return }
+        isTranslating = true
+        translateButton.configuration?.showsActivityIndicator = true
+        translateButton.configuration?.image = nil
+        Haptics.light()
+        Task { [weak self] in
+            let result: Result<String?, TranslationFailure>
+            do throws(TranslationFailure) {
+                result = .success(try await TranslationCenter.shared.translateDraft(text, into: "en"))
+            } catch {
+                result = .failure(error)
+            }
+            guard let self else { return }
+            self.isTranslating = false
+            self.translateButton.configuration?.showsActivityIndicator = false
+            self.translateButton.configuration?.image = UIImage(systemName: "translate")
+            switch result {
+            case .success(let english?) where (self.textView.text ?? "") == text:
+                if let all = self.textView.textRange(from: self.textView.beginningOfDocument, to: self.textView.endOfDocument) {
+                    self.textView.replace(all, withText: english)
+                }
+                Haptics.success()
+                TraktToast.show(TranslationCopy.translatedToEnglish, symbol: "translate", in: self.navigationController?.view ?? self.view, belowBar: true)
+            case .success:
+                self.refresh()
+            case .failure(let failure):
+                Haptics.error()
+                if failure != .notInstalled { self.presentTraktMessage(TranslationCopy.failed) }
+                self.refresh()
+            }
+        }
+    }
+
+    /// Offers Translate to English while the draft reads as another language and the device can translate it.
+    private func refreshTranslateButton(_ text: String) {
+        let center = TranslationCenter.shared
+        let words = TraktCommentDraft(text).wordCount
+        let foreign = center.isAvailable && words >= 3 && center.language(ofDraft: text).map { !TranslationLanguages.isSame($0, "en") } == true
+        guard translateButton.isHidden == foreign || isTranslating else { return }
+        translateButton.isHidden = !foreign && !isTranslating
     }
 
     private func showRules() {
@@ -383,6 +445,7 @@ final class TraktCommentComposerViewController: UIViewController, UITextViewDele
             counter.textColor = Theme.Color.labelSecondary
         }
         ring.set(progress: draft.reviewProgress, ready: draft.canPost, review: draft.isReview)
+        refreshTranslateButton(draft.text)
     }
 
     private func post() {

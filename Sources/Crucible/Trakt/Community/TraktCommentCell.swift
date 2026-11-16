@@ -1,10 +1,11 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 @preconcurrency import UIKit
 
 /// One Trakt comment, drawn four ways: a card in a title's rail, a row of the full list, the comment a thread is about, and
 /// a reply under it. It shows who wrote it with their rating of the title, the text with spoilers covered until revealed,
-/// and the footer with likes, replies and reactions.
+/// in the reader's language when it was written in another, and the footer with likes, replies and reactions.
 struct TraktCommentConfiguration: UIContentConfiguration {
     enum Style: Equatable {
         case card
@@ -65,6 +66,8 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
     private let bodyContainer = UIView()
     private let cover = TraktSpoilerCoverView(compact: true)
     private let footer = TraktCommentFooterView()
+    private let translationButton = TranslationLineButton()
+    private var translationObservers: [NSObjectProtocol] = []
     private let gif = TraktGIFView(cornerRadius: Theme.Radius.s)
     private var bodyHeight: NSLayoutConstraint?
     private var gifHeight: NSLayoutConstraint?
@@ -78,10 +81,33 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
         preferContentHeight()
         build(configuration.style)
         apply()
+        observeTranslations()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit {
+        translationObservers.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    /// Shows a translation as it lands, or the original when the reader switches back, growing the row to fit.
+    private func observeTranslations() {
+        let center = NotificationCenter.default
+        let refresh: @Sendable (Notification) -> Void = { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated {
+                guard let self, let comment = self.currentConfiguration?.comment else { return }
+                guard key == nil || key == TranslationCenter.key(comment) else { return }
+                self.apply()
+                self.invalidateIntrinsicContentSize()
+            }
+        }
+        translationObservers = [
+            center.addObserver(forName: .translationChanged, object: nil, queue: .main, using: refresh),
+            center.addObserver(forName: .translationPreferencesChanged, object: nil, queue: .main, using: refresh),
+        ]
+    }
 
     private func build(_ style: TraktCommentConfiguration.Style) {
         let isCard = style == .card
@@ -185,6 +211,9 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
         body.addGestureRecognizer(textTap)
         revealTap = textTap
 
+        translationButton.accessibilityIdentifier = "trakt.comment.translation"
+        translationButton.addAction(UIAction { [weak self] _ in self?.translationTapped() }, for: .primaryActionTriggered)
+
         footer.onLike = { [weak self] in self?.currentConfiguration?.onLike?() }
         footer.onReplies = { [weak self] in self?.currentConfiguration?.onReplies?() }
         footer.onReact = { [weak self] reaction in self?.currentConfiguration?.onReact?(reaction) }
@@ -193,7 +222,7 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
         let gifHeight = gif.heightAnchor.constraint(equalToConstant: 180)
         gifHeight.isActive = true
         self.gifHeight = gifHeight
-        let content = UIStackView(arrangedSubviews: [header, bodyContainer, gif, footer])
+        let content = UIStackView(arrangedSubviews: [header, bodyContainer, translationButton, gif, footer])
         content.axis = .vertical
         content.spacing = style == .root ? Theme.Space.s : Theme.Space.xs + 2
         content.translatesAutoresizingMaskIntoConstraints = false
@@ -229,7 +258,9 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
 
     private func apply() {
         guard let config = currentConfiguration else { return }
-        let comment = config.comment
+        let translation = TranslationCenter.shared.presentation(for: config.comment)
+        var comment = config.comment
+        if translation.showsTranslation, let translated = translation.translation { comment.text = translated }
         avatar.configure(comment.user)
         avatarButton.accessibilityLabel = comment.user.displayName
         nameLabel.text = config.isMine ? "\(comment.user.displayName) (\(TraktCommunityCopy.you))" : comment.user.displayName
@@ -239,6 +270,7 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
         if comment.user.isDirector { shownTags.append(.director) }
         if comment.isReview { shownTags.append(.review) }
         if comment.isSpoiler { shownTags.append(.spoiler) }
+        if config.style == .card, translation.showsTranslation { shownTags.append(.translated) }
         shownTags.forEach { tags.addArrangedSubview($0.makeView()) }
         tags.isHidden = shownTags.isEmpty
         metaLabel.attributedText = meta(comment)
@@ -254,6 +286,7 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
         cover.isHidden = !config.isCovered
         coverHeight?.isActive = config.isCovered
         body.alpha = config.isCovered ? 0 : 1
+        layoutTranslation(translation, style: config.style)
         layoutAttachment(config, font: font)
         body.accessibilityLabel = config.isCovered ? TraktCommunityCopy.spoilerCover
             : (config.isRevealed ? text.plainText : text.textHidingSpoilers)
@@ -297,6 +330,23 @@ final class TraktCommentContentView: UIView, UIContentView, UITextViewDelegate {
         bodyHeight?.constant = line * textLines
         body.textContainer.maximumNumberOfLines = Int(textLines)
         gifHeight?.constant = total - line * textLines - (hasText ? Theme.Space.xs + 2 : 0)
+    }
+
+    /// The line under a row's text about its translation. A card has no room for it, so it carries the Translated tag and
+    /// its menu instead.
+    private func layoutTranslation(_ translation: TranslationCenter.Presentation, style: TraktCommentConfiguration.Style) {
+        translationButton.show(style == .card ? .none : translation)
+    }
+
+    private func translationTapped() {
+        guard let comment = currentConfiguration?.comment else { return }
+        let center = TranslationCenter.shared
+        switch translationButton.phase {
+        case .offer, .failed: center.translate(comment)
+        case .translated, .original: center.toggleOriginal(comment)
+        case .translating, .none: break
+        }
+        Haptics.light()
     }
 
     private func meta(_ comment: TraktComment) -> NSAttributedString {
