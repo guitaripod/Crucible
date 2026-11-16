@@ -52,6 +52,12 @@ struct StreamResolverTests {
         #expect(url.hasSuffix("&X-Plex-Product=Crucible"))
     }
 
+    @Test func aConvertedStreamOnLinuxNamesTheGenericProfileTheServerHasNoneForLinux() {
+        let url = withQuality(.original) { transcode() }
+        #expect(url.contains("&X-Plex-Client-Profile-Name=Generic&") == AppPlatform.isLinux)
+        #expect(url.contains("X-Plex-Client-Profile-Name") == AppPlatform.isLinux)
+    }
+
     @Test func transcodeURLAsksForTextSubtitlesAsAWebVTTRendition() throws {
         let url = withQuality(.original) { transcode(subtitles: "none") }
         #expect(url.contains("&subtitles=none"))

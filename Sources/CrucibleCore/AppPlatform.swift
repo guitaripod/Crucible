@@ -21,6 +21,13 @@ package enum AppPlatform {
         isLinux ? "Linux" : isTV ? "tvOS" : "iOS"
     }
 
+    /// The server's own client profile a converted stream starts from where it has none for `plexName`: Plex Media Server
+    /// refuses a stream for platform Linux with 400 (no matching profile), so Linux names the empty Generic profile, which the
+    /// stream's `X-Plex-Client-Profile-Extra` fills with everything it takes.
+    package static var plexProfileName: String? {
+        isLinux ? "Generic" : nil
+    }
+
     package static var fallbackDeviceName: String {
         isLinux ? "Linux" : isTV ? "Apple TV" : "iPhone"
     }

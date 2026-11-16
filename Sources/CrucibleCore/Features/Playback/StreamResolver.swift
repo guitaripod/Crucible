@@ -377,6 +377,7 @@ package enum StreamResolver {
             + "&X-Plex-Token=\(token)"
             + "&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"
             + "&X-Plex-Platform=\(AppPlatform.plexName)"
+            + (AppPlatform.plexProfileName.map { "&X-Plex-Client-Profile-Name=\($0)" } ?? "")
             + "&X-Plex-Product=Crucible"
         if let secs = startSecs {
             query += "&offset=\(Int(StreamPosition.transcodeStart(secs)))"
