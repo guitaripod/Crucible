@@ -142,6 +142,10 @@ public final class ContributionHeatmapView: View {
         }
     }
 
+    /// Names a day for its tooltip, by its place from the first day (`column * 7 + row`): its date and how much was watched.
+    public var describeDay: ((Int) -> String?)?
+    private var hoveredDay: Int?
+
     private var columns = 0
     private var lastDayIndex = 0
     private var cells: [Cell] = []
@@ -222,6 +226,48 @@ public final class ContributionHeatmapView: View {
     private func rect(column: Int, row: Int, step: Float) -> Rect {
         Rect(x: Float(column) * step, y: labelHeight + Float(row) * step, width: step * 0.8, height: step * 0.8)
     }
+
+    public override var isPointerInteractive: Bool { describeDay != nil }
+    public override var cursor: Cursor { .default }
+
+    /// The day whose square is under `point`, by its place from the first day.
+    private func day(at point: Point) -> Int? {
+        guard columns > 0 else { return nil }
+        let step = step(for: frame.width)
+        let overflow = max(0, Float(columns) * step - step * 0.2 - frame.width)
+        let x = point.x + overflow * reveal.value
+        let y = point.y - labelHeight
+        guard x >= 0, y >= 0 else { return nil }
+        let column = Int(x / step)
+        let row = Int(y / step)
+        guard column < columns, row < 7, x - Float(column) * step <= step * 0.8, y - Float(row) * step <= step * 0.8 else { return nil }
+        let index = column * 7 + row
+        return index <= lastDayIndex ? index : nil
+    }
+
+    public override func pointerMoved(to point: Point) {
+        let day = day(at: point)
+        guard day != hoveredDay else { return }
+        hoveredDay = day
+        setNeedsDisplay()
+    }
+
+    public override func pointerExited() {
+        hoveredDay = nil
+        setNeedsDisplay()
+    }
+
+    public override func tooltip(at point: Point) -> String? {
+        day(at: point).flatMap { describeDay?($0) }
+    }
+
+    public override func drawOverlay(_ context: inout DrawContext) {
+        guard let hoveredDay, columns > 0 else { return }
+        let step = step(for: frame.width)
+        let overflow = max(0, Float(columns) * step - step * 0.2 - frame.width)
+        let cell = rect(column: hoveredDay / 7, row: hoveredDay % 7, step: step).offsetBy(-overflow * reveal.value, 0)
+        context.stroke(cell.insetBy(-1.5, -1.5), radius: step * 5 / 30 + 1.5, width: 1.5, color: Theme.current.palette.label.withAlpha(0.85))
+    }
 }
 
 /// A 24-spoke clock of when plays start (`RadialClockView`): midnight at the top, hours running clockwise, each hour a
@@ -230,6 +276,24 @@ public final class ContributionHeatmapView: View {
 public final class RadialClockView: View {
     private var counts = [Int](repeating: 0, count: 24)
     private var grow = Animated(1)
+    /// Names an hour for its tooltip, from the hour (0 is midnight) and how many plays started in it.
+    public var describeHour: ((Int, Int) -> String?)?
+
+    public override var isPointerInteractive: Bool { describeHour != nil }
+    public override var cursor: Cursor { .default }
+
+    /// The hour whose bar the pointer is over, between the hub and the outer ring.
+    public override func tooltip(at point: Point) -> String? {
+        let radius = min(frame.width, frame.height) / 2 - Theme.current.metrics.tv(12)
+        let dx = point.x - frame.width / 2
+        let dy = point.y - frame.height / 2
+        let distance = (dx * dx + dy * dy).squareRoot()
+        guard radius > 0, distance >= radius * 0.32, distance <= radius else { return nil }
+        var angle = atan2(dx, -dy)
+        if angle < 0 { angle += 2 * Float.pi }
+        let hour = Int((angle / (2 * Float.pi / 24)).rounded()) % 24
+        return describeHour?(hour, counts[hour])
+    }
 
     public func configure(hours: [Int], animate: Bool) {
         counts = (0..<24).map { $0 < hours.count ? max(0, hours[$0]) : 0 }

@@ -365,6 +365,25 @@ enum SharedGPU {
         sidebar.removeFromSuperview()
     }
 
+    @Test func theActivityCalendarAndTheClockNameWhatIsUnderThePointer() {
+        let heatmap = ContributionHeatmapView()
+        heatmap.configure(columns: 4, lastDayIndex: 27, cells: [.init(column: 1, row: 2, level: 3)], monthLabels: [], animate: false)
+        heatmap.describeDay = { "day \($0)" }
+        heatmap.frame = Rect(x: 0, y: 0, width: 400, height: heatmap.sizeThatFits(Size(width: 400, height: 0)).height)
+        let step = Theme.current.metrics.tv(30) * 2
+        let label = Theme.current.metrics.tv(36)
+        #expect(heatmap.tooltip(at: Point(x: step * 1 + 2, y: label + step * 2 + 2)) == "day 9")
+        #expect(heatmap.tooltip(at: Point(x: step * 1 + step * 0.9, y: label + step * 2 + 2)) == nil, "the gap between squares names nothing")
+        let clock = RadialClockView()
+        clock.configure(hours: Array(repeating: 1, count: 24), animate: false)
+        clock.describeHour = { "\($0):\($1)" }
+        let side = RadialClockView.side
+        clock.frame = Rect(x: 0, y: 0, width: side, height: side)
+        #expect(clock.tooltip(at: Point(x: side / 2, y: side * 0.1)) == "0:1", "midnight is at the top")
+        #expect(clock.tooltip(at: Point(x: side * 0.9, y: side / 2)) == "6:1", "six in the morning is at the right")
+        #expect(clock.tooltip(at: Point(x: side / 2, y: side / 2)) == nil, "the hub names nothing")
+    }
+
     @Test func aDesktopScrollbarPagesOnAClickAndDragsItsThumb() {
         ScrollView.desktopScrollbars = true
         defer { ScrollView.desktopScrollbars = false }

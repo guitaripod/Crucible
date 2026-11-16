@@ -292,6 +292,7 @@ enum StatsSections {
         case .heatmap:
             let heatmap = ContributionHeatmapView()
             let model = page.heatmap
+            heatmap.describeDay = StatsHover.day(in: model)
             heatmap.configure(columns: model.columns, lastDayIndex: model.lastDayEpoch - model.firstDayEpoch,
                               cells: model.cells.map { ContributionHeatmapView.Cell(column: $0.column, row: $0.row, level: $0.level) },
                               monthLabels: model.monthLabels.sorted { $0.key < $1.key }.map { (column: $0.key, text: $0.value) }, animate: animate)
@@ -478,6 +479,7 @@ private final class ClockSection: View {
 
     init() {
         super.init()
+        clock.describeHour = { StatsHover.hour($0, count: $1) }
         [clock, weekdays].forEach(addSubview)
     }
 
@@ -538,5 +540,31 @@ private final class ClockSection: View {
         guard let layout = verdictLayout(width: frame.width) else { return }
         let y = chartsHeight(frame.width) + metrics.tv(32)
         context.text(layout, at: Point(x: ((frame.width - layout.size.width) / 2).rounded(), y: y), color: Theme.current.palette.accentText)
+    }
+}
+
+/// What the charts' tooltips say: a day of the activity calendar, an hour of the clock.
+@MainActor
+enum StatsHover {
+    /// A day by its place from the calendar's first day: its date and how many plays it had.
+    static func day(in model: HeatmapModel) -> (Int) -> String? {
+        let time = StatsTime()
+        var counts: [Int: Int] = [:]
+        for cell in model.cells { counts[cell.dayEpoch] = cell.count }
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EEEdMMMy")
+        return { index in
+            let epoch = model.firstDayEpoch + index
+            let date = formatter.string(from: time.date(forDayEpoch: epoch))
+            return String(localized: "\(counts[epoch] ?? 0) plays on \(date)")
+        }
+    }
+
+    /// An hour of the clock and how many plays started in it.
+    static func hour(_ hour: Int, count: Int) -> String? {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("j")
+        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
+        return String(localized: "\(formatter.string(from: date)), \(count) plays")
     }
 }
