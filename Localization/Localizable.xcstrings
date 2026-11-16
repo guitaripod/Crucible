@@ -47843,198 +47843,6 @@
         }
       }
     },
-    "Couch" : {
-      "comment" : "Interface Size value: laid out for a TV seen from the couch",
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofa"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couch"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofá"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sohva"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canapé"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sófi"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Divano"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソファ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "소파"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofa"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kanapa"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofá"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soffa"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沙发"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沙發"
-          }
-        }
-      }
-    },
-    "Couch draws Crucible as the Apple TV does, for a TV across the room. Settings › Appearance changes it back." : {
-      "comment" : "Linux: the Couch offer's message",
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofa tegner Crucible som Apple TV gør det, til et tv på den anden side af stuen. Indstillinger › Udseende skifter tilbage."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couch zeigt Crucible wie das Apple TV, für einen Fernseher auf der anderen Seite des Raums. Einstellungen › Darstellung stellt es zurück."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofá muestra Crucible como lo hace el Apple TV, para un televisor al otro lado de la sala. Ajustes › Apariencia lo devuelve."
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sohva piirtää Cruciblen Apple TV:n tapaan, huoneen toisella puolella olevaa televisiota varten. Asetukset › Ulkoasu vaihtaa takaisin."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canapé affiche Crucible comme l’Apple TV, pour un téléviseur à l’autre bout de la pièce. Réglages › Apparence le rétablit."
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sófi sýnir Crucible eins og Apple TV gerir, fyrir sjónvarp hinum megin í stofunni. Stillingar › Útlit breytir því aftur."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Divano mostra Crucible come fa Apple TV, per una TV dall’altra parte della stanza. Impostazioni › Aspetto lo riporta indietro."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソファは、部屋の向こうのテレビ向けに Apple TV と同じ表示で Crucible を描きます。「設定」›「外観」で元に戻せます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "소파는 방 건너편 TV에 맞게 Apple TV처럼 Crucible을 표시합니다. 설정 › 화면 표시에서 되돌릴 수 있습니다."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofa viser Crucible slik Apple TV gjør, for en TV på andre siden av rommet. Innstillinger › Utseende bytter tilbake."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kanapa wyświetla Crucible tak jak Apple TV, dla telewizora po drugiej stronie pokoju. Ustawienia › Wygląd przywraca poprzedni widok."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sofá mostra o Crucible como a Apple TV, para uma TV do outro lado da sala. Ajustes › Aparência volta ao normal."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Soffa visar Crucible som Apple TV gör, för en tv på andra sidan rummet. Inställningar › Utseende byter tillbaka."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沙发模式会像 Apple TV 一样显示 Crucible，适合房间另一端的电视。“设置”›“外观”可改回。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沙發模式會像 Apple TV 一樣顯示 Crucible，適合房間另一端的電視。「設定」›「外觀」可改回。"
-          }
-        }
-      }
-    },
     "Could not build download URL" : {
       "localizations" : {
         "da" : {
@@ -62824,8 +62632,8 @@
         }
       }
     },
-    "Desk" : {
-      "comment" : "Interface Size value: laid out for a desk monitor",
+    "Desktop" : {
+      "comment" : "Linux layout made for a mouse and keyboard on a monitor",
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
@@ -62837,7 +62645,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schreibtisch"
+            "value" : "Desktop"
           }
         },
         "es" : {
@@ -62849,7 +62657,7 @@
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pöytä"
+            "value" : "Työpöytä"
           }
         },
         "fr" : {
@@ -62861,25 +62669,25 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrifborð"
+            "value" : "Skjáborð"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scrivania"
+            "value" : "Desktop"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "デスク"
+            "value" : "デスクトップ"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "책상"
+            "value" : "데스크톱"
           }
         },
         "nb" : {
@@ -62891,13 +62699,13 @@
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Biurko"
+            "value" : "Komputer"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mesa"
+            "value" : "Desktop"
           }
         },
         "sv" : {
@@ -62920,98 +62728,98 @@
         }
       }
     },
-    "Desk draws the Apple TV design for a monitor; Couch draws it as on a TV across the room." : {
-      "comment" : "Explanation under the Interface Size setting",
+    "Desktop is made for a mouse and keyboard on a monitor. Steam Deck is made for a gamepad, on the Deck or a TV across the room." : {
+      "comment" : "Linux setting: what the two layouts are for",
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrivebord tegner Apple TV-designet til en skærm; Sofa tegner det, som på et tv set fra sofaen."
+            "value" : "Skrivebord er lavet til mus og tastatur ved en skærm. Steam Deck er lavet til en controller, på Deck eller et tv på den anden side af stuen."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schreibtisch zeichnet das Apple-TV-Design für einen Monitor; Couch zeichnet es wie auf einem Fernseher im Wohnzimmer."
+            "value" : "Desktop ist für Maus und Tastatur am Monitor gemacht. Steam Deck ist für einen Controller gemacht, auf dem Deck oder einem Fernseher auf der anderen Seite des Raums."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escritorio dibuja el diseño de Apple TV para un monitor; Sofá lo dibuja como en un televisor visto desde el sofá."
+            "value" : "Escritorio está pensado para ratón y teclado en un monitor. Steam Deck está pensado para un mando, en la Deck o en un televisor al otro lado de la sala."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pöytä piirtää Apple TV -ulkoasun näytölle; Sohva piirtää sen kuten television katseltuna sohvalta."
+            "value" : "Työpöytä on tehty hiirelle ja näppäimistölle näytön ääressä. Steam Deck on tehty ohjaimelle, Deckillä tai huoneen toisella puolella olevalla televisiolla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bureau affiche le design d’Apple TV pour un écran ; Canapé l’affiche comme sur un téléviseur vu depuis le canapé."
+            "value" : "Bureau est conçu pour la souris et le clavier sur un écran. Steam Deck est conçu pour une manette, sur le Deck ou un téléviseur à l’autre bout de la pièce."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrifborð teiknar Apple TV-hönnunina fyrir skjá; Sófi teiknar hana eins og í sjónvarpi séð úr sófanum."
+            "value" : "Skjáborð er gert fyrir mús og lyklaborð við skjá. Steam Deck er gert fyrir leikjastýringu, á Deck eða sjónvarpi hinum megin í stofunni."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scrivania disegna il design di Apple TV per un monitor; Divano lo disegna come su una TV vista dal divano."
+            "value" : "Desktop è pensato per mouse e tastiera su un monitor. Steam Deck è pensato per un controller, sul Deck o su una TV dall’altra parte della stanza."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "デスクはモニター向けの Apple TV のデザインで表示し、ソファはソファから見るテレビのように表示します。"
+            "value" : "デスクトップはモニターでマウスとキーボードを使うためのレイアウトです。Steam Deck は Deck や部屋の向こうのテレビでコントローラーを使うためのものです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "책상은 모니터용 Apple TV 디자인으로, 소파는 소파에서 보는 TV처럼 표시합니다."
+            "value" : "데스크톱은 모니터에서 마우스와 키보드로 쓰는 레이아웃입니다. Steam Deck은 Deck이나 방 건너편 TV에서 컨트롤러로 쓰기 위한 것입니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrivebord tegner Apple TV-designet for en skjerm; Sofa tegner det slik det ser ut på en TV sett fra sofaen."
+            "value" : "Skrivebord er laget for mus og tastatur ved en skjerm. Steam Deck er laget for en kontroller, på Deck eller en TV på andre siden av rommet."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Biurko wyświetla projekt Apple TV dla monitora; Kanapa wyświetla go tak, jak na telewizorze oglądanym z kanapy."
+            "value" : "Komputer jest przeznaczony do myszy i klawiatury przy monitorze. Steam Deck jest przeznaczony do pada, na Decku lub na telewizorze po drugiej stronie pokoju."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mesa desenha o design da Apple TV para um monitor; Sofá o desenha como em uma TV vista do sofá."
+            "value" : "Desktop é feito para mouse e teclado em um monitor. Steam Deck é feito para um controle, no Deck ou em uma TV do outro lado da sala."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skrivbord ritar Apple TV-designen för en bildskärm; Soffa ritar den som på en tv sedd från soffan."
+            "value" : "Skrivbord är gjort för mus och tangentbord vid en skärm. Steam Deck är gjort för en handkontroll, på Deck eller en tv på andra sidan rummet."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“桌面”以显示器的布局显示 Apple TV 界面；“沙发”则按客厅电视的观看距离显示。"
+            "value" : "桌面适合在显示器前使用鼠标和键盘。Steam Deck 适合使用手柄，在 Deck 上或房间另一端的电视上。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「桌面」以顯示器的版面呈現 Apple TV 介面；「沙發」則依客廳電視的觀看距離呈現。"
+            "value" : "桌面適合在螢幕前使用滑鼠和鍵盤。Steam Deck 適合使用手把，在 Deck 上或房間另一端的電視上。"
           }
         }
       }
@@ -90954,102 +90762,6 @@
         }
       }
     },
-    "Interface Size" : {
-      "comment" : "Setting that switches the Linux app between a desk monitor layout and a TV layout",
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grænsefladestørrelse"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oberflächengröße"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tamaño de la interfaz"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Käyttöliittymän koko"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taille de l’interface"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stærð viðmóts"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimensione interfaccia"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "インターフェースサイズ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "인터페이스 크기"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grensesnittstørrelse"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rozmiar interfejsu"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tamanho da interface"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gränssnittsstorlek"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "界面大小"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "介面大小"
-          }
-        }
-      }
-    },
     "Interview" : {
       "comment" : "Kind of extra",
       "localizations" : {
@@ -95990,6 +95702,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最新"
+          }
+        }
+      }
+    },
+    "Layout" : {
+      "comment" : "Linux setting: the Desktop or Steam Deck layout",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diseño"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asettelu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposition"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Útlit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイアウト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이아웃"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oppsett"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "布局"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版面配置"
           }
         }
       }
@@ -176658,6 +176466,102 @@
         }
       }
     },
+    "Steam Deck" : {
+      "comment" : "Linux layout made for a gamepad, on a Steam Deck or a TV",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck"
+          }
+        }
+      }
+    },
     "Step %lld of %lld" : {
       "comment" : "Sports Research: which setup step this is, e.g. Step 2 of 4",
       "localizations" : {
@@ -180266,6 +180170,102 @@
         }
       }
     },
+    "Switch Layout" : {
+      "comment" : "Linux app menu: between the Desktop and Steam Deck layouts",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skift layout"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout wechseln"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar diseño"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaihda asettelu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer de disposition"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipta um útlit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia layout"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レイアウトを切り替え"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "레이아웃 전환"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bytt oppsett"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przełącz układ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar layout"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Byt layout"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换布局"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切換版面配置"
+          }
+        }
+      }
+    },
     "Switch Profile" : {
       "comment" : "Row and screen title for choosing another Plex Home profile",
       "localizations" : {
@@ -180643,194 +180643,98 @@
         }
       }
     },
-    "Switch to Couch" : {
-      "comment" : "Linux: takes the Couch offer",
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skift til Sofa"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zu Couch wechseln"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambiar a Sofá"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vaihda Sohvaan"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passer en mode Canapé"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skipta yfir í Sófa"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passa a Divano"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソファに切り替える"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "소파로 전환"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bytt til Sofa"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przełącz na Kanapę"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mudar para Sofá"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Byt till Soffa"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "切换到沙发模式"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "切換到沙發模式"
-          }
-        }
-      }
-    },
-    "Switch to Couch?" : {
+    "Switch to the Steam Deck Layout?" : {
       "comment" : "Linux: offered once when a gamepad is used full screen on a TV",
       "extractionState" : "manual",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skift til Sofa?"
+            "value" : "Skift til Steam Deck-layoutet?"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zu Couch wechseln?"
+            "value" : "Zum Steam-Deck-Layout wechseln?"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¿Cambiar a Sofá?"
+            "value" : "¿Cambiar al diseño Steam Deck?"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vaihdetaanko Sohvaan?"
+            "value" : "Vaihdetaanko Steam Deck -asetteluun?"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passer en mode Canapé ?"
+            "value" : "Passer à la disposition Steam Deck ?"
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Skipta yfir í Sófa?"
+            "value" : "Skipta yfir í Steam Deck-útlit?"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passare a Divano?"
+            "value" : "Passare al layout Steam Deck?"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ソファに切り替えますか？"
+            "value" : "Steam Deck レイアウトに切り替えますか？"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "소파로 전환할까요?"
+            "value" : "Steam Deck 레이아웃으로 전환할까요?"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bytte til Sofa?"
+            "value" : "Bytte til Steam Deck-oppsettet?"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przełączyć na Kanapę?"
+            "value" : "Przełączyć na układ Steam Deck?"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mudar para Sofá?"
+            "value" : "Mudar para o layout Steam Deck?"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Byta till Soffa?"
+            "value" : "Byta till Steam Deck-layouten?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换到沙发模式？"
+            "value" : "切换到 Steam Deck 布局？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切換到沙發模式？"
+            "value" : "切換到 Steam Deck 版面配置？"
           }
         }
       }
@@ -184710,6 +184614,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隔天早上"
+          }
+        }
+      }
+    },
+    "The Steam Deck layout is made for a gamepad, on the Deck or a TV across the room. Settings › Appearance changes it back." : {
+      "comment" : "Linux: the Steam Deck layout offer's message",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck-layoutet er lavet til en controller, på Deck eller et tv på den anden side af stuen. Indstillinger › Udseende skifter tilbage."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Steam-Deck-Layout ist für einen Controller gemacht, auf dem Deck oder einem Fernseher auf der anderen Seite des Raums. Einstellungen › Darstellung stellt es zurück."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El diseño Steam Deck está pensado para un mando, en la Deck o en un televisor al otro lado de la sala. Ajustes › Apariencia lo devuelve."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck -asettelu on tehty ohjaimelle, Deckillä tai huoneen toisella puolella olevalla televisiolla. Asetukset › Ulkoasu vaihtaa takaisin."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La disposition Steam Deck est conçue pour une manette, sur le Deck ou un téléviseur à l’autre bout de la pièce. Réglages › Apparence le rétablit."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck-útlitið er gert fyrir leikjastýringu, á Deck eða sjónvarpi hinum megin í stofunni. Stillingar › Útlit breytir því aftur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il layout Steam Deck è pensato per un controller, sul Deck o su una TV dall’altra parte della stanza. Impostazioni › Aspetto lo riporta indietro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck レイアウトは、Deck や部屋の向こうのテレビでコントローラーを使うためのものです。「設定」›「外観」で元に戻せます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck 레이아웃은 Deck이나 방 건너편 TV에서 컨트롤러로 쓰기 위한 것입니다. 설정 › 화면 표시에서 되돌릴 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck-oppsettet er laget for en kontroller, på Deck eller en TV på andre siden av rommet. Innstillinger › Utseende bytter tilbake."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ Steam Deck jest przeznaczony do pada, na Decku lub na telewizorze po drugiej stronie pokoju. Ustawienia › Wygląd przywraca poprzedni widok."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O layout Steam Deck é feito para um controle, no Deck ou em uma TV do outro lado da sala. Ajustes › Aparência volta ao normal."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck-layouten är gjord för en handkontroll, på Deck eller en tv på andra sidan rummet. Inställningar › Utseende byter tillbaka."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck 布局适合使用手柄，在 Deck 上或房间另一端的电视上。“设置”›“外观”可改回。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck 版面配置適合使用手把，在 Deck 上或房間另一端的電視上。「設定」›「外觀」可改回。"
           }
         }
       }
@@ -204909,6 +204909,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "立即更新"
+          }
+        }
+      }
+    },
+    "Use Steam Deck Layout" : {
+      "comment" : "Linux: takes the Steam Deck layout offer",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brug Steam Deck-layout"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam-Deck-Layout verwenden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar diseño Steam Deck"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käytä Steam Deck -asettelua"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser la disposition Steam Deck"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota Steam Deck-útlit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa layout Steam Deck"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck レイアウトを使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Deck 레이아웃 사용"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruk Steam Deck-oppsett"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj układu Steam Deck"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar layout Steam Deck"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Använd Steam Deck-layout"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Steam Deck 布局"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Steam Deck 版面配置"
           }
         }
       }

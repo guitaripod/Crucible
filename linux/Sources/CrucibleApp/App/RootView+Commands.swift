@@ -41,7 +41,9 @@ extension RootView {
                 guard let window = self?.window else { return }
                 window.setFullscreen(!window.isFullscreen)
             },
-            AppCommand(String(localized: "Interface Size")) { [weak self] in LinuxDisplay.toggleDensity(in: self?.window) },
+            AppCommand(String(localized: "Switch Layout", comment: "Linux app menu: between the Desktop and Steam Deck layouts")) { [weak self] in
+                LinuxDisplay.toggleDensity(in: self?.window)
+            },
             AppCommand(String(localized: "Appearance")) { [weak self] in LinuxDisplay.toggleAppearance(in: self?.window) },
             AppCommand(AppCommandCopy.shortcuts, keys: [KeyName.chord(KeyName.ctrl, "?")]) { [weak self] in self?.presentShortcuts() },
             AppCommand(AppCommandCopy.newWindow, keys: [KeyName.chord(KeyName.ctrl, "N")]) { [weak self] in self?.onNewWindow?(nil) },
