@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Measures Crucible on the Steam Deck in Game Mode, launched by Steam as the player launches it, on a throwaway profile
 signed in to the bundled demo library: launch, a resting Home screen, a scripted browse (shelves, a title page, a library
-grid, back Home), and video playback of a local file. It samples the process's CPU time and memory, the APU's power and
-the GPU's busy share while it runs, and reads Kiln's per-frame timings (KILN_FRAMES). Results go to a JSON file and a
-table; `compare` puts two results side by side.
+grid, back Home), and video playback of a local file. It samples the process's CPU time, memory, GPU time and video
+decoder time, the APU's power, the GPU's busy share and the bytes the network brought in while it runs, and reads Kiln's
+per-frame timings (KILN_FRAMES). Results go to a JSON file and a table; `compare` puts two results side by side.
 
-    steamdeck-bench.py ui --label NAME [--runs 2] [--env 'KEY=VALUE ...'] [--out DIR]
-    steamdeck-bench.py play FILE --label NAME [--seconds 30] [--env ...] [--out DIR]
+`--signed-in` measures the player's own library instead: the throwaway profile starts from a copy of the Deck's signed-in
+one (its settings, account, Home snapshot and statistics), with an empty image cache that the later runs keep. `play
+--item RATINGKEY` plays one of the server's titles through the app, and afterwards puts the title's watch state on the
+server back as it was. Plex tokens are cut out of everything the runs write.
+
+    steamdeck-bench.py ui --label NAME [--signed-in] [--keys KEYS] [--runs 2] [--env 'KEY=VALUE ...'] [--out DIR]
+    steamdeck-bench.py play (FILE | --item RATINGKEY) --label NAME [--seconds 30] [--env ...] [--out DIR]
     steamdeck-bench.py compare BEFORE.json AFTER.json
 
 Steam must run in Game Mode with Crucible in its library (steam-library.py beside this script adds it).
@@ -22,6 +27,8 @@ import statistics
 import subprocess
 import sys
 import time
+import urllib.parse
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TICKS = os.sysconf("SC_CLK_TCK")
@@ -32,6 +39,11 @@ IDLE = (18.0, 38.0)
 BROWSE_AT = 40.0
 BROWSE_KEYS = ("r(160)" * 12 + "(400)e(2600)d(450)d(450)d(450)(600)x(1400)" + "d(500)d(500)d(500)" + "r(160)" * 8
                + "(400)u(500)u(500)u(500)(600)2(2600)" + "d(220)" * 15 + "(800)1(1800)")
+SIGNED_IN_BROWSE_KEYS = ("d(450)" + "r(160)" * 8 + "(400)d(450)" + "r(160)" * 8 + "(400)d(450)d(450)u(450)u(450)u(450)u(450)(600)"
+                         + "2(2600)" + "d(220)" * 14 + "(800)3(2600)e(3000)d(450)d(450)d(450)(600)x(1400)"
+                         + "4(2600)" + "d(220)" * 12 + "(800)1(1800)")
+SIGNED_IN_DATA = ("secrets.json", "Home", "Stats")
+REDACT = r"sed -u -E 's/(X-Plex-Token[=:][[:space:]]*)[^&\"[:space:]]+/\1REDACTED/g'"
 
 
 def load_steam_library():
@@ -59,13 +71,47 @@ def read_number(path):
         return None
 
 
+def default_interface():
+    try:
+        for line in open("/proc/net/route").read().splitlines()[1:]:
+            fields = line.split()
+            if len(fields) > 1 and fields[1] == "00000000":
+                return fields[0]
+    except OSError:
+        pass
+    return None
+
+
+def drm_engines(pid):
+    """Seconds the process's amdgpu clients have kept each engine busy (`gfx`, `dec` the video decoder), from fdinfo."""
+    totals, seen = {}, set()
+    for path in glob.glob(f"/proc/{pid}/fdinfo/*"):
+        try:
+            lines = open(path).read().splitlines()
+        except OSError:
+            continue
+        fields = dict(line.split(":", 1) for line in lines if ":" in line)
+        client = fields.get("drm-client-id", "").strip()
+        if not client or client in seen:
+            continue
+        seen.add(client)
+        for key, value in fields.items():
+            if key.startswith("drm-engine-") and value.strip().endswith("ns"):
+                name = key[len("drm-engine-"):]
+                totals[name] = totals.get(name, 0) + int(value.split()[0]) / 1e9
+    return totals
+
+
 class Sampler:
-    """The process's CPU seconds and resident memory, the APU's power and the GPU's busy share, four times a second."""
+    """The process's CPU seconds, resident memory and GPU engine seconds, the APU's power, the GPU's busy share and the
+    bytes the default network interface received, four times a second."""
 
     def __init__(self):
         gpu = hwmon("amdgpu")
         self.power = next((os.path.join(gpu, name) for name in ("power1_input", "power1_average") if gpu and os.path.exists(os.path.join(gpu, name))), None)
         self.busy = next(iter(glob.glob("/sys/class/drm/card*/device/gpu_busy_percent")), None)
+        interface = default_interface()
+        self.received = f"/sys/class/net/{interface}/statistics/rx_bytes" if interface else None
         self.samples = []
 
     def sample(self, pid):
@@ -76,20 +122,27 @@ class Sampler:
         except (OSError, IndexError, ValueError):
             return False
         watts = read_number(self.power) if self.power else None
+        engines = drm_engines(pid)
         self.samples.append({"t": time.monotonic(), "cpu": cpu, "rss": rss, "watts": watts / 1e6 if watts is not None else None,
-                             "busy": read_number(self.busy) if self.busy else None})
+                             "busy": read_number(self.busy) if self.busy else None,
+                             "rx": read_number(self.received) if self.received else None,
+                             "gfx": engines.get("gfx"), "dec": engines.get("dec")})
         return True
 
     def window(self, start, end):
         inside = [s for s in self.samples if start <= s["t"] <= end]
         if len(inside) < 2:
             return None
-        span = inside[-1]["t"] - inside[0]["t"]
+        first, last = inside[0], inside[-1]
+        span = last["t"] - first["t"]
         watts = [s["watts"] for s in inside if s["watts"] is not None]
         busy = [s["busy"] for s in inside if s["busy"] is not None]
-        return {"cpu_percent": 100 * (inside[-1]["cpu"] - inside[0]["cpu"]) / span if span > 0 else None,
+        share = lambda key: 100 * (last[key] - first[key]) / span if span > 0 and last[key] is not None and first[key] is not None else None
+        return {"cpu_percent": 100 * (last["cpu"] - first["cpu"]) / span if span > 0 else None,
                 "apu_watts": statistics.mean(watts) if watts else None,
                 "gpu_busy_percent": statistics.mean(busy) if busy else None,
+                "gpu_own_percent": share("gfx"), "video_decoder_percent": share("dec"),
+                "network_mb": (last["rx"] - first["rx"]) / 2**20 if last["rx"] is not None and first["rx"] is not None else None,
                 "rss_mb_peak": max(s["rss"] for s in inside) / 2**20}
 
 
@@ -139,12 +192,74 @@ def frame_stats(frames, start, end, refresh):
     }
 
 
-def make_profile(root, demo):
+def make_profile(root, demo, signed_in=False):
     for name in ("config", "data/crucible", "cache", "state"):
         os.makedirs(os.path.join(root, name), exist_ok=True)
+    os.chmod(root, 0o700)
     plist = os.path.join(root, "config", "crucible.plist")
-    if demo and not os.path.exists(plist):
+    if signed_in:
+        shutil.copy2(os.path.expanduser("~/.config/crucible.plist"), plist)
+        data = os.path.expanduser("~/.local/share/crucible")
+        for name in SIGNED_IN_DATA:
+            source, target = os.path.join(data, name), os.path.join(root, "data", "crucible", name)
+            if os.path.isdir(source):
+                shutil.copytree(source, target, dirs_exist_ok=True)
+            elif os.path.exists(source):
+                shutil.copy2(source, target)
+        if not os.path.exists(os.path.join(root, "data", "crucible", "secrets.json")):
+            sys.exit("steamdeck-bench: Crucible is not signed in on this Deck")
+    elif demo and not os.path.exists(plist):
         plistlib.dump({"crucible_demo_active": True}, open(plist, "wb"), fmt=plistlib.FMT_XML)
+
+
+class WatchState:
+    """A title's watch state on the profile's Plex server (its resume point and play count), read before a run plays it
+    and put back afterwards. The token stays in this process; nothing here prints it."""
+
+    IDENTIFIER = "com.plexapp.plugins.library"
+
+    def __init__(self, profile):
+        self.token = json.load(open(os.path.join(profile, "data", "crucible", "secrets.json")))["plex_auth_token"]
+        self.base = plistlib.load(open(os.path.join(profile, "config", "crucible.plist"), "rb"))["plex_server_uri"].rstrip("/")
+
+    def request(self, path):
+        request = urllib.request.Request(self.base + path, headers={"X-Plex-Token": self.token, "Accept": "application/json"})
+        with urllib.request.urlopen(request, timeout=20) as response:
+            body = response.read()
+        return json.loads(body) if body.strip().startswith(b"{") else None
+
+    def read(self, key):
+        item = self.request(f"/library/metadata/{urllib.parse.quote(key)}")["MediaContainer"]["Metadata"][0]
+        return {"title": item.get("title"), "type": item.get("type"), "viewOffset": item.get("viewOffset"),
+                "viewCount": item.get("viewCount", 0)}
+
+    def check_restorable(self, state):
+        if state["viewCount"] and not state["viewOffset"]:
+            sys.exit("steamdeck-bench: pick a title that is unwatched or part-watched; a watched one cannot be put back as it was")
+
+    def restore(self, key, before):
+        after = self.read(key)
+        if (after["viewOffset"], after["viewCount"]) == (before["viewOffset"], before["viewCount"]):
+            return "unchanged"
+        query = urllib.parse.urlencode({"key": key, "identifier": self.IDENTIFIER})
+        if before["viewOffset"]:
+            self.request(f"/:/progress?{query}&time={before['viewOffset']}&state=stopped")
+        else:
+            self.request(f"/:/unscrobble?{query}")
+        restored = self.read(key)
+        same = (restored["viewOffset"], restored["viewCount"]) == (before["viewOffset"], before["viewCount"])
+        return "restored" if same else f"NOT restored: {restored['viewOffset']} ms, {restored['viewCount']} plays"
+
+    def scrub(self, directory):
+        """Cuts the token out of any file a run wrote, should one have slipped past the stream filter."""
+        secret = self.token.encode()
+        for path in glob.glob(os.path.join(directory, "*")):
+            if not os.path.isfile(path) or path.endswith(".png"):
+                continue
+            content = open(path, "rb").read()
+            if secret in content:
+                open(path, "wb").write(content.replace(secret, b"REDACTED"))
+                print(f"steamdeck-bench: cut a token out of {os.path.basename(path)}", file=sys.stderr)
 
 
 def wait_until_closed(steam, appid, seconds=40):
@@ -183,7 +298,7 @@ def run_once(steam_library, steam, appid, profile, out, label, arguments, extra_
     frames_path = os.path.join(out, f"{label}.frames")
     env = (f"XDG_CONFIG_HOME={profile}/config XDG_DATA_HOME={profile}/data XDG_CACHE_HOME={profile}/cache XDG_STATE_HOME={profile}/state "
            f"KILN_FRAMES={frames_path} CRUCIBLE_NO_BROWSER=1 {extra_env}").strip()
-    options = f"{env} %command% {arguments} 2>{os.path.join(out, label + '.stderr')}"
+    options = f"{env} %command% {arguments} 2>&1 | {REDACT} >{os.path.join(out, label + '.stderr')}"
     sampler = Sampler()
     pid, launched = launch(steam_library, steam, appid, options)
     while time.monotonic() - launched < timeout and sampler.sample(pid):
@@ -216,13 +331,24 @@ def ui(options):
     os.makedirs(out, exist_ok=True)
     profile = os.path.join("/tmp", f"crucible-bench-{options.label}")
     shutil.rmtree(profile, ignore_errors=True)
-    make_profile(profile, demo=True)
+    make_profile(profile, demo=not options.signed_in, signed_in=options.signed_in)
+    keys = options.keys or (SIGNED_IN_BROWSE_KEYS if options.signed_in else BROWSE_KEYS)
     captures = (f"--capture '{HOME_AT}::{out}/{options.label}-home.png' "
-                f"--capture '{BROWSE_AT}:{BROWSE_KEYS}:{out}/{options.label}-browse.png'")
+                f"--capture '{BROWSE_AT}:{keys}:{out}/{options.label}-browse.png'")
+    try:
+        results = ui_runs(options, steam_library, steam, found[0], profile, out, captures)
+    finally:
+        if options.signed_in:
+            WatchState(profile).scrub(out)
+            shutil.rmtree(profile, ignore_errors=True)
+    write(out, options.label + "-ui", results)
+
+
+def ui_runs(options, steam_library, steam, appid, profile, out, captures):
     results = []
     for run in range(options.runs):
         name = f"{options.label}-ui{run + 1}"
-        sampler, frames, shown, launched = run_once(steam_library, steam, found[0], profile, out, name, f"--steam-deck {captures}", options.env, 120)
+        sampler, frames, shown, launched = run_once(steam_library, steam, appid, profile, out, name, f"--steam-deck {captures}", options.env, 120)
         first = frames[0]["start"] - launched if frames else None
         browse_end = max((f["start"] for f in frames), default=launched + BROWSE_AT)
         result = {
@@ -238,7 +364,7 @@ def ui(options):
         }
         results.append(result)
         time.sleep(4)
-    write(out, options.label + "-ui", results)
+    return results
 
 
 def play(options):
@@ -249,19 +375,42 @@ def play(options):
     os.makedirs(out, exist_ok=True)
     profile = os.path.join("/tmp", f"crucible-bench-{options.label}-play")
     shutil.rmtree(profile, ignore_errors=True)
-    make_profile(profile, demo=False)
-    name = f"{options.label}-play-{os.path.splitext(os.path.basename(options.file))[0]}"
-    extra = f"CRUCIBLE_PLAY_FILE={os.path.abspath(options.file)} KILN_MPV_LOG=1 {options.env}"
+    make_profile(profile, demo=False, signed_in=options.item is not None)
+    if options.item:
+        watch = WatchState(profile)
+        before = watch.read(options.item)
+        watch.check_restorable(before)
+        name = f"{options.label}-play-{options.item}"
+        extra = f"CRUCIBLE_OPEN_LINK=crucible://play/{options.item} {options.env}"
+    else:
+        watch, before = None, None
+        name = f"{options.label}-play-{os.path.splitext(os.path.basename(options.file))[0]}"
+        extra = f"CRUCIBLE_PLAY_FILE={os.path.abspath(options.file)} {options.env}"
     seconds = options.seconds
-    sampler, frames, shown, launched = run_once(steam_library, steam, found[0], profile, out, name,
-                                                f"--steam-deck --capture '{seconds + 4}::{out}/{name}.png'", extra, seconds + 30)
-    window = (launched + 5, launched + seconds)
+    try:
+        sampler, frames, shown, launched = run_once(steam_library, steam, found[0], profile, out, name,
+                                                    f"--steam-deck --capture '{seconds + 4}::{out}/{name}.png'", f"KILN_MPV_LOG=1 {extra}",
+                                                    seconds + 30)
+    finally:
+        restored = watch.restore(options.item, before) if watch else None
+        if watch:
+            watch.scrub(out)
+        shutil.rmtree(profile, ignore_errors=True)
+    window = (launched + options.settle, launched + seconds)
     stderr = open(os.path.join(out, name + ".stderr"), errors="replace").read()
     decoder = next((line.strip() for line in stderr.splitlines() if "Using hardware decoding" in line or "hwdec" in line.lower() and "using" in line.lower()), None)
-    result = [{"run": name, "file": options.file, "playback": sampler.window(*window),
+    result = [{"run": name, "file": options.file, "item": before and {key: before[key] for key in ("title", "type")},
+               "watch_state": restored, "playback": sampler.window(*window),
                "playback_frames": frame_stats(frames, window[0], window[1], refresh_interval()), "decoder": decoder,
-               "first_frame_s": frames[0]["start"] - launched if frames else None}]
+               "dropped": dropped_frames(stderr), "first_frame_s": frames[0]["start"] - launched if frames else None}]
     write(out, name, result)
+
+
+def dropped_frames(log):
+    """The frames mpv's log says it dropped or delayed, as `drops` the decoder and `delayed` the output skipped."""
+    drops = sum(1 for line in log.splitlines() if "Dropped frame" in line or "frame dropped" in line.lower())
+    delayed = sum(1 for line in log.splitlines() if "delayed" in line.lower() and "frame" in line.lower())
+    return {"drops": drops, "delayed": delayed}
 
 
 def write(out, name, results):
@@ -299,18 +448,24 @@ def main():
     ui_parser = sub.add_parser("ui")
     ui_parser.add_argument("--label", required=True)
     ui_parser.add_argument("--runs", type=int, default=2)
+    ui_parser.add_argument("--signed-in", action="store_true")
+    ui_parser.add_argument("--keys", default=None)
     ui_parser.add_argument("--env", default="")
     ui_parser.add_argument("--out", default=os.path.expanduser("~/crucible-bench"))
     play_parser = sub.add_parser("play")
-    play_parser.add_argument("file")
+    play_parser.add_argument("file", nargs="?")
+    play_parser.add_argument("--item", default=None)
     play_parser.add_argument("--label", required=True)
     play_parser.add_argument("--seconds", type=float, default=30)
+    play_parser.add_argument("--settle", type=float, default=5)
     play_parser.add_argument("--env", default="")
     play_parser.add_argument("--out", default=os.path.expanduser("~/crucible-bench"))
     compare_parser = sub.add_parser("compare")
     compare_parser.add_argument("before")
     compare_parser.add_argument("after")
     options = parser.parse_args()
+    if options.command == "play" and (options.file is None) == (options.item is None):
+        parser.error("play takes a FILE or --item RATINGKEY")
     {"ui": ui, "play": play, "compare": compare}[options.command](options)
 
 
