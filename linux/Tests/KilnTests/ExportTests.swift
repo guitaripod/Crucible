@@ -49,4 +49,19 @@ struct ExportTests {
         #expect(window.copiedData == nil)
         #expect(window.pasteboardText() == "Halcyon")
     }
+
+    @Test @MainActor func aBlurredPosterIsHalfSizeAndSmooth() throws {
+        let gpu = TestGPU.shared
+        let source = try gpu.texture(width: 128, height: 128, format: .rgba16f, renderable: true)
+        let painter = Painter(gpu: gpu, target: source)
+        painter.clear(.black)
+        painter.fill(Rect(x: 0, y: 0, width: 64, height: 128), color: .white)
+        let blurred = try #require(gpu.blurred(source))
+        #expect(blurred.width == 64 && blurred.height == 64)
+        let pixels = blurred.download()
+        let middle = pixels[(32 * 64 + 32) * 4]
+        #expect(middle > 0.2 && middle < 0.8)
+        #expect(pixels[(32 * 64 + 2) * 4] > middle)
+        #expect(gpu.blurred(try gpu.texture(width: 8, height: 8, format: .rgba16f, renderable: true)) == nil)
+    }
 }
