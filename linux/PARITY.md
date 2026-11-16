@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 53 | 0 | 2 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 65 | 0 | 2 | 2 |
-| Design system | 92 | 2 | 3 | 0 |
+| Design system | 95 | 1 | 1 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 81 | 5 | 17 | 0 |
-| **All** | 651 | 9 | 26 | 16 |
+| **All** | 654 | 8 | 24 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -561,7 +561,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-card-pointer-tilt` (S) Pointer tilt and parallax inside a hovered card, driven by where the pointer sits on the artwork _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVArtworkView.swift:44_
 - [x] `design-card-press-feedback` (S) Card dips to 98 percent while the press is held, then springs back on release _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVFocusableSurface.swift:78-85_
 - [x] `design-card-context-menu` (S) Long-press Select (Apple) or right click and the Menu key (Linux) open the card's context menu _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:104-113_
-- [ ] `design-card-voiceover-state` (L) **partial** Cards read to assistive tech as label, value (percent watched, Watched, Unwatched) and hint through the platform accessibility API Gap: A spoken label exists (Card.swift:39-41, 140) but there is no spoken value (progress, watched state) and no hint, and no accessibility tree reaches the platform: no AccessKit or AT-SPI code exists under linux/Sources (the design doc names AccessKit, docs/LINUX.md section 5.2). _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVCardItem.swift:57-66_
+- [x] `design-card-voiceover-state` (L) Cards read to assistive tech as label, value (percent watched, Watched, Unwatched) and hint through the platform accessibility API _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVCardItem.swift:57-66_
 - [x] `design-card-search-highlight` (S) Search matches are highlighted in card titles and subtitles _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVCardContentView.swift:178-181_
 - [x] `design-tile-gradient` (M) Gradient tiles with a stable name-hashed palette, a symbol, a title and a count, used for Browse Genres and the More tab library tiles _Apple TV: Sources/CrucibleTV/DesignSystem/Cards/TVTileCells.swift:4-34_
 - [x] `design-shelf-horizontal` (S) Horizontal card shelf that scrolls sideways with continuous leading-boundary paging, keeps the focused card in view and remembers focus _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVShelf.swift:18-45_
@@ -597,7 +597,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-alert-text-entry` (M) Text-entry alert: a single text field with a keyboard type, Cancel and a confirm button, used to name a new playlist and rename items _Apple TV: Sources/CrucibleTV/DesignSystem/Extensions/UIViewController+Alert.swift:41-69_
 - [x] `design-status-row` (S) Quiet status line with a spinner and a tone (neutral, or destructive for errors) that VoiceOver announces when new text arrives: Connecting, Waiting for approval, Trakt status _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVStatusRow.swift:6-43_
 - [x] `design-status-dot` (S) Small coloured status dot for connection or route quality (server settings, profile panel) _Apple TV: Sources/CrucibleTV/DesignSystem/Foundation/TVStatusDot.swift:1-27_
-- [ ] `design-read-only-panel-focus` (M) Read-only info panels (account, server card, log counts) become a focus stop with a thin accent rim only while VoiceOver runs, so they are read Gap: No read-only panel or accessibility focus rim exists on Linux. This depends on the missing accessibility bridge (design-card-voiceover-state). The cited Menu.swift lines are not related. _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVReadOnlyPanel.swift:8-89_
+- [x] `design-read-only-panel-focus` (M) Read-only info panels (account, server card, log counts) become a focus stop with a thin accent rim only while VoiceOver runs, so they are read _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVReadOnlyPanel.swift:8-89_
 - [x] `design-focus-surface-panel` (M) Generic focus-lift panel (stats tiles, info cards, profile summary) with a Select action, a long-press menu and a light sheen on focus _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVFocusableSurface.swift:14-147_
 - [x] `design-row-list` (S) Settings-style row: icon well, title, subtitle up to two lines, a trailing value (On or Off for toggles), a chevron or checkmark accessory, a light focus plate with dark text, and a disabled dim _Apple TV: Sources/CrucibleTV/DesignSystem/Rows/TVRowView.swift:4-5_
 - [x] `design-row-list-column` (S) Settings and You lists as one centred single-column list with the focus room kept inside the safe area _Apple TV: Sources/CrucibleTV/DesignSystem/Rows/TVRowView.swift:275-299_
@@ -633,7 +633,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-monogram-avatar` (S) Circle monogram with the initials of a name on a brand gradient: the You tab account avatar and the stand-in for a cast or crew member without a photo _Apple TV: Sources/CrucibleDesign/Brand/MonogramView.swift:1-25_
 - [x] `design-brand-glyph` (M) The Crucible crystal glyph, drawn in code with a gradient body, facets and a core, on the launch, welcome and About screens and as the window canvas colour _Apple TV: Sources/CrucibleDesign/Brand/CrystalGlyphView.swift:27-40_
 - [x] `design-nav-push-guard` (S) A push is refused while the presenter is not on top, a transition is in flight, or an alert or menu is presented, and a pop is refused under the same conditions _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVNavigation.swift:12-41_
-- [ ] `design-hero-voiceover` (S) The hero block reads as one spoken summary (title, eyebrow, facts, ratings, badges, synopsis) plus the percent watched Gap: HeroInfoView has no accessibilityLabel or value, and there is no accessibility bridge (design-card-voiceover-state). _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:5-58_
+- [x] `design-hero-voiceover` (S) The hero block reads as one spoken summary (title, eyebrow, facts, ratings, badges, synopsis) plus the percent watched _Apple TV: Sources/CrucibleTV/DesignSystem/Shelf/TVHeroInfoView.swift:5-58_
 - [x] `design-tab-bar-floating-glass` (S) Floating glass tab bar in a capsule, with a liquid selection pill that slides on a spring between tabs _Apple TV: Sources/CrucibleTV/App/TVRootViewController.swift:1-40_
 - [x] `design-tab-bar-hide-on-scroll` (S) Tab bar slides away as content scrolls down and returns at the top; Search keeps it _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVScreenViewController.swift:52-57_
 - [x] `design-tab-bar-focus-pill` (S) Focused tab turns into the light pill with dark text, and the pointer lights the glass under it _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-10_
