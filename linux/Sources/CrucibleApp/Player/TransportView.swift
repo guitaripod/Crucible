@@ -110,6 +110,8 @@ final class TransportView: View {
     private var pointer: Point?
     private var hovered: Button?
     private var pressed: Button?
+    /// How far the volume slider has grown under the pointer or a drag, 0 to 1.
+    private var volumeHover = Animated(0)
     /// How far the desk's track has thickened under the pointer, 0 to 1.
     private var thicken = Animated(0)
     private var tone = GlassTone()
@@ -243,9 +245,18 @@ final class TransportView: View {
     private var volumeTrack: Rect {
         let metrics = Theme.current.metrics
         let mute = deskFrame(of: .mute)
-        let room = deskFrame(of: .control(.audio)).minX - metrics.tv(48) - (mute.maxX + metrics.tv(14))
-        let width = min(metrics.tv(300), room)
-        return Rect(x: mute.maxX + metrics.tv(14), y: deskRowMidY - metrics.tv(6), width: width >= metrics.tv(90) ? width : 0, height: metrics.tv(12))
+        let room = deskFrame(of: .control(.audio)).minX - metrics.tv(48) - (mute.maxX + metrics.tv(14)) - volumeLabelRoom
+        let width = min(metrics.tv(320), room)
+        let height = metrics.tv(12) + metrics.tv(8) * volumeHover.value
+        return Rect(x: mute.maxX + metrics.tv(14), y: deskRowMidY - height / 2, width: width >= metrics.tv(90) ? width : 0, height: height)
+    }
+
+    /// Room after the slider for its level ("85%", "150%", "Muted").
+    private var volumeLabelRoom: Float { Theme.current.metrics.tv(150) }
+
+    /// The level the slider names: muted, or the volume in percent.
+    private var volumeText: String {
+        muted ? String(localized: "Muted", comment: "Player: the sound is muted") : "\(Int(volume.rounded()))%"
     }
 
     private var hasVolumeSlider: Bool { volumeTrack.width > 0 }
@@ -309,12 +320,20 @@ final class TransportView: View {
             let inBand = scrubBand.contains(point)
             hoverFraction = inBand ? fraction(at: point) : nil
             setHovered(deskButton(at: point))
+            setVolumeHovered(volumeBand.contains(point) || deskFrame(of: .mute).contains(point))
             thicken.set(inBand ? 1 : 0, animation: .timed(duration: 0.12, curve: .easeOut))
             startAnimating()
         } else {
             hoverFraction = point.y > bar.y - Theme.current.metrics.tv(40) && point.x >= bar.x ? fraction(at: point) : nil
         }
         setNeedsDisplay()
+    }
+
+    private func setVolumeHovered(_ on: Bool) {
+        let target: Float = on || draggingVolume ? 1 : 0
+        guard volumeHover.target != target else { return }
+        volumeHover.set(target, animation: .timed(duration: 0.12, curve: .easeOut))
+        startAnimating()
     }
 
     private func setHovered(_ button: Button?) {
@@ -354,6 +373,7 @@ final class TransportView: View {
     override func pointerExited() {
         hoverFraction = nil
         pointer = nil
+        if !draggingVolume { setVolumeHovered(false) }
         onPointerActivity?(false)
         setHovered(nil)
         if !scrubbing {
@@ -373,6 +393,7 @@ final class TransportView: View {
             }
             if volumeBand.contains(point) {
                 draggingVolume = true
+                setVolumeHovered(true)
                 setVolume(at: point)
                 return true
             }
@@ -403,6 +424,7 @@ final class TransportView: View {
     override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
         if draggingVolume {
             draggingVolume = false
+            setVolumeHovered(volumeBand.contains(point))
             onPointerActivity?(bounds.contains(point))
             return
         }
@@ -517,20 +539,42 @@ final class TransportView: View {
         drawBar(label: label, scale: scale, context: &context)
     }
 
+    /// The volume slider: the level filled in white up to 100% and in the accent past it (Volume Boost), a tick at 100%
+    /// when the slider goes further, a knob that grows under the pointer, and the level named beside it, also in a bubble
+    /// over the knob while it is dragged.
     private func drawVolume(label: Color, context: inout DrawContext) {
         let theme = Theme.current
+        let metrics = theme.metrics
+        guard let scale = window?.scale else { return }
         let track = volumeTrack
         let level = Float(min(max(volume / maximumVolume, 0), 1))
+        let unity = Float(min(100 / maximumVolume, 1))
         context.fill(track, radius: track.height / 2, color: label.withAlpha(0.22))
-        if maximumVolume > 100 {
-            let x = track.x + track.width * Float(100 / maximumVolume)
-            context.fill(Rect(x: x - 0.5, y: track.y - theme.metrics.tv(4), width: 1, height: track.height + theme.metrics.tv(8)), color: label.withAlpha(0.4))
+        let filled = max(track.width * level, track.height)
+        let base = muted ? label.withAlpha(0.35) : label
+        context.fill(Rect(x: track.x, y: track.y, width: min(filled, track.width * unity), height: track.height), radius: track.height / 2, color: base)
+        if level > unity {
+            let start = track.x + track.width * unity
+            context.fill(Rect(x: start - track.height / 2, y: track.y, width: track.x + filled - start + track.height / 2, height: track.height),
+                         radius: track.height / 2, color: muted ? theme.palette.accent.withAlpha(0.35) : theme.palette.accent)
         }
-        let fill = muted ? label.withAlpha(0.35) : label
-        context.fill(Rect(x: track.x, y: track.y, width: max(track.width * level, track.height), height: track.height), radius: track.height / 2, color: fill)
-        let knob = theme.metrics.tv(draggingVolume ? 28 : 24)
-        context.fill(Rect(x: track.x + track.width * level - knob / 2, y: track.midY - knob / 2, width: knob, height: knob), radius: knob / 2,
+        if maximumVolume > 100 {
+            let x = track.x + track.width * unity
+            context.fill(Rect(x: x - 0.5, y: track.y - metrics.tv(6), width: 1, height: track.height + metrics.tv(12)), color: label.withAlpha(0.5))
+        }
+        let knob = metrics.tv(24) + metrics.tv(10) * volumeHover.value
+        let knobX = track.x + track.width * level
+        context.fill(Rect(x: knobX - knob / 2, y: track.midY - knob / 2, width: knob, height: knob), radius: knob / 2,
                      color: muted ? Color.white.withAlpha(0.6) : .white)
+        let boosted = volume > 100 && !muted
+        let text = TextLayout(volumeText, font: theme.type.control, maxLines: 1, scale: scale)
+        context.text(text, at: Point(x: track.maxX + metrics.tv(28), y: (track.midY - text.size.height / 2).rounded()),
+                     color: boosted ? theme.palette.accent : label.withAlpha(muted ? 0.6 : 0.9))
+        guard draggingVolume else { return }
+        let bubble = Rect(x: (knobX - text.size.width / 2 - metrics.tv(16)).rounded(), y: (track.minY - metrics.tv(30) - text.size.height - metrics.tv(12)).rounded(),
+                          width: text.size.width + metrics.tv(32), height: text.size.height + metrics.tv(12))
+        context.fill(bubble, radius: bubble.height / 2, color: Color.black.withSRGBAlpha(0.75))
+        context.text(text, at: Point(x: bubble.x + metrics.tv(16), y: bubble.y + metrics.tv(6)), color: .white)
     }
 
     /// The tone of `label` at `rect`, read from the picture under it, beside the glass's own.
@@ -636,6 +680,7 @@ final class TransportView: View {
     override func advanceAnimations(_ dt: Float) -> Bool {
         var moving = tone.advance(dt)
         moving = thicken.advance(dt) || moving
+        moving = volumeHover.advance(dt) || moving
         for (label, var each) in labelTones {
             moving = each.advance(dt) || moving
             labelTones[label] = each
