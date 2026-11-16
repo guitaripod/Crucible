@@ -37,7 +37,29 @@ static void on_update(void *context) {
     signal_wakeup(v);
 }
 
-#define TRACE(...) do { if (getenv("KILN_VIDEO_TRACE")) { fprintf(stderr, "kiln_video: " __VA_ARGS__); fputc('\n', stderr); } } while (0)
+/** Whether `KILN_VIDEO_TRACE` asks for the render steps on stderr, read once: the render path runs every frame. */
+static bool tracing(void) {
+    static int enabled = -1;
+    if (enabled < 0) enabled = getenv("KILN_VIDEO_TRACE") != NULL;
+    return enabled;
+}
+
+#define TRACE(...) do { if (tracing()) { fprintf(stderr, "kiln_video: " __VA_ARGS__); fputc('\n', stderr); } } while (0)
+
+/** Sets the mpv options `KILN_MPV_OPTIONS` names ("name=value;name=value"), after Kiln's own, for trying them on a device
+ * without a rebuild. */
+static void apply_option_overrides(mpv_handle *mpv) {
+    const char *spec = getenv("KILN_MPV_OPTIONS");
+    if (!spec) return;
+    char *copy = strdup(spec), *save = NULL;
+    for (char *pair = strtok_r(copy, ";", &save); pair; pair = strtok_r(NULL, ";", &save)) {
+        char *equals = strchr(pair, '=');
+        if (!equals) continue;
+        *equals = '\0';
+        if (mpv_set_option_string(mpv, pair, equals + 1) < 0) fprintf(stderr, "kiln_video: mpv did not take %s\n", pair);
+    }
+    free(copy);
+}
 
 static void fail(char *error, size_t size, const char *message) {
     if (error && size) snprintf(error, size, "%s", message);
@@ -65,6 +87,7 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     for (size_t i = 0; i < sizeof options / sizeof *options; i++) mpv_set_option_string(v->mpv, options[i][0], options[i][1]);
     if (getenv("KILN_HWDEC")) mpv_set_option_string(v->mpv, "hwdec", getenv("KILN_HWDEC"));
     if (getenv("KILN_AO")) mpv_set_option_string(v->mpv, "ao", getenv("KILN_AO"));
+    apply_option_overrides(v->mpv);
     if (mpv_initialize(v->mpv) < 0) {
         fail(error, error_size, "mpv_initialize");
         kiln_video_destroy(v);
