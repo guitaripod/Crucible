@@ -74,6 +74,35 @@ final class SceneRenderer {
         view.drawOverlay(&context)
     }
 
+    /// Builds every pipeline Kiln draws with on a small target (the batch, the long gradient and the glow, clears and
+    /// copies, the blur and the glass), so the first screen that needs one does not stop to compile it; with a warm shader
+    /// cache this only loads them.
+    func prewarm() {
+        guard let scratch = try? gpu.texture(width: 64, height: 64, format: .rgba16f, renderable: true),
+              let copy = try? gpu.texture(width: 64, height: 64, format: .rgba16f, renderable: true),
+              let mask = try? gpu.texture(width: 4, height: 4, format: .r8, renderable: false),
+              let art = try? gpu.texture(width: 4, height: 4, format: .rgba8, renderable: false),
+              let glass = try? LiquidGlassRenderer(gpu: gpu, width: 64, height: 64) else { return }
+        let zeros = [UInt8](repeating: 0, count: 64)
+        zeros.withUnsafeBytes { bytes in
+            _ = mask.upload(bytes.baseAddress!, rowBytes: 4)
+            _ = art.upload(bytes.baseAddress!, rowBytes: 16)
+        }
+        let painter = Painter(gpu: gpu, target: scratch)
+        let box = Rect(x: 8, y: 8, width: 48, height: 48)
+        painter.clear(.black)
+        painter.fill(box, radius: 6, color: .white)
+        painter.image(art, in: box, radius: 6)
+        painter.mask(mask, in: Rect(x: 8, y: 8, width: 4, height: 4), color: .white)
+        painter.gradient(box, vertical: true, stops: [(0, .black), (0.5, .white), (1, .black)])
+        painter.glow(in: box, radius: 6, center: Point(x: 32, y: 32), glowRadius: 16, color: .white)
+        painter.flush()
+        Painter(gpu: gpu, target: copy).copy(scratch)
+        glass.blur(copy)
+        let shape = LiquidGlass.Shape(centerX: 32, centerY: 32, halfWidth: 20, halfHeight: 12, radius: 12)
+        glass.composite(scene: copy, into: scratch, element: LiquidGlass(primary: shape, lightX: 32, lightY: 0), opacity: 1, overlay: true)
+    }
+
     /// Composites `element` (in target pixels) over the frame, through the frost pyramid blurred from what has been drawn.
     /// Glass reuses the pyramid an earlier glass of this frame blurred when nothing it would see has been drawn since (the
     /// labels on that glass aside) and it does not overlap that glass, so a row of glass buttons blurs the backdrop once.
