@@ -220,6 +220,14 @@ public final class CardView: View {
         updateLift()
     }
 
+    /// A gamepad's right stick tilts the focused card as the pointer does over it.
+    public override func gamepadTilted(x: Float, y: Float) -> Bool {
+        tiltX.set(min(max(x, -1), 1), animation: .spring(response: 0.25, dampingFraction: 0.9))
+        tiltY.set(min(max(y, -1), 1), animation: .spring(response: 0.25, dampingFraction: 0.9))
+        startAnimating()
+        return true
+    }
+
     public override func pointerMoved(to point: Point) {
         let art = artworkRect
         let x = min(max((point.x - art.midX) / max(art.width / 2, 1), -1), 1)
