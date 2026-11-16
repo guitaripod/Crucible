@@ -24,11 +24,13 @@ func runCrucible() -> Int32 {
         return 0
     }
     LinuxSetup.install()
+    if arguments.contains("--display-guard") { return MatchContent.runGuard(arguments: arguments) }
     DemoMode.shared.install(DemoLibraryProvider())
     HostedBrain.installDemo(DemoBrain())
     OwnModel.install()
     if arguments.contains("--check-news") { return ClosedNewsCheck.run(loop: EventLoop()) }
     LinuxDisplay.restore(arguments: arguments)
+    MatchContent.restoreLeftover()
     let loop = EventLoop()
     let links = AppInstance.links(in: arguments)
     let activationToken = AppInstance.takeActivationToken()

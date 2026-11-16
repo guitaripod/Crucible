@@ -76,6 +76,21 @@ final class PlayerScreen: View {
     var undo: (returnTo: Double, until: ContinuousClock.Instant)?
     var autoSkipped: Set<SkipMarker> = []
     var holdOrigin: Double?
+    /// Whether the window filled the screen when Match Content last looked.
+    private var matchedFullscreen = false
+
+    /// Match Content follows the window into full screen and out of it: the screen matches the title only while the player
+    /// fills it.
+    private func followFullscreen() {
+        guard let window, window.isFullscreen != matchedFullscreen, !closed else { return }
+        matchedFullscreen = window.isFullscreen
+        if matchedFullscreen, let stream {
+            MatchContent.engage(stream, in: window)
+        } else if !matchedFullscreen {
+            MatchContent.release()
+        }
+    }
+
     /// How far the gamepad's triggers are pulled, the right one less the left, while they scrub.
     private var triggerPull: Float = 0
     private var triggerScrub: Task<Void, Never>?
@@ -236,6 +251,8 @@ final class PlayerScreen: View {
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)
         player?.setPaused(paused)
+        if let window { MatchContent.engage(resolved, in: window) }
+        matchedFullscreen = window?.isFullscreen ?? false
         ScreenAwake.hold(true, in: window)
         MidgarLog.notice("Playing \(item.id) \(resolved.isDirectPlay ? "directly" : "converted") from \(Int(start)) s", category: .playback)
         DemoTour.shared.record(.play)
@@ -668,6 +685,7 @@ final class PlayerScreen: View {
     func close() {
         guard !closed else { return }
         closed = true
+        MatchContent.release()
         resolveTask?.cancel()
         reportTask?.cancel()
         heartbeatTask?.cancel()
@@ -914,6 +932,7 @@ final class PlayerScreen: View {
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
+        followFullscreen()
         videoView?.frame = bounds
         preroll?.frame = bounds
         postPlay?.frame = bounds

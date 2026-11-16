@@ -197,7 +197,7 @@ On Linux `PlaybackCapabilities` says mpv decodes every container and codec, so d
 
 ### 7.4 Match Content
 
-On by default whenever the player is fullscreen, and only for the output showing it: an HDR title switches that output to HDR through `kde_output_management_v2` and restores it when playback ends, the same rule as `hdr-game`, including a guard that restores the output if Crucible dies mid-title. Frame rates match where the mode exists: 23.976 and 29.97 fps to 119.88 Hz, 25 and 50 fps to 100 Hz, 24.000 stays on 144 Hz (exactly six refreshes a frame). Compositors other than KWin get no switching and tone-map or clip on their own.
+Match Content in Settings › Playback, on by default, acts whenever the player is fullscreen, and only on the output showing it: an HDR title switches that output to HDR with wide colour gamut through `kde_output_management_v2` (the devices come from `kde_output_device_registry_v2` on KWin 6.5 and later) and it goes back when playback ends or leaves full screen, the same rule as `hdr-game`. The state to go back to is written to `$XDG_STATE_HOME/crucible/display-prior.json` first and `crucible --display-guard` watches the player's process, so a crash or a kill still ends with the output restored, and a launch restores what a guard could not. Frame rates match where the mode exists at the current size, a whole number of refreshes a frame within 0.05%: 23.976 and 29.97 fps to 119.88 Hz, 25 and 50 fps to 100 Hz, 24.000 stays on 144 Hz (exactly six refreshes a frame) (`MatchContentPlan`). Compositors other than KWin get no switching and tone-map or clip on their own.
 
 ### 7.5 Player chrome
 
