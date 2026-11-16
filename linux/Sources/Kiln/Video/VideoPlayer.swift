@@ -17,6 +17,14 @@ public final class VideoPlayer {
         public var videoWidth = 0
         public var videoHeight = 0
         public var hardwareDecoder = ""
+
+        /// Whether `self` differs from `other` in the playhead or the buffered amount alone, which move with every frame.
+        public func onlyProgressDiffers(from other: State) -> Bool {
+            var moved = self
+            moved.position = other.position
+            moved.cachedSeconds = other.cachedSeconds
+            return moved == other && self != other
+        }
     }
 
     public enum Event: Sendable {
@@ -30,6 +38,12 @@ public final class VideoPlayer {
     /// A new frame is waiting to be rendered.
     public private(set) var hasNewFrame = false
     public var onStateChange: ((State) -> Void)?
+    /// The least time in seconds between reports (`onStateChange`) that only move the playhead or the buffered amount;
+    /// any other change reports at once, with the latest of both. 0 reports every frame, for a screen that shows the
+    /// playhead; one that does not keeps each frame from drawing the window twice (once for the report, once for the
+    /// picture).
+    public var progressInterval: Double = 0
+    private var lastReport: Double = 0
     /// Whether mpv's chroma upscaler was last set for a picture shown at half its size or smaller.
     private var chromaForShrinking: Bool?
     public var onEvent: ((Event) -> Void)?
@@ -227,8 +241,13 @@ public final class VideoPlayer {
             next.videoHeight = Int(raw.height)
             next.hardwareDecoder = withUnsafeBytes(of: raw.hwdec) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
             if next != state {
+                let progressOnly = next.onlyProgressDiffers(from: state)
                 state = next
-                onStateChange?(next)
+                let now = Window.now()
+                if !progressOnly || now - lastReport >= progressInterval {
+                    lastReport = now
+                    onStateChange?(next)
+                }
             }
         }
         if happened & UInt32(KILN_VIDEO_LOADED) != 0 { onEvent?(.loaded) }

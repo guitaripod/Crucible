@@ -54,6 +54,7 @@ final class PlayerScreen: View {
                 window?.setCursor(.default)
             }
             followFullscreen()
+            pacePlayheadReports()
             setNeedsLayout()
             setNeedsDisplay()
         }
@@ -269,6 +270,7 @@ final class PlayerScreen: View {
             videoView = view
             player.onStateChange = { [weak self] state in self?.stateChanged(state) }
             player.onEvent = { [weak self] event in self?.handle(event) }
+            pacePlayheadReports()
             window.onDisplayColorChange = { [weak self] _ in self?.applyDisplay() }
             controls = MediaControls(loop: loop)
             controls?.onCommand = { [weak self] command in self?.perform(command) }
@@ -593,6 +595,7 @@ final class PlayerScreen: View {
         preroll = shown
         insertSubview(shown, below: transport)
         chrome.reset(0)
+        pacePlayheadReports()
         setNeedsLayout()
         revealTask = Task { [weak self] in
             try? await Task.sleep(for: PrerollView.revealTimeout)
@@ -959,6 +962,7 @@ final class PlayerScreen: View {
     func showChrome(autoHide: Bool, rest: Duration? = nil) {
         guard preroll == nil, !isMini else { return }
         chrome.set(1, animation: .fade)
+        pacePlayheadReports()
         transport.hidesPointer = false
         placeSubtitles()
         window?.setCursor(.default)
@@ -983,10 +987,18 @@ final class PlayerScreen: View {
     private func hideChrome() {
         restingPointer = window?.pointerLocation
         chrome.set(0, animation: .timed(duration: 0.25, curve: .easeInOut))
+        pacePlayheadReports()
         transport.hidesPointer = true
         placeSubtitles()
         window?.setCursor(.hidden)
         startAnimating()
+    }
+
+    /// The player's reports while the playhead is on screen (the transport up, or the mini player's bar) come every frame;
+    /// with it hidden, four a second do for the skip button, the credits and the session controls, and the window is not
+    /// drawn again for each frame's report besides the picture.
+    private func pacePlayheadReports() {
+        player?.progressInterval = chromeShown || isMini ? 0 : 0.25
     }
 
     func holdChrome() {
