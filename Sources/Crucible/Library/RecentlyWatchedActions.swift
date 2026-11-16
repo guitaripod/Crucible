@@ -18,7 +18,8 @@ enum RecentlyWatchedActions {
         kind: LibraryGridKind,
         api: APIClient,
         open: @escaping (UIViewController) -> Void,
-        play: @escaping (PlexMetadata) -> Void
+        play: @escaping (PlexMetadata) -> Void,
+        setWatched: @escaping (PlexMetadata, Bool) -> Void
     ) -> UIMenu {
         UIMenu(children: LibraryItemAction.recent(for: item, kind: kind).map { action in
             action.menuAction {
@@ -29,8 +30,8 @@ enum RecentlyWatchedActions {
                     play(item)
                 case .viewDetails:
                     open(LibraryDestination.media(item).viewController(api: api))
-                case .setWatched:
-                    return
+                case .setWatched(let watched):
+                    setWatched(item, watched)
                 }
             }
         })

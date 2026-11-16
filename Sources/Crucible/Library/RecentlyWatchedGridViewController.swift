@@ -52,6 +52,18 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
         })
     }
 
+    private func setWatched(_ item: PlexMetadata, watched: Bool) {
+        Haptics.light()
+        Task { [weak self, api] in
+            do {
+                try await WatchedService.setWatched(watched, ratingKey: item.id, api: api)
+                self?.loadHistory()
+            } catch {
+                Haptics.error()
+            }
+        }
+    }
+
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         loadHistory()
@@ -136,7 +148,8 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
                 kind: kind,
                 api: api,
                 open: { [weak self] in self?.navigationController?.pushViewController($0, animated: true) },
-                play: { [weak self] item in self?.play(item) }
+                play: { [weak self] item in self?.play(item) },
+                setWatched: { [weak self] item, watched in self?.setWatched(item, watched: watched) }
             ).addingNewWindow(for: item)
         })
     }

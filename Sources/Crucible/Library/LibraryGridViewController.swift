@@ -816,7 +816,8 @@ extension LibraryGridViewController: UICollectionViewDelegate {
                     kind: kind,
                     api: api,
                     open: { [weak self] in self?.navigationController?.pushViewController($0, animated: true) },
-                    play: { [weak self] in self?.quickPlay($0) }
+                    play: { [weak self] in self?.quickPlay($0) },
+                    setWatched: { [weak self] item, watched in self?.setWatched(item, watched: watched) }
                 ).addingNewWindow(for: item)
             })
         case .header, nil:
