@@ -12,10 +12,11 @@ extension TVPlayerCoordinator {
         let api = self.api
         metadataTask?.cancel()
         metadataTask = Task { [weak self] in
-            let detail = try? await api.requestContainer(.metadata(ratingKey: ratingKey)).Metadata?.first
-            let artwork = await TVPlayerMetadata.loadArtwork(path: display.posterPath)
+            async let detail = try? api.requestContainer(.metadata(ratingKey: ratingKey)).Metadata?.first
+            async let artwork = TVPlayerMetadata.loadArtwork(path: display.posterPath)
+            let (record, picture) = await (detail, artwork)
             guard !Task.isCancelled, let self else { return }
-            infoItems = TVPlayerMetadata.items(display: display, detail: detail, artwork: artwork)
+            infoItems = TVPlayerMetadata.items(display: display, detail: record, artwork: picture)
             session?.player?.currentItem?.externalMetadata = infoItems
         }
     }

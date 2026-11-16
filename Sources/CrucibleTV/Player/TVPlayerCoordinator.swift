@@ -82,7 +82,10 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isRevealing = false
     /// The session's player is attached and the pre-roll waits for its item to load.
     var isAwaitingReveal = false
+    var chapterTask: Task<Void, Never>?
     var sleepMenuTask: Task<Void, Never>?
+    /// The chapter pictures of the item playing, by thumbnail path, kept across the streams a restart or a track change makes.
+    var chapterArtwork: [String: Data] = [:]
     var isUpNextCardVisible = false
     var unattendedEpisodes = 0
     /// A timed sleep timer that outlives one session, so it keeps counting into the next episode.
@@ -420,6 +423,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     func restartSession() {
         let old = session
         carriedSleepTimer = old?.sleepTimer
+        if old?.request.ratingKey != request.ratingKey { chapterArtwork = [:] }
         freezePicture()
         resetPresentationState()
         if preroll?.presentingViewController == nil { showPreroll() }
@@ -458,6 +462,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         revealTask?.cancel()
         revealTask = nil
         isAwaitingReveal = false
+        chapterTask?.cancel()
+        chapterTask = nil
         sleepMenuTask?.cancel()
         sleepMenuTask = nil
         upNextTask?.cancel()
