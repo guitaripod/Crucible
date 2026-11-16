@@ -56,6 +56,9 @@ struct kiln_x11 {
     uint8_t xinput_opcode;
     bool touch_events;
     kiln_x11_touch touches[KILN_X11_TOUCHES];
+    /** The finger that drives the window, until it lifts; the ones that follow never take over. */
+    uint32_t primary_touch;
+    bool has_primary_touch;
     xcb_cursor_t blank_cursor;
     enum kiln_cursor cursor;
     /** gamescope's root XWayland server (:0), where Steam writes the display's HDR state and brightness, opened on demand. */
@@ -325,15 +328,12 @@ static kiln_x11_touch *find_touch(kiln_x11 *x, uint32_t id, bool create) {
 }
 
 static bool is_primary_touch(kiln_x11 *x, kiln_x11_touch *touch) {
-    for (int i = 0; i < KILN_X11_TOUCHES; i++) {
-        if (x->touches[i].active) return &x->touches[i] == touch;
-    }
-    return false;
+    return x->has_primary_touch && touch->id == x->primary_touch;
 }
 
-/** The first finger drives the window: it moves the pointer, a short touch clicks where it lifted, and a drag scrolls the
- * content under it with the fingers' own speed (a touchpad's finger scroll, so momentum follows the lift). Further
- * fingers are ignored. */
+/** The first finger drives the window: it moves the pointer, a short touch clicks where it went down, and a drag scrolls
+ * the content under it with the finger's own speed (a touchpad's finger scroll, so momentum follows the lift). Fingers
+ * that touch while it is down are ignored, and none takes over when it lifts. */
 static void handle_touch(kiln_x11 *x, xcb_input_touch_begin_event_t *event) {
     uint32_t id = event->detail;
     double px = fixed_to_double(event->event_x);
@@ -344,7 +344,11 @@ static void handle_touch(kiln_x11 *x, xcb_input_touch_begin_event_t *event) {
         kiln_x11_touch *touch = find_touch(x, id, true);
         if (!touch) return;
         *touch = (kiln_x11_touch) { .id = id, .active = true, .start_x = px, .start_y = py, .x = px, .y = py, .time_ms = time };
-        if (is_primary_touch(x, touch) && x->callbacks.pointer_motion) x->callbacks.pointer_motion(x->context, px, py);
+        if (!x->has_primary_touch) {
+            x->has_primary_touch = true;
+            x->primary_touch = id;
+            if (x->callbacks.pointer_motion) x->callbacks.pointer_motion(x->context, px, py);
+        }
         break;
     }
     case XCB_INPUT_TOUCH_UPDATE: {
@@ -376,6 +380,7 @@ static void handle_touch(kiln_x11 *x, xcb_input_touch_begin_event_t *event) {
         bool dragging = touch->dragging;
         touch->active = false;
         if (!primary) return;
+        x->has_primary_touch = false;
         if (dragging) {
             if (x->callbacks.pointer_axis) {
                 kiln_wl_axis_frame frame = { .source = 1, .stop_x = true, .stop_y = true, .time_ms = time };
@@ -516,7 +521,13 @@ static void handle_root_events(kiln_x11 *x, xcb_connection_t *connection) {
 int kiln_x11_pump(kiln_x11 *x) {
     handle_root_events(x, x->connection);
     xcb_flush(x->connection);
-    if (x->root_connection) handle_root_events(x, x->root_connection);
+    if (x->root_connection) {
+        handle_root_events(x, x->root_connection);
+        if (xcb_connection_has_error(x->root_connection)) {
+            xcb_disconnect(x->root_connection);
+            x->root_connection = NULL;
+        }
+    }
     return xcb_connection_has_error(x->connection) ? -1 : 0;
 }
 
@@ -536,6 +547,7 @@ void kiln_x11_set_fullscreen(kiln_x11 *x, bool fullscreen) {
     };
     xcb_send_event(x->connection, 0, x->screen->root, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (const char *) &message);
     xcb_flush(x->connection);
+    if (x->callbacks.configure) x->callbacks.configure(x->context, x->width, x->height, KILN_STATE_ACTIVATED | (fullscreen ? KILN_STATE_FULLSCREEN : 0));
 }
 
 /** Shows the screen's default arrow over the window, or nothing; X has no shape names, so a link hand is the arrow. */

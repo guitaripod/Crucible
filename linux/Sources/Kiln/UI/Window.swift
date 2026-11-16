@@ -157,6 +157,10 @@ public final class Window {
         self.contentView = contentView
         listener.window = self
         if let refresh = surface.refreshNanoseconds { refreshInterval = Double(refresh) / 1e9 }
+        if let keyRepeat = surface.keyRepeat {
+            repeatRate = keyRepeat.rate
+            repeatDelay = keyRepeat.delay
+        }
         focus.window = self
         attach(contentView)
         accessibility = AccessibilityBridge(window: self, title: title)
@@ -173,9 +177,12 @@ public final class Window {
         checkDisplayColor()
         if let secondary = surface.secondaryFileDescriptor {
             loop.add(fd: secondary) { [weak self] readable in
-                guard readable, let self, let surface = self.surface, !self.closed else { return }
-                _ = surface.pump(readable: false)
-                self.checkDisplayColor()
+                guard let self, let surface = self.surface, !self.closed else { return }
+                if readable {
+                    _ = surface.pump(readable: false)
+                    self.checkDisplayColor()
+                }
+                if surface.secondaryFileDescriptor != secondary { self.loop?.remove(fd: secondary) }
             }
         }
         loop.atEndOfEachTurn { [weak self] in self?.renderIfDue() }

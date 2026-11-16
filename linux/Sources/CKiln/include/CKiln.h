@@ -250,6 +250,8 @@ bool kiln_x11_create_window(kiln_x11 *x, const char *title, const char *app_id, 
 /** Handles every event the connection holds, then flushes; -1 once the connection has failed. */
 int kiln_x11_pump(kiln_x11 *x);
 void kiln_x11_flush(kiln_x11 *x);
+/** Asks the window manager for full screen (gamescope fills the screen whatever is asked) and reports the state through
+ * `configure` at once, since a window that already fills the screen gets no ConfigureNotify for it. */
 void kiln_x11_set_fullscreen(kiln_x11 *x, bool fullscreen);
 void kiln_x11_set_cursor(kiln_x11 *x, enum kiln_cursor cursor);
 uint32_t kiln_x11_refresh_millihertz(kiln_x11 *x);

@@ -10,6 +10,7 @@ import Foundation
 public final class X11Window: PlatformWindow {
     private let connection: OpaquePointer
     private var frameRequested = false
+    private var isClosed = false
     private var gain: Float = 1
     private var sdr = false
     private var refresh: UInt32?
@@ -23,6 +24,7 @@ public final class X11Window: PlatformWindow {
     /// gamescope's root XWayland server, where Steam sets the brightness and HDR state, once the first colour reading
     /// opened it.
     public override var secondaryFileDescriptor: Int32? {
+        guard !isClosed else { return nil }
         let fd = kiln_x11_root_fd(connection)
         return fd >= 0 ? fd : nil
     }
@@ -48,7 +50,8 @@ public final class X11Window: PlatformWindow {
     /// the window draws SDR, as Steam does, so the brightness slider treats both alike. Outside gamescope there is nothing to
     /// read.
     public override func readDisplayColor() -> DisplayColor? {
-        drained(gamescopeColor())
+        guard !isClosed else { return nil }
+        return drained(gamescopeColor())
     }
 
     private func gamescopeColor() -> DisplayColor? {
@@ -84,7 +87,8 @@ public final class X11Window: PlatformWindow {
     }
 
     public override func pump(readable: Bool) -> Bool {
-        kiln_x11_pump(connection) == 0
+        guard !isClosed else { return true }
+        return kiln_x11_pump(connection) == 0
     }
 
     public override func requestFrame() {
@@ -93,6 +97,7 @@ public final class X11Window: PlatformWindow {
 
     /// Sends the requests made since the last pump; a frame that was just presented is reported taken on the next turn.
     public override func flush() {
+        guard !isClosed else { return }
         kiln_x11_flush(connection)
         guard frameRequested else { return }
         frameRequested = false
@@ -105,15 +110,24 @@ public final class X11Window: PlatformWindow {
     }
 
     public override func setFullscreen(_ fullscreen: Bool) {
+        guard !isClosed else { return }
         kiln_x11_set_fullscreen(connection, fullscreen)
     }
 
     public override func setCursor(_ cursor: Cursor) {
+        guard !isClosed else { return }
         kiln_x11_set_cursor(connection, cursor.raw)
     }
 
+    /// Closes the window once the event being handled is done with the connection (a close button's event closes the
+    /// window from inside `pump`); until then, and after, nothing more reaches the server.
     public override func close() {
-        kiln_x11_disconnect(connection)
+        guard !isClosed else { return }
+        isClosed = true
+        let address = UInt(bitPattern: connection)
+        DispatchQueue.main.async {
+            if let pointer = OpaquePointer(bitPattern: address) { kiln_x11_disconnect(pointer) }
+        }
     }
 
     /// The Steam app ID the process was launched under: the systemd scope Steam starts every title in

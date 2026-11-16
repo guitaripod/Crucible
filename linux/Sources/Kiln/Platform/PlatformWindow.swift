@@ -77,6 +77,9 @@ public class PlatformWindow {
     /// The screen's refresh period when the window knows it before any frame is shown (X11 reads it from RandR; Wayland
     /// learns it from presentation feedback).
     public var refreshNanoseconds: UInt32? { nil }
+    /// The keyboard's repeat rate and delay as last reported, which an X11 window hears while it opens, before its owner
+    /// listens.
+    public internal(set) var keyRepeat: (rate: Int32, delay: Int32)?
 
     /// Asks to hear when the frame about to be presented has been taken (`windowFrameDone`).
     public func requestFrame() {}
@@ -203,6 +206,7 @@ public class PlatformWindow {
         },
         repeat_info: { context, rate, delay in
             PlatformWindow.on(context) { window in
+                window.keyRepeat = (rate, delay)
                 window.delegate?.windowRepeatInfo(window, rate: rate, delay: delay)
             }
         },
