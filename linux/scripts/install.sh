@@ -56,25 +56,17 @@ for size in 64 128 256 512; do
     magick "$repo/linux/Resources/org.guitaripod.Crucible.png" -resize "${size}x${size}" "$dir/org.guitaripod.Crucible.png"
 done
 mkdir -p "$prefix/share/applications"
-cat > "$prefix/share/applications/org.guitaripod.Crucible.desktop" <<DESKTOP
-[Desktop Entry]
-Type=Application
-Name=Crucible
-GenericName=Plex Client
-Comment=Your Plex library, beautifully on Linux
-Exec=$lib/crucible %U
-Icon=org.guitaripod.Crucible
-Terminal=false
-Categories=AudioVideo;Video;Player;TV;
-Keywords=Plex;Movies;TV;Media;
-StartupWMClass=org.guitaripod.Crucible
-MimeType=x-scheme-handler/crucible;
-Actions=Couch;
-
-[Desktop Action Couch]
-Name=Open on the TV (Couch)
-Exec=$lib/crucible --couch
-DESKTOP
+sed "s|^Exec=crucible|Exec=$lib/crucible|" "$repo/linux/packaging/org.guitaripod.Crucible.desktop" \
+    > "$prefix/share/applications/org.guitaripod.Crucible.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$prefix/share/applications" || true
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t "$prefix/share/icons/hicolor" 2>/dev/null || true
+
+json() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+state="${XDG_STATE_HOME:-$HOME/.local/state}/crucible"
+mkdir -p "$state"
+binary="$(realpath "$lib/crucible")"
+printf '{"kind":"source","version":"%s","binary":"%s","size":%s,"prefix":"%s","source":"%s","commit":"%s","installedAt":"%s"}\n' \
+    "$(json "$("$binary" --version | awk '{ print $NF }')")" "$(json "$binary")" "$(stat -c %s "$binary")" "$(json "$(cd "$prefix" && pwd -P)")" \
+    "$(json "$repo")" "$(git -C "$repo" rev-parse HEAD 2>/dev/null || true)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$state/install.json.tmp"
+mv "$state/install.json.tmp" "$state/install.json"
 "$lib/crucible" --version
