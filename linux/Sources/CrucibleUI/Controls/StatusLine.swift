@@ -39,11 +39,16 @@ public final class StatusLineView: View {
     private var spinnerSide: Float { Theme.current.metrics.tv(36) }
     private var spacing: Float { Theme.current.metrics.tv(16) }
 
+    /// The text wrapped to the room beside the spinner. A centred line is laid out in a box as wide as its longest line,
+    /// so the spinner and the text centre together instead of the spinner sitting at the leading edge of a full-width box.
     private func layout(width: Float) -> TextLayout? {
         guard !text.isEmpty else { return nil }
         let room = width - (isBusy ? spinnerSide + spacing : 0)
-        return TextLayout(text, font: Theme.current.type.callout, maxWidth: max(1, min(room, maxTextWidth ?? room)), maxLines: 3,
-                          alignment: isCentered ? .center : .leading, scale: window?.scale ?? 1)
+        let scale = window?.scale ?? 1
+        let natural = TextLayout(text, font: Theme.current.type.callout, maxWidth: max(1, min(room, maxTextWidth ?? room)), maxLines: 3,
+                                 scale: scale)
+        guard isCentered else { return natural }
+        return TextLayout(text, font: Theme.current.type.callout, maxWidth: natural.size.width + 1, maxLines: 3, alignment: .center, scale: scale)
     }
 
     public override func sizeThatFits(_ size: Size) -> Size {
