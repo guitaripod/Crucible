@@ -94,11 +94,15 @@ public final class ArtworkShapes {
         }
     }
 
+    /// Writes the shapes off the main thread, encoding included: the dictionary can hold thousands of entries and a save
+    /// comes every couple of seconds while a long library scrolls in its artwork.
     private func saveNow() {
         saveTask?.cancel()
         saveTask = nil
-        guard let file, let data = try? JSONEncoder().encode(shapes) else { return }
+        guard let file else { return }
+        let snapshot = shapes
         Task.detached(priority: .utility) {
+            guard let data = try? JSONEncoder().encode(snapshot) else { return }
             try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? data.write(to: file, options: .atomic)
         }
