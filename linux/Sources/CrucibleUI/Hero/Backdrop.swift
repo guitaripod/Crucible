@@ -78,14 +78,16 @@ public final class BackdropView: View {
         }
         let textScrim = Rect(x: 0, y: 0, width: bounds.width * 0.78, height: bounds.height)
         context.gradient(textScrim, vertical: false, stops: [
-            (0, canvas.overlay(0.96)), (0.42 / 0.78, canvas.overlay(0.78)), (1, canvas.overlay(0)),
+            (0, canvas.overlay(0.96)), (0.42 / 0.78, canvas.overlay(0.78)), (0.8, canvas.overlay(0.3)), (1, canvas.overlay(0)),
         ])
         let bottom = Rect(x: 0, y: bounds.height * 0.35, width: bounds.width, height: bounds.height * 0.65)
         context.gradient(bottom, vertical: true, stops: [
-            (0, canvas.overlay(0)), ((0.72 - 0.35) / 0.65, canvas.overlay(0.7)), (1, canvas.overlay(1)),
+            (0, canvas.overlay(0)), (0.25, canvas.overlay(0.3)), ((0.72 - 0.35) / 0.65, canvas.overlay(0.7)), (1, canvas.overlay(1)),
         ])
         let top = Rect(x: 0, y: 0, width: bounds.width, height: metrics.backdropTopScrim)
-        context.gradient(top, vertical: true, stops: [(0, canvas.overlay(0.85)), (1, canvas.overlay(0))])
+        context.gradient(top, vertical: true, stops: [
+            (0, canvas.overlay(0.85)), (0.45, canvas.overlay(0.4)), (0.8, canvas.overlay(0.1)), (1, canvas.overlay(0)),
+        ])
         if dimming > 0 {
             context.fill(bounds, color: canvas.overlay(min(max(dimming, 0), 1) * metrics.backdropMaximumDimming))
         }

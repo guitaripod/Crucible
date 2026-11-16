@@ -90,10 +90,10 @@ public struct Color: Hashable, Sendable {
         Color(linearRed: 0, green: 0, blue: 0, alpha: 1 - Float(pow(Double(1 - min(max(alpha, 0), 1)), 2.2)))
     }
 
-    /// `self` (an opaque colour) as an overlay at `alpha` that darkens or tints as much as sRGB blending would.
+    /// `self` (an opaque colour) as an overlay at `alpha` that darkens or tints as much as sRGB blending would: a dark
+    /// canvas's scrim and a light canvas's alike.
     public func overlay(_ alpha: Float) -> Color {
-        guard luminance < 0.05 else { return withAlpha(alpha) }
-        return Color(linearRed: red, green: green, blue: blue, alpha: 1 - Float(pow(Double(1 - min(max(alpha, 0), 1)), 2.2)))
+        withSRGBAlpha(alpha)
     }
 
     public static let white = Color(linearRed: 1, green: 1, blue: 1)
