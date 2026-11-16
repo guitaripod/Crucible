@@ -121,7 +121,7 @@ func captureKey(_ character: Character) -> KeyEvent? {
 }
 
 /// Presses a capture's keys in order, moving the pointer for each `{X,Y}` among them, pressing and releasing the primary
-/// button for `[` and `]`, clicking the secondary for `#`, and holding Ctrl for the letter after a `^`.
+/// button for `[` and `]`, clicking the secondary for `#` and the middle for `*`, and holding Ctrl for the letter after a `^`.
 @MainActor
 func performCaptureInput(_ keys: String, in window: Window) {
     var rest = Substring(keys)
@@ -143,6 +143,9 @@ func performCaptureInput(_ keys: String, in window: Window) {
         case "#":
             window.handlePointerButton(.secondary, pressed: true)
             window.handlePointerButton(.secondary, pressed: false)
+        case "*":
+            window.handlePointerButton(.middle, pressed: true)
+            window.handlePointerButton(.middle, pressed: false)
         default:
             if let event = captureKey(character) { window.handleKey(event) }
         }
@@ -153,8 +156,8 @@ func performCaptureInput(_ keys: String, in window: Window) {
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
 /// Ctrl with it, `+` and `-` Ctrl with them, `!` F10, `?` Ctrl+?, `^` and a letter Ctrl with it, `{X,Y}` moves the pointer to
-/// that point of the window, `[` and `]` press and release the primary button, `#` clicks the secondary, any other character
-/// itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
+/// that point of the window, `[` and `]` press and release the primary button, `#` clicks the secondary and `*` the middle,
+/// any other character itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }
