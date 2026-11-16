@@ -31,7 +31,6 @@ final class SettingsScreen: ScreenView {
             self.navigation?.push(screen)
         }
         categoryList.showsNavigation = false
-        categoryList.preferredWidth = Theme.current.metrics.tv(560)
         categoryList.onSelect = { [weak self] item, _ in self?.showPane(item.id) }
         addSubview(categoryList)
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
@@ -148,6 +147,7 @@ final class SettingsScreen: ScreenView {
             page.frame = bounds
             return
         }
+        categoryList.preferredWidth = Theme.current.metrics.tv(560)
         let listWidth = categoryList.width
         categoryList.frame = Rect(x: 0, y: 0, width: listWidth, height: bounds.height)
         pane?.frame = Rect(x: listWidth, y: 0, width: max(bounds.width - listWidth, 0), height: bounds.height)

@@ -115,8 +115,12 @@ final class RootView: View, WindowRestoration.Restorable {
 
     private static let sidebarCollapsedKey = "linux.sidebarCollapsed"
 
+    /// A window this narrow keeps the sidebar a rail whatever the viewer chose.
+    private var isTooNarrowForSidebar: Bool { frame.width < Theme.current.metrics.tv(1900) }
+
     /// Narrows the sidebar to its rail or widens it again (Ctrl+B), and keeps the choice.
     func toggleSidebar() {
+        guard usesSidebar, player == nil, !isTooNarrowForSidebar else { return }
         let collapsed = !UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
         UserDefaults.standard.set(collapsed, forKey: Self.sidebarCollapsedKey)
         setNeedsLayout()
@@ -436,7 +440,7 @@ final class RootView: View, WindowRestoration.Restorable {
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
-        sidebar.isCollapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey) || frame.width < metrics.tv(1900)
+        sidebar.isCollapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey) || isTooNarrowForSidebar
         tabBar.isHidden = usesSidebar || player != nil
         sidebar.isHidden = !usesSidebar || player != nil
         sidebar.frame = Rect(x: 0, y: 0, width: sidebar.width, height: frame.height)
