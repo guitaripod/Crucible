@@ -14,6 +14,23 @@ struct PlainSegmentTests {
         #expect(TraktCommentText.markup(translated) == "OPEN WIDE [spoiler]THE END[/spoiler] THEN MORE\n`code`")
     }
 
+    @Test func linksAndCodeAreKeptAndNeverSent() async throws {
+        let lines = TraktCommentText("Mira [la guía](https://ejemplo.com/guia) y usa `npm i` ahora").lines
+        let segments = PlainSegments(lines)
+        #expect(segments.segments.map(\.text) == ["Mira", "y usa", "ahora"])
+        let translated = try await segments.translated { texts throws(TranslationFailure) in texts.map { "<\($0)>" } }
+        #expect(TraktCommentText.markup(translated) == "<Mira> [la guía](https://ejemplo.com/guia) <y usa> `npm i` <ahora>")
+    }
+
+    @Test func emojiAtTheEndsStayOutOfTheTranslation() async throws {
+        let segments = PlainSegments(TraktCommentText("😭 So good it hurts. 😂❤️").lines)
+        #expect(segments.segments.map(\.text) == ["So good it hurts."])
+        let translated = try await segments.translated { texts throws(TranslationFailure) in texts.map { _ in "Niin hyvä." } }
+        #expect(TraktCommentText.markup(translated) == "😭 Niin hyvä. 😂❤️")
+        #expect(!PlainSegments.keptAside("1"))
+        #expect(PlainSegments.keptAside("👍🏽"))
+    }
+
     @Test func aTranslationThatLosesAPieceFails() async {
         let segments = PlainSegments(TraktCommentText("one [spoiler]two[/spoiler]").lines)
         await #expect(throws: TranslationFailure.failed) {
@@ -82,6 +99,14 @@ struct LiveModelTests {
         #expect(text.hasInlineSpoilers)
         #expect(LanguageDetector.language(of: text.plainText) == "en")
         #expect(text.runs.first { $0.isSpoiler }?.text.lowercased().contains("father") == true)
+    }
+
+    @Test func aspectsTranslateTogetherAsPhrasesAboutAFilm() async throws {
+        guard #available(macOS 26.0, *) else { return }
+        let phrases = ["Memorable score", "Clever writing", "Uneven tone"]
+        let french = try #require(await AspectBatch.translate(phrases, into: "fr"))
+        #expect(Set(french.keys) == Set(phrases))
+        #expect(french.values.allSatisfy { !$0.isEmpty && LanguageDetector.language(of: $0, hint: "fr") != "en" })
     }
 
     @Test func thePlanReadsLimitsFromARequest() async throws {
