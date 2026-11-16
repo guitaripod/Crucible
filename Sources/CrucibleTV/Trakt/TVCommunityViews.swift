@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import UIKit
 
 /// The pulse of a title's Trakt community on Apple TV: Trakt's score with how its voters spread, how many watch, play, list
@@ -155,10 +156,20 @@ final class TVCommentCardView: TVFocusableSurface {
     private let cover = UIView()
     private let footer = UILabel()
     private let gif = TraktGIFView(cornerRadius: Theme.Radius.s)
+    private var shown: (comment: TraktComment, isRevealed: Bool, isLiked: Bool, summary: TraktReactionSummary?, mine: Set<TraktReaction>, isMine: Bool)?
+    /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
+    nonisolated(unsafe) private var translationObserver: (any NSObjectProtocol)?
 
     init(commentID: Int) {
         self.commentID = commentID
         super.init(cornerRadius: Theme.Radius.l)
+        translationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated {
+                guard let self, let shown = self.shown, key == nil || key == TranslationCenter.key(shown.comment) else { return }
+                self.apply(comment: shown.comment, isRevealed: shown.isRevealed, isLiked: shown.isLiked, summary: shown.summary, mine: shown.mine, isMine: shown.isMine)
+            }
+        }
         name.font = TVFont.cardTitle
         name.textColor = Theme.Color.label
         name.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -237,12 +248,22 @@ final class TVCommentCardView: TVFocusableSurface {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Shows the comment as it stands now, in place, so a focused card keeps the focus while its counts change.
-    func apply(comment: TraktComment, isRevealed: Bool, isLiked: Bool, summary: TraktReactionSummary?, mine: Set<TraktReaction>, isMine: Bool) {
+    deinit {
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
+    }
+
+    /// Shows the comment as it stands now, in place, so a focused card keeps the focus while its counts change. A comment
+    /// in another language shows its translation once it lands, tagged as translated.
+    func apply(comment written: TraktComment, isRevealed: Bool, isLiked: Bool, summary: TraktReactionSummary?, mine: Set<TraktReaction>, isMine: Bool) {
+        shown = (written, isRevealed, isLiked, summary, mine, isMine)
+        let translation = TranslationCenter.shared.presentation(for: written)
+        let comment = TranslationCenter.shared.displayed(written)
         avatar.configure(comment.user)
         name.text = isMine ? "\(comment.user.displayName) (\(TraktCommunityCopy.you))" : comment.user.displayName
         tags.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for tag in Self.tags(comment) { tags.addArrangedSubview(Self.tagLabel(tag)) }
+        var shownTags = Self.tags(comment)
+        if translation.showsTranslation { shownTags.append(TranslationCopy.translated.uppercased()) }
+        for tag in shownTags { tags.addArrangedSubview(Self.tagLabel(tag)) }
         meta.text = [comment.authorRating.map { "★ \($0)/10" }, TraktCommunityCopy.age(comment.createdAt)].compactMap { $0 }.joined(separator: "  ·  ")
         let text = TraktCommentText(comment.text)
         body.attributedText = TraktCommentTextFormatter.attributed(text, font: Theme.Font.callout, color: Theme.Color.label, revealed: isRevealed, lineSpacing: 4)
@@ -270,7 +291,12 @@ final class TVCommentCardView: TVFocusableSurface {
         let label = UILabel()
         label.text = text
         label.font = TVFont.eyebrow
-        label.textColor = text == TraktCommunityCopy.vip ? Theme.Color.accent : (text == TraktCommunityCopy.spoiler.uppercased() ? .systemRed : .systemTeal)
+        switch text {
+        case TraktCommunityCopy.vip: label.textColor = Theme.Color.accent
+        case TraktCommunityCopy.spoiler.uppercased(): label.textColor = .systemRed
+        case TranslationCopy.translated.uppercased(): label.textColor = .systemIndigo
+        default: label.textColor = .systemTeal
+        }
         return label
     }
 

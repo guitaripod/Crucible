@@ -4,6 +4,7 @@ enum TVSettingsPage: CaseIterable, Sendable {
     case remote
     case homeRows
     case privacy
+    case translation
     case libraries
     case server
     case diagnostics

@@ -21,6 +21,7 @@ final class TVYouViewController: TVSettingsScaffold {
         static let remote = "you.remote"
         static let homeRows = "you.homeRows"
         static let privacy = "you.privacy"
+        static let translation = "you.translation"
         static let libraries = "you.libraries"
         static let server = "you.server"
         static let crucibleServer = "you.crucibleServer"
@@ -110,6 +111,7 @@ final class TVYouViewController: TVSettingsScaffold {
         case RowID.remote: push(TVScreens.settings(env, page: .remote))
         case RowID.homeRows: push(TVScreens.settings(env, page: .homeRows))
         case RowID.privacy: push(TVScreens.settings(env, page: .privacy))
+        case RowID.translation: push(TVScreens.settings(env, page: .translation))
         case RowID.libraries: push(TVScreens.settings(env, page: .libraries))
         case RowID.server: push(TVScreens.settings(env, page: .server))
         case RowID.crucibleServer: push(TVCompanionViewController())
@@ -240,6 +242,10 @@ final class TVYouViewController: TVSettingsScaffold {
         }
         if HomeProfiles.knownCount > 1 {
             rows.insert(TVRowItem(id: RowID.switchProfile, title: HomeProfiles.title, value: PlexAccountName.stored, symbol: "person.2", accessory: .chevron), at: 0)
+        }
+        if TranslationLanguages.isAvailable, let seerr = rows.firstIndex(where: { $0.id == RowID.seerr }) {
+            let category = SettingsCategory.translation
+            rows.insert(TVRowItem(id: RowID.translation, title: category.title(on: .tv), value: SettingsCatalog.summary(of: category, on: .tv), symbol: category.symbol, accessory: .chevron), at: seerr + 1)
         }
         if SeerrAccount.shared.isConnected, let watchlist = rows.firstIndex(where: { $0.id == RowID.watchlist }) {
             rows.insert(TVRowItem(id: RowID.requests, title: SeerrCopy.requests, symbol: "tray.full", accessory: .chevron), at: watchlist + 1)

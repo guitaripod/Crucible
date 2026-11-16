@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import UIKit
 
 /// The shared body of the movie, episode and show detail screens: a backdrop with scrims, a hero
@@ -66,6 +67,8 @@ class TVDetailViewController: TVScreenViewController {
     private lazy var communitySlot = makeTaskSlot()
     nonisolated(unsafe) private var communityObserver: (any NSObjectProtocol)?
     nonisolated(unsafe) private var communityProObserver: UUID?
+    /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
+    nonisolated(unsafe) private var aspectTranslationObserver: (any NSObjectProtocol)?
 
     init(env: TVAppEnvironment) {
         self.env = env
@@ -99,10 +102,18 @@ class TVDetailViewController: TVScreenViewController {
             MainActor.assumeIsolated { self?.communityChanged(change) }
         }
         communityProObserver = ProAccess.shared.observe { [weak self] _ in self?.refreshCommunity() }
+        aspectTranslationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated {
+                guard let self, key == nil || key?.hasPrefix(TraktSentimentsTranslation.prefix) == true, let sentiments = self.community?.sentiments else { return }
+                self.reconfigureCommunity(sentiments.good.indices.map { Item.communityAspect("good.\($0)") } + sentiments.bad.indices.map { Item.communityAspect("bad.\($0)") })
+            }
+        }
     }
 
     deinit {
         if let communityObserver { NotificationCenter.default.removeObserver(communityObserver) }
+        if let aspectTranslationObserver { NotificationCenter.default.removeObserver(aspectTranslationObserver) }
         if let communityProObserver { Task { @MainActor in ProAccess.shared.stopObserving(communityProObserver) } }
     }
 
@@ -618,7 +629,7 @@ class TVDetailViewController: TVScreenViewController {
 
     private func aspectChip(_ id: String) -> TVChipItem {
         let good = id.hasPrefix("good.")
-        let text = aspect(id)?.text ?? ""
+        let text = aspect(id).map(TraktSentimentsTranslation.text) ?? ""
         return TVChipItem(
             id: id,
             title: "\(good ? "\u{1F44D}" : "\u{1F44E}")  \(text)",

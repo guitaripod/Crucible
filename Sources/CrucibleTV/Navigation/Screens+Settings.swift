@@ -7,6 +7,7 @@ extension TVScreens {
         case .remote: TVSettingsCategoryViewController(env: env, category: .controls)
         case .homeRows: TVHomeRowsViewController()
         case .privacy: TVSettingsCategoryViewController(env: env, category: .privacy)
+        case .translation: TVSettingsCategoryViewController(env: env, category: .translation)
         case .libraries: TVLibrariesSettingsViewController(api: env.api)
         case .server: TVServerSettingsViewController(env: env)
         case .diagnostics: TVDiagnosticsViewController()

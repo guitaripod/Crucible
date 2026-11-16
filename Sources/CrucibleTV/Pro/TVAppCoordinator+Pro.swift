@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleIntelligence
 import UIKit
 
 extension TVAppCoordinator {
@@ -7,6 +8,7 @@ extension TVAppCoordinator {
     func installPro() {
         ProAccess.shared.configureForLaunch(store: nil)
         HostedBrain.configureForLaunch()
+        Intelligence.configureForLaunch()
         ProAccess.shared.paywallPresenter = { [weak self] request, completion in
             guard let self else {
                 completion(false)

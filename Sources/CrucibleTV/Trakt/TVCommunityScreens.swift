@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import CrucibleIntelligence
 import MidgarCore
 import UIKit
 
@@ -130,6 +131,7 @@ enum TVCommunityScreens {
                 }
             }),
         ]
+        if let translation = translationAction(for: comment) { children.append(translation) }
         if community.isMine(comment) {
             children.append(UIAction(title: TraktCommunityCopy.edit, image: UIImage(systemName: "pencil")) { [weak host] _ in
                 guard let host else { return }
@@ -164,11 +166,63 @@ enum TVCommunityScreens {
         return parts.joined(separator: "  ")
     }
 
-    /// A comment's text for a row or a column, spoilers hidden unless `revealed`.
+    /// A comment's text for a row or a column, spoilers hidden unless `revealed`, in the reader's language once translated.
     static func text(_ comment: TraktComment, revealed: Bool) -> String {
         if comment.isSpoiler && !revealed { return TraktCommunityCopy.spoilerCover + " · " + TraktCommunityCopy.pressToReveal }
-        let text = TraktCommentText(comment.text)
+        let text = TraktCommentText(TranslationCenter.shared.displayed(comment).text)
         return revealed ? text.plainText : text.textHidingSpoilers
+    }
+
+    /// Translate, Show Original or Show Translation for a comment in another language, or nil for one in the reader's.
+    static func translationAction(for comment: TraktComment) -> UIAction? {
+        let center = TranslationCenter.shared
+        switch center.presentation(for: comment).phase {
+        case .offer, .failed:
+            return UIAction(title: TranslationCopy.translate, image: UIImage(systemName: "translate")) { _ in center.translate(comment) }
+        case .translated:
+            return UIAction(title: TranslationCopy.showOriginal, image: UIImage(systemName: "text.bubble")) { _ in center.toggleOriginal(comment) }
+        case .original:
+            return UIAction(title: TranslationCopy.showTranslation, image: UIImage(systemName: "translate")) { _ in center.toggleOriginal(comment) }
+        case .translating, .none:
+            return nil
+        }
+    }
+
+    /// Calls `refresh` whenever a translation lands or the reader switches between a translation and the original.
+    static func observeTranslations(_ refresh: @escaping @MainActor () -> Void) -> any NSObjectProtocol {
+        NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { refresh() }
+        }
+    }
+
+    /// The row of a thread about its comment's translation, or nil for a comment in the reader's language.
+    static func translationRow(for comment: TraktComment) -> TVRowItem? {
+        let shown = TranslationCenter.shared.presentation(for: comment)
+        guard let language = shown.sourceName else { return nil }
+        switch shown.phase {
+        case .offer:
+            return TVRowItem(id: "thread.translation", title: TranslationCopy.translateFrom(language), symbol: "translate")
+        case .translating:
+            return TVRowItem(id: "thread.translation", title: TranslationCopy.translating, symbol: "translate", isEnabled: false)
+        case .translated:
+            return TVRowItem(id: "thread.translation", title: TranslationCopy.showOriginal, subtitle: TranslationCopy.translatedFrom(language), symbol: "text.bubble")
+        case .original:
+            return TVRowItem(id: "thread.translation", title: TranslationCopy.showTranslation, symbol: "translate")
+        case .failed:
+            return TVRowItem(id: "thread.translation", title: TranslationCopy.tryAgain, subtitle: TranslationCopy.failed, symbol: "translate")
+        case .none:
+            return nil
+        }
+    }
+
+    /// What the thread's translation row does for the phase it showed.
+    static func selectTranslation(of comment: TraktComment) {
+        let center = TranslationCenter.shared
+        switch center.presentation(for: comment).phase {
+        case .offer, .failed: center.translate(comment)
+        case .translated, .original: center.toggleOriginal(comment)
+        case .translating, .none: break
+        }
     }
 }
 
@@ -219,7 +273,9 @@ final class TVCommentColumn: TVReadOnlyPanel {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ comment: TraktComment, revealed: Bool, isMine: Bool) {
+    func show(_ written: TraktComment, revealed: Bool, isMine: Bool) {
+        let translation = TranslationCenter.shared.presentation(for: written)
+        let comment = TranslationCenter.shared.displayed(written)
         avatar.configure(comment.user)
         name.text = isMine ? "\(comment.user.displayName) (\(TraktCommunityCopy.you))" : comment.user.displayName
         var facts = TVCommentCardView.tags(comment)
@@ -227,6 +283,7 @@ final class TVCommentColumn: TVReadOnlyPanel {
         if comment.authorPlays > 1 { facts.append(TraktCommunityCopy.authorPlays(comment.authorPlays)) }
         facts.append(TraktCommunityCopy.age(comment.createdAt))
         if comment.wasEdited { facts.append(TraktCommunityCopy.edited) }
+        if translation.showsTranslation, let language = translation.sourceName { facts.append(TranslationCopy.translatedFrom(language)) }
         meta.text = facts.map { $0.replacingOccurrences(of: " ", with: "\u{00A0}") }.joined(separator: "  ·  ")
         if comment.isSpoiler && !revealed {
             body.attributedText = NSAttributedString(string: TraktCommunityCopy.spoilerCover, attributes: [.font: Theme.Font.callout, .foregroundColor: Theme.Color.labelSecondary])
@@ -244,6 +301,8 @@ final class TVCommentColumn: TVReadOnlyPanel {
 /// One comment with everything around it on Apple TV: the comment on the left; on the right, reveal, read in full, like,
 /// react, reply, the author, and the replies, each opening as a thread of its own.
 final class TVCommentThreadViewController: TVSettingsScaffold {
+    /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
+    nonisolated(unsafe) private var translationObserver: (any NSObjectProtocol)?
     private var root: TraktComment
     private let subject: TraktCommunitySubject?
     private let titleName: String?
@@ -270,12 +329,14 @@ final class TVCommentThreadViewController: TVSettingsScaffold {
 
     deinit {
         if let changeObserver { NotificationCenter.default.removeObserver(changeObserver) }
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         installContext(column)
         render()
+        translationObserver = TVCommunityScreens.observeTranslations { [weak self] in self?.render() }
         changeObserver = NotificationCenter.default.addObserver(forName: .traktCommunityChanged, object: nil, queue: .main) { [weak self] note in
             guard let change = note.object as? TraktCommunity.Change else { return }
             MainActor.assumeIsolated { self?.handle(change) }
@@ -332,13 +393,14 @@ final class TVCommentThreadViewController: TVSettingsScaffold {
         let mine = community.isMine(root)
         column.show(root, revealed: revealed, isMine: mine)
         var rows: [TVRowItem] = []
-        let text = TraktCommentText(root.text)
+        let text = TraktCommentText(TranslationCenter.shared.displayed(root).text)
         if !revealed, root.isSpoiler || text.hasInlineSpoilers {
             rows.append(TVRowItem(id: "thread.reveal", title: String(localized: "Reveal Spoilers", comment: "Row that shows a Trakt comment's hidden spoilers"), symbol: "eye"))
         }
         if text.plainText.count > 520 {
             rows.append(TVRowItem(id: "thread.read", title: String(localized: "Read in Full", comment: "Row that opens a long Trakt comment in a reader"), symbol: "text.alignleft", accessory: .chevron))
         }
+        if let translation = TVCommunityScreens.translationRow(for: root) { rows.append(translation) }
         let liked = community.isLiked(root.id)
         rows.append(TVRowItem(id: "thread.like", title: liked ? TraktCommunityCopy.unlike : TraktCommunityCopy.like, value: "♥ \(Formatters.compactCount(root.likeCount))", symbol: liked ? "heart.fill" : "heart"))
         let summary = community.cachedSummary(root.id)
@@ -376,7 +438,9 @@ final class TVCommentThreadViewController: TVSettingsScaffold {
             revealed = true
             render()
         case "thread.read":
-            present(TVSynopsisViewController(title: root.user.displayName, text: TraktCommentText(root.text).plainText), animated: TVMotion.animationsEnabled)
+            present(TVSynopsisViewController(title: root.user.displayName, text: TraktCommentText(TranslationCenter.shared.displayed(root).text).plainText), animated: TVMotion.animationsEnabled)
+        case "thread.translation":
+            TVCommunityScreens.selectTranslation(of: root)
         case "thread.like":
             TVCommunityScreens.toggleLike(root, from: self)
         case "thread.react":
@@ -441,6 +505,8 @@ final class TVCommentThreadViewController: TVSettingsScaffold {
 /// Every comment on a title on Apple TV, a page at a time, in the order the viewer picks. The focused comment reads in full
 /// in the left column; Select opens its thread. Opened from a sentiment, it lists the comments Trakt drew it from.
 final class TVCommentsViewController: TVSettingsScaffold {
+    /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
+    nonisolated(unsafe) private var translationObserver: (any NSObjectProtocol)?
     enum Source {
         case subject(TraktCommunitySubject)
         case aspect(TraktSentiments.Aspect, TraktCommunitySubject)
@@ -468,7 +534,7 @@ final class TVCommentsViewController: TVSettingsScaffold {
         self.source = source
         self.titleName = titleName
         let title: String
-        if case .aspect(let aspect, _) = source { title = aspect.text } else { title = TraktCommunityCopy.comments }
+        if case .aspect(let aspect, _) = source { title = TraktSentimentsTranslation.text(aspect) } else { title = TraktCommunityCopy.comments }
         heading = TVSettingsHeading(title: title, body: titleName)
         super.init()
     }
@@ -478,12 +544,17 @@ final class TVCommentsViewController: TVSettingsScaffold {
 
     deinit {
         if let changeObserver { NotificationCenter.default.removeObserver(changeObserver) }
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         installHeading(heading)
         presentState(.loading(title: TraktCommunityCopy.comments))
+        translationObserver = TVCommunityScreens.observeTranslations { [weak self] in
+            guard let self, self.page > 0 else { return }
+            self.render()
+        }
         changeObserver = NotificationCenter.default.addObserver(forName: .traktCommunityChanged, object: nil, queue: .main) { [weak self] note in
             guard let change = note.object as? TraktCommunity.Change else { return }
             MainActor.assumeIsolated { self?.handle(change) }
@@ -644,6 +715,8 @@ final class TVTraktMemberViewController: TVSettingsScaffold {
     private var following: TraktCommunity.Following?
     private var comments: [TraktUserComment] = []
     private let column = TVMemberColumn()
+    /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
+    nonisolated(unsafe) private var translationObserver: (any NSObjectProtocol)?
 
     init(user: TraktUser) {
         self.user = user
@@ -653,9 +726,17 @@ final class TVTraktMemberViewController: TVSettingsScaffold {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         installContext(column)
+        translationObserver = TVCommunityScreens.observeTranslations { [weak self] in
+            guard let self, !self.comments.isEmpty else { return }
+            self.render()
+        }
         column.show(user)
         presentState(.loading(title: user.displayName))
         let handle = user.handle
@@ -849,153 +930,5 @@ final class TVTraktMembersViewController: TVSettingsScaffold {
     override func rowDidSelect(_ id: String) {
         guard let user = users.first(where: { "member.\($0.username)" == id }) else { return }
         TVNavigation.push(TVTraktMemberViewController(user: user), from: self)
-    }
-}
-
-/// Writes a comment, a review or a reply on Apple TV through the system keyboard, which takes dictation from the remote and
-/// typing from a paired iPhone. The left column shows the text with Trakt's rules and how many words it has; the rows write,
-/// mark it a spoiler and post it.
-final class TVCommentComposerViewController: TVSettingsScaffold {
-    enum Mode {
-        case new(TraktCommunitySubject, titleName: String)
-        case reply(TraktComment)
-        case edit(TraktComment)
-    }
-
-    private let mode: Mode
-    private var text: String
-    private var isSpoiler: Bool
-    private var isPosting = false
-    private let screenTitle: String
-    private let heading: TVSettingsHeading
-
-    init(mode: Mode) {
-        self.mode = mode
-        switch mode {
-        case .edit(let comment):
-            text = comment.text
-            isSpoiler = comment.isSpoiler
-            screenTitle = TraktCommunityCopy.editTitle
-        case .reply(let parent):
-            let draft = TraktCommentDrafts.load(TraktCommunity.draftKey(replyingTo: parent.id))
-            text = draft?.text ?? ""
-            isSpoiler = draft?.isSpoiler ?? false
-            screenTitle = TraktCommunityCopy.replyTitle
-        case .new(let subject, _):
-            let draft = TraktCommentDrafts.load(TraktCommunity.draftKey(subject: subject))
-            text = draft?.text ?? ""
-            isSpoiler = draft?.isSpoiler ?? false
-            screenTitle = TraktCommunityCopy.composeTitle
-        }
-        heading = TVSettingsHeading(title: screenTitle)
-        super.init()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        installHeading(heading)
-        render()
-    }
-
-    override var preferredFocusRowID: String? { "composer.write" }
-
-    private var draftKey: String? {
-        switch mode {
-        case .new(let subject, _): return TraktCommunity.draftKey(subject: subject)
-        case .reply(let parent): return TraktCommunity.draftKey(replyingTo: parent.id)
-        case .edit: return nil
-        }
-    }
-
-    private var context: String {
-        switch mode {
-        case .new(_, let titleName): return titleName
-        case .reply(let parent): return TraktCommunityCopy.replyingTo(parent.user.displayName)
-        case .edit: return TraktCommunityCopy.editTitle
-        }
-    }
-
-    private func render() {
-        let draft = TraktCommentDraft(text)
-        var body = context + "\n\n"
-        body += text.isEmpty ? TraktCommunityCopy.placeholder : text
-        body += "\n\n"
-        if let concern = TraktCommunityCopy.concern(draft) {
-            body += concern
-        } else if draft.wordCount > 0 {
-            body += draft.isReview ? "\(TraktCommunityCopy.review) · \(TraktCommunityCopy.wordCount(draft.wordCount))" : TraktCommunityCopy.wordCount(draft.wordCount)
-        }
-        if !TraktCommentRules.wereSeen() {
-            body += "\n\n" + TraktCommunityCopy.rulesTitle + "\n" + TraktCommunityCopy.rules.map { "· " + $0 }.joined(separator: "\n")
-        }
-        heading.setBody(body)
-        let on = String(localized: "On")
-        let off = String(localized: "Off")
-        let writeTitle = text.isEmpty ? String(localized: "Write", comment: "Row that opens the keyboard to write a Trakt comment") : TraktCommunityCopy.edit
-        setRows([
-            TVRowItem(id: "composer.write", title: writeTitle, symbol: "keyboard", accessory: .chevron),
-            TVRowItem(id: "composer.spoiler", title: TraktCommunityCopy.markSpoiler, value: isSpoiler ? on : off, symbol: isSpoiler ? "eye.slash.fill" : "eye.slash"),
-            TVRowItem(id: "composer.post", title: isEditingComment ? TraktCommunityCopy.save : TraktCommunityCopy.post, symbol: "paperplane.fill", isEnabled: draft.canPost && !isPosting),
-        ])
-    }
-
-    private var isEditingComment: Bool {
-        if case .edit = mode { return true }
-        return false
-    }
-
-    override func rowDidSelect(_ id: String) {
-        switch id {
-        case "composer.write":
-            TraktCommentRules.markSeen()
-            presentTextEntry(title: screenTitle, message: context, text: text, placeholder: TraktCommunityCopy.placeholder, confirmTitle: String(localized: "Done")) { [weak self] typed in
-                guard let self else { return }
-                self.text = typed
-                self.saveDraft()
-                self.render()
-            }
-        case "composer.spoiler":
-            isSpoiler.toggle()
-            saveDraft()
-            render()
-        case "composer.post":
-            post()
-        default:
-            break
-        }
-    }
-
-    private func saveDraft() {
-        guard let draftKey else { return }
-        TraktCommentDrafts.save(.init(text: text, isSpoiler: isSpoiler), for: draftKey)
-    }
-
-    private func post() {
-        let draft = TraktCommentDraft(text)
-        guard draft.canPost, !isPosting else { return }
-        isPosting = true
-        render()
-        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let spoiler = isSpoiler
-        let mode = mode
-        Task { [weak self] in
-            do {
-                switch mode {
-                case .new(let subject, _): _ = try await TraktCommunity.shared.post(text, spoiler: spoiler, on: subject)
-                case .reply(let parent): _ = try await TraktCommunity.shared.reply(text, spoiler: spoiler, to: parent)
-                case .edit(let comment): _ = try await TraktCommunity.shared.edit(comment, text: text, spoiler: spoiler)
-                }
-                guard let self else { return }
-                TVNavigation.pop(from: self)
-            } catch {
-                guard let self else { return }
-                self.isPosting = false
-                self.render()
-                self.presentAlert(title: TraktCopy.name, message: error.localizedDescription)
-            }
-        }
     }
 }
