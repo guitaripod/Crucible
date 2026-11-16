@@ -137,9 +137,11 @@ public final class GamepadDriver {
     }
 }
 
-/// The gamepads SDL3 finds (Steam's virtual pads included), read on the main queue: 60 times a second while one is
-/// connected and once a second otherwise, to notice one arriving. Their input goes to the window `target` names, the one
-/// with the keyboard, and to none while Crucible is in the background.
+/// The gamepads SDL3 finds (Steam's virtual pads included), read on the main queue: 60 times a second while a pad is in
+/// use (input in the last two seconds, or a direction held), 20 times a second while one sits idle (on a Steam Deck the
+/// virtual pad is always there, so polling it at full rate kept the CPU waking for nothing), and once a second without
+/// one, to notice one arriving. Their input goes to the window `target` names, the one with the keyboard, and to none
+/// while Crucible is in the background.
 @MainActor
 public final class Gamepads {
     public let driver: GamepadDriver
@@ -147,15 +149,39 @@ public final class Gamepads {
     public var onUse: (() -> Void)?
     private let target: @MainActor () -> Window?
     private var timer: DispatchSourceTimer?
-    private var isFast = false
+    private var cadence: Cadence?
     private var used = false
+    private var lastInput = -Double.infinity
+    private var events = [kiln_pad_event](repeating: kiln_pad_event(), count: 64)
+    /// How long after the last input the pads stay on the fast cadence.
+    private static let activeSpan = 2.0
+
+    private enum Cadence {
+        case active, idle, absent
+
+        var interval: DispatchTimeInterval {
+            switch self {
+            case .active: .microseconds(16_667)
+            case .idle: .milliseconds(50)
+            case .absent: .seconds(1)
+            }
+        }
+
+        var leeway: DispatchTimeInterval {
+            switch self {
+            case .active: .milliseconds(2)
+            case .idle: .milliseconds(8)
+            case .absent: .milliseconds(200)
+            }
+        }
+    }
 
     /// Starts SDL's gamepad subsystem; nil when it cannot.
     public init?(driver: GamepadDriver = GamepadDriver(), target: @escaping @MainActor () -> Window?) {
         guard kiln_pads_open() else { return nil }
         self.driver = driver
         self.target = target
-        schedule(fast: false)
+        schedule(.absent)
     }
 
     isolated deinit {
@@ -178,13 +204,12 @@ public final class Gamepads {
         kiln_pads_virtual_axis(Int32(axis), value)
     }
 
-    private func schedule(fast: Bool) {
-        guard timer == nil || fast != isFast else { return }
-        isFast = fast
+    private func schedule(_ next: Cadence) {
+        guard timer == nil || next != cadence else { return }
+        cadence = next
         timer?.cancel()
         let source = DispatchSource.makeTimerSource(queue: .main)
-        let interval: DispatchTimeInterval = fast ? .microseconds(16_667) : .seconds(1)
-        source.schedule(deadline: .now() + interval, repeating: interval, leeway: fast ? .milliseconds(2) : .milliseconds(200))
+        source.schedule(deadline: .now() + next.interval, repeating: next.interval, leeway: next.leeway)
         source.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.pump() } }
         source.resume()
         timer = source
@@ -192,10 +217,10 @@ public final class Gamepads {
 
     /// Reads what SDL has now; the timer calls it, tests too.
     func pump() {
-        var events = [kiln_pad_event](repeating: kiln_pad_event(), count: 64)
         let count = Int(events.withUnsafeMutableBufferPointer { kiln_pads_poll($0.baseAddress, Int32($0.count)) })
         let window = target()
         let now = Window.now()
+        if count > 0 || driver.isRepeating { lastInput = now }
         for raw in events.prefix(count) {
             switch raw.kind {
             case KILN_PAD_ADDED:
@@ -212,7 +237,7 @@ public final class Gamepads {
             }
         }
         if let window { driver.tick(at: now, in: window) }
-        schedule(fast: isConnected)
+        schedule(!isConnected ? .absent : now - lastInput < Self.activeSpan || driver.isRepeating ? .active : .idle)
     }
 
     private static func event(_ raw: kiln_pad_event) -> GamepadEvent? {

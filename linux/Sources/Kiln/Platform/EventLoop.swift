@@ -13,7 +13,8 @@ public final class EventLoop {
         let handler: Handler
     }
 
-    private var sources: [Source] = []
+    private var sources: [Source] = [] { didSet { descriptors = sources.map { pollfd(fd: $0.fd, events: $0.events, revents: 0) } } }
+    private var descriptors: [pollfd] = []
     private var turnEnds: [@MainActor () -> Void] = []
     private var stopRequested = false
 
@@ -49,20 +50,26 @@ public final class EventLoop {
     /// Waits up to `timeoutMilliseconds` for any source and runs the handlers of those that became readable; a handler
     /// with nothing to read still runs once per turn so it can flush what it queued.
     public func runOnce(timeoutMilliseconds: Int32) {
-        var descriptors = sources.map { pollfd(fd: $0.fd, events: $0.events, revents: 0) }
+        for index in descriptors.indices { descriptors[index].revents = 0 }
         let ready = poll(&descriptors, nfds_t(descriptors.count), timeoutMilliseconds)
         let snapshot = sources
+        let events = descriptors
         for (index, source) in snapshot.enumerated() {
-            let readable = ready > 0 && (descriptors[index].revents & source.events) != 0
+            let readable = ready > 0 && index < events.count && (events[index].revents & source.events) != 0
             source.handler(readable)
         }
         for handler in turnEnds { handler() }
     }
 
-    public func run(until finished: @MainActor () -> Bool) {
+    /// Turns until `finished` says so. Everything that changes the app arrives on a source (input, the display, the main
+    /// queue that timers, tasks and `asyncAfter` run on, mpv's wakeups), so the loop sleeps until one of them is ready;
+    /// `timeoutMilliseconds` only bounds how long a `finished` that depends on the clock goes unchecked, and how long a
+    /// D-Bus connection waits to process its own timeouts. A 16 ms turn kept the CPU waking 60 times a second while
+    /// nothing happened.
+    public func run(timeoutMilliseconds: Int32 = 1000, until finished: @MainActor () -> Bool) {
         stopRequested = false
         while !stopRequested && !finished() {
-            runOnce(timeoutMilliseconds: 16)
+            runOnce(timeoutMilliseconds: timeoutMilliseconds)
         }
     }
 }

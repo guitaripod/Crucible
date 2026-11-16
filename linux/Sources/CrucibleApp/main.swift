@@ -101,7 +101,7 @@ func runCrucible() -> Int32 {
     window.close()
     coordinator.allWindows.forEach { $0.close() }
     let deadline = Window.now() + 2
-    loop.run { PlayerScreen.pendingStop == nil || Window.now() > deadline }
+    loop.run(timeoutMilliseconds: 16) { PlayerScreen.pendingStop == nil || Window.now() > deadline }
     instance?.close()
     return 0
 }
