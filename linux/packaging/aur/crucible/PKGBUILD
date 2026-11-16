@@ -1,6 +1,6 @@
 # Maintainer: guitaripod
-pkgname=crucible-git
-pkgver=0.1.0.r0.g0000000
+pkgname=crucible
+pkgver=0.12.0
 pkgrel=1
 pkgdesc="Plex client in the Apple TV design, with Liquid Glass and HDR video (Wayland, Vulkan)"
 arch=('x86_64')
@@ -10,29 +10,30 @@ depends=('vulkan-icd-loader' 'wayland' 'libxkbcommon' 'pango' 'cairo' 'fontconfi
          'libsecret' 'qrencode' 'systemd-libs' 'ffmpeg' 'libass' 'shaderc' 'lcms2' 'libplacebo' 'pipewire' 'xdg-utils' 'sqlite' 'curl' 'openssl' 'libxml2' 'sdl3')
 optdepends=('noto-fonts-emoji: emoji in comments, reactions and titles drawn in colour'
             'noto-fonts-cjk: Chinese, Japanese and Korean titles and names')
-makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-bin' 'cargo')
-provides=('crucible')
-conflicts=('crucible')
+makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-language' 'cargo')
+conflicts=('crucible-git')
 options=('!lto' '!debug' '!strip')
-source=("git+$url.git")
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/linux-$pkgver.tar.gz")
 sha256sums=('SKIP')
 
-pkgver() {
-    cd Crucible
-    local version
-    version="$(sed -n 's/.*static let version = "\(.*\)"/\1/p' linux/Sources/CrucibleApp/main.swift)"
-    printf "%s.r%s.g%s" "$version" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+prepare() {
+    local swift
+    swift="$(swift --version 2>/dev/null | sed -n 's/.*Swift version \([0-9]*\)\..*/\1/p' | head -n 1)"
+    if [ -z "$swift" ] || [ "$swift" -lt 6 ]; then
+        echo "Crucible needs Swift 6 or newer (swift-bin or swiftly-bin); found: $(swift --version 2>&1 | head -n 1)" >&2
+        return 1
+    fi
 }
 
 build() {
-    cd Crucible
+    cd "Crucible-linux-$pkgver"
     linux/scripts/build-mpv.sh
     linux/scripts/build-accesskit.sh
     PKG_CONFIG_PATH="$PWD/linux/.build/mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib
 }
 
 package() {
-    cd Crucible
+    cd "Crucible-linux-$pkgver"
     local bin lib
     bin="$(PKG_CONFIG_PATH="$PWD/linux/.build/mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib --show-bin-path)"
     lib="$pkgdir/usr/lib/crucible"
