@@ -192,7 +192,7 @@ public final class CardView: View {
     public var hoverActions: () -> CardHoverActions = { [] }
 
     /// One of the hover buttons.
-    private enum Zone: Equatable {
+    enum Zone: Equatable {
         case play, watched, menu
     }
 
@@ -292,7 +292,7 @@ public final class CardView: View {
     }
 
     /// Where each hover button sits in the card's points, following the artwork's lift.
-    private func zoneRect(_ zone: Zone) -> Rect {
+    func zoneRect(_ zone: Zone) -> Rect {
         let metrics = Theme.current.metrics
         let art = artworkRect
         let inset = metrics.badgeInset
@@ -338,6 +338,13 @@ public final class CardView: View {
     }
 
     public override func cursor(at point: Point) -> Cursor { zone(at: point) == nil ? cursor : .pointer }
+
+    /// The hover buttons ride on the lifted artwork, which reaches past the card's own frame (its top corners above it),
+    /// so they take the pointer there too.
+    public override func hitTest(_ point: Point) -> View? {
+        if !isHidden, alpha > 0.01, zone(at: point) != nil { return self }
+        return super.hitTest(point)
+    }
 
     /// A gamepad's right stick tilts the focused card as the pointer does over it.
     public override func gamepadTilted(x: Float, y: Float) -> Bool {
