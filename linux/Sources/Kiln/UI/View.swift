@@ -250,6 +250,11 @@ open class View {
     /// A modal overlay (a menu, an alert): while focus is inside it, arrows and Tab move only among its own views.
     open var isFocusScope: Bool { false }
 
+    /// Where focus coming into this container from `origin` (outside it), moving `direction`, lands in place of `target`,
+    /// the view inside it the engine found nearest; nil keeps `target`. A shelf sends focus arriving from above onto its
+    /// cards rather than the See All in its header.
+    open func redirectedFocus(_ target: View, from origin: View, moving direction: Direction) -> View? { nil }
+
     /// The child focus last left this container from, while it is still in the container.
     public weak var rememberedFocus: View?
 

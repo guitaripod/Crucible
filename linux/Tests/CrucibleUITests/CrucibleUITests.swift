@@ -86,6 +86,25 @@ enum SharedGPU {
         #expect(shelf.card(for: "9")!.frameInWindow.maxX <= 1280)
     }
 
+    @Test func downFromAShelfLandsOnTheCardBelowNotTheNextShelfsSeeAll() {
+        let first = ShelfView(header: SectionHeader(title: "Continue Watching"), style: .landscape)
+        let second = ShelfView(header: SectionHeader(title: "Up Next", hasSeeAll: true), style: .landscape)
+        first.setItems((0..<4).map { CardItem(id: "a\($0)", title: "A \($0)") })
+        second.setItems((0..<4).map { CardItem(id: "b\($0)", title: "B \($0)") })
+        window.contentView.addSubview(first)
+        window.contentView.addSubview(second)
+        first.frame = Rect(x: 0, y: 0, width: 1280, height: first.preferredHeight)
+        second.frame = Rect(x: 0, y: first.preferredHeight, width: 1280, height: second.preferredHeight)
+        window.render()
+        window.focus.setVisible(true)
+        window.focus.focus(first.card(for: "a0"), animated: false)
+        window.handleKey(KeyEvent(key: .down))
+        #expect(window.focusedView === second.card(for: "b0"))
+        window.handleKey(KeyEvent(key: .up))
+        #expect(window.focusedView !== first.card(for: "a0"))
+        #expect(window.focusedView?.isDescendant(of: second) == true)
+    }
+
     @Test func replacingItemsKeepsTheViewsOfItemsThatStay() {
         let shelf = ShelfView(header: nil, style: .poster)
         shelf.setItems([CardItem(id: "a", title: "A"), CardItem(id: "b", title: "B")])

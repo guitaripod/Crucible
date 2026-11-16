@@ -58,6 +58,13 @@ public final class ShelfView: View {
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? { order.first.flatMap { cards[$0] } }
 
+    /// Focus coming down from the row above lands on the card below it, not on See All, which sits closer in the header
+    /// and is reached by going up from the cards.
+    public override func redirectedFocus(_ target: View, from origin: View, moving direction: Direction) -> View? {
+        guard direction == .down, target === seeAll else { return nil }
+        return FocusEngine.nearest(from: origin, direction: .down, among: order.compactMap { cards[$0] })
+    }
+
     /// Replaces the cards, keeping the views (and focus) of items that stay.
     public func setItems(_ newItems: [CardItem]) {
         items = newItems

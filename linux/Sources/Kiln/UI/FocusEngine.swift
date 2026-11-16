@@ -97,7 +97,20 @@ public final class FocusEngine {
         let area = scope(of: current, in: window)
         area.layoutIfNeeded()
         guard let target = Self.nearest(from: current, direction: direction, among: candidates(in: area)) else { return false }
-        return focus(entry(into: target, from: current), animated: true)
+        return focus(entry(into: redirect(target, from: current, moving: direction), from: current), animated: true)
+    }
+
+    /// Lets each container around `target` that focus is entering (innermost first) send it elsewhere inside itself.
+    private func redirect(_ target: View, from current: View, moving direction: Direction) -> View {
+        var container = target.superview
+        while let view = container, !current.isDescendant(of: view) {
+            if let redirected = view.redirectedFocus(target, from: current, moving: direction), redirected.isDescendant(of: view),
+               redirected.canBecomeFocused, redirected.isVisible {
+                return redirected
+            }
+            container = view.superview
+        }
+        return target
     }
 
     /// Where arrows and Tab look for the next view: the innermost focus scope (a menu, an alert) holding `view`, otherwise
@@ -128,7 +141,7 @@ public final class FocusEngine {
     /// The best candidate in `direction`: among views beyond the focused one in that direction, those overlapping its
     /// span across the direction win; then the smallest gap along it, with the offset across it weighing in. Left and right
     /// stay in the focused view's row, so the end of a shelf stops focus instead of jumping to a row above or below.
-    static func nearest(from current: View, direction: Direction, among views: [View]) -> View? {
+    public static func nearest(from current: View, direction: Direction, among views: [View]) -> View? {
         let origin = current.layoutFrameInWindow
         var best: (view: View, overlaps: Bool, score: Float)?
         for view in views where view !== current {
