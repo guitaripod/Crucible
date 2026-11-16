@@ -55,6 +55,8 @@ final class PlayerScreen: View {
     var postPlay: PostPlayView?
     var stream: ResolvedStream?
     var stills: ScrubStillLoader?
+    /// The codecs mpv passes through to the receiver, from the sound output as it was checked when the player opened.
+    private var spdifCodecs: [String] = []
     /// Direct play failed on this file, so every stream from now on is converted by the server.
     var convertsAfterFailure = false
     private var failurePolicy = PlaybackFailurePolicy()
@@ -155,6 +157,7 @@ final class PlayerScreen: View {
             controls?.onCommand = { [weak self] command in self?.perform(command) }
             sessionWatch = SessionWatch(loop: loop)
             sessionWatch?.onEvent = { [weak self] event in self?.sessionChanged(event) }
+            checkAudioOutput()
         } catch {
             presentFailure(String(describing: error), retry: nil)
             return
@@ -200,6 +203,18 @@ final class PlayerScreen: View {
         }
     }
 
+    /// Asks the sound output what it takes before the stream is resolved; a check that ends after the first file started
+    /// still reaches mpv, which reopens its audio for the change.
+    private func checkAudioOutput() {
+        let setting = Preferences.audioPassthrough
+        Task { [weak self] in
+            let codecs = await AudioOutput.prepare(setting)
+            guard let self, codecs != self.spdifCodecs else { return }
+            self.spdifCodecs = codecs
+            if self.stream != nil { self.player?.set("audio-spdif", codecs.joined(separator: ",")) }
+        }
+    }
+
     /// Plays `resolved` from `requested` (the title's resume point by default).
     func load(_ resolved: ResolvedStream, from requested: Double? = nil, paused: Bool = false) {
         guard case .plex(let api, let item, let resumePosition) = source else { return }
@@ -213,6 +228,7 @@ final class PlayerScreen: View {
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
         showStills(of: resolved, api: api)
         player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
+        player?.set("audio-spdif", spdifCodecs.joined(separator: ","))
         player?.set("speed", String(speed))
         let headers = PlexHeaders.allHeaders(token: api.token)
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers)

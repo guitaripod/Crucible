@@ -205,7 +205,7 @@ Rebuilt in Kiln from the tvOS 26 player Crucible uses today: title and transport
 
 ### 7.6 Audio
 
-mpv with `ao=pipewire`. A passthrough setting (Auto, On, Off) feeds `--audio-spdif` with the codecs the sink accepts, so TrueHD with Atmos, DTS-HD, E-AC-3 and AC-3 reach the receiver or TV as bitstreams; otherwise mpv decodes to multichannel PCM. PipeWire forgets a sink's enabled IEC958 codecs when it reconnects (PipeWire issue 3462), so Crucible checks and reapplies them before each play.
+mpv with `ao=pipewire` (other outputs only when PipeWire is missing). Audio Passthrough in Settings › Playback (Automatic, Always, Never) feeds `audio-spdif`: Automatic with the codecs the default sink is set to accept (its `iec958Codecs` in `pw-dump`), Always with every one, which the sink is then set to accept, so TrueHD with Atmos, DTS-HD, E-AC-3 and AC-3 reach the receiver or TV as bitstreams; otherwise mpv decodes to multichannel PCM. PipeWire forgets a sink's enabled IEC958 codecs when it reconnects (PipeWire issue 3462), so when a play starts Crucible remembers the sink's own choice and sets it again with `pw-cli` when it finds the sink back on PCM alone. Headless runs pass `KILN_AO=null` and stay silent.
 
 ## 8. Shared code: the Linux seams
 
