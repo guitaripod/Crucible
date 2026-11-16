@@ -17,7 +17,7 @@ case "${1:-}" in
         ;;
 esac
 mpv="$repo/linux/.build/mpv"
-[ -f "$mpv/lib/libmpv.so.2" ] || "$repo/linux/scripts/build-mpv.sh"
+"$repo/linux/scripts/build-mpv.sh" --if-stale
 [ -f "$mpv/lib/libaccesskit.a" ] || "$repo/linux/scripts/build-accesskit.sh"
 trakt_id=Sources/CrucibleCore/Features/Trakt/TraktClientID.swift
 if [ "$trakt" = with ] && [ ! -s "$repo/$trakt_id" ]; then

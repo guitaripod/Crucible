@@ -1,10 +1,17 @@
 #!/bin/bash
+# Builds the vendored libmpv and libplacebo (linux/Vendor/mpv: the tags and the patch series) into linux/.build/mpv, and
+# stamps the build with the recipe it came from. `--if-stale` builds only when the prefix lacks a build of the current
+# recipe, so a new patch reaches every install without anyone deleting the prefix by hand.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 vendor="$root/Vendor/mpv"
 work="${MPV_WORK:-$root/.build/mpv-src}"
 prefix="${MPV_PREFIX:-$root/.build/mpv}"
 source "$vendor/VERSIONS"
+recipe="$(cat "$vendor/VERSIONS" "$vendor"/patches/*/*.patch | sha256sum | cut -c1-16)"
+if [ "${1:-}" = "--if-stale" ] && [ -f "$prefix/lib/libmpv.so.2" ] && [ "$(cat "$prefix/.recipe" 2>/dev/null)" = "$recipe" ]; then
+    exit 0
+fi
 identity=(-c user.name=Kiln -c user.email=kiln@localhost)
 
 rm -rf "$work"
@@ -35,4 +42,5 @@ ninja -C build install > /dev/null
 if [ "$headers" != "/usr/include" ]; then
     cp -r "$headers/vulkan" "$headers/vk_video" "$prefix/include/"
 fi
+echo "$recipe" > "$prefix/.recipe"
 echo "$prefix/lib/libmpv.so.2 (mpv $MPV_TAG with $(ls "$vendor"/patches/mpv | wc -l) patches, libplacebo ${LIBPLACEBO_COMMIT:0:8})"

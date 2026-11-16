@@ -1,0 +1,88 @@
+From 9f408ce2c787947ba549576b106b70a376c19d7a Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Mon, 16 Nov 2026 18:54:48 +0200
+Subject: [PATCH] hwdec_vaapi: open the render node of the GPU when the render
+ context has no display
+
+The gpu-next render backend of libmpv on Vulkan hands mpv no Wayland, X11 or
+DRM display, so the VA-API interop could not create a VA display and every
+VA-API decode fell back to copying each frame through system memory. Open the
+render node of the Vulkan device the context draws with (or renderD128 when
+the driver does not name one), as hwdec_drmprime does, so decoded surfaces
+are imported as dmabufs without a copy.
+---
+ video/out/hwdec/hwdec_vaapi.c | 53 ++++++++++++++++++++++++++++++++---
+ 1 file changed, 49 insertions(+), 4 deletions(-)
+
+diff --git a/video/out/hwdec/hwdec_vaapi.c b/video/out/hwdec/hwdec_vaapi.c
+index 45ecd53..4980529 100644
+--- a/video/out/hwdec/hwdec_vaapi.c
++++ b/video/out/hwdec/hwdec_vaapi.c
+@@ -58,15 +58,60 @@ static VADisplay *create_wayland_va_display(struct ra *ra)
+ #endif
+ 
+ #if HAVE_VAAPI_DRM
++#include <fcntl.h>
++#include <stdio.h>
++#include <unistd.h>
+ #include <va/va_drm.h>
+ 
++#if HAVE_VULKAN
++#include <libplacebo/vulkan.h>
++#include "video/out/placebo/ra_pl.h"
++
++// The render node of the GPU the render context draws with, from its Vulkan
++// device, so the decoded surfaces are importable without a copy; -1 when the
++// context is not Vulkan or the driver does not say.
++static int vulkan_render_minor(struct ra *ra)
++{
++    pl_gpu gpu = ra_pl_get(ra);
++    pl_vulkan vk = gpu ? pl_vulkan_get(gpu) : NULL;
++    if (!vk)
++        return -1;
++    PFN_vkGetPhysicalDeviceProperties2 get_properties = (PFN_vkGetPhysicalDeviceProperties2)
++        vk->get_proc_addr(vk->instance, "vkGetPhysicalDeviceProperties2");
++    if (!get_properties)
++        return -1;
++    VkPhysicalDeviceDrmPropertiesEXT drm = {
++        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT,
++    };
++    VkPhysicalDeviceProperties2 properties = {
++        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
++        .pNext = &drm,
++    };
++    get_properties(vk->phys_device, &properties);
++    return drm.hasRender ? (int)drm.renderMinor : -1;
++}
++#endif
++
++// A render context with no display of its own (libmpv's gpu-next backend on
++// Vulkan) opens its GPU's render node, as hwdec_drmprime opens one; the
++// descriptor stays open for the life of the process, as the display needs it.
+ static VADisplay *create_drm_va_display(struct ra *ra)
+ {
+     mpv_opengl_drm_params_v2 *params = ra_get_native_resource(ra, "drm_params_v2");
+-    if (!params || params->render_fd == -1)
+-        return NULL;
+-
+-    return vaGetDisplayDRM(params->render_fd);
++    if (params && params->render_fd != -1)
++        return vaGetDisplayDRM(params->render_fd);
++
++    static int render_fd = -1;
++    if (render_fd == -1) {
++        int minor = -1;
++#if HAVE_VULKAN
++        minor = vulkan_render_minor(ra);
++#endif
++        char path[64];
++        snprintf(path, sizeof(path), "/dev/dri/renderD%d", minor >= 0 ? minor : 128);
++        render_fd = open(path, O_RDWR | O_CLOEXEC);
++    }
++    return render_fd == -1 ? NULL : vaGetDisplayDRM(render_fd);
+ }
+ #endif
+ 
+-- 
+2.56.1
+
